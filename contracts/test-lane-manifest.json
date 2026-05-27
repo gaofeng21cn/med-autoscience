@@ -214,6 +214,51 @@
         "manuscript/current_package"
       ]
     },
+    "paper-facing-stage-log-summary": {
+      "kind": "focused_paper_facing_stage_log_summary_contract_gate",
+      "paths": [
+        "tests/progress_portal_cases/test_stage_review_surface.py"
+      ],
+      "docs": [
+        "docs/runtime/display/progress_portal.md"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "read_only_paper_facing_stage_log_projection",
+      "implementation_status": "landed_read_model_projection",
+      "surface_kind": "mas_paper_facing_stage_log_summary",
+      "required_inputs": [
+        "stage_review_index",
+        "quality_repair_batch_followthrough",
+        "repair_execution_evidence",
+        "review_ledger_or_evidence_refs",
+        "source_refs"
+      ],
+      "required_display_fields": [
+        "stage_name",
+        "current_owner",
+        "problem_summary",
+        "stage_goal",
+        "paper_work_done",
+        "changed_paper_surfaces",
+        "outcome",
+        "remaining_blockers",
+        "evidence_refs"
+      ],
+      "body_policy": {
+        "paper_body_included": false,
+        "paper_body_target": false,
+        "internal_review_language_allowed_in_paper_body": false,
+        "summary_scope": "stage_log_read_model_only"
+      },
+      "forbidden_authority_writes": [
+        "study_truth",
+        "paper/submission_minimal",
+        "manuscript/current_package",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "domain_authority_refs.sqlite"
+      ]
+    },
     "mas-workbench-projection": {
       "kind": "focused_mas_opl_runtime_workbench_projection_gate",
       "paths": [

@@ -183,6 +183,153 @@ def test_study_workbench_projects_stage_review_page_index_as_human_audit_table()
     assert "质量 verdict" in html
 
 
+def test_stage_review_projects_paper_facing_stage_log_summary_without_paper_body_write() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    progress = _stage_review_payload()
+    progress["stage_log_summary"] = {
+        "stage_name": "write",
+        "current_owner": "write",
+        "problem_summary": "Methods and results needed a clearer validation-cohort narrative.",
+        "stage_goal": "Make the current manuscript explain cohort derivation and Table 2 estimates.",
+        "paper_work_done": [
+            "Methods text now describes the validation cohort.",
+            "Results text now points readers to Table 2.",
+        ],
+        "changed_paper_surfaces": [
+            "studies/001-risk/paper/draft.md",
+            "studies/001-risk/paper/tables/generated/T2_time_to_event_performance_summary.md",
+        ],
+        "outcome": "writer_handoff_ready",
+        "remaining_blockers": ["AI reviewer recheck still pending"],
+        "evidence_refs": [
+            "studies/001-risk/artifacts/controller/quality_repair_batch/latest.json",
+            "studies/001-risk/artifacts/controller/repair_execution_evidence/latest.json",
+        ],
+    }
+
+    payload = parts.build_study_workbench_payload(
+        progress=progress,
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+    )
+    html = parts.render_study_workbench_sections(payload)
+
+    summary = payload["stage_review_index"]["stage_log_summary"]
+    assert summary["surface_kind"] == "mas_paper_facing_stage_log_summary"
+    assert summary["stage_name"] == "write"
+    assert summary["current_owner"] == "write"
+    assert summary["problem_summary"] == "Methods and results needed a clearer validation-cohort narrative."
+    assert summary["stage_goal"] == "Make the current manuscript explain cohort derivation and Table 2 estimates."
+    assert summary["paper_work_done"] == [
+        "Methods text now describes the validation cohort.",
+        "Results text now points readers to Table 2.",
+    ]
+    assert summary["changed_paper_surfaces"] == [
+        "studies/001-risk/paper/draft.md",
+        "studies/001-risk/paper/tables/generated/T2_time_to_event_performance_summary.md",
+    ]
+    assert summary["outcome"] == "writer_handoff_ready"
+    assert summary["remaining_blockers"] == ["AI reviewer recheck still pending"]
+    assert summary["language_boundary"] == {
+        "paper_body_included": False,
+        "paper_body_target": False,
+        "internal_review_language_allowed_in_paper_body": False,
+        "summary_scope": "stage_log_read_model_only",
+    }
+    assert summary["authority"]["writes_authority_surface"] is False
+    assert summary["authority"]["can_write_paper"] is False
+    assert summary["authority"]["can_write_publication_eval"] is False
+    assert summary["authority"]["can_write_controller_decision"] is False
+    assert summary["authority"]["can_authorize_quality_verdict"] is False
+    assert "Stage Log 摘要" in html
+    assert "Methods and results needed a clearer validation-cohort narrative." in html
+    assert "studies/001-risk/artifacts/controller/repair_execution_evidence/latest.json" in html
+
+
+def test_stage_review_derives_stage_log_summary_from_repair_execution_evidence() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    progress = {
+        **_stage_review_payload(),
+        "quality_repair_batch_followthrough": {
+            "surface_kind": "quality_repair_batch_followthrough",
+            "status": "handoff_ready",
+            "summary": "最近一轮 quality-repair batch 已记录正文和证据账本变化。",
+            "next_owner": "write",
+            "latest_record_path": "studies/001-risk/artifacts/controller/quality_repair_batch/latest.json",
+            "repair_execution_evidence_path": (
+                "studies/001-risk/artifacts/controller/repair_execution_evidence/latest.json"
+            ),
+            "repair_execution_evidence": {
+                "surface": "repair_execution_evidence",
+                "status": "progress_delta_candidate",
+                "blockers": ["AI reviewer recheck request still pending"],
+                "source_refs": ["studies/001-risk/artifacts/publication_eval/latest.json"],
+                "canonical_artifact_delta": {
+                    "meaningful_artifact_delta": True,
+                    "artifact_refs": [
+                        {"path": "studies/001-risk/paper/draft.md"},
+                        {
+                            "path": (
+                                "studies/001-risk/paper/tables/generated/"
+                                "T2_time_to_event_performance_summary.md"
+                            )
+                        },
+                    ],
+                },
+                "evidence_ledger_update_done": True,
+                "review_ledger_update_done": True,
+                "ai_reviewer_recheck_done": False,
+                "evidence_ledger_ref": "studies/001-risk/paper/evidence_ledger.json",
+                "review_ledger_ref": "studies/001-risk/paper/review/review_ledger.json",
+            },
+        },
+    }
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=progress,
+        runtime_payload={"study_id": "001-risk", "active_run_id": "run-runtime-001"},
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    summary = payload["study_workbench"]["stage_review_index"]["stage_log_summary"]
+    assert summary["status"] == "available"
+    assert summary["stage_name"] == "write"
+    assert summary["current_owner"] == "MedAutoScience"
+    assert summary["problem_summary"] == "AI reviewer 要求补充 subgroup sensitivity analysis。"
+    assert summary["stage_goal"] == "补充 subgroup 分析并更新 review ledger。"
+    assert summary["paper_work_done"] == [
+        "manuscript surface updated",
+        "table surface updated",
+        "canonical paper evidence delta recorded",
+        "evidence ledger updated",
+        "review ledger updated",
+    ]
+    assert summary["changed_paper_surfaces"] == [
+        "studies/001-risk/paper/manuscript.md",
+        "studies/001-risk/paper/tables/table1.csv",
+        "studies/001-risk/paper/draft.md",
+        "studies/001-risk/paper/tables/generated/T2_time_to_event_performance_summary.md",
+        "studies/001-risk/paper/evidence_ledger.json",
+        "studies/001-risk/paper/review/review_ledger.json",
+    ]
+    assert summary["outcome"] == "paper_progress_delta_recorded"
+    assert "AI reviewer recheck request still pending" in summary["remaining_blockers"]
+    assert (
+        "studies/001-risk/artifacts/controller/repair_execution_evidence/latest.json"
+        in summary["evidence_refs"]
+    )
+    lane_summary = payload["mas_opl_runtime_workbench_projection"]["studies"][0]["reference_projection"]["lanes"][
+        "stage_review_index"
+    ]["stage_log_summary"]
+    assert lane_summary["outcome"] == "paper_progress_delta_recorded"
+    assert lane_summary["authority"]["can_write_paper"] is False
+
+
 def test_study_workbench_reads_stage_review_page_and_index_from_artifact_locator(tmp_path: Path) -> None:
     parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"

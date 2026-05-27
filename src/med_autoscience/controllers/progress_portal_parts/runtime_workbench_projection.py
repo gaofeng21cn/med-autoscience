@@ -357,6 +357,7 @@ def _stage_review_lane(stage_review: Mapping[str, Any]) -> dict[str, Any]:
         "next_owner": _non_empty_text(stage_review.get("next_owner")),
         "blockers": _string_list(stage_review.get("blockers")),
         "continue_state": _non_empty_text(stage_review.get("continue_state")),
+        "stage_log_summary": dict(_mapping(stage_review.get("stage_log_summary"))),
         "source_refs": refs,
         "can_authorize_publication_readiness": False,
         "can_authorize_quality_verdict": False,

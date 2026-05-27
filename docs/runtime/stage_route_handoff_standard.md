@@ -135,7 +135,8 @@ MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v
 2. `priority_lattice` 固定为 hard methodology/source blocker、pending AI reviewer request、AI reviewer currentness、write route-back、package freshness、delivery/human handoff。
 3. `owner_route_currentness_basis` 至少绑定 work unit fingerprint、truth epoch、runtime health epoch、owner reason 和 source fingerprint；有 current publication eval 时同步带 `source_eval_id`。
 4. envelope 必须声明 `allowed_write_surfaces`、`forbidden_surfaces`、`required_closeout_packet` 和 `completion_boundary.provider_completion_is_domain_ready=false`。
-5. OPL 只记录 attempt started/completed/blocked/failed、typed closeout refs、stdout/session/provider timing；MAS 消费 closeout refs 后再决定 owner receipt、AI reviewer eval、publication gate、package freshness或 typed blocker。
+5. `required_closeout_packet` 必须要求终端 typed closeout 同时携带 `paper_stage_log`（或同义 `user_stage_log` / `stage_log_summary`），字段覆盖 stage_name、problem_summary、stage_goal、paper_work_done、changed_paper_surfaces、outcome、remaining_blockers 和 evidence_refs。该摘要只用于 OPL/MAS read-model 回答用户“这个 stage 做了什么、耗时/token 怎么样”，不得写入论文正文、不得声明 quality/submission/publication ready。
+6. OPL 只记录 attempt started/completed/blocked/failed、typed closeout refs、stdout/session/provider timing；MAS 消费 closeout refs 后再决定 owner receipt、AI reviewer eval、publication gate、package freshness或 typed blocker。
 
 ## 落地状态与证据门
 

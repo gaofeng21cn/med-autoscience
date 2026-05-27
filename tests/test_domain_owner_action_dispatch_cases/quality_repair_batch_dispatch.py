@@ -41,8 +41,35 @@ def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: 
     assert closeout_contract["typed_closeout_required_for_completion"] is True
     assert closeout_contract["free_text_closeout_accepted"] is False
     assert "stage_attempt_closeout_packet" in closeout_contract["accepted_surface_kinds"]
+    assert closeout_contract["required_user_stage_log_field"] == "paper_stage_log"
+    assert closeout_contract["accepted_user_stage_log_fields"] == [
+        "paper_stage_log",
+        "user_stage_log",
+        "stage_log_summary",
+    ]
+    assert closeout_contract["required_user_stage_log_fields"] == [
+        "stage_name",
+        "problem_summary",
+        "stage_goal",
+        "paper_work_done",
+        "changed_paper_surfaces",
+        "outcome",
+        "remaining_blockers",
+        "evidence_refs",
+    ]
+    assert closeout_contract["user_stage_log_policy"] == {
+        "surface_kind": "mas_paper_facing_stage_log_summary",
+        "summary_scope": "stage_log_read_model_only",
+        "paper_body_included": False,
+        "paper_body_target": False,
+        "internal_review_language_allowed_in_paper_body": False,
+        "quality_verdict_authorized": False,
+        "submission_readiness_authorized": False,
+    }
     assert handoff["prompt_contract"]["required_closeout_packet"] == closeout_contract
     assert "exactly one JSON object" in handoff["terminal_output_instruction"]
+    assert "Include paper_stage_log" in handoff["terminal_output_instruction"]
+    assert "stage_progress_log.user_stage_log" in handoff["terminal_output_instruction"]
     assert handoff["prompt_contract"]["request_packet_ref"] == (
         "artifacts/supervision/requests/quality_repair_batch/latest.json"
     )
@@ -107,6 +134,9 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
         },
     )
     called: dict[str, object] = {}
+    closeout_contract = importlib.import_module(
+        "med_autoscience.controllers.default_executor_closeout_contract"
+    ).default_executor_typed_closeout_contract(action_type="run_quality_repair_batch")
 
     def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
         called.update(kwargs)
@@ -119,18 +149,14 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
                 "surface": "default_executor_dispatch_request",
                 "dispatch_status": "ready",
                 "next_executable_owner": "write",
-                "required_output_surface": (
-                    "canonical manuscript story-surface delta or "
-                    "typed blocker:manuscript_story_surface_delta_missing"
-                ),
-                "required_closeout_packet": {
-                    "typed_closeout_required_for_completion": True,
-                    "free_text_closeout_accepted": False,
-                    "accepted_surface_kinds": ["stage_attempt_closeout_packet"],
+                    "required_output_surface": (
+                        "canonical manuscript story-surface delta or "
+                        "typed blocker:manuscript_story_surface_delta_missing"
+                    ),
+                    "required_closeout_packet": closeout_contract,
+                    "terminal_output_instruction": closeout_contract["terminal_output_instruction"],
                 },
-                "terminal_output_instruction": "End with exactly one JSON object.",
-            },
-        }
+            }
 
     monkeypatch.setattr(
         module.action_execution.quality_repair.quality_repair_batch,
@@ -176,6 +202,8 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
     assert closeout_contract["typed_closeout_required_for_completion"] is True
     assert closeout_contract["free_text_closeout_accepted"] is False
     assert "stage_attempt_closeout_packet" in closeout_contract["accepted_surface_kinds"]
+    assert closeout_contract["required_user_stage_log_field"] == "paper_stage_log"
+    assert "paper_work_done" in closeout_contract["required_user_stage_log_fields"]
     assert "terminal_output_instruction" in execution["writer_worker_handoff"]
     assert "exactly one JSON object" in execution["writer_worker_handoff"]["terminal_output_instruction"]
     assert called["study_id"] == study_id

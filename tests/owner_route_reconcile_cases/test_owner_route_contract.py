@@ -489,8 +489,11 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
     assert dispatch["prompt_contract"]["idempotency_key"] == owner_route["idempotency_key"]
     assert dispatch["required_closeout_packet"]["typed_closeout_required_for_completion"] is True
     assert dispatch["required_closeout_packet"]["free_text_closeout_accepted"] is False
+    assert dispatch["required_closeout_packet"]["required_user_stage_log_field"] == "paper_stage_log"
+    assert "paper_work_done" in dispatch["required_closeout_packet"]["required_user_stage_log_fields"]
     assert dispatch["prompt_contract"]["required_closeout_packet"] == dispatch["required_closeout_packet"]
     assert "exactly one JSON object" in dispatch["executor_prompt"]
+    assert "paper_stage_log" in dispatch["executor_prompt"]
     assert packet["owner_route"]["schema_version"] == 2
     assert packet["owner_route"]["truth_epoch"] == owner_route["route_epoch"]
     assert packet["idempotency_key"] == owner_route["idempotency_key"]

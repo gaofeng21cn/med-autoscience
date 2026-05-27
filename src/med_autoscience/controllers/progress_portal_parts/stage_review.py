@@ -11,10 +11,12 @@ from med_autoscience.stage_surface_contract import build_stage_surface_contract
 from .rendering import list_html, status_chip
 from .source_refs import source_ref_allowed
 from .stage_review_parts import (
+    build_stage_log_summary,
     materialize_stage_review_deliverable_index,
     paper_line_workspace_proof_available,
     paper_line_workspace_proof_refs,
     review_page_ref as stage_review_page_ref,
+    runtime_stage_log_summary,
     stage_review_locator_projection,
 )
 from .status_display import display_text
@@ -80,6 +82,13 @@ def build_stage_review_index(
         if status == "available"
         else []
     )
+    stage_log_summary = build_stage_log_summary(
+        explicit=explicit,
+        progress=resolved_progress,
+        row=rows[0] if rows else None,
+        stage=stage,
+        source_refs=source_refs,
+    )
     return {
         "surface_kind": "mas_progress_portal_stage_review_index",
         "schema_version": 1,
@@ -100,6 +109,7 @@ def build_stage_review_index(
             progress=resolved_progress,
             normalized_rows=rows,
         ),
+        "stage_log_summary": stage_log_summary,
         "conditions": {
             "missing": missing,
             "stale": stale,
@@ -121,6 +131,7 @@ def runtime_stage_review_summary(value: Mapping[str, Any] | None) -> dict[str, A
     human_review = _mapping(row.get("human_review_annotation"))
     next_owner = _mapping(row.get("next_owner"))
     continue_state = _mapping(row.get("continue_state"))
+    stage_log = runtime_stage_log_summary(_mapping(review_index.get("stage_log_summary")))
     return {
         "status": _non_empty_text(review_index.get("status")) or "missing",
         "current_stage": _non_empty_text(review_index.get("current_stage")),
@@ -138,6 +149,7 @@ def runtime_stage_review_summary(value: Mapping[str, Any] | None) -> dict[str, A
         "next_owner": _non_empty_text(next_owner.get("owner")),
         "blockers": _string_list(row.get("blockers")),
         "continue_state": _non_empty_text(continue_state.get("state")),
+        "stage_log_summary": stage_log,
         "opl_projection_boundary": "read_only_locator_no_truth_write",
         "can_authorize_quality_verdict": False,
         "can_authorize_submission_readiness": False,
@@ -147,6 +159,7 @@ def runtime_stage_review_summary(value: Mapping[str, Any] | None) -> dict[str, A
 
 def render_stage_review_section(payload: Mapping[str, Any]) -> str:
     rows = [_mapping(item) for item in payload.get("rows") or [] if isinstance(item, Mapping)]
+    stage_log = _mapping(payload.get("stage_log_summary"))
     if not rows:
         return (
             '<section class="panel wide"><h2>Stage 交付审阅 '
@@ -154,6 +167,7 @@ def render_stage_review_section(payload: Mapping[str, Any]) -> str:
             + "</h2>"
             "<p>缺少 Stage Review Page / Deliverable Index 显式引用。</p>"
             "<p>本页面不从文件名、产物路径或 stage 文案猜测审阅结论。</p>"
+            + _stage_log_html(stage_log)
             + _condition_list(payload)
             + "</section>"
         )
@@ -168,6 +182,7 @@ def render_stage_review_section(payload: Mapping[str, Any]) -> str:
         "</tr></thead><tbody>"
         + "".join(_row_html(row) for row in rows)
         + "</tbody></table></div>"
+        + _stage_log_html(stage_log)
         + _condition_list(payload)
         + "</section>"
     )
@@ -612,6 +627,47 @@ def _condition_list(payload: Mapping[str, Any]) -> str:
         for item in _string_list(conditions.get(key)):
             items.append(f"{key}: {item}")
     return list_html(items, empty_text="当前没有 Stage 审阅条件。")
+
+
+def _stage_log_html(stage_log: Mapping[str, Any]) -> str:
+    if not stage_log:
+        return ""
+    items = [
+        f"Stage: {_non_empty_text(stage_log.get('stage_name'))}"
+        if _non_empty_text(stage_log.get("stage_name"))
+        else None,
+        f"Owner: {_non_empty_text(stage_log.get('current_owner'))}"
+        if _non_empty_text(stage_log.get("current_owner"))
+        else None,
+        f"问题: {_non_empty_text(stage_log.get('problem_summary'))}"
+        if _non_empty_text(stage_log.get("problem_summary"))
+        else None,
+        f"目标: {_non_empty_text(stage_log.get('stage_goal'))}"
+        if _non_empty_text(stage_log.get("stage_goal"))
+        else None,
+        f"已做: {'; '.join(_string_list(stage_log.get('paper_work_done')))}"
+        if _string_list(stage_log.get("paper_work_done"))
+        else None,
+        f"论文面: {'; '.join(_string_list(stage_log.get('changed_paper_surfaces')))}"
+        if _string_list(stage_log.get("changed_paper_surfaces"))
+        else None,
+        f"结果: {_non_empty_text(stage_log.get('outcome'))}"
+        if _non_empty_text(stage_log.get("outcome"))
+        else None,
+        f"剩余阻塞: {'; '.join(_string_list(stage_log.get('remaining_blockers')))}"
+        if _string_list(stage_log.get("remaining_blockers"))
+        else None,
+        f"证据: {'; '.join(_string_list(stage_log.get('evidence_refs')))}"
+        if _string_list(stage_log.get("evidence_refs"))
+        else None,
+    ]
+    filtered = [item for item in items if item]
+    if not filtered:
+        return ""
+    return "<h3>Stage Log 摘要</h3>" + list_html(
+        filtered,
+        empty_text="当前没有可展示的 stage log 摘要。",
+    )
 
 
 def _dedupe_refs(values: Iterable[object]) -> list[str]:
