@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import subprocess
 from collections.abc import Iterable, Mapping
 from pathlib import Path
@@ -140,23 +141,55 @@ def _opl_bin() -> Path | None:
 
 
 def _run_opl_json(opl_bin: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, Any] | None:
+    process: subprocess.Popen[str] | None = None
     try:
-        completed = subprocess.run(
+        process = subprocess.Popen(
             [str(opl_bin), *args],
-            check=False,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=timeout_seconds,
+            start_new_session=True,
         )
-    except (OSError, subprocess.TimeoutExpired):
+        stdout, _ = process.communicate(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        if process is not None:
+            _terminate_process_group(process)
         return None
-    if completed.returncode != 0:
+    except OSError:
+        return None
+    if process.returncode != 0:
         return None
     try:
-        parsed = json.loads(completed.stdout)
+        parsed = json.loads(stdout)
     except json.JSONDecodeError:
         return None
     return dict(parsed) if isinstance(parsed, Mapping) else None
+
+
+def _terminate_process_group(process: subprocess.Popen[str]) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    except OSError:
+        process.kill()
+        return
+    try:
+        process.communicate(timeout=0.2)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return
+    except OSError:
+        process.kill()
+        return
+    try:
+        process.communicate(timeout=0.2)
+    except subprocess.TimeoutExpired:
+        pass
 
 
 def _candidate_tasks(
@@ -176,6 +209,7 @@ def _candidate_tasks(
         for task in tasks
         if _task_matches_study(task, profile=profile, study_id=study_id)
         and _text(task.get("task_kind")) == "domain_owner/default-executor-dispatch"
+        and _text(task.get("status")) in LIVE_ATTEMPT_STATES
     ]
     matched.sort(key=lambda task: _text(task.get("updated_at")) or "", reverse=True)
     matched.sort(key=_task_status_priority)

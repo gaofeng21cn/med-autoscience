@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+import subprocess
+import time
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -90,6 +92,94 @@ def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, t
         ("family-runtime", "queue", "list", "--json"),
         ("family-runtime", "queue", "inspect", "frt-live", "--json"),
     ]
+
+
+def test_live_provider_attempt_projection_skips_non_live_tasks(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            return {
+                "family_runtime_queue": {
+                    "tasks": [
+                        {
+                            "task_id": "frt-old-succeeded",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "succeeded",
+                            "updated_at": "2026-05-27T13:35:24Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "study_id": "001-risk",
+                            },
+                        },
+                        {
+                            "task_id": "frt-old-dead-letter",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "dead_letter",
+                            "updated_at": "2026-05-27T13:36:24Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "study_id": "001-risk",
+                            },
+                        },
+                    ]
+                }
+            }
+        raise AssertionError(f"non-live tasks must not be inspected: {args}")
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.live_provider_attempt_for_study(profile=profile, study_id="001-risk")
+
+    assert result is None
+    assert commands == [("family-runtime", "queue", "list", "--json")]
+
+
+def test_run_opl_json_timeout_kills_process_group(tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    marker = tmp_path / "child.pid"
+    script = tmp_path / "opl"
+    script.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "sleep 30 &",
+                f"echo $! > {str(marker)!r}",
+                "sleep 30",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+
+    started = time.monotonic()
+    result = module._run_opl_json(script, ("family-runtime", "queue", "inspect", "frt-hangs", "--json"), timeout_seconds=0.5)
+
+    assert result is None
+    assert time.monotonic() - started < 3
+    deadline = time.monotonic() + 3
+    while not marker.exists() and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert marker.exists()
+    child_pid = int(marker.read_text(encoding="utf-8"))
+    deadline = time.monotonic() + 3
+    while time.monotonic() < deadline:
+        completed = subprocess.run(["/bin/ps", "-p", str(child_pid)], capture_output=True, text=True, check=False)
+        if completed.returncode != 0:
+            break
+        time.sleep(0.05)
+    else:
+        raise AssertionError("timed-out OPL subprocess child was still running")
 
 
 def test_scan_projects_live_opl_provider_attempt_for_current_owner_route(monkeypatch, tmp_path: Path) -> None:
