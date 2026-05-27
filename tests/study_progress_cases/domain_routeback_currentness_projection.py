@@ -153,6 +153,114 @@ def test_study_progress_current_write_routeback_supersedes_stale_runtime_recover
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
 
 
+def test_current_opl_stage_attempt_surfaces_without_claiming_strict_live(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / study_id
+    _write_publication_eval(study_root, quest_root)
+
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": study_id,
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "active",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "active_run_id": None,
+            "runtime_liveness_status": "live",
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": None, "active_run_id": None},
+            },
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-dm002-current-opl-attempt",
+                "attempt_state": "escalated",
+                "canonical_runtime_action": "external_supervisor_required",
+                "last_known_run_id": "opl-stage-attempt://sat-current-write",
+                "worker_liveness_state": {"state": "unknown"},
+            },
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-dm002-current-opl-attempt",
+                "source_signature": "truth-source-dm002-current-opl-attempt",
+                "active_run_id": "opl-stage-attempt://sat-current-write",
+                "execution_owner": {
+                    "owner": "one-person-lab",
+                    "active_run_id": "opl-stage-attempt://sat-current-write",
+                },
+            },
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "publication gate remains blocked and recommends returning to write.",
+            },
+            "domain_transition": {
+                "study_id": study_id,
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "next_work_unit": {
+                    "unit_id": "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck",
+                    "lane": "write",
+                    "summary": "Repair current manuscript after AI reviewer recheck.",
+                },
+                "controller_action": "request_opl_stage_attempt",
+                "owner": "write",
+                "typed_blocker": None,
+            },
+            "continuation_state": {
+                "quest_status": "active",
+                "active_run_id": "opl-stage-attempt://sat-current-write",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+                "pending_user_message_count": 0,
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "stale",
+                "summary": "supervisor tick stale",
+                "latest_recorded_at": "2026-05-27T01:35:29+00:00",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+
+    assert result["active_run_id"] == "opl-stage-attempt://sat-current-write"
+    assert result["supervision"]["active_run_id"] == "opl-stage-attempt://sat-current-write"
+    assert result["runtime_health_snapshot"]["last_known_run_id"] == "opl-stage-attempt://sat-current-write"
+    assert result["continuation_state"]["active_run_id"] == "opl-stage-attempt://sat-current-write"
+    assert result["study_macro_state"]["writer_state"] == "queued"
+    assert result["user_visible_projection"]["owner_resolution_state"] == "ready_for_owner_action"
+    assert result["intervention_lane"]["route_target"] == "write"
+
+
 def test_existing_progress_projection_refreshes_top_level_routeback_action(
     monkeypatch,
     tmp_path: Path,

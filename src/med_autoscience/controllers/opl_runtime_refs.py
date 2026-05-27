@@ -20,6 +20,7 @@ _PARKED_CLOSEOUT_REASONS = frozenset(
         "parked_after_checkpoint_no_new_message",
     }
 )
+_OPL_STAGE_ATTEMPT_PREFIX = "opl-stage-attempt://"
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -29,6 +30,25 @@ def _mapping(value: object) -> Mapping[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _is_opl_stage_attempt_run_id(value: str | None) -> bool:
+    return bool(value and value.startswith(_OPL_STAGE_ATTEMPT_PREFIX))
+
+
+def _trusted_continuation_stage_attempt(
+    *,
+    active_run_id: str | None,
+    active_run_id_source: str | None,
+    continuation_state: Mapping[str, Any],
+) -> bool:
+    return (
+        active_run_id_source == "continuation_state.active_run_id"
+        and _is_opl_stage_attempt_run_id(active_run_id)
+        and _text(continuation_state.get("continuation_policy")) == "auto"
+        and _text(continuation_state.get("continuation_anchor")) == "decision"
+        and _text(continuation_state.get("continuation_reason")) == "controller_work_unit_pending"
+    )
 
 
 def _bool(value: object) -> bool | None:
@@ -188,6 +208,11 @@ def resolve_opl_runtime_refs(
         and
         liveness_source_present
         and active_run_id is not None
+        and not _trusted_continuation_stage_attempt(
+            active_run_id=active_run_id,
+            active_run_id_source=active_run_id_source,
+            continuation_state=continuation_state,
+        )
         and (runtime_liveness_status != "live" or worker_running is not True)
     ):
         active_run_id = None
@@ -233,7 +258,11 @@ def resolve_opl_runtime_refs(
         "autonomous_runtime_notice.active_run_id",
         "runtime_liveness_audit.active_run_id",
         "runtime_audit.active_run_id",
-    }
+    } or _trusted_continuation_stage_attempt(
+        active_run_id=active_run_id,
+        active_run_id_source=active_run_id_source,
+        continuation_state=continuation_state,
+    )
     missing_live_session = runtime_liveness_status != "parked" and (
         (reason in _NO_LIVE_REASONS and not trusted_active_run_for_recovery)
         or (quest_status in _ACTIVE_QUEST_STATUSES and runtime_liveness_status == "none")

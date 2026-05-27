@@ -849,6 +849,7 @@ def build_study_progress_projection(
         autonomous_runtime_notice=autonomous_runtime_notice,
         execution_owner_guard=execution_owner_guard,
         supervisor_tick_audit=supervisor_tick_audit,
+        runtime_facts=runtime_facts,
         supervision_health_status=supervision_health_status,
         refs=refs,
     )

@@ -93,6 +93,39 @@ def test_opl_runtime_refs_do_not_treat_stale_continuation_run_as_strict_live() -
     assert facts.strict_live is False
     assert facts.missing_live_session is True
     assert facts.recovery_pending is True
+
+
+def test_opl_runtime_refs_preserve_current_opl_stage_attempt_without_strict_live() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")
+
+    facts = module.resolve_opl_runtime_refs(
+        {
+            "quest_status": "active",
+            "runtime_liveness_status": "live",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": None, "active_run_id": None},
+            },
+            "continuation_state": {
+                "quest_status": "active",
+                "active_run_id": "opl-stage-attempt://sat-current-write",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+            },
+        },
+        supervisor_tick_audit={"status": "stale"},
+    )
+
+    assert facts.active_run_id == "opl-stage-attempt://sat-current-write"
+    assert facts.active_run_id_source == "continuation_state.active_run_id"
+    assert facts.strict_live is False
+    assert facts.missing_live_session is True
+    assert facts.recovery_pending is True
+    assert facts.to_domain_activity_ref()["active_run_id"] == "opl-stage-attempt://sat-current-write"
+
 def test_opl_runtime_refs_do_not_treat_completed_parked_run_as_strict_live(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"

@@ -88,7 +88,11 @@ def derive_study_macro_state(
         )
 
     redrive_route = _runtime_redrive_route(status=status)
-    if redrive_route is not None and not _live_status_active_run_id(status=status, truth=truth):
+    if redrive_route is not None and not _live_status_active_run_id(
+        status=status,
+        progress=progress_payload,
+        truth=truth,
+    ):
         return _state(
             study_id=study_id,
             writer_state="queued",
@@ -373,8 +377,18 @@ def _truth_conflict(*, status: Mapping[str, Any], progress: Mapping[str, Any], t
 def _active_run_id(*, status: Mapping[str, Any], progress: Mapping[str, Any], truth: Mapping[str, Any]) -> str | None:
     if _text(status.get("quest_status")) in {"paused", "stopped", "completed"}:
         return None
-    if _runtime_redrive_route(status=status) is not None and not _live_status_active_run_id(status=status, truth=truth):
+    if _runtime_redrive_route(status=status) is not None and not _live_status_active_run_id(
+        status=status,
+        progress=progress,
+        truth=truth,
+    ):
         return None
+    runtime_refs = _opl_runtime_refs(status=status, progress=progress)
+    if runtime_refs:
+        if runtime_refs.get("strict_live") is not True:
+            return None
+        if active_run_id := _text(runtime_refs.get("active_run_id")):
+            return active_run_id
     runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
     liveness = _mapping(status.get("runtime_liveness_audit"))
     if runtime_audit.get("worker_running") is False or liveness.get("worker_running") is False:
@@ -408,8 +422,19 @@ def _runtime_redrive_route(*, status: Mapping[str, Any]) -> dict[str, Any] | Non
     return None
 
 
-def _live_status_active_run_id(*, status: Mapping[str, Any], truth: Mapping[str, Any]) -> str | None:
+def _live_status_active_run_id(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    truth: Mapping[str, Any],
+) -> str | None:
     del truth
+    runtime_refs = _opl_runtime_refs(status=status, progress=progress)
+    if runtime_refs:
+        if runtime_refs.get("strict_live") is not True:
+            return None
+        if active_run_id := _text(runtime_refs.get("active_run_id")):
+            return active_run_id
     if _text(status.get("quest_status")) in {"paused", "stopped", "completed", "waiting_for_user"}:
         return None
     runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
@@ -427,6 +452,10 @@ def _live_status_active_run_id(*, status: Mapping[str, Any], truth: Mapping[str,
         or _text(liveness.get("active_run_id"))
         or _text(runtime_audit.get("active_run_id"))
     )
+
+
+def _opl_runtime_refs(*, status: Mapping[str, Any], progress: Mapping[str, Any]) -> Mapping[str, Any]:
+    return _mapping(status.get("opl_runtime_refs")) or _mapping(progress.get("opl_runtime_refs"))
 
 
 def _missing_external_info(*, status: Mapping[str, Any], progress: Mapping[str, Any]) -> list[str]:

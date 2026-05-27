@@ -317,6 +317,7 @@ def assemble_study_progress_payload(
     autonomous_runtime_notice: dict[str, Any],
     execution_owner_guard: dict[str, Any],
     supervisor_tick_audit: dict[str, Any],
+    runtime_facts: Any,
     supervision_health_status: str | None,
     refs: dict[str, Any],
 ) -> dict[str, Any]:
@@ -411,6 +412,7 @@ def assemble_study_progress_payload(
             supervisor_tick_audit=supervisor_tick_audit,
             refs=refs,
         ),
+        "opl_runtime_refs": runtime_facts.to_runtime_refs_dict(),
         "refs": refs,
     }
     payload["production_blocker_impact"] = build_production_blocker_impact_projection(
