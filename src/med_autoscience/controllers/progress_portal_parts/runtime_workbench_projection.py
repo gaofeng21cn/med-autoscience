@@ -116,7 +116,7 @@ def _workbench_study_row(
         row.get("runtime_health_status"),
         row.get("supervisor_tick_status"),
     )
-    return {
+    result = {
         "study_id": study_id,
         "display_title": _non_empty_text(row.get("display_title")) or _non_empty_text(row.get("title")) or study_id,
         "macro_state": _first_non_empty_text(
@@ -137,6 +137,10 @@ def _workbench_study_row(
         "links": _workbench_links(study_id, selected=study_id == selected_study_id),
         "actions": _workbench_actions(),
     }
+    paper_route_lens = _paper_route_lens_summary(row.get("paper_route_lens"))
+    if paper_route_lens:
+        result["paper_route_lens"] = paper_route_lens
+    return result
 
 
 def _selected_workbench_study(
@@ -288,15 +292,18 @@ def _paper_route_lens(
     typed_blocker_refs = _dedupe_refs(
         [
             *_receipt_refs(explicit.get("typed_blocker_refs")),
+            *_receipt_refs(explicit.get("blocker_refs")),
             *_receipt_refs(progress.get("typed_blocker_refs")),
+            *_receipt_refs(progress.get("blocker_refs")),
             *_receipt_refs(progress.get("stable_typed_blocker_refs")),
             *[
                 ref
                 for attempt in route_attempts
-                for ref in _string_list(attempt.get("typed_blocker_refs"))
+                for ref in _string_list(attempt.get("typed_blocker_refs")) + _string_list(attempt.get("blocker_refs"))
             ],
         ]
     )
+    stage_review_refs = _stage_review_refs(stage_review=stage_review, explicit=explicit)
     next_route_refs = _dedupe_refs(
         [
             *_receipt_refs(explicit.get("next_route_refs")),
@@ -322,6 +329,7 @@ def _paper_route_lens(
             *workspace_refs,
             *next_route_refs,
             *next_action_refs,
+            *stage_review_refs,
         ]
     )
     missing = []
@@ -356,22 +364,16 @@ def _paper_route_lens(
         "route_attempts": route_attempts,
         "route_attempt_counts": _route_attempt_counts(route_attempts),
         "owner_receipt_refs": owner_receipt_refs,
+        "blocker_refs": typed_blocker_refs,
         "typed_blocker_refs": typed_blocker_refs,
+        "stage_review_refs": stage_review_refs,
         "reviewer_gate_refs": reviewer_gate_refs,
         "artifact_refs": artifact_refs,
         "source_refs": lens_source_refs,
         "workspace_refs": workspace_refs,
         "next_route_refs": next_route_refs,
         "next_action_refs": next_action_refs,
-        "authority": {
-            "opl_role": "workbench_projection_consumer_only",
-            "writes_mas_truth": False,
-            "body_free": True,
-            "can_authorize_publication_readiness": False,
-            "can_authorize_quality_verdict": False,
-            "can_authorize_artifact_mutation": False,
-            "can_write_memory_body": False,
-        },
+        "authority": _paper_route_lens_authority(),
         "conditions": {"missing": missing, "stale": [], "conflict": []},
     }
 
@@ -388,7 +390,12 @@ def _explicit_route_attempts(attempts: list[dict[str, Any]]) -> list[dict[str, A
                 "status": _route_attempt_status(attempt),
                 "owner": _first_non_empty_text(attempt.get("owner"), attempt.get("next_owner"), attempt.get("route_owner")),
                 "owner_receipt_refs": _receipt_refs(attempt.get("owner_receipt_refs")),
-                "typed_blocker_refs": _receipt_refs(attempt.get("typed_blocker_refs")),
+                "typed_blocker_refs": _dedupe_refs(
+                    [
+                        *_receipt_refs(attempt.get("typed_blocker_refs")),
+                        *_receipt_refs(attempt.get("blocker_refs")),
+                    ]
+                ),
                 "reviewer_gate_refs": _receipt_refs(attempt.get("reviewer_gate_refs")),
                 "artifact_refs": _receipt_refs(attempt.get("artifact_refs")),
                 "source_refs": _projection_source_refs(attempt),
@@ -491,6 +498,61 @@ def _route_attempt_counts(attempts: list[dict[str, Any]]) -> dict[str, int]:
         status = _non_empty_text(attempt.get("status")) or "unknown"
         counts[status if status in counts else "unknown"] += 1
     return counts
+
+
+def _paper_route_lens_summary(value: object) -> dict[str, Any]:
+    lens = _mapping(value)
+    if not lens:
+        return {}
+    current_route = _summary_current_route(lens.get("current_route"))
+    route_attempt_counts = _mapping(lens.get("route_attempt_counts"))
+    return {
+        "surface_kind": "mas_opl_paper_route_lens_summary",
+        "schema_version": 1,
+        "mode": "refs_only_paper_route_lens_summary",
+        "body_included": False,
+        "claims_publication_ready": False,
+        "current_route": current_route,
+        "route_attempt_counts": _summary_route_attempt_counts(route_attempt_counts),
+        "blocker_refs": _receipt_refs(lens.get("blocker_refs") or lens.get("typed_blocker_refs")),
+        "next_route_refs": _receipt_refs(lens.get("next_route_refs")),
+        "next_action_refs": _receipt_refs(lens.get("next_action_refs")),
+        "stage_review_refs": _receipt_refs(lens.get("stage_review_refs")),
+        "authority": _paper_route_lens_authority(),
+    }
+
+
+def _summary_current_route(value: object) -> dict[str, Any]:
+    if isinstance(value, str):
+        route_id = _non_empty_text(value)
+        return {"route_id": route_id} if route_id is not None else {}
+    current = _mapping(value)
+    route_id = _first_non_empty_text(current.get("route_id"), current.get("id"), current.get("route"))
+    if route_id is None:
+        return {}
+    return {"route_id": route_id}
+
+
+def _summary_route_attempt_counts(value: Mapping[str, Any]) -> dict[str, int]:
+    return {
+        key: int(raw_value)
+        for key, raw_value in value.items()
+        if key in {"success", "failure", "blocked"} and isinstance(raw_value, int) and not isinstance(raw_value, bool)
+    }
+
+
+def _stage_review_refs(
+    *,
+    stage_review: Mapping[str, Any],
+    explicit: Mapping[str, Any],
+) -> list[str]:
+    return _dedupe_refs(
+        [
+            *_receipt_refs(explicit.get("stage_review_refs")),
+            _non_empty_text(stage_review.get("latest_review_page_ref")),
+            _non_empty_text(stage_review.get("deliverable_index_ref")),
+        ]
+    )
 
 
 def _reviewer_gate_refs(
@@ -797,6 +859,18 @@ def _reference_authority() -> dict[str, Any]:
         "can_authorize_publication_readiness": False,
         "can_authorize_quality_verdict": False,
         "can_apply_guarded_mutation": False,
+        "can_write_memory_body": False,
+    }
+
+
+def _paper_route_lens_authority() -> dict[str, Any]:
+    return {
+        "opl_role": "workbench_projection_consumer_only",
+        "writes_mas_truth": False,
+        "body_free": True,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_artifact_mutation": False,
         "can_write_memory_body": False,
     }
 

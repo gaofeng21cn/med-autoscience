@@ -151,6 +151,7 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
                 "operator_focus": operator_focus,
                 "next_system_action": _non_empty_text(item.get("next_system_action"))
                 or _non_empty_text(user_visible.get("next_system_action")),
+                "paper_route_lens": _mapping(item.get("paper_route_lens")),
             }
         )
     return result
