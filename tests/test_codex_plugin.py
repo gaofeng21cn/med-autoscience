@@ -33,6 +33,10 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     assert "runtime" in manifest["description"].lower()
     assert PLUGIN_ICON_PATH.is_file()
     assert PLUGIN_ICON_SOURCE_PATH.is_file()
+    icon_source = PLUGIN_ICON_SOURCE_PATH.read_text(encoding="utf-8")
+    assert '<rect width="512" height="512" rx="112"' in icon_source
+    assert 'stroke-width="44"' in icon_source
+    assert 'stroke="#8AD6FF"' in icon_source
     assert PLUGIN_SKILL_UI_METADATA_PATH.is_file()
 
 

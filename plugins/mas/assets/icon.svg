@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Med Auto Science plugin icon">
-  <rect x="32" y="32" width="448" height="448" rx="116" fill="#1F7A8C"/>
-  <path d="M132 274C164 274 164 204 198 204C232 204 232 332 266 332C300 332 300 248 336 248C362 248 372 220 392 196" fill="none" stroke="#FFFFFF" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="132" cy="274" r="20" fill="#FFFFFF"/>
-  <circle cx="198" cy="204" r="20" fill="#FFFFFF"/>
-  <circle cx="266" cy="332" r="20" fill="#FFFFFF"/>
-  <circle cx="336" cy="248" r="20" fill="#FFFFFF"/>
-  <path d="M130 382H382" stroke="#BDEFEA" stroke-width="28" stroke-linecap="round" opacity="0.82"/>
+  <rect width="512" height="512" rx="112" fill="#1F7A8C"/>
+  <path d="M126 284C166 284 164 196 208 196C252 196 246 334 292 334C330 334 334 246 386 214" fill="none" stroke="#FFFFFF" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="126" cy="284" r="23" fill="#FFFFFF"/>
+  <circle cx="208" cy="196" r="23" fill="#FFFFFF"/>
+  <circle cx="292" cy="334" r="23" fill="#FFFFFF"/>
+  <circle cx="386" cy="214" r="23" fill="#FFFFFF"/>
+  <path d="M132 384H380" stroke="#8AD6FF" stroke-width="34" stroke-linecap="round"/>
 </svg>
