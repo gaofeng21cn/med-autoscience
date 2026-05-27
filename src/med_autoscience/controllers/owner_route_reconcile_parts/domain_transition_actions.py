@@ -105,6 +105,8 @@ def _owner_for_domain_action(action_type: str) -> str:
         return "ai_reviewer"
     if action_type == "unit_harmonized_external_validation_rerun":
         return "analysis_harmonization_owner"
+    if action_type == "run_gate_clearing_batch":
+        return "gate_clearing_batch"
     if action_type == "publication_gate_specificity_required":
         return "publication_gate"
     if action_type == "request_opl_stage_attempt":

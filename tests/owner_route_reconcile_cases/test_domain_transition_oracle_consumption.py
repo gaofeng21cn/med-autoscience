@@ -146,7 +146,8 @@ def test_action_queue_routes_publication_blocker_through_domain_transition_work_
         }
     )
 
-    assert [item["action_type"] for item in actions] == ["publication_gate_specificity_required"]
+    assert [item["action_type"] for item in actions] == ["run_gate_clearing_batch"]
+    assert actions[0]["owner"] == "gate_clearing_batch"
     assert actions[0]["reason"] == "domain_transition_publication_gate_blocker"
     assert actions[0]["controller_action"] == "run_gate_clearing_batch"
     assert actions[0]["domain_transition_decision_type"] == "publication_gate_blocker"
