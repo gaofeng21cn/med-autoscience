@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.reviewer_os_fixture_helpers import claim_evidence_map_payload, evidence_ledger_payload
@@ -161,6 +162,15 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     ]
     assert "artifacts/publication_eval/latest.json" in handoff["forbidden_surfaces"]
     assert "artifacts/controller_decisions/latest.json" in handoff["forbidden_surfaces"]
+    persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    immutable_dispatch_path = Path(persisted["refs"]["immutable_dispatch_path"])
+    assert persisted["refs"]["stage_packet_path"] == str(immutable_dispatch_path)
+    assert immutable_dispatch_path.is_file()
+    assert immutable_dispatch_path.parent.name == "return_to_ai_reviewer_workflow"
+    assert immutable_dispatch_path.parent.parent.name == "immutable"
+    immutable_dispatch = json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))
+    assert immutable_dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert immutable_dispatch["owner_route"] == persisted["owner_route"]
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 

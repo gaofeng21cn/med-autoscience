@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import default_executor_dispatch_packets
 from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
@@ -240,7 +241,17 @@ def materialize_ai_reviewer_record_worker_handoff(
     if dispatch_path_text is None:
         raise ValueError("ai_reviewer_record_worker_handoff_dispatch_path_missing")
     dispatch_path = Path(dispatch_path_text).expanduser()
-    _write_json(dispatch_path, handoff)
+    packet_handoff = default_executor_dispatch_packets.dispatch_with_immutable_packet_ref(
+        dispatch=handoff,
+        dispatch_path=dispatch_path,
+    )
+    _write_json(dispatch_path, packet_handoff)
+    immutable_dispatch_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
+        packet_handoff,
+        fallback_dispatch_path=dispatch_path,
+    )
+    if immutable_dispatch_path != dispatch_path:
+        _write_json(immutable_dispatch_path, packet_handoff)
     return str(dispatch_path)
 
 
