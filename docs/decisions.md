@@ -1371,6 +1371,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 `requests/quality_repair_batch/latest.json` 已经是当前 `dm002_same_line_display_table_package_repair` 的 writer handoff，但 `default_executor_dispatches/run_quality_repair_batch.json` 仍停留在 generic runtime-owner dispatch。OPL worker 因而拿不到 canonical paper story-surface 写作授权，重复进入 handoff/blocked 循环。根因是 MAS materializer 没把 owner request 作为可恢复 dispatch authority，不是 OPL provider lifecycle，也不能靠手工改论文或 queue 解决。
 - 影响：新增 `test_materialize_domain_action_requests_restores_writer_handoff_from_owner_request` 作为 DM002 回归。后续同类 story-surface work unit 必须通过 owner request / writer handoff / default executor dispatch 三面 currentness 一致来恢复，不得引入宽松 normalizer 或绕过 owner 的手工 queue update。
 
+## 2026-05-28：quality repair writer handoff 是 owner-route currentness 一等输入
+
+- 决策：当 `quality_repair_batch/latest.json` 已进入 `handoff_ready`，且其中的 `writer_worker_handoff` 通过 `source_eval_id`、`dispatch_authority=quality_repair_batch_writer_handoff`、`next_executable_owner=write`、`source_action.blocked_reason=manuscript_story_surface_delta_missing` 与 `repair_execution_evidence` 校验时，owner-route reconcile 必须把它投影为当前 `write/run_quality_repair_batch` 可执行单元。该投影优先于旧 `domain_transition` gate replay 与旧 gate receipt 消费。
+- 理由：DM003 暴露出 gate-clearing 已经授权 writer handoff 后，当前 AI reviewer 记录可能不再保留 write recommended action，而旧 `owner_authorized_publication_gate_replay` transition 仍会被读模型回放，导致队列清空或重复 gate replay。writer handoff 是 MAS owner 已签出的下一跳，必须成为 currentness truth。
+- 影响：writer handoff 不可被裸用；必须校验 eval/currentness、story-surface typed blocker 和 evidence surface。缺少这些条件时继续 fail-closed，避免把 stale handoff 当作当前论文修复授权。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

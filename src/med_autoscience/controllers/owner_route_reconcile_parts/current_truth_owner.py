@@ -19,6 +19,7 @@ from med_autoscience.controllers.story_surface_work_units import (
     is_story_surface_delta_write_work_unit,
 )
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
+from med_autoscience.controllers.current_truth_owner_parts import writer_handoff
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
@@ -163,6 +164,17 @@ def current_story_surface_delta_blocker_route(
     if action_route_target and action_route_target != "write":
         route["original_route_target"] = action_route_target
     return route
+
+
+def current_quality_repair_writer_handoff_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return writer_handoff.current_quality_repair_writer_handoff_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
 
 
 def current_gate_replay_routeback_route(
@@ -855,6 +867,7 @@ __all__ = [
     "RUNTIME_CONTROLLER_REDRIVE_REASON",
     "current_gate_replay_routeback_route",
     "current_manuscript_digest_mismatch_ai_reviewer_route",
+    "current_quality_repair_writer_handoff_route",
     "current_story_surface_delta_blocker_route",
     "current_controller_runtime_route",
     "next_owner_for_reason",
