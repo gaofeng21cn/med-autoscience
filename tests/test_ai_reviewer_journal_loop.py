@@ -73,6 +73,15 @@ def _reviewer_operating_system() -> dict[str, Any]:
                 "manuscript_ref": input_bundle["manuscript"],
                 "manuscript_digest": manuscript_digest,
             },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": input_bundle["manuscript"],
+                "manuscript_digest": manuscript_digest,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": PUBLICATION_EVAL_ID,
+            },
             "current_package_freshness": {
                 "status": "fresh",
                 "source_eval_id": PUBLICATION_EVAL_ID,

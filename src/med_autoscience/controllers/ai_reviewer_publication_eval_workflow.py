@@ -214,14 +214,19 @@ def _rubric_scores_and_decision_matrix(
 def _route_back_decision(record_payload: Mapping[str, Any]) -> dict[str, str]:
     recommended_action = "continue_same_line"
     route_rationale = "AI reviewer publication eval workflow trace is complete."
+    route_target: str | None = None
     actions = [item for item in _list(record_payload.get("recommended_actions")) if isinstance(item, Mapping)]
     if actions:
         recommended_action = _text(actions[0].get("action_type")) or _text(actions[0].get("action_id")) or recommended_action
         route_rationale = _text(actions[0].get("reason")) or route_rationale
-    return {
+        route_target = _text(actions[0].get("route_target")) or None
+    decision = {
         "recommended_action": recommended_action,
         "rationale": route_rationale,
     }
+    if route_target and recommended_action in {"route_back_same_line", "bounded_analysis", "stop_loss"}:
+        decision["route_target"] = route_target
+    return decision
 
 
 def _record_routes_back_before_delivery(record_payload: Mapping[str, Any]) -> bool:
@@ -293,6 +298,23 @@ def _current_manuscript_currentness(
         result.get("authority_source_signature")
     ) or "ai_reviewer_record_current_manuscript"
     return result
+
+
+def _live_manuscript_currentness(
+    *,
+    study_root: Path,
+    ref_bundle: Mapping[str, str],
+) -> dict[str, Any]:
+    manuscript_ref = _text(ref_bundle.get("manuscript"))
+    if not manuscript_ref:
+        raise ValueError("AI reviewer publication eval workflow missing manuscript")
+    manuscript_path = _resolve_ref(study_root=study_root, ref=manuscript_ref)
+    return {
+        "status": "current",
+        "manuscript_ref": manuscript_ref,
+        "manuscript_digest": _sha256_file(manuscript_path),
+        "authority_source_signature": "ai_reviewer_workflow_live_manuscript",
+    }
 
 
 def _publication_quality_readiness(
@@ -713,6 +735,10 @@ def _currentness_checks(
             ref_bundle=ref_bundle,
             workflow_currentness_mode=workflow_currentness_mode,
         ),
+        "source_eval": {
+            "status": "current",
+            "eval_id": eval_id,
+        },
         "current_package_freshness": _current_package_freshness(
             study_root=study_root,
             eval_id=eval_id,
@@ -726,6 +752,11 @@ def _currentness_checks(
     )
     if current_manuscript is not None:
         checks["current_manuscript"] = current_manuscript
+    else:
+        checks["current_manuscript"] = _live_manuscript_currentness(
+            study_root=study_root,
+            ref_bundle=ref_bundle,
+        )
     return checks
 
 

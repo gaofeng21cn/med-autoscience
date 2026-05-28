@@ -111,6 +111,10 @@ def current_manuscript_routeback_reviewer_os(
                 "manuscript_digest": manuscript_digest,
                 "reviewed_at": "2026-05-24T17:58:27+00:00",
             },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
+            },
             "current_package_freshness": {
                 "status": "downstream_pending",
                 "source_eval_id": eval_id,
@@ -145,6 +149,7 @@ def current_manuscript_routeback_reviewer_os(
         },
         "route_back_decision": {
             "recommended_action": "route_back_same_line",
+            "route_target": "write",
             "rationale": "Current manuscript review still routes publication hardening to write.",
         },
     }
