@@ -35,13 +35,13 @@ def route_and_consume_current_execution_receipt(
         for action in routed_actions
         if owner_route_part.route_allows_action(action=action, owner_route=owner_route)
     ]
-    receipt = study_transition_receipt_consumption.default_executor_execution_receipt_consumption(
+    receipt = study_transition_receipt_consumption.default_executor_execution_followthrough_receipt_consumption(
         study_root=study_root,
         owner_route=owner_route,
         actions=routed_actions,
     )
     if not receipt:
-        receipt = study_transition_receipt_consumption.default_executor_execution_followthrough_receipt_consumption(
+        receipt = study_transition_receipt_consumption.default_executor_execution_receipt_consumption(
             study_root=study_root,
             owner_route=owner_route,
             actions=routed_actions,

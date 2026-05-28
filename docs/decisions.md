@@ -16,6 +16,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 决策：`publication_gate_specificity_required` 的 default-executor 执行若已经产出具体 gate report，并刷新同一 `artifacts/publication_eval/latest.json` eval authority，即使 owner result 仍是 blocked，也应视为该 specificity action 的可消费 receipt。当下一轮 current owner route 已转成同一 truth epoch、同一 work unit 的 `current_package_freshness_required` 时，receipt consumer 可以按显式 `publication_gate_specificity_required -> current_package_freshness_required` transition 消费旧 specificity receipt，并继续派发 package freshness。
 - 理由：DM003 的 specificity owner 已把通用 gate blocker 具体化为 `submission_hardening_incomplete`，当前 gate replay 也已指向 finalize bundle/package refresh；但旧 receipt consumer 只扫描当前 action type，导致已执行的 specificity receipt 因当前 action 改变而永远不可消费，owner-route 重复停留在同一 specificity lane。
 - 影响：这是 MAS owner-route receipt currentness 修复。允许的 follow-through 只覆盖同一 truth epoch、同一 work unit、固定 action pair 的 transition；不同 work unit、不同 allowed action、缺 gate report 或缺 publication eval latest authority 继续 fail closed。它不授权 publication ready、submission ready，也不直接修改 canonical paper、submission package、current package 或 publication eval truth。
+- 跟进：当同一 work unit 同时存在更旧的 `current_package_freshness_required` receipt 和更新的 `publication_gate_specificity_required` receipt 时，consumer 必须优先消费 specificity follow-through。否则旧 package receipt 会抢先清掉 current route，再由 gate replay blocked follow-through 重新排回 specificity，形成同一 specificity action 的重复队列。
 
 ## 2026-05-28：consumed package-freshness 后必须继续解析 gate replay blocked follow-through
 
