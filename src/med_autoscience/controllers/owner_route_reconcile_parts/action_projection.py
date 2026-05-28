@@ -750,6 +750,8 @@ def why_not_applied(
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
     if reason := evidence_adoption.why_not_applied(status):
         return reason
+    if gate_action := _gate_clearing_batch_action(actions):
+        return _text(gate_action.get("reason")) or "run_gate_clearing_batch"
     if runtime_facts.opl_stage_attempt_admission_required(status, progress):
         return current_truth_owner.OPL_STAGE_ATTEMPT_ADMISSION_REASON
     if runtime_facts.live_activity_timeout_current_controller_redrive_required(status, progress):
@@ -808,6 +810,20 @@ def _has_source_provenance_handoff_action(actions: list[dict[str, Any]]) -> bool
     )
 
 
+def _has_gate_clearing_batch_action(actions: list[dict[str, Any]]) -> bool:
+    return _gate_clearing_batch_action(actions) is not None
+
+
+def _gate_clearing_batch_action(actions: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for action in actions:
+        if (
+            _text(action.get("action_type")) == "run_gate_clearing_batch"
+            and _text(action.get("owner")) == "gate_clearing_batch"
+        ):
+            return action
+    return None
+
+
 def blocked_reason_from_scan(
     *,
     actions: list[dict[str, Any]],
@@ -821,6 +837,7 @@ def blocked_reason_from_scan(
             "return_to_ai_reviewer_workflow",
             "canonical_paper_inputs_rehydrate_required",
             "run_quality_repair_batch",
+            "run_gate_clearing_batch",
             "unit_harmonized_external_validation_rerun",
             "recover_transport_model_provenance",
             "methodology_reframe_route_decision",

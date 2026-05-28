@@ -222,6 +222,146 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
     assert study["why_not_applied"] == "opl_stage_attempt_admission_required"
 
 
+def test_consumed_ai_reviewer_receipt_routes_finalize_gate_replay_to_gate_clearing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    eval_id = "publication-eval::dm003::current-manuscript-finalize-gate-replay"
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "route_back_required": True,
+                    "route_target": "finalize",
+                },
+                "current_manuscript": {"status": "current"},
+            },
+            "publication_quality_readiness": {
+                "status": "blocked",
+                "missing_required_fields": ["owner_authorized_publication_gate_recheck"],
+            },
+        },
+    }
+    completion_receipt_consumption = {
+        "status": "consumed",
+        "receipt_kind": "ai_reviewer_publication_eval",
+        "receipt_ref": "artifacts/publication_eval/latest.json",
+        "eval_id": eval_id,
+        "reviewer_trace_ref": "artifacts/publication_eval/latest.json#reviewer_operating_system",
+        "next_action": "honor_ai_reviewer_publication_eval_authority",
+    }
+    domain_transition = {
+        "study_id": study_id,
+        "decision_type": "route_back_same_line",
+        "route_target": "finalize",
+        "next_work_unit": {
+            "unit_id": "owner_authorized_publication_gate_replay",
+            "lane": "finalize",
+            "summary": "Replay the MAS publication gate against current manuscript and evidence surfaces.",
+        },
+        "controller_action": "request_opl_stage_attempt",
+        "owner": "finalize",
+        "typed_blocker": None,
+        "guard_boundary": {"required_owner_surface": "artifacts/publication_eval/latest.json"},
+        "source_refs": ["artifacts/publication_eval/latest.json", "artifacts/controller_decisions/latest.json"],
+        "completion_receipt_consumption": completion_receipt_consumption,
+    }
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": None,
+        "publication_eval": publication_eval,
+        "domain_transition": domain_transition,
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-dm003-finalize-gate-replay",
+            "attempt_state": "escalated",
+            "canonical_runtime_action": "external_supervisor_required",
+            "retry_budget_remaining": 0,
+            "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm003-finalize-gate-replay",
+            "source_signature": "truth-source-dm003-finalize-gate-replay",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "publication_supervision",
+        "paper_stage": "analysis-campaign",
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_repair_lifecycle": {
+            "surface": "ai_repair_lifecycle",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "state": "blocked",
+            "authority": "external_supervisor",
+            "auto_apply_allowed": True,
+            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["domain_transition"]["completion_receipt_consumption"] == completion_receipt_consumption
+    assert [action["action_type"] for action in study["action_queue"]] == ["run_gate_clearing_batch"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "gate_clearing_batch"
+    assert action["reason"] == "owner_authorized_publication_gate_replay"
+    assert action["next_work_unit"] == "owner_authorized_publication_gate_replay"
+    assert action["controller_work_unit_id"] == "owner_authorized_publication_gate_replay"
+    assert action["original_route_target"] == "finalize"
+    assert action["work_unit_fingerprint"] == (
+        "domain-transition::route_back_same_line::owner_authorized_publication_gate_replay"
+    )
+    assert study["owner_route"]["next_owner"] == "gate_clearing_batch"
+    assert study["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert study["owner_route"]["owner_reason"] == "owner_authorized_publication_gate_replay"
+    assert study["owner_route"]["owner_reason_contract"]["registered"] is True
+    assert study["blocked_reason"] == "owner_authorized_publication_gate_replay"
+    assert study["why_not_applied"] == "owner_authorized_publication_gate_replay"
+
+
 def test_consumed_ai_reviewer_receipt_clears_stale_analysis_reviewer_lifecycle_in_observe_mode(
     monkeypatch,
     tmp_path: Path,

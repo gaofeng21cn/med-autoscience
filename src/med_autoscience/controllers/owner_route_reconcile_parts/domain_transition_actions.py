@@ -38,12 +38,19 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         route_target=route_target,
         next_work_unit=controller_next_work_unit,
     )
+    finalize_gate_replay_route = _is_finalize_gate_replay_route(
+        decision_type=decision_type,
+        route_target=route_target,
+        next_work_unit=controller_next_work_unit,
+    )
     if unit_harmonized_analysis_route:
         action_type = "unit_harmonized_external_validation_rerun"
         work_unit_id = "unit_harmonized_external_validation_rerun"
+    elif finalize_gate_replay_route:
+        action_type = "run_gate_clearing_batch"
     owner = (
         _owner_for_domain_action(action_type)
-        if unit_harmonized_analysis_route or decision_type == "publication_gate_blocker"
+        if unit_harmonized_analysis_route or finalize_gate_replay_route or decision_type == "publication_gate_blocker"
         else "write"
         if write_repair_route or current_ai_reviewer_materialization_route
         else domain_transition_guard.owner(status) or _owner_for_domain_action(action_type)
@@ -51,6 +58,8 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
     reason = (
         "unit_harmonized_rerun_required"
         if unit_harmonized_analysis_route
+        else work_unit_id
+        if finalize_gate_replay_route
         else domain_transition_guard.reason(status) or f"domain_transition_{decision_type or 'current'}"
     )
     action: dict[str, Any] = {
@@ -81,6 +90,16 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         if decision_type and work_unit_id:
             action["work_unit_fingerprint"] = f"domain-transition::{decision_type}::{work_unit_id}"
         if route_target and route_target != "write":
+            action["original_route_target"] = route_target
+    if finalize_gate_replay_route:
+        action["controller_next_work_unit"] = controller_next_work_unit
+        action["controller_work_unit_id"] = controller_work_unit_id
+        action["executable_work_unit"] = work_unit_id
+        action["controller_action"] = "run_gate_clearing_batch"
+        action["domain_transition_decision_type"] = decision_type
+        if decision_type and work_unit_id:
+            action["work_unit_fingerprint"] = f"domain-transition::{decision_type}::{work_unit_id}"
+        if route_target:
             action["original_route_target"] = route_target
     if decision_type == "bundle_stage_finalize":
         action["authority"] = "observability_only"
@@ -161,6 +180,19 @@ def _is_current_ai_reviewer_materialization_route(
         and route_target == "controller"
         and _text(next_work_unit.get("unit_id"))
         == "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+    )
+
+
+def _is_finalize_gate_replay_route(
+    *,
+    decision_type: str | None,
+    route_target: str | None,
+    next_work_unit: Mapping[str, Any],
+) -> bool:
+    return (
+        decision_type == "route_back_same_line"
+        and route_target == "finalize"
+        and _text(next_work_unit.get("unit_id")) == "owner_authorized_publication_gate_replay"
     )
 
 

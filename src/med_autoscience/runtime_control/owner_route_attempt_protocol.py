@@ -405,6 +405,9 @@ _REASON_REGISTRY = {
     "publication_owner_materialization_required": _gate_clearing_entry(
         "DM002:current_ai_reviewer_materialization"
     ),
+    "owner_authorized_publication_gate_replay": _gate_clearing_entry(
+        "DM003:owner_authorized_publication_gate_replay"
+    ),
     "domain_transition_publication_gate_blocker": _gate_clearing_entry(
         "DM003:domain_transition_publication_gate_blocker"
     ),
