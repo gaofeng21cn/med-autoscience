@@ -37,6 +37,7 @@ def ai_reviewer_lifecycle_resolved(
         )
     if blocked_reason in {
         ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON,
+        ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_INPUTS_REASON,
         ai_reviewer_actions.RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON,
     }:
         return _current_ai_reviewer_present(ai_reviewer_assessment)
@@ -280,6 +281,7 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         "ai_reviewer_assessment_required",
         "ai_reviewer_assessment_stale_after_reviewer_revision",
         ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON,
+        ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_INPUTS_REASON,
         ai_reviewer_actions.RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON,
         ai_reviewer_actions.ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON,
     }:

@@ -72,7 +72,9 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 ## 2026-05-28：consumed package-freshness 后必须继续解析 gate replay blocked follow-through
 
 - 决策：同一 owner route 的 `current_package_freshness_required` 已执行并被 default-executor receipt 消费时，`owner-route-reconcile` 不能把 current-control 队列清空。如果当前 `gate_clearing_batch/latest.json` 的 gate replay 仍 blocked，必须从 replay 结构继续派发下一跳：有可执行 write route-back 时进入 `write/run_quality_repair_batch`；只有通用 label blocker 且缺少具体 claim/figure/table/source target 时，进入 `publication_gate/publication_gate_specificity_required` typed owner。
+- 决策：当 gate replay 显示 `study_delivery_status=current`、`submission_minimal_authority_status=current` 且 `publication_reporting_checklist` / `structured_reporting_checklist` 仍列出 structured reporting blockers 时，这些 blocker 必须进入 publication work-unit normalization，并优先路由到 `write` 的 `medical_prose_write_repair` / `treatment_gap_reporting_repair`。旧 `submission_hardening_incomplete` label 只能作为 delivery/package blocker；在 package authority 已 current 的场景下，不得继续抢占为 `submission_minimal_refresh` 或 `current_package_freshness_required`。
 - 理由：DM003 刷新投稿包后清掉了旧 stale package blocker，但 gate replay 仍剩 `medical_publication_surface_blocked`、`submission_hardening_incomplete` 等 blocker。旧 receipt consumption 把“刷新已执行”误读为整条 gate blocked route 已完成，导致 `allowed_actions=[]`、`next_owner=None`、`blocked_reason=None`，论文推进空转。
+- 理由：DM003 的最新 gate report 进一步暴露出真正剩余缺口是 `manuscript_voice_reporting_incomplete`、`treatment_gap_reporting_incomplete`、`phenotype_derivation_reporting_incomplete`、`baseline_characteristics_reporting_incomplete` 与 `data_quality_reporting_incomplete`。旧路由只看顶层 `submission_hardening_incomplete`，没有吸收 structured reporting checklist，导致 gate replay / package freshness loop 继续重复。
 - 影响：这是 MAS owner-route/read-model closure 修复。它只保证 blocked gate 一定回到下一 owner 或 typed blocker，不授权 publication ready、submission ready，也不直接修改 canonical paper、submission package、current package 或 publication eval truth。
 
 ## 2026-05-28：AI reviewer request 重物化必须回填 canonical refs 并保留 workflow ref
@@ -1495,6 +1497,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 影响：writer handoff 不可被裸用；必须校验 eval/currentness、story-surface typed blocker 和 evidence surface。缺少这些条件时继续 fail-closed，避免把 stale handoff 当作当前论文修复授权。
 - 补充：即便 `domain_transition.completion_receipt_consumption` 仍保留 finalize gate replay 的 consumed AI reviewer route-back，已验证的 `quality_repair_batch_writer_handoff` 也必须先被投影；否则旧 consumed replay 会重新生成 `run_gate_clearing_batch` 并消耗掉当前 writer handoff。
 - 补充：当最新 `gate_clearing_batch/latest.json` 已执行、`source_eval_id` 匹配当前 publication eval，且 gate replay 的 `current_publication_work_unit` 为 `submission_minimal_refresh/finalize` 时，owner-route reconcile 必须把下一跳投给 `artifact_os/current_package_freshness_required`，并压过旧 `quality_repair_batch` 的 `manuscript_story_surface_delta_missing` residue。该路径只授权 gate-clearing batch 刷新 submission package / delivery freshness proof，不把 stale generated package 或旧 write blocker 当作当前论文正文修复要求。
+
+## 2026-05-28：current AI reviewer record archive 必须压过 stale request lifecycle
+
+- 决策：`owner-route-reconcile` 选择到 current `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 后，AI reviewer request lifecycle 必须按该 selected record 重新投影；若 record 已覆盖 `ai_reviewer_record_stale_after_current_inputs`、`ai_reviewer_record_stale_after_current_manuscript` 或 unit-harmonized rerun 的 currentness refs，则不能继续把旧 request 的 `blocked_reason`、`stale_record_ref` 或 `required_currentness_refs` 暴露给 owner-route。
+- 决策：当 selected AI reviewer eval/record 已通过 currentness 检查且 `current_ai_reviewer_route_back_action` 指向 `route_target=finalize`、`next_work_unit.unit_id=owner_authorized_publication_gate_replay` 时，action projection 必须直接投影为 `gate_clearing_batch/run_gate_clearing_batch`，并把 owner-route `source_refs.publication_eval_path` 绑定到实际 record archive 路径；旧 `domain_transition.ai_reviewer_re_eval` 只能在 selected eval 未消费 record-production request 时继续路由 AI reviewer。
+- 理由：DM003 暴露出 AI reviewer 已经产出 current-inputs record，archive selector 也能选中该 record，但 owner-route 仍读取 stale `progress.ai_reviewer_request_lifecycle` 和旧 `ai_reviewer_re_eval` transition，导致 `action_queue=[]` 或重复回到 reviewer。根因是 MAS controller/read-model currentness 顺序错误，不是 OPL provider、手工 queue update 或论文正文可直接修补的问题。
+- 影响：该修复只改变 MAS owner-route/read-model closure，不写 DM003 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、submission package 或 current package。论文质量、publishability 和 package freshness 仍由后续 gate-clearing batch、write owner、AI reviewer-backed eval 与 publication gate 继续判定。
 
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 

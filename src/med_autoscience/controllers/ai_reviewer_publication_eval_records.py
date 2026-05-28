@@ -119,7 +119,7 @@ def record_supersedes_publication_eval(
     if not publication_eval:
         return True
     if _text(record.get("eval_id")) == _text(publication_eval.get("eval_id")):
-        return False
+        return record_has_stronger_currentness_trace(record=record, publication_eval=publication_eval)
     record_timestamp = publication_eval_timestamp(record)
     publication_eval_timestamp_value = publication_eval_timestamp(publication_eval)
     if record_timestamp is None:
@@ -127,6 +127,23 @@ def record_supersedes_publication_eval(
     if publication_eval_timestamp_value is None:
         return True
     return record_timestamp > publication_eval_timestamp_value
+
+
+def record_has_stronger_currentness_trace(
+    *,
+    record: Mapping[str, Any],
+    publication_eval: Mapping[str, Any],
+) -> bool:
+    record_checks = _currentness_check_keys(record)
+    eval_checks = _currentness_check_keys(publication_eval)
+    if not record_checks or not eval_checks:
+        return False
+    return eval_checks < record_checks
+
+
+def _currentness_check_keys(payload: Mapping[str, Any]) -> set[str]:
+    currentness = _mapping(_mapping(payload.get("reviewer_operating_system")).get("currentness_checks"))
+    return {key for key, value in currentness.items() if _text(key) and isinstance(value, Mapping)}
 
 
 def publication_eval_timestamp(payload: Mapping[str, Any] | None) -> datetime | None:

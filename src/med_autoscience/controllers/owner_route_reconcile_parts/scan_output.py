@@ -5,6 +5,46 @@ from pathlib import Path
 from typing import Any, Callable
 
 
+def merge_previous_unscanned_study_handoff(
+    *,
+    previous_payload: Mapping[str, Any] | None,
+    scanned_studies: list[dict[str, Any]],
+    scanned_action_queue: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    scanned_ids = {
+        study_id
+        for study in scanned_studies
+        if (study_id := _text(study.get("study_id"))) is not None
+    }
+    if not scanned_ids:
+        return scanned_studies, scanned_action_queue
+    previous = _mapping(previous_payload)
+    retained_studies = [
+        {
+            **dict(item),
+            "handoff_generated_at": _text(item.get("handoff_generated_at"))
+            or _text(previous.get("generated_at"))
+            or _text(previous.get("recorded_at")),
+            "handoff_scan_status": _text(item.get("handoff_scan_status")) or "retained_from_previous_scan",
+        }
+        for item in previous.get("studies") or []
+        if isinstance(item, Mapping)
+        and (study_id := _text(item.get("study_id"))) is not None
+        and study_id not in scanned_ids
+    ]
+    retained_action_queue = [
+        dict(item)
+        for item in previous.get("action_queue") or []
+        if isinstance(item, Mapping)
+        and (study_id := _text(item.get("study_id"))) is not None
+        and study_id not in scanned_ids
+    ]
+    return (
+        [*retained_studies, *scanned_studies],
+        [*retained_action_queue, *scanned_action_queue],
+    )
+
+
 def build_scan_domain_routes_payload(
     *,
     schema_version: int,
@@ -103,7 +143,17 @@ def persist_scan_domain_routes_payload(
     )
 
 
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
 __all__ = [
     "build_scan_domain_routes_payload",
+    "merge_previous_unscanned_study_handoff",
     "persist_scan_domain_routes_payload",
 ]
