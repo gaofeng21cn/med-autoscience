@@ -111,3 +111,4 @@ Detailed dated coverage entries are archived as history/provenance to keep this 
 - [2026-05-28-part-7.md](./history/docs-portfolio-coverage-ledger/2026-05-28-part-7.md)
 - [2026-05-28-part-8.md](./history/docs-portfolio-coverage-ledger/2026-05-28-part-8.md)
 - [2026-05-28-part-9.md](./history/docs-portfolio-coverage-ledger/2026-05-28-part-9.md)
+- [2026-05-28-part-10.md](./history/docs-portfolio-coverage-ledger/2026-05-28-part-10.md)
