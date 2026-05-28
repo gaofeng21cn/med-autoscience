@@ -565,6 +565,183 @@ def test_executed_blocked_gate_replay_routes_publication_surface_back_to_write_o
     assert study["next_owner"] == "write"
 
 
+def test_executed_gate_replay_submission_refresh_preempts_stale_story_surface_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    eval_id = "publication-eval::dm003::gate-replay-submission-refresh"
+    gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+    _write_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "status": "blocked",
+            "allow_write": False,
+            "gate_fingerprint": "gate-fingerprint-dm003-submission-refresh",
+            "blockers": [
+                "stale_submission_minimal_authority",
+                "stale_study_delivery_mirror",
+                "medical_publication_surface_blocked",
+                "submission_hardening_incomplete",
+                "forbidden_manuscript_terminology",
+            ],
+            "current_required_action": "return_to_publishability_gate",
+            "medical_publication_surface_status": "blocked",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "executed",
+            "source_eval_id": eval_id,
+            "current_publication_work_unit": {
+                "unit_id": "submission_minimal_refresh",
+                "lane": "finalize",
+                "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+            },
+            "work_unit_fingerprint": "publication-blockers::dm003-submission-refresh",
+            "gate_replay": {
+                "status": "blocked",
+                "allow_write": False,
+                "report_json": str(gate_report_path),
+                "blockers": [
+                    "stale_submission_minimal_authority",
+                    "stale_study_delivery_mirror",
+                    "medical_publication_surface_blocked",
+                    "submission_hardening_incomplete",
+                    "forbidden_manuscript_terminology",
+                ],
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "blocked",
+            "source_eval_id": eval_id,
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "next_owner": "write",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": ["manuscript_story_surface_delta_missing"],
+            },
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "route_back_same_line",
+            "route_target": "finalize",
+            "owner": "publication_gate",
+            "controller_action": "run_gate_clearing_batch",
+            "next_work_unit": {
+                "unit_id": "owner_authorized_publication_gate_replay",
+                "lane": "finalize",
+                "summary": "Replay the MAS publication gate against current manuscript and evidence surfaces.",
+            },
+            "completion_receipt_consumption": {
+                "status": "consumed",
+                "receipt_kind": "ai_reviewer_publication_eval",
+                "receipt_ref": "artifacts/publication_eval/latest.json",
+                "eval_id": eval_id,
+            },
+        },
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-dm003-submission-refresh",
+            "canonical_runtime_action": "external_supervisor_required",
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm003-submission-refresh",
+            "source_signature": "truth-source-dm003-submission-refresh",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "publication_supervision",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "reviewer_operating_system": {
+            "claim_evidence_alignment": {
+                "surface_kind": "claim_evidence_alignment_gate_v1",
+                "status": "ready",
+                "missing_required_fields": [],
+                "blockers": [],
+            },
+            "publication_quality_readiness": {
+                "surface_kind": "publication_quality_authority_kernel_v1",
+                "status": "blocked",
+                "missing_required_fields": ["owner_authorized_publication_gate_recheck"],
+            },
+        },
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "work_unit_fingerprint": "publication-blockers::stale-story-repair",
+                "next_work_unit": {
+                    "unit_id": "manuscript_story_repair",
+                    "lane": "write",
+                    "summary": "Stale write repair from the previous quality-repair batch.",
+                },
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
+    )
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["current_package_freshness_required"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "artifact_os"
+    assert action["reason"] == "current_package_freshness_required"
+    assert action["controller_route"]["work_unit_id"] == "submission_minimal_refresh"
+    assert action["controller_route"]["authorization_basis"] == "gate_replay_submission_minimal_refresh"
+    assert study["owner_route"]["next_owner"] == "artifact_os"
+    assert study["owner_route"]["allowed_actions"] == ["current_package_freshness_required"]
+    assert study["owner_route"]["owner_reason"] == "current_package_freshness_required"
+    assert study["next_owner"] == "artifact_os"
+
+
 def test_executed_gate_replay_followthrough_is_not_consumed_by_old_gate_receipt(
     monkeypatch,
     tmp_path: Path,

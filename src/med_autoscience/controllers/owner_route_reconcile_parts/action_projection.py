@@ -192,6 +192,21 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    submission_refresh_action = _gate_replay_submission_refresh_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if submission_refresh_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=submission_refresh_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     gate_replay_write_action = story_surface_delta_actions.gate_replay_write_owner_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -713,6 +728,23 @@ def _current_package_freshness_lifecycle_action(
         reason=artifact_freshness.ACTION_TYPE,
         controller_route=controller_route,
         source_blocked_reason=source_blocked_reason,
+    )
+
+
+def _gate_replay_submission_refresh_action(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    controller_route = current_truth_owner.current_gate_replay_submission_refresh_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if controller_route is None:
+        return None
+    return artifact_freshness.action_payload(
+        reason=artifact_freshness.ACTION_TYPE,
+        controller_route=controller_route,
     )
 
 

@@ -1416,6 +1416,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出 gate-clearing 已经授权 writer handoff 后，当前 AI reviewer 记录可能不再保留 write recommended action，而旧 `owner_authorized_publication_gate_replay` transition 仍会被读模型回放，导致队列清空或重复 gate replay。writer handoff 是 MAS owner 已签出的下一跳，必须成为 currentness truth。
 - 影响：writer handoff 不可被裸用；必须校验 eval/currentness、story-surface typed blocker 和 evidence surface。缺少这些条件时继续 fail-closed，避免把 stale handoff 当作当前论文修复授权。
 - 补充：即便 `domain_transition.completion_receipt_consumption` 仍保留 finalize gate replay 的 consumed AI reviewer route-back，已验证的 `quality_repair_batch_writer_handoff` 也必须先被投影；否则旧 consumed replay 会重新生成 `run_gate_clearing_batch` 并消耗掉当前 writer handoff。
+- 补充：当最新 `gate_clearing_batch/latest.json` 已执行、`source_eval_id` 匹配当前 publication eval，且 gate replay 的 `current_publication_work_unit` 为 `submission_minimal_refresh/finalize` 时，owner-route reconcile 必须把下一跳投给 `artifact_os/current_package_freshness_required`，并压过旧 `quality_repair_batch` 的 `manuscript_story_surface_delta_missing` residue。该路径只授权 gate-clearing batch 刷新 submission package / delivery freshness proof，不把 stale generated package 或旧 write blocker 当作当前论文正文修复要求。
 
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
