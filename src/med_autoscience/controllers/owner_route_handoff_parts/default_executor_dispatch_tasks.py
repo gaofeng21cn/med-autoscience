@@ -33,9 +33,10 @@ def default_executor_dispatch_tasks(
     if not dispatch_root.is_dir():
         return []
     tasks: list[dict[str, Any]] = []
-    for dispatch_path in sorted(dispatch_root.glob("*.json")):
-        dispatch = _read_json_object(dispatch_path)
-        if not _dispatch_ready_for_opl_attempt(dispatch):
+    for candidate in _current_dispatch_candidates(dispatch_root):
+        dispatch_path = candidate["path"]
+        dispatch = candidate["dispatch"]
+        if not isinstance(dispatch_path, Path) or not isinstance(dispatch, Mapping):
             continue
         action_type = _text(dispatch.get("action_type"))
         if action_type is None:
@@ -124,6 +125,46 @@ def default_executor_dispatch_tasks(
     return tasks
 
 
+def _current_dispatch_candidates(dispatch_root: Path) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    for dispatch_path in sorted(dispatch_root.glob("*.json")):
+        dispatch = _read_json_object(dispatch_path)
+        if not _dispatch_ready_for_opl_attempt(dispatch):
+            continue
+        candidates.append({"path": dispatch_path, "dispatch": dispatch})
+    return [
+        candidate
+        for candidate in candidates
+        if not _dispatch_blocked_by_newer_candidate(candidate, candidates)
+    ]
+
+
+def _dispatch_blocked_by_newer_candidate(
+    candidate: Mapping[str, Any],
+    candidates: list[Mapping[str, Any]],
+) -> bool:
+    dispatch = _mapping(candidate.get("dispatch"))
+    action_type = _text(dispatch.get("action_type"))
+    if action_type is None:
+        return False
+    owner_route = _dispatch_owner_route(dispatch)
+    work_unit_id = _owner_route_work_unit_id(owner_route)
+    for other_candidate in candidates:
+        if other_candidate is candidate:
+            continue
+        other = _mapping(other_candidate.get("dispatch"))
+        other_route = _dispatch_owner_route(other)
+        if action_type not in set(_string_list(other_route.get("blocked_actions"))):
+            continue
+        other_work_unit_id = _owner_route_work_unit_id(other_route)
+        if work_unit_id and other_work_unit_id and work_unit_id != other_work_unit_id:
+            continue
+        if _dispatch_currentness_key(other) <= _dispatch_currentness_key(dispatch):
+            continue
+        return True
+    return False
+
+
 def _dispatch_ready_for_opl_attempt(dispatch: Mapping[str, Any] | None) -> bool:
     if dispatch is None:
         return False
@@ -189,6 +230,38 @@ def _next_executable_owner(dispatch: Mapping[str, Any]) -> str | None:
         _text(dispatch.get("next_executable_owner"))
         or _text(prompt_contract.get("next_executable_owner"))
         or _text(owner_route.get("next_owner"))
+    )
+
+
+def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> Mapping[str, Any]:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    return _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+
+
+def _owner_route_work_unit_id(owner_route: Mapping[str, Any]) -> str | None:
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return (
+        _text(source_refs.get("work_unit_id"))
+        or _text(owner_route.get("work_unit_id"))
+        or _text(basis.get("work_unit_id"))
+    )
+
+
+def _dispatch_currentness_key(dispatch: Mapping[str, Any]) -> tuple[str, str, str]:
+    owner_route = _dispatch_owner_route(dispatch)
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return (
+        _text(owner_route.get("runtime_health_epoch"))
+        or _text(source_refs.get("runtime_health_epoch"))
+        or _text(basis.get("runtime_health_epoch"))
+        or "",
+        _text(dispatch.get("generated_at")) or "",
+        _text(owner_route.get("work_unit_fingerprint"))
+        or _text(source_refs.get("work_unit_fingerprint"))
+        or _text(basis.get("work_unit_fingerprint"))
+        or "",
     )
 
 
@@ -395,6 +468,12 @@ def _source_fingerprint_redrive_context(redrive_context: Mapping[str, Any] | Non
 
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [text for text in (_text(entry) for entry in value) if text is not None]
 
 
 def _text(value: object) -> str | None:

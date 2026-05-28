@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：default-executor export 必须抑制被当前 owner route 阻断的旧 dispatch
+
+- 决策：`domain-handler export` 扫描同一 study 的 `default_executor_dispatches/*.json` 时，若另一个当前可 dispatch 的 owner route 在同一 work unit 上通过 `blocked_actions` 明确阻断某个旧 action，且阻断者的 currentness basis 更新，则旧 dispatch 不得继续作为 OPL `pending_family_tasks` 导出。旧 dispatch 文件仍可作为 provenance 留存，但不能继续 hydrate 成 provider-backed stage attempt。
+- 理由：DM002 暴露出 `run_quality_repair_batch` write handoff 已经是当前 route，且其 `blocked_actions` 明确包含 `return_to_ai_reviewer_workflow`；但旧 AI reviewer dispatch 仍保留 `dispatch_status=ready` 并被 OPL hydrate 并发执行，覆盖 latest execution/read-model，造成 write repair 和 reviewer recheck 互相污染。
+- 影响：这是 MAS sidecar/export currentness 修复；OPL 仍只负责 queue、attempt、retry、dead-letter 和 provider lifecycle。该修复不写 DM002 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或投稿 ready verdict。后续论文推进仍必须由 MAS owner/controller/runtime path 重新 materialize、dispatch、repair、AI reviewer recheck 与 publication gate 判定。
+
 ## 2026-05-28：writer handoff 不得复用 source eval 不匹配的 owner route
 
 - 决策：`quality_repair_batch` 生成 `quality_repair_batch_writer_handoff` 时，若当前 `source_eval_id` 非空，且 `authority_route_context.current_owner_route.source_refs.source_eval_id` 也非空但不一致，则该 owner route 只能作为旧 provenance，不能作为 current writer handoff authority 复用。writer handoff 必须改用当前 controller route context 构造绑定当前 eval 的 owner route。
