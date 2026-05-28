@@ -116,6 +116,9 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
             "stage_attempt_id": "sat-terminal",
             "action_type": "run_quality_repair_batch",
             "status": "blocked_with_domain_owner_refs",
+            "duration": {"seconds": 91.25, "source": "provider_attempt"},
+            "token_usage": {"total_tokens": 12345, "input_tokens": 6789, "output_tokens": 5556},
+            "cost": {"usd": 0.42, "currency": "USD"},
             "paper_stage_log": {
                 "surface_kind": "mas_paper_facing_stage_log_summary",
                 "stage_name": "domain_owner/default-executor-dispatch",
@@ -151,6 +154,15 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
     assert terminal_log["stage_attempt_id"] == "sat-terminal"
     assert terminal_log["action_type"] == "run_quality_repair_batch"
     assert terminal_log["status"] == "blocked_with_domain_owner_refs"
+    assert terminal_log["observability_status"] == "observed"
+    assert terminal_log["duration"] == {"seconds": 91.25, "source": "provider_attempt"}
+    assert terminal_log["token_usage"] == {
+        "total_tokens": 12345,
+        "input_tokens": 6789,
+        "output_tokens": 5556,
+    }
+    assert terminal_log["cost"] == {"usd": 0.42, "currency": "USD"}
+    assert terminal_log["missing_observability_fields"] == []
     assert terminal_log["paper_stage_log"]["outcome"] == "blocked_with_domain_typed_blocker"
     assert terminal_log["paper_stage_log"]["remaining_blockers"] == [
         "authority_route_blocked",
@@ -230,6 +242,9 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
                     "action_type": "run_quality_repair_batch",
                     "execution_status": "executed",
                     "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                    "duration_seconds": 18.0,
+                    "usage": {"input_tokens": 2100, "output_tokens": 900, "total_tokens": 3000},
+                    "cost_usd": 0.17,
                     "paper_stage_log": {
                         "stage_name": "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck",
                         "current_owner": "write",
@@ -260,6 +275,15 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
     assert terminal_log["record_path"] == f"{latest_execution_path}#executions/0"
     assert terminal_log["action_type"] == "run_quality_repair_batch"
     assert terminal_log["status"] == "executed"
+    assert terminal_log["observability_status"] == "observed"
+    assert terminal_log["duration"] == {"seconds": 18.0}
+    assert terminal_log["token_usage"] == {
+        "input_tokens": 2100,
+        "output_tokens": 900,
+        "total_tokens": 3000,
+    }
+    assert terminal_log["cost"] == {"usd": 0.17}
+    assert terminal_log["missing_observability_fields"] == []
     assert terminal_log["paper_stage_log"]["outcome"] == "executed"
     assert terminal_log["paper_stage_log"]["changed_paper_surfaces"] == [
         "paper/claim_evidence_map.json",
@@ -372,6 +396,11 @@ def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
                 "stage_attempt_id": "sat-terminal",
                 "action_type": "run_quality_repair_batch",
                 "status": "blocked_with_domain_owner_refs",
+                "observability_status": "observed",
+                "duration": {"seconds": 91.25, "source": "provider_attempt"},
+                "token_usage": {"total_tokens": 12345, "input_tokens": 6789, "output_tokens": 5556},
+                "cost": {"usd": 0.42, "currency": "USD"},
+                "missing_observability_fields": [],
                 "paper_stage_log": {
                     "stage_name": "domain_owner/default-executor-dispatch",
                     "paper_work_done": [
@@ -395,8 +424,126 @@ def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
 
     terminal_log = compact["opl_current_control_state_handoff"]["latest_terminal_stage_log"]
     assert terminal_log["stage_attempt_id"] == "sat-terminal"
+    assert terminal_log["observability_status"] == "observed"
+    assert terminal_log["duration"] == {"seconds": 91.25, "source": "provider_attempt"}
+    assert terminal_log["token_usage"]["total_tokens"] == 12345
+    assert terminal_log["cost"] == {"usd": 0.42, "currency": "USD"}
     assert terminal_log["paper_stage_log"]["outcome"] == "blocked_with_domain_typed_blocker"
     assert terminal_log["paper_stage_log"]["remaining_blockers"] == ["authority_route_blocked"]
     assert "latest_terminal_stage_log: action `run_quality_repair_batch`" in markdown
+    assert "latest_terminal_stage_duration_seconds: `91.25`" in markdown
+    assert "latest_terminal_stage_token_usage_total: `12345`" in markdown
+    assert "latest_terminal_stage_cost_usd: `0.42`" in markdown
     assert "latest_terminal_stage_outcome: `blocked_with_domain_typed_blocker`" in markdown
     assert "authority_route_blocked" in markdown
+
+
+def test_latest_terminal_stage_log_marks_missing_observability(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-05-28T03:44:00+00:00",
+            "studies": [{"study_id": "001-risk", "quest_status": "active"}],
+        },
+    )
+    latest_execution_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    _write_json(
+        latest_execution_path,
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "generated_at": "2026-05-28T03:45:25+00:00",
+            "study_id": "001-risk",
+            "executions": [
+                {
+                    "generated_at": "2026-05-28T03:45:25+00:00",
+                    "study_id": "001-risk",
+                    "action_type": "run_gate_clearing_batch",
+                    "execution_status": "executed",
+                    "paper_stage_log": {
+                        "stage_name": "owner_authorized_publication_gate_replay",
+                        "paper_work_done": ["Recorded gate replay receipt."],
+                        "outcome": "executed",
+                        "remaining_blockers": [],
+                        "evidence_refs": ["artifacts/controller/gate_clearing_batch/latest.json"],
+                    },
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    terminal_log = projection["latest_terminal_stage_log"]
+    assert terminal_log["observability_status"] == "missing"
+    assert terminal_log["missing_observability_fields"] == ["duration", "token_usage", "cost"]
+    assert terminal_log["duration"] == {}
+    assert terminal_log["token_usage"] == {}
+    assert terminal_log["cost"] == {}
+
+
+def test_latest_terminal_stage_log_preserves_zero_observability_values(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-05-28T03:44:00+00:00",
+            "studies": [{"study_id": "001-risk", "quest_status": "active"}],
+        },
+    )
+    latest_execution_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    _write_json(
+        latest_execution_path,
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "generated_at": "2026-05-28T03:45:25+00:00",
+            "study_id": "001-risk",
+            "executions": [
+                {
+                    "generated_at": "2026-05-28T03:45:25+00:00",
+                    "study_id": "001-risk",
+                    "action_type": "run_gate_clearing_batch",
+                    "execution_status": "executed",
+                    "duration_seconds": 0,
+                    "token_usage": {"total_tokens": 0},
+                    "cost_usd": 0,
+                    "paper_stage_log": {
+                        "stage_name": "owner_authorized_publication_gate_replay",
+                        "paper_work_done": ["Recorded gate replay receipt."],
+                        "outcome": "executed",
+                    },
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    terminal_log = projection["latest_terminal_stage_log"]
+    assert terminal_log["observability_status"] == "observed"
+    assert terminal_log["missing_observability_fields"] == []
+    assert terminal_log["duration"] == {"seconds": 0}
+    assert terminal_log["token_usage"] == {"total_tokens": 0}
+    assert terminal_log["cost"] == {"usd": 0}

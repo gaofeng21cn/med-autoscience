@@ -45,6 +45,11 @@ def _compact_terminal_stage_log(value: Any) -> dict[str, Any] | None:
             "stage_id",
             "action_type",
             "status",
+            "observability_status",
+            "duration",
+            "token_usage",
+            "cost",
+            "missing_observability_fields",
             "paper_stage_log",
             "closeout_refs",
             "authority_boundary",
@@ -206,6 +211,36 @@ def render_mcp_progress_opl_current_control_state_handoff(compact: dict[str, Any
         outcome = str(paper_stage_log.get("outcome") or "").strip()
         if outcome:
             lines.append(f"- latest_terminal_stage_outcome: `{outcome}`")
+        duration = (
+            latest_terminal_stage_log.get("duration")
+            if isinstance(latest_terminal_stage_log.get("duration"), dict)
+            else {}
+        )
+        token_usage = (
+            latest_terminal_stage_log.get("token_usage")
+            if isinstance(latest_terminal_stage_log.get("token_usage"), dict)
+            else {}
+        )
+        cost = (
+            latest_terminal_stage_log.get("cost")
+            if isinstance(latest_terminal_stage_log.get("cost"), dict)
+            else {}
+        )
+        duration_seconds = duration.get("seconds")
+        if duration_seconds is not None:
+            lines.append(f"- latest_terminal_stage_duration_seconds: `{duration_seconds}`")
+        token_total = token_usage.get("total_tokens") or token_usage.get("total")
+        if token_total is not None:
+            lines.append(f"- latest_terminal_stage_token_usage_total: `{token_total}`")
+        cost_usd = cost.get("usd") or cost.get("cost_usd")
+        if cost_usd is not None:
+            lines.append(f"- latest_terminal_stage_cost_usd: `{cost_usd}`")
+        missing = _compact_string_list(latest_terminal_stage_log.get("missing_observability_fields"), limit=6)
+        if missing:
+            lines.append(
+                "- latest_terminal_stage_missing_observability: "
+                + "；".join(f"`{item}`" for item in missing)
+            )
         blockers = _compact_string_list(paper_stage_log.get("remaining_blockers"), limit=6)
         if blockers:
             lines.append("- latest_terminal_stage_blockers: " + "；".join(f"`{item}`" for item in blockers))

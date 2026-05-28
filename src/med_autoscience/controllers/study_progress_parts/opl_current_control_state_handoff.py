@@ -169,6 +169,85 @@ def _stage_log_mapping(value: object) -> dict[str, Any]:
     return {key: value[key] for key in PAPER_STAGE_LOG_KEYS if key in value}
 
 
+def _observability_mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _number_value(value: object) -> int | float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int | float):
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            parsed = float(text)
+        except ValueError:
+            return None
+        return int(parsed) if parsed.is_integer() else parsed
+    return None
+
+
+def _first_number_value(*values: object) -> int | float | None:
+    for value in values:
+        number = _number_value(value)
+        if number is not None:
+            return number
+    return None
+
+
+def _duration_observability(value: Mapping[str, Any]) -> dict[str, Any]:
+    duration = _observability_mapping(value.get("duration"))
+    if duration:
+        return duration
+    seconds = _first_number_value(
+        value.get("duration_seconds"),
+        value.get("elapsed_seconds"),
+        value.get("runtime_duration_seconds"),
+    )
+    return {"seconds": seconds} if seconds is not None else {}
+
+
+def _token_usage_observability(value: Mapping[str, Any]) -> dict[str, Any]:
+    for key in ("token_usage", "usage", "tokenUsage"):
+        usage = _observability_mapping(value.get(key))
+        if usage:
+            return usage
+    return {}
+
+
+def _cost_observability(value: Mapping[str, Any]) -> dict[str, Any]:
+    cost = _observability_mapping(value.get("cost"))
+    if cost:
+        return cost
+    usd = _first_number_value(value.get("cost_usd"), value.get("usd_cost"))
+    return {"usd": usd} if usd is not None else {}
+
+
+def _terminal_stage_log_observability(value: Mapping[str, Any]) -> dict[str, Any]:
+    duration = _duration_observability(value)
+    token_usage = _token_usage_observability(value)
+    cost = _cost_observability(value)
+    missing = [
+        key
+        for key, observed in (
+            ("duration", duration),
+            ("token_usage", token_usage),
+            ("cost", cost),
+        )
+        if not observed
+    ]
+    return {
+        "observability_status": "observed" if not missing else "missing",
+        "duration": duration,
+        "token_usage": token_usage,
+        "cost": cost,
+        "missing_observability_fields": missing,
+    }
+
+
 def _latest_terminal_stage_log_projection(
     *,
     profile: WorkspaceProfile,
@@ -264,6 +343,7 @@ def _terminal_stage_log_from_execution_record(
         "action_type": _non_empty_text(execution.get("action_type")),
         "status": _non_empty_text(execution.get("execution_status")) or _non_empty_text(execution.get("status")),
         "paper_stage_log": paper_stage_log,
+        **_terminal_stage_log_observability(execution),
         "closeout_refs": _string_list(execution.get("closeout_refs")),
         "authority_boundary": _terminal_stage_log_authority_boundary(),
     }
@@ -300,6 +380,7 @@ def _terminal_stage_log_from_closeout(
         "action_type": _non_empty_text(closeout.get("action_type")),
         "status": _non_empty_text(closeout.get("status")),
         "paper_stage_log": paper_stage_log,
+        **_terminal_stage_log_observability(closeout),
         "closeout_refs": _string_list(closeout.get("closeout_refs")),
         "authority_boundary": _terminal_stage_log_authority_boundary(),
     }
