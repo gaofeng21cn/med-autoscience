@@ -88,6 +88,61 @@ def test_scan_domain_routes_can_project_without_overwriting_workspace_latest(
     assert not (profile.workspace_root / "artifacts" / "supervision" / "hourly" / "history.jsonl").exists()
 
 
+def test_external_observe_scan_reads_progress_without_materializing_controller_decisions(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    calls: dict[str, dict[str, object]] = {}
+
+    def status_reader(**kwargs: object) -> dict[str, object]:
+        calls["status"] = dict(kwargs)
+        return {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "quest_status": "active",
+            "publication_eval": {
+                "assessment_provenance": {"owner": "ai_reviewer"},
+                "recommended_actions": [],
+            },
+        }
+
+    def progress_reader(**kwargs: object) -> dict[str, object]:
+        calls["progress"] = dict(kwargs)
+        if kwargs.get("sync_runtime_summary") is not False:
+            raise AssertionError("owner-route read-only scans must not sync runtime summary")
+        if kwargs.get("materialize_read_model_artifacts") is not False:
+            raise AssertionError("owner-route read-only scans must not materialize read-model artifacts")
+        return {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "paper_stage": "publication_supervision",
+            "supervision": {"active_run_id": None},
+        }
+
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", status_reader)
+    monkeypatch.setattr(module.study_progress, "read_study_progress", progress_reader)
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=(study_id,),
+        developer_supervisor_mode="external_observe",
+        persist_surfaces=False,
+    )
+
+    assert result["studies"][0]["study_id"] == study_id
+    assert calls["status"]["sync_runtime_summary"] is False
+    assert calls["status"]["include_progress_projection"] is False
+    assert calls["progress"]["sync_runtime_summary"] is False
+    assert calls["progress"]["materialize_read_model_artifacts"] is False
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+
+
 def test_persisted_single_study_scan_preserves_unscanned_study_handoff(
     monkeypatch,
     tmp_path: Path,

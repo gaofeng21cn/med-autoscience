@@ -21,8 +21,20 @@ def read_study_projection_inputs(
 ) -> tuple[dict[str, Any], dict[str, Any], str | None, dict[str, Any]]:
     resolved_status_reader = status_reader or domain_status_projection.progress_projection
     resolved_progress_reader = progress_reader or study_progress.read_study_progress
-    status = resolved_status_reader(profile=profile, study_id=study_id, study_root=study_root)
-    progress = resolved_progress_reader(profile=profile, study_id=study_id, study_root=study_root)
+    status = resolved_status_reader(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        sync_runtime_summary=False,
+        include_progress_projection=False,
+    )
+    progress = resolved_progress_reader(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        sync_runtime_summary=False,
+        materialize_read_model_artifacts=False,
+    )
     status_payload = _mapping(status)
     progress_payload = _mapping(progress)
     resolved_quest_id = _text(status_payload.get("quest_id")) or _text(progress_payload.get("quest_id"))
