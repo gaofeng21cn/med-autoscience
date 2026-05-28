@@ -127,10 +127,10 @@ def currentness_contract(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     required = [
         "work_unit_fingerprint",
         "truth_epoch",
-        "runtime_health_epoch",
+        "runtime_health_epoch_or_source_eval_id",
         "owner_reason",
     ]
-    missing = [field for field in required if _text(basis.get(field)) is None]
+    missing = [field for field in required if _currentness_required_field_missing(field, basis)]
     return {
         "status": "currentness_basis_required",
         "basis": basis,
@@ -228,7 +228,7 @@ def default_executor_attempt_envelope(
         and bool(basis.get("work_unit_id"))
         and bool(basis.get("work_unit_fingerprint"))
         and bool(basis.get("truth_epoch"))
-        and bool(basis.get("runtime_health_epoch"))
+        and _runtime_or_eval_currentness_present(basis)
         and bool(core_fields["source_fingerprint"])
         and action_type in set(reason_contract["allowed_actions"])
         and not domain_intent["missing_required_fields"]
@@ -666,10 +666,22 @@ def _domain_intent_missing_fields(payload: Mapping[str, Any]) -> list[str]:
         "owner_route_currentness_basis.work_unit_id": basis.get("work_unit_id"),
         "owner_route_currentness_basis.work_unit_fingerprint": basis.get("work_unit_fingerprint"),
         "owner_route_currentness_basis.truth_epoch": basis.get("truth_epoch"),
-        "owner_route_currentness_basis.runtime_health_epoch": basis.get("runtime_health_epoch"),
         "owner_route_currentness_basis.owner_reason": basis.get("owner_reason"),
     }
-    return [field for field, value in checks.items() if _text(value) is None]
+    missing = [field for field, value in checks.items() if _text(value) is None]
+    if not _runtime_or_eval_currentness_present(basis):
+        missing.append("owner_route_currentness_basis.runtime_health_epoch_or_source_eval_id")
+    return missing
+
+
+def _currentness_required_field_missing(field: str, basis: Mapping[str, Any]) -> bool:
+    if field == "runtime_health_epoch_or_source_eval_id":
+        return not _runtime_or_eval_currentness_present(basis)
+    return _text(basis.get(field)) is None
+
+
+def _runtime_or_eval_currentness_present(basis: Mapping[str, Any]) -> bool:
+    return _text(basis.get("runtime_health_epoch")) is not None or _text(basis.get("source_eval_id")) is not None
 
 
 def _authority_boundary() -> dict[str, list[str]]:

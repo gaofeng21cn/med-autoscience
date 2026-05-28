@@ -1527,6 +1527,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出 AI reviewer 已经产出 current-inputs record，archive selector 也能选中该 record，但 owner-route 仍读取 stale `progress.ai_reviewer_request_lifecycle` 和旧 `ai_reviewer_re_eval` transition，导致 `action_queue=[]` 或重复回到 reviewer。根因是 MAS controller/read-model currentness 顺序错误，不是 OPL provider、手工 queue update 或论文正文可直接修补的问题。
 - 影响：该修复只改变 MAS owner-route/read-model closure，不写 DM003 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、submission package 或 current package。论文质量、publishability 和 package freshness 仍由后续 gate-clearing batch、write owner、AI reviewer-backed eval 与 publication gate 继续判定。
 
+## 2026-05-28：eval-bound writer handoff 不得被 runtime-health 缺失或旧 closeout 消费阻断
+
+- 决策：`domain_owner/default-executor-dispatch` 的 owner-route attempt currentness 允许由 `source_eval_id` 承担 publication-eval 绑定的 writer handoff 时效锚点；`runtime_health_epoch` 只在 runtime-health 绑定 route 中必需。`default_executor_execution_receipt_consumption` 不能再用相同 `idempotency_key` 直接消费当前 route，必须比较 truth/source eval、work unit、owner reason 与 action currentness。
+- 理由：DM003 暴露出当前 AI reviewer eval `20260528T125118Z` 已 route back 到 `write/run_quality_repair_batch`，并生成 `quality_repair_batch_writer_handoff`，但该 handoff 没有 runtime-health epoch，导致 owner-route attempt envelope fail closed；同时历史 closeout 复用了同一 writer handoff idempotency key，旧 manuscript story delta 被误判为已消费当前 eval-bound medical prose repair。
+- 影响：MAS export 会重新暴露当前 eval-bound `quality_repair_batch_writer_handoff` 给 OPL stage attempt；旧 writer closeout 只有在 source eval/truth/work unit/owner reason/action currentness 一致时才能消费当前 route。不得通过手工 queue update、放宽 owner reason、或直接修改 DM003 paper/current_package 解决此类停滞。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

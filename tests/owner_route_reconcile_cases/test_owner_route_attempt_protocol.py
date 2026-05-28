@@ -206,6 +206,62 @@ def test_default_executor_attempt_envelope_declares_domain_intent_and_authority_
     assert domain_intent["missing_required_fields"] == []
 
 
+def test_default_executor_attempt_envelope_accepts_eval_bound_writer_route_without_runtime_health() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-current-manuscript::20260528T125118Z"
+    )
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "truth_epoch": source_eval_id,
+        "route_epoch": source_eval_id,
+        "source_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+        "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+        "current_owner": "quality_repair_batch",
+        "next_owner": "write",
+        "owner_reason": "manuscript_story_surface_delta_missing",
+        "failure_signature": "manuscript_story_surface_delta_missing",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "idempotency_key": (
+            "quality-repair-writer-handoff::003-dpcc-primary-care-phenotype-treatment-gap::"
+            "domain-transition::route_back_same_line::medical_prose_write_repair"
+        ),
+        "source_refs": {
+            "source_eval_id": source_eval_id,
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+            "study_truth_epoch": source_eval_id,
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "owner_route_currentness_basis": {
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+                "truth_epoch": source_eval_id,
+                "owner_reason": "manuscript_story_surface_delta_missing",
+            },
+        },
+    }
+
+    envelope = protocol.default_executor_attempt_envelope(
+        dispatch={
+            "action_type": "run_quality_repair_batch",
+            "next_executable_owner": "write",
+            "owner_route": owner_route,
+            "allowed_write_surfaces": ["paper/draft.md", "paper/build/review_manuscript.md"],
+            "forbidden_surfaces": ["artifacts/publication_eval/latest.json"],
+        }
+    )
+
+    assert envelope["dispatchable"] is True
+    assert envelope["source_eval_id"] == source_eval_id
+    assert envelope["domain_intent"]["missing_required_fields"] == []
+
+
 def test_default_executor_attempt_envelope_fails_closed_without_domain_intent_required_fields() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
 
@@ -235,5 +291,5 @@ def test_default_executor_attempt_envelope_fails_closed_without_domain_intent_re
         "truth_epoch",
         "idempotency_key",
         "owner_route_currentness_basis.work_unit_fingerprint",
-        "owner_route_currentness_basis.runtime_health_epoch",
+        "owner_route_currentness_basis.runtime_health_epoch_or_source_eval_id",
     }
