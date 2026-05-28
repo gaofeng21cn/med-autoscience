@@ -447,6 +447,143 @@ def test_progress_projection_uses_live_opl_queue_attempt_when_handoff_is_stale(
     assert result["active_run_id"] == "opl-stage-attempt://sat-live-queue"
 
 
+def test_progress_projection_treats_terminal_opl_success_handoff_as_settled_not_unhealthy(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
+    decision_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority"
+    )
+    publication_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
+    )
+    profile = make_profile(tmp_path)
+    profile.runtime_root.mkdir(parents=True)
+    medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
+    medautosci_config.parent.mkdir(parents=True, exist_ok=True)
+    medautosci_config.write_text("MEDAUTOSCI_PROFILE=diabetes\n", encoding="utf-8")
+    controlled_backend = profile.workspace_root / "ops" / "mas"
+    (controlled_backend / "bin").mkdir(parents=True, exist_ok=True)
+    (controlled_backend / "config.env").write_text("MEDAUTOSCI_PROFILE=diabetes\n", encoding="utf-8")
+    behavior_gate = controlled_backend / "behavior_equivalence_gate.yaml"
+    behavior_gate.parent.mkdir(parents=True, exist_ok=True)
+    behavior_gate.write_text(
+        "\n".join(
+            [
+                "schema_version: v1",
+                "phase_25_ready: true",
+                "critical_overrides: []",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        quest_id="quest-001",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="A reproducible diabetes mortality prediction manuscript.",
+        paper_urls=["https://example.org/diabetes-mortality"],
+        journal_shortlist=["Journal of Clinical Epidemiology"],
+        minimum_sci_ready_evidence_package=["main_result_table", "claim_evidence_map"],
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "active",
+            "active_run_id": None,
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            "pending_user_message_count": 0,
+        },
+    )
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: quest-001\nstudy_id: 001-risk\n", encoding="utf-8")
+    _write_publication_eval(study_root, quest_root)
+    _write_controller_decision(
+        study_root,
+        quest_root,
+        decision_type="route_back_same_line",
+        requires_human_confirmation=False,
+        action_type="run_quality_repair_batch",
+        reason="Route the current paper blocker to the owner work unit.",
+    )
+    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-05-28T08:43:37+00:00",
+            "authority": "observability_only",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "active",
+                    "active_run_id": None,
+                    "active_stage_attempt_id": None,
+                    "active_workflow_id": None,
+                    "running_provider_attempt": False,
+                    "handoff_generated_at": "2026-05-28T08:43:37+00:00",
+                    "task_id": "frt-terminal-success",
+                    "task_kind": "domain_route/reconcile-apply",
+                    "current_attempt_state": "succeeded",
+                    "reconciliation_status": "succeeded",
+                    "terminal_provider_transport_observation_superseded": True,
+                    "superseded_terminal_observation_reason": "temporal_workflow_not_started_or_not_found",
+                    "superseded_by_task_status": "succeeded",
+                    "next_work_unit": {
+                        "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                        "lane": "analysis-campaign",
+                        "summary": (
+                            "Add uncertainty intervals, grouped calibration evidence, "
+                            "and reproducibility details."
+                        ),
+                    },
+                    "runtime_health": {
+                        "health_status": "settled",
+                        "runtime_liveness_status": "none",
+                        "summary": (
+                            "OPL queue transport is terminal succeeded and no provider attempt is live."
+                        ),
+                    },
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(decision_module.opl_provider_attempts, "live_provider_attempt_for_study", lambda **_: None)
+    monkeypatch.setattr(
+        publication_module,
+        "_supervisor_tick_now",
+        lambda: datetime.fromisoformat("2026-05-28T08:45:00+00:00"),
+    )
+
+    result = module.progress_projection(profile=profile, study_id="001-risk")
+
+    runtime_liveness = result["runtime_liveness_audit"]
+    assert runtime_liveness["status"] == "none"
+    assert runtime_liveness["source"] == "opl_current_control_state_terminal_transport_settled"
+    assert runtime_liveness["active_run_id"] is None
+    assert runtime_liveness["running_provider_attempt"] is False
+    assert runtime_liveness["reconciliation_status"] == "succeeded"
+    assert runtime_liveness["current_attempt_state"] == "succeeded"
+    assert runtime_liveness["terminal_provider_transport_observation_superseded"] is True
+    assert runtime_liveness["provider_completion_is_domain_completion"] is False
+    assert result.get("active_run_id") is None
+    assert "execution_owner_guard" not in result
+    assert result["decision"] == "resume"
+    assert result["reason"] == "domain_transition_ai_reviewer_re_eval"
+    assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "continue_supervising_runtime"
+    assert result["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "not_live"
+    assert "runtime_recovery_retry_budget_exhausted" not in result["runtime_health_snapshot"]["blocking_reasons"]
+
+
 def test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lacks_study(
     monkeypatch,
     tmp_path: Path,

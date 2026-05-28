@@ -17,6 +17,7 @@ from . import publication_and_submission as _publication_and_submission
 from med_autoscience.controllers.owner_route_reconcile_parts import opl_provider_attempts
 
 _OPL_CURRENT_CONTROL_STATE_STALE_AFTER_SECONDS = 10 * 60
+_OPL_TERMINAL_SUCCESS_STATES = {"succeeded"}
 
 
 def _status_state(
@@ -539,6 +540,11 @@ def _runtime_health_liveness_status(study_entry: dict[str, object]) -> str | Non
     return str(study_entry.get("runtime_liveness_status") or "").strip() or None
 
 
+def _non_empty_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
 def _runtime_liveness_active_run_id(runtime_liveness_audit: dict[str, object] | None) -> str | None:
     if not isinstance(runtime_liveness_audit, dict):
         return None
@@ -619,9 +625,16 @@ def _opl_current_control_state_handoff_liveness_projection(
     ):
         return None
     active_run_id = str(study_entry.get("active_run_id") or "").strip() or None
-    if active_run_id is None or study_entry.get("running_provider_attempt") is not True:
-        return None
-    if _runtime_health_liveness_status(study_entry) != "live":
+    running_provider_attempt = study_entry.get("running_provider_attempt") is True
+    if not running_provider_attempt:
+        return _opl_terminal_success_handoff_liveness_projection(
+            latest_report=latest_report,
+            latest_report_path=latest_report_path,
+            study_entry=study_entry,
+            handoff_generated_at=handoff_generated_at,
+            quest_status=quest_status,
+        )
+    if active_run_id is None or _runtime_health_liveness_status(study_entry) != "live":
         return None
     active_stage_attempt_id = str(study_entry.get("active_stage_attempt_id") or "").strip() or None
     active_workflow_id = str(study_entry.get("active_workflow_id") or "").strip() or None
@@ -642,6 +655,54 @@ def _opl_current_control_state_handoff_liveness_projection(
         "handoff_generated_at": handoff_generated_at,
         "runtime_health": dict(runtime_health) if isinstance(runtime_health, dict) else {},
         "stage_progress_log": _stage_progress_log(study_entry.get("stage_progress_log")),
+        "snapshot": {"status": quest_status.value if quest_status is not None else None},
+    }
+
+
+def _opl_terminal_success_handoff_liveness_projection(
+    *,
+    latest_report: dict[str, object],
+    latest_report_path: Path,
+    study_entry: dict[str, object],
+    handoff_generated_at: str | None,
+    quest_status: StudyRuntimeQuestStatus | None,
+) -> dict[str, object] | None:
+    current_attempt_state = _non_empty_text(study_entry.get("current_attempt_state"))
+    reconciliation_status = _non_empty_text(study_entry.get("reconciliation_status"))
+    terminal_state = reconciliation_status or current_attempt_state
+    if terminal_state not in _OPL_TERMINAL_SUCCESS_STATES:
+        return None
+    if study_entry.get("running_provider_attempt") is not False:
+        return None
+    runtime_health = study_entry.get("runtime_health")
+    next_work_unit = study_entry.get("next_work_unit")
+    return {
+        "status": "none",
+        "source": "opl_current_control_state_terminal_transport_settled",
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "mas_provider_live_query_retired": True,
+        "provider_completion_is_domain_completion": False,
+        "authority": str(latest_report.get("authority") or "observability_only").strip() or "observability_only",
+        "active_run_id": None,
+        "active_stage_attempt_id": None,
+        "active_workflow_id": None,
+        "running_provider_attempt": False,
+        "handoff_path": str(latest_report_path),
+        "handoff_generated_at": handoff_generated_at,
+        "task_id": _non_empty_text(study_entry.get("task_id")),
+        "task_kind": _non_empty_text(study_entry.get("task_kind")),
+        "current_attempt_state": current_attempt_state,
+        "reconciliation_status": reconciliation_status,
+        "terminal_provider_transport_observation_superseded": (
+            study_entry.get("terminal_provider_transport_observation_superseded") is True
+        ),
+        "superseded_terminal_observation_reason": _non_empty_text(
+            study_entry.get("superseded_terminal_observation_reason")
+        ),
+        "superseded_by_task_status": _non_empty_text(study_entry.get("superseded_by_task_status")),
+        "runtime_health": dict(runtime_health) if isinstance(runtime_health, dict) else {},
+        "next_work_unit": dict(next_work_unit) if isinstance(next_work_unit, dict) else None,
         "snapshot": {"status": quest_status.value if quest_status is not None else None},
     }
 
