@@ -117,10 +117,25 @@ def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtim
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    runtime_health_kernel = importlib.import_module("med_autoscience.controllers.runtime_health_kernel")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    for sequence in range(1, 4):
+        runtime_health_kernel.append_runtime_health_event(
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=study_id,
+            event_type="recover_attempt",
+            payload={
+                "attempt_state": "failed",
+                "decision": "resume",
+                "failure_reason": "quest_marked_running_but_no_live_session",
+                "active_run_id": None,
+            },
+            recorded_at=f"2026-05-28T10:4{sequence}:00+00:00",
+        )
     latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     latest_path.parent.mkdir(parents=True, exist_ok=True)
     latest_path.write_text(
@@ -164,9 +179,11 @@ def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtim
                 "runtime_audit": {"worker_running": False},
             },
             "supervisor_tick_audit": {
-                "status": "fresh",
+                "status": "stale",
                 "required": True,
                 "latest_recorded_at": "2026-05-28T10:49:00+00:00",
+                "seconds_since_latest_recorded_at": 1880,
+                "reason": "opl_current_control_state_handoff_stale",
             },
             "runtime_health_snapshot": {
                 "attempt_state": "escalated",
@@ -220,6 +237,8 @@ def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtim
     assert health["retry_budget_remaining"] == 2
     assert health["canonical_runtime_action"] == "recover_runtime"
     assert health["blocking_reasons"] == ["quest_marked_running_but_no_live_session"]
+    assert health["supervisor_state"]["status"] == "fresh"
+    assert health["supervisor_state"]["latest_recorded_at"] == result["generated_at"]
     assert result["studies"][0]["blocked_reason"] != "runtime_recovery_retry_budget_exhausted"
 
 

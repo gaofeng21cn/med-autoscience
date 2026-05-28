@@ -43,6 +43,12 @@ def refresh_status_runtime_health_from_provider_readiness(
     if not supervisor_tick:
         return status
     supervisor_tick["provider_readiness"] = readiness
+    supervisor_tick["status"] = "fresh"
+    supervisor_tick["reason"] = "opl_current_control_state_handoff_fresh"
+    supervisor_tick["latest_recorded_at"] = recorded_at
+    supervisor_tick["seconds_since_latest_recorded_at"] = 0
+    supervisor_tick["summary"] = "OPL current_control_state handoff 新鲜，当前 stage/runtime owner 仍由 OPL 接管。"
+    supervisor_tick["next_action_summary"] = "继续按 OPL current_control_state 监管当前 stage/runtime lifecycle。"
     status["supervisor_tick_audit"] = supervisor_tick
     runtime_health = runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
         study_root=study_root,
