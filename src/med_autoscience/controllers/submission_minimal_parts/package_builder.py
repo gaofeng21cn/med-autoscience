@@ -1,4 +1,4 @@
-from .shared import *
+from .shared_base import *
 from .authority import *
 from .authority_note import (
     attach_submission_source_authority_note_qc,

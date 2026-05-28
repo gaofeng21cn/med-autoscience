@@ -982,3 +982,6 @@ def _sync_workspace_literature(*, workspace_root: Path, records: list[Literature
         workspace_root=workspace_root,
         records=[asdict(record) for record in records],
     )
+
+
+__all__ = [name for name in globals() if not name.startswith("__")]

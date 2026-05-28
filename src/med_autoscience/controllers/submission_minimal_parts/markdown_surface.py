@@ -1,4 +1,4 @@
-from .shared import *
+from .shared_base import *
 
 def extract_block_between_markers(
     text: str,

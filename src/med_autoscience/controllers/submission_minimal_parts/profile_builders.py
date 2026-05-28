@@ -1,4 +1,4 @@
-from .shared import *
+from .shared_base import *
 from .markdown_surface import *
 
 def should_build_general_medical_submission_markdown(*, compiled_text: str) -> bool:

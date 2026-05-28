@@ -1,4 +1,4 @@
-from .shared import *
+from .shared_base import *
 from .source_contract import build_submission_minimal_source_contract
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 

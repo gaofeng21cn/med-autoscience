@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ast
 import importlib
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -124,6 +126,55 @@ def test_current_repo_boundary_guard_has_no_blocking_findings() -> None:
     assert report.blocking_findings == ()
     for finding in report.oversized_findings:
         assert finding.severity == "advisory"
+
+
+def test_submission_minimal_shared_facade_is_physically_retired() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    retired_facade = repo_root / "src/med_autoscience/controllers/submission_minimal_parts/shared.py"
+
+    assert not retired_facade.exists()
+    result = subprocess.run(
+        [
+            "git",
+            "ls-files",
+            "src/med_autoscience/controllers/submission_minimal.py",
+            "src/med_autoscience/controllers/submission_minimal_parts",
+        ],
+        cwd=repo_root,
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    )
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("med_autoscience.controllers.submission_minimal_parts.shared")
+
+    offenders = []
+    for relative_path in result.stdout.splitlines():
+        candidate = repo_root / relative_path
+        if not candidate.exists():
+            continue
+        tree = ast.parse(candidate.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                if any(
+                    alias.name == "med_autoscience.controllers.submission_minimal_parts.shared"
+                    for alias in node.names
+                ):
+                    offenders.append(relative_path)
+                    break
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            if node.module == "shared" and node.level == 1:
+                offenders.append(relative_path)
+                break
+            if node.module == "med_autoscience.controllers.submission_minimal_parts.shared":
+                offenders.append(relative_path)
+                break
+            if node.module is None and node.level == 1 and any(alias.name == "shared" for alias in node.names):
+                offenders.append(relative_path)
+                break
+
+    assert offenders == []
 
 
 def test_program_boundary_map_prioritizes_natural_mas_mds_boundaries() -> None:

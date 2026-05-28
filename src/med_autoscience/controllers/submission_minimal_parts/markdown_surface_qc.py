@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .shared import *
+from .shared_base import *
 from med_autoscience.controllers.medical_publication_surface_parts.shared_base import excerpt_around
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 

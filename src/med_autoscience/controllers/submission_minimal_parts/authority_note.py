@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .shared import (
+from .shared_base import (
     relpath_from_workspace,
     remap_staging_path_to_target,
     write_text,
