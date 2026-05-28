@@ -201,6 +201,9 @@ def test_current_manuscript_stale_ai_reviewer_request_supersedes_write_route(
     tmp_path: Path,
 ) -> None:
     reconcile = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    owner_route_attempt_protocol = importlib.import_module(
+        "med_autoscience.runtime_control.owner_route_attempt_protocol"
+    )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -345,11 +348,26 @@ def test_current_manuscript_stale_ai_reviewer_request_supersedes_write_route(
     action = study["action_queue"][0]
     assert action["owner"] == "ai_reviewer"
     assert action["reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert action["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert action["executable_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert action["controller_work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert action["required_output_surface"] == (
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    )
+    assert action["publication_eval_latest_write_allowed"] is False
+    assert action["controller_decision_write_allowed"] is False
+    assert action["record_only_surface"] is True
     assert action["required_currentness_refs"] == [str(manuscript_path)]
     assert action["stale_record_ref"] == str(stale_record_path)
     assert study["next_owner"] == "ai_reviewer"
     assert study["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert study["owner_route"]["source_refs"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+    envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(dispatch=action)
+    assert envelope["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert envelope["dispatchable"] is True
     request = json.loads(
         (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").read_text(
             encoding="utf-8"

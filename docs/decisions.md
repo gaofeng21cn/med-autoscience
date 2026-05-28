@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-29：AI reviewer current-manuscript record handoff 必须携带 canonical work unit
+
+- 决策：`ai_reviewer_record_stale_after_current_manuscript` 的显式 AI reviewer request 必须直接生成 record-only `return_to_ai_reviewer_workflow` handoff，并携带 canonical `produce_ai_reviewer_publication_eval_record_against_current_manuscript` work unit、record-only output surface、禁止 `publication_eval/latest.json` / controller decision 直接写入的 authority flags。该 currentness basis 必须在 owner route 中可见，使 default-executor attempt envelope 可被 OPL admission 消费。
+- 决策：`domain-handler export` 不得在缺 `work_unit_id` 时猜测或补宽松 fallback；缺 work unit 的 dispatch 继续 fail closed。work-unit 身份必须由 MAS owner-route action projection/materializer 源头产生。
+- 理由：DM002 暴露出当前稿件 stale AI reviewer record request 已进入 current-control，但 action 没有 work unit，导致 `default_executor_attempt_envelope.dispatchable=false`，其 blocked-actions 也无法压掉旧 `run_quality_repair_batch` dispatch，OPL hydrate 因只看到旧任务而 no-op。根因是 MAS owner action currentness 不完整，不是 OPL queue/provider lifecycle 问题。
+- 影响：这是 MAS owner-route / OPL admission currentness 修复，不写 DM002 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须通过 MAS controller/runtime/owner path 重新 export、hydrate、执行 AI reviewer record-production attempt，并由后续 owner receipt、AI reviewer-backed eval、publication gate 与 package freshness proof 判定。
+
 ## 2026-05-28：default-executor dispatch 必须用 immutable stage packet 承接 OPL attempt
 
 - 决策：MAS materialize `default_executor_dispatch_request` 时，同时维护两个 surface：`artifacts/supervision/consumer/default_executor_dispatches/<action>.json` 继续作为 latest/read-model/current-candidate slot；`artifacts/supervision/consumer/default_executor_dispatches/immutable/<action>/<fingerprint>.json` 作为本次 owner work unit 的 immutable stage packet。导出给 OPL 的 `domain_owner/default-executor-dispatch` task 必须把 `payload.dispatch_ref`、`default_executor_dispatch_request` 和 `source_fingerprint` 绑定到 immutable stage packet；latest slot 只作为 `default_executor_latest_dispatch_request` provenance ref。

@@ -26,6 +26,9 @@ from med_autoscience.controllers.owner_route_reconcile_parts import story_surfac
 
 
 REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = Path("artifacts/controller/repair_execution_evidence/latest.json")
+CURRENT_MANUSCRIPT_AI_REVIEWER_RECORD_WORK_UNIT = (
+    "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+)
 
 
 def action_queue(
@@ -496,6 +499,7 @@ def _explicit_ai_reviewer_record_current_manuscript_request_pending(
 def _ai_reviewer_record_current_manuscript_action(
     ai_reviewer_assessment: Mapping[str, Any],
 ) -> dict[str, Any]:
+    work_unit_id = CURRENT_MANUSCRIPT_AI_REVIEWER_RECORD_WORK_UNIT
     action = ai_reviewer_actions.ai_reviewer_required_action(
         reason=ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
     )
@@ -503,6 +507,13 @@ def _ai_reviewer_record_current_manuscript_action(
         "The request-bound AI reviewer record predates the current manuscript; produce a new AI reviewer "
         "publication-eval record against the current manuscript before refreshing publication_eval/latest.json."
     )
+    action["required_output_surface"] = "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    action["next_work_unit"] = work_unit_id
+    action["executable_work_unit"] = work_unit_id
+    action["controller_work_unit_id"] = work_unit_id
+    action["publication_eval_latest_write_allowed"] = False
+    action["controller_decision_write_allowed"] = False
+    action["record_only_surface"] = True
     if required_refs := _string_items(ai_reviewer_assessment.get("required_currentness_refs")):
         action["required_currentness_refs"] = required_refs
     if stale_record_ref := _text(ai_reviewer_assessment.get("stale_record_ref")):
@@ -515,7 +526,7 @@ def _ai_reviewer_record_current_manuscript_action(
 def _ai_reviewer_record_current_manuscript_digest_mismatch_action(
     controller_route: Mapping[str, Any],
 ) -> dict[str, Any]:
-    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    work_unit_id = CURRENT_MANUSCRIPT_AI_REVIEWER_RECORD_WORK_UNIT
     action = ai_reviewer_actions.ai_reviewer_required_action(
         reason=ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
     )
