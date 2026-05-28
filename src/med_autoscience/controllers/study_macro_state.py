@@ -268,7 +268,21 @@ def _base_details(
         "format_profile": _text(progress.get("format_profile")) or _text(status.get("format_profile")),
         "decision_owner": _text(route.get("next_owner")) or _text(_mapping(controller_decision.get("owner_route")).get("next_owner")),
         "publication_owner": _text(_mapping(publication_eval.get("assessment_provenance")).get("owner")),
+        "reason_separation": _reason_separation_details(status=status, progress=progress),
     }
+
+
+def _reason_separation_details(*, status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[str, Any]:
+    runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
+    details: dict[str, Any] = {
+        "control_reason_policy": "stable_macro_reason_enum",
+        "diagnostic_reason_policy": "runtime_status_reason_detail_only",
+        "status_reason": _text(status.get("reason")),
+        "progress_reason": _text(progress.get("reason")),
+        "runtime_blocking_reasons": [_text(item) for item in runtime_health.get("blocking_reasons") or [] if _text(item)],
+        "domain_transition_decision_type": _text(_mapping(status.get("domain_transition")).get("decision_type")),
+    }
+    return {key: value for key, value in details.items() if value not in (None, "", [], {})}
 
 
 def _is_submit_info_state(

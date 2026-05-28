@@ -466,3 +466,45 @@ def test_macro_state_uses_short_primary_enums_and_conditions_for_detail() -> Non
     assert len(state["user_next"]) <= 16
     assert len(state["reason"]) <= 24
     assert state["conditions"][0]["type"] == "ExternalInfoPending"
+
+
+def test_long_runtime_status_reason_stays_diagnostic_not_macro_reason() -> None:
+    state = _derive(
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        status={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_status": "active",
+            "active_run_id": None,
+            "reason": "domain_transition_ai_reviewer_re_eval",
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "review",
+                "next_work_unit": {
+                    "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                },
+            },
+            "runtime_liveness_status": "parked",
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {"active_run_id": None, "worker_running": False},
+            },
+            "runtime_health_snapshot": {
+                "attempt_state": "escalated",
+                "canonical_runtime_action": "escalate_runtime",
+                "blocking_reasons": ["domain_transition_ai_reviewer_re_eval"],
+            },
+        },
+    )
+
+    assert state["writer_state"] == "queued"
+    assert state["user_next"] == "repair"
+    assert state["reason"] == "quality"
+    assert state["reason"] != "domain_transition_ai_reviewer_re_eval"
+    assert state["details"]["reason_separation"] == {
+        "control_reason_policy": "stable_macro_reason_enum",
+        "diagnostic_reason_policy": "runtime_status_reason_detail_only",
+        "status_reason": "domain_transition_ai_reviewer_re_eval",
+        "runtime_blocking_reasons": ["domain_transition_ai_reviewer_re_eval"],
+        "domain_transition_decision_type": "ai_reviewer_re_eval",
+    }
