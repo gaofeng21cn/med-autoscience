@@ -83,8 +83,23 @@ def build_ai_reviewer_record_production_request(
         "required_input_refs": required_inputs,
         "required_output_surface": RECORD_OUTPUT_SURFACE,
         "owner_callable_surface": "publication materialize-ai-reviewer-record",
+        "owner_callable_command": (
+            "publication materialize-ai-reviewer-record --build-production-trace "
+            "--payload-file <ai_reviewer_record_payload.json>"
+        ),
+        "reviewer_operating_system_contract": {
+            "contract_id": "medical_publication_ai_reviewer_os_v1",
+            "production_trace_builder": "ai_reviewer_publication_eval_workflow.build_ai_reviewer_publication_eval_record_with_workflow_trace",
+            "executor_must_not_hand_author_diagnostic_trace": True,
+            "diagnostic_trace_fields_forbidden": [
+                "authority_contract",
+                "claim_boundary_review",
+                "request_kind",
+            ],
+        },
         "record_must_consume_refs": required_currentness_refs,
         "followup_actions": [
+            "publication materialize-ai-reviewer-record --build-production-trace",
             "domain-action-request-materialize",
             "domain-owner-action-dispatch --action-types return_to_ai_reviewer_workflow",
         ],

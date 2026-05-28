@@ -501,6 +501,7 @@ def main(argv: list[str] | None = None) -> int:
             entry_mode=args.entry_mode,
             record=_load_json_payload_from_args(args),
             source="cli",
+            build_production_trace=bool(args.build_production_trace),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
