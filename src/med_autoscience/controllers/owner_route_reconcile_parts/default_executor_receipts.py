@@ -41,6 +41,12 @@ def route_and_consume_current_execution_receipt(
         actions=routed_actions,
     )
     if not receipt:
+        receipt = study_transition_receipt_consumption.default_executor_execution_followthrough_receipt_consumption(
+            study_root=study_root,
+            owner_route=owner_route,
+            actions=routed_actions,
+        )
+    if not receipt:
         return dict(owner_route), routed_actions, {}
     blocked_reason_text = _text(receipt.get("blocked_reason"))
     if _text(receipt.get("execution_status")) == "blocked" and blocked_reason_text:

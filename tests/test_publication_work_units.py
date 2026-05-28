@@ -458,6 +458,47 @@ def test_bundle_stage_stale_submission_package_produces_finalize_refresh_work_un
     }
 
 
+def test_bundle_stage_submission_hardening_surface_label_routes_to_finalize_refresh() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "complete_bundle_stage",
+            "supervisor_phase": "bundle_stage_blocked",
+            "blockers": [
+                "medical_publication_surface_blocked",
+                "submission_hardening_incomplete",
+            ],
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": [
+                "submission_hardening_incomplete",
+            ],
+            "study_delivery_status": "current",
+            "submission_minimal_authority_status": "current",
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "submission_hardening_incomplete",
+                    "artifact_path": "/tmp/paper/submission_minimal/audit/submission_manifest.json",
+                    "artifact_role": "submission_minimal_authority",
+                    "source_path": "/tmp/paper/submission_minimal/audit/submission_manifest.json",
+                },
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "actionable"
+    assert result["fingerprint_blockers"] == [
+        "complete_bundle_stage",
+        "submission_hardening_incomplete",
+    ]
+    assert result["next_work_unit"] == {
+        "unit_id": "submission_minimal_refresh",
+        "lane": "finalize",
+        "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+    }
+
+
 def test_clear_current_bundle_stage_package_routes_to_terminal_handoff_not_sync_work_unit() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

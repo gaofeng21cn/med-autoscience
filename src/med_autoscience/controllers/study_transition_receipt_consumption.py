@@ -9,6 +9,9 @@ from med_autoscience.controllers.body_free_evidence_packets import build_body_fr
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
     default_executor_execution_candidates,
 )
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_followthrough import (
+    default_executor_execution_followthrough_receipt_consumption,
+)
 
 
 _ROUTE_DECISION_OWNER_RECEIPT_VALUES = frozenset(
@@ -764,6 +767,8 @@ def _default_executor_owner_result_consumable(
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         )
+    if action_type == "publication_gate_specificity_required":
+        return _publication_gate_specificity_owner_result_satisfies_route_output(owner_result=owner_result)
     if owner_result.get("ok") is True:
         return True
     if _text(owner_result.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES:
@@ -771,6 +776,15 @@ def _default_executor_owner_result_consumable(
     if _text(repair_evidence.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
         return True
     return bool(_mapping_list(repair_evidence.get("changed_artifact_refs")))
+
+
+def _publication_gate_specificity_owner_result_satisfies_route_output(*, owner_result: Mapping[str, Any]) -> bool:
+    if not _text(owner_result.get("report_json")):
+        return False
+    publication_eval = _mapping(owner_result.get("publication_eval"))
+    if not _text(publication_eval.get("eval_id")):
+        return False
+    return _is_publication_eval_latest_path(_text(publication_eval.get("artifact_path")))
 
 
 def _ai_reviewer_workflow_owner_result_satisfies_route_output(*, owner_result: Mapping[str, Any]) -> bool:
@@ -948,6 +962,7 @@ __all__ = [
     "ai_reviewer_publication_eval_receipt_consumption",
     "bundle_stage_completion_receipt_consumption",
     "default_executor_execution_nonconsumable_closeout",
+    "default_executor_execution_followthrough_receipt_consumption",
     "default_executor_execution_receipt_consumption",
     "execution_receipt_consumption",
     "mas_owner_apply_receipt_consumption",

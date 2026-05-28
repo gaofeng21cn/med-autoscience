@@ -278,6 +278,13 @@ def _normalized_blockers(report: Mapping[str, Any]) -> tuple[str, ...]:
         *_text_sequence(report, "medical_publication_surface_blockers"),
         *_text_sequence(report, "reporting_blockers"),
     }
+    named_blockers = set(_text_sequence(report, "medical_publication_surface_named_blockers"))
+    if (
+        "medical_publication_surface_blocked" in blockers
+        and named_blockers
+        and named_blockers.issubset(_AUTHORITY_AND_DELIVERY_BLOCKERS)
+    ):
+        blockers.discard("medical_publication_surface_blocked")
     delivery_status = str(report.get("study_delivery_status") or "").strip()
     if delivery_status and delivery_status not in _NON_BLOCKING_DELIVERY_STATUSES:
         blockers.add(delivery_status)

@@ -11,6 +11,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 的 `submission_minimal_refresh` 已正确生成 clean `manuscript_submission.md`，但 alias authority note 为了说明 MAS/package authority 边界包含 `AI reviewer`、`publication gate`、`submission readiness` 等内部术语。旧 gate 使用 `submission_minimal/**/*.md` 全量扫描，误把 metadata/authority note 当作正文，形成伪 `forbidden_manuscript_terminology` blocker。
 - 影响：这是 MAS publication gate surface-boundary 修复，不放宽正文 forbidden-term 检查，不允许内部运行态语言进入真实稿件，也不手写 DM003 `paper/submission_minimal/`、`manuscript/current_package/` 或 `publication_eval/latest.json`。
 
+## 2026-05-28：specificity receipt 可消费后必须进入同 work unit 的 package freshness follow-through
+
+- 决策：`publication_gate_specificity_required` 的 default-executor 执行若已经产出具体 gate report，并刷新同一 `artifacts/publication_eval/latest.json` eval authority，即使 owner result 仍是 blocked，也应视为该 specificity action 的可消费 receipt。当下一轮 current owner route 已转成同一 truth epoch、同一 work unit 的 `current_package_freshness_required` 时，receipt consumer 可以按显式 `publication_gate_specificity_required -> current_package_freshness_required` transition 消费旧 specificity receipt，并继续派发 package freshness。
+- 理由：DM003 的 specificity owner 已把通用 gate blocker 具体化为 `submission_hardening_incomplete`，当前 gate replay 也已指向 finalize bundle/package refresh；但旧 receipt consumer 只扫描当前 action type，导致已执行的 specificity receipt 因当前 action 改变而永远不可消费，owner-route 重复停留在同一 specificity lane。
+- 影响：这是 MAS owner-route receipt currentness 修复。允许的 follow-through 只覆盖同一 truth epoch、同一 work unit、固定 action pair 的 transition；不同 work unit、不同 allowed action、缺 gate report 或缺 publication eval latest authority 继续 fail closed。它不授权 publication ready、submission ready，也不直接修改 canonical paper、submission package、current package 或 publication eval truth。
+
 ## 2026-05-28：consumed package-freshness 后必须继续解析 gate replay blocked follow-through
 
 - 决策：同一 owner route 的 `current_package_freshness_required` 已执行并被 default-executor receipt 消费时，`owner-route-reconcile` 不能把 current-control 队列清空。如果当前 `gate_clearing_batch/latest.json` 的 gate replay 仍 blocked，必须从 replay 结构继续派发下一跳：有可执行 write route-back 时进入 `write/run_quality_repair_batch`；只有通用 label blocker 且缺少具体 claim/figure/table/source target 时，进入 `publication_gate/publication_gate_specificity_required` typed owner。

@@ -454,7 +454,11 @@ def _post_consumed_submission_refresh_followthrough_action(
     publication_eval_payload: Mapping[str, Any],
     consumed_receipt: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    if _text(consumed_receipt.get("action_type")) != "current_package_freshness_required":
+    consumed_action_type = _text(consumed_receipt.get("action_type"))
+    if consumed_action_type not in {
+        "current_package_freshness_required",
+        "publication_gate_specificity_required",
+    }:
         return None
     if _text(consumed_receipt.get("execution_status")) != "executed":
         return None
@@ -473,21 +477,27 @@ def _post_consumed_submission_refresh_followthrough_action(
         )
         if refresh_route is None:
             return None
-        action = publication_gate_actions.action_payload(
-            gate_specificity={
-                "required": True,
-                "gate_owner": "publication_gate",
-                "request": {
-                    "source": "consumed_submission_refresh_gate_replay",
-                    "gate_report_path": refresh_route.get("gate_report_path"),
-                    "gate_blockers": list(refresh_route.get("gate_blockers") or []),
-                    "gate_clearing_batch_path": refresh_route.get("gate_clearing_batch_path"),
-                },
-            }
-        )
-        action["controller_route"] = dict(refresh_route)
-        action["work_unit_fingerprint"] = _text(refresh_route.get("work_unit_fingerprint"))
-        action["required_output_surface"] = "artifacts/publication_eval/latest.json#specificity_targets"
+        if consumed_action_type == "publication_gate_specificity_required":
+            action = artifact_freshness.action_payload(
+                reason=artifact_freshness.ACTION_TYPE,
+                controller_route=refresh_route,
+            )
+        else:
+            action = publication_gate_actions.action_payload(
+                gate_specificity={
+                    "required": True,
+                    "gate_owner": "publication_gate",
+                    "request": {
+                        "source": "consumed_submission_refresh_gate_replay",
+                        "gate_report_path": refresh_route.get("gate_report_path"),
+                        "gate_blockers": list(refresh_route.get("gate_blockers") or []),
+                        "gate_clearing_batch_path": refresh_route.get("gate_clearing_batch_path"),
+                    },
+                }
+            )
+            action["controller_route"] = dict(refresh_route)
+            action["work_unit_fingerprint"] = _text(refresh_route.get("work_unit_fingerprint"))
+            action["required_output_surface"] = "artifacts/publication_eval/latest.json#specificity_targets"
     return action_projection.decorate_action(
         study_id=study_id,
         quest_id=quest_id,
