@@ -247,6 +247,60 @@ def current_gate_replay_routeback_route(
     }
 
 
+def current_gate_replay_submission_refresh_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    batch_path = resolved_study_root / GATE_CLEARING_BATCH_RELATIVE_PATH
+    batch = _read_json_object(batch_path)
+    if batch is None:
+        return None
+    if _text(batch.get("source_eval_id")) != _text(publication_eval_payload.get("eval_id")):
+        return None
+    gate_report = _gate_replay_report_payload(batch, study_root=resolved_study_root)
+    if gate_report is None:
+        return None
+    if _text(gate_report.get("status")) != "blocked" or gate_report.get("allow_write") is True:
+        return None
+    batch_work_unit = _mapping(batch.get("current_publication_work_unit"))
+    work_unit_id = _text(batch_work_unit.get("unit_id"))
+    if work_unit_id != "submission_minimal_refresh":
+        return None
+    if _text(batch_work_unit.get("lane")) != "finalize":
+        return None
+    fingerprint = (
+        _text(batch.get("work_unit_fingerprint"))
+        or _text(_mapping(batch.get("work_unit_currentness")).get("current_work_unit_fingerprint"))
+        or _text(gate_report.get("gate_fingerprint"))
+    )
+    source_eval_id = _text(publication_eval_payload.get("eval_id"))
+    return {
+        "decision_path": None,
+        "decision_id": None,
+        "controller_actions": ["run_gate_clearing_batch"],
+        "route_target": "finalize",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": f"gate-replay-route-back::finalize::{fingerprint or work_unit_id}",
+        "publication_eval_id": source_eval_id,
+        "publication_eval_ref": {
+            "eval_id": source_eval_id,
+            "artifact_path": ai_reviewer_publication_eval_records.projection_source_ref(
+                publication_eval_payload,
+                (resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve(),
+            ),
+        },
+        "next_work_unit": dict(batch_work_unit),
+        "gate_report_path": _text(_mapping(batch.get("gate_replay")).get("report_json")),
+        "gate_clearing_batch_path": str(batch_path),
+        "gate_fingerprint": _text(gate_report.get("gate_fingerprint")),
+        "gate_blockers": sorted(_string_set(gate_report.get("blockers"))),
+        "source": "owner_route_reconcile_gate_replay_submission_refresh",
+        "authorization_basis": "gate_replay_submission_minimal_refresh",
+    }
+
+
 def current_manuscript_digest_mismatch_ai_reviewer_route(
     *,
     study_root: Path,
@@ -865,6 +919,7 @@ __all__ = [
     "QUALITY_REPAIR_BATCH_RELATIVE_PATH",
     "OPL_STAGE_ATTEMPT_ADMISSION_REASON",
     "RUNTIME_CONTROLLER_REDRIVE_REASON",
+    "current_gate_replay_submission_refresh_route",
     "current_gate_replay_routeback_route",
     "current_manuscript_digest_mismatch_ai_reviewer_route",
     "current_quality_repair_writer_handoff_route",
