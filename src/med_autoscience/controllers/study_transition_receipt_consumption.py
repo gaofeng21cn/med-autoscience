@@ -701,13 +701,26 @@ def _owner_route_work_unit_currentness_matches(
 ) -> bool:
     current_basis = _owner_route_currentness_basis(owner_route)
     execution_basis = _owner_route_currentness_basis(execution_route)
-    for key in ("truth_epoch", "source_eval_id", "work_unit_fingerprint", "work_unit_id", "owner_reason"):
+    for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason"):
         current_value = _text(current_basis.get(key))
         execution_value = _text(execution_basis.get(key))
         if current_value and not execution_value:
             return False
         if current_value and execution_value and current_value != execution_value:
             return False
+    current_source_eval_id = _text(current_basis.get("source_eval_id"))
+    execution_source_eval_id = _text(execution_basis.get("source_eval_id"))
+    if current_source_eval_id and execution_source_eval_id and current_source_eval_id != execution_source_eval_id:
+        return False
+    if (
+        current_source_eval_id
+        and not execution_source_eval_id
+        and not all(
+            _text(current_basis.get(key)) == _text(execution_basis.get(key)) and _text(current_basis.get(key))
+            for key in ("truth_epoch", "runtime_health_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason")
+        )
+    ):
+        return False
     return bool(_text(current_basis.get("work_unit_fingerprint")) or _text(current_basis.get("work_unit_id")))
 
 
@@ -733,6 +746,11 @@ def _owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:
             or _text(source_refs.get("study_truth_epoch"))
             or _text(route.get("truth_epoch"))
             or _text(route.get("route_epoch"))
+        ),
+        "runtime_health_epoch": (
+            _text(nested_basis.get("runtime_health_epoch"))
+            or _text(source_refs.get("runtime_health_epoch"))
+            or _text(route.get("runtime_health_epoch"))
         ),
         "work_unit_fingerprint": (
             _text(nested_basis.get("work_unit_fingerprint"))

@@ -207,6 +207,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
 
     dispatch = result["default_executor_dispatches"][0]
     persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    immutable_dispatch_path = Path(persisted["refs"]["immutable_dispatch_path"])
     assert dispatch["dispatch_status"] == "ready"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
@@ -215,6 +216,8 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
     assert "paper/draft.md" in dispatch["prompt_contract"]["allowed_write_surfaces"]
     assert persisted["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert persisted["owner_route"]["source_refs"]["bridged_from_idempotency_key"] == current_route["idempotency_key"]
+    assert immutable_dispatch_path.is_file()
+    assert json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))["owner_route"] == persisted["owner_route"]
 
 
 def test_materialize_domain_action_requests_restores_writer_handoff_when_current_route_is_story_surface(
@@ -387,6 +390,7 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
 
     dispatch = result["default_executor_dispatches"][0]
     persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    immutable_dispatch_path = Path(persisted["refs"]["immutable_dispatch_path"])
     assert dispatch["dispatch_status"] == "ready"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
@@ -396,6 +400,8 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
     assert "paper/draft.md" in dispatch["prompt_contract"]["allowed_write_surfaces"]
     assert persisted["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert persisted["prompt_contract"]["medical_claim_authoring_allowed"] is True
+    assert immutable_dispatch_path.is_file()
+    assert json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))["owner_route"] == persisted["owner_route"]
 
 
 def test_materialize_domain_action_requests_builds_writer_handoff_from_current_story_surface_action(
@@ -498,6 +504,7 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
 
     dispatch = result["default_executor_dispatches"][0]
     persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    immutable_dispatch_path = Path(persisted["refs"]["immutable_dispatch_path"])
     assert dispatch["dispatch_status"] == "ready"
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
@@ -515,3 +522,5 @@ def test_materialize_domain_action_requests_builds_writer_handoff_from_current_s
     assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
     assert persisted["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert persisted["refs"]["repair_execution_evidence_path"] == str(repair_evidence_path)
+    assert immutable_dispatch_path.is_file()
+    assert json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))["owner_route"] == persisted["owner_route"]

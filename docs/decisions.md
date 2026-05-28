@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：default-executor dispatch 必须用 immutable stage packet 承接 OPL attempt
+
+- 决策：MAS materialize `default_executor_dispatch_request` 时，同时维护两个 surface：`artifacts/supervision/consumer/default_executor_dispatches/<action>.json` 继续作为 latest/read-model/current-candidate slot；`artifacts/supervision/consumer/default_executor_dispatches/immutable/<action>/<fingerprint>.json` 作为本次 owner work unit 的 immutable stage packet。导出给 OPL 的 `domain_owner/default-executor-dispatch` task 必须把 `payload.dispatch_ref`、`default_executor_dispatch_request` 和 `source_fingerprint` 绑定到 immutable stage packet；latest slot 只作为 `default_executor_latest_dispatch_request` provenance ref。
+- 决策：若 dispatch 声明了 immutable/stage packet 但文件不存在，`domain-handler export` 必须 fail closed，不得退回 mutable latest slot 伪造可执行任务。OPL provider attempt、dedupe 和 closeout currentness 应消费 immutable packet ref；MAS 继续持有 owner route、publication quality、paper/package authority 和 typed closeout 消费权。
+- 理由：DM003 暴露出 `run_quality_repair_batch.json` latest slot 会被后续 work unit 覆盖。若 OPL task payload 指向 mutable latest，provider attempt 可能在 admission 后读取到另一个 stage packet，导致 write repair、AI reviewer recheck 或 gate replay 发生 currentness 串线。根因是 MAS 将 read-model latest slot 同时当作 execution packet。
+- 影响：这是 MAS->OPL handoff currentness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。修复后 DM003 仍必须通过 MAS owner/controller/runtime path 重新 materialize/export dispatch，并等待 OPL/default executor 对 immutable stage packet 产出 typed closeout。
+
 ## 2026-05-28：当前 AI reviewer 写作 route-back 优先于 package freshness follow-through
 
 - 决策：`domain_action_request_materializer` 在消费 AI reviewer record-production work unit 时，若当前可验证 reviewer record 的 route-back 明确指向 `write`，必须优先 materialize 为 `write/run_quality_repair_batch` 和 story-surface write work unit。该 route-back 代表当前质量 owner 对 canonical manuscript 的未关闭要求，优先级高于已经存在的 story-surface delta、stale package freshness 或 gate/package follow-through。

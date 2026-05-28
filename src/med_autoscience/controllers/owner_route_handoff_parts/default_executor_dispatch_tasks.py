@@ -11,6 +11,7 @@ from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
 from med_autoscience.controllers import study_transition_receipt_consumption
+from med_autoscience.controllers import default_executor_dispatch_packets
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
@@ -55,7 +56,14 @@ def default_executor_dispatch_tasks(
             action_type=action_type,
         )
         dispatch_authority = _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch"
-        dispatch_ref = _workspace_relative(dispatch_path, workspace_root=profile.workspace_root)
+        stage_packet_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
+            dispatch,
+            fallback_dispatch_path=dispatch_path,
+        )
+        if not stage_packet_path.is_file():
+            continue
+        dispatch_ref = _workspace_relative(stage_packet_path, workspace_root=profile.workspace_root)
+        latest_dispatch_ref = _workspace_relative(dispatch_path, workspace_root=profile.workspace_root)
         owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
             dispatch=dispatch
         )
@@ -68,6 +76,7 @@ def default_executor_dispatch_tasks(
         source_refs = _source_refs(
             dispatch=dispatch,
             dispatch_ref=dispatch_ref,
+            latest_dispatch_ref=latest_dispatch_ref,
             prompt_contract_ref=prompt_contract_ref,
             workspace_root=profile.workspace_root,
             redrive_context=redrive_context,
@@ -77,7 +86,7 @@ def default_executor_dispatch_tasks(
         executor_kind = _text(dispatch.get("executor_kind")) or REQUIRED_EXECUTOR_KIND
         source_fingerprint = _source_fingerprint(
             dispatch=dispatch,
-            dispatch_path=dispatch_path,
+            dispatch_path=stage_packet_path,
             redrive_context=redrive_context,
         )
         evidence_record_payload = build_domain_dispatch_evidence_record_payload(
@@ -272,14 +281,27 @@ def _source_refs(
     *,
     dispatch: Mapping[str, Any],
     dispatch_ref: str,
+    latest_dispatch_ref: str,
     prompt_contract_ref: str,
     workspace_root: Path,
     redrive_context: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     refs: list[dict[str, Any]] = [
         {
+            "role": "default_executor_stage_packet",
+            "ref": dispatch_ref,
+            "exists": True,
+            "body_included": False,
+        },
+        {
             "role": "default_executor_dispatch_request",
             "ref": dispatch_ref,
+            "exists": True,
+            "body_included": False,
+        },
+        {
+            "role": "default_executor_latest_dispatch_request",
+            "ref": latest_dispatch_ref,
             "exists": True,
             "body_included": False,
         },
@@ -341,6 +363,8 @@ def _source_refs(
 def _project_dispatch_refs(*, refs: Mapping[str, Any], workspace_root: Path) -> list[dict[str, Any]]:
     role_by_key = {
         "dispatch_path": "default_executor_dispatch_path",
+        "immutable_dispatch_path": "default_executor_immutable_dispatch_path",
+        "stage_packet_path": "default_executor_stage_packet_path",
         "source_eval_path": "source_publication_eval_currentness",
         "source_summary_path": "quality_repair_source_summary",
         "repair_execution_evidence_path": "repair_execution_evidence_currentness",

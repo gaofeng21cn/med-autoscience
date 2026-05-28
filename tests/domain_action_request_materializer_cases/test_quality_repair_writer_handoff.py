@@ -128,6 +128,7 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
 
     dispatch = result["default_executor_dispatches"][0]
     written_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    immutable_dispatch_path = Path(written_dispatch["refs"]["immutable_dispatch_path"])
     assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert dispatch["prompt_contract"]["medical_claim_authoring_allowed"] is True
@@ -142,6 +143,10 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
     assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
     assert written_dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert written_dispatch["medical_claim_authoring_allowed"] is True
+    assert immutable_dispatch_path.is_file()
+    assert immutable_dispatch_path.parent.name == "run_quality_repair_batch"
+    assert immutable_dispatch_path.parent.parent.name == "immutable"
+    assert json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))["owner_route"] == route
 
 
 def _writer_handoff(*, study_id: str, dispatch_path: Path, route: dict[str, object]) -> dict[str, object]:

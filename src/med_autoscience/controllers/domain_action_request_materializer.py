@@ -10,6 +10,7 @@ from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
 from med_autoscience.controllers import domain_action_request_lifecycle
+from med_autoscience.controllers import default_executor_dispatch_packets
 from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
@@ -613,7 +614,19 @@ def _persist_default_executor_dispatches(
         if _text(dispatch.get("dispatch_status")) != "ready":
             continue
         dispatch_path = Path(_mapping(dispatch.get("refs")).get("dispatch_path"))
+        packet_dispatch = default_executor_dispatch_packets.dispatch_with_immutable_packet_ref(
+            dispatch=dispatch,
+            dispatch_path=dispatch_path,
+        )
+        dispatch.clear()
+        dispatch.update(packet_dispatch)
         _write_json(dispatch_path, dispatch)
+        immutable_dispatch_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
+            dispatch,
+            fallback_dispatch_path=dispatch_path,
+        )
+        if immutable_dispatch_path != dispatch_path:
+            _write_json(immutable_dispatch_path, dispatch)
         dispatch["dispatch_id"] = f"dispatch::{_text(dispatch.get('study_id'))}::{_text(dispatch.get('action_type'))}"
         quest_root = profile.runtime_root / (_text(dispatch.get("quest_id")) or _text(dispatch.get("study_id")) or "")
         dispatch["domain_authority_ref_index"] = domain_authority_refs_index.record_dispatch_receipt(
@@ -623,7 +636,11 @@ def _persist_default_executor_dispatches(
             db_path=domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root),
         )
         _write_json(dispatch_path, dispatch)
+        if immutable_dispatch_path != dispatch_path:
+            _write_json(immutable_dispatch_path, dispatch)
         written_files.append(str(dispatch_path))
+        if immutable_dispatch_path != dispatch_path:
+            written_files.append(str(immutable_dispatch_path))
     return written_files
 
 

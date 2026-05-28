@@ -381,3 +381,159 @@ def test_domain_handler_export_hydrates_only_one_current_default_executor_action
     assert tasks[0]["payload"]["work_unit_id"] == (
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     )
+
+
+def test_domain_handler_export_uses_immutable_packet_ref_when_latest_slot_is_overwritten(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    dispatch_dir = (
+        workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+    )
+    latest_path = dispatch_dir / "run_quality_repair_batch.json"
+    immutable_path = (
+        dispatch_dir
+        / "immutable"
+        / "run_quality_repair_batch"
+        / "medical-prose-write-repair.json"
+    )
+
+    current_dispatch = _dispatch_payload(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        dispatch_path=latest_path,
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-05-28T18:00:05+00:00",
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="write",
+            owner_reason="manuscript_story_surface_delta_missing",
+            action_type="run_quality_repair_batch",
+            work_unit_id="medical_prose_write_repair",
+            work_unit_fingerprint="dm003::medical-prose-write-repair",
+            runtime_health_epoch="runtime-health-event-medical-prose",
+            blocked_actions=[],
+        ),
+    )
+    current_dispatch["refs"]["immutable_dispatch_path"] = str(immutable_path)
+    current_dispatch["refs"]["stage_packet_path"] = str(immutable_path)
+    _write_json(immutable_path, current_dispatch)
+
+    overwritten_latest = _dispatch_payload(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        dispatch_path=latest_path,
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-05-28T18:00:29+00:00",
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="write",
+            owner_reason="manuscript_story_surface_delta_missing",
+            action_type="run_quality_repair_batch",
+            work_unit_id="manuscript_story_repair",
+            work_unit_fingerprint="dm003::manuscript-story-repair",
+            runtime_health_epoch="runtime-health-event-story-repair",
+            blocked_actions=[],
+        ),
+    )
+    _write_json(latest_path, overwritten_latest)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["work_unit_id"] for task in tasks] == ["manuscript_story_repair"]
+
+    _write_json(latest_path, current_dispatch)
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    task = next(
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    )
+
+    expected_ref = str(immutable_path.relative_to(workspace_root))
+    latest_ref = str(latest_path.relative_to(workspace_root))
+    assert task["payload"]["work_unit_id"] == "medical_prose_write_repair"
+    assert task["payload"]["dispatch_ref"] == expected_ref
+    assert task["payload"]["dispatch_ref"] != latest_ref
+    assert task["source_fingerprint"] in task["dedupe_key"]
+    source_refs_by_role = {ref["role"]: ref for ref in task["source_refs"]}
+    assert source_refs_by_role["default_executor_stage_packet"]["ref"] == expected_ref
+    assert source_refs_by_role["default_executor_dispatch_request"]["ref"] == expected_ref
+    assert source_refs_by_role["default_executor_latest_dispatch_request"]["ref"] == latest_ref
+    assert source_refs_by_role["default_executor_immutable_dispatch_path"]["ref"] == expected_ref
+
+
+def _dispatch_payload(
+    *,
+    workspace_root: Path,
+    study_id: str,
+    dispatch_path: Path,
+    action_type: str,
+    next_owner: str,
+    dispatch_authority: str,
+    owner_route: dict[str, object],
+    generated_at: str,
+) -> dict[str, object]:
+    payload = {
+        "surface": "default_executor_dispatch_request",
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": action_type,
+        "dispatch_status": "ready",
+        "dispatch_authority": dispatch_authority,
+        "next_executable_owner": next_owner,
+        "executor_kind": "codex_cli_default",
+        "consumer_mutation_scope": "executor_dispatch_request_only",
+        "owner_route": owner_route,
+        "prompt_contract": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": action_type,
+            "next_executable_owner": next_owner,
+            "owner_route": owner_route,
+            "allowed_write_surfaces": ["paper/draft.md"],
+            "forbidden_surfaces": [
+                "paper/current_package/**",
+                "manuscript/current_package/**",
+                "artifacts/publication_eval/latest.json",
+                "artifacts/controller_decisions/latest.json",
+            ],
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
+            "medical_claim_authoring_allowed": False,
+        },
+        "refs": {
+            "dispatch_path": str(dispatch_path),
+            "source_eval_path": str(
+                workspace_root / "studies" / study_id / "artifacts" / "publication_eval" / "latest.json"
+            ),
+        },
+        "generated_at": generated_at,
+    }
+    return payload
