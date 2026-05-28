@@ -28,7 +28,8 @@ def build_progress_portal_hosted_package(
         "surface_kind": surface_kind,
         "owner": "MedAutoScience",
         "packaging_owner": "MedAutoScience",
-        "package_role": "optional_hosted_runtime_workspace_truth_package",
+        "package_role": "read_model_projection_package",
+        "truth_role": "projection_only_no_workspace_runtime_truth",
         "generated_at": payload.get("generated_at"),
         "read_only": True,
         "default_operation_requires_external_mds": False,
@@ -79,6 +80,8 @@ def build_progress_portal_hosted_package(
         "read_model_materializer_boundary": {
             "surface_kind": "mas_progress_portal_read_model_materializer_boundary",
             "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
+            "hosted_package_role": "read_model_projection_package",
+            "hosted_package_truth_role": "projection_only_no_workspace_runtime_truth",
             "materializer_owner": "MedAutoScience",
             "materializer_scope": "domain_owned_payload_html_and_hosted_package_projection",
             "physical_module": (

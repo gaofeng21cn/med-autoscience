@@ -1847,6 +1847,8 @@
             "status": "opl_hosted_workbench_projection_and_read_model_materializer_landed",
             "read_model_materializer_boundary": {
               "active_callers": [],
+              "hosted_package_role": "read_model_projection_package",
+              "hosted_package_truth_role": "projection_only_no_workspace_runtime_truth",
               "does_not_claim": [
                 "workspace_workbench_owner",
                 "status_wrapper_owner",

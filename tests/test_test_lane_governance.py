@@ -461,6 +461,8 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     )
     materializer_boundary = workbench_thinning["read_model_materializer_boundary"]
     assert materializer_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
+    assert materializer_boundary["hosted_package_role"] == "read_model_projection_package"
+    assert materializer_boundary["hosted_package_truth_role"] == "projection_only_no_workspace_runtime_truth"
     assert materializer_boundary["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py"
     )

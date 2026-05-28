@@ -408,6 +408,8 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     )
     materializer_boundary = workbench_thinning["read_model_materializer_boundary"]
     assert materializer_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
+    assert materializer_boundary["hosted_package_role"] == "read_model_projection_package"
+    assert materializer_boundary["hosted_package_truth_role"] == "projection_only_no_workspace_runtime_truth"
     assert materializer_boundary["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py"
     )

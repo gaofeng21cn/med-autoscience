@@ -54,6 +54,8 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     assert hosted_package["surface_kind"] == "mas_progress_portal_hosted_package"
     assert hosted_package["owner"] == "MedAutoScience"
     assert hosted_package["packaging_owner"] == "MedAutoScience"
+    assert hosted_package["package_role"] == "read_model_projection_package"
+    assert hosted_package["truth_role"] == "projection_only_no_workspace_runtime_truth"
     assert hosted_package["read_only"] is True
     assert hosted_package["default_operation_requires_external_mds"] is False
     assert hosted_package["default_diagnostic_requires_external_mds"] is False
@@ -79,6 +81,8 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     materializer = hosted_package["read_model_materializer_boundary"]
     assert materializer["surface_kind"] == "mas_progress_portal_read_model_materializer_boundary"
     assert materializer["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
+    assert materializer["hosted_package_role"] == "read_model_projection_package"
+    assert materializer["hosted_package_truth_role"] == "projection_only_no_workspace_runtime_truth"
     assert materializer["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py"
     )
