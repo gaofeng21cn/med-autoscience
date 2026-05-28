@@ -10,6 +10,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON,
     PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION,
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
+    PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER,
     PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER,
     PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION,
     PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_CURRENTNESS,
@@ -59,6 +60,11 @@ def payload_reason_for_superseded_dispatch(
         return PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER
     if (
         action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and current_owner_route_typed_blocker_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER
+    if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
         and owner_authorized_publication_gate_replay_stage_attempt_blocker_observed(study_scan)
     ):
         return PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER
@@ -92,6 +98,11 @@ def payload_reason_for_superseded_dispatch(
         and runtime_recovery_not_authorized_stage_attempt_blocker_observed(study_scan)
     ):
         return PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER
+    if (
+        action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
+        and current_owner_route_typed_blocker_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER
     if (
         action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
         and runtime_recovery_retry_budget_terminal_blocker_observed(study_scan)
@@ -188,6 +199,33 @@ def runtime_recovery_not_authorized_stage_attempt_blocker_observed(
     return _runtime_stage_attempt_terminal_blocker_observed(
         study_scan=study_scan,
         blocked_reason_value=RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON,
+    )
+
+
+def current_owner_route_typed_blocker_observed(
+    study_scan: Mapping[str, Any],
+) -> bool:
+    owner_route = mapping(study_scan.get("owner_route"))
+    owner_reason_contract = mapping(owner_route.get("owner_reason_contract"))
+    currentness_contract = mapping(owner_route.get("currentness_contract"))
+    attempt_protocol = mapping(owner_route.get("owner_route_attempt_protocol"))
+    domain_authority_handoff = mapping(study_scan.get("domain_authority_handoff"))
+    typed_blocker = mapping(domain_authority_handoff.get("typed_blocker"))
+    blocked_reason = text(study_scan.get("blocked_reason")) or text(owner_route.get("owner_reason"))
+    next_owner = text(owner_route.get("next_owner"))
+    owner_reason = text(owner_route.get("owner_reason"))
+    return (
+        blocked_reason is not None
+        and owner_reason == blocked_reason
+        and next_owner is not None
+        and owner_reason_contract.get("registered") is True
+        and text(owner_reason_contract.get("reason")) == blocked_reason
+        and text(owner_reason_contract.get("owner")) is not None
+        and currentness_contract.get("missing_required_fields") == []
+        and attempt_protocol.get("dispatchable") is False
+        and text(domain_authority_handoff.get("status")) == "typed_blocker"
+        and text(typed_blocker.get("reason")) == blocked_reason
+        and text(typed_blocker.get("next_owner")) == next_owner
     )
 
 

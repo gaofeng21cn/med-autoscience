@@ -215,13 +215,21 @@ def _evidence_refs(
     )
     refs.extend(texts(sequence(domain_transition.get("source_refs"))))
     refs.extend(texts(sequence(mapping(owner_route.get("source_refs")).values())))
+    blocked_reason = text(study_scan.get("blocked_reason")) or text(owner_route.get("owner_reason"))
     refs.extend(
         texts(
             [
-                "owner-route-reconcile:completion_receipt_consumption=consumed",
-                f"owner-route-reconcile:route_target={text(domain_transition.get('route_target'))}",
-                f"owner-route-reconcile:controller_action={text(domain_transition.get('controller_action'))}",
-                f"owner-route-reconcile:blocked_reason={text(study_scan.get('blocked_reason')) or text(owner_route.get('owner_reason'))}",
+                (
+                    "owner-route-reconcile:completion_receipt_consumption=consumed"
+                    if text(completion.get("status")) == "consumed"
+                    else None
+                ),
+                _label_ref("owner-route-reconcile:route_target", domain_transition.get("route_target")),
+                _label_ref(
+                    "owner-route-reconcile:controller_action",
+                    domain_transition.get("controller_action"),
+                ),
+                _label_ref("owner-route-reconcile:blocked_reason", blocked_reason),
                 f"owner-route-reconcile:owner_route_next_owner={text(owner_route.get('next_owner'))}",
             ]
         )
@@ -247,6 +255,12 @@ def _evidence_refs(
             )
         )
     return unique(refs)
+
+
+def _label_ref(label: str, value: object) -> str | None:
+    if (ref_value := text(value)) is None:
+        return None
+    return f"{label}={ref_value}"
 
 
 def _study_scan(owner_route_scan: Mapping[str, Any], *, study_id: str) -> Mapping[str, Any] | None:

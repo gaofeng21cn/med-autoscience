@@ -43,6 +43,9 @@ PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER = (
 PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER = (
     "runtime_recovery_not_authorized_stage_attempt_blocker"
 )
+PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER = (
+    "current_owner_route_typed_blocker_observed_for_default_executor_dispatch"
+)
 TASK_KIND = "domain_owner/default-executor-dispatch"
 SUPPORTED_SUPERSEDED_ACTION_TYPE = "return_to_ai_reviewer_workflow"
 SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE = "run_quality_repair_batch"
