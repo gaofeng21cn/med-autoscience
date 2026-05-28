@@ -132,11 +132,14 @@ def _current_dispatch_candidates(dispatch_root: Path) -> list[dict[str, Any]]:
         if not _dispatch_ready_for_opl_attempt(dispatch):
             continue
         candidates.append({"path": dispatch_path, "dispatch": dispatch})
-    return [
+    unresolved = [
         candidate
         for candidate in candidates
         if not _dispatch_blocked_by_newer_candidate(candidate, candidates)
     ]
+    if len(unresolved) <= 1:
+        return unresolved
+    return [max(unresolved, key=_candidate_currentness_key)]
 
 
 def _dispatch_blocked_by_newer_candidate(
@@ -159,6 +162,10 @@ def _dispatch_blocked_by_newer_candidate(
             continue
         return True
     return False
+
+
+def _candidate_currentness_key(candidate: Mapping[str, Any]) -> tuple[str, str, str]:
+    return _dispatch_currentness_key(_mapping(candidate.get("dispatch")))
 
 
 def _dispatch_ready_for_opl_attempt(dispatch: Mapping[str, Any] | None) -> bool:
