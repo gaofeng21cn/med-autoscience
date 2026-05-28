@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：gate-clearing write follow-through 优先于旧 gate replay transition
+
+- 决策：`owner-route-reconcile` 的 action projection 在发现已执行的 `gate_clearing_batch/latest.json` 通过 `current_publication_work_unit.lane=write` 给出当前 write follow-through 时，必须先投递 `write/run_quality_repair_batch`，再考虑旧 `domain_transition` 的 `owner_authorized_publication_gate_replay` 回放。旧 `run_gate_clearing_batch` execution receipt 只能消费同一个 gate replay work unit，不能清空 gate replay 之后产生的 write work unit。
+- 理由：DM003 暴露出直接 current-truth 解析已经能从 gate-clearing batch 读到 `manuscript_story_repair`，但 action projection 先消费 AI reviewer route-back 的旧 domain transition，导致队列继续变成 `run_gate_clearing_batch`；随后旧 gate-clearing receipt 又把这个旧 route 标记 consumed，最终 current-control state 出现空队列。根因是 MAS action priority / read-model closure 漏了 gate-clearing follow-through，不是 OPL provider、手工 queue 或论文正文可直接修补的问题。
+- 影响：这是 MAS controller/read-model currentness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续 DM003 仍必须由 MAS owner/controller/runtime path materialize 并 dispatch `run_quality_repair_batch`，再进入 AI reviewer recheck、publication gate replay 和 package refresh。
+
 ## 2026-05-28：AI reviewer default-executor receipt 以 publication-eval 输出关闭同一 reviewer dispatch
 
 - 决策：`default_executor_execution_receipt_consumption` 对 `return_to_ai_reviewer_workflow` 不能套用 write repair 的 story-surface delta 判据；当同一 owner route/action 的执行记录为 `executed`，`owner_result` 明确写到 `artifacts/publication_eval/latest.json`、携带非空 `eval_id`、包含 `reviewer_operating_system`，且 controller refresh 已 materialize 后，该 AI reviewer dispatch 必须视为已消费，不得继续被 `domain-handler export` 作为 pending `domain_owner/default-executor-dispatch` 暴露。
