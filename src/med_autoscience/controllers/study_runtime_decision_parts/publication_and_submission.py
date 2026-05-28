@@ -224,6 +224,30 @@ def _current_control_state_health_status(study_entry: dict[str, object]) -> str 
     return None
 
 
+def _provider_readiness_from_handoff(latest_report: dict[str, object]) -> dict[str, object] | None:
+    readiness = latest_report.get("provider_readiness")
+    if not isinstance(readiness, dict):
+        return None
+    return {
+        key: readiness[key]
+        for key in (
+            "surface_kind",
+            "source",
+            "provider_kind",
+            "provider_ready",
+            "worker_ready",
+            "managed_worker_source_current",
+            "full_online_ready",
+            "durable_online_ready",
+            "degraded",
+            "degraded_reason",
+            "managed_worker_pid",
+            "task_queue",
+        )
+        if key in readiness
+    }
+
+
 def _supervisor_tick_required(status: ProgressProjectionStatus) -> bool:
     execution = status.execution
     return (
@@ -326,6 +350,13 @@ def _record_supervisor_tick_audit(
         )
         status.record_supervisor_tick_audit(payload)
         return
+
+    provider_readiness = _provider_readiness_from_handoff(latest_report)
+    if provider_readiness is not None:
+        payload["provider_readiness"] = provider_readiness
+        for key in ("provider_ready", "worker_ready", "managed_worker_source_current"):
+            if key in provider_readiness:
+                payload[key] = provider_readiness[key]
 
     payload.update(
         {

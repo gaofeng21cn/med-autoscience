@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：OPL provider readiness 可以释放 MAS runtime recovery budget，但不授权论文结论
+
+- 决策：`owner_route_reconcile` 生成的 `opl_current_control_state_handoff` 可以 refs-only 投影 OPL `family-runtime status --provider temporal --json` 的 provider readiness；`study_runtime_status` 只在 handoff fresh 时把 `provider_ready`、`worker_ready` 与 `managed_worker_source_current` 带入 supervisor tick；`RuntimeHealthKernel` 只有同时看到 fresh/ok supervisor tick 和三项 readiness 为 true 时，才写 transient `attempt_released`，开启新的 recovery budget epoch。
+- 决策：该 readiness 投影的 authority boundary 固定为 OPL runtime/provider lifecycle only；`provider_completion_is_domain_ready=false`、`can_write_domain_truth=false`、`can_authorize_publication_ready=false`。它只能解除 stale `runtime_recovery_retry_budget_exhausted` 对新 owner action admission 的误阻断，不能生成 MAS owner receipt、AI reviewer verdict、publication gate pass、package freshness proof 或 submission readiness。
+- 理由：DM002 暴露出 OPL worker/provider 已由 OPL status surface 证明健康，但 MAS supervisor tick 只记录 current-control handoff freshness，runtime health 因旧 retry budget 保持 escalated，导致论文 owner route 无法重新进入正式 OPL/MAS 路径。根因是 MAS read model 没消费 OPL-owned provider readiness refs，不是论文内容 owner，也不是应由 MAS 私有 provider lifecycle 探测解决的问题。
+- 影响：这是 MAS read-model / owner-route handoff currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍必须通过 OPL queue/attempt 与 MAS domain owner receipt、AI reviewer-backed eval、publication gate 和 package refresh 判断。
+
 ## 2026-05-28：provider recovered tick 必须释放旧 runtime recovery budget epoch
 
 - 决策：当 runtime health 从当前 status payload 读取到 fresh supervisor tick，且 OPL provider、Temporal worker 与 managed worker source 均为 current/ready 时，MAS runtime-health read-model 必须把该 tick 视为新的 OPL transport recovery epoch boundary。旧 per-study `recover_attempt` 失败计数不得继续把 active study 永久锁在 `runtime_recovery_retry_budget_exhausted` / `runtime_recovery_not_authorized`；后续仍由当前 liveness、owner route、typed blocker 和 MAS gate 判定下一步。

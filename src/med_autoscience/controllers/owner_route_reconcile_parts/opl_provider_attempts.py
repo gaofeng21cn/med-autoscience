@@ -30,6 +30,24 @@ STAGE_PROGRESS_LOG_KEYS = (
     "temporal_webui_refs",
     "authority_boundary",
 )
+OPL_PROVIDER_READINESS_KEYS = (
+    "surface_kind",
+    "source",
+    "provider_kind",
+    "provider_ready",
+    "full_online_ready",
+    "durable_online_ready",
+    "degraded",
+    "degraded_reason",
+    "worker_ready",
+    "managed_worker_source_current",
+    "managed_worker_pid",
+    "task_queue",
+    "selected_provider_can_replace_domain_daemons",
+    "provider_completion_is_domain_ready",
+    "can_write_domain_truth",
+    "can_authorize_publication_ready",
+)
 
 
 def live_provider_attempt_for_study(
@@ -67,6 +85,21 @@ def live_provider_attempt_for_study(
         if projection is not None:
             return projection
     return None
+
+
+def current_provider_readiness(
+    *,
+    timeout_seconds: float = 3.0,
+) -> dict[str, Any] | None:
+    opl_bin = _opl_bin()
+    if opl_bin is None:
+        return None
+    status_payload = _run_opl_json(
+        opl_bin,
+        ("family-runtime", "status", "--provider", "temporal", "--json"),
+        timeout_seconds=timeout_seconds,
+    )
+    return _provider_readiness_from_status(status_payload)
 
 
 def action_is_covered_by_live_attempt(
@@ -366,6 +399,41 @@ def _stage_progress_log(value: object) -> dict[str, Any] | None:
     return projection or None
 
 
+def _provider_readiness_from_status(status_payload: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if status_payload is None:
+        return None
+    family_runtime = _mapping(status_payload.get("family_runtime"))
+    readiness = _mapping(family_runtime.get("readiness"))
+    provider_runtime = _mapping(family_runtime.get("provider_runtime"))
+    configured_provider = _text(family_runtime.get("configured_provider")) or "temporal"
+    provider = _mapping(_mapping(provider_runtime.get("providers")).get(configured_provider))
+    selected = _mapping(provider_runtime.get("selected"))
+    provider_details = _mapping(provider.get("details")) or _mapping(selected.get("details"))
+    worker_readiness = _mapping(provider_details.get("worker_readiness"))
+    authority_boundary = _mapping(_mapping(family_runtime.get("periodic_execution")).get("authority_boundary"))
+    projection = {
+        "surface_kind": "opl_provider_readiness_projection",
+        "source": "opl_family_runtime_status",
+        "provider_kind": configured_provider,
+        "provider_ready": readiness.get("provider_ready") is True,
+        "full_online_ready": readiness.get("full_online_ready") is True,
+        "durable_online_ready": readiness.get("durable_online_ready") is True,
+        "degraded": readiness.get("degraded") is True,
+        "degraded_reason": _text(readiness.get("degraded_reason")),
+        "worker_ready": provider_details.get("worker_ready") is True,
+        "managed_worker_source_current": worker_readiness.get("managed_worker_source_current") is True,
+        "managed_worker_pid": worker_readiness.get("managed_worker_pid"),
+        "task_queue": _text(provider.get("task_queue")) or _text(provider_details.get("task_queue")),
+        "selected_provider_can_replace_domain_daemons": (
+            readiness.get("selected_provider_can_replace_domain_daemons") is True
+        ),
+        "provider_completion_is_domain_ready": False,
+        "can_write_domain_truth": authority_boundary.get("can_write_domain_truth") is True,
+        "can_authorize_publication_ready": authority_boundary.get("can_authorize_publication_ready") is True,
+    }
+    return {key: projection[key] for key in OPL_PROVIDER_READINESS_KEYS if key in projection}
+
+
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -375,6 +443,7 @@ __all__ = [
     "action_is_covered_by_live_attempt",
     "filter_actions_covered_by_live_attempt",
     "live_provider_attempt_for_study",
+    "current_provider_readiness",
     "owner_state_overlay",
     "owner_route_is_covered_by_live_attempt",
     "projection_fields",

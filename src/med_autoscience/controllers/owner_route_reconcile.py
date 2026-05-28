@@ -956,6 +956,7 @@ def scan_domain_routes(
         profile=profile,
         developer_mode=developer_mode,
     )
+    provider_readiness = opl_provider_attempts.current_provider_readiness()
     payload = scan_output.build_scan_domain_routes_payload(
         schema_version=SCHEMA_VERSION,
         generated_at=generated_at,
@@ -967,6 +968,7 @@ def scan_domain_routes(
         action_queue=action_queue,
         queue_history=queue_history,
         workspace_daemon_lifecycle=workspace_daemon_lifecycle,
+        provider_readiness=provider_readiness,
         latest_path=latest_path,
         history_path=history_path,
     )

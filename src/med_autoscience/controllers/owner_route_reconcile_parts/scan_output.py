@@ -17,9 +17,11 @@ def build_scan_domain_routes_payload(
     action_queue: list[dict[str, Any]],
     queue_history: Mapping[str, Any],
     workspace_daemon_lifecycle: Mapping[str, Any],
+    provider_readiness: Mapping[str, Any] | None,
     latest_path: Path,
     history_path: Path,
 ) -> dict[str, Any]:
+    readiness = dict(provider_readiness or {})
     return {
         "surface": "opl_current_control_state_handoff",
         "schema_version": schema_version,
@@ -53,6 +55,7 @@ def build_scan_domain_routes_payload(
         "action_queue": action_queue,
         "queue_history": dict(queue_history),
         "workspace_daemon_lifecycle": dict(workspace_daemon_lifecycle),
+        "provider_readiness": readiness or None,
         "refs": {"latest_path": str(latest_path), "history_path": str(history_path)},
     }
 

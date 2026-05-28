@@ -7,7 +7,12 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
-from med_autoscience.controllers.runtime_health_kernel_parts import event_log, explicit_resume, run_epoch_budget
+from med_autoscience.controllers.runtime_health_kernel_parts import (
+    event_log,
+    explicit_resume,
+    provider_readiness,
+    run_epoch_budget,
+)
 
 
 SCHEMA_VERSION = 1
@@ -280,17 +285,6 @@ def _latest_supervisor_state(events: list[dict[str, Any]]) -> tuple[dict[str, An
         "latest_recorded_at": _first_text(payload.get("latest_recorded_at"), payload.get("recorded_at")),
         "source_signature": _event_source_signature("supervisor_tick", stable_payload),
     }
-
-
-def _provider_recovered_supervisor_tick(payload: Mapping[str, Any]) -> bool:
-    if _first_text(payload.get("supervisor_tick_status"), payload.get("status")) not in {"fresh", "ok"}:
-        return False
-    provider_ready = _bool(payload.get("provider_ready"))
-    worker_ready = _bool(payload.get("worker_ready"))
-    source_current = _bool(payload.get("managed_worker_source_current"))
-    if source_current is None:
-        source_current = _bool(payload.get("worker_source_current"))
-    return provider_ready is True and worker_ready is True and source_current is True
 
 
 def _events_for_budget(
@@ -789,6 +783,13 @@ def _status_payload_runtime_health_events(
             for key, value in supervisor_tick_audit.items()
             if key not in _VOLATILE_SUPERVISOR_KEYS
         }
+        if "provider_readiness" not in supervisor_payload:
+            readiness_payload = provider_readiness.provider_readiness_from_status_payload(
+                status_payload,
+                mapping=_mapping,
+            )
+            if readiness_payload:
+                supervisor_payload["provider_readiness"] = readiness_payload
         supervisor_payload["supervisor_tick_status"] = _text(supervisor_tick_audit.get("status"))
         sequence += 1
         events.append(
@@ -801,7 +802,12 @@ def _status_payload_runtime_health_events(
                 sequence=sequence,
             )
         )
-        if _provider_recovered_supervisor_tick(supervisor_payload):
+        if provider_readiness.recovered_supervisor_tick(
+            supervisor_payload,
+            mapping=_mapping,
+            text=_text,
+            bool_value=_bool,
+        ):
             sequence += 1
             events.append(
                 _transient_event(

@@ -209,6 +209,14 @@ def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
             "generated_at": "2026-05-24T22:50:48+00:00",
+            "provider_readiness": {
+                "surface_kind": "opl_provider_readiness_projection",
+                "source": "opl_family_runtime_status",
+                "provider_kind": "temporal",
+                "provider_ready": True,
+                "worker_ready": True,
+                "managed_worker_source_current": True,
+            },
             "studies": [
                 {
                     "study_id": "001-risk",
@@ -252,6 +260,10 @@ def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(
     assert audit["latest_report_path"] == str(handoff_path)
     assert audit["latest_recorded_at"] == "2026-05-24T22:50:48+00:00"
     assert audit["seconds_since_latest_recorded_at"] == 72
+    assert audit["provider_readiness"]["source"] == "opl_family_runtime_status"
+    assert audit["provider_ready"] is True
+    assert audit["worker_ready"] is True
+    assert audit["managed_worker_source_current"] is True
 
 
 def test_progress_projection_uses_opl_current_control_state_as_live_liveness_projection(
