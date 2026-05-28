@@ -29,6 +29,11 @@ from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_review
     packet_with_normalized_input_contract,
     required_inputs,
 )
+from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_record_production_consumption import (
+    publication_eval_matches_attached_request_record,
+    request_currentness_refs_for_blocked_reason,
+    request_packet_record_production_blocker_reason,
+)
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
@@ -44,6 +49,17 @@ AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN = (
 )
 AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT = "ai_reviewer_record_stale_after_current_manuscript"
 AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS = "ai_reviewer_record_stale_after_current_inputs"
+AI_REVIEWER_RECORD_PRODUCTION_BLOCKED_REASONS_BY_WORK_UNIT = {
+    "produce_ai_reviewer_publication_eval_record_against_current_manuscript": (
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
+    ),
+    "produce_ai_reviewer_publication_eval_record_against_current_inputs": (
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS
+    ),
+    "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization": (
+        AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN
+    ),
+}
 AI_REVIEWER_REQUIRED_QUALITY_DIMENSIONS = (
     "clinical_significance",
     "evidence_strength",
@@ -706,6 +722,19 @@ def _publication_eval_consumes_ai_reviewer_request(
             request_packet=request_packet,
             blocked_reason=record_blocker,
         )
+    record_production_reason = _request_packet_record_production_blocker_reason(request_packet)
+    if record_production_reason and publication_eval_matches_attached_request_record(
+        publication_eval_payload=_mapping(publication_eval_payload),
+        request_packet=request_packet,
+        text=_text,
+        mapping=_mapping,
+    ):
+        return _publication_eval_consumes_record_blocked_request(
+            study_root=study_root,
+            publication_eval_payload=_mapping(publication_eval_payload),
+            request_packet=request_packet,
+            blocked_reason=record_production_reason,
+        )
     publication_eval = _mapping(publication_eval_payload)
     request_ref = str(request_path.resolve())
     source_refs = set(_record_source_refs(study_root=study_root, record=publication_eval))
@@ -747,12 +776,19 @@ def _publication_eval_consumes_record_blocked_request(
         AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
     }:
         return False
-    required_refs = _request_required_currentness_refs(study_root=study_root, request_packet=request_packet)
-    if blocked_reason == AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS and not required_refs:
-        required_refs = _request_record_currentness_input_refs(
-            study_root=study_root,
-            request_packet=request_packet,
-        )
+    required_refs = request_currentness_refs_for_blocked_reason(
+        study_root=study_root,
+        request_packet=request_packet,
+        blocked_reason=blocked_reason,
+        stale_after_current_manuscript=AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        stale_after_current_inputs=AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
+        stale_after_unit_harmonized_rerun=AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+        required_inputs=required_inputs,
+        resolved_text_ref=_resolved_text_ref,
+        required_currentness_refs=_request_required_currentness_refs,
+        record_currentness_input_refs=_request_record_currentness_input_refs,
+        analysis_harmonization_currentness_refs=_analysis_harmonization_currentness_refs,
+    )
     if not required_refs:
         return False
     reviewer_os = _mapping(publication_eval_payload.get("reviewer_operating_system"))
@@ -884,8 +920,20 @@ def _request_packet_record_blocker_reason(request_packet: Mapping[str, Any]) -> 
     return None
 
 
+def _request_packet_record_production_blocker_reason(request_packet: Mapping[str, Any]) -> str | None:
+    return request_packet_record_production_blocker_reason(
+        request_packet=request_packet,
+        work_unit_blocked_reasons=AI_REVIEWER_RECORD_PRODUCTION_BLOCKED_REASONS_BY_WORK_UNIT,
+        text=_text,
+        mapping=_mapping,
+    )
+
+
 def _request_packet_has_record_currentness_blocker(request_packet: Mapping[str, Any]) -> bool:
-    return _request_packet_record_blocker_reason(request_packet) is not None
+    return (
+        _request_packet_record_blocker_reason(request_packet) is not None
+        or _request_packet_record_production_blocker_reason(request_packet) is not None
+    )
 
 
 def project_ai_reviewer_request_lifecycle(

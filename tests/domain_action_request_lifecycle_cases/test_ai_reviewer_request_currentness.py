@@ -136,6 +136,11 @@ def test_stale_current_inputs_lifecycle_clears_when_current_record_consumes_refs
     manuscript_path = study_root / "paper" / "draft.md"
     evidence_path = study_root / "paper" / "evidence_ledger.json"
     claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    review_path = study_root / "paper" / "review" / "review_ledger.json"
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    blueprint_path = study_root / "paper" / "medical_manuscript_blueprint.json"
+    prose_review_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
     manuscript_text = "# Draft\n\nCurrent manuscript.\n"
     evidence_payload = {"schema_version": 1, "claim": "current evidence"}
@@ -144,6 +149,11 @@ def test_stale_current_inputs_lifecycle_clears_when_current_record_consumes_refs
     manuscript_path.write_text(manuscript_text, encoding="utf-8")
     _write_json(evidence_path, evidence_payload)
     _write_json(claim_map_path, claim_payload)
+    _write_json(review_path, {"schema_version": 1})
+    _write_json(charter_path, {"schema_version": 1})
+    _write_json(blueprint_path, {"schema_version": 1})
+    _write_json(prose_review_path, {"schema_version": 1})
+    _write_json(latest_eval_path, {"schema_version": 1})
     request_path.parent.mkdir(parents=True, exist_ok=True)
     request_path.write_text(
         json.dumps(
@@ -215,6 +225,124 @@ def test_stale_current_inputs_lifecycle_clears_when_current_record_consumes_refs
     lifecycle = project_ai_reviewer_request_lifecycle(
         study_root=study_root,
         publication_eval_payload=current_eval,
+    )
+
+    assert lifecycle is not None
+    assert lifecycle["state"] == "assessment_written"
+    assert lifecycle["assessment_written"] is True
+    assert lifecycle["blocked_reason"] is None
+    assert lifecycle["stale_record_ref"] is None
+    assert lifecycle["required_currentness_refs"] == []
+
+
+def test_current_input_record_only_request_is_written_when_lifecycle_blocker_was_cleared(tmp_path) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
+    manuscript_path = study_root / "paper" / "draft.md"
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    review_path = study_root / "paper" / "review" / "review_ledger.json"
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    blueprint_path = study_root / "paper" / "medical_manuscript_blueprint.json"
+    prose_review_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260528T214013Z_publication_eval_record.json"
+    )
+    manuscript_text = "# Draft\n\nCurrent manuscript.\n"
+    evidence_payload = {"schema_version": 1, "claim": "current evidence"}
+    claim_payload = {"schema_version": 1, "claim": "current claim map"}
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    _write_json(evidence_path, evidence_payload)
+    _write_json(claim_map_path, claim_payload)
+    _write_json(review_path, {"schema_version": 1})
+    _write_json(charter_path, {"schema_version": 1})
+    _write_json(blueprint_path, {"schema_version": 1})
+    _write_json(prose_review_path, {"schema_version": 1})
+    _write_json(latest_eval_path, {"schema_version": 1})
+    current_record = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::003-dpcc::current-inputs::20260528T214013Z",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+            "source_refs": [str(record_path.resolve())],
+        },
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "current_manuscript": {
+                    "status": "current",
+                    "manuscript_ref": str(manuscript_path.resolve()),
+                    "manuscript_digest": _sha256_text(manuscript_text),
+                },
+                "evidence_ledger": {
+                    "status": "current",
+                    "ref": str(evidence_path.resolve()),
+                    "digest": _sha256_text(json.dumps(evidence_payload, ensure_ascii=False, indent=2) + "\n"),
+                },
+                "claim_evidence_map": {
+                    "status": "current",
+                    "ref": str(claim_map_path.resolve()),
+                    "digest": _sha256_text(json.dumps(claim_payload, ensure_ascii=False, indent=2) + "\n"),
+                },
+            }
+        },
+    }
+    _write_json(record_path, current_record)
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    _write_json(
+        request_path,
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "state": "requested",
+                "assessment_ref": str(record_path.resolve()),
+                "blocked_reason": None,
+            },
+            "publication_eval_record_ref": str(record_path.resolve()),
+            "ai_reviewer_record": current_record,
+            "source_workflow_ref": {
+                "surface": "owner_route_reconcile",
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            },
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+                    "evidence_ledger": {"path": str(evidence_path.resolve()), "present": True, "valid": True},
+                    "review_ledger": {"path": str(review_path.resolve()), "present": True, "valid": True},
+                    "study_charter": {"path": str(charter_path.resolve()), "present": True, "valid": True},
+                    "medical_manuscript_blueprint": {
+                        "path": str(blueprint_path.resolve()),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "claim_evidence_map": {"path": str(claim_map_path.resolve()), "present": True, "valid": True},
+                    "medical_prose_review": {
+                        "path": str(prose_review_path.resolve()),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "publication_gate_projection": {
+                        "path": str(latest_eval_path.resolve()),
+                        "present": True,
+                        "valid": True,
+                    },
+                }
+            },
+        },
+    )
+
+    lifecycle = project_ai_reviewer_request_lifecycle(
+        study_root=study_root,
+        publication_eval_payload=current_record,
     )
 
     assert lifecycle is not None
