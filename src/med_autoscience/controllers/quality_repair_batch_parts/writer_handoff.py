@@ -243,6 +243,8 @@ def _current_owner_route_for_writer_handoff(
     if _non_empty_text(route.get("next_owner")) != NEXT_OWNER:
         return {}
     route_reason = _non_empty_text(route.get("owner_reason")) or _non_empty_text(route.get("failure_signature"))
+    if not _route_source_eval_current(route=route, source_eval_id=source_eval_id):
+        return {}
     if not owner_route_part.route_allows_action(
         action={
             "action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
@@ -267,6 +269,15 @@ def _current_owner_route_for_writer_handoff(
         route_reason=route_reason,
         authority_route_context=authority_route_context,
     )
+
+
+def _route_source_eval_current(*, route: Mapping[str, Any], source_eval_id: str | None) -> bool:
+    if source_eval_id is None:
+        return True
+    route_source_eval_id = _non_empty_text(_mapping(route.get("source_refs")).get("source_eval_id"))
+    if route_source_eval_id is None:
+        return True
+    return route_source_eval_id == source_eval_id
 
 
 def _current_route_can_bridge_to_story_surface_handoff(

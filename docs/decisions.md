@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：writer handoff 不得复用 source eval 不匹配的 owner route
+
+- 决策：`quality_repair_batch` 生成 `quality_repair_batch_writer_handoff` 时，若当前 `source_eval_id` 非空，且 `authority_route_context.current_owner_route.source_refs.source_eval_id` 也非空但不一致，则该 owner route 只能作为旧 provenance，不能作为 current writer handoff authority 复用。writer handoff 必须改用当前 controller route context 构造绑定当前 eval 的 owner route。
+- 理由：DM003 暴露出 `run_quality_repair_batch` dispatch 的 `source_action.source_eval_id` 已绑定当前 AI reviewer eval，但 `prompt_contract.owner_route.source_refs.source_eval_id` 仍停在旧 eval。旧 route 被 writer handoff 当成 current route 复用后，gate replay / package refresh 会被旧 write handoff 抢占，形成 currentness split-brain。
+- 影响：这是 MAS quality-repair writer handoff currentness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。旧 route 仍可保留为 evidence/provenance；论文推进仍必须由当前 eval 绑定的 MAS owner/controller/runtime path 继续完成 gate replay、package refresh 和 AI reviewer-backed quality verdict。
+
 ## 2026-05-28：materialized story-surface bridge 必须保留实际 write work unit
 
 - 决策：当 `domain_action_request_materializer_story_surface_bridge` 把当前 owner route 从原始 controller work unit materialize 成可执行 story-surface write work unit 时，`domain-owner-action-dispatch` 传给 `quality_repair_batch` 的 `authority_route_context.controller_route_context.work_unit_id` 必须使用 `source_refs.materialized_work_unit_id`。原始 `source_refs.work_unit_id` 只保留为 provenance，不能覆盖实际可执行 write work unit。
