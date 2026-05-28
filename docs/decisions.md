@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：当前 AI reviewer 写作 route-back 优先于 package freshness follow-through
+
+- 决策：`domain_action_request_materializer` 在消费 AI reviewer record-production work unit 时，若当前可验证 reviewer record 的 route-back 明确指向 `write`，必须优先 materialize 为 `write/run_quality_repair_batch` 和 story-surface write work unit。该 route-back 代表当前质量 owner 对 canonical manuscript 的未关闭要求，优先级高于已经存在的 story-surface delta、stale package freshness 或 gate/package follow-through。
+- 决策：该桥接必须保留原 AI reviewer currentness reason、原 work unit、`materialized_work_unit_id`、`materialized_from_action_type=return_to_ai_reviewer_workflow` 与 bridge authority。`current_package_freshness_required` 只能在当前 reviewer record 没有 write route-back，且 story-surface delta 已对齐当前 eval 后再进入。
+- 理由：DM003 暴露出当前 AI reviewer record 已指出 canonical paper 缺少 95% CI reporting，route-back 为 `write/medical_prose_write_repair`；但 materializer 在看到已有 story-surface delta 后会先转向 package freshness，导致未关闭的医学论文质量缺口被下游包装动作遮蔽。根因是 current reviewer route-back 与 package freshness follow-through 的优先级缺少显式不变量。
+- 影响：这是 MAS materializer/owner-route currentness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`，也不授权 publication/submission ready。修复后 DM003 仍必须经 MAS owner/controller/runtime path 执行 write repair、AI reviewer recheck、publication gate replay 和 package refresh。
+
 ## 2026-05-28：多 running OPL attempt 时优先投影当前 owner action
 
 - 决策：`owner_route_reconcile` 读取 OPL live provider attempt 时，必须把本轮 MAS owner action queue 作为偏好输入传给 OPL attempt projection。若同一 study 同时存在旧 `return_to_ai_reviewer_workflow` attempt 和当前 `run_quality_repair_batch` / write-route attempt，current-control/progress read-model 必须优先展示当前 owner action 对应的 live attempt、workflow 与 `stage_progress_log`。匹配优先使用 action type、executable/controller work unit 与 dispatch ref；当 MAS 当前 action 的 controller work unit 和 OPL task 的 executable work unit 不同但 action type 已唯一指向当前 owner 类别时，仍按 action type 避免旧 owner attempt 抢占 active projection。

@@ -92,6 +92,13 @@ def materialization_action(
         return _ai_reviewer_currentness_action(action=action, study_root=study_root, owner_route=owner_route)
     record, record_ref_path = current_record
     record_eval_id = _text(record.get("eval_id"))
+    if record_production_work_unit and _current_record_requires_write_routeback(record):
+        return _story_surface_delta_action(
+            action=action,
+            owner_route=owner_route,
+            record=record,
+            record_ref_path=record_ref_path,
+        )
     story_refs = _story_surface_delta_refs(study_root, source_eval_id or record_eval_id)
     if not story_refs:
         return _story_surface_delta_action(
@@ -226,6 +233,13 @@ def _story_surface_work_unit_id(*, action: Mapping[str, Any], record: Mapping[st
     if _text(action.get("study_id")) == "002-dm-china-us-mortality-attribution":
         return DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT
     return DEFAULT_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT
+
+
+def _current_record_requires_write_routeback(record: Mapping[str, Any]) -> bool:
+    route_back_action = current_ai_reviewer_route_back_action(dict(record))
+    if not isinstance(route_back_action, Mapping):
+        return False
+    return _text(route_back_action.get("route_target")) == "write"
 
 
 def _gate_clearing_action(
@@ -377,7 +391,10 @@ def _rewrite_owner_route(
         work_unit_id=work_unit_id,
     ):
         source_refs["materialized_work_unit_id"] = work_unit_id
-        if original_owner_reason in AI_REVIEWER_RECORD_OWNER_REASONS:
+        if original_owner_reason in {
+            *AI_REVIEWER_RECORD_OWNER_REASONS,
+            *AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS,
+        }:
             source_refs["materialized_from_action_type"] = "return_to_ai_reviewer_workflow"
         source_refs["bridged_from_owner_reason"] = original_owner_reason
         source_refs["bridge_authority"] = STORY_SURFACE_BRIDGE_AUTHORITY
@@ -432,7 +449,12 @@ def _is_runtime_to_story_surface_bridge(
     work_unit_id: str,
 ) -> bool:
     return (
-        original_owner_reason in {"quest_waiting_opl_runtime_owner_route", *AI_REVIEWER_RECORD_OWNER_REASONS}
+        original_owner_reason
+        in {
+            "quest_waiting_opl_runtime_owner_route",
+            *AI_REVIEWER_RECORD_OWNER_REASONS,
+            *AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS,
+        }
         and original_work_unit_id in AI_REVIEWER_CURRENT_RECORD_CONSUMPTION_WORK_UNIT_IDS
         and owner_reason == "manuscript_story_surface_delta_missing"
         and is_story_surface_delta_write_work_unit(work_unit_id)
@@ -453,7 +475,10 @@ def _is_publication_owner_materialization_bridge(
 
 
 def _materialized_from_action_type(*, original_owner_reason: str | None) -> str:
-    if original_owner_reason in AI_REVIEWER_RECORD_OWNER_REASONS:
+    if original_owner_reason in {
+        *AI_REVIEWER_RECORD_OWNER_REASONS,
+        *AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS,
+    }:
         return "return_to_ai_reviewer_workflow"
     return "run_quality_repair_batch"
 
