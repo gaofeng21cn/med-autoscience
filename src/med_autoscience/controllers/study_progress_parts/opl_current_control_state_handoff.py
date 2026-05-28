@@ -28,10 +28,17 @@ PAPER_STAGE_LOG_KEYS = (
     "current_owner",
     "problem_summary",
     "stage_goal",
+    "stage_work_done",
     "paper_work_done",
+    "changed_stage_surfaces",
     "changed_paper_surfaces",
     "outcome",
     "remaining_blockers",
+    "duration",
+    "token_usage",
+    "cost",
+    "usage_refs",
+    "cost_refs",
     "evidence_refs",
 )
 
@@ -226,6 +233,63 @@ def _cost_observability(value: Mapping[str, Any]) -> dict[str, Any]:
     return {"usd": usd} if usd is not None else {}
 
 
+def _refs_from_unknown(value: object) -> list[str]:
+    if isinstance(value, Mapping):
+        return [
+            text
+            for candidate in (
+                value.get("ref"),
+                value.get("ref_id"),
+                value.get("path"),
+                value.get("uri"),
+            )
+            if (text := _non_empty_text(candidate)) is not None
+        ]
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    refs: list[str] = []
+    for item in value:
+        refs.extend(_refs_from_unknown(item))
+    return refs
+
+
+def _unique_strings(values: list[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        text = value.strip()
+        if text and text not in result:
+            result.append(text)
+    return result
+
+
+def _usage_refs(value: Mapping[str, Any]) -> list[str]:
+    token_usage = _observability_mapping(value.get("token_usage"))
+    usage = _observability_mapping(value.get("usage"))
+    return _unique_strings(
+        [
+            *_refs_from_unknown(value.get("usage_ref")),
+            *_refs_from_unknown(value.get("usage_refs")),
+            *_refs_from_unknown(value.get("token_usage_ref")),
+            *_refs_from_unknown(value.get("token_usage_refs")),
+            *_refs_from_unknown(token_usage.get("source_refs")),
+            *_refs_from_unknown(usage.get("source_refs")),
+        ]
+    )
+
+
+def _cost_refs(value: Mapping[str, Any]) -> list[str]:
+    cost = _observability_mapping(value.get("cost"))
+    return _unique_strings(
+        [
+            *_refs_from_unknown(value.get("cost_ref")),
+            *_refs_from_unknown(value.get("cost_refs")),
+            *_refs_from_unknown(cost.get("source_refs")),
+        ]
+    )
+
+
 def _terminal_stage_log_observability(value: Mapping[str, Any]) -> dict[str, Any]:
     duration = _duration_observability(value)
     token_usage = _token_usage_observability(value)
@@ -244,6 +308,8 @@ def _terminal_stage_log_observability(value: Mapping[str, Any]) -> dict[str, Any
         "duration": duration,
         "token_usage": token_usage,
         "cost": cost,
+        "usage_refs": _usage_refs(value),
+        "cost_refs": _cost_refs(value),
         "missing_observability_fields": missing,
     }
 

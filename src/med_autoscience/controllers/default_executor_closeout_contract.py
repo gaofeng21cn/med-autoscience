@@ -24,10 +24,17 @@ def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, A
             "stage_name",
             "problem_summary",
             "stage_goal",
+            "stage_work_done",
             "paper_work_done",
+            "changed_stage_surfaces",
             "changed_paper_surfaces",
             "outcome",
             "remaining_blockers",
+            "duration",
+            "token_usage",
+            "cost",
+            "usage_refs",
+            "cost_refs",
             "evidence_refs",
         ],
         "user_stage_log_policy": {
@@ -54,9 +61,11 @@ def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, A
             "stage_attempt_closeout_packet, stage_memory_closeout_packet, or "
             "domain_stage_closeout_packet. Include closeout_refs with the owner receipt, "
             "artifact delta, or typed blocker evidence refs. Include paper_stage_log with "
-            "stage_name, problem_summary, stage_goal, paper_work_done, changed_paper_surfaces, "
-            "outcome, remaining_blockers, and evidence_refs so OPL stage_progress_log.user_stage_log "
-            "can answer user progress questions. This paper_stage_log is read-model/log content only; "
+            "stage_name, problem_summary, stage_goal, stage_work_done, changed_stage_surfaces, "
+            "paper_work_done, changed_paper_surfaces, outcome, remaining_blockers, duration, "
+            "token_usage, cost, usage_refs, cost_refs, and evidence_refs so OPL "
+            "stage_progress_log.user_stage_log can answer user progress questions. This "
+            "paper_stage_log is read-model/log content only; "
             "do not write it into the manuscript body and do not use it to claim quality, submission, "
             "or publication readiness. Do not use prose as the final completion signal."
         ),
