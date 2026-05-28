@@ -63,6 +63,12 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 
 因此，provider dead-letter、queue succeeded、terminal provider attempt 或旧 `active_run_id` 不能直接成为 study 最终语义。缺 currentness basis 时，结果必须回到 MAS-owned typed blocker 或 human gate；存在 current `domain_transition.route_back_same_line` / AI reviewer re-eval / publication gate blocker / bundle finalize 时，read-model 优先展示该 owner/work unit。
 
+补充 invariant（DM002/DM003 replay 口径）：
+
+- 对任一非终局 tick，control surface 必须解析成且仅解析成一个可执行 owner action，或一个 typed blocker（包含 blocker owner 与 blocker reason）。
+- 不允许出现“非终局但 `next_owner` 为空、`allowed_actions` 为空且无 typed blocker”的空等待态；该状态应视为 owner-route/read-model closure 缺陷。
+- 当 `dispatch_gate.state=blocked` 时，typed blocker 与 `allowed_controller_actions` 是当前可执行面；不得把 blocked gate 投影成 ready/complete，也不得解释为 paper ready。
+
 ### 2.3 `study_outer_loop_tick(...)`
 
 - outer-loop controller tick
