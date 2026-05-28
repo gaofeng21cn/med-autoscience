@@ -23,6 +23,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 `return_to_ai_reviewer_workflow` 已通过 MAS owner path 生成当前稿件 reviewer record，但 publication eval materializer 只接受旧 canonical source kind，导致 MAS 不能消费自己的当前 reviewer record，进而重复回到同一个 AI reviewer work unit。
 - 影响：这是 MAS AI reviewer publication-quality owner contract 修复，不放宽 mechanical projection、gate projection 或非 AI reviewer record，也不授权手工写 DM002 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。真实论文质量仍由晋升后的 AI reviewer-backed eval、write owner delta、publication gate 和 package freshness proof 判定。
 
+## 2026-05-28：record-only AI reviewer response 必须满足 production reviewer OS 合同
+
+- 决策：`materialize-ai-reviewer-publication-eval-record` 虽然只写 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`、不写 `publication_eval/latest.json`，但也必须通过同一 AI reviewer publication eval 合同：AI reviewer provenance、当前 critique policy、`ai_reviewer_required=false`、`quality_assessment.medical_journal_prose_quality` 与合法 reviewer OS trace。无法晋升为 canonical publication eval 的 record 不能进入 response archive。
+- 理由：DM002 暴露出 record-only owner path 曾落下 `publication_eval_ai_reviewer_current_manuscript_record`，但其 `reviewer_operating_system` 仍是 request/authority diagnostic 形状，缺 production reviewer OS 必填字段，后续 promotion fail-closed 并把 study 重新卡回同一 AI reviewer work unit。
+- 影响：这是 MAS AI reviewer record 生产入口的 fail-closed 修复，不放宽 reviewer OS validator，不把 diagnostic/request packet 当 publication-quality verdict，也不写 paper、package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续需要由 AI reviewer workflow 重新生成满足合同的 current-manuscript record，再由 owner path 晋升和 route-back。
+
 ## 2026-05-28：publication-owner materialization bridge 必须保留原 route currentness
 
 - 决策：当 `domain_action_request_materializer` 把当前 write/AI-reviewer owner route materialize 成 `gate_clearing_batch/run_gate_clearing_batch` 时，dispatch route 必须携带 `domain_action_request_materializer_publication_owner_bridge`、`bridged_from_owner_reason`、`bridged_from_idempotency_key`、`materialized_from_action_type` 和 `materialized_work_unit_id`。`domain-owner-action-dispatch` 只有在 study、quest、truth/runtime epoch、source fingerprint、work-unit fingerprint、source eval、原 work-unit id 与当前 scan route 完整匹配，并且当前 route 允许原 action 时，才接受该 dispatch，`owner_route_basis=bridged_publication_owner_materialization`。

@@ -563,6 +563,7 @@ def test_ai_reviewer_publication_eval_record_controller_materializes_owner_recor
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     payload = _minimal_payload(study_root)
     payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
     payload["future_facing_limitations_plan"] = [
         {
             "limitation": "Current review is bound to the active manuscript digest.",
@@ -599,6 +600,45 @@ def test_ai_reviewer_publication_eval_record_controller_materializes_owner_recor
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     archived = json.loads(record_ref.read_text(encoding="utf-8"))
     assert archived["eval_id"] == payload["eval_id"]
+
+
+def test_ai_reviewer_publication_eval_record_controller_rejects_invalid_reviewer_os_trace(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = {
+        "contract_id": "medical_publication_ai_reviewer_os_v1",
+        "request_kind": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "authority_contract": {"can_authorize_quality": False},
+        "claim_boundary_review": {"status": "partial"},
+    }
+
+    monkeypatch.setattr(
+        controller.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+        },
+    )
+
+    with pytest.raises(ValueError, match="reviewer_operating_system invalid"):
+        controller.materialize_ai_reviewer_publication_eval_record(
+            profile=SimpleNamespace(name="nfpitnet"),
+            study_id="001-risk",
+            study_root=None,
+            entry_mode=None,
+            record=payload,
+            source="pytest",
+        )
+
+    assert not (study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
 def test_ai_reviewer_publication_eval_controller_rejects_mechanical_projection(

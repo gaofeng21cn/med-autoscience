@@ -97,7 +97,9 @@ def materialize_ai_reviewer_publication_eval_record(
         )
     )
     resolved_study_root = _resolved_study_root(status_payload)
-    normalized_record = _normalize_publication_eval_record(record)
+    normalized_record = canonicalize_ai_reviewer_publication_eval_record(
+        _normalize_publication_eval_record(record)
+    )
     record_path = _materialize_ai_reviewer_publication_eval_record(
         study_root=resolved_study_root,
         record=normalized_record,
