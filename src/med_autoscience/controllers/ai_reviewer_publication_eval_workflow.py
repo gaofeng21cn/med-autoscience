@@ -31,6 +31,7 @@ from med_autoscience.publication_eval_reviewer_os import (
 from med_autoscience.publication_eval_record import PublicationEvalRecord
 
 __all__ = [
+    "build_ai_reviewer_publication_eval_record_with_workflow_trace",
     "build_ai_reviewer_publication_eval_workflow_trace",
     "run_ai_reviewer_publication_eval_workflow",
 ]
@@ -543,38 +544,52 @@ def _route_back_record_medical_prose_review_currentness(
     request_path = _resolve_ref(study_root=study_root, ref=request_ref)
     request_payload = _read_json(request_path)
     current_request_digest = _text(request_payload.get("request_digest"))
+    current_manuscript_payload = _mapping(current_manuscript)
+    durable_review_status: str | None = None
     if current_request_digest and current_request_digest != request_digest:
-        raise ValueError("medical_prose_review_request_digest_mismatch")
+        if not current_manuscript_payload:
+            raise ValueError("medical_prose_review_request_digest_mismatch")
+        durable_review_status = "stale_for_current_request"
     request_manuscript = _mapping(request_payload.get("manuscript"))
     request_payload_manuscript_ref = _text(request_manuscript.get("path"))
     request_payload_manuscript_digest = _text(request_manuscript.get("digest"))
-    if request_payload_manuscript_ref and not _refs_match(
-        study_root=study_root,
-        left=request_payload_manuscript_ref,
-        right=request_manuscript_ref,
-    ):
-        raise ValueError("medical_prose_review_manuscript_ref_mismatch")
-    if request_payload_manuscript_digest and request_payload_manuscript_digest != request_manuscript_digest:
-        raise ValueError("medical_prose_review_manuscript_digest_mismatch")
+    current_record_manuscript_ref = _text(current_manuscript_payload.get("manuscript_ref"))
+    current_record_manuscript_digest = _text(current_manuscript_payload.get("manuscript_digest"))
+    if current_manuscript_payload:
+        if request_payload_manuscript_ref and current_record_manuscript_ref and not _refs_match(
+            study_root=study_root,
+            left=request_payload_manuscript_ref,
+            right=current_record_manuscript_ref,
+        ):
+            raise ValueError("medical_prose_review_request_current_manuscript_ref_mismatch")
+        if (
+            request_payload_manuscript_digest
+            and current_record_manuscript_digest
+            and request_payload_manuscript_digest != current_record_manuscript_digest
+        ):
+            durable_review_status = durable_review_status or "stale_for_live_manuscript"
+    else:
+        if request_payload_manuscript_ref and not _refs_match(
+            study_root=study_root,
+            left=request_payload_manuscript_ref,
+            right=request_manuscript_ref,
+        ):
+            raise ValueError("medical_prose_review_manuscript_ref_mismatch")
+        if request_payload_manuscript_digest and request_payload_manuscript_digest != request_manuscript_digest:
+            raise ValueError("medical_prose_review_manuscript_digest_mismatch")
 
     quality_assessment = _mapping(record_payload.get("quality_assessment"))
     record_quality = _mapping(quality_assessment.get("medical_journal_prose_quality"))
     prose_quality = _mapping(prose_payload.get("medical_journal_prose_quality"))
     prose_route_back = _mapping(prose_quality.get("route_back_recommendation"))
     route_target = _record_route_target(record_payload) or _text(prose_route_back.get("route_target"))
-    manuscript_ref = (
-        _text(_mapping(current_manuscript).get("manuscript_ref"))
-        or request_manuscript_ref
-    )
-    manuscript_digest = (
-        _text(_mapping(current_manuscript).get("manuscript_digest"))
-        or request_manuscript_digest
-    )
-    return {
+    manuscript_ref = current_record_manuscript_ref or request_manuscript_ref
+    manuscript_digest = current_record_manuscript_digest or request_manuscript_digest
+    result = {
         "status": "current",
         "ref": str(prose_path),
         "request_ref": str(request_path),
-        "request_digest": request_digest,
+        "request_digest": current_request_digest or request_digest,
         "manuscript_ref": manuscript_ref,
         "manuscript_digest": manuscript_digest,
         "review_request_manuscript_ref": request_manuscript_ref,
@@ -587,6 +602,10 @@ def _route_back_record_medical_prose_review_currentness(
         if current_manuscript is not None
         else "ai_reviewer_request_record",
     }
+    if durable_review_status is not None:
+        result["durable_medical_prose_review_status"] = durable_review_status
+        result["review_request_digest"] = request_digest
+    return result
 
 
 def _clean_migration_medical_prose_review_request_currentness(
@@ -806,7 +825,7 @@ def _record_with_trace(
     return payload
 
 
-def run_ai_reviewer_publication_eval_workflow(
+def build_ai_reviewer_publication_eval_record_with_workflow_trace(
     *,
     study_root: str | Path,
     manuscript_ref: str | Path,
@@ -816,6 +835,7 @@ def run_ai_reviewer_publication_eval_workflow(
     record: PublicationEvalRecord | Mapping[str, Any],
     additional_refs: Mapping[str, Any] | None = None,
     workflow_currentness_mode: str | None = None,
+    emitted_at: str | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     trace = build_ai_reviewer_publication_eval_workflow_trace(
@@ -828,9 +848,39 @@ def run_ai_reviewer_publication_eval_workflow(
         additional_refs=additional_refs,
         workflow_currentness_mode=workflow_currentness_mode,
     )
+    return _record_with_trace(
+        record=record,
+        trace=trace,
+        emitted_at=emitted_at or _utc_now(),
+    )
+
+
+def run_ai_reviewer_publication_eval_workflow(
+    *,
+    study_root: str | Path,
+    manuscript_ref: str | Path,
+    evidence_ref: str | Path,
+    review_ref: str | Path,
+    charter_ref: str | Path,
+    record: PublicationEvalRecord | Mapping[str, Any],
+    additional_refs: Mapping[str, Any] | None = None,
+    workflow_currentness_mode: str | None = None,
+) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    record_with_trace = build_ai_reviewer_publication_eval_record_with_workflow_trace(
+        study_root=resolved_study_root,
+        manuscript_ref=manuscript_ref,
+        evidence_ref=evidence_ref,
+        review_ref=review_ref,
+        charter_ref=charter_ref,
+        record=record,
+        additional_refs=additional_refs,
+        workflow_currentness_mode=workflow_currentness_mode,
+    )
+    trace = _mapping(record_with_trace.get("reviewer_operating_system"))
     materialized = materialize_ai_reviewer_publication_eval_latest(
         study_root=resolved_study_root,
-        record=_record_with_trace(record=record, trace=trace, emitted_at=_utc_now()),
+        record=record_with_trace,
     )
     paper_authority_migration.mark_cutover_new_mas_authority_established(
         study_root=resolved_study_root,

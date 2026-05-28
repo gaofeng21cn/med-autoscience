@@ -128,6 +128,14 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert production_request["request_kind"] == (
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     )
+    assert production_request["owner_callable_command"] == (
+        "publication materialize-ai-reviewer-record --build-production-trace "
+        "--payload-file <ai_reviewer_record_payload.json>"
+    )
+    assert production_request["reviewer_operating_system_contract"]["production_trace_builder"] == (
+        "ai_reviewer_publication_eval_workflow.build_ai_reviewer_publication_eval_record_with_workflow_trace"
+    )
+    assert production_request["reviewer_operating_system_contract"]["executor_must_not_hand_author_diagnostic_trace"] is True
     assert production_request["record_must_consume_refs"] == [str(manuscript_path)]
     assert execution["next_required_actions"] == [
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
