@@ -25,6 +25,7 @@ from med_autoscience.controllers import (
     study_outer_loop,
     study_runtime_family_orchestration as family_orchestration,
     domain_status_projection,
+    domain_transition_currentness,
 )
 from med_autoscience.controllers.domain_health_diagnostic_outer_loop_policy import (
     outer_loop_request_requires_fresh_controller_execution,
@@ -283,7 +284,7 @@ def _build_runtime_control_ports() -> RuntimeControlPorts:
             domain_status_projection.progress_projection(**kwargs)
         ),
         request_opl_stage_attempt=_request_opl_stage_attempt,
-        build_outer_loop_request=study_outer_loop.build_domain_health_diagnostic_outer_loop_tick_request,
+        build_outer_loop_request=_build_current_domain_transition_outer_loop_request,
         dispatch_outer_loop=domain_status_projection.study_outer_loop_tick,
         materialize_non_dispatching_decision=_materialize_domain_health_diagnostic_non_dispatching_decision,
         refresh_status_after_stage_request=_refresh_managed_study_status_after_stage_request,
@@ -294,6 +295,47 @@ def _build_runtime_control_ports() -> RuntimeControlPorts:
         apply_ai_repair=apply_ready_ai_doctor_repair,
         read_ai_repair_lifecycle=read_ai_repair_lifecycle,
         reconcile_ai_repair_lifecycle=reconcile_ai_repair_lifecycle,
+    )
+
+
+def _build_current_domain_transition_outer_loop_request(
+    *,
+    study_root: Path,
+    status_payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    tick_request = study_outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+    fallback_tick_request = domain_transition_currentness.status_domain_transition_tick_request(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+    if isinstance(fallback_tick_request, dict) and not _tick_request_matches_status_transition(
+        tick_request=tick_request,
+        status_payload=status_payload,
+    ):
+        return fallback_tick_request
+    return tick_request
+
+
+def _tick_request_matches_status_transition(
+    *,
+    tick_request: object,
+    status_payload: dict[str, Any],
+) -> bool:
+    domain_transition = status_payload.get("domain_transition")
+    if not isinstance(domain_transition, dict):
+        return True
+    transition_unit = domain_transition.get("next_work_unit")
+    if not isinstance(transition_unit, dict):
+        return True
+    return domain_transition_currentness.tick_request_matches_domain_transition(
+        tick_request=tick_request if isinstance(tick_request, dict) else {},
+        transition_action=str(domain_transition.get("controller_action") or "").strip(),
+        transition_type=str(domain_transition.get("decision_type") or "").strip(),
+        transition_unit_id=str(transition_unit.get("unit_id") or "").strip(),
+        transition_route_target=str(domain_transition.get("route_target") or "").strip() or None,
     )
 
 

@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：domain-health diagnostic 也必须使用 current domain-transition tick request
+
+- 决策：`domain-health-diagnostic` 构造 outer-loop tick request 时，必须和 controller refresh 一样校验 status `domain_transition` 的 `decision_type`、`route_target`、`next_work_unit.unit_id` 与 controller action。如果 outer-loop tick request 与当前 transition 不一致，必须切换到 `status_domain_transition_tick_request`，避免用旧 write route 覆盖当前 gate replay route。
+- 理由：DM003 暴露出 `domain-owner-action-refresh-controller-decisions` 已能把 `route_target=finalize`、`owner_authorized_publication_gate_replay` 绑定到 `run_gate_clearing_batch`，但随后 `domain-health-diagnostic` 直接使用旧 outer-loop tick request，又把同一个 finalize work unit 写成 `run_quality_repair_batch`。根因是 DHD 入口没有复用 domain-transition currentness resolver。
+- 影响：这是 MAS domain-health/controller currentness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍通过 MAS owner/controller/runtime path 重新刷新 controller decision、materialize request、dispatch owner action。
+
 ## 2026-05-28：finalize gate replay 的 route-back currentness 必须保留 gate-clearing owner
 
 - 决策：`route_back_same_line` 的 controller currentness 不能统一物化为 `run_quality_repair_batch`。当当前 domain transition 指向 `route_target=finalize` 且 `next_work_unit.unit_id=owner_authorized_publication_gate_replay` 时，fresh controller decision 与 tick-request match 必须绑定 `run_gate_clearing_batch`；其他 write/story route-back 继续绑定 `run_quality_repair_batch`。

@@ -179,6 +179,103 @@ def test_outer_loop_tick_request_carries_gate_specificity_targets(tmp_path: Path
     ]
 
 
+def test_domain_health_diagnostic_outer_loop_request_preserves_finalize_gate_replay_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    diagnostic = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = helpers.write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_charter(study_root)
+    dump_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::dm003::finalize-gate-replay",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "assessment_provenance": {"owner": "ai_reviewer"},
+        },
+    )
+    controller_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    status_payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "study_root": str(study_root),
+        "quest_root": str(profile.runtime_root / study_id),
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "quest_status": "waiting_for_user",
+        "domain_transition": {
+            "decision_type": "route_back_same_line",
+            "controller_action": "run_gate_clearing_batch",
+            "route_target": "finalize",
+            "owner": "publication_gate",
+            "next_work_unit": {
+                "unit_id": "owner_authorized_publication_gate_replay",
+                "lane": "finalize",
+                "summary": "Replay the MAS publication gate against current manuscript and evidence surfaces.",
+            },
+        },
+    }
+    stale_tick_request = {
+        "study_root": study_root,
+        "charter_ref": {
+            "charter_id": f"charter::{study_id}::v1",
+            "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+        },
+        "publication_eval_ref": {
+            "eval_id": "publication-eval::dm003::finalize-gate-replay",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        },
+        "decision_type": "route_back_same_line",
+        "route_target": "write",
+        "route_key_question": "Repair manuscript quality.",
+        "route_rationale": "Old same-line route with the right work unit but the wrong owner action.",
+        "source_route_key_question": None,
+        "requires_human_confirmation": False,
+        "controller_actions": [{"action_type": "run_quality_repair_batch", "payload_ref": str(controller_decision_path)}],
+        "reason": "Old same-line route with the right work unit but the wrong owner action.",
+        "work_unit_fingerprint": "domain-transition::route_back_same_line::owner_authorized_publication_gate_replay",
+        "next_work_unit": {
+            "unit_id": "owner_authorized_publication_gate_replay",
+            "lane": "finalize",
+            "summary": "Replay the MAS publication gate against current manuscript and evidence surfaces.",
+        },
+        "blocking_work_units": [
+            {
+                "unit_id": "owner_authorized_publication_gate_replay",
+                "lane": "finalize",
+                "summary": "Replay the MAS publication gate against current manuscript and evidence surfaces.",
+            }
+        ],
+    }
+
+    monkeypatch.setattr(
+        diagnostic.study_outer_loop,
+        "build_domain_health_diagnostic_outer_loop_tick_request",
+        lambda **_: stale_tick_request,
+    )
+
+    request = diagnostic._build_current_domain_transition_outer_loop_request(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "route_back_same_line"
+    assert request["route_target"] == "finalize"
+    assert request["next_work_unit"]["unit_id"] == "owner_authorized_publication_gate_replay"
+    assert request["controller_actions"] == [
+        {
+            "action_type": "run_gate_clearing_batch",
+            "payload_ref": str(controller_decision_path.resolve()),
+        }
+    ]
+
+
 def test_outer_loop_tick_request_backfills_targets_when_batch_action_promotes_specificity(
     monkeypatch,
     tmp_path: Path,
