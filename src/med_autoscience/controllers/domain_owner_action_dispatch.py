@@ -367,8 +367,40 @@ def _paper_progress_stall_block_reason(
     if dispatch_fingerprint is not None and current_fingerprint is not None and dispatch_fingerprint != current_fingerprint:
         if current_stall.get("stalled") is False and current_stall.get("terminal") is False:
             return None, True
+        if _nonterminal_stall_refresh_handoff_allowed(
+            action_type=action_type,
+            dispatch=dispatch,
+            current_study=current_study,
+            current_route=current_route,
+            current_stall=current_stall,
+        ):
+            return None, True
         return "paper_progress_stall_fingerprint_stale", False
     return None, False
+
+
+def _nonterminal_stall_refresh_handoff_allowed(
+    *,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+    current_study: Mapping[str, Any] | None,
+    current_route: Mapping[str, Any] | None,
+    current_stall: Mapping[str, Any],
+) -> bool:
+    if current_stall.get("stalled") is not True:
+        return False
+    if current_stall.get("terminal") is True:
+        return False
+    if current_stall.get("safe_reconcile_candidate") is not True:
+        return False
+    if "same_fingerprint_loop" not in {str(item) for item in current_stall.get("stall_reasons") or []}:
+        return False
+    return terminal_stall_handoff.owner_handoff_allowed(
+        action_type=action_type,
+        dispatch=dispatch,
+        current_study=current_study,
+        current_route=current_route,
+    )
 
 
 def _execute_publication_gate_specificity(
