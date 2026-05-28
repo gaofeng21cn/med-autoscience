@@ -260,6 +260,15 @@ def _record_current_manuscript_payload(record_payload: Mapping[str, Any]) -> Map
     return current_manuscript
 
 
+def _record_is_current_manuscript_review(record_payload: Mapping[str, Any]) -> bool:
+    provenance = _mapping(record_payload.get("assessment_provenance"))
+    return (
+        _text(provenance.get("owner")) == "ai_reviewer"
+        and _text(provenance.get("source_kind")) == "publication_eval_ai_reviewer_current_manuscript_record"
+        and provenance.get("ai_reviewer_required") is False
+    )
+
+
 def _record_publication_quality_readiness(record_payload: Mapping[str, Any]) -> Mapping[str, Any]:
     reviewer_os = _mapping(record_payload.get("reviewer_operating_system"))
     return _mapping(reviewer_os.get("publication_quality_readiness"))
@@ -272,6 +281,10 @@ def _current_manuscript_currentness(
     ref_bundle: Mapping[str, str],
 ) -> dict[str, Any] | None:
     record_current_manuscript = _record_current_manuscript_payload(record_payload)
+    if not record_current_manuscript and _record_is_current_manuscript_review(record_payload):
+        return _live_manuscript_currentness(study_root=study_root, ref_bundle=ref_bundle) | {
+            "authority_source_signature": "ai_reviewer_current_manuscript_record"
+        }
     if not record_current_manuscript:
         return None
     manuscript_ref = _text(record_current_manuscript.get("manuscript_ref")) or _text(ref_bundle.get("manuscript"))

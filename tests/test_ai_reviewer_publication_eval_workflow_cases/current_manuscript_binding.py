@@ -9,6 +9,7 @@ from tests.test_ai_reviewer_publication_eval_workflow import (
     _refs,
     _sha256_text,
     _write_ai_reviewer_alignment_inputs,
+    _write_ai_reviewer_currentness_inputs,
     _write_json,
     _write_text,
 )
@@ -158,6 +159,80 @@ def test_request_bound_route_back_uses_record_current_manuscript_digest_over_sta
         "current_package_freshness",
         "owner_authorized_gate_replay",
     ]
+
+
+def test_request_bound_current_manuscript_record_rebuilds_trace_after_prior_prose_review(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    record = _publication_eval_record(study_root)
+    record["assessment_provenance"]["source_kind"] = "publication_eval_ai_reviewer_current_manuscript_record"
+    record["recommended_actions"] = [
+        {
+            "action_id": "publication-eval-action::route-back-analysis::baseline-display",
+            "action_type": "route_back_same_line",
+            "priority": "now",
+            "reason": "Route back for source-backed baseline and display repair before readiness.",
+            "route_target": "analysis-campaign",
+            "route_key_question": "Can the study regenerate source-backed baseline and display evidence?",
+            "route_rationale": "The current manuscript has changed after the prior prose review, and the new AI reviewer record is bound directly to the current manuscript.",
+            "evidence_refs": [refs["manuscript"], refs["evidence_ledger"], refs["claim_evidence_map"]],
+            "requires_controller_decision": True,
+            "next_work_unit": {
+                "unit_id": "source_backed_baseline_table_repair_or_unavailability_proof",
+                "lane": "analysis-campaign",
+                "summary": "Regenerate or formally bound baseline fields.",
+            },
+        }
+    ]
+    _write_ai_reviewer_currentness_inputs(
+        study_root,
+        prose_status="partial",
+        style_verdict="revise",
+        route_back_required=True,
+    )
+    _write_text(
+        Path(refs["manuscript"]),
+        "# Revised manuscript\n\nThis text changed after the prior prose review, but it has now been reviewed by the current-manuscript record.\n",
+    )
+
+    payload = module.build_ai_reviewer_publication_eval_record_with_workflow_trace(
+        study_root=study_root,
+        manuscript_ref=refs["manuscript"],
+        evidence_ref=refs["evidence_ledger"],
+        review_ref=refs["review_ledger"],
+        charter_ref=refs["study_charter"],
+        additional_refs={
+            "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+            "claim_evidence_map": refs["claim_evidence_map"],
+            "medical_prose_review": refs["medical_prose_review"],
+            "publication_gate_projection": refs["publication_gate_projection"],
+        },
+        record=record,
+        workflow_currentness_mode="request_bound_ai_reviewer_record",
+        emitted_at="2026-05-28T09:41:33Z",
+    )
+
+    trace = payload["reviewer_operating_system"]
+    current = trace["currentness_checks"]["current_manuscript"]
+    prose = trace["currentness_checks"]["medical_prose_review"]
+
+    assert payload["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer"
+    assert current["status"] == "current"
+    assert current["manuscript_digest"] == _sha256_text(
+        "# Revised manuscript\n\nThis text changed after the prior prose review, but it has now been reviewed by the current-manuscript record.\n"
+    )
+    assert prose["status"] == "current"
+    assert prose["manuscript_digest"] == current["manuscript_digest"]
+    assert prose["durable_medical_prose_review_status"] == "stale_for_live_manuscript"
+    assert prose["authority_source_signature"] == "ai_reviewer_record_current_manuscript"
+    assert trace["route_back_decision"] == {
+        "recommended_action": "route_back_same_line",
+        "rationale": "Route back for source-backed baseline and display repair before readiness.",
+        "route_target": "analysis-campaign",
+    }
 
 
 def test_request_bound_route_back_uses_current_request_digest_when_durable_prose_review_is_stale(

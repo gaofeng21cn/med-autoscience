@@ -126,6 +126,7 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, object]:
     quest_root = study_root.parents[1] / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
     request_digest = "sha256:" + "a" * 64
     manuscript_digest = "sha256:" + "c" * 64
+    source_eval_id = "publication-eval::001-risk::quest-001::2026-04-05T06:00:00+00:00"
     input_bundle = {
         "manuscript": str(study_root / "paper" / "manuscript.md"),
         "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
@@ -176,9 +177,18 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, object]:
                 "manuscript_ref": str(study_root / "paper" / "manuscript.md"),
                 "manuscript_digest": manuscript_digest,
             },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": str(study_root / "paper" / "manuscript.md"),
+                "manuscript_digest": manuscript_digest,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": source_eval_id,
+            },
             "current_package_freshness": {
                 "status": "fresh",
-                "source_eval_id": "publication-eval::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+                "source_eval_id": source_eval_id,
             },
         },
         "claim_evidence_alignment": claim_alignment,
