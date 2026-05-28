@@ -99,17 +99,16 @@ def _authority_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     source_action = _mapping(dispatch.get("source_action"))
     owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    owner_route_source_refs = _mapping(owner_route.get("source_refs"))
     next_work_unit_raw = source_action.get("next_work_unit") or dispatch.get("next_work_unit") or prompt_contract.get("next_work_unit")
     next_work_unit = _mapping(next_work_unit_raw)
-    work_unit_id = _work_unit_id(next_work_unit_raw)
+    work_unit_id = _work_unit_id(next_work_unit_raw) or _materialized_owner_route_work_unit_id(owner_route_source_refs)
     work_unit_fingerprint = (
         _text(source_action.get("work_unit_fingerprint"))
         or _text(dispatch.get("work_unit_fingerprint"))
         or _text(owner_route.get("work_unit_fingerprint"))
     )
-    source_eval_id = _text(source_action.get("source_eval_id")) or _text(
-        _mapping(owner_route.get("source_refs")).get("source_eval_id")
-    )
+    source_eval_id = _text(source_action.get("source_eval_id")) or _text(owner_route_source_refs.get("source_eval_id"))
     flat_context = {
         "control_surface": "domain_owner_action_dispatch",
         "controller_action_type": "run_quality_repair_batch",
@@ -285,6 +284,14 @@ def _work_unit_id(value: object) -> str | None:
     if isinstance(value, Mapping):
         return _text(value.get("unit_id"))
     return _text(value)
+
+
+def _materialized_owner_route_work_unit_id(source_refs: Mapping[str, Any]) -> str | None:
+    if _text(source_refs.get("bridge_authority")) != "domain_action_request_materializer_story_surface_bridge":
+        return None
+    if _text(source_refs.get("blocked_reason")) != "manuscript_story_surface_delta_missing":
+        return None
+    return _text(source_refs.get("materialized_work_unit_id"))
 
 
 def _text(value: object) -> str | None:

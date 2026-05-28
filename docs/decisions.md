@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：materialized story-surface bridge 必须保留实际 write work unit
+
+- 决策：当 `domain_action_request_materializer_story_surface_bridge` 把当前 owner route 从原始 controller work unit materialize 成可执行 story-surface write work unit 时，`domain-owner-action-dispatch` 传给 `quality_repair_batch` 的 `authority_route_context.controller_route_context.work_unit_id` 必须使用 `source_refs.materialized_work_unit_id`。原始 `source_refs.work_unit_id` 只保留为 provenance，不能覆盖实际可执行 write work unit。
+- 理由：DM002 暴露出 dispatch 已正确桥接到 `dm002_current_publication_hardening_after_current_ai_reviewer_eval`，但 owner callable 收到的 route context 没有显式 story-surface work unit，`quality_repair_batch` 又按 gate-derived fallback 选择 `analysis_claim_evidence_repair`，导致没有产生当前稿件 story-surface delta 或对应 typed blocker。
+- 影响：这是 MAS owner dispatch / quality repair route-context 保真修复，不写 DM002 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。论文后续仍必须由 MAS owner/controller/runtime path 重新 materialize、dispatch、repair、AI reviewer recheck 与 publication gate 判定。
+
 ## 2026-05-28：publication gate replay transition 必须压过 stale AI reviewer pending request
 
 - 决策：当 `progress_projection.domain_transition` 已是 `publication_gate_blocker` 且 `controller_action=run_gate_clearing_batch` 时，owner-route 必须把它作为当前更高优先级 owner truth，阻断旧的 pending `return_to_ai_reviewer_workflow` request；`domain-owner-action-refresh-controller-decisions` 也必须能从该 transition 合成 non-dispatching gate replay controller decision，而不依赖旧 outer-loop tick request。
