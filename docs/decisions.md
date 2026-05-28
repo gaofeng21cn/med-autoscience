@@ -77,8 +77,8 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-28：default-executor export 必须抑制被当前 owner route 阻断的旧 dispatch
 
-- 决策：`domain-handler export` 扫描同一 study 的 `default_executor_dispatches/*.json` 时，若另一个当前可 dispatch 的 owner route 在同一 work unit 上通过 `blocked_actions` 明确阻断某个旧 action，且阻断者的 currentness basis 更新，则旧 dispatch 不得继续作为 OPL `pending_family_tasks` 导出。旧 dispatch 文件仍可作为 provenance 留存，但不能继续 hydrate 成 provider-backed stage attempt。
-- 理由：DM002 暴露出 `run_quality_repair_batch` write handoff 已经是当前 route，且其 `blocked_actions` 明确包含 `return_to_ai_reviewer_workflow`；但旧 AI reviewer dispatch 仍保留 `dispatch_status=ready` 并被 OPL hydrate 并发执行，覆盖 latest execution/read-model，造成 write repair 和 reviewer recheck 互相污染。
+- 决策：`domain-handler export` 扫描同一 study 的 `default_executor_dispatches/*.json` 时，若另一个当前可 dispatch 的 owner route 通过 `blocked_actions` 明确阻断某个旧 action，且阻断者的 currentness basis 更新，则旧 dispatch 不得继续作为 OPL `pending_family_tasks` 导出。这个抑制不能要求两个 dispatch 拥有同一 work unit；当前 owner route 可以从已完成的 AI reviewer record work unit 前进到 write repair work unit，并用 `blocked_actions` 阻断旧 AI reviewer action。旧 dispatch 文件仍可作为 provenance 留存，但不能继续 hydrate 成 provider-backed stage attempt。
+- 理由：DM002 暴露出 `run_quality_repair_batch` write handoff 已经是当前 route，且其 `blocked_actions` 明确包含 `return_to_ai_reviewer_workflow`；但旧 AI reviewer dispatch 仍保留 `dispatch_status=ready` 并被 OPL hydrate 并发执行，覆盖 latest execution/read-model，造成 write repair 和 reviewer recheck 互相污染。根因是 export supersession 只在同一 work unit 上生效，漏掉了 reviewer-record work unit 到 write-repair work unit 的合法同线前进。
 - 影响：这是 MAS sidecar/export currentness 修复；OPL 仍只负责 queue、attempt、retry、dead-letter 和 provider lifecycle。该修复不写 DM002 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或投稿 ready verdict。后续论文推进仍必须由 MAS owner/controller/runtime path 重新 materialize、dispatch、repair、AI reviewer recheck 与 publication gate 判定。
 
 ## 2026-05-28：writer handoff 不得复用 source eval 不匹配的 owner route

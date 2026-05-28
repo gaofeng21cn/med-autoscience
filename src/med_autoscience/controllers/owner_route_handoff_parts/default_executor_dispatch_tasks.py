@@ -148,16 +148,12 @@ def _dispatch_blocked_by_newer_candidate(
     if action_type is None:
         return False
     owner_route = _dispatch_owner_route(dispatch)
-    work_unit_id = _owner_route_work_unit_id(owner_route)
     for other_candidate in candidates:
         if other_candidate is candidate:
             continue
         other = _mapping(other_candidate.get("dispatch"))
         other_route = _dispatch_owner_route(other)
         if action_type not in set(_string_list(other_route.get("blocked_actions"))):
-            continue
-        other_work_unit_id = _owner_route_work_unit_id(other_route)
-        if work_unit_id and other_work_unit_id and work_unit_id != other_work_unit_id:
             continue
         if _dispatch_currentness_key(other) <= _dispatch_currentness_key(dispatch):
             continue

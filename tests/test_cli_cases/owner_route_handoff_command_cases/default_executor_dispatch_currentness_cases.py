@@ -170,6 +170,75 @@ def test_domain_handler_export_suppresses_stale_dispatch_blocked_by_current_owne
     )
 
 
+def test_domain_handler_export_suppresses_stale_dispatch_blocked_by_current_route_when_work_unit_changed(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="return_to_ai_reviewer_workflow.json",
+        action_type="return_to_ai_reviewer_workflow",
+        next_owner="ai_reviewer",
+        dispatch_authority="consumer_default_executor_dispatch",
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="ai_reviewer",
+            owner_reason="ai_reviewer_record_stale_after_current_manuscript",
+            action_type="return_to_ai_reviewer_workflow",
+            work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            work_unit_fingerprint="truth-snapshot::old-ai-reviewer-record",
+            runtime_health_epoch="runtime-health-event-006325-ff1404193e350d0c",
+            blocked_actions=["run_quality_repair_batch", "run_gate_clearing_batch"],
+        ),
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-05-28T06:07:53+00:00",
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="write",
+            owner_reason="manuscript_story_surface_delta_missing",
+            action_type="run_quality_repair_batch",
+            work_unit_id="repair_current_manuscript_publication_surface_after_ai_reviewer_recheck",
+            work_unit_fingerprint=(
+                "domain-transition::route_back_same_line::"
+                "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
+            ),
+            runtime_health_epoch="runtime-health-event-006327-307bbee727d9e286",
+            blocked_actions=[
+                "return_to_ai_reviewer_workflow",
+                "run_gate_clearing_batch",
+            ],
+        ),
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["run_quality_repair_batch"]
+    assert tasks[0]["payload"]["work_unit_id"] == (
+        "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
+    )
+
+
 def test_domain_handler_export_keeps_new_ai_reviewer_handoff_when_older_write_route_has_later_runtime_epoch(
     tmp_path: Path,
     capsys,
