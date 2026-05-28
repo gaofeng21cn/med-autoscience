@@ -8,7 +8,13 @@ from pathlib import Path
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
-from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
+from tests.reviewer_os_fixture_helpers import (
+    claim_evidence_map_payload,
+    current_manuscript_routeback_record,
+    current_manuscript_routeback_reviewer_os,
+    evidence_ledger_payload,
+    review_ledger_payload,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -187,3 +193,80 @@ def test_invalid_current_ai_reviewer_response_record_does_not_supersede_latest_e
 
     assert selected["eval_id"] == latest_eval["eval_id"]
     assert selected.get("_projection_source_kind") is None
+
+
+def test_same_eval_id_record_supersedes_latest_when_currentness_trace_is_stronger(
+    tmp_path: Path,
+) -> None:
+    canonical_inputs = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.canonical_inputs"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript with repaired claim-evidence boundaries.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    review_path = study_root / "paper" / "review" / "review_ledger.json"
+    _write_json(evidence_path, evidence_ledger_payload(evidence_ledger_ref=str(evidence_path.resolve())))
+    _write_json(claim_map_path, claim_evidence_map_payload(evidence_ledger_ref=str(evidence_path.resolve())))
+    _write_json(review_path, review_ledger_payload(revision_log_path=study_root / "paper" / "revision_log.json"))
+
+    eval_id = "publication-eval::dm003::current-inputs::2026-05-28T10:19:47+00:00"
+    latest_eval = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-05-28T10:19:47+00:00",
+    )
+    latest_eval["reviewer_operating_system"]["currentness_checks"].pop("evidence_ledger", None)
+    latest_eval["reviewer_operating_system"]["currentness_checks"].pop("claim_evidence_map", None)
+    latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(latest_path, latest_eval)
+
+    record = json.loads(json.dumps(latest_eval))
+    record["reviewer_operating_system"]["currentness_checks"]["evidence_ledger"] = {
+        "status": "current",
+        "ref": str(evidence_path.resolve()),
+        "digest": "sha256:" + hashlib.sha256(evidence_path.read_bytes()).hexdigest(),
+        "authority_source_signature": "ai_reviewer_workflow_live_input",
+    }
+    record["reviewer_operating_system"]["currentness_checks"]["claim_evidence_map"] = {
+        "status": "current",
+        "ref": str(claim_map_path.resolve()),
+        "digest": "sha256:" + hashlib.sha256(claim_map_path.read_bytes()).hexdigest(),
+        "authority_source_signature": "ai_reviewer_workflow_live_input",
+    }
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260528T101947Z_publication_eval_record.json"
+    )
+    _write_json(record_path, record)
+
+    selected = canonical_inputs.publication_eval_payload(
+        {"study_id": study_id, "study_root": str(study_root), "publication_eval": latest_eval},
+        {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "refs": {"publication_eval_path": str(latest_path)},
+        },
+    )
+
+    assert selected["eval_id"] == eval_id
+    assert selected["_projection_source_ref"] == str(record_path.resolve())
+    assert selected["reviewer_operating_system"]["currentness_checks"]["evidence_ledger"]["digest"] == (
+        "sha256:" + hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+    )
+    assert selected["reviewer_operating_system"]["currentness_checks"]["claim_evidence_map"]["digest"] == (
+        "sha256:" + hashlib.sha256(claim_map_path.read_bytes()).hexdigest()
+    )

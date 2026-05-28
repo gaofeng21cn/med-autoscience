@@ -196,13 +196,14 @@ def current_gate_replay_routeback_route(
         return None
     batch_work_unit = _mapping(batch.get("current_publication_work_unit"))
     batch_write_route_back = _text(batch_work_unit.get("lane")) == "write"
+    work_units = publication_work_units.derive_publication_work_units(gate_report)
+    next_work_unit = batch_work_unit if batch_write_route_back else _first_work_unit_for_lane(work_units, lane="write")
     if (
         _text(gate_report.get("medical_publication_surface_route_back_recommendation")) != "return_to_write"
         and not batch_write_route_back
+        and next_work_unit is None
     ):
         return None
-    work_units = publication_work_units.derive_publication_work_units(gate_report)
-    next_work_unit = batch_work_unit if batch_write_route_back else _first_work_unit_for_lane(work_units, lane="write")
     if next_work_unit is None:
         return None
     work_unit_id = _text(next_work_unit.get("unit_id"))
@@ -269,6 +270,9 @@ def current_gate_replay_submission_refresh_route(
     if work_unit_id != "submission_minimal_refresh":
         return None
     if _text(batch_work_unit.get("lane")) != "finalize":
+        return None
+    work_units = publication_work_units.derive_publication_work_units(gate_report)
+    if _first_work_unit_for_lane(work_units, lane="write") is not None:
         return None
     fingerprint = (
         _text(batch.get("work_unit_fingerprint"))

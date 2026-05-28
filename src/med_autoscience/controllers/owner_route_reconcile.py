@@ -114,46 +114,6 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
-def _merge_previous_unscanned_study_handoff(
-    *,
-    previous_payload: Mapping[str, Any] | None,
-    scanned_studies: list[dict[str, Any]],
-    scanned_action_queue: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    scanned_ids = {
-        study_id
-        for study in scanned_studies
-        if (study_id := _text(study.get("study_id"))) is not None
-    }
-    if not scanned_ids:
-        return scanned_studies, scanned_action_queue
-    previous = _mapping(previous_payload)
-    retained_studies = [
-        {
-            **dict(item),
-            "handoff_generated_at": _text(item.get("handoff_generated_at"))
-            or _text(previous.get("generated_at"))
-            or _text(previous.get("recorded_at")),
-            "handoff_scan_status": _text(item.get("handoff_scan_status")) or "retained_from_previous_scan",
-        }
-        for item in previous.get("studies") or []
-        if isinstance(item, Mapping)
-        and (study_id := _text(item.get("study_id"))) is not None
-        and study_id not in scanned_ids
-    ]
-    retained_action_queue = [
-        dict(item)
-        for item in previous.get("action_queue") or []
-        if isinstance(item, Mapping)
-        and (study_id := _text(item.get("study_id"))) is not None
-        and study_id not in scanned_ids
-    ]
-    return (
-        [*retained_studies, *scanned_studies],
-        [*retained_action_queue, *scanned_action_queue],
-    )
-
-
 def _repair_lifecycle_path(study_root: Path) -> Path:
     return study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json"
 
@@ -458,6 +418,7 @@ def _post_consumed_submission_refresh_followthrough_action(
     if consumed_action_type not in {
         "current_package_freshness_required",
         "publication_gate_specificity_required",
+        "run_gate_clearing_batch",
     }:
         return None
     if _text(consumed_receipt.get("execution_status")) != "executed":
@@ -477,7 +438,7 @@ def _post_consumed_submission_refresh_followthrough_action(
         )
         if refresh_route is None:
             return None
-        if consumed_action_type == "publication_gate_specificity_required":
+        if consumed_action_type in {"publication_gate_specificity_required", "run_gate_clearing_batch"}:
             action = artifact_freshness.action_payload(
                 reason=artifact_freshness.ACTION_TYPE,
                 controller_route=refresh_route,
@@ -743,6 +704,17 @@ def _study_projection(
                 consumed_receipt=default_executor_execution_receipt_consumption,
             )
             if followthrough_action is not None:
+                if (
+                    _text(default_executor_execution_receipt_consumption.get("action_type"))
+                    == "run_gate_clearing_batch"
+                ):
+                    default_executor_execution_receipt_consumption = {
+                        **default_executor_execution_receipt_consumption,
+                        "consumption_mode": "followthrough_action_transition",
+                        "followthrough_from_action_type": "run_gate_clearing_batch",
+                        "followthrough_to_action_type": _text(followthrough_action.get("action_type")),
+                        "next_action": "honor_followthrough_current_owner_route",
+                    }
                 actions = [followthrough_action]
                 blocked_reason = _text(followthrough_action.get("reason")) or _text(followthrough_action.get("action_type"))
                 why_not_applied = blocked_reason
@@ -939,7 +911,7 @@ def scan_domain_routes(
             ),
         }
     if persist_surfaces:
-        output_studies, action_queue = _merge_previous_unscanned_study_handoff(
+        output_studies, action_queue = scan_output.merge_previous_unscanned_study_handoff(
             previous_payload=previous_payload,
             scanned_studies=studies,
             scanned_action_queue=scanned_action_queue,

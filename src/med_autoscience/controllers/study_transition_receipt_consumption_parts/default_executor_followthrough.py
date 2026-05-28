@@ -40,20 +40,27 @@ def default_executor_execution_followthrough_receipt_consumption(
             repair_evidence=repair_evidence,
         ):
             return {}
-        if action_type != "publication_gate_specificity_required":
+        if action_type not in {"publication_gate_specificity_required", "run_gate_clearing_batch"}:
             continue
         if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
             continue
         if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered":
             continue
-        if not _execution_matches_specificity_to_package_freshness_followthrough(
+        if not _execution_matches_to_package_freshness_followthrough(
             execution=execution,
             owner_route=owner_route,
+            action_type=action_type,
         ):
             continue
         if _default_executor_dispatch_zero_execution_blocker(owner_result):
             continue
-        if not _publication_gate_specificity_owner_result_satisfies_route_output(owner_result=owner_result):
+        if action_type == "publication_gate_specificity_required" and not _publication_gate_specificity_owner_result_satisfies_route_output(
+            owner_result=owner_result
+        ):
+            continue
+        if action_type == "run_gate_clearing_batch" and not _gate_clearing_batch_owner_result_satisfies_route_output(
+            owner_result=owner_result
+        ):
             continue
         blocked_reason = _default_executor_consumed_blocked_reason(
             owner_result=owner_result,
@@ -70,7 +77,7 @@ def default_executor_execution_followthrough_receipt_consumption(
             "repair_execution_evidence_status": _text(repair_evidence.get("status")),
             **({"blocked_reason": blocked_reason} if blocked_reason else {}),
             "consumption_mode": "followthrough_action_transition",
-            "followthrough_from_action_type": "publication_gate_specificity_required",
+            "followthrough_from_action_type": action_type,
             "followthrough_to_action_type": "current_package_freshness_required",
             "consumed_owner_route_idempotency_key": _text(execution.get("idempotency_key")),
             "followthrough_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
@@ -97,10 +104,11 @@ def _current_owner_route_action_types(
     return allowed_actions & action_types
 
 
-def _execution_matches_specificity_to_package_freshness_followthrough(
+def _execution_matches_to_package_freshness_followthrough(
     *,
     execution: Mapping[str, Any],
     owner_route: Mapping[str, Any],
+    action_type: str,
 ) -> bool:
     prompt_contract = _mapping(execution.get("prompt_contract"))
     for execution_route in (
@@ -108,9 +116,10 @@ def _execution_matches_specificity_to_package_freshness_followthrough(
         _mapping(execution.get("owner_route")),
         _mapping(prompt_contract.get("owner_route")),
     ):
-        if _specificity_to_package_freshness_currentness_matches(
+        if _to_package_freshness_currentness_matches(
             execution_route=execution_route,
             owner_route=owner_route,
+            from_action_type=action_type,
         ):
             return True
     return False
@@ -197,14 +206,21 @@ def _owner_route_work_unit_currentness_matches(
     return bool(_text(current_basis.get("work_unit_fingerprint")) or _text(current_basis.get("work_unit_id")))
 
 
-def _specificity_to_package_freshness_currentness_matches(
+def _to_package_freshness_currentness_matches(
     *,
     execution_route: Mapping[str, Any],
     owner_route: Mapping[str, Any],
+    from_action_type: str,
 ) -> bool:
     if not execution_route:
         return False
-    if _text(execution_route.get("owner_reason")) != "publication_gate_specificity_required":
+    expected_owner_reason = {
+        "publication_gate_specificity_required": "publication_gate_specificity_required",
+        "run_gate_clearing_batch": "owner_authorized_publication_gate_replay",
+    }.get(from_action_type)
+    if expected_owner_reason is None:
+        return False
+    if _text(execution_route.get("owner_reason")) != expected_owner_reason:
         return False
     if _text(owner_route.get("owner_reason")) != "current_package_freshness_required":
         return False
@@ -212,12 +228,19 @@ def _specificity_to_package_freshness_currentness_matches(
     current_allowed = {_text(item) for item in owner_route.get("allowed_actions") or []}
     execution_allowed.discard("")
     current_allowed.discard("")
-    if execution_allowed != {"publication_gate_specificity_required"}:
+    if execution_allowed != {from_action_type}:
         return False
     if current_allowed != {"current_package_freshness_required"}:
         return False
     execution_basis = _owner_route_currentness_basis(execution_route)
     current_basis = _owner_route_currentness_basis(owner_route)
+    if from_action_type == "run_gate_clearing_batch":
+        return _gate_replay_to_package_freshness_currentness_matches(
+            execution_route=execution_route,
+            owner_route=owner_route,
+            execution_basis=execution_basis,
+            current_basis=current_basis,
+        )
     for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id"):
         current_value = _text(current_basis.get(key))
         execution_value = _text(execution_basis.get(key))
@@ -226,6 +249,30 @@ def _specificity_to_package_freshness_currentness_matches(
         if current_value and execution_value and current_value != execution_value:
             return False
     return bool(_text(current_basis.get("work_unit_fingerprint")) and _text(current_basis.get("work_unit_id")))
+
+
+def _gate_replay_to_package_freshness_currentness_matches(
+    *,
+    execution_route: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+    execution_basis: Mapping[str, Any],
+    current_basis: Mapping[str, Any],
+) -> bool:
+    if _text(execution_basis.get("work_unit_id")) != "owner_authorized_publication_gate_replay":
+        return False
+    if _text(current_basis.get("work_unit_id")) != "submission_minimal_refresh":
+        return False
+    if not _same_non_empty_text(
+        _text(execution_basis.get("truth_epoch")),
+        _text(current_basis.get("truth_epoch")),
+    ):
+        return False
+    if not _same_non_empty_text(
+        _source_eval_id(execution_route),
+        _source_eval_id(owner_route),
+    ):
+        return False
+    return _text(current_basis.get("work_unit_fingerprint")) is not None
 
 
 def _owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:
@@ -253,6 +300,15 @@ def _owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _source_eval_id(route: Mapping[str, Any]) -> str:
+    source_refs = _mapping(route.get("source_refs"))
+    return _text(source_refs.get("source_eval_id")) or _text(route.get("source_eval_id"))
+
+
+def _same_non_empty_text(left: str, right: str) -> bool:
+    return bool(left and right and left == right)
+
+
 def _publication_gate_specificity_owner_result_satisfies_route_output(*, owner_result: Mapping[str, Any]) -> bool:
     if not _text(owner_result.get("report_json")):
         return False
@@ -260,6 +316,11 @@ def _publication_gate_specificity_owner_result_satisfies_route_output(*, owner_r
     if not _text(publication_eval.get("eval_id")):
         return False
     return _is_publication_eval_latest_path(_text(publication_eval.get("artifact_path")))
+
+
+def _gate_clearing_batch_owner_result_satisfies_route_output(*, owner_result: Mapping[str, Any]) -> bool:
+    gate_replay = _mapping(owner_result.get("gate_replay"))
+    return _text(owner_result.get("status")) == "executed" and _text(gate_replay.get("status")) == "blocked"
 
 
 def _default_executor_owner_result_consumable(

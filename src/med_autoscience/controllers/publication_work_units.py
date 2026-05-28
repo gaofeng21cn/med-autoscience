@@ -6,6 +6,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers._medical_display_surface_support import _REQUIRED_DISPLAY_SURFACE_STUBS
 from med_autoscience.controllers.gate_authority_currentness import resolve_gate_authority_currentness
+from med_autoscience.policies.medical_reporting_checklist import REPORTING_CHECKLIST_BLOCKER_KEYS
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
@@ -127,6 +128,10 @@ _TREATMENT_GAP_BLOCKERS = frozenset(
         "treatment_gap_reporting_incomplete",
     }
 )
+_MEDICAL_REPORTING_WRITE_BLOCKERS = frozenset(REPORTING_CHECKLIST_BLOCKER_KEYS) - frozenset(
+    {"treatment_gap_reporting_incomplete"}
+)
+_REPORTING_REPAIR_BLOCKERS = _MEDICAL_REPORTING_WRITE_BLOCKERS | _TREATMENT_GAP_BLOCKERS
 _ACTIONABLE_OBJECT_KEYS = frozenset(
     {
         "claim_id",
@@ -239,6 +244,13 @@ _PRIMARY_WORK_UNIT_RULES = (
         "Repair figure and results traceability against the publication evidence surface.",
     ),
     (
+        _MEDICAL_REPORTING_WRITE_BLOCKERS,
+        False,
+        "medical_prose_write_repair",
+        "write",
+        "Repair structured medical reporting, manuscript voice, and paper-facing methods documentation.",
+    ),
+    (
         _TREATMENT_GAP_BLOCKERS,
         False,
         "treatment_gap_reporting_repair",
@@ -271,12 +283,26 @@ def _text_sequence(payload: Mapping[str, Any], key: str) -> tuple[str, ...]:
     return tuple(str(item).strip() for item in value if str(item).strip())
 
 
+def _structured_reporting_blockers(report: Mapping[str, Any]) -> tuple[str, ...]:
+    blockers: set[str] = set()
+    for key in ("publication_reporting_checklist", "structured_reporting_checklist"):
+        value = report.get(key)
+        if not isinstance(value, Mapping):
+            continue
+        for item in value.get("blockers") or []:
+            blocker = str(item or "").strip()
+            if blocker in REPORTING_CHECKLIST_BLOCKER_KEYS:
+                blockers.add(blocker)
+    return tuple(sorted(blockers))
+
+
 def _normalized_blockers(report: Mapping[str, Any]) -> tuple[str, ...]:
     blockers = {
         *_text_sequence(report, "blockers"),
         *_text_sequence(report, "medical_publication_surface_named_blockers"),
         *_text_sequence(report, "medical_publication_surface_blockers"),
         *_text_sequence(report, "reporting_blockers"),
+        *_structured_reporting_blockers(report),
     }
     named_blockers = set(_text_sequence(report, "medical_publication_surface_named_blockers"))
     if (
@@ -399,6 +425,12 @@ def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_u
         ),
         "manuscript_story_repair": _STORY_BLOCKERS,
         "figure_results_trace_repair": _FIGURE_RESULTS_BLOCKERS,
+        "medical_prose_write_repair": (
+            _MEDICAL_REPORTING_WRITE_BLOCKERS
+            | _TREATMENT_GAP_BLOCKERS
+            | _STORY_BLOCKERS
+            | _FIGURE_RESULTS_BLOCKERS
+        ),
         "treatment_gap_reporting_repair": _TREATMENT_GAP_BLOCKERS,
         "controller_owned_publication_repair": (
             _CLAIM_EVIDENCE_BLOCKERS
@@ -660,7 +692,11 @@ def _append_submission_refresh_unit(
 ) -> None:
     delivery_status = str(report.get("study_delivery_status") or "")
     refresh_needed = bool(blocker_set & _SUBMISSION_REFRESH_BLOCKERS) or "stale" in delivery_status
-    if refresh_needed and not mixed_controller_repair:
+    if (
+        refresh_needed
+        and not mixed_controller_repair
+        and not _current_delivery_reporting_repair_selected(report, blocker_set=blocker_set)
+    ):
         units.append(
             _unit(
                 "submission_minimal_refresh",
@@ -668,6 +704,34 @@ def _append_submission_refresh_unit(
                 "Refresh the stale submission_minimal package and current delivery bundle.",
             )
         )
+
+
+def _current_delivery_reporting_repair_selected(report: Mapping[str, Any], *, blocker_set: set[str]) -> bool:
+    if not blocker_set & _REPORTING_REPAIR_BLOCKERS:
+        return False
+    if blocker_set & {
+        "stale_submission_minimal_authority",
+        "stale_study_delivery_mirror",
+        "stale_study_delivery",
+        "submission_minimal_stale",
+        "submission_minimal_missing",
+        "current_package_outdated",
+        "current_package_stale",
+        "submission_package_stale",
+        "study_delivery_stale",
+    }:
+        return False
+    if str(report.get("study_delivery_status") or "").strip() not in {"", "current", "not_applicable"}:
+        return False
+    if str(report.get("submission_minimal_authority_status") or "").strip() not in {"", "current"}:
+        return False
+    if report.get("submission_minimal_present") is False:
+        return False
+    if report.get("submission_minimal_docx_present") is False:
+        return False
+    if report.get("submission_minimal_pdf_present") is False:
+        return False
+    return True
 
 
 def _clear_current_bundle_package_ready(report: Mapping[str, Any]) -> bool:

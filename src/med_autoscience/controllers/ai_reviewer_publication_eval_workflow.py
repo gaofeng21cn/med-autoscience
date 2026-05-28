@@ -330,6 +330,24 @@ def _live_manuscript_currentness(
     }
 
 
+def _live_input_currentness(
+    *,
+    study_root: Path,
+    ref_bundle: Mapping[str, str],
+    surface: str,
+) -> dict[str, Any]:
+    ref = _text(ref_bundle.get(surface))
+    if not ref:
+        raise ValueError(f"AI reviewer publication eval workflow missing {surface}")
+    path = _resolve_ref(study_root=study_root, ref=ref)
+    return {
+        "status": "current",
+        "ref": ref,
+        "digest": _sha256_file(path),
+        "authority_source_signature": "ai_reviewer_workflow_live_input",
+    }
+
+
 def _publication_quality_readiness(
     *,
     study_root: Path,
@@ -756,6 +774,16 @@ def _currentness_checks(
             study_root=study_root,
             eval_id=eval_id,
             delivery_downstream_only=_record_routes_back_before_delivery(record_payload),
+        ),
+        "evidence_ledger": _live_input_currentness(
+            study_root=study_root,
+            ref_bundle=ref_bundle,
+            surface="evidence_ledger",
+        ),
+        "claim_evidence_map": _live_input_currentness(
+            study_root=study_root,
+            ref_bundle=ref_bundle,
+            surface="claim_evidence_map",
         ),
     }
     current_manuscript = _current_manuscript_currentness(

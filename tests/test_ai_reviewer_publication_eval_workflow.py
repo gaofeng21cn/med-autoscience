@@ -405,6 +405,20 @@ def test_ai_reviewer_publication_eval_workflow_materializes_latest_with_reviewer
     assert latest["reviewer_operating_system"]["currentness_checks"]["current_package_freshness"][
         "source_eval_id"
     ] == latest["eval_id"]
+    evidence_currentness = latest["reviewer_operating_system"]["currentness_checks"]["evidence_ledger"]
+    claim_map_currentness = latest["reviewer_operating_system"]["currentness_checks"]["claim_evidence_map"]
+    assert evidence_currentness == {
+        "status": "current",
+        "ref": refs["evidence_ledger"],
+        "digest": module._sha256_file(Path(refs["evidence_ledger"])),
+        "authority_source_signature": "ai_reviewer_workflow_live_input",
+    }
+    assert claim_map_currentness == {
+        "status": "current",
+        "ref": refs["claim_evidence_map"],
+        "digest": module._sha256_file(Path(refs["claim_evidence_map"])),
+        "authority_source_signature": "ai_reviewer_workflow_live_input",
+    }
     quality_readiness = latest["reviewer_operating_system"]["publication_quality_readiness"]
     prose_currentness = latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
     alignment_gate = latest["reviewer_operating_system"]["claim_evidence_alignment"]

@@ -897,6 +897,8 @@ def project_ai_reviewer_request_lifecycle(
     else:
         state = "requested"
 
+    lifecycle = _mapping(packet.get("request_lifecycle"))
+    stale_fields_resolved = output_written and _request_packet_has_record_currentness_blocker(packet)
     return {
         "surface": "ai_reviewer_request_lifecycle",
         "schema_version": 1,
@@ -912,12 +914,12 @@ def project_ai_reviewer_request_lifecycle(
         "required_output": dict(_mapping(packet.get("required_output") or packet.get("requested_artifact"))),
         "blockers": input_blockers or list(packet.get("blockers") if isinstance(packet.get("blockers"), list) else []),
         "assessment_written": output_written,
-        "blocked_reason": _text(_mapping(packet.get("request_lifecycle")).get("blocked_reason")),
-        "stale_record_ref": _text(_mapping(packet.get("request_lifecycle")).get("stale_record_ref")),
+        "blocked_reason": None if stale_fields_resolved else _text(lifecycle.get("blocked_reason")),
+        "stale_record_ref": None if stale_fields_resolved else _text(lifecycle.get("stale_record_ref")),
         "required_currentness_refs": _string_items(
-            _mapping(packet.get("request_lifecycle")).get("required_currentness_refs")
+            None if stale_fields_resolved else lifecycle.get("required_currentness_refs")
         ),
-        "source_ref": _text(_mapping(packet.get("request_lifecycle")).get("source_ref")),
+        "source_ref": None if stale_fields_resolved else _text(lifecycle.get("source_ref")),
         "can_authorize_quality": False,
         "can_authorize_finalize": False,
         "can_authorize_submission": False,
