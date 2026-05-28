@@ -26,6 +26,15 @@ def paper_stage_log_for_default_executor_execution(
         or _first_text(_string_list(_mapping(repair_evidence.get("manuscript_surface_hygiene")).get("blockers")))
     )
     changed_surfaces = _changed_paper_surfaces(owner_result=owner_result, repair_evidence=repair_evidence)
+    stage_work_done = _paper_work_done(
+        status=status,
+        owner_result=owner_result,
+        repair_evidence=repair_evidence,
+        changed_surfaces=changed_surfaces,
+    )
+    duration = _duration_observability(execution)
+    token_usage = _token_usage_observability(execution)
+    cost = _cost_observability(execution)
     return {
         "surface_kind": "mas_paper_facing_stage_log_summary",
         "schema_version": 1,
@@ -42,15 +51,17 @@ def paper_stage_log_for_default_executor_execution(
             required_output_surface=required_output_surface,
             dispatch=dispatch,
         ),
-        "paper_work_done": _paper_work_done(
-            status=status,
-            owner_result=owner_result,
-            repair_evidence=repair_evidence,
-            changed_surfaces=changed_surfaces,
-        ),
+        "stage_work_done": stage_work_done,
+        "paper_work_done": stage_work_done,
+        "changed_stage_surfaces": changed_surfaces,
         "changed_paper_surfaces": changed_surfaces,
         "outcome": _outcome(status=status, blocked_reason=blocked_reason, owner_result=owner_result),
         "remaining_blockers": _remaining_blockers(blocked_reason=blocked_reason, repair_evidence=repair_evidence),
+        "duration": duration,
+        "token_usage": token_usage,
+        "cost": cost,
+        "usage_refs": _usage_refs(execution=execution),
+        "cost_refs": _cost_refs(execution=execution),
         "evidence_refs": _evidence_refs(
             study_id=study_id,
             dispatch_path=dispatch_path,
@@ -117,6 +128,112 @@ def _paper_work_done(
     if not work_done and status:
         work_done.append(f"Recorded owner execution status: {status}.")
     return work_done
+
+
+def _observability_mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _number_value(value: object) -> int | float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int | float):
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            parsed = float(text)
+        except ValueError:
+            return None
+        return int(parsed) if parsed.is_integer() else parsed
+    return None
+
+
+def _first_number_value(*values: object) -> int | float | None:
+    for value in values:
+        number = _number_value(value)
+        if number is not None:
+            return number
+    return None
+
+
+def _duration_observability(execution: Mapping[str, Any]) -> dict[str, Any]:
+    duration = _observability_mapping(execution.get("duration"))
+    if duration:
+        return duration
+    seconds = _first_number_value(
+        execution.get("duration_seconds"),
+        execution.get("elapsed_seconds"),
+        execution.get("runtime_duration_seconds"),
+    )
+    return {"seconds": seconds} if seconds is not None else {}
+
+
+def _token_usage_observability(execution: Mapping[str, Any]) -> dict[str, Any]:
+    for key in ("token_usage", "usage", "tokenUsage"):
+        usage = _observability_mapping(execution.get(key))
+        if usage:
+            return usage
+    return {}
+
+
+def _cost_observability(execution: Mapping[str, Any]) -> dict[str, Any]:
+    cost = _observability_mapping(execution.get("cost"))
+    if cost:
+        return cost
+    usd = _first_number_value(execution.get("cost_usd"), execution.get("usd_cost"))
+    return {"usd": usd} if usd is not None else {}
+
+
+def _refs_from_unknown(value: object) -> list[str]:
+    if isinstance(value, Mapping):
+        return [
+            text
+            for candidate in (
+                value.get("ref"),
+                value.get("ref_id"),
+                value.get("path"),
+                value.get("uri"),
+            )
+            if (text := _text(candidate)) is not None
+        ]
+    if isinstance(value, list | tuple | set):
+        refs: list[str] = []
+        for item in value:
+            refs.extend(_refs_from_unknown(item))
+        return refs
+    if text := _text(value):
+        return [text]
+    return []
+
+
+def _usage_refs(*, execution: Mapping[str, Any]) -> list[str]:
+    refs = [
+        *_refs_from_unknown(execution.get("usage_ref")),
+        *_refs_from_unknown(execution.get("usage_refs")),
+        *_refs_from_unknown(execution.get("token_usage_ref")),
+        *_refs_from_unknown(execution.get("token_usage_refs")),
+        *_refs_from_unknown(_observability_mapping(execution.get("token_usage")).get("source_refs")),
+        *_refs_from_unknown(_observability_mapping(execution.get("usage")).get("source_refs")),
+    ]
+    request_path = _text(execution.get("request_path"))
+    if request_path and (_duration_observability(execution) or _token_usage_observability(execution)):
+        refs.append(f"{request_path}#usage")
+    return _unique_texts(refs)
+
+
+def _cost_refs(*, execution: Mapping[str, Any]) -> list[str]:
+    refs = [
+        *_refs_from_unknown(execution.get("cost_ref")),
+        *_refs_from_unknown(execution.get("cost_refs")),
+        *_refs_from_unknown(_observability_mapping(execution.get("cost")).get("source_refs")),
+    ]
+    request_path = _text(execution.get("request_path"))
+    if request_path and _cost_observability(execution):
+        refs.append(f"{request_path}#cost")
+    return _unique_texts(refs)
 
 
 def _changed_paper_surfaces(

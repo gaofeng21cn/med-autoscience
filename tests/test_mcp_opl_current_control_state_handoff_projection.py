@@ -119,20 +119,28 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
             "duration": {"seconds": 91.25, "source": "provider_attempt"},
             "token_usage": {"total_tokens": 12345, "input_tokens": 6789, "output_tokens": 5556},
             "cost": {"usd": 0.42, "currency": "USD"},
+            "usage_refs": ["usage:provider-attempt:sat-terminal"],
+            "cost_refs": ["cost:provider-attempt:sat-terminal"],
             "paper_stage_log": {
                 "surface_kind": "mas_paper_facing_stage_log_summary",
                 "stage_name": "domain_owner/default-executor-dispatch",
                 "problem_summary": "The repair owner could not write because authority route evidence was blocked.",
                 "stage_goal": "Produce owner-authorized manuscript repair output or a typed blocker.",
+                "stage_work_done": [
+                    "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
+                ],
                 "paper_work_done": [
                     "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
                 ],
+                "changed_stage_surfaces": [],
                 "changed_paper_surfaces": [],
                 "outcome": "blocked_with_domain_typed_blocker",
                 "remaining_blockers": [
                     "authority_route_blocked",
                     "opl_current_control_state.handoff_required",
                 ],
+                "usage_refs": ["usage:provider-attempt:sat-terminal"],
+                "cost_refs": ["cost:provider-attempt:sat-terminal"],
                 "evidence_refs": [
                     "artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
                     "artifacts/publication_eval/latest.json",
@@ -162,7 +170,13 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
         "output_tokens": 5556,
     }
     assert terminal_log["cost"] == {"usd": 0.42, "currency": "USD"}
+    assert terminal_log["usage_refs"] == ["usage:provider-attempt:sat-terminal"]
+    assert terminal_log["cost_refs"] == ["cost:provider-attempt:sat-terminal"]
     assert terminal_log["missing_observability_fields"] == []
+    assert terminal_log["paper_stage_log"]["stage_work_done"] == [
+        "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
+    ]
+    assert terminal_log["paper_stage_log"]["changed_stage_surfaces"] == []
     assert terminal_log["paper_stage_log"]["outcome"] == "blocked_with_domain_typed_blocker"
     assert terminal_log["paper_stage_log"]["remaining_blockers"] == [
         "authority_route_blocked",
@@ -243,13 +257,26 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
                     "execution_status": "executed",
                     "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
                     "duration_seconds": 18.0,
-                    "usage": {"input_tokens": 2100, "output_tokens": 900, "total_tokens": 3000},
+                    "usage": {
+                        "input_tokens": 2100,
+                        "output_tokens": 900,
+                        "total_tokens": 3000,
+                        "source_refs": ["usage:quality-repair-owner"],
+                    },
                     "cost_usd": 0.17,
+                    "cost_refs": ["cost:quality-repair-owner"],
                     "paper_stage_log": {
                         "stage_name": "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck",
                         "current_owner": "write",
+                        "stage_work_done": [
+                            "Updated claim-evidence and review ledgers through the quality repair owner."
+                        ],
                         "paper_work_done": [
                             "Updated claim-evidence and review ledgers through the quality repair owner."
+                        ],
+                        "changed_stage_surfaces": [
+                            "paper/claim_evidence_map.json",
+                            "paper/evidence_ledger.json",
                         ],
                         "changed_paper_surfaces": [
                             "paper/claim_evidence_map.json",
@@ -281,10 +308,20 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
         "input_tokens": 2100,
         "output_tokens": 900,
         "total_tokens": 3000,
+        "source_refs": ["usage:quality-repair-owner"],
     }
     assert terminal_log["cost"] == {"usd": 0.17}
+    assert terminal_log["usage_refs"] == ["usage:quality-repair-owner"]
+    assert terminal_log["cost_refs"] == ["cost:quality-repair-owner"]
     assert terminal_log["missing_observability_fields"] == []
     assert terminal_log["paper_stage_log"]["outcome"] == "executed"
+    assert terminal_log["paper_stage_log"]["stage_work_done"] == [
+        "Updated claim-evidence and review ledgers through the quality repair owner."
+    ]
+    assert terminal_log["paper_stage_log"]["changed_stage_surfaces"] == [
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+    ]
     assert terminal_log["paper_stage_log"]["changed_paper_surfaces"] == [
         "paper/claim_evidence_map.json",
         "paper/evidence_ledger.json",
@@ -400,14 +437,21 @@ def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
                 "duration": {"seconds": 91.25, "source": "provider_attempt"},
                 "token_usage": {"total_tokens": 12345, "input_tokens": 6789, "output_tokens": 5556},
                 "cost": {"usd": 0.42, "currency": "USD"},
+                "usage_refs": ["usage:provider-attempt:sat-terminal"],
+                "cost_refs": ["cost:provider-attempt:sat-terminal"],
                 "missing_observability_fields": [],
                 "paper_stage_log": {
                     "stage_name": "domain_owner/default-executor-dispatch",
+                    "stage_work_done": [
+                        "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
+                    ],
                     "paper_work_done": [
                         "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
                     ],
                     "outcome": "blocked_with_domain_typed_blocker",
                     "remaining_blockers": ["authority_route_blocked"],
+                    "usage_refs": ["usage:provider-attempt:sat-terminal"],
+                    "cost_refs": ["cost:provider-attempt:sat-terminal"],
                     "evidence_refs": ["artifacts/publication_eval/latest.json"],
                 },
                 "authority_boundary": {
@@ -428,6 +472,11 @@ def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
     assert terminal_log["duration"] == {"seconds": 91.25, "source": "provider_attempt"}
     assert terminal_log["token_usage"]["total_tokens"] == 12345
     assert terminal_log["cost"] == {"usd": 0.42, "currency": "USD"}
+    assert terminal_log["usage_refs"] == ["usage:provider-attempt:sat-terminal"]
+    assert terminal_log["cost_refs"] == ["cost:provider-attempt:sat-terminal"]
+    assert terminal_log["paper_stage_log"]["stage_work_done"] == [
+        "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
+    ]
     assert terminal_log["paper_stage_log"]["outcome"] == "blocked_with_domain_typed_blocker"
     assert terminal_log["paper_stage_log"]["remaining_blockers"] == ["authority_route_blocked"]
     assert "latest_terminal_stage_log: action `run_quality_repair_batch`" in markdown
