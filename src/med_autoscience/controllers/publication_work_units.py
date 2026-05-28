@@ -230,20 +230,6 @@ _PRIMARY_WORK_UNIT_RULES = (
         "Repair claim-evidence, story, figure, and results traceability blockers.",
     ),
     (
-        _STORY_BLOCKERS,
-        True,
-        "manuscript_story_repair",
-        "write",
-        "Repair the paper story around the current evidence and claim boundary.",
-    ),
-    (
-        _FIGURE_RESULTS_BLOCKERS,
-        True,
-        "figure_results_trace_repair",
-        "write",
-        "Repair figure and results traceability against the publication evidence surface.",
-    ),
-    (
         _MEDICAL_REPORTING_WRITE_BLOCKERS,
         False,
         "medical_prose_write_repair",
@@ -256,6 +242,20 @@ _PRIMARY_WORK_UNIT_RULES = (
         "treatment_gap_reporting_repair",
         "write",
         "Repair treatment-gap reporting so the clinical narrative is publication-ready.",
+    ),
+    (
+        _STORY_BLOCKERS,
+        True,
+        "manuscript_story_repair",
+        "write",
+        "Repair the paper story around the current evidence and claim boundary.",
+    ),
+    (
+        _FIGURE_RESULTS_BLOCKERS,
+        True,
+        "figure_results_trace_repair",
+        "write",
+        "Repair figure and results traceability against the publication evidence surface.",
     ),
 )
 _FINALIZATION_WORK_UNIT_RULES = (

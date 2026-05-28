@@ -13,6 +13,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出 `run_quality_repair_batch.json` latest slot 会被后续 work unit 覆盖。若 OPL task payload 指向 mutable latest，provider attempt 可能在 admission 后读取到另一个 stage packet，导致 write repair、AI reviewer recheck 或 gate replay 发生 currentness 串线。根因是 MAS 将 read-model latest slot 同时当作 execution packet。
 - 影响：这是 MAS->OPL handoff currentness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。修复后 DM003 仍必须通过 MAS owner/controller/runtime path 重新 materialize/export dispatch，并等待 OPL/default executor 对 immutable stage packet 产出 typed closeout。
 
+## 2026-05-28：structured medical reporting blocker 优先于泛化 story blocker
+
+- 决策：当 publication gate / medical publication surface 同时报告 `reviewer_first_concerns_unresolved` 和结构化医学写作 blocker 时，`phenotype_derivation_reporting_incomplete`、`baseline_characteristics_reporting_incomplete`、`data_quality_reporting_incomplete`、`manuscript_voice_reporting_incomplete` 与 `treatment_gap_reporting_incomplete` 必须优先路由到 `medical_prose_write_repair` / `treatment_gap_reporting_repair`。泛化 `manuscript_story_repair` 只能处理真正的 story contract / story evidence blocker，不得吞掉更具体的医学 reporting 缺口。
+- 决策：`treatment_gap_reporting_repair` 是 manuscript story-surface write work unit，完成证据必须包含 `paper/draft.md` 或 `paper/build/review_manuscript.md` 的 canonical story-surface delta；ledger-only、receipt-only 或 display-only delta 不能关闭 treatment-gap reporting repair。writer handoff 的 prompt contract 必须携带 phenotype derivation、recorded treatment-gap terminology、BP/data quality、baseline table、manuscript voice 与 forbidden runtime terms 的结构化 checklist。
+- 理由：DM003 暴露出 gate 已正确指出 phenotype derivation、treatment gap、baseline table、data quality 和 prose voice 缺口，但 work-unit selection 先匹配 `reviewer_first_concerns_unresolved`，把任务派给泛化 `manuscript_story_repair`，后续 writer 只做浅层语义/风格修补，无法关闭高质量医学论文的结构化要求。
+- 影响：这是 MAS quality-route / writer-handoff contract 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。DM003 仍必须通过 MAS owner/controller/runtime path 重新 materialize、dispatch、由 OPL writer attempt 产出 typed closeout，并再走 AI reviewer 与 publication gate。
+
 ## 2026-05-28：当前 AI reviewer 写作 route-back 优先于 package freshness follow-through
 
 - 决策：`domain_action_request_materializer` 在消费 AI reviewer record-production work unit 时，若当前可验证 reviewer record 的 route-back 明确指向 `write`，必须优先 materialize 为 `write/run_quality_repair_batch` 和 story-surface write work unit。该 route-back 代表当前质量 owner 对 canonical manuscript 的未关闭要求，优先级高于已经存在的 story-surface delta、stale package freshness 或 gate/package follow-through。

@@ -89,9 +89,13 @@ def test_current_delivery_reporting_checklist_blockers_route_to_write_repair() -
             "status": "blocked",
             "blockers": [
                 "medical_publication_surface_blocked",
+                "reviewer_first_concerns_unresolved",
                 "submission_hardening_incomplete",
             ],
-            "medical_publication_surface_named_blockers": ["submission_hardening_incomplete"],
+            "medical_publication_surface_named_blockers": [
+                "reviewer_first_concerns_unresolved",
+                "submission_hardening_incomplete",
+            ],
             "study_delivery_status": "current",
             "submission_minimal_authority_status": "current",
             "submission_minimal_evaluated_source_signature": "source-signature",
@@ -124,6 +128,8 @@ def test_current_delivery_reporting_checklist_blockers_route_to_write_repair() -
 
     work_unit_ids = [unit["unit_id"] for unit in result["blocking_work_units"]]
     assert result["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
+    assert work_unit_ids[0] == "medical_prose_write_repair"
+    assert "manuscript_story_repair" not in work_unit_ids[:1]
     assert "treatment_gap_reporting_repair" in work_unit_ids
     assert "submission_minimal_refresh" not in work_unit_ids
     assert "manuscript_voice_reporting_incomplete" in result["blockers"]

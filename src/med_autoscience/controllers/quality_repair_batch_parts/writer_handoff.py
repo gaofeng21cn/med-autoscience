@@ -37,6 +37,48 @@ ALLOWED_WRITE_SURFACES = [
     "paper/review/**",
 ]
 REQUEST_PACKET_REF = "artifacts/supervision/requests/quality_repair_batch/latest.json"
+STRUCTURED_REPORTING_CHECKLIST = [
+    "phenotype_derivation_reporting_incomplete",
+    "treatment_gap_reporting_incomplete",
+    "baseline_characteristics_reporting_incomplete",
+    "data_quality_reporting_incomplete",
+    "manuscript_voice_reporting_incomplete",
+]
+MEDICAL_JOURNAL_QUALITY_FLOOR = {
+    "phenotype_derivation": (
+        "Explain whether assignment is deterministic rules or clustering; name domains, thresholds, "
+        "six-class rationale, and how a new patient is assigned."
+    ),
+    "treatment_gap": (
+        "Use recorded medication-coverage or recorded treatment-review gap language, with explicit "
+        "numerators, eligible denominators, medication data source limits, and non-causal guardrails."
+    ),
+    "data_quality": (
+        "Add BP semantic-field and variable-quality assessment with missingness, plausibility filters, "
+        "and claim-impact downgrades."
+    ),
+    "baseline_table": (
+        "Render a true phenotype-level baseline characteristics table and keep the cohort/QC table "
+        "separate from Table 1 semantics when needed."
+    ),
+    "manuscript_voice": (
+        "Remove runtime/meta-review language and avoid repetitive defensive boundary statements outside "
+        "Methods and Limitations."
+    ),
+}
+FORBIDDEN_MANUSCRIPT_TERMS = [
+    "MAS",
+    "AI reviewer",
+    "verified outputs",
+    "accepted records",
+    "source gaps",
+    "submission readiness",
+    "repair note",
+    "manuscript repair",
+    "quality repair",
+    "publication gate",
+    "controller",
+]
 
 
 def should_emit_writer_handoff(blocked_repair_reason: str | None) -> bool:
@@ -64,6 +106,10 @@ def build_writer_worker_handoff(
         blocked_repair_reason=blocked_repair_reason,
         authority_route_context=authority_route_context,
     )
+    next_work_unit = _writer_next_work_unit(
+        authority_route_context=authority_route_context,
+        owner_route=owner_route,
+    )
     dispatch_path = (
         profile.studies_root
         / study_id
@@ -89,6 +135,10 @@ def build_writer_worker_handoff(
         "do_not_repeat": True,
         "repeat_suppression_key": owner_route["work_unit_fingerprint"],
         "request_packet_ref": REQUEST_PACKET_REF,
+        **({"next_work_unit": next_work_unit} if next_work_unit else {}),
+        "structured_reporting_checklist": list(STRUCTURED_REPORTING_CHECKLIST),
+        "medical_journal_quality_floor": dict(MEDICAL_JOURNAL_QUALITY_FLOOR),
+        "forbidden_manuscript_terms": list(FORBIDDEN_MANUSCRIPT_TERMS),
         "source_eval_ref": source_eval_artifact_path,
         "source_summary_ref": source_summary_artifact_path,
         "repair_execution_evidence_ref": str(repair_execution_evidence_path),
@@ -361,6 +411,31 @@ def _controller_work_unit_id(
         or _non_empty_text(source_refs.get("work_unit_id"))
         or _non_empty_text(route.get("work_unit_id"))
     )
+
+
+def _writer_next_work_unit(
+    *,
+    authority_route_context: Mapping[str, Any] | None,
+    owner_route: Mapping[str, Any],
+) -> dict[str, str] | None:
+    controller_context = (
+        _mapping(authority_route_context.get("controller_route_context"))
+        if isinstance(authority_route_context, Mapping)
+        else {}
+    )
+    work_unit_id = _non_empty_text(controller_context.get("work_unit_id")) or _non_empty_text(
+        _mapping(owner_route.get("source_refs")).get("work_unit_id")
+    )
+    if work_unit_id is None:
+        return None
+    payload = {"unit_id": work_unit_id}
+    lane = _non_empty_text(controller_context.get("lane")) or "write"
+    if lane:
+        payload["lane"] = lane
+    summary = _non_empty_text(controller_context.get("summary"))
+    if summary is not None:
+        payload["summary"] = summary
+    return payload
 
 
 def _utc_now() -> str:

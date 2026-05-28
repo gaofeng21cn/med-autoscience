@@ -91,12 +91,29 @@ DM003 then exposed a deeper currentness bug: `run_quality_repair_batch` used the
 
 This is still an owner-path guard, not a readiness verdict. A preserved current manuscript must return to AI reviewer / publication gate for quality authority.
 
+## 2026-05-28 Structured Reporting Route Priority Landing
+
+DM003 later exposed that the gate could identify the right medical-journal blockers while the work-unit selector still chose a generic story repair. When `reviewer_first_concerns_unresolved` appeared together with phenotype derivation, treatment-gap, baseline-characteristics, data-quality, or manuscript-voice blockers, the first selected work unit could become `manuscript_story_repair`, producing shallow prose changes instead of closing reproducibility and reporting gaps.
+
+The publication work-unit selector now routes these structured medical reporting blockers to `medical_prose_write_repair` and keeps `treatment_gap_reporting_repair` in the blocking work-unit set. `treatment_gap_reporting_repair` is also registered as a story-surface write unit, so it cannot close on claim/evidence ledger updates alone. The writer handoff prompt contract now carries an explicit quality floor for:
+
+- phenotype derivation method, clinical domains, thresholds, class-count rationale, and new-patient reproducibility;
+- recorded medication-coverage / recorded treatment-review gap terminology with numerator, denominator, medication-source, and non-causal guardrails;
+- BP semantic-field and broader data-quality assessment;
+- true phenotype-level baseline characteristics table expectations;
+- manuscript voice cleanup and forbidden runtime/meta-review language.
+
+This route-priority repair does not authorize DM003 quality readiness. It only prevents MAS from converting specific medical-journal blockers into a generic prose-polish task before OPL writer execution.
+
 ## Regression Receipt
 
 - `tests/test_cli_cases/owner_route_handoff_command.py::test_domain_handler_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
 - `tests/test_agent_lab_medical_manuscript_quality.py::test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets`
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_updates_canonical_story_surface`
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_preserves_current_ai_reviewer_bound_story_surface`
+- `tests/test_publication_work_units_cases/delivery_specificity_cases.py::test_current_delivery_reporting_checklist_blockers_route_to_write_repair`
+- `tests/test_paper_repair_execution_evidence_cases/story_surface_delta_cases.py::test_treatment_gap_reporting_repair_requires_story_surface_delta`
+- `tests/test_domain_owner_action_dispatch_cases/quality_repair_writer_handoff_contract.py::test_quality_repair_writer_handoff_carries_structured_reporting_checklist`
 - `tests/test_publication_gate_cases/supervisor_cases.py::test_build_gate_report_blocks_forbidden_manuscript_terminology`
 - `tests/test_paper_repair_executor.py::test_paper_repair_executor_executes_text_repair_on_canonical_sources`
 - `tests/test_medical_reporting_contract.py::test_resolve_medical_reporting_contract_for_primary_care_gap_manuscript`

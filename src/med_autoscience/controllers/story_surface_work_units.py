@@ -12,6 +12,7 @@ STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS = frozenset(
         "dm002_same_line_methods_display_package_repair",
         "manuscript_story_repair",
         "medical_prose_write_repair",
+        "treatment_gap_reporting_repair",
     }
 )
 CLAIM_EVIDENCE_ALIGNMENT_WRITE_WORK_UNIT_IDS = frozenset(
