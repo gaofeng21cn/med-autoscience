@@ -8,6 +8,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     OPL_RUNTIME_OWNER_ROUTE_REASON,
     OPL_STAGE_ATTEMPT_ADMISSION_REASON,
     OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON,
+    PAYLOAD_REASON_CONSUMED_AI_REVIEWER_PRODUCTION_HANDOFF,
     PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION,
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
     PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER,
@@ -43,6 +44,11 @@ def payload_reason_for_superseded_dispatch(
         and consumed_ai_reviewer_routeback_observed(study_scan)
     ):
         return PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION
+    if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and consumed_ai_reviewer_production_handoff_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_CONSUMED_AI_REVIEWER_PRODUCTION_HANDOFF
     if (
         action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
         and current_ai_reviewer_stage_attempt_admission_observed(study_scan)
@@ -144,6 +150,20 @@ def consumed_ai_reviewer_routeback_observed(study_scan: Mapping[str, Any]) -> bo
                 owner_route=owner_route,
             )
         )
+    )
+
+
+def consumed_ai_reviewer_production_handoff_observed(study_scan: Mapping[str, Any]) -> bool:
+    domain_transition = mapping(study_scan.get("domain_transition"))
+    completion = mapping(domain_transition.get("completion_receipt_consumption"))
+    return (
+        text(completion.get("status")) == "consumed"
+        and text(completion.get("receipt_kind")) == "ai_reviewer_publication_eval"
+        and text(domain_transition.get("decision_type")) == "ai_reviewer_re_eval"
+        and text(domain_transition.get("route_target")) == "review"
+        and text(domain_transition.get("owner")) == "ai_reviewer"
+        and text(domain_transition.get("controller_action")) == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and text(completion.get("next_action")) == "honor_ai_reviewer_publication_eval_authority"
     )
 
 

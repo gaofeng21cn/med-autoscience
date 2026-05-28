@@ -7,6 +7,9 @@ SURFACE_KIND = "mas_domain_dispatch_evidence_payload_export"
 PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION = (
     "stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_routeback"
 )
+PAYLOAD_REASON_CONSUMED_AI_REVIEWER_PRODUCTION_HANDOFF = (
+    "stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_production_handoff"
+)
 PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_STAGE_ADMISSION = (
     "stale_return_to_ai_reviewer_dispatch_superseded_by_current_ai_reviewer_stage_admission"
 )
