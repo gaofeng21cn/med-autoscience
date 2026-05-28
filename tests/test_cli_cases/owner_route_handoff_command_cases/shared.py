@@ -191,6 +191,17 @@ def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
                     "request_digest": request_digest,
                     "manuscript_ref": manuscript_ref,
                     "manuscript_digest": manuscript_digest,
+                    "route_back_required": True,
+                    "route_target": "write",
+                },
+                "current_manuscript": {
+                    "status": "current",
+                    "manuscript_ref": manuscript_ref,
+                    "manuscript_digest": manuscript_digest,
+                },
+                "source_eval": {
+                    "status": "current",
+                    "eval_id": "publication-eval::001-risk::quest-001::2026-05-10T00:00:00+00:00",
                 },
                 "current_package_freshness": {
                     "status": "fresh",
@@ -228,6 +239,7 @@ def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
             },
             "route_back_decision": {
                 "recommended_action": "route_back_same_line",
+                "route_target": "write",
                 "rationale": "Repair before acceptance.",
             },
         },
