@@ -466,7 +466,7 @@ def _consumed_ai_reviewer_route_back_actions(status: Mapping[str, Any]) -> list[
         return None
     if _text(transition.get("controller_action")) != "request_opl_stage_attempt":
         return None
-    return domain_transition_actions.actions(status)
+    return domain_transition_actions.actions(status, publication_eval_payload=publication_eval_payload)
 
 
 def _explicit_ai_reviewer_request_pending(ai_reviewer_assessment: Mapping[str, Any]) -> bool:

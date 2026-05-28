@@ -11,7 +11,11 @@ from med_autoscience.controllers.story_surface_work_units import (
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 
 
-def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
+def actions(
+    status: Mapping[str, Any],
+    *,
+    publication_eval_payload: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]] | None:
     if domain_transition_guard.blocks_auto_redrive(status):
         return []
     action_type = domain_transition_guard.supported_action_type(status)
@@ -87,6 +91,8 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         action["executable_work_unit"] = work_unit_id
         action["route_target"] = "write"
         action["domain_transition_decision_type"] = decision_type
+        if source_eval_id := _source_eval_id(status=status, publication_eval_payload=publication_eval_payload):
+            action["source_eval_id"] = source_eval_id
         if decision_type and work_unit_id:
             action["work_unit_fingerprint"] = f"domain-transition::{decision_type}::{work_unit_id}"
         if route_target and route_target != "write":
@@ -203,6 +209,15 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _source_eval_id(
+    *,
+    status: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any] | None,
+) -> str | None:
+    publication_eval = _mapping(publication_eval_payload) or _mapping(status.get("publication_eval"))
+    return _text(publication_eval.get("eval_id")) or _text(publication_eval.get("source_eval_id"))
 
 
 __all__ = ["actions"]

@@ -307,6 +307,166 @@ def test_ai_reviewer_record_production_work_unit_consumes_current_record_before_
     assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
 
 
+def test_current_input_ai_reviewer_record_consumption_work_unit_materializes_to_story_surface_writer(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent DPCC manuscript requires journal prose repair.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    eval_id = "publication-eval::003::quest::2026-05-28T21:30:23+00:00::ai-reviewer-current-inputs"
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260528T213023Z_publication_eval_record.json"
+    )
+    record_payload = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-05-28T21:30:23+00:00",
+    )
+    record_payload["recommended_actions"][0].update(
+        {
+            "work_unit_fingerprint": (
+                "dm003-current-input-ai-reviewer-record::write-review-consumption-pending::2026-05-28T21:30:23Z"
+            ),
+            "next_work_unit": {
+                "unit_id": "consume_current_input_ai_reviewer_record",
+                "lane": "review",
+                "summary": "Consume this record-only AI reviewer response before routing write reconciliation.",
+            },
+            "blocking_work_units": [
+                {
+                    "unit_id": "consume_current_input_ai_reviewer_record",
+                    "lane": "review",
+                    "summary": "Consume the current-input record-only AI reviewer response.",
+                },
+                {
+                    "unit_id": "current_manuscript_reporting_reconciliation",
+                    "lane": "write",
+                    "summary": "Reconcile manuscript reporting with current evidence.",
+                },
+            ],
+        }
+    )
+    _write_json(record_path, record_payload)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {"state": "assessment_written", "blocked_reason": None},
+            "publication_eval_record_ref": str(record_path.resolve()),
+            "ai_reviewer_record": record_payload,
+        },
+    )
+    work_unit_id = "consume_current_input_ai_reviewer_record"
+    work_unit_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="write",
+        owner_reason="quest_waiting_opl_runtime_owner_route",
+        allowed_actions=["run_quality_repair_batch"],
+    )
+    route.update(
+        {
+            "schema_version": 2,
+            "truth_epoch": "truth-event-dm003-current-input-reviewer-record",
+            "route_epoch": "truth-event-dm003-current-input-reviewer-record",
+            "source_fingerprint": "truth-snapshot::dm003-current-input-reviewer-record",
+            "runtime_health_epoch": "runtime-health-event-dm003-current-input-reviewer-record",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "idempotency_key": "owner-route::dm003::consume-current-input-ai-reviewer-record",
+            "source_refs": {
+                "study_truth_epoch": "truth-event-dm003-current-input-reviewer-record",
+                "runtime_health_epoch": "runtime-health-event-dm003-current-input-reviewer-record",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "truth_epoch": "truth-event-dm003-current-input-reviewer-record",
+                    "runtime_health_epoch": "runtime-health-event-dm003-current-input-reviewer-record",
+                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                },
+            },
+        }
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "run_quality_repair_batch",
+                    "owner": "write",
+                    "request_owner": "write",
+                    "reason": "quest_waiting_opl_runtime_owner_route",
+                    "next_work_unit": work_unit_id,
+                    "controller_work_unit_id": work_unit_id,
+                    "executable_work_unit": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "required_output_surface": (
+                        "canonical manuscript story-surface delta or "
+                        "typed blocker:manuscript_story_surface_delta_missing"
+                    ),
+                    "owner_route": route,
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    request = result["request_tasks"][0]
+    dispatch = result["default_executor_dispatches"][0]
+    source_refs = dispatch["owner_route"]["source_refs"]
+    assert request["action_type"] == "run_quality_repair_batch"
+    assert request["request_owner"] == "write"
+    assert request["reason"] == "manuscript_story_surface_delta_missing"
+    assert request["source_action"]["next_work_unit"] == "medical_prose_write_repair"
+    assert dispatch["action_type"] == "run_quality_repair_batch"
+    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["owner_route_attempt_envelope"]["work_unit_id"] == work_unit_id
+    assert dispatch["source_action"]["reviewer_record_ref"] == str(record_path.resolve())
+    assert dispatch["source_action"]["source_eval_id"] == eval_id
+    assert dispatch["source_action"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"
+    assert source_refs["work_unit_id"] == work_unit_id
+    assert source_refs["source_eval_id"] == eval_id
+    assert source_refs["materialized_work_unit_id"] == "medical_prose_write_repair"
+    assert source_refs["materialized_from_action_type"] == "run_quality_repair_batch"
+    assert source_refs["bridged_from_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
+
+
 def test_ai_reviewer_record_stale_after_current_inputs_keeps_ai_reviewer_production_route(
     monkeypatch,
     tmp_path: Path,

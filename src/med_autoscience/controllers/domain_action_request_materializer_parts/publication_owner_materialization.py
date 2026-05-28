@@ -30,6 +30,13 @@ AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS = frozenset(
         CURRENT_MANUSCRIPT_PUBLICATION_SURFACE_RECHECK_WORK_UNIT,
     }
 )
+AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS = frozenset(
+    {
+        "consume_current_ai_reviewer_record",
+        "consume_current_ai_reviewer_record_and_replay_gate",
+        "consume_current_input_ai_reviewer_record",
+    }
+)
 AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS = frozenset(
     {
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
@@ -38,7 +45,9 @@ AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS = frozenset(
     }
 )
 AI_REVIEWER_CURRENT_RECORD_CONSUMPTION_WORK_UNIT_IDS = (
-    AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS | AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+    AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
+    | AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
+    | AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
 )
 STORY_SURFACE_BRIDGE_AUTHORITY = "domain_action_request_materializer_story_surface_bridge"
 PUBLICATION_OWNER_BRIDGE_AUTHORITY = "domain_action_request_materializer_publication_owner_bridge"
@@ -136,6 +145,7 @@ def _ai_reviewer_currentness_action(
         owner_reason=blocked_reason,
         allowed_actions=["return_to_ai_reviewer_workflow"],
         work_unit_id=_ai_reviewer_record_production_work_unit_id(blocked_reason),
+        source_eval_id=None,
     )
     return _with_owner_route(
         {
@@ -170,12 +180,14 @@ def _story_surface_delta_action(
     record_ref_path: Path,
 ) -> dict[str, Any]:
     work_unit_id = _story_surface_work_unit_id(action=action, record=record)
+    record_eval_id = _text(record.get("eval_id"))
     rewritten_route = _rewrite_owner_route(
         owner_route=owner_route,
         next_owner="write",
         owner_reason="manuscript_story_surface_delta_missing",
         allowed_actions=["run_quality_repair_batch"],
         work_unit_id=work_unit_id,
+        source_eval_id=record_eval_id,
     )
     return _with_owner_route(
         {
@@ -192,6 +204,7 @@ def _story_surface_delta_action(
             "next_work_unit": work_unit_id,
             "materialization_decision": "story_surface_delta_or_typed_blocker_required",
             "reviewer_record_ref": str(record_ref_path.resolve()),
+            "source_eval_id": record_eval_id,
         },
         rewritten_route,
     )
@@ -259,6 +272,7 @@ def _gate_clearing_action(
             owner_reason="current_package_freshness_required",
             allowed_actions=["run_gate_clearing_batch"],
             work_unit_id="current_package_freshness_required",
+            source_eval_id=source_eval_id or record_eval_id,
         )
         materialization_decision = "current_package_freshness_required"
     else:
@@ -268,6 +282,7 @@ def _gate_clearing_action(
             owner_reason="publication_owner_materialization_required",
             allowed_actions=["run_gate_clearing_batch"],
             work_unit_id="publication_gate_replay",
+            source_eval_id=source_eval_id or record_eval_id,
         )
         materialization_decision = "publication_gate_replay"
     return _with_owner_route(
@@ -296,6 +311,9 @@ def _current_ai_reviewer_materialization_work_unit(action: Mapping[str, Any]) ->
         _text(action.get("controller_work_unit_id")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
         or _text(action.get("next_work_unit")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
         or _text(source_refs.get("work_unit_id")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
+        or _text(action.get("controller_work_unit_id")) in AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
+        or _text(action.get("next_work_unit")) in AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
+        or _text(source_refs.get("work_unit_id")) in AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
     )
 
 
@@ -378,6 +396,7 @@ def _rewrite_owner_route(
     owner_reason: str,
     allowed_actions: list[str],
     work_unit_id: str,
+    source_eval_id: str | None,
 ) -> dict[str, Any]:
     route = owner_route_part.ensure_owner_route_v2(owner_route)
     source_refs = dict(_mapping(route.get("source_refs")))
@@ -391,11 +410,9 @@ def _rewrite_owner_route(
         work_unit_id=work_unit_id,
     ):
         source_refs["materialized_work_unit_id"] = work_unit_id
-        if original_owner_reason in {
-            *AI_REVIEWER_RECORD_OWNER_REASONS,
-            *AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS,
-        }:
-            source_refs["materialized_from_action_type"] = "return_to_ai_reviewer_workflow"
+        source_refs["materialized_from_action_type"] = _materialized_from_action_type(
+            original_owner_reason=original_owner_reason,
+        )
         source_refs["bridged_from_owner_reason"] = original_owner_reason
         source_refs["bridge_authority"] = STORY_SURFACE_BRIDGE_AUTHORITY
         if original_idempotency_key is not None:
@@ -415,6 +432,8 @@ def _rewrite_owner_route(
             source_refs["bridged_from_idempotency_key"] = original_idempotency_key
     else:
         source_refs["work_unit_id"] = work_unit_id
+    if source_eval_id is not None:
+        source_refs["source_eval_id"] = source_eval_id
     source_refs["blocked_reason"] = owner_reason
     route.update(
         {
