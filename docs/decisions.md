@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：AI reviewer default-executor receipt 以 publication-eval 输出关闭同一 reviewer dispatch
+
+- 决策：`default_executor_execution_receipt_consumption` 对 `return_to_ai_reviewer_workflow` 不能套用 write repair 的 story-surface delta 判据；当同一 owner route/action 的执行记录为 `executed`，`owner_result` 明确写到 `artifacts/publication_eval/latest.json`、携带非空 `eval_id`、包含 `reviewer_operating_system`，且 controller refresh 已 materialize 后，该 AI reviewer dispatch 必须视为已消费，不得继续被 `domain-handler export` 作为 pending `domain_owner/default-executor-dispatch` 暴露。
+- 理由：DM002 在 MAS owner path 已产出 `20260528T015915Z_publication_eval_record.json` 并同步 `publication_eval/latest.json` 后，`default_executor_execution/latest.json` 显示 `return_to_ai_reviewer_workflow` 已 `executed`，但 export 仍把同一 AI reviewer dispatch 重新暴露给 OPL。根因是 receipt consumption 只把 writer 的 story-surface delta 视为可消费输出，忽略了 AI reviewer 的正式输出是 publication-eval authority surface。
+- 影响：这是 MAS receipt consumption / pending-task currentness 修复。它只关闭已由 AI reviewer owner 成功写出的同一 reviewer dispatch，不授权 publication ready、submission ready、paper package mutation，也不消费后续 write repair work unit；OPL 仍只负责 provider attempt/queue/retry/dead-letter，后续论文推进继续通过 MAS owner/controller/runtime path。
+
 ## 2026-05-28：default-executor dispatch supersession 以物化时间优先判鲜
 
 - 决策：`domain-handler export` 在同一 study / work unit 的多个 `default_executor_dispatches/*.json` 之间做 `blocked_actions` supersession 时，必须优先比较 dispatch 的 `generated_at` 物化时间；`runtime_health_epoch` 只能作为同一物化时间或缺失物化时间时的次级 tie-breaker。较早物化的 dispatch 不能仅凭更晚的 runtime health audit epoch 阻断较晚物化的 owner handoff。

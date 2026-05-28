@@ -721,6 +721,8 @@ def _default_executor_owner_result_consumable(
 ) -> bool:
     if _default_executor_dispatch_zero_execution_blocker(owner_result):
         return False
+    if action_type == "return_to_ai_reviewer_workflow":
+        return _ai_reviewer_workflow_owner_result_satisfies_route_output(owner_result=owner_result)
     if action_type == "run_quality_repair_batch":
         return _quality_repair_batch_owner_result_satisfies_route_output(
             owner_result=owner_result,
@@ -733,6 +735,22 @@ def _default_executor_owner_result_consumable(
     if _text(repair_evidence.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
         return True
     return bool(_mapping_list(repair_evidence.get("changed_artifact_refs")))
+
+
+def _ai_reviewer_workflow_owner_result_satisfies_route_output(*, owner_result: Mapping[str, Any]) -> bool:
+    eval_id = _text(owner_result.get("eval_id"))
+    if not eval_id:
+        return False
+    artifact_path = _text(owner_result.get("artifact_path"))
+    if not _is_publication_eval_latest_path(artifact_path):
+        return False
+    publication_eval_surface = _text(owner_result.get("publication_eval_surface"))
+    if publication_eval_surface and publication_eval_surface != "artifacts/publication_eval/latest.json":
+        return False
+    if not _mapping(owner_result.get("reviewer_operating_system")):
+        return False
+    refresh = _mapping(owner_result.get("controller_decision_refresh"))
+    return _text(refresh.get("refresh_status")) == "materialized"
 
 
 def _default_executor_dispatch_zero_execution_blocker(owner_result: Mapping[str, Any]) -> bool:
@@ -841,6 +859,13 @@ def _is_story_surface_path(path_text: str) -> bool:
         or len(parts) >= 3
         and parts[-3:] == ("paper", "build", "review_manuscript.md")
     )
+
+
+def _is_publication_eval_latest_path(path_text: str) -> bool:
+    if not path_text:
+        return False
+    path = Path(path_text).expanduser()
+    return path.parts[-3:] == ("artifacts", "publication_eval", "latest.json")
 
 
 def _mapping_list(value: object) -> list[Mapping[str, Any]]:
