@@ -36,3 +36,9 @@ MAS 继续持有 source truth、source readiness verdict、medical grounding、s
 OpenAI Life Science Research 插件的可学习内容已按 clean-room pattern 吸收到 MAS `life_science_source_discovery_pack` 和 refs-only source adapter output。它提供实体规范化、多 evidence lane 路由、公共数据库 / 文献 / 数据集 discovery、cross-source conflict 和 evidence gap synthesis 的 source helper 纪律；不成为 MAS runtime provider、默认 skill source、source readiness authority、publication authority 或质量 verdict owner。
 
 进入 MAS 的输出只能是 source refs、query fingerprint、currentness proof、limitation/caveat refs、typed blocker、source repair route 或 reviewer input refs。完整 intake 见 [Life Science Research Learning Intake](../references/mainline/life_science_research_learning_intake.md)。
+
+## AutoSci / OmegaWiki Research Lifecycle Intake
+
+`skyllwt/AutoSci` 的可学习内容已按 clean-room pattern 吸收到 MAS `autosci_learning_projection` 和 stage quality pack extension contracts。MAS 采用的是 typed knowledge graph、proposal/action source discovery split、negative research memory、experiment deploy/collect/eval receipts、independent reviewer verdict mapping 和 source-DAG render QA 这些 contract 形状；不采用 AutoSci 的 Claude slash skills、remote GPU runner、prompt-only permission policy、partial authoritative ingest success 或通用 CS wiki taxonomy。
+
+进入 MAS 的输出只能是 source candidate refs、semantic/citation/provenance edge refs、dedup/currentness proof、memory writeback proposal/ref、experiment design/deploy/monitor/collect/eval refs、reviewer verdict refs、render QA refs、typed blocker 或 owner receipt。完整 intake 见 [AutoSci Learning Intake](../references/mainline/autosci_learning_intake.md)。

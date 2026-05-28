@@ -297,6 +297,8 @@ Semantic Scholar 现在按 `literature_provider_runtime` 的必需 provider adap
 
 OpenAI Life Science Research 插件已按同一 clean-room source boundary 吸收到 `life_science_source_discovery_pack`：可学习的是实体规范化、最小 evidence lane、公共数据库 / 文献 / 数据集 discovery、cross-source conflict 和 evidence gap synthesis。MAS 不新增外部 runtime provider、不把 50 个外部 skill 注入 skill catalog、不复制外部脚本；product-entry 只暴露 quality pack locator，source adapter output 只输出 refs、query fingerprint、currentness proof、caveat、rejection log、typed blocker 或 source repair route。完整 intake 与验收见 [Life Science Research Learning Intake](../references/mainline/life_science_research_learning_intake.md)。
 
+AutoSci / OmegaWiki 已按同一 contract-first 外部 intake 口径吸收到 `autosci_learning_projection` 与现有 quality packs：typed knowledge graph / semantic edge / citation edge / xref 约束进入 `life_science_source_discovery_pack`，proposal/action source discovery split 进入 source discovery floor，failed hypothesis / eliminated route anti-repetition 进入 `route_memory_pack`，idea-pilot-formal experiment deploy/monitor/collect/eval 进入 `statistical_analysis_pack`，independent reviewer verdict mapping 进入 `ai_native_expert_judgment_pack`，source DAG + figure manifest + render QA 进入 `paper_presentation_pack`。这些都是 descriptor / refs / typed blocker / owner receipt 输入；不引入 AutoSci runtime、Claude slash skill、SSH runner、prompt-only permission 或 AutoSci taxonomy。完整 intake 与验收见 [AutoSci Learning Intake](../references/mainline/autosci_learning_intake.md)。
+
 执行时按以下顺序给开发 Agent 分工：
 
 1. `skill_surface_migration`：`baseline`、`experiment`、`analysis-campaign`、`review` 已从 append-block 主说明升级为独立可读 skill surface。每个 skill 都指向 generated stage card、canonical route contract、stage knowledge obligations、quality pack refs、allowed MAS owner tools、forbidden actions 和 closeout packet。

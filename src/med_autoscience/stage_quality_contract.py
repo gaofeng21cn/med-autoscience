@@ -25,6 +25,11 @@ from med_autoscience.stage_quality_contract_parts.life_science_source_discovery 
     build_life_science_clean_room_absorption,
     build_life_science_source_discovery_pack,
 )
+from med_autoscience.stage_quality_contract_parts.autosci_research_lifecycle import (
+    AUTOSCI_RESEARCH_LIFECYCLE_PACKS,
+    build_autosci_clean_room_absorption,
+    build_autosci_pack_contracts,
+)
 from med_autoscience.stage_quality_contract_parts.maturity import (
     PACK_MATURITY_STATUS,
     STRONG_PROMOTION_EVIDENCE_KINDS,
@@ -336,6 +341,9 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
     if pack_id == LIFE_SCIENCE_SOURCE_DISCOVERY_PACK_ID:
         pack["clean_room_absorption"] = build_life_science_clean_room_absorption()
         pack["life_science_source_discovery_pack"] = build_life_science_source_discovery_pack()
+    if pack_id in AUTOSCI_RESEARCH_LIFECYCLE_PACKS:
+        pack["autosci_clean_room_absorption"] = build_autosci_clean_room_absorption()
+        pack["autosci_extension_contracts"] = build_autosci_pack_contracts(pack_id)
     return pack
 
 

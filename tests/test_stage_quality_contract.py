@@ -278,3 +278,112 @@ def test_journal_policy_and_citation_currentness_cannot_authorize_quality_withou
         "quality_verdict_authority",
         "mas_truth_write_authority",
     }
+
+
+def test_autosci_research_lifecycle_patterns_land_as_quality_pack_contracts() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+
+    expected = {
+        "ai_native_expert_judgment_pack": {
+            "independent_reviewer_verdict_mapping_contract": {
+                "learned_from": "autosci-review",
+                "fields": {
+                    "reviewer_record_ref",
+                    "separate_invocation_receipt_ref",
+                    "verdict",
+                    "source_ref_mapping",
+                    "artifact_ref_mapping",
+                    "evidence_ref_mapping",
+                },
+                "blocker": "independent_reviewer_verdict_mapping_blocker",
+            }
+        },
+        "life_science_source_discovery_pack": {
+            "proposal_action_source_discovery_contract": {
+                "learned_from": "autosci-discover-daily-arxiv",
+                "fields": {
+                    "candidate_record_ref",
+                    "dedup_basis_ref",
+                    "decision_artifact_ref",
+                    "source_adapter_rejection_log_ref",
+                },
+                "blocker": "source_discovery_proposal_action_blocker",
+            },
+            "typed_knowledge_graph_edge_contract": {
+                "learned_from": "autosci-runtime-schema",
+                "fields": {
+                    "entity_ref",
+                    "semantic_edge_ref",
+                    "edge_evidence_ref",
+                    "citation_ref_if_bibliographic",
+                    "reverse_ref_or_terminal_exception",
+                },
+                "blocker": "research_graph_ref_consistency_blocker",
+            },
+        },
+        "route_memory_pack": {
+            "negative_research_memory_contract": {
+                "learned_from": "autosci-ideate",
+                "fields": {
+                    "failed_or_rejected_item_ref",
+                    "failure_reason",
+                    "do_not_repeat_scope",
+                    "memory_write_router_receipt_ref",
+                },
+                "blocker": "negative_memory_or_duplicate_route_blocker",
+            }
+        },
+        "statistical_analysis_pack": {
+            "experiment_lifecycle_receipt_contract": {
+                "learned_from": "autosci-exp-design-run-eval",
+                "fields": {
+                    "idea_or_hypothesis_ref",
+                    "deploy_receipt_ref",
+                    "monitor_refs",
+                    "collect_receipt_ref",
+                    "evaluation_verdict_ref",
+                    "controller_next_route_ref",
+                },
+                "blocker": "experiment_lifecycle_receipt_blocker",
+            }
+        },
+        "paper_presentation_pack": {
+            "source_dag_render_qa_artifact_contract": {
+                "learned_from": "autosci-poster",
+                "fields": {
+                    "source_dag_ref",
+                    "figure_asset_manifest_ref",
+                    "selected_asset_refs",
+                    "render_output_ref",
+                    "overflow_or_visual_qa_ref",
+                    "artifact_authority_receipt_ref_or_typed_blocker",
+                },
+                "blocker": "presentation_render_qa_or_artifact_authority_blocker",
+            }
+        },
+    }
+
+    for pack_id, expected_contracts in expected.items():
+        pack = packs[pack_id]
+        assert pack["autosci_clean_room_absorption"] == {
+            "source_project": "AutoSci/OmegaWiki",
+            "source_repository": "https://github.com/skyllwt/AutoSci",
+            "observed_head": "d89cc72a884a2d091b6fac5719f30b4c64d2c6bd",
+            "absorbed_as": "mas_native_contract_pattern",
+            "vendor_dependency": False,
+            "runtime_dependency": False,
+            "default_skill_source": False,
+            "copy_external_runtime_or_slash_commands": False,
+            "publication_authority": False,
+            "artifact_authority": False,
+        }
+        contracts = {item["contract_id"]: item for item in pack["autosci_extension_contracts"]}
+        assert set(expected_contracts) == set(contracts)
+        for contract_id, expectation in expected_contracts.items():
+            item = contracts[contract_id]
+            assert item["learned_from"] == expectation["learned_from"]
+            assert expectation["fields"] <= set(item["required_fields"])
+            assert item["typed_blocker_if_missing"] == expectation["blocker"]
+            assert item["may_authorize_publication_readiness"] is False
+            assert item["may_authorize_quality_verdict"] is False

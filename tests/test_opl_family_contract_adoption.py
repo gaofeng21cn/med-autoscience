@@ -443,3 +443,57 @@ def test_mas_ars_learning_projection_declares_external_patterns_without_boundary
         "can_authorize_submission_readiness": False,
         "can_authorize_artifact_authority": False,
     }
+
+
+def test_mas_autosci_learning_projection_declares_contract_first_absorption() -> None:
+    contract = _contract()
+    projection = contract["autosci_learning_projection"]
+
+    assert projection["surface_kind"] == "mas_autosci_learning_projection"
+    assert projection["descriptor_surfaces"] == [
+        "product_entry_manifest.autosci_learning_projection",
+        "product_entry_manifest.family_stage_control_plane_descriptor.autosci_learning_projection",
+        "domain_handler_export.autosci_learning_projection",
+    ]
+    assert projection["source_repository"] == "https://github.com/skyllwt/AutoSci"
+    assert projection["observed_head"] == "d89cc72a884a2d091b6fac5719f30b4c64d2c6bd"
+    assert projection["intake_doc_ref"] == "docs/references/mainline/autosci_learning_intake.md"
+    assert projection["dependency_introduced"] is False
+    assert projection["absorbed_pattern_ids"] == [
+        "typed_research_knowledge_graph",
+        "proposal_action_source_discovery_split",
+        "negative_research_memory",
+        "experiment_deploy_collect_eval_lifecycle",
+        "independent_reviewer_verdict_mapping",
+        "source_dag_render_qa_artifact_projection",
+    ]
+    assert projection["maps_to_opl_shared_primitive"] == "family-research-lifecycle-metadata.v1"
+    assert projection["mas_role"] == (
+        "domain_projection_quality_pack_and_refs_only_contract_owner"
+    )
+    assert set(projection["target_quality_pack_contracts"]) == {
+        "ai_native_expert_judgment_pack.independent_reviewer_verdict_mapping_contract",
+        "life_science_source_discovery_pack.proposal_action_source_discovery_contract",
+        "life_science_source_discovery_pack.typed_knowledge_graph_edge_contract",
+        "route_memory_pack.negative_research_memory_contract",
+        "statistical_analysis_pack.experiment_lifecycle_receipt_contract",
+        "paper_presentation_pack.source_dag_render_qa_artifact_contract",
+    }
+    assert set(projection["forbidden_export"]) >= {
+        "external_runtime",
+        "slash_command_runner",
+        "prompt_only_permission_model",
+        "publication_verdict_body",
+        "artifact_body",
+    }
+    assert projection["authority_boundary"]["source_project_role"] == (
+        "external_pattern_source_only"
+    )
+    assert projection["authority_boundary"]["can_write_domain_truth"] is False
+    assert projection["authority_boundary"]["can_write_evidence_ledger"] is False
+    assert projection["authority_boundary"]["can_write_review_ledger"] is False
+    assert projection["authority_boundary"]["can_write_publication_eval"] is False
+    assert projection["authority_boundary"]["can_write_controller_decisions"] is False
+    assert projection["authority_boundary"]["can_authorize_source_readiness"] is False
+    assert projection["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert projection["authority_boundary"]["can_authorize_artifact_authority"] is False

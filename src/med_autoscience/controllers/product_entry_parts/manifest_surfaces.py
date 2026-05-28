@@ -33,6 +33,7 @@ from med_autoscience.controllers.opl_unique_control_plane_boundary_parts import 
 from med_autoscience.stage_skill_surface_projection import build_stage_skill_surface_projection
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_contract
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
+from med_autoscience.autosci_learning_projection import build_autosci_learning_projection
 
 
 def _build_product_positioning() -> dict[str, Any]:
@@ -253,6 +254,7 @@ def build_product_entry_manifest(
         opl_family_persistence_lifecycle_owner_route_adoption["payload"]["family_stage_control_plane_descriptor"]
     )
     ars_learning_projection = build_ars_learning_projection()
+    autosci_learning_projection = build_autosci_learning_projection()
     stage_quality_pack_contract = build_stage_quality_pack_contract()
     domain_memory_descriptor = build_domain_memory_descriptor()
     persistence_policy = _build_family_persistence_policy_surface(
@@ -457,6 +459,7 @@ def build_product_entry_manifest(
             "stage_quality_pack_contract": stage_quality_pack_contract,
             "stage_skill_surface_projection": build_stage_skill_surface_projection(),
             "ars_learning_projection": ars_learning_projection,
+            "autosci_learning_projection": autosci_learning_projection,
             "real_paper_autonomy_guarded_apply_proof": real_paper_autonomy_guarded_apply_proof,
             "provider_guarded_soak_read_model": provider_guarded_soak_read_model,
             "provider_residency_read_model": provider_residency_read_model,

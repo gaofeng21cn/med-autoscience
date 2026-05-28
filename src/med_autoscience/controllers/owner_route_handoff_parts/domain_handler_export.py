@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
+from med_autoscience.autosci_learning_projection import build_autosci_learning_projection
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter
@@ -129,6 +130,7 @@ def export_family_domain_handler(
         ),
         "functional_consumer_boundary": functional_closure["functional_consumer_boundary"],
         "ars_learning_projection": build_ars_learning_projection(),
+        "autosci_learning_projection": build_autosci_learning_projection(),
         "family_transition_spec_descriptor": (
             family_transition_spec.build_family_transition_spec_descriptor()
         ),

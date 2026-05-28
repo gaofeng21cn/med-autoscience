@@ -9,6 +9,7 @@ from med_autoscience import stage_knowledge_contract
 from med_autoscience import stage_quality_contract
 from med_autoscience import stage_skill_surface_projection
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
+from med_autoscience.autosci_learning_projection import build_autosci_learning_projection
 from med_autoscience.stage_route_contract import STAGE_ROUTE_CONTRACT_REF, load_stage_route_contract_payload
 from med_autoscience.stage_surface_contract import build_stage_surface_contract
 
@@ -209,6 +210,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     stage_surface = build_stage_surface_contract()
     stage_deliverable_index = _stage_deliverable_index_projection(stage_surface)
     ars_learning_projection = build_ars_learning_projection()
+    autosci_learning_projection = build_autosci_learning_projection()
     return {
         "surface_kind": FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND,
         "schema_version": 1,
@@ -229,6 +231,9 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "quality_pack_contract_source": STAGE_QUALITY_PACK_CONTRACT_REF,
             "life_science_source_discovery_pack_source": STAGE_QUALITY_PACK_CONTRACT_REF,
+            "autosci_learning_projection_source": (
+                "med_autoscience.autosci_learning_projection.build_autosci_learning_projection"
+            ),
             "stage_skill_surface_projection_source": STAGE_SKILL_SURFACE_PROJECTION_REF,
             "stage_deliverable_index_contract_source": STAGE_DELIVERABLE_INDEX_CONTRACT_REF,
             "packet_contract_surfaces": packet_surfaces,
@@ -279,6 +284,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             stage_skill_surface_projection.build_stage_skill_surface_projection()
         ),
         "ars_learning_projection": ars_learning_projection,
+        "autosci_learning_projection": autosci_learning_projection,
         "quality_and_publication_surfaces": {
             "evidence_ledger": "paper/evidence/evidence_ledger.json",
             "review_ledger": "paper/review/review_ledger.json",
@@ -287,6 +293,9 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "publication_gate": "MAS publication gate",
             "ars_claim_support_audit": (
                 "/product_entry_manifest/family_stage_control_plane_descriptor/ars_learning_projection"
+            ),
+            "autosci_research_lifecycle_contract": (
+                "/product_entry_manifest/family_stage_control_plane_descriptor/autosci_learning_projection"
             ),
         },
         "allowed_family_actions": [

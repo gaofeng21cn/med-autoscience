@@ -410,6 +410,71 @@
       "can_authorize_artifact_authority": false
     }
   },
+  "autosci_learning_projection": {
+    "surface_kind": "mas_autosci_learning_projection",
+    "descriptor_surfaces": [
+      "product_entry_manifest.autosci_learning_projection",
+      "product_entry_manifest.family_stage_control_plane_descriptor.autosci_learning_projection",
+      "domain_handler_export.autosci_learning_projection"
+    ],
+    "source_repository": "https://github.com/skyllwt/AutoSci",
+    "observed_head": "d89cc72a884a2d091b6fac5719f30b4c64d2c6bd",
+    "intake_doc_ref": "docs/references/mainline/autosci_learning_intake.md",
+    "dependency_introduced": false,
+    "absorbed_pattern_ids": [
+      "typed_research_knowledge_graph",
+      "proposal_action_source_discovery_split",
+      "negative_research_memory",
+      "experiment_deploy_collect_eval_lifecycle",
+      "independent_reviewer_verdict_mapping",
+      "source_dag_render_qa_artifact_projection"
+    ],
+    "maps_to_opl_shared_primitive": "family-research-lifecycle-metadata.v1",
+    "mas_role": "domain_projection_quality_pack_and_refs_only_contract_owner",
+    "allowed_export": [
+      "refs",
+      "metadata",
+      "freshness",
+      "typed_blockers",
+      "owner_boundary",
+      "stage_quality_pack_contract_refs"
+    ],
+    "forbidden_export": [
+      "external_runtime",
+      "slash_command_runner",
+      "prompt_only_permission_model",
+      "paper_or_source_body",
+      "evidence_ledger_body",
+      "review_ledger_body",
+      "publication_verdict_body",
+      "artifact_body"
+    ],
+    "target_quality_pack_contracts": [
+      "ai_native_expert_judgment_pack.independent_reviewer_verdict_mapping_contract",
+      "life_science_source_discovery_pack.proposal_action_source_discovery_contract",
+      "life_science_source_discovery_pack.typed_knowledge_graph_edge_contract",
+      "route_memory_pack.negative_research_memory_contract",
+      "statistical_analysis_pack.experiment_lifecycle_receipt_contract",
+      "paper_presentation_pack.source_dag_render_qa_artifact_contract"
+    ],
+    "authority_boundary": {
+      "source_project_role": "external_pattern_source_only",
+      "opl_owner": "one-person-lab",
+      "mas_domain_truth_owner": "MedAutoScience",
+      "mas_source_readiness_owner": "MedAutoScience",
+      "mas_publication_verdict_owner": "MedAutoScience",
+      "mas_artifact_authority_owner": "MedAutoScience",
+      "can_write_domain_truth": false,
+      "can_write_evidence_ledger": false,
+      "can_write_review_ledger": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_authorize_source_readiness": false,
+      "can_authorize_publication_quality": false,
+      "can_authorize_submission_readiness": false,
+      "can_authorize_artifact_authority": false
+    }
+  },
   "persistence_lifecycle_owner_route_projection": {
     "adoption_surface_kind": "mas_opl_family_persistence_lifecycle_owner_route_adoption",
     "required_shape": [

@@ -54,6 +54,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["source_refs"]["life_science_source_discovery_pack_source"] == (
         "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract"
     )
+    assert descriptor["source_refs"]["autosci_learning_projection_source"] == (
+        "med_autoscience.autosci_learning_projection.build_autosci_learning_projection"
+    )
 
     snapshot = descriptor["route_contract_snapshot"]
     assert snapshot["source"] == "agent/stages/stage_route_contract.yaml"
@@ -171,6 +174,43 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert ars_projection["authority_boundary"]["can_write_controller_decisions"] is False
     assert ars_projection["authority_boundary"]["can_authorize_publication_quality"] is False
     assert ars_projection["authority_boundary"]["can_authorize_submission_readiness"] is False
+
+    autosci_projection = descriptor["autosci_learning_projection"]
+    assert manifest["autosci_learning_projection"] == autosci_projection
+    assert autosci_projection["surface_kind"] == "mas_autosci_learning_projection"
+    assert autosci_projection["source_snapshot"] == {
+        "source_project": "AutoSci/OmegaWiki",
+        "repository": "https://github.com/skyllwt/AutoSci",
+        "observed_head": "d89cc72a884a2d091b6fac5719f30b4c64d2c6bd",
+        "intake_doc_ref": "docs/references/mainline/autosci_learning_intake.md",
+        "dependency_introduced": False,
+    }
+    assert [pattern["pattern_id"] for pattern in autosci_projection["absorbed_patterns"]] == [
+        "typed_research_knowledge_graph",
+        "proposal_action_source_discovery_split",
+        "negative_research_memory",
+        "experiment_deploy_collect_eval_lifecycle",
+        "independent_reviewer_verdict_mapping",
+        "source_dag_render_qa_artifact_projection",
+    ]
+    assert autosci_projection["knowledge_graph_contract"]["edge_policy"][
+        "semantic_edges_separate_from_bibliographic_citations"
+    ] is True
+    assert autosci_projection["source_discovery_contract"][
+        "candidate_may_write_mas_truth"
+    ] is False
+    assert autosci_projection["experiment_lifecycle_contract"][
+        "negative_memory_writeback_requires_router_receipt"
+    ] is True
+    assert autosci_projection["reviewer_os_contract"]["self_review_closes_quality_gate"] is False
+    assert autosci_projection["artifact_projection_contract"][
+        "projection_may_authorize_artifact_mutation"
+    ] is False
+    assert autosci_projection["authority_boundary"]["source_project_role"] == (
+        "external_pattern_source_only"
+    )
+    assert autosci_projection["authority_boundary"]["can_write_publication_eval"] is False
+    assert autosci_projection["authority_boundary"]["can_authorize_source_readiness"] is False
     assert set(stage_skill_projection) == {
         "surface_kind",
         "version",

@@ -218,6 +218,20 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     memory_roles = {ref["role"] for ref in substrate["memory_refs"]}
     assert "publication_route_memory_pack" in memory_roles
     assert "domain_memory_descriptor" in memory_roles
+    autosci_projection = payload["autosci_learning_projection"]
+    assert autosci_projection["surface_kind"] == "mas_autosci_learning_projection"
+    assert autosci_projection["source_snapshot"]["repository"] == "https://github.com/skyllwt/AutoSci"
+    assert autosci_projection["source_snapshot"]["observed_head"] == (
+        "d89cc72a884a2d091b6fac5719f30b4c64d2c6bd"
+    )
+    assert autosci_projection["knowledge_graph_contract"]["write_policy"][
+        "partial_authoritative_ingest_forbidden"
+    ] is True
+    assert autosci_projection["authority_boundary"]["source_project_role"] == (
+        "external_pattern_source_only"
+    )
+    assert autosci_projection["authority_boundary"]["can_write_evidence_ledger"] is False
+    assert autosci_projection["authority_boundary"]["can_authorize_publication_quality"] is False
     provider = payload["provider_ready_adapter"]
     assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
     assert provider["provider_topology"]["target_provider"] == "temporal"
