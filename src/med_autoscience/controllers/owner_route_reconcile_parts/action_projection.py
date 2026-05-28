@@ -255,7 +255,10 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    consumed_ai_reviewer_route_back = _consumed_ai_reviewer_route_back_actions(status)
+    consumed_ai_reviewer_route_back = _consumed_ai_reviewer_route_back_actions(
+        status,
+        publication_eval_payload=publication_eval_payload,
+    )
     if consumed_ai_reviewer_route_back is not None:
         return [
             decorate_action(
@@ -455,7 +458,11 @@ def _owner_handoff_action(status: Mapping[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def _consumed_ai_reviewer_route_back_actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
+def _consumed_ai_reviewer_route_back_actions(
+    status: Mapping[str, Any],
+    *,
+    publication_eval_payload: Mapping[str, Any],
+) -> list[dict[str, Any]] | None:
     transition = _mapping(status.get("domain_transition"))
     receipt_consumption = _mapping(transition.get("completion_receipt_consumption"))
     if _text(receipt_consumption.get("status")) != "consumed":
