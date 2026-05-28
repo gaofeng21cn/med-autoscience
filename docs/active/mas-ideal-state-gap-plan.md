@@ -4,7 +4,7 @@ Owner: `MedAutoScience`
 Purpose: `single_active_truth_plan`
 State: `active_plan`
 Machine boundary: 本文是人读 gap / completion plan。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、product-entry manifest、domain-handler receipt、runtime/controller durable surfaces、真实 workspace 与 generated artifact proof。
-Date: `2026-05-28`
+Date: `2026-05-29`
 
 ## 文档读法
 
