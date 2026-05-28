@@ -17,6 +17,9 @@ from med_autoscience.controllers.ai_reviewer_record_contract import (
 from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_currentness_inputs import (
     request_record_currentness_input_refs,
 )
+from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_currentness_evidence import (
+    currentness_blocker_evidence,
+)
 from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_input_contract import (
     AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES,
     AI_REVIEWER_REQUIRED_INPUT_SURFACES,
@@ -375,7 +378,9 @@ def _block_ai_reviewer_record_manuscript_story_leakage(
 
 def _block_ai_reviewer_record_missing_currentness(
     *,
+    study_root: Path,
     payload: dict[str, Any],
+    record: Mapping[str, Any],
     record_ref: str | None,
     missing_currentness_refs: list[str],
     blocked_reason: str = AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
@@ -388,6 +393,17 @@ def _block_ai_reviewer_record_missing_currentness(
         lifecycle["required_currentness_refs"] = missing_currentness_refs
     else:
         lifecycle["missing_currentness_refs"] = missing_currentness_refs
+    lifecycle["currentness_evidence"] = currentness_blocker_evidence(
+        study_root=study_root,
+        record=record,
+        record_ref=record_ref,
+        missing_currentness_refs=missing_currentness_refs,
+        blocked_reason=blocked_reason,
+        text=_text,
+        mapping=_mapping,
+        resolved_text_ref=_resolved_text_ref,
+        currentness_check_mappings=_currentness_check_mappings,
+    )
     payload["request_lifecycle"] = lifecycle
     payload.pop("ai_reviewer_record", None)
     payload.pop("publication_eval_record", None)
@@ -422,7 +438,9 @@ def _block_ai_reviewer_record_invalid_currentness_contract(
         required_refs = [manuscript_ref]
         blocked_reason = AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
     payload = _block_ai_reviewer_record_missing_currentness(
+        study_root=study_root,
         payload=payload,
+        record=record,
         record_ref=record_ref,
         missing_currentness_refs=list(dict.fromkeys(required_refs)),
         blocked_reason=blocked_reason,
@@ -477,7 +495,9 @@ def _validate_ai_reviewer_record_for_packet(
     )
     if missing_currentness_refs:
         return _block_ai_reviewer_record_missing_currentness(
+            study_root=study_root,
             payload=payload,
+            record=record,
             record_ref=record_ref,
             missing_currentness_refs=missing_currentness_refs,
             blocked_reason=_record_currentness_blocked_reason(

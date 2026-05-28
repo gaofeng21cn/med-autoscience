@@ -248,6 +248,8 @@ def test_ai_reviewer_request_materialization_rejects_record_stale_after_current_
             "human_review_readiness",
         )
     }
+    stale_evidence_digest = _sha256_text("old evidence ledger")
+    stale_claim_map_digest = _sha256_text("old claim map")
     stale_record = {
         "eval_id": "publication-eval::003-dpcc::quest-003::2026-05-27T11:10:37+00:00",
         "study_id": "003-dpcc",
@@ -261,6 +263,20 @@ def test_ai_reviewer_request_materialization_rejects_record_stale_after_current_
             "ai_reviewer_required": False,
         },
         "quality_assessment": quality_assessment,
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "evidence_ledger": {
+                    "status": "current",
+                    "ref": str(evidence_path.resolve()),
+                    "digest": stale_evidence_digest,
+                },
+                "claim_evidence_map": {
+                    "status": "current",
+                    "ref": str(claim_map_path.resolve()),
+                    "digest": stale_claim_map_digest,
+                },
+            }
+        },
         "future_facing_limitations_plan": [
             {
                 "limitation": "The old reviewer record predates claim-evidence repair.",
@@ -306,6 +322,35 @@ def test_ai_reviewer_request_materialization_rejects_record_stale_after_current_
     assert persisted["request_lifecycle"]["required_currentness_refs"] == [
         str(evidence_path.resolve()),
         str(claim_map_path.resolve()),
+    ]
+    evidence = persisted["request_lifecycle"]["currentness_evidence"]
+    assert evidence["blocked_reason"] == "ai_reviewer_record_stale_after_current_inputs"
+    assert evidence["stale_record_ref"] == str(stale_record_path.resolve())
+    assert evidence["authority_boundary"] == {
+        "owner": "ai_reviewer",
+        "can_authorize_quality": False,
+        "can_authorize_submission": False,
+    }
+    by_ref = {item["required_ref"]: item for item in evidence["missing_refs"]}
+    assert by_ref[str(evidence_path.resolve())]["live_digest"] == _sha256_text(
+        evidence_path.read_text(encoding="utf-8")
+    )
+    assert by_ref[str(evidence_path.resolve())]["record_checks"] == [
+        {
+            "status": "current",
+            "ref": str(evidence_path.resolve()),
+            "digest": stale_evidence_digest,
+        }
+    ]
+    assert by_ref[str(claim_map_path.resolve())]["live_digest"] == _sha256_text(
+        claim_map_path.read_text(encoding="utf-8")
+    )
+    assert by_ref[str(claim_map_path.resolve())]["record_checks"] == [
+        {
+            "status": "current",
+            "ref": str(claim_map_path.resolve()),
+            "digest": stale_claim_map_digest,
+        }
     ]
 
 
