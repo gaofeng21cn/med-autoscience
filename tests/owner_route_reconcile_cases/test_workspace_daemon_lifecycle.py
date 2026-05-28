@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -109,6 +110,117 @@ def test_scan_domain_routes_projects_opl_provider_readiness_from_owner_surface(
     assert readiness["provider_completion_is_domain_ready"] is False
     assert readiness["can_write_domain_truth"] is False
     assert readiness["can_authorize_publication_ready"] is False
+
+
+def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtime_health(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_path.write_text(
+        json.dumps(
+            {
+                "surface": "opl_current_control_state_handoff",
+                "generated_at": "2026-05-28T10:45:00+00:00",
+                "studies": [
+                    {
+                        "study_id": study_id,
+                        "runtime_health": {
+                            "attempt_state": "escalated",
+                            "retry_budget_remaining": 0,
+                            "canonical_runtime_action": "external_supervisor_required",
+                            "blocking_reasons": [
+                                "quest_marked_running_but_no_live_session",
+                                "runtime_recovery_retry_budget_exhausted",
+                            ],
+                        },
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "quest_status": "active",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+            "runtime_liveness_audit": {
+                "status": "parked",
+                "runtime_audit": {"worker_running": False},
+            },
+            "supervisor_tick_audit": {
+                "status": "fresh",
+                "required": True,
+                "latest_recorded_at": "2026-05-28T10:49:00+00:00",
+            },
+            "runtime_health_snapshot": {
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "canonical_runtime_action": "external_supervisor_required",
+                "blocking_reasons": [
+                    "quest_marked_running_but_no_live_session",
+                    "runtime_recovery_retry_budget_exhausted",
+                ],
+            },
+            "publication_eval": {"assessment_provenance": {"owner": "ai_reviewer"}},
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "paper_stage": "publication_supervision",
+            "supervision": {"active_run_id": None},
+        },
+    )
+    monkeypatch.setattr(module.opl_provider_attempts, "live_provider_attempt_for_study", lambda **_: None)
+    monkeypatch.setattr(
+        module.opl_provider_attempts,
+        "current_provider_readiness",
+        lambda **_: {
+            "surface_kind": "opl_provider_readiness_projection",
+            "source": "opl_family_runtime_status",
+            "provider_kind": "temporal",
+            "provider_ready": True,
+            "worker_ready": True,
+            "managed_worker_source_current": True,
+            "provider_completion_is_domain_ready": False,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_ready": False,
+        },
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    health = result["studies"][0]["runtime_health"]
+    assert health["attempt_state"] == "recovering"
+    assert health["retry_budget_remaining"] == 2
+    assert health["canonical_runtime_action"] == "recover_runtime"
+    assert health["blocking_reasons"] == ["quest_marked_running_but_no_live_session"]
+    assert result["studies"][0]["blocked_reason"] != "runtime_recovery_retry_budget_exhausted"
 
 
 def test_scan_domain_routes_observe_mode_does_not_release_workspace_daemon(

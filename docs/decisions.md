@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：owner-route handoff 同轮消费 OPL provider readiness
+
+- 决策：`owner_route_reconcile` 必须在扫描 study 前读取一次 OPL provider readiness，并把同一轮 readiness 注入每个 study 的 supervisor tick / runtime-health 派生输入。`opl_current_control_state_handoff` 的 per-study `runtime_health` 不得滞后一轮继续输出旧 `external_supervisor_required` / `runtime_recovery_retry_budget_exhausted`，而顶层却已经显示 provider/worker ready。
+- 理由：DM002 暴露出 `progress-projection` 在 fresh OPL handoff 后已能把 runtime health 重新派生为 `recover_runtime`，但同一次 `domain-health-diagnostic --request-opl-owner-route-reconcile --apply` 持久化的 per-study current-control handoff 仍保留旧 escalated 状态，导致 OPL admission 看到空 action queue 和 `runtime_recovery_not_authorized`。根因是 provider readiness 写入 handoff 顶层发生在 study projection 之后，形成 read-model currentness 一拍延迟。
+- 影响：这是 MAS owner-route read-model currentness 修复，只影响同轮 handoff/admission 的 runtime-health projection；不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`，也不授权 publication ready 或 submission ready。OPL 仍负责 provider/queue/attempt/retry/dead-letter，MAS 仍负责 owner-route、typed blocker、AI reviewer eval 和 publication gate。
+
 ## 2026-05-28：OPL provider readiness 可以释放 MAS runtime recovery budget，但不授权论文结论
 
 - 决策：`owner_route_reconcile` 生成的 `opl_current_control_state_handoff` 可以 refs-only 投影 OPL `family-runtime status --provider temporal --json` 的 provider readiness；`study_runtime_status` 只在 handoff fresh 时把 `provider_ready`、`worker_ready` 与 `managed_worker_source_current` 带入 supervisor tick；`RuntimeHealthKernel` 只有同时看到 fresh/ok supervisor tick 和三项 readiness 为 true 时，才写 transient `attempt_released`，开启新的 recovery budget epoch。

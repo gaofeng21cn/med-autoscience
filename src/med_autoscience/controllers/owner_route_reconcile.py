@@ -24,6 +24,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth
 from med_autoscience.controllers.owner_route_reconcile_parts import paper_progress_stall_projection
 from med_autoscience.controllers.owner_route_reconcile_parts import projection_errors
 from med_autoscience.controllers.owner_route_reconcile_parts import opl_provider_attempts
+from med_autoscience.controllers.owner_route_reconcile_parts import provider_readiness_runtime_health
 from med_autoscience.controllers.owner_route_reconcile_parts import queue_slo
 from med_autoscience.controllers.owner_route_reconcile_parts import repo_write_policy
 from med_autoscience.controllers.owner_route_reconcile_parts import request_packets
@@ -529,6 +530,7 @@ def _study_projection(
     developer_mode: DeveloperSupervisorMode,
     persist_surfaces: bool,
     generated_at: str,
+    provider_readiness: Mapping[str, Any] | None = None,
     previous_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
@@ -542,6 +544,9 @@ def _study_projection(
         status_payload=status_payload,
         progress_payload=progress_payload,
         publication_eval_payload=publication_eval_payload,
+    )
+    status_payload = provider_readiness_runtime_health.refresh_status(
+        status_payload, study_root, study_id, resolved_quest_id, provider_readiness, generated_at
     )
     submission_milestone_parked_refresh = submission_milestone_projection.refresh_if_opl_stage_attempt_required(
         profile=profile,
@@ -888,6 +893,7 @@ def scan_domain_routes(
         if isinstance(action, Mapping)
     }
     previous_action_ids.discard(None)
+    provider_readiness = opl_provider_attempts.current_provider_readiness()
     studies: list[dict[str, Any]] = []
     for study_id in resolved_study_ids:
         try:
@@ -898,6 +904,7 @@ def scan_domain_routes(
                 developer_mode=developer_mode,
                 persist_surfaces=persist_surfaces,
                 generated_at=generated_at,
+                provider_readiness=provider_readiness,
                 previous_payload=previous_payload,
             )
         except (ValueError, TypeError) as exc:
@@ -956,7 +963,6 @@ def scan_domain_routes(
         profile=profile,
         developer_mode=developer_mode,
     )
-    provider_readiness = opl_provider_attempts.current_provider_readiness()
     payload = scan_output.build_scan_domain_routes_payload(
         schema_version=SCHEMA_VERSION,
         generated_at=generated_at,
@@ -990,10 +996,4 @@ def scan_domain_routes(
             mapping=_mapping,
         )
     return payload
-
-
-__all__ = [
-    "SCHEMA_VERSION",
-    "SUPERVISION_LATEST_RELATIVE_PATH",
-    "scan_domain_routes",
-]
+__all__ = ["SCHEMA_VERSION", "SUPERVISION_LATEST_RELATIVE_PATH", "scan_domain_routes"]
