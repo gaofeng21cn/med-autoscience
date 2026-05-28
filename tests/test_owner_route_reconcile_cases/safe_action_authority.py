@@ -476,11 +476,11 @@ def test_scan_domain_routes_uses_pull_request_route_when_github_user_is_not_owne
     assert result["developer_supervisor_mode"]["repo_write_policy"]["pull_request_required"] is True
     assert study["action_queue"] == []
     assert study["owner_route"]["next_owner"] == "one-person-lab"
-    assert study["owner_route"]["owner_reason"] == "runtime_recovery_not_authorized"
+    assert study["owner_route"]["owner_reason"] == "opl_stage_attempt_admission_required"
     assert study["owner_route"]["allowed_actions"] == []
     assert study["owner_route"]["owner_route_attempt_protocol"]["dispatchable"] is False
     assert study["why_not_applied"] == "opl_stage_attempt_admission_required"
-    assert study["blocked_reason"] == "runtime_recovery_not_authorized"
+    assert study["blocked_reason"] == "opl_stage_attempt_admission_required"
     assert not (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").exists()
 
 

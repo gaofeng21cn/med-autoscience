@@ -219,7 +219,7 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
     assert study["owner_route"]["owner_reason"] == "quest_waiting_opl_runtime_owner_route"
     assert study["blocked_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert study["why_not_applied"] == "opl_stage_attempt_admission_required"
+    assert study["why_not_applied"] == "quest_waiting_opl_runtime_owner_route"
 
 
 def test_consumed_ai_reviewer_receipt_routes_finalize_gate_replay_to_gate_clearing(

@@ -365,7 +365,7 @@ def test_scan_projects_current_ai_reviewer_record_materialization_controller_rou
     assert action["domain_transition_decision_type"] == "route_back_same_line"
     assert study["next_owner"] == "write"
     assert study["blocked_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert study["why_not_applied"] == "opl_stage_attempt_admission_required"
+    assert study["why_not_applied"] == "quest_waiting_opl_runtime_owner_route"
     assert study["external_supervisor_required"] is False
     assert study["owner_route"]["next_owner"] == "write"
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]

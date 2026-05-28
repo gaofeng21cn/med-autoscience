@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：具体 MAS owner action 优先于通用 runtime admission blocker
+
+- 决策：`owner_route_reconcile` 若从当前 `controller_decisions/latest.json` 或当前 publication/eval route 推导出具体 MAS owner action，必须用该 action 的 owner reason、next owner 和 allowed action 构造 current owner route。`runtime_recovery_not_authorized`、`runtime_recovery_retry_budget_exhausted`、`opl_stage_attempt_admission_required` 只能在没有具体 domain owner action 时作为 OPL/runtime blocker；不能吞掉当前 `return_to_ai_reviewer_workflow`、`run_quality_repair_batch` 或 gate-clearing owner route。
+- 决策：当前 controller decision 指向 `return_to_ai_reviewer_workflow` 且 work unit fingerprint 与 supported domain-transition route 对齐时，action queue 必须显式暴露 AI reviewer owner action，并保持 `domain_transition_ai_reviewer_re_eval` owner reason、work unit id、fingerprint 和 owner-route currentness basis。OPL 仍负责 queue/admission/attempt/retry/dead-letter transport，MAS 只提供 owner action/currentness/authority refs。
+- 理由：DM002 暴露出 `controller_decisions/latest.json` 已有 `return_to_ai_reviewer_workflow` / `ai_reviewer_medical_prose_quality_review`，但 current-control 仍显示 `action_queue=[]`、`next_owner=one-person-lab`、`owner_reason=runtime_recovery_not_authorized`。根因是 generic runtime recovery/admission blocker 的优先级高于当前 MAS controller owner action，导致 OPL 只能反复执行 refs-only reconcile/admission，论文质量 owner 没有收到可派发 work unit。
+- 影响：这是 MAS owner-route/read-model closure 修复，不写 DM002 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文是否 ready 仍由 AI reviewer-backed publication eval、publication gate、package freshness proof 与 owner receipt 判定。
+
 ## 2026-05-28：owner-route handoff 同轮消费 OPL provider readiness
 
 - 决策：`owner_route_reconcile` 必须在扫描 study 前读取一次 OPL provider readiness，并把同一轮 readiness 注入每个 study 的 supervisor tick / runtime-health 派生输入。`opl_current_control_state_handoff` 的 per-study `runtime_health` 不得滞后一轮继续输出旧 `external_supervisor_required` / `runtime_recovery_retry_budget_exhausted`，而顶层却已经显示 provider/worker ready。

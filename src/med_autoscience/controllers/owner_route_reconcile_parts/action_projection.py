@@ -357,6 +357,21 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    current_controller_ai_reviewer_action = _current_controller_ai_reviewer_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if current_controller_ai_reviewer_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=current_controller_ai_reviewer_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     oracle_actions = domain_transition_actions.actions(status)
     if oracle_actions is not None:
         return [
@@ -518,6 +533,36 @@ def _ai_reviewer_record_current_manuscript_digest_mismatch_action(
         action["stale_record_ref"] = stale_record_ref
     if source_ref := _text(controller_route.get("source_ref")):
         action["source_ref"] = source_ref
+    return action
+
+
+def _current_controller_ai_reviewer_action(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    controller_route = current_truth_owner.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if controller_route is None:
+        return None
+    if "return_to_ai_reviewer_workflow" not in set(_string_items(controller_route.get("controller_actions"))):
+        return None
+    work_unit_id = _text(controller_route.get("work_unit_id"))
+    if work_unit_id is None:
+        return None
+    action = ai_reviewer_actions.ai_reviewer_required_action(reason="domain_transition_ai_reviewer_re_eval")
+    action["summary"] = "The current controller decision routes this study back to the AI reviewer workflow."
+    action["next_work_unit"] = work_unit_id
+    action["executable_work_unit"] = work_unit_id
+    action["controller_work_unit_id"] = work_unit_id
+    action["route_target"] = _text(controller_route.get("route_target")) or "review"
+    action["domain_transition_decision_type"] = "ai_reviewer_re_eval"
+    action["controller_route"] = dict(controller_route)
+    action["work_unit_fingerprint"] = _text(controller_route.get("work_unit_fingerprint"))
+    action["publication_eval_latest_write_allowed"] = False
+    action["controller_decision_write_allowed"] = False
     return action
 
 
@@ -788,6 +833,8 @@ def why_not_applied(
         return reason
     if gate_action := _gate_clearing_batch_action(actions):
         return _text(gate_action.get("reason")) or "run_gate_clearing_batch"
+    if actions:
+        return _text(actions[0].get("reason")) or _text(actions[0].get("action_type"))
     if runtime_facts.opl_stage_attempt_admission_required(status, progress):
         return current_truth_owner.OPL_STAGE_ATTEMPT_ADMISSION_REASON
     if runtime_facts.live_activity_timeout_current_controller_redrive_required(status, progress):
@@ -796,8 +843,6 @@ def why_not_applied(
         if gate_specificity.get("required") is True:
             return "publication_gate_specificity_required"
         return "runtime_recovery_retry_budget_exhausted"
-    if actions:
-        return _text(actions[0].get("reason")) or _text(actions[0].get("action_type"))
     if text := _text(lifecycle.get("blocked_reason")):
         if text == "ai_reviewer_assessment_required" and ai_reviewer_assessment.get("missing") is not True:
             return None
