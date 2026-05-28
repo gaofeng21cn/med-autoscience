@@ -112,7 +112,7 @@ def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
 def _request_packet_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path:
     if action_type not in SUPPORTED_REQUEST_ACTION_TYPES:
         raise ValueError(f"unsupported supervisor request action_type: {action_type}")
-    return _study_root(profile, study_id) / "artifacts" / "supervision" / "consumer" / f"{action_type}.json"
+    return _study_root(profile, study_id) / _request_packet_ref_for_action_type(action_type)
 
 
 def _default_executor_dispatch_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path:

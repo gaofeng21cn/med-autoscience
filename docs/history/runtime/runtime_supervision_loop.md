@@ -259,7 +259,7 @@ medautosci domain-route-consume \
   --apply
 ```
 
-该入口只把 scan queue 转成 owner handoff task，写入 workspace-level `artifacts/supervision/consumer/latest.json` / `history.jsonl` 以及 study-level consumer packet。它负责说明 `request_owner`、`required_output_surface`、`request_packet_ref`、forbidden surfaces 与 verification commands；它不执行 publication gate 或 AI reviewer 的专业判断，也不修改论文包。
+该入口只把 scan queue 转成 owner handoff task，写入 workspace-level `artifacts/supervision/consumer/latest.json` / `history.jsonl` 以及 study-level canonical request packet `artifacts/supervision/requests/<request-kind>/latest.json`。它负责说明 `request_owner`、`required_output_surface`、`request_packet_ref`、forbidden surfaces 与 verification commands；它不执行 publication gate 或 AI reviewer 的专业判断，也不修改论文包。
 
 从 2026-05-08 起，developer scheduler 的正式同 tick 行为是 `supervisor-reconcile` one-shot；该入口内部执行 `scan -> consume -> execute-dispatch -> rescan` 并写出 reconcile receipt。三段式入口保留为调试面：
 
@@ -553,7 +553,7 @@ MAS direct/local legacy diagnostic 不再定义外部 scheduler 或 MAS-owned su
 - `runtime_supervision/latest.json` 只作为 retired provenance / legacy fixture 读取；当前 runtime live state、attempt 和 provider terminal truth 来自 OPL current_control_state / provider attempt projection
 - `repair_lifecycle/latest.json` 负责投影 AI doctor repair 从 request、diagnosis、repair action 到 apply attempt 的生命周期
 - `artifacts/supervision/opl_current_control_state/latest.json` 负责跨 study MAS refs-only handoff 与 why-not-applied 投影；OPL 负责把这些 refs hydrate 成 queue/stage attempt/conflict envelope
-- `artifacts/supervision/consumer/latest.json` 与 study-level consumer packets 负责把外层 queue 消费成 request-owner handoff task
+- `artifacts/supervision/consumer/latest.json` 与 study-level `artifacts/supervision/requests/<request-kind>/latest.json` packets 负责把外层 queue 消费成 request-owner handoff task
 - `default_executor_dispatches/*` 负责把未被 owner 接手的 queue 转成默认 Codex CLI 执行器派单，不承担 publication/AI reviewer output authority
 - `default_executor_execution/latest.json` 负责记录 ready dispatch 的执行尝试、owner callable surface、blocked reason 与 written execution ledger
 - `artifacts/supervision/requests/*/latest.json` 负责保存 owner-visible request packet；它们是 request surface，不是 owner output surface

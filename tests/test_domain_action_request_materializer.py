@@ -604,29 +604,33 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
         study_root
         / "artifacts"
         / "supervision"
-        / "consumer"
-        / "publication_gate_specificity_required.json"
+        / "requests"
+        / "publication_gate_specificity"
+        / "latest.json"
     )
     ai_packet_path = (
         study_root
         / "artifacts"
         / "supervision"
-        / "consumer"
-        / "return_to_ai_reviewer_workflow.json"
+        / "requests"
+        / "ai_reviewer"
+        / "latest.json"
     )
     freshness_packet_path = (
         study_root
         / "artifacts"
         / "supervision"
-        / "consumer"
-        / "current_package_freshness_required.json"
+        / "requests"
+        / "current_package_freshness"
+        / "latest.json"
     )
     display_packet_path = (
         study_root
         / "artifacts"
         / "supervision"
-        / "consumer"
-        / "artifact_display_surface_materialization_required.json"
+        / "requests"
+        / "artifact_display_materialization"
+        / "latest.json"
     )
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_tasks"][0]["action_type"] == "publication_gate_specificity_required"
@@ -648,6 +652,10 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     assert result["request_tasks"][1]["required_output_surface"] == "artifacts/publication_eval/latest.json"
     assert result["request_tasks"][2]["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
     assert result["request_tasks"][3]["required_output_surface"] == "paper/display_registry.json"
+    assert result["request_tasks"][0]["refs"]["request_packet_path"] == str(gate_packet_path)
+    assert result["request_tasks"][1]["refs"]["request_packet_path"] == str(ai_packet_path)
+    assert result["request_tasks"][2]["refs"]["request_packet_path"] == str(freshness_packet_path)
+    assert result["request_tasks"][3]["refs"]["request_packet_path"] == str(display_packet_path)
     assert result["ignored_actions"] == []
     assert gate_packet_path.is_file()
     assert ai_packet_path.is_file()
