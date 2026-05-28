@@ -179,3 +179,129 @@ def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surf
     assert source_refs["work_unit_id"] == work_unit_id
     assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
     assert dispatch["source_action"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"
+
+
+def test_ai_reviewer_record_production_work_unit_consumes_current_record_before_redrive(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript already has a current AI reviewer record.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    eval_id = "publication-eval::002::quest::2026-05-28T06:26:01+00:00::ai-reviewer"
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260528T062601Z_publication_eval_record.json"
+    )
+    record_payload = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-05-28T06:26:01+00:00",
+    )
+    _write_json(record_path, record_payload)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {"state": "assessment_written", "blocked_reason": None},
+            "publication_eval_record_ref": str(record_path.resolve()),
+            "ai_reviewer_record": record_payload,
+        },
+    )
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    work_unit_fingerprint = f"domain-transition::ai_reviewer_re_eval::{work_unit_id}"
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="domain_transition_ai_reviewer_re_eval",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    route.update(
+        {
+            "schema_version": 2,
+            "truth_epoch": "truth-event-000024",
+            "route_epoch": "truth-event-000024",
+            "source_fingerprint": "truth-snapshot::dm002-ai-reviewer-current",
+            "runtime_health_epoch": "runtime-health-event-006362",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "idempotency_key": "owner-route::dm002::ai-reviewer-record-production",
+            "source_refs": {
+                "study_truth_epoch": "truth-event-000024",
+                "runtime_health_epoch": "runtime-health-event-006362",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "blocked_reason": "domain_transition_ai_reviewer_re_eval",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "truth_epoch": "truth-event-000024",
+                    "runtime_health_epoch": "runtime-health-event-006362",
+                    "owner_reason": "domain_transition_ai_reviewer_re_eval",
+                },
+            },
+        }
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "owner": "ai_reviewer",
+                    "request_owner": "ai_reviewer",
+                    "reason": "domain_transition_ai_reviewer_re_eval",
+                    "next_work_unit": work_unit_id,
+                    "controller_work_unit_id": work_unit_id,
+                    "executable_work_unit": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "required_output_surface": "artifacts/publication_eval/latest.json",
+                    "owner_route": route,
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    request = result["request_tasks"][0]
+    dispatch = result["default_executor_dispatches"][0]
+    source_refs = dispatch["owner_route"]["source_refs"]
+    assert request["action_type"] == "run_quality_repair_batch"
+    assert request["request_owner"] == "write"
+    assert request["reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["action_type"] == "run_quality_repair_batch"
+    assert dispatch["source_action"]["reviewer_record_ref"] == str(record_path.resolve())
+    assert dispatch["source_action"]["materialization_decision"] == "story_surface_delta_or_typed_blocker_required"
+    assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
+    assert source_refs["materialized_from_action_type"] == "return_to_ai_reviewer_workflow"
+    assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"

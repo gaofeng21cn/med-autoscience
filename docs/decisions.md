@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：AI reviewer record-production work unit 必须消费当前 reviewer record
+
+- 决策：当当前 owner route 是 `produce_ai_reviewer_publication_eval_record_against_current_manuscript`、`produce_ai_reviewer_publication_eval_record_against_current_inputs` 或 `produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization`，且 MAS 已能验证存在绑定当前 manuscript 的 AI reviewer record 时，`domain_action_request_materializer` 必须把该 record-production work unit 视为已满足，并 bridge 到后续 write story-surface repair 或 publication gate/package freshness owner。不得继续 materialize 同一个 `return_to_ai_reviewer_workflow` fingerprint。
+- 决策：若这些 record-production work unit 尚无当前 reviewer record，materializer 必须保留 AI reviewer owner handoff，让 OPL/default executor 通过正式 AI reviewer workflow 产出 record；不得把“没有 record”误桥接到 write/gate，也不得手工补 `publication_eval/latest.json` 或 paper/package surface。
+- 理由：DM002 暴露出当前稿件 reviewer record 已存在并由 request 绑定，但 current-control 仍重复派发同一 `return_to_ai_reviewer_workflow` record-production handoff，形成 same-fingerprint loop，后续 write/gate owner 无法消费最新 reviewer feedback。根因是 current-record consumption 只识别旧 story-surface bridge work unit，漏掉了 record-production work unit 的“已有当前 record”闭环。
+- 影响：这是 MAS materializer currentness/owner-route 修复，不写 DM002 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量和投稿 readiness 仍由 AI reviewer-backed eval、publication gate、package freshness proof 和 owner receipt 判定。
+
 ## 2026-05-28：具体 MAS owner action 优先于通用 runtime admission blocker
 
 - 决策：`owner_route_reconcile` 若从当前 `controller_decisions/latest.json` 或当前 publication/eval route 推导出具体 MAS owner action，必须用该 action 的 owner reason、next owner 和 allowed action 构造 current owner route。`runtime_recovery_not_authorized`、`runtime_recovery_retry_budget_exhausted`、`opl_stage_attempt_admission_required` 只能在没有具体 domain owner action 时作为 OPL/runtime blocker；不能吞掉当前 `return_to_ai_reviewer_workflow`、`run_quality_repair_batch` 或 gate-clearing owner route。

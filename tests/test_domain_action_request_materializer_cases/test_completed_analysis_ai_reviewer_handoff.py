@@ -132,8 +132,9 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
         study_root
         / "artifacts"
         / "supervision"
-        / "consumer"
-        / "return_to_ai_reviewer_workflow.json"
+        / "requests"
+        / "ai_reviewer"
+        / "latest.json"
     )
     dispatch_path = (
         study_root

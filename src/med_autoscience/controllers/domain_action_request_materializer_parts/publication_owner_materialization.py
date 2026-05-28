@@ -25,8 +25,24 @@ AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS = frozenset(
         CURRENT_MANUSCRIPT_PUBLICATION_SURFACE_RECHECK_WORK_UNIT,
     }
 )
+AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS = frozenset(
+    {
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+    }
+)
+AI_REVIEWER_CURRENT_RECORD_CONSUMPTION_WORK_UNIT_IDS = (
+    AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS | AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+)
 STORY_SURFACE_BRIDGE_AUTHORITY = "domain_action_request_materializer_story_surface_bridge"
 PUBLICATION_OWNER_BRIDGE_AUTHORITY = "domain_action_request_materializer_publication_owner_bridge"
+AI_REVIEWER_RECORD_OWNER_REASONS = frozenset(
+    {
+        "ai_reviewer_assessment_required",
+        "domain_transition_ai_reviewer_re_eval",
+    }
+)
 
 
 def materialization_action(
@@ -34,7 +50,9 @@ def materialization_action(
     profile: WorkspaceProfile,
     action: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    if not _current_ai_reviewer_materialization_work_unit(action):
+    story_surface_work_unit = _current_ai_reviewer_materialization_work_unit(action)
+    record_production_work_unit = _ai_reviewer_record_production_work_unit(action)
+    if not story_surface_work_unit and not record_production_work_unit:
         return None
     study_id = _text(action.get("study_id"))
     if study_id is None:
@@ -52,6 +70,8 @@ def materialization_action(
     if current_record is None:
         current_record = _request_bound_current_ai_reviewer_record(study_root=study_root)
     if current_record is None:
+        if record_production_work_unit:
+            return None
         return _ai_reviewer_currentness_action(action=action, study_root=study_root, owner_route=owner_route)
     record, record_ref_path = current_record
     record_eval_id = _text(record.get("eval_id"))
@@ -207,6 +227,16 @@ def _current_ai_reviewer_materialization_work_unit(action: Mapping[str, Any]) ->
     )
 
 
+def _ai_reviewer_record_production_work_unit(action: Mapping[str, Any]) -> bool:
+    owner_route = _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    return (
+        _text(action.get("controller_work_unit_id")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+        or _text(action.get("next_work_unit")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+        or _text(source_refs.get("work_unit_id")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+    )
+
+
 def _request_bound_current_ai_reviewer_record(*, study_root: Path) -> tuple[dict[str, Any], Path] | None:
     request = domain_action_request_lifecycle.read_ai_reviewer_request(study_root=study_root)
     if request is None:
@@ -289,7 +319,7 @@ def _rewrite_owner_route(
         work_unit_id=work_unit_id,
     ):
         source_refs["materialized_work_unit_id"] = work_unit_id
-        if original_owner_reason == "ai_reviewer_assessment_required":
+        if original_owner_reason in AI_REVIEWER_RECORD_OWNER_REASONS:
             source_refs["materialized_from_action_type"] = "return_to_ai_reviewer_workflow"
         source_refs["bridged_from_owner_reason"] = original_owner_reason
         source_refs["bridge_authority"] = STORY_SURFACE_BRIDGE_AUTHORITY
@@ -344,8 +374,8 @@ def _is_runtime_to_story_surface_bridge(
     work_unit_id: str,
 ) -> bool:
     return (
-        original_owner_reason in {"quest_waiting_opl_runtime_owner_route", "ai_reviewer_assessment_required"}
-        and original_work_unit_id in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
+        original_owner_reason in {"quest_waiting_opl_runtime_owner_route", *AI_REVIEWER_RECORD_OWNER_REASONS}
+        and original_work_unit_id in AI_REVIEWER_CURRENT_RECORD_CONSUMPTION_WORK_UNIT_IDS
         and owner_reason == "manuscript_story_surface_delta_missing"
         and work_unit_id == DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT
     )
@@ -358,14 +388,14 @@ def _is_publication_owner_materialization_bridge(
     work_unit_id: str,
 ) -> bool:
     return (
-        original_owner_reason in {"quest_waiting_opl_runtime_owner_route", "ai_reviewer_assessment_required"}
+        original_owner_reason in {"quest_waiting_opl_runtime_owner_route", *AI_REVIEWER_RECORD_OWNER_REASONS}
         and owner_reason in {"current_package_freshness_required", "publication_owner_materialization_required"}
         and work_unit_id in {"current_package_freshness_required", "publication_gate_replay"}
     )
 
 
 def _materialized_from_action_type(*, original_owner_reason: str | None) -> str:
-    if original_owner_reason == "ai_reviewer_assessment_required":
+    if original_owner_reason in AI_REVIEWER_RECORD_OWNER_REASONS:
         return "return_to_ai_reviewer_workflow"
     return "run_quality_repair_batch"
 
