@@ -48,6 +48,8 @@ def _write_dispatch(
     next_owner: str,
     dispatch_authority: str,
     owner_route: dict[str, object],
+    generated_at: str | None = None,
+    allowed_write_surfaces: list[str] | None = None,
 ) -> None:
     dispatch_path = (
         workspace_root
@@ -59,9 +61,7 @@ def _write_dispatch(
         / "default_executor_dispatches"
         / filename
     )
-    _write_json(
-        dispatch_path,
-        {
+    payload = {
             "surface": "default_executor_dispatch_request",
             "schema_version": 1,
             "study_id": study_id,
@@ -79,7 +79,7 @@ def _write_dispatch(
                 "action_type": action_type,
                 "next_executable_owner": next_owner,
                 "owner_route": owner_route,
-                "allowed_write_surfaces": ["paper/draft.md"],
+                "allowed_write_surfaces": allowed_write_surfaces or ["paper/draft.md"],
                 "forbidden_surfaces": [
                     "paper/current_package/**",
                     "manuscript/current_package/**",
@@ -102,8 +102,10 @@ def _write_dispatch(
                     / "latest.json"
                 ),
             },
-        },
-    )
+        }
+    if generated_at is not None:
+        payload["generated_at"] = generated_at
+    _write_json(dispatch_path, payload)
 
 
 def test_domain_handler_export_suppresses_stale_dispatch_blocked_by_current_owner_route(
@@ -166,3 +168,80 @@ def test_domain_handler_export_suppresses_stale_dispatch_blocked_by_current_owne
     assert tasks[0]["payload"]["owner_route_currentness_basis"]["runtime_health_epoch"] == (
         "runtime-health-event-006315-6046777ae24dd127"
     )
+
+
+def test_domain_handler_export_keeps_new_ai_reviewer_handoff_when_older_write_route_has_later_runtime_epoch(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-05-28T00:24:22+00:00",
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="write",
+            owner_reason="manuscript_story_surface_delta_missing",
+            action_type="run_quality_repair_batch",
+            work_unit_id=work_unit_id,
+            work_unit_fingerprint="domain-transition::current-write",
+            runtime_health_epoch="runtime-health-event-006315-6046777ae24dd127",
+            blocked_actions=["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
+        ),
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="return_to_ai_reviewer_workflow.json",
+        action_type="return_to_ai_reviewer_workflow",
+        next_owner="ai_reviewer",
+        dispatch_authority="ai_reviewer_record_production_handoff",
+        generated_at="2026-05-28T01:01:03+00:00",
+        allowed_write_surfaces=[
+            "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        ],
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="ai_reviewer",
+            owner_reason="ai_reviewer_assessment_required",
+            action_type="return_to_ai_reviewer_workflow",
+            work_unit_id=work_unit_id,
+            work_unit_fingerprint="truth-snapshot::current-ai-reviewer",
+            runtime_health_epoch="runtime-health-event-006306-2365a556e7176a6b",
+            blocked_actions=[
+                "publication_gate_specificity_required",
+                "current_package_freshness_required",
+                "artifact_display_surface_materialization_required",
+                "canonical_paper_inputs_rehydrate_required",
+                "run_quality_repair_batch",
+                "run_gate_clearing_batch",
+            ],
+        ),
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["return_to_ai_reviewer_workflow"]
+    assert tasks[0]["payload"]["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert tasks[0]["payload"]["next_executable_owner"] == "ai_reviewer"
+    assert tasks[0]["payload"]["allowed_write_surfaces"] == [
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+    ]

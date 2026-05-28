@@ -253,11 +253,11 @@ def _dispatch_currentness_key(dispatch: Mapping[str, Any]) -> tuple[str, str, st
     source_refs = _mapping(owner_route.get("source_refs"))
     basis = _mapping(source_refs.get("owner_route_currentness_basis"))
     return (
+        _text(dispatch.get("generated_at")) or "",
         _text(owner_route.get("runtime_health_epoch"))
         or _text(source_refs.get("runtime_health_epoch"))
         or _text(basis.get("runtime_health_epoch"))
         or "",
-        _text(dispatch.get("generated_at")) or "",
         _text(owner_route.get("work_unit_fingerprint"))
         or _text(source_refs.get("work_unit_fingerprint"))
         or _text(basis.get("work_unit_fingerprint"))

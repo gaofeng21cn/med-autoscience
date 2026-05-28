@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：default-executor dispatch supersession 以物化时间优先判鲜
+
+- 决策：`domain-handler export` 在同一 study / work unit 的多个 `default_executor_dispatches/*.json` 之间做 `blocked_actions` supersession 时，必须优先比较 dispatch 的 `generated_at` 物化时间；`runtime_health_epoch` 只能作为同一物化时间或缺失物化时间时的次级 tie-breaker。较早物化的 dispatch 不能仅凭更晚的 runtime health audit epoch 阻断较晚物化的 owner handoff。
+- 理由：DM002 暴露出 `return_to_ai_reviewer_workflow` record-only handoff 已在 `2026-05-28T01:01:03Z` 生成，只授权写 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`；但较早的 `run_quality_repair_batch` dispatch 因携带更晚 `runtime_health_epoch`，在 export candidate currentness 排序中反向压掉 AI reviewer handoff，导致 OPL 看不到当前 reviewer record-production work unit。
+- 影响：这是 MAS sidecar/export currentness 修复；不改变 OPL queue/provider owner，不授权直接写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/` 或 `manuscript/current_package/`。AI reviewer record handoff 仍必须由 MAS owner/controller/runtime path 产出 record，再由 MAS AI reviewer/publication gate 判定论文质量和投稿包状态。
+
 ## 2026-05-28：default-executor export 必须抑制被当前 owner route 阻断的旧 dispatch
 
 - 决策：`domain-handler export` 扫描同一 study 的 `default_executor_dispatches/*.json` 时，若另一个当前可 dispatch 的 owner route 在同一 work unit 上通过 `blocked_actions` 明确阻断某个旧 action，且阻断者的 currentness basis 更新，则旧 dispatch 不得继续作为 OPL `pending_family_tasks` 导出。旧 dispatch 文件仍可作为 provenance 留存，但不能继续 hydrate 成 provider-backed stage attempt。
