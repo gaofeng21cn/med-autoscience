@@ -206,6 +206,39 @@ def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtim
             "quest_id": study_id,
             "paper_stage": "publication_supervision",
             "supervision": {"active_run_id": None},
+            "authority_snapshot": {
+                "control_state": "blocked_runtime_escalation",
+                "canonical_runtime_action": "external_supervisor_required",
+                "blocking_reasons": [
+                    "quest_marked_running_but_no_live_session",
+                    "runtime_recovery_retry_budget_exhausted",
+                ],
+                "dispatch_gate": {
+                    "state": "blocked",
+                    "dispatch_allowed": False,
+                    "blocking_reasons": [
+                        "quest_marked_running_but_no_live_session",
+                        "runtime_recovery_retry_budget_exhausted",
+                    ],
+                },
+                "route_authorization": {"runtime_recovery_allowed": False},
+            },
+            "ai_repair_lifecycle": {
+                "surface": "ai_repair_lifecycle",
+                "schema_version": 1,
+                "study_id": study_id,
+                "quest_id": study_id,
+                "state": "external_supervisor_required",
+                "blocked_reason": "runtime_recovery_not_authorized",
+                "next_owner": "external_supervisor",
+                "external_supervisor_required": True,
+                "top_action": {
+                    "action_type": "controller_repair",
+                    "owner": "mas_controller",
+                    "repair_kind": "analysis_claim_evidence_redrive",
+                    "auto_apply_allowed": True,
+                },
+            },
         },
     )
     monkeypatch.setattr(module.opl_provider_attempts, "live_provider_attempt_for_study", lambda **_: None)
@@ -240,6 +273,8 @@ def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtim
     assert health["supervisor_state"]["status"] == "fresh"
     assert health["supervisor_state"]["latest_recorded_at"] == result["generated_at"]
     assert result["studies"][0]["blocked_reason"] != "runtime_recovery_retry_budget_exhausted"
+    assert result["studies"][0]["blocked_reason"] == "opl_stage_attempt_admission_required"
+    assert result["studies"][0]["owner_route"]["owner_reason"] == "opl_stage_attempt_admission_required"
 
 
 def test_scan_domain_routes_observe_mode_does_not_release_workspace_daemon(

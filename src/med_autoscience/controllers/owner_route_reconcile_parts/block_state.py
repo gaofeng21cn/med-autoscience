@@ -226,6 +226,11 @@ def projection_block_state(
             "external_supervisor_required": False,
         }
     blocked_reason = _text(lifecycle.get("blocked_reason"))
+    if (
+        blocked_reason == "runtime_recovery_not_authorized"
+        and why_not_applied == current_truth_owner.OPL_STAGE_ATTEMPT_ADMISSION_REASON
+    ):
+        blocked_reason = why_not_applied
     if why_not_applied in {evidence_adoption.RECHECK_REASON, evidence_adoption.OWNER_HANDOFF_REASON} or (
         why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions)
     ):
