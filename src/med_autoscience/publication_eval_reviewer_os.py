@@ -28,7 +28,7 @@ _ROUTE_TARGET_ALIASES = {
     "bounded_analysis": "analysis-campaign",
 }
 _ACTION_TYPES_THAT_ROUTE_BACK = frozenset({"route_back_same_line", "bounded_analysis", "stop_loss"})
-_ROUTE_BACK_TARGETS = frozenset({"write", "analysis-campaign", "finalize", "publication_eval", "stop"})
+_ROUTE_BACK_TARGETS = frozenset({"write", "review", "analysis-campaign", "finalize", "publication_eval", "stop"})
 
 
 def _text(value: object) -> str:

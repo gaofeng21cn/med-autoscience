@@ -49,6 +49,9 @@ PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER = (
 PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER = (
     "current_owner_route_typed_blocker_observed_for_default_executor_dispatch"
 )
+PAYLOAD_REASON_DELIVERED_PACKAGE_HANDOFF_TYPED_BLOCKER = (
+    "delivered_package_handoff_typed_blocker_observed_for_default_executor_dispatch"
+)
 TASK_KIND = "domain_owner/default-executor-dispatch"
 SUPPORTED_SUPERSEDED_ACTION_TYPE = "return_to_ai_reviewer_workflow"
 SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE = "run_quality_repair_batch"
@@ -57,6 +60,7 @@ OPL_RUNTIME_OWNER_ROUTE_REASON = "quest_waiting_opl_runtime_owner_route"
 RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON = "runtime_recovery_not_authorized"
 RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON = "runtime_recovery_retry_budget_exhausted"
 OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON = "owner_authorized_publication_gate_replay"
+PUBLICATION_GATE_ROUTE_BACK_WRITE_REQUIRED_REASON = "publication_gate_route_back_write_required"
 WRITE_OWNER = "write"
 WRITE_ACTION_TYPE = "run_quality_repair_batch"
 GATE_CLEARING_OWNER = "gate_clearing_batch"

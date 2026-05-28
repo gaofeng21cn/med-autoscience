@@ -509,6 +509,11 @@ def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_reque
                 "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
                 "stale_record_ref": str(old_record_path.resolve()),
                 "required_currentness_refs": [str(manuscript_path.resolve())],
+                "missing_currentness_refs": [str(manuscript_path.resolve())],
+                "currentness_evidence": {
+                    "surface_kind": "ai_reviewer_record_currentness_evidence",
+                    "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+                },
             },
             "input_contract": {
                 "required_refs": {
@@ -561,6 +566,8 @@ def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_reque
     assert refreshed["request_lifecycle"]["blocked_reason"] is None
     assert "stale_record_ref" not in refreshed["request_lifecycle"]
     assert "required_currentness_refs" not in refreshed["request_lifecycle"]
+    assert "missing_currentness_refs" not in refreshed["request_lifecycle"]
+    assert "currentness_evidence" not in refreshed["request_lifecycle"]
     assert refreshed["publication_eval_record_ref"] == str(new_record_path.resolve())
     assert refreshed["ai_reviewer_record"]["eval_id"] == "publication-eval::002::quest::2026-05-22T20:30:41+00:00::ai-reviewer"
 

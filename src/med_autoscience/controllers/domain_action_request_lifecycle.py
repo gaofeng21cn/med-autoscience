@@ -462,6 +462,8 @@ def _clear_ai_reviewer_record_lifecycle_blockers(
         lifecycle["assessment_ref"] = assessment_ref
     lifecycle.pop("stale_record_ref", None)
     lifecycle.pop("required_currentness_refs", None)
+    lifecycle.pop("missing_currentness_refs", None)
+    lifecycle.pop("currentness_evidence", None)
     lifecycle.pop("leakage_reason", None)
     lifecycle.pop("leakage_field_path", None)
     lifecycle.pop("next_required_actions", None)

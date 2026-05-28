@@ -12,6 +12,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION,
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
     PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER,
+    PAYLOAD_REASON_DELIVERED_PACKAGE_HANDOFF_TYPED_BLOCKER,
     PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER,
     PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION,
     PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_CURRENTNESS,
@@ -23,6 +24,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK,
     RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON,
     RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON,
+    PUBLICATION_GATE_ROUTE_BACK_WRITE_REQUIRED_REASON,
     SUPPORTED_SUPERSEDED_ACTION_TYPE,
     SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE,
     WRITE_ACTION_TYPE,
@@ -64,6 +66,11 @@ def payload_reason_for_superseded_dispatch(
         and runtime_recovery_not_authorized_stage_attempt_blocker_observed(study_scan)
     ):
         return PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER
+    if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and delivered_package_handoff_typed_blocker_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_DELIVERED_PACKAGE_HANDOFF_TYPED_BLOCKER
     if (
         action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
         and current_owner_route_typed_blocker_observed(study_scan)
@@ -248,6 +255,36 @@ def current_owner_route_typed_blocker_observed(
         and text(domain_authority_handoff.get("status")) == "typed_blocker"
         and text(typed_blocker.get("reason")) == blocked_reason
         and text(typed_blocker.get("next_owner")) == next_owner
+    )
+
+
+def delivered_package_handoff_typed_blocker_observed(study_scan: Mapping[str, Any]) -> bool:
+    domain_transition = mapping(study_scan.get("domain_transition"))
+    transition_blocker = mapping(domain_transition.get("typed_blocker"))
+    owner_route = mapping(study_scan.get("owner_route"))
+    owner_reason_contract = mapping(owner_route.get("owner_reason_contract"))
+    currentness_contract = mapping(owner_route.get("currentness_contract"))
+    attempt_protocol = mapping(owner_route.get("owner_route_attempt_protocol"))
+    domain_authority_handoff = mapping(study_scan.get("domain_authority_handoff"))
+    typed_blocker = mapping(domain_authority_handoff.get("typed_blocker"))
+    blocked_reason = text(study_scan.get("blocked_reason")) or text(owner_route.get("owner_reason"))
+    return (
+        text(domain_transition.get("decision_type")) == "delivered_package_handoff"
+        and text(domain_transition.get("route_target")) == "human_gate"
+        and text(domain_transition.get("owner")) == "med-autoscience"
+        and text(domain_transition.get("controller_action")) == "wait_for_human_gate"
+        and text(transition_blocker.get("blocker_id")) == "package_delivered_not_publication_authority"
+        and transition_blocker.get("write_permitted") is False
+        and text(owner_route.get("next_owner")) == "external_supervisor"
+        and blocked_reason == PUBLICATION_GATE_ROUTE_BACK_WRITE_REQUIRED_REASON
+        and owner_reason_contract.get("registered") is True
+        and text(owner_reason_contract.get("owner")) == WRITE_OWNER
+        and WRITE_ACTION_TYPE in set(texts(sequence(owner_reason_contract.get("allowed_actions"))))
+        and currentness_contract.get("missing_required_fields") == []
+        and attempt_protocol.get("dispatchable") is False
+        and text(domain_authority_handoff.get("status")) == "typed_blocker"
+        and text(typed_blocker.get("reason")) == PUBLICATION_GATE_ROUTE_BACK_WRITE_REQUIRED_REASON
+        and text(typed_blocker.get("next_owner")) == "external_supervisor"
     )
 
 

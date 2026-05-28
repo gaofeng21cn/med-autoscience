@@ -45,6 +45,18 @@ def test_reviewer_os_requires_currentness_source_eval_package_and_route_target(
 
     assert validate_ai_reviewer_operating_system_trace(reviewer_os) == []
 
+    review_route_target = dict(reviewer_os)
+    review_route_target["currentness_checks"] = dict(reviewer_os["currentness_checks"])
+    review_route_target["currentness_checks"]["medical_prose_review"] = {
+        **reviewer_os["currentness_checks"]["medical_prose_review"],
+        "route_target": "review",
+    }
+    review_route_target["route_back_decision"] = {
+        **reviewer_os["route_back_decision"],
+        "route_target": "review",
+    }
+    assert validate_ai_reviewer_operating_system_trace(review_route_target) == []
+
     missing_source_eval = dict(reviewer_os)
     missing_source_eval["currentness_checks"] = dict(reviewer_os["currentness_checks"])
     missing_source_eval["currentness_checks"].pop("source_eval")
