@@ -5,6 +5,10 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.publication_eval_reviewer_os import (
+    validate_ai_reviewer_operating_system_trace,
+)
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -15,6 +19,64 @@ def _sha256_text(text: str) -> str:
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_reviewer_os_requires_currentness_source_eval_package_and_route_target(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    eval_id = "publication-eval::dm002::current::2026-05-28T08:00:00+00:00::ai-reviewer"
+    reviewer_os = current_manuscript_routeback_reviewer_os(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        eval_id=eval_id,
+    )
+
+    assert validate_ai_reviewer_operating_system_trace(reviewer_os) == []
+
+    missing_source_eval = dict(reviewer_os)
+    missing_source_eval["currentness_checks"] = dict(reviewer_os["currentness_checks"])
+    missing_source_eval["currentness_checks"].pop("source_eval")
+    assert (
+        "reviewer_operating_system.currentness_checks.source_eval must be non-empty"
+        in validate_ai_reviewer_operating_system_trace(missing_source_eval)
+    )
+
+    stale_manuscript = dict(reviewer_os)
+    stale_manuscript["currentness_checks"] = dict(reviewer_os["currentness_checks"])
+    stale_manuscript["currentness_checks"]["current_manuscript"] = {
+        **reviewer_os["currentness_checks"]["current_manuscript"],
+        "status": "stale",
+    }
+    assert (
+        "reviewer_operating_system.currentness_checks.current_manuscript.status must be current"
+        in validate_ai_reviewer_operating_system_trace(stale_manuscript)
+    )
+
+    missing_route_target = dict(reviewer_os)
+    missing_route_target["route_back_decision"] = dict(reviewer_os["route_back_decision"])
+    missing_route_target["route_back_decision"].pop("route_target")
+    assert (
+        "reviewer_operating_system.route_back_decision.route_target must name the current route target"
+        in validate_ai_reviewer_operating_system_trace(missing_route_target)
+    )
+
+    mismatched_package = dict(reviewer_os)
+    mismatched_package["currentness_checks"] = dict(reviewer_os["currentness_checks"])
+    mismatched_package["currentness_checks"]["current_package_freshness"] = {
+        **reviewer_os["currentness_checks"]["current_package_freshness"],
+        "source_eval_id": "publication-eval::older",
+    }
+    assert (
+        "reviewer_operating_system.currentness_checks.current_package_freshness.source_eval_id "
+        "must match source_eval.eval_id"
+        in validate_ai_reviewer_operating_system_trace(mismatched_package)
+    )
 
 
 def test_invalid_current_ai_reviewer_response_record_does_not_supersede_latest_eval(

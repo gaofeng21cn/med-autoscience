@@ -26,6 +26,9 @@ from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_review
     packet_with_normalized_input_contract,
     required_inputs,
 )
+from med_autoscience.publication_eval_reviewer_os import (
+    validate_ai_reviewer_operating_system_trace,
+)
 
 AI_REVIEWER_REQUEST_STATES = ("requested", "assigned", "assessment_written", "blocked", "stale")
 AI_REVIEWER_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/ai_reviewer/latest.json")
@@ -82,6 +85,13 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
 
 
 def _ai_reviewer_publication_eval_record_valid(payload: Mapping[str, Any]) -> bool:
+    if not _ai_reviewer_publication_eval_record_candidate(payload):
+        return False
+    reviewer_os = _mapping(payload.get("reviewer_operating_system"))
+    return not validate_ai_reviewer_operating_system_trace(dict(reviewer_os))
+
+
+def _ai_reviewer_publication_eval_record_candidate(payload: Mapping[str, Any]) -> bool:
     provenance = _mapping(payload.get("assessment_provenance"))
     if _text(provenance.get("owner")) != "ai_reviewer":
         return False
@@ -101,6 +111,15 @@ def _ai_reviewer_publication_eval_record_valid(payload: Mapping[str, Any]) -> bo
             return False
     future_plan = payload.get("future_facing_limitations_plan")
     return isinstance(future_plan, list) and bool(future_plan)
+
+
+def _ai_reviewer_publication_eval_record_contract_errors(payload: Mapping[str, Any]) -> list[str]:
+    if not _ai_reviewer_publication_eval_record_candidate(payload):
+        return ["ai_reviewer publication eval record must satisfy the owner record contract"]
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, Mapping):
+        return ["reviewer_operating_system must be an object"]
+    return validate_ai_reviewer_operating_system_trace(dict(reviewer_os))
 
 
 def _resolved_text_ref(*, study_root: Path, value: object) -> str | None:
@@ -217,7 +236,7 @@ def _record_missing_currentness_refs(
     record_timestamp = _reviewer_assessment_timestamp(record)
     missing_or_stale: list[str] = []
     for ref in required_refs:
-        if ref not in source_refs:
+        if not _record_currentness_covers_ref(study_root=study_root, record=record, required_ref=ref):
             missing_or_stale.append(ref)
             continue
         ref_timestamp = _ref_timestamp(Path(ref))
@@ -226,6 +245,30 @@ def _record_missing_currentness_refs(
         ):
             missing_or_stale.append(ref)
     return missing_or_stale
+
+
+def _record_currentness_covers_ref(
+    *,
+    study_root: Path,
+    record: Mapping[str, Any],
+    required_ref: str,
+) -> bool:
+    reviewer_os = _mapping(record.get("reviewer_operating_system"))
+    currentness_checks = _mapping(reviewer_os.get("currentness_checks"))
+    if not currentness_checks:
+        return False
+    live_digest = _sha256_file(Path(required_ref))
+    if live_digest is None:
+        return False
+    return any(
+        _currentness_check_matches_live_ref(
+            study_root=study_root,
+            check=check,
+            required_ref=required_ref,
+            live_digest=live_digest,
+        )
+        for check in _currentness_check_mappings(currentness_checks)
+    )
 
 
 def _record_currentness_blocked_reason(
@@ -353,6 +396,43 @@ def _block_ai_reviewer_record_missing_currentness(
     return payload
 
 
+def _block_ai_reviewer_record_invalid_currentness_contract(
+    *,
+    study_root: Path,
+    payload: dict[str, Any],
+    record: Mapping[str, Any],
+    record_ref: str | None,
+    contract_errors: list[str],
+) -> dict[str, Any]:
+    currentness_refs = _request_record_currentness_input_refs(
+        study_root=study_root,
+        request_packet=payload,
+    )
+    source_refs = _record_source_refs(study_root=study_root, record=record)
+    required_refs = [ref for ref in currentness_refs if ref in source_refs]
+    if not required_refs and currentness_refs:
+        required_refs = currentness_refs
+    blocked_reason = (
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS
+        if required_refs
+        else AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN
+    )
+    manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
+    if manuscript_ref:
+        required_refs = [manuscript_ref]
+        blocked_reason = AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
+    payload = _block_ai_reviewer_record_missing_currentness(
+        payload=payload,
+        record_ref=record_ref,
+        missing_currentness_refs=list(dict.fromkeys(required_refs)),
+        blocked_reason=blocked_reason,
+    )
+    lifecycle = dict(_mapping(payload.get("request_lifecycle")))
+    lifecycle["reviewer_operating_system_errors"] = contract_errors
+    payload["request_lifecycle"] = lifecycle
+    return payload
+
+
 def _clear_ai_reviewer_record_lifecycle_blockers(
     *,
     payload: dict[str, Any],
@@ -477,9 +557,26 @@ def _latest_ai_reviewer_publication_eval_record(
     return None
 
 
+def _latest_ai_reviewer_publication_eval_record_candidate(
+    *,
+    study_root: Path,
+) -> tuple[dict[str, Any], Path] | None:
+    candidates = sorted(
+        (path for path in study_root.glob(AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB) if path.is_file()),
+        key=lambda path: path.name,
+        reverse=True,
+    )
+    for path in candidates:
+        payload = _read_json_object(path)
+        if payload is not None and _ai_reviewer_publication_eval_record_candidate(payload):
+            return payload, path.resolve()
+    return None
+
+
 def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(packet)
     latest = _latest_ai_reviewer_publication_eval_record(study_root=study_root)
+    latest_candidate = _latest_ai_reviewer_publication_eval_record_candidate(study_root=study_root)
     existing_record = _mapping(payload.get("ai_reviewer_record") or payload.get("publication_eval_record") or payload.get("record"))
     if latest is not None:
         latest_record, latest_record_path = latest
@@ -495,7 +592,35 @@ def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[
                 record_ref=str(latest_record_path),
                 attach_record=True,
             )
+    if latest_candidate is not None:
+        candidate_record, candidate_path = latest_candidate
+        if latest is None or candidate_path != latest[1]:
+            contract_errors = _ai_reviewer_publication_eval_record_contract_errors(candidate_record)
+            if contract_errors and (
+                not existing_record
+                or _latest_record_supersedes_attached_record(
+                    study_root=study_root,
+                    payload=payload,
+                    latest_record_path=candidate_path,
+                )
+            ):
+                return _block_ai_reviewer_record_invalid_currentness_contract(
+                    study_root=study_root,
+                    payload=payload,
+                    record=candidate_record,
+                    record_ref=str(candidate_path),
+                    contract_errors=contract_errors,
+                )
     if existing_record:
+        contract_errors = _ai_reviewer_publication_eval_record_contract_errors(existing_record)
+        if contract_errors:
+            return _block_ai_reviewer_record_invalid_currentness_contract(
+                study_root=study_root,
+                payload=payload,
+                record=existing_record,
+                record_ref=_text(payload.get("publication_eval_record_ref")),
+                contract_errors=contract_errors,
+            )
         return _validate_ai_reviewer_record_for_packet(
             study_root=study_root,
             payload=payload,

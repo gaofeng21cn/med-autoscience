@@ -314,3 +314,70 @@ def test_domain_handler_export_keeps_new_ai_reviewer_handoff_when_older_write_ro
     assert tasks[0]["payload"]["allowed_write_surfaces"] == [
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
     ]
+
+
+def test_domain_handler_export_hydrates_only_one_current_default_executor_action_per_study(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-05-28T01:00:00+00:00",
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="write",
+            owner_reason="manuscript_story_surface_delta_missing",
+            action_type="run_quality_repair_batch",
+            work_unit_id="medical_prose_write_repair",
+            work_unit_fingerprint="dm003::write::old",
+            runtime_health_epoch="runtime-health-event-001",
+            blocked_actions=[],
+        ),
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="return_to_ai_reviewer_workflow.json",
+        action_type="return_to_ai_reviewer_workflow",
+        next_owner="ai_reviewer",
+        dispatch_authority="ai_reviewer_record_production_handoff",
+        generated_at="2026-05-28T01:05:00+00:00",
+        allowed_write_surfaces=[
+            "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        ],
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="ai_reviewer",
+            owner_reason="ai_reviewer_assessment_required",
+            action_type="return_to_ai_reviewer_workflow",
+            work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            work_unit_fingerprint="dm003::ai-reviewer::current",
+            runtime_health_epoch="runtime-health-event-002",
+            blocked_actions=[],
+        ),
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["return_to_ai_reviewer_workflow"]
+    assert tasks[0]["payload"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )

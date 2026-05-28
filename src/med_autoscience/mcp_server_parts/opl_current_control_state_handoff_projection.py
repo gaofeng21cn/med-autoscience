@@ -49,6 +49,8 @@ def _compact_terminal_stage_log(value: Any) -> dict[str, Any] | None:
             "duration",
             "token_usage",
             "cost",
+            "usage_refs",
+            "cost_refs",
             "missing_observability_fields",
             "paper_stage_log",
             "closeout_refs",
@@ -59,9 +61,21 @@ def _compact_terminal_stage_log(value: Any) -> dict[str, Any] | None:
         return None
     paper_stage_log = compact.get("paper_stage_log")
     if isinstance(paper_stage_log, dict):
-        for key in ("paper_work_done", "changed_paper_surfaces", "remaining_blockers", "evidence_refs"):
+        for key in (
+            "stage_work_done",
+            "paper_work_done",
+            "changed_stage_surfaces",
+            "changed_paper_surfaces",
+            "remaining_blockers",
+            "usage_refs",
+            "cost_refs",
+            "evidence_refs",
+        ):
             if isinstance(paper_stage_log.get(key), list):
                 paper_stage_log[key] = _compact_string_list(paper_stage_log.get(key), limit=6)
+    for ref_key in ("usage_refs", "cost_refs"):
+        if isinstance(compact.get(ref_key), list):
+            compact[ref_key] = _compact_string_list(compact.get(ref_key), limit=6)
     if isinstance(compact.get("closeout_refs"), list):
         compact["closeout_refs"] = _compact_string_list(compact.get("closeout_refs"), limit=6)
     return compact
