@@ -185,6 +185,130 @@ def test_execute_dispatch_runs_gate_clearing_batch_publication_gate_replay(monke
     }
 
 
+def test_execute_dispatch_runs_gate_clearing_batch_when_runtime_stall_terminal(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    route = _owner_route(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+    )
+    route.update(
+        {
+            "owner_reason": "owner_authorized_publication_gate_replay",
+            "failure_signature": "owner_authorized_publication_gate_replay",
+            "truth_epoch": "truth-event-dm003",
+            "route_epoch": "truth-event-dm003",
+            "runtime_health_epoch": "runtime-health-event-dm003",
+            "work_unit_fingerprint": "domain-transition::route_back_same_line::owner_authorized_publication_gate_replay",
+            "source_fingerprint": "truth-snapshot::dm003-owner-authorized-gate-replay",
+            "idempotency_key": "owner-route::dm003::owner-authorized-gate-replay",
+            "source_refs": {
+                "work_unit_id": "owner_authorized_publication_gate_replay",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::owner_authorized_publication_gate_replay",
+                "study_truth_epoch": "truth-event-dm003",
+                "runtime_health_epoch": "runtime-health-event-dm003",
+            },
+            "currentness_contract": {
+                "status": "currentness_basis_required",
+                "basis": {
+                    "work_unit_id": "owner_authorized_publication_gate_replay",
+                    "work_unit_fingerprint": "domain-transition::route_back_same_line::owner_authorized_publication_gate_replay",
+                    "truth_epoch": "truth-event-dm003",
+                    "runtime_health_epoch": "runtime-health-event-dm003",
+                    "owner_reason": "owner_authorized_publication_gate_replay",
+                },
+            },
+        }
+    )
+    stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": True,
+        "action_fingerprint": "paper_progress_stall::owner-authorized-gate-replay",
+        "stall_reasons": ["runtime_recovery_retry_budget_exhausted"],
+    }
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+        required_output_surface="artifacts/controller/gate_clearing_batch/latest.json",
+        owner_route=route,
+    )
+    dispatch["paper_progress_stall"] = stall
+    dispatch["prompt_contract"]["owner_route"] = route
+    dispatch["prompt_contract"]["owner_route_currentness_basis"] = route["currentness_contract"]["basis"]
+    dispatch["prompt_contract"]["paper_progress_stall"] = stall
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "meaningful_artifact_delta": False,
+                    "paper_progress_stall": stall,
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "quest_root": str(quest_root),
+        },
+    )
+    called: dict[str, object] = {}
+
+    def fake_run_gate_clearing_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+        }
+
+    monkeypatch.setattr(module.action_execution.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_gate_clearing_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    assert execution["paper_progress_stall_handoff_allowed"] is True
+    assert execution["owner_callable_surface"] == "gate_clearing_batch.run_gate_clearing_batch"
+    route_context = called["authority_route_context"]["controller_route_context"]
+    assert route_context["work_unit_id"] == "owner_authorized_publication_gate_replay"
+
+
 def test_execute_dispatch_runs_current_package_freshness_when_stalled_and_previous_attempt_blocked(
     monkeypatch,
     tmp_path: Path,

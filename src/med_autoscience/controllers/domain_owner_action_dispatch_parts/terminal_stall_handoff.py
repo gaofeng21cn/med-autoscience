@@ -75,6 +75,14 @@ def owner_handoff_allowed(
             _text(owner_route.get("failure_signature")) == "quest_waiting_opl_runtime_owner_route"
             and next_work_unit_id == "medical_prose_write_repair"
         )
+    if action_type == "run_gate_clearing_batch":
+        current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
+        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
+        return _registered_gate_clearing_handoff(
+            action_type=action_type,
+            dispatch=dispatch,
+            owner_route=owner_route,
+        )
     if action_type != "return_to_ai_reviewer_workflow":
         return False
     if output_readiness.ai_reviewer_output_pending(current_study):
@@ -136,6 +144,45 @@ def _registered_write_route_back_handoff(
     if _text(protocol.get("priority_class")) != "write_route_back":
         return False
 
+    if _currentness_missing_required_fields(owner_route):
+        return False
+    if _text(owner_route.get("source_fingerprint")) is None:
+        return False
+    currentness_basis = _owner_route_currentness_basis(owner_route)
+    return _text(currentness_basis.get("work_unit_id")) is not None
+
+
+def _registered_gate_clearing_handoff(
+    *,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    reason_contract = owner_route_attempt_protocol.owner_reason_contract(
+        reason=_text(owner_route.get("owner_reason")) or _text(owner_route.get("failure_signature")),
+        owner=_text(owner_route.get("next_owner")),
+        action_type=action_type,
+    )
+    if reason_contract.get("registered") is not True:
+        return False
+    if _text(reason_contract.get("owner")) != "gate_clearing_batch":
+        return False
+    if _text(reason_contract.get("priority_class")) != "package_freshness":
+        return False
+    if action_type not in {_text(action) for action in reason_contract.get("allowed_actions") or []}:
+        return False
+    if not owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route):
+        return False
+
+    protocol = _mapping(owner_route.get("owner_route_attempt_protocol"))
+    if not protocol:
+        protocol = _mapping(
+            owner_route_attempt_protocol.decorate_owner_route(owner_route).get("owner_route_attempt_protocol")
+        )
+    if protocol.get("dispatchable") is not True:
+        return False
+    if _text(protocol.get("priority_class")) != "package_freshness":
+        return False
     if _currentness_missing_required_fields(owner_route):
         return False
     if _text(owner_route.get("source_fingerprint")) is None:
