@@ -53,6 +53,20 @@ def gate_replay_write_owner_action(
     return write_owner_action_from_controller_route(controller_route)
 
 
+def quality_repair_writer_handoff_action(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    controller_route = current_truth_owner.current_quality_repair_writer_handoff_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if controller_route is None:
+        return None
+    return write_owner_action_from_controller_route(controller_route)
+
+
 def write_owner_action_from_controller_route(controller_route: Mapping[str, Any]) -> dict[str, Any]:
     work_unit_id = _text(controller_route.get("work_unit_id")) or "medical_prose_write_repair"
     reason = _reason_for_route(controller_route)
@@ -116,6 +130,7 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "gate_replay_write_owner_action",
+    "quality_repair_writer_handoff_action",
     "write_owner_action",
     "write_owner_action_from_controller_route",
 ]
