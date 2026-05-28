@@ -35,7 +35,11 @@ _WORK_UNIT_TARGET_CONTEXT_KEYS = (
     "gaps",
     "source_path",
 )
-_DECISION_PAYLOAD_CONTEXT_KEYS = (*_WORK_UNIT_TARGET_CONTEXT_KEYS, "specificity_questions")
+_DECISION_PAYLOAD_CONTEXT_KEYS = (
+    *_WORK_UNIT_TARGET_CONTEXT_KEYS,
+    "specificity_questions",
+    "currentness_basis",
+)
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -455,6 +459,9 @@ def context_payload(tick_request: Mapping[str, Any], *, work_unit_dispatch_key: 
     specificity_questions = tick_request.get("specificity_questions")
     if isinstance(specificity_questions, list):
         payload["specificity_questions"] = [str(item) for item in specificity_questions if str(item).strip()]
+    currentness_basis = _non_empty_text(tick_request.get("currentness_basis"))
+    if currentness_basis is not None:
+        payload["currentness_basis"] = currentness_basis
     for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
         value = tick_request.get(key)
         if value not in (None, "", [], {}):

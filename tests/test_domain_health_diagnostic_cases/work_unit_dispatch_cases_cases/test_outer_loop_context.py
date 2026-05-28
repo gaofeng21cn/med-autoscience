@@ -276,6 +276,114 @@ def test_domain_health_diagnostic_outer_loop_request_preserves_finalize_gate_rep
     ]
 
 
+def test_domain_health_diagnostic_does_not_pass_currentness_context_to_decision_materializer(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    diagnostic = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = helpers.write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_charter(study_root)
+    _write_publication_eval(
+        study_root,
+        profile.runtime_root / study_id,
+        action_type="continue_same_line",
+    )
+    status_payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "study_root": str(study_root),
+        "quest_root": str(profile.runtime_root / study_id),
+        "decision": "resume",
+        "reason": "domain_transition_ai_reviewer_re_eval",
+        "quest_status": "active",
+        "domain_transition": {
+            "decision_type": "ai_reviewer_re_eval",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "route_target": "review",
+            "owner": "ai_reviewer",
+            "next_work_unit": {
+                "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "lane": "review",
+                "summary": "Produce a current AI reviewer publication-eval record before dispatch.",
+            },
+        },
+    }
+    tick_request = diagnostic._build_current_domain_transition_outer_loop_request(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+    assert tick_request is not None
+    assert tick_request["currentness_basis"] == "status_domain_transition"
+    calls: dict[str, object] = {}
+
+    def fake_materialize_non_dispatching_outer_loop_decision(
+        *,
+        profile,
+        study_root,
+        status_payload,
+        source,
+        recorded_at,
+        charter_ref,
+        publication_eval_ref,
+        decision_type,
+        route_target=None,
+        route_key_question=None,
+        route_rationale=None,
+        source_route_key_question=None,
+        work_unit_fingerprint=None,
+        next_work_unit=None,
+        blocking_work_units=None,
+        requires_human_confirmation=False,
+        controller_actions=None,
+        reason,
+    ) -> dict[str, object]:
+        calls["kwargs"] = {
+            "profile": profile,
+            "study_root": study_root,
+            "status_payload": status_payload,
+            "source": source,
+            "recorded_at": recorded_at,
+            "charter_ref": charter_ref,
+            "publication_eval_ref": publication_eval_ref,
+            "decision_type": decision_type,
+            "route_target": route_target,
+            "route_key_question": route_key_question,
+            "route_rationale": route_rationale,
+            "source_route_key_question": source_route_key_question,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": next_work_unit,
+            "blocking_work_units": blocking_work_units,
+            "requires_human_confirmation": requires_human_confirmation,
+            "controller_actions": controller_actions,
+            "reason": reason,
+        }
+        return {"dispatch_status": "recorded_non_dispatching", "study_decision_ref": {"artifact_path": "decision.json"}}
+
+    monkeypatch.setattr(
+        diagnostic.study_outer_loop,
+        "materialize_non_dispatching_outer_loop_decision",
+        fake_materialize_non_dispatching_outer_loop_decision,
+    )
+
+    result = diagnostic._materialize_domain_health_diagnostic_non_dispatching_decision(
+        profile=profile,
+        study_root=study_root,
+        status_payload=status_payload,
+        tick_request=tick_request,
+        wakeup_audit={"recorded_at": "2026-05-28T06:00:00+00:00"},
+    )
+
+    assert result["dispatch_status"] == "recorded_non_dispatching"
+    assert calls["kwargs"]["decision_type"] == "continue_same_line"
+    assert calls["kwargs"]["route_target"] == "review"
+    assert calls["kwargs"]["work_unit_fingerprint"] == (
+        "domain-transition::ai_reviewer_re_eval::produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+
+
 def test_outer_loop_tick_request_backfills_targets_when_batch_action_promotes_specificity(
     monkeypatch,
     tmp_path: Path,
