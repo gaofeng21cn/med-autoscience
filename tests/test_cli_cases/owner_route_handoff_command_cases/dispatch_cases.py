@@ -58,7 +58,7 @@ def test_domain_handler_dispatch_requests_opl_admission_for_owner_route_handoff(
         {
             "task_id": "frt_reconcile",
             "domain_id": "medautoscience",
-            "task_kind": "domain_route/owner-handoff",
+            "task_kind": "domain_route/reconcile-apply",
             "payload": {"profile": str(profile_path), "study_id": "001-risk"},
         },
     )
@@ -688,7 +688,7 @@ def test_domain_handler_dispatch_rejects_opl_attempt_truth_substitution(tmp_path
         {
             "task_id": "attempt-substitution",
             "domain_id": "medautoscience",
-            "task_kind": "domain_route/owner-handoff",
+            "task_kind": "domain_route/reconcile-apply",
             "payload": {
                 "profile": "/tmp/profile.toml",
                 "study_id": "001-risk",

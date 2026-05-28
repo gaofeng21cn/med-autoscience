@@ -447,7 +447,7 @@ def _enqueue_task_intake_for_live_runtime(
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
         "dispatch_surface": "medautosci domain-handler export -> medautosci domain-handler dispatch",
-        "recommended_task_kind": "domain_route/owner-handoff",
+        "recommended_task_kind": "domain_route/reconcile-apply",
         "authority_boundary": {
             "mas_writes_generic_runtime_queue": False,
             "mas_submits_runtime_chat": False,

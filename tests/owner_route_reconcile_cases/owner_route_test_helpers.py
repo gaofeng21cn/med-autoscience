@@ -23,7 +23,7 @@ def assert_owner_route_required(
         assert apply_result["reason"] == expected_reason
     assert apply_result["queue_owner"] == "one-person-lab"
     assert apply_result["domain_truth_owner"] == "med-autoscience"
-    assert apply_result["recommended_task_kind"] == "domain_route/owner-handoff"
+    assert apply_result["recommended_task_kind"] == "domain_route/reconcile-apply"
     assert apply_result["authority_boundary"]["mas_writes_generic_runtime_queue"] is False
     assert apply_result["authority_boundary"]["mas_submits_runtime_chat"] is False
     assert apply_result["authority_boundary"]["mas_resumes_provider_worker"] is False
@@ -33,7 +33,7 @@ def assert_owner_route_required(
     handoff = apply_result["opl_runtime_owner_route_handoff"]
     assert handoff["queue_owner"] == "one-person-lab"
     assert handoff["domain_truth_owner"] == "med-autoscience"
-    assert handoff["recommended_task_kind"] == "domain_route/owner-handoff"
+    assert handoff["recommended_task_kind"] == "domain_route/reconcile-apply"
     assert handoff["authority_boundary"]["mas_writes_generic_runtime_queue"] is False
     assert handoff["authority_boundary"]["mas_submits_runtime_chat"] is False
     assert handoff["authority_boundary"]["mas_resumes_provider_worker"] is False

@@ -705,7 +705,7 @@ def test_domain_handler_export_projects_controller_route_back_as_pending_task(
     route_tasks = [
         task
         for task in payload["pending_family_tasks"]
-        if task["task_kind"] == "domain_route/owner-handoff"
+        if task["task_kind"] == "domain_route/reconcile-apply"
     ]
     assert len(route_tasks) == 1
     task = route_tasks[0]
@@ -741,7 +741,7 @@ def test_domain_handler_export_projects_controller_route_back_as_pending_task(
     ]
     evidence_payload = task["domain_dispatch_evidence_record_payload"]
     assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
-    assert evidence_payload["task_kind"] == "domain_route/owner-handoff"
+    assert evidence_payload["task_kind"] == "domain_route/reconcile-apply"
     assert evidence_payload["study_id"] == "002-dm-china-us-mortality-attribution"
     assert evidence_payload["source_fingerprint"] == task["source_fingerprint"]
     assert evidence_payload["domain_source_fingerprint"] == task["source_fingerprint"]
@@ -751,7 +751,7 @@ def test_domain_handler_export_projects_controller_route_back_as_pending_task(
         for key in ("domain_id", "task_kind", "study_id", "source_fingerprint", "profile_name")
     } == {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/owner-handoff",
+        "task_kind": "domain_route/reconcile-apply",
         "study_id": "002-dm-china-us-mortality-attribution",
         "source_fingerprint": task["source_fingerprint"],
         "profile_name": "nfpitnet",
@@ -767,7 +767,7 @@ def test_domain_handler_export_projects_controller_route_back_as_pending_task(
     ] == "matched"
     assert evidence_payload["identity_binding"]["payload_identity"] == {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/owner-handoff",
+        "task_kind": "domain_route/reconcile-apply",
         "study_id": "002-dm-china-us-mortality-attribution",
         "source_fingerprint": task["source_fingerprint"],
         "domain_source_fingerprint": task["source_fingerprint"],

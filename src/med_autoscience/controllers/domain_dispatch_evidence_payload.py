@@ -31,7 +31,7 @@ def build_domain_dispatch_evidence_record_payload(
     stage_attempt_source_fingerprint: str | None = None,
     profile_name: str | None = None,
 ) -> dict[str, Any]:
-    normalized_task_kind = _text(task_kind) or "domain_route/owner-handoff"
+    normalized_task_kind = _text(task_kind) or "domain_route/reconcile-apply"
     normalized_study_id = _text(study_id)
     normalized_stage_id = _text(stage_id)
     normalized_stage_evidence_stage_id = _text(stage_evidence_stage_id) or normalized_stage_id

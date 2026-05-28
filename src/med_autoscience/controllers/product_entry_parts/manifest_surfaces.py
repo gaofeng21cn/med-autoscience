@@ -275,7 +275,7 @@ def build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
         allowed_task_kinds=(
-            "domain_route/owner-handoff",
+            "domain_route/reconcile-apply",
             "paper_autonomy/repair-recheck",
             "paper_autonomy/ai-reviewer-recheck",
             "publication_aftercare/analysis-queue-progress",

@@ -2647,7 +2647,7 @@
         "dispatch_receipt_surface_kind": "mas_family_domain_handler_dispatch_receipt",
         "bridge_policy": "controlled_bridge_to_mas_owner_surface",
         "allowed_task_kinds": [
-          "domain_route/owner-handoff",
+          "domain_route/reconcile-apply",
           "domain_route/retired-runtime-recover",
           "paper_autonomy/retired-continue",
           "safe_reconcile/dry-run",

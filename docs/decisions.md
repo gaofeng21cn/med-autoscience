@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：domain route family task kind 统一为 reconcile-apply
+
+- 决策：MAS 暴露给 OPL family-runtime 的 owner-route bridge task kind 统一为 `domain_route/reconcile-apply`。`domain-handler export`、product-entry manifest、dispatch allowlist、controller owner-route handoff、evidence payload、tests 和 machine-readable lane manifest 必须使用同一 task kind；旧 `domain_route/owner-handoff` 只保留在 history/provenance 材料中，不作为 active dispatch alias。
+- 理由：DM002 暴露出 OPL queue 已按当前 docs/export 使用 `domain_route/reconcile-apply`，但 MAS domain-handler dispatch allowlist 仍只接受旧 `domain_route/owner-handoff`，导致正式 redrive 后返回 `unsupported_task_kind`，论文 owner-route 不能进入 MAS reconcile owner chain。
+- 影响：这是 MAS domain-handler contract/currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。OPL 仍只负责 queue、dispatch transport、retry/dead-letter 和 stage attempt；论文推进仍由 MAS owner/controller/runtime path 产出 owner receipt、typed blocker、AI reviewer eval、publication gate 或 package refresh。
+
 ## 2026-05-28：submission authority note 不属于正文术语扫描面
 
 - 决策：`paper/submission_minimal/manuscript_source.md` 若在 `submission_manifest` 中以 `source_markdown_alias_role=authority_note` 声明为 authority note，publication gate 的 manuscript terminology redline 不能把它当作正文稿件扫描。正文术语扫描继续覆盖 canonical draft、review manuscript、表格正文，以及 `source_markdown_path` 指向的真实 `manuscript_submission.md` 投稿正文。

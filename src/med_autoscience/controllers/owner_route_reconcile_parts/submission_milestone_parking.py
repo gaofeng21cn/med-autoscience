@@ -289,7 +289,7 @@ def refresh_submission_milestone_parking(
         "controller_decision": dict(controller_decision),
         "queue_owner": "one-person-lab",
         "domain_truth_owner": "med-autoscience",
-        "recommended_task_kind": "domain_route/owner-handoff",
+        "recommended_task_kind": "domain_route/reconcile-apply",
         "runtime_owner_handoff": owner_route.get("handoff"),
         "repair_lifecycle": lifecycle,
         "paper_package_mutation_allowed": False,

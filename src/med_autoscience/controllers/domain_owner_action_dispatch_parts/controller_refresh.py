@@ -326,7 +326,7 @@ def _request_runtime_resume(
         "queue_owner": "one-person-lab",
         "delegated_runtime_owner": "one-person-lab",
         "runtime_state_mutated": False,
-        "recommended_task_kind": "domain_route/owner-handoff",
+        "recommended_task_kind": "domain_route/reconcile-apply",
         "runtime_owner_handoff": {
             "surface_kind": "mas_controller_authorization_runtime_handoff",
             "study_id": study_id,
@@ -337,7 +337,7 @@ def _request_runtime_resume(
             "work_unit_fingerprint": _text(authorization.get("work_unit_fingerprint")),
             "queue_owner": "one-person-lab",
             "domain_truth_owner": "med-autoscience",
-            "recommended_task_kind": "domain_route/owner-handoff",
+            "recommended_task_kind": "domain_route/reconcile-apply",
             "authority_boundary": {
                 "mas_writes_generic_runtime_queue": False,
                 "mas_submits_runtime_chat": False,
@@ -372,7 +372,7 @@ def _runtime_owner_prompt_refresh_handoff(
         "reason": "active_codex_prompt_stale_for_current_controller_authorization",
         "queue_owner": "one-person-lab",
         "runtime_state_mutated": False,
-        "recommended_task_kind": "domain_route/owner-handoff",
+        "recommended_task_kind": "domain_route/reconcile-apply",
     }
 
 

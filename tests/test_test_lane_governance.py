@@ -143,7 +143,7 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     assert domain_handler["allowed_bridge_writes"] == [
         "artifacts/runtime/opl_family_domain_handler/dispatch_receipts/*.json",
     ]
-    assert "domain_route/owner-handoff" in domain_handler["allowed_task_kinds"]
+    assert "domain_route/reconcile-apply" in domain_handler["allowed_task_kinds"]
     assert "notification/receipt" in domain_handler["allowed_task_kinds"]
 
     projections = lane["entry_projection_surfaces"]

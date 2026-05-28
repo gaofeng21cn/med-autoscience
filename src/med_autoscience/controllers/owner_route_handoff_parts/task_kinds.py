@@ -14,7 +14,7 @@ FORBIDDEN_PAYLOAD_FLAGS = (
     "memory_write_router_accept",
 )
 ALLOWED_TASK_KINDS = {
-    "domain_route/owner-handoff": "domain_route_owner_handoff",
+    "domain_route/reconcile-apply": "domain_route_owner_handoff",
     "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
     "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/guarded-apply": "paper_autonomy_guarded_apply",

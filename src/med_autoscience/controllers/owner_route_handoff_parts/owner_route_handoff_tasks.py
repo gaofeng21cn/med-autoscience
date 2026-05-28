@@ -22,8 +22,8 @@ def owner_route_handoff_task(
     record = _mapping(study.get("owner_route_handoff"))
     handoff = _mapping(record.get("handoff"))
     if _text(handoff.get("recommended_task_kind")) not in {
-        "domain_route/owner-handoff",
-        "domain_route/owner-handoff",
+        "domain_route/reconcile-apply",
+        "domain_route/reconcile-apply",
     }:
         return None
     reason = _text(handoff.get("reason")) or _text(record.get("source")) or "owner_route_handoff"
@@ -59,7 +59,7 @@ def owner_route_handoff_task(
         }
     )
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_route/owner-handoff",
+        task_kind="domain_route/reconcile-apply",
         study_id=study_id,
         stage_evidence_stage_id=stage_evidence_refs["stage_id"],
         reason=reason,
@@ -72,8 +72,8 @@ def owner_route_handoff_task(
     )
     return {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/owner-handoff",
-        "recommended_task_kind": "domain_route/owner-handoff",
+        "task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "domain_route/reconcile-apply",
         "priority": 55,
         "source": "mas-domain-handler-export",
         "requires_approval": False,
@@ -113,7 +113,7 @@ def _route_transition_contract(*, handoff: Mapping[str, Any]) -> dict[str, Any]:
         "runtime_transition_owner": "one-person-lab",
         "queue_owner": "one-person-lab",
         "domain_truth_owner": "med-autoscience",
-        "task_kind": "domain_route/owner-handoff",
+        "task_kind": "domain_route/reconcile-apply",
         "allowed_payload_refs": [
             "domain_route_ref",
             "owner_route_ref",
