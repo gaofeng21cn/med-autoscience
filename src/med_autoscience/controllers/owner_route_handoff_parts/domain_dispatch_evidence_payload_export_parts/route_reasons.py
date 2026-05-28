@@ -3,12 +3,17 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
+    GATE_CLEARING_ACTION_TYPE,
+    GATE_CLEARING_OWNER,
     OPL_RUNTIME_OWNER_ROUTE_REASON,
     OPL_STAGE_ATTEMPT_ADMISSION_REASON,
+    OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON,
     PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION,
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
+    PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER,
     PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION,
     PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE,
+    PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER,
     PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER,
     PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK,
     RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON,
@@ -36,6 +41,16 @@ def payload_reason_for_superseded_dispatch(
         return PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION
     if (
         action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and runtime_recovery_not_authorized_stage_attempt_blocker_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER
+    if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and owner_authorized_publication_gate_replay_stage_attempt_blocker_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER
+    if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
         and runtime_recovery_retry_budget_terminal_blocker_observed(study_scan)
     ):
         return PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER
@@ -54,6 +69,11 @@ def payload_reason_for_superseded_dispatch(
         and ai_reviewer_currentness_supersession_observed(study_scan)
     ):
         return PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION
+    if (
+        action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
+        and runtime_recovery_not_authorized_stage_attempt_blocker_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER
     if (
         action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
         and runtime_recovery_retry_budget_terminal_blocker_observed(study_scan)
@@ -109,6 +129,60 @@ def ai_reviewer_currentness_supersession_observed(study_scan: Mapping[str, Any])
 
 
 def runtime_recovery_retry_budget_terminal_blocker_observed(study_scan: Mapping[str, Any]) -> bool:
+    return _runtime_stage_attempt_terminal_blocker_observed(
+        study_scan=study_scan,
+        blocked_reason_value=RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON,
+    )
+
+
+def runtime_recovery_not_authorized_stage_attempt_blocker_observed(
+    study_scan: Mapping[str, Any],
+) -> bool:
+    return _runtime_stage_attempt_terminal_blocker_observed(
+        study_scan=study_scan,
+        blocked_reason_value=RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON,
+    )
+
+
+def owner_authorized_publication_gate_replay_stage_attempt_blocker_observed(
+    study_scan: Mapping[str, Any],
+) -> bool:
+    domain_transition = mapping(study_scan.get("domain_transition"))
+    completion = mapping(domain_transition.get("completion_receipt_consumption"))
+    owner_route = mapping(study_scan.get("owner_route"))
+    owner_reason_contract = mapping(owner_route.get("owner_reason_contract"))
+    currentness_contract = mapping(owner_route.get("currentness_contract"))
+    attempt_protocol = mapping(owner_route.get("owner_route_attempt_protocol"))
+    domain_authority_handoff = mapping(study_scan.get("domain_authority_handoff"))
+    typed_blocker = mapping(domain_authority_handoff.get("typed_blocker"))
+    blocked_reason = text(study_scan.get("blocked_reason")) or text(owner_route.get("owner_reason"))
+    return (
+        text(completion.get("status")) == "consumed"
+        and text(completion.get("receipt_kind")) == "ai_reviewer_publication_eval"
+        and text(domain_transition.get("route_target")) == "finalize"
+        and text(domain_transition.get("owner")) == "finalize"
+        and text(domain_transition.get("controller_action")) == "request_opl_stage_attempt"
+        and text(owner_route.get("next_owner")) == "external_supervisor"
+        and blocked_reason == OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON
+        and owner_reason_contract.get("registered") is True
+        and text(owner_reason_contract.get("owner")) == GATE_CLEARING_OWNER
+        and GATE_CLEARING_ACTION_TYPE in set(texts(sequence(owner_reason_contract.get("allowed_actions"))))
+        and currentness_contract.get("missing_required_fields") == []
+        and attempt_protocol.get("dispatchable") is False
+        and text(domain_authority_handoff.get("status")) == "typed_blocker"
+        and text(typed_blocker.get("reason")) == OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON
+        and text(typed_blocker.get("next_owner")) == "external_supervisor"
+    )
+
+
+def _runtime_stage_attempt_terminal_blocker_observed(
+    *,
+    study_scan: Mapping[str, Any],
+    blocked_reason_value: str,
+    next_owner_value: str = "one-person-lab",
+    owner_reason_contract_registered: bool = True,
+    owner_reason_contract_owner: str = "one-person-lab",
+) -> bool:
     domain_transition = mapping(study_scan.get("domain_transition"))
     completion = mapping(domain_transition.get("completion_receipt_consumption"))
     owner_route = mapping(study_scan.get("owner_route"))
@@ -119,13 +193,13 @@ def runtime_recovery_retry_budget_terminal_blocker_observed(study_scan: Mapping[
     return (
         text(completion.get("status")) == "consumed"
         and text(completion.get("receipt_kind")) == "ai_reviewer_publication_eval"
-        and text(domain_transition.get("route_target")) == WRITE_OWNER
-        and text(domain_transition.get("owner")) == WRITE_OWNER
+        and text(domain_transition.get("route_target")) in _stage_attempt_route_targets()
+        and text(domain_transition.get("owner")) in _stage_attempt_route_targets()
         and text(domain_transition.get("controller_action")) == "request_opl_stage_attempt"
-        and text(owner_route.get("next_owner")) == "one-person-lab"
-        and blocked_reason == RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON
-        and owner_reason_contract.get("registered") is True
-        and text(owner_reason_contract.get("owner")) == "one-person-lab"
+        and text(owner_route.get("next_owner")) == next_owner_value
+        and blocked_reason == blocked_reason_value
+        and owner_reason_contract.get("registered") is owner_reason_contract_registered
+        and text(owner_reason_contract.get("owner")) == owner_reason_contract_owner
         and sequence(owner_reason_contract.get("allowed_actions")) == []
         and currentness_contract.get("missing_required_fields") == []
         and attempt_protocol.get("dispatchable") is False
@@ -197,4 +271,11 @@ def _opl_stage_admission_reasons() -> set[str]:
     return {
         OPL_STAGE_ATTEMPT_ADMISSION_REASON,
         RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON,
+    }
+
+
+def _stage_attempt_route_targets() -> set[str]:
+    return {
+        WRITE_OWNER,
+        "finalize",
     }
