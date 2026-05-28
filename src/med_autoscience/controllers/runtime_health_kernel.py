@@ -282,6 +282,17 @@ def _latest_supervisor_state(events: list[dict[str, Any]]) -> tuple[dict[str, An
     }
 
 
+def _provider_recovered_supervisor_tick(payload: Mapping[str, Any]) -> bool:
+    if _first_text(payload.get("supervisor_tick_status"), payload.get("status")) not in {"fresh", "ok"}:
+        return False
+    provider_ready = _bool(payload.get("provider_ready"))
+    worker_ready = _bool(payload.get("worker_ready"))
+    source_current = _bool(payload.get("managed_worker_source_current"))
+    if source_current is None:
+        source_current = _bool(payload.get("worker_source_current"))
+    return provider_ready is True and worker_ready is True and source_current is True
+
+
 def _events_for_budget(
     events: list[dict[str, Any]],
     event_types: Iterable[str],
@@ -790,6 +801,26 @@ def _status_payload_runtime_health_events(
                 sequence=sequence,
             )
         )
+        if _provider_recovered_supervisor_tick(supervisor_payload):
+            sequence += 1
+            events.append(
+                _transient_event(
+                    study_id=study_id,
+                    quest_id=quest_id,
+                    event_type="attempt_released",
+                    payload={
+                        "release_reason": "provider_recovered_after_runtime_retry_exhaustion",
+                        "decision": _text(status_payload.get("decision")),
+                        "reason": _text(status_payload.get("reason")),
+                        "previous_budget_scope": "terminal_runtime_recovery",
+                        "provider_ready": True,
+                        "worker_ready": True,
+                        "managed_worker_source_current": True,
+                    },
+                    recorded_at=recorded_at,
+                    sequence=sequence,
+                )
+            )
 
     launch_payload = _launch_report_event_payload(status_payload)
     if launch_payload:

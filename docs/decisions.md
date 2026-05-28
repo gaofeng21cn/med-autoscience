@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：provider recovered tick 必须释放旧 runtime recovery budget epoch
+
+- 决策：当 runtime health 从当前 status payload 读取到 fresh supervisor tick，且 OPL provider、Temporal worker 与 managed worker source 均为 current/ready 时，MAS runtime-health read-model 必须把该 tick 视为新的 OPL transport recovery epoch boundary。旧 per-study `recover_attempt` 失败计数不得继续把 active study 永久锁在 `runtime_recovery_retry_budget_exhausted` / `runtime_recovery_not_authorized`；后续仍由当前 liveness、owner route、typed blocker 和 MAS gate 判定下一步。
+- 决策：该释放只影响 runtime/transport retry budget，不声明 live run、domain completion、publication readiness、submission readiness 或 package freshness。若 provider recovered 后仍无 live attempt，正确下一步是重新进入 OPL handoff hydration / owner action admission，或产出当前 owner 的 typed blocker。
+- 理由：DM002 暴露出 OPL worker 已重启到当前源码且 provider/scheduler fully ready，但 per-study runtime health 继续按旧历史失败次数投影 `external_supervisor_required`，使 owner-route 变成 `one-person-lab/runtime_recovery_not_authorized` 且 `allowed_actions=[]`。根因是 MAS runtime-health budget epoch 缺少“OPL provider recovered”边界，不是论文 truth、AI reviewer、publication gate 或手工 queue 状态可修补的问题。
+- 影响：这是 MAS runtime-health/read-model 修复，不写 DM002 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 readiness verdict。后续论文推进仍通过 MAS developer-supervisor tick、OPL current_control_state 与 MAS owner/controller path。
+
 ## 2026-05-28：DM002/DM003 real replay 必须以只读 owner-route 证据收口
 
 - 决策：DM002/DM003 的 replay lane 默认执行 `study progress --format json` 与非 `--apply` 的 `domain-health-diagnostic`/owner-route 读面，抽取当前 `intervention_lane`、`next_work_unit`、`dispatch_gate` 与 `allowed_controller_actions` 作为可审计证据；禁止通过 replay lane 写 runtime truth 或手工改写 publication/controller/package 面。

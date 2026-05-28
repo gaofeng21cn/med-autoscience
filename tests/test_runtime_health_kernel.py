@@ -263,6 +263,61 @@ def test_runtime_health_zero_retry_budget_blocks_recover_runtime_even_without_fa
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 
 
+def test_runtime_health_provider_ready_supervisor_tick_starts_new_recovery_budget_epoch(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "002-dm-cvd"
+    for sequence in range(1, 4):
+        module.append_runtime_health_event(
+            study_root=study_root,
+            study_id="002-dm-cvd",
+            quest_id="002-dm-cvd",
+            event_type="recover_attempt",
+            payload={
+                "attempt_state": "failed",
+                "decision": "resume",
+                "reason": "quest_marked_running_but_no_live_session",
+            },
+            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
+        )
+    status_payload = {
+        "study_id": "002-dm-cvd",
+        "study_root": str(study_root),
+        "quest_id": "002-dm-cvd",
+        "quest_status": "active",
+        "decision": "resume",
+        "reason": "quest_marked_running_but_no_live_session",
+        "runtime_liveness_audit": {
+            "status": "none",
+            "runtime_audit": {
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+        "supervisor_tick_audit": {
+            "status": "fresh",
+            "provider_ready": True,
+            "worker_ready": True,
+            "managed_worker_source_current": True,
+        },
+    }
+
+    snapshot = module.derive_runtime_health_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T00:04:00+00:00",
+    )
+
+    assert snapshot["worker_liveness_state"]["state"] == "missing_live_session"
+    assert snapshot["attempt_state"] == "recovering"
+    assert snapshot["canonical_runtime_action"] == "recover_runtime"
+    assert snapshot["retry_budget_remaining"] == 2
+    assert "runtime_recovery_retry_budget_exhausted" not in snapshot["blocking_reasons"]
+    assert "recover_runtime" in snapshot["allowed_controller_actions"]
+
+
 def test_runtime_health_zero_retry_budget_escalates_stopped_controller_guard_recovery_path(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "001-dm-cvd"
