@@ -7,6 +7,7 @@ from med_autoscience.controllers.domain_action_requests import (
     build_ai_reviewer_publication_eval_request,
 )
 from med_autoscience.controllers.domain_action_request_lifecycle import (
+    AI_REVIEWER_REQUIRED_INPUT_SURFACES,
     materialize_ai_reviewer_request,
     project_ai_reviewer_request_lifecycle,
     read_ai_reviewer_request,
@@ -15,6 +16,58 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
 
 def _sha256_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _write_json(path, payload) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_ai_reviewer_request_materialization_rehydrates_missing_required_refs_from_canonical_surfaces(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "002-risk"
+    paper_root = study_root / "paper"
+    (paper_root / "review").mkdir(parents=True)
+    (paper_root / "draft.md").write_text("# Draft\n\nCurrent canonical manuscript.\n", encoding="utf-8")
+    _write_json(paper_root / "evidence_ledger.json", {"schema_version": 1})
+    _write_json(paper_root / "review" / "review_ledger.json", {"schema_version": 1})
+    _write_json(paper_root / "medical_manuscript_blueprint.json", {"schema_version": 1})
+    _write_json(paper_root / "claim_evidence_map.json", {"schema_version": 1})
+    _write_json(study_root / "artifacts" / "controller" / "study_charter.json", {"schema_version": 1})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review.json",
+        {"schema_version": 1},
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"schema_version": 1})
+    packet = build_ai_reviewer_publication_eval_request(
+        study_id="002-risk",
+        quest_id="quest-002",
+        source_surface="legacy_request_surface",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+        },
+        lifecycle_state="assigned",
+        assigned_to="ai_reviewer",
+    )
+
+    materialized = materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    persisted = read_ai_reviewer_request(study_root=study_root)
+
+    assert persisted is not None
+    required_refs = materialized["input_contract"]["required_refs"]
+    assert set(required_refs) == set(AI_REVIEWER_REQUIRED_INPUT_SURFACES)
+    assert materialized["input_contract"]["all_required_refs_present"] is True
+    assert materialized["input_contract"]["missing_or_invalid_refs"] == []
+    assert persisted["input_contract"] == materialized["input_contract"]
+    assert required_refs["manuscript"]["relative_path"] == "paper/draft.md"
+    assert required_refs["evidence_ledger"]["relative_path"] == "paper/evidence_ledger.json"
+    assert required_refs["review_ledger"]["relative_path"] == "paper/review/review_ledger.json"
+    assert required_refs["study_charter"]["relative_path"] == "artifacts/controller/study_charter.json"
+    assert required_refs["medical_prose_review"]["relative_path"] == (
+        "artifacts/publication_eval/medical_prose_review.json"
+    )
 
 
 def test_ai_reviewer_request_lifecycle_keeps_new_request_pending_until_eval_consumes_it(tmp_path) -> None:

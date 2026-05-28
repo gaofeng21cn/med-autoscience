@@ -17,6 +17,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 刷新投稿包后清掉了旧 stale package blocker，但 gate replay 仍剩 `medical_publication_surface_blocked`、`submission_hardening_incomplete` 等 blocker。旧 receipt consumption 把“刷新已执行”误读为整条 gate blocked route 已完成，导致 `allowed_actions=[]`、`next_owner=None`、`blocked_reason=None`，论文推进空转。
 - 影响：这是 MAS owner-route/read-model closure 修复。它只保证 blocked gate 一定回到下一 owner 或 typed blocker，不授权 publication ready、submission ready，也不直接修改 canonical paper、submission package、current package 或 publication eval truth。
 
+## 2026-05-28：AI reviewer request 重物化必须回填 canonical refs 并保留 workflow ref
+
+- 决策：`return_to_ai_reviewer_workflow` request 在 materializer / lifecycle 重新物化时，必须从 canonical paper、controller 和 publication surfaces 回填真实存在的 required input refs，并保留或重建 `source_workflow_ref.next_work_unit` / `route_back_target`。已有 request 的 owner currentness refs 不得被 record-currentness blocker 覆盖；缺失项应进入 `missing_currentness_refs`。
+- 理由：DM002 暴露出旧 AI reviewer request 只携带 study/quest 与 record ref，缺新版 workflow 所需 `manuscript`、`evidence_ledger`、`review_ledger`、`study_charter`、`medical_manuscript_blueprint`、`claim_evidence_map`、`medical_prose_review` 和 `publication_gate_projection` refs，导致正式 default executor 返回 `ai_reviewer_required_refs_missing` typed blocker。根因是 MAS request materializer/lifecycle 没有迁移旧 request contract，而不是论文正文或 OPL queue 可手工修补的问题。
+- 影响：这是 MAS request lifecycle / owner-route currentness 修复，不写 DM002 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍必须由 MAS owner/controller/runtime path 重新 materialize request、dispatch AI reviewer workflow，并由 AI reviewer-backed eval 与 publication gate 判定质量。
+
 ## 2026-05-28：domain-health diagnostic 也必须使用 current domain-transition tick request
 
 - 决策：`domain-health-diagnostic` 构造 outer-loop tick request 时，必须和 controller refresh 一样校验 status `domain_transition` 的 `decision_type`、`route_target`、`next_work_unit.unit_id` 与 controller action。如果 outer-loop tick request 与当前 transition 不一致，必须切换到 `status_domain_transition_tick_request`，避免用旧 write route 覆盖当前 gate replay route。

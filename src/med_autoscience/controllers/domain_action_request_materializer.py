@@ -633,10 +633,74 @@ def _persist_request_packets(request_tasks: list[dict[str, Any]]) -> list[str]:
         if _text(task.get("dispatch_status")) != "applied":
             continue
         packet_path = Path(_mapping(task.get("refs")).get("request_packet_path"))
-        packet = _mapping(task.get("handoff_packet"))
+        packet = _request_packet_for_persistence(task=task, packet_path=packet_path)
         _write_json(packet_path, packet)
         written_files.append(str(packet_path))
     return written_files
+
+
+def _request_packet_for_persistence(
+    *,
+    task: Mapping[str, Any],
+    packet_path: Path,
+) -> dict[str, Any]:
+    packet = _mapping(task.get("handoff_packet"))
+    if _text(task.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return packet
+    action = _mapping(task.get("source_action"))
+    lifecycle = dict(_mapping(packet.get("request_lifecycle")))
+    reason = _text(action.get("reason")) or _text(packet.get("reason"))
+    if reason:
+        lifecycle["blocked_reason"] = reason
+    if stale_record_ref := _text(action.get("stale_record_ref")):
+        lifecycle["stale_record_ref"] = stale_record_ref
+    required_refs = [ref for ref in action.get("required_currentness_refs") or [] if _text(ref)]
+    if required_refs:
+        lifecycle["required_currentness_refs"] = required_refs
+    if source_ref := _text(action.get("source_ref")):
+        lifecycle["source_ref"] = source_ref
+    if lifecycle:
+        packet["request_lifecycle"] = lifecycle
+    source_workflow_ref = _source_workflow_ref_for_ai_reviewer_request(
+        action=action,
+        packet=packet,
+        existing_packet=_read_json_object(packet_path),
+    )
+    if source_workflow_ref:
+        packet["source_workflow_ref"] = source_workflow_ref
+    try:
+        study_root = packet_path.parents[4]
+    except IndexError:
+        return packet
+    return domain_action_request_lifecycle.ai_reviewer_request_with_latest_record(
+        study_root=study_root,
+        packet=packet,
+    )
+
+
+def _source_workflow_ref_for_ai_reviewer_request(
+    *,
+    action: Mapping[str, Any],
+    packet: Mapping[str, Any],
+    existing_packet: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    source_handoff = _mapping(action.get("handoff_packet"))
+    ref = {
+        **_mapping(_mapping(existing_packet).get("source_workflow_ref")),
+        **_mapping(source_handoff.get("source_workflow_ref")),
+        **_mapping(packet.get("source_workflow_ref")),
+    }
+    if next_work_unit := _text(action.get("next_work_unit")):
+        ref["next_work_unit"] = next_work_unit
+    if route_back_target := (
+        _text(action.get("request_owner"))
+        or _text(action.get("recommended_owner"))
+        or _text(action.get("owner"))
+        or _text(_mapping(action.get("owner_route")).get("next_owner"))
+        or _text(packet.get("request_owner"))
+    ):
+        ref["route_back_target"] = route_back_target
+    return ref
 
 
 def _persist_consumer_payload(
