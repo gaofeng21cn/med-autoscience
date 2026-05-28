@@ -12,9 +12,12 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
     PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER,
     PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION,
+    PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_CURRENTNESS,
+    PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_STAGE_ADMISSION,
     PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE,
     PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER,
     PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER,
+    PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_STAGE_ADMISSION,
     PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK,
     RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON,
     RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON,
@@ -39,6 +42,16 @@ def payload_reason_for_superseded_dispatch(
         and consumed_ai_reviewer_routeback_observed(study_scan)
     ):
         return PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION
+    if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and current_ai_reviewer_stage_attempt_admission_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_STAGE_ADMISSION
+    if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and ai_reviewer_currentness_supersession_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_CURRENTNESS
     if (
         action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
         and runtime_recovery_not_authorized_stage_attempt_blocker_observed(study_scan)
@@ -66,6 +79,11 @@ def payload_reason_for_superseded_dispatch(
         return PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK
     if (
         action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
+        and current_ai_reviewer_stage_attempt_admission_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_STAGE_ADMISSION
+    if (
+        action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
         and ai_reviewer_currentness_supersession_observed(study_scan)
     ):
         return PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION
@@ -79,6 +97,11 @@ def payload_reason_for_superseded_dispatch(
         and runtime_recovery_retry_budget_terminal_blocker_observed(study_scan)
     ):
         return PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER
+    if (
+        action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
+        and owner_authorized_publication_gate_replay_stage_attempt_blocker_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER
     if (
         action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
         and publication_gate_route_supersession_observed(study_scan)
@@ -123,8 +146,32 @@ def ai_reviewer_currentness_supersession_observed(study_scan: Mapping[str, Any])
         and text(completion.get("receipt_kind")) == "ai_reviewer_publication_eval"
         and text(domain_transition.get("controller_action")) == SUPPORTED_SUPERSEDED_ACTION_TYPE
         and text(domain_transition.get("owner")) == "ai_reviewer"
-        and text(owner_route.get("next_owner")) == "ai_reviewer"
+        and text(owner_route.get("next_owner")) in _ai_reviewer_currentness_next_owners()
         and blocked_reason == "ai_reviewer_record_stale_after_current_manuscript"
+    )
+
+
+def current_ai_reviewer_stage_attempt_admission_observed(study_scan: Mapping[str, Any]) -> bool:
+    domain_transition = mapping(study_scan.get("domain_transition"))
+    completion = mapping(domain_transition.get("completion_receipt_consumption"))
+    owner_route = mapping(study_scan.get("owner_route"))
+    currentness_contract = mapping(owner_route.get("currentness_contract"))
+    attempt_protocol = mapping(owner_route.get("owner_route_attempt_protocol"))
+    owner_reason_contract = mapping(owner_route.get("owner_reason_contract"))
+    blocked_reason = text(study_scan.get("blocked_reason")) or text(owner_route.get("owner_reason"))
+    return (
+        text(completion.get("status")) == "consumed"
+        and text(completion.get("receipt_kind")) == "ai_reviewer_publication_eval"
+        and text(domain_transition.get("decision_type")) == "ai_reviewer_re_eval"
+        and text(domain_transition.get("route_target")) == "review"
+        and text(domain_transition.get("owner")) == "ai_reviewer"
+        and text(domain_transition.get("controller_action")) == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and text(owner_route.get("next_owner")) == "one-person-lab"
+        and blocked_reason in _opl_stage_admission_reasons()
+        and text(owner_reason_contract.get("owner")) == "one-person-lab"
+        and sequence(owner_reason_contract.get("allowed_actions")) == []
+        and currentness_contract.get("missing_required_fields") == []
+        and attempt_protocol.get("dispatchable") is False
     )
 
 
@@ -278,4 +325,11 @@ def _stage_attempt_route_targets() -> set[str]:
     return {
         WRITE_OWNER,
         "finalize",
+    }
+
+
+def _ai_reviewer_currentness_next_owners() -> set[str]:
+    return {
+        "ai_reviewer",
+        "supervisor_only/live_quality_repair",
     }
