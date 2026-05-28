@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：finalize gate replay 的 route-back currentness 必须保留 gate-clearing owner
+
+- 决策：`route_back_same_line` 的 controller currentness 不能统一物化为 `run_quality_repair_batch`。当当前 domain transition 指向 `route_target=finalize` 且 `next_work_unit.unit_id=owner_authorized_publication_gate_replay` 时，fresh controller decision 与 tick-request match 必须绑定 `run_gate_clearing_batch`；其他 write/story route-back 继续绑定 `run_quality_repair_batch`。
+- 理由：DM003 暴露出当前 controller decision 已经要求 finalize publication gate replay，但 currentness refresh 把所有 `route_back_same_line` 重写成 quality-repair action，导致 runtime 可能把 gate replay 送进 write repair owner 或被旧 write route 抢占。根因是 MAS domain-transition currentness 只看 decision type，不看 route target 与 work unit。
+- 影响：这是 MAS controller currentness / owner-route 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须由 MAS owner/controller/runtime path 重新 materialize gate-clearing route，再按 gate-clearing 结果进入 write repair、AI reviewer recheck、publication gate 或 package refresh。
+
 ## 2026-05-28：quality-repair route admission 以当前上游 work unit 覆盖旧 bundle context
 
 - 决策：`quality_repair_batch` 的 explicit controller route admission 只阻断未注册的 work unit；`PUBLICATION_WORK_UNIT_REPAIR_IDS` 中的 downstream package/delivery work unit 继续交给 authority route gate 判定，而不是提前返回 `controller_route_work_unit_unsupported`。当当前 `publication_eval/latest.json` 显式给出 upstream write work unit，例如 `medical_prose_write_repair`，route merge 必须保留该 upstream route，并以 `paper_write` 执行。

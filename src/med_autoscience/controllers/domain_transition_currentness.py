@@ -33,10 +33,12 @@ def materialize_fresh_domain_transition_controller_decision_if_required(
     transition_unit_id = _text(transition_unit.get("unit_id"))
     transition_action = _text(domain_transition.get("controller_action"))
     transition_type = _text(domain_transition.get("decision_type"))
+    transition_route_target = _text(domain_transition.get("route_target"))
     if not domain_transition_is_materializable(
         transition_action=transition_action,
         transition_type=transition_type,
         transition_unit_id=transition_unit_id,
+        transition_route_target=transition_route_target,
     ):
         return None
     tick_request = outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
@@ -55,6 +57,7 @@ def materialize_fresh_domain_transition_controller_decision_if_required(
         transition_action=transition_action,
         transition_type=transition_type,
         transition_unit_id=transition_unit_id,
+        transition_route_target=transition_route_target,
     ):
         tick_request = status_domain_transition_tick_request(
             study_root=resolved_study_root,
@@ -65,6 +68,7 @@ def materialize_fresh_domain_transition_controller_decision_if_required(
             transition_action=transition_action,
             transition_type=transition_type,
             transition_unit_id=transition_unit_id,
+            transition_route_target=transition_route_target,
         ):
             return None
     currentness_basis = _text(tick_request.get("currentness_basis")) or "outer_loop_tick_request"
@@ -132,10 +136,18 @@ def domain_transition_is_materializable(
     transition_action: str | None,
     transition_type: str | None,
     transition_unit_id: str | None,
+    transition_route_target: str | None = None,
 ) -> bool:
     if transition_unit_id is None:
         return False
-    return bool(_tick_request_spec_for_transition(transition_type=transition_type, transition_action=transition_action))
+    return bool(
+        _tick_request_spec_for_transition(
+            transition_type=transition_type,
+            transition_action=transition_action,
+            transition_unit_id=transition_unit_id,
+            route_target=transition_route_target,
+        )
+    )
 
 
 def status_domain_transition_tick_request(
@@ -223,7 +235,7 @@ def status_domain_transition_route_back_tick_request(
     transition_type = _text(domain_transition.get("decision_type"))
     if (
         transition_type != StudyDecisionType.ROUTE_BACK_SAME_LINE.value
-        or transition_action != StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT.value
+        or transition_action not in _ROUTE_BACK_SAME_LINE_TRANSITION_ACTIONS
         or transition_unit_id is None
     ):
         return None
@@ -234,6 +246,10 @@ def status_domain_transition_route_back_tick_request(
         return None
     reason = _text(transition_unit.get("summary")) or "Run current same-line quality repair for the AI reviewer route-back."
     route_target = _text(domain_transition.get("route_target")) or "write"
+    action_type = _route_back_same_line_action_type(
+        route_target=route_target,
+        transition_unit_id=transition_unit_id,
+    )
     return {
         "study_root": resolved_study_root,
         "charter_ref": charter_ref,
@@ -246,7 +262,7 @@ def status_domain_transition_route_back_tick_request(
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+                "action_type": action_type,
                 "payload_ref": str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
             }
         ],
@@ -312,10 +328,16 @@ def tick_request_matches_domain_transition(
     transition_action: str,
     transition_type: str,
     transition_unit_id: str,
+    transition_route_target: str | None = None,
 ) -> bool:
+    tick_route_target = _text(tick_request.get("route_target"))
+    if transition_route_target is not None and tick_route_target != transition_route_target:
+        return False
     expected_action = _tick_request_spec_for_transition(
         transition_type=transition_type,
         transition_action=transition_action,
+        transition_unit_id=transition_unit_id,
+        route_target=transition_route_target or tick_route_target,
     )
     if expected_action is None:
         return False
@@ -334,12 +356,14 @@ def tick_request_matches_ai_reviewer_domain_transition(
     transition_action: str,
     transition_type: str,
     transition_unit_id: str,
+    transition_route_target: str | None = None,
 ) -> bool:
     return tick_request_matches_domain_transition(
         tick_request=tick_request,
         transition_action=transition_action,
         transition_type=transition_type,
         transition_unit_id=transition_unit_id,
+        transition_route_target=transition_route_target,
     )
 
 
@@ -386,6 +410,8 @@ def _tick_request_spec_for_transition(
     *,
     transition_type: str | None,
     transition_action: str | None,
+    transition_unit_id: str | None = None,
+    route_target: str | None = None,
 ) -> str | None:
     if (
         transition_type == "ai_reviewer_re_eval"
@@ -394,19 +420,37 @@ def _tick_request_spec_for_transition(
         return StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW.value
     if (
         transition_type == StudyDecisionType.ROUTE_BACK_SAME_LINE.value
-        and transition_action
-        in {
-            StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT.value,
-            StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
-        }
+        and transition_action in _ROUTE_BACK_SAME_LINE_TRANSITION_ACTIONS
     ):
-        return StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
+        return _route_back_same_line_action_type(
+            route_target=route_target,
+            transition_unit_id=transition_unit_id,
+        )
     if (
         transition_type == "publication_gate_blocker"
         and transition_action == StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value
     ):
         return StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value
     return None
+
+
+_ROUTE_BACK_SAME_LINE_TRANSITION_ACTIONS = frozenset(
+    {
+        StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT.value,
+        StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value,
+        StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+    }
+)
+
+
+def _route_back_same_line_action_type(
+    *,
+    route_target: str | None,
+    transition_unit_id: str | None,
+) -> str:
+    if route_target == "finalize" and transition_unit_id == "owner_authorized_publication_gate_replay":
+        return StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value
+    return StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
 
 
 def _stable_charter_ref(study_root: Path) -> dict[str, str] | None:
