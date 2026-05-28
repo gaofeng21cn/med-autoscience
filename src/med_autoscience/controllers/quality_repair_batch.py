@@ -22,7 +22,10 @@ from med_autoscience.controllers.quality_repair_batch_parts import writer_handof
 from med_autoscience.controllers.claim_evidence_alignment_work_units import (
     CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_IDS,
 )
-from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_WORK_UNIT_REPAIR_IDS,
+    UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+)
 from med_autoscience.controllers.authority_route_gate import assert_authority_route_authorized
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
     _load_controller_decision_authorization_context,
@@ -40,6 +43,7 @@ _QUALITY_REPAIR_LANES = frozenset({"general_quality_repair", "quality_floor_bloc
 _ANALYSIS_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
 _ANALYSIS_REPAIR_ROUTE_TARGET = "analysis-campaign"
 _ANALYSIS_REPAIR_ACTION = StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
+_QUALITY_REPAIR_BATCH_ALLOWED_WORK_UNIT_IDS = frozenset(PUBLICATION_WORK_UNIT_REPAIR_IDS)
 
 
 def stable_quality_repair_batch_path(*, study_root: Path) -> Path:
@@ -439,7 +443,7 @@ def _upstream_repair_specificity_targets(publication_eval_payload: Mapping[str, 
 def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any] | None:
     return upstream_route_context.merge_route_contexts(
         *contexts,
-        preferred_controller_work_unit_ids=CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_IDS,
+        preferred_controller_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
         non_empty_text=_non_empty_text,
     )
 
@@ -768,6 +772,7 @@ def run_quality_repair_batch(
         source_summary_artifact_path=source_summary_artifact_path,
         route_context=resolved_route_context or {},
         upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+        allowed_work_unit_ids=_QUALITY_REPAIR_BATCH_ALLOWED_WORK_UNIT_IDS,
         non_empty_text=_non_empty_text,
     )
     if unsupported_route_record is not None:

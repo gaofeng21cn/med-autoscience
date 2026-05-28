@@ -129,14 +129,10 @@ def route_action_for_controller_context(
     upstream_work_unit_ids: frozenset[str],
     non_empty_text,
 ) -> str:
-    controller_route_context = (
-        route_context.get("controller_route_context")
-        if isinstance(route_context, Mapping)
-        else None
-    )
-    if not isinstance(controller_route_context, Mapping):
+    work_unit_id = route_context_work_unit_id(route_context, non_empty_text=non_empty_text)
+    if work_unit_id is None:
         return "bundle_build"
-    if non_empty_text(controller_route_context.get("work_unit_id")) in upstream_work_unit_ids:
+    if work_unit_id in upstream_work_unit_ids:
         return "paper_write"
     return "bundle_build"
 
@@ -152,12 +148,13 @@ def unsupported_explicit_controller_route_record(
     source_summary_artifact_path: str,
     route_context: Mapping[str, Any],
     upstream_work_unit_ids: frozenset[str],
+    allowed_work_unit_ids: frozenset[str] | None = None,
     non_empty_text,
 ) -> dict[str, Any] | None:
     if not has_explicit_controller_route_context(route_context):
         return None
     work_unit_id = route_context_work_unit_id(route_context, non_empty_text=non_empty_text)
-    if work_unit_id in upstream_work_unit_ids:
+    if work_unit_id in (allowed_work_unit_ids or upstream_work_unit_ids):
         return None
     return {
         "schema_version": schema_version,

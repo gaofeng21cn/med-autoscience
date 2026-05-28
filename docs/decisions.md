@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：quality-repair route admission 以当前上游 work unit 覆盖旧 bundle context
+
+- 决策：`quality_repair_batch` 的 explicit controller route admission 只阻断未注册的 work unit；`PUBLICATION_WORK_UNIT_REPAIR_IDS` 中的 downstream package/delivery work unit 继续交给 authority route gate 判定，而不是提前返回 `controller_route_work_unit_unsupported`。当当前 `publication_eval/latest.json` 显式给出 upstream write work unit，例如 `medical_prose_write_repair`，route merge 必须保留该 upstream route，并以 `paper_write` 执行。
+- 理由：DM003 暴露出合法的 `submission_minimal_refresh` 被 quality repair 的 upstream-only unsupported check 提前拦截，同时当前 AI reviewer-backed `medical_prose_write_repair` 可能被 stale bundle route context 覆盖，导致 `run_quality_repair_batch` 停在 `controller_route_work_unit_unsupported` 或 `bundle_build` authority blocker，而不是进入 write owner 产出 canonical manuscript delta 或 typed blocker。
+- 影响：这是 MAS quality-repair / authority-route contract 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须由 MAS owner/controller/runtime path 重新 dispatch `run_quality_repair_batch`、消费 write repair、再进入 AI reviewer recheck 和 publication gate。
+
 ## 2026-05-28：gate-clearing write follow-through 优先于旧 gate replay transition
 
 - 决策：`owner-route-reconcile` 的 action projection 在发现已执行的 `gate_clearing_batch/latest.json` 通过 `current_publication_work_unit.lane=write` 给出当前 write follow-through 时，必须先投递 `write/run_quality_repair_batch`，再考虑旧 `domain_transition` 的 `owner_authorized_publication_gate_replay` 回放。旧 `run_gate_clearing_batch` execution receipt 只能消费同一个 gate replay work unit，不能清空 gate replay 之后产生的 write work unit。
