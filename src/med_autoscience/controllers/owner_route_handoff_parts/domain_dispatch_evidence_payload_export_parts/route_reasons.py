@@ -205,6 +205,7 @@ def runtime_recovery_not_authorized_stage_attempt_blocker_observed(
 def current_owner_route_typed_blocker_observed(
     study_scan: Mapping[str, Any],
 ) -> bool:
+    domain_transition = mapping(study_scan.get("domain_transition"))
     owner_route = mapping(study_scan.get("owner_route"))
     owner_reason_contract = mapping(owner_route.get("owner_reason_contract"))
     currentness_contract = mapping(owner_route.get("currentness_contract"))
@@ -215,7 +216,8 @@ def current_owner_route_typed_blocker_observed(
     next_owner = text(owner_route.get("next_owner"))
     owner_reason = text(owner_route.get("owner_reason"))
     return (
-        blocked_reason is not None
+        not domain_transition
+        and blocked_reason is not None
         and owner_reason == blocked_reason
         and next_owner is not None
         and owner_reason_contract.get("registered") is True
