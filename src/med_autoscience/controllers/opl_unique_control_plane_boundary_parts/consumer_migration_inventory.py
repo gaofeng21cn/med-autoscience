@@ -434,13 +434,13 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                 "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
                 "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
             ],
-            "workspace_carrier_boundary": {
+            "read_model_materializer_boundary": {
                 "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
                 "physical_module": (
                     "src/med_autoscience/controllers/progress_portal_parts/"
-                    "workspace_carrier.py"
+                    "read_model_materializer.py"
                 ),
-                "carrier_scope": (
+                "materializer_scope": (
                     "domain_owned_payload_html_and_hosted_package_projection"
                 ),
                 "active_callers": [],

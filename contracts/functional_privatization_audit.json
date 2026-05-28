@@ -327,7 +327,7 @@
             "functional_consumer_boundary.standard_agent_purity",
             "opl_unique_control_plane_handoff.standard_agent_purity",
             "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_cutover_guard",
-            "progress_portal_parts.workspace_carrier.hosted_runtime_carrier_contract"
+            "progress_portal_parts.read_model_materializer.read_model_materializer_boundary"
           ],
           "closure_status": "closed",
           "delete_or_tombstone_after": [
@@ -378,7 +378,7 @@
           "closure_proof_refs": [
             "functional_module_inventory.domain_authority_refs",
             "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
-            "workbench_portal_generic_shell.workspace_carrier_boundary"
+            "workbench_portal_generic_shell.read_model_materializer_boundary"
           ],
           "closure_status": "closed",
           "delete_or_tombstone_after": [
@@ -941,23 +941,8 @@
             "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
             "src/med_autoscience/controllers/product_entry_parts/attention_projection.py"
           ],
-          "retired_combined_portal_runtime_soak_provenance": {
-            "does_not_claim_active_entry": true,
-            "does_not_touch_publication_or_package_authority": true,
-            "domain_ref_consumer_count": 0,
-            "replacement_owner": "one-person-lab",
-            "replacement_surface": "opl_current_control_state_or_app_workbench_soak",
-            "retired_paths": [
-              "retired_combined_portal_runtime_soak_entry_removed_no_alias",
-              "retired_combined_portal_runtime_soak_parts_removed_no_alias"
-            ],
-            "scope": "retired_read_model_evidence_shell_provenance",
-            "status": "physically_retired_no_alias"
-          },
-          "status": "opl_hosted_workbench_projection_and_read_model_materializer_landed",
-          "workspace_carrier_boundary": {
+          "read_model_materializer_boundary": {
             "active_callers": [],
-            "carrier_scope": "domain_owned_payload_html_and_hosted_package_projection",
             "does_not_claim": [
               "workspace_workbench_owner",
               "status_wrapper_owner",
@@ -973,7 +958,8 @@
               "runtime_state"
             ],
             "domain_repo_physical_delete_authorized": false,
-            "physical_module": "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py",
+            "materializer_scope": "domain_owned_payload_html_and_hosted_package_projection",
+            "physical_module": "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py",
             "retention_reason": "The retained module materializes MAS-owned read-model evidence and hosted package refs; it is not a workspace helper, service wrapper, or runtime control owner.",
             "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
             "writes_only": [
@@ -983,7 +969,21 @@
               "ops/mas/progress/index.html",
               "ops/mas/progress/studies/<study_id>/index.html"
             ]
-          }
+          },
+          "retired_combined_portal_runtime_soak_provenance": {
+            "does_not_claim_active_entry": true,
+            "does_not_touch_publication_or_package_authority": true,
+            "domain_ref_consumer_count": 0,
+            "replacement_owner": "one-person-lab",
+            "replacement_surface": "opl_current_control_state_or_app_workbench_soak",
+            "retired_paths": [
+              "retired_combined_portal_runtime_soak_entry_removed_no_alias",
+              "retired_combined_portal_runtime_soak_parts_removed_no_alias"
+            ],
+            "scope": "retired_read_model_evidence_shell_provenance",
+            "status": "physically_retired_no_alias"
+          },
+          "status": "opl_hosted_workbench_projection_and_read_model_materializer_landed"
         },
         "mas_domain_authority_refs": [
           "study_progress_projection",
@@ -1652,7 +1652,7 @@
         {
           "current_paths": [
             "src/med_autoscience/controllers/progress_portal.py",
-            "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py",
+            "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py",
             "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/"
           ],
           "current_role": "domain_refs_workbench_projection_source",
@@ -2327,7 +2327,7 @@
           "functional_consumer_boundary.standard_agent_purity",
           "opl_unique_control_plane_handoff.standard_agent_purity",
           "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_cutover_guard",
-          "progress_portal_parts.workspace_carrier.hosted_runtime_carrier_contract"
+          "progress_portal_parts.read_model_materializer.read_model_materializer_boundary"
         ],
         "closure_status": "closed",
         "delete_or_tombstone_after": [
@@ -2378,7 +2378,7 @@
         "closure_proof_refs": [
           "functional_module_inventory.domain_authority_refs",
           "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
-          "workbench_portal_generic_shell.workspace_carrier_boundary"
+          "workbench_portal_generic_shell.read_model_materializer_boundary"
         ],
         "closure_status": "closed",
         "delete_or_tombstone_after": [

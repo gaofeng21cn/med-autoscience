@@ -37,7 +37,7 @@ Related contracts: `live-console-parity`, `mds_behavior_equivalence_matrix`
 
 - `src/med_autoscience/controllers/progress_portal.py` 能生成 `ops/mas/progress/index.html` 和 payload，默认 workspace overview 下会解析 cockpit studies，并选择一个 active study 或 `workspace-overview`。
 - `progress_portal_parts/workspace_overview.py` 已生成 study table，包含 `study_id`、状态、`active_run_id`、runtime health、supervisor、freshness、paper/current stage、焦点/下一步。
-- `progress_portal_parts/workspace_carrier.py` 只作为 read-model materializer 写 `artifacts/runtime/progress_portal/*` 与 `ops/mas/progress/*` display/read-model evidence；hosted package 暴露 `mas_progress_portal_read_model_materializer_boundary`，active callers 为空。
+- `progress_portal_parts/read_model_materializer.py` 只作为 read-model materializer 写 `artifacts/runtime/progress_portal/*` 与 `ops/mas/progress/*` display/read-model evidence；hosted package 暴露 `read_model_materializer_boundary` / `mas_progress_portal_read_model_materializer_boundary`，旧 `workspace_carrier.py` 模块已物理退役且无 alias。
 - `progress_portal_parts/study_workbench.py`、`route_decision_trail.py` 和 `route_map.py` 提供 per-study workbench、route-decision trail 与路线地图 read-only projection，不重新解释 study truth、runtime truth 或 medical quality。
 - MAS private Live Console / conversation/session read model / terminal attach gate 已从当前控制面物理退役；terminal/log/provider drilldown 归 OPL `current_control_state`。
 

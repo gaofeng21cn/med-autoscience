@@ -38,7 +38,7 @@ from med_autoscience.controllers.progress_portal_parts.payload_helpers import (
     _utc_now,
     _valid_user_visible_projection,
 )
-from med_autoscience.controllers.progress_portal_parts import workspace_carrier
+from med_autoscience.controllers.progress_portal_parts import read_model_materializer
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -46,11 +46,15 @@ SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_progress_portal"
 HOSTED_PACKAGE_SURFACE_KIND = "mas_progress_portal_hosted_package"
 BRAND = "Med Auto Science"
-PROGRESS_PORTAL_PAYLOAD_REF = workspace_carrier.PROGRESS_PORTAL_PAYLOAD_REF
-PROGRESS_PORTAL_HTML_REF = workspace_carrier.PROGRESS_PORTAL_HTML_REF
-PROGRESS_PORTAL_HOSTED_PACKAGE_REF = workspace_carrier.PROGRESS_PORTAL_HOSTED_PACKAGE_REF
-PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = workspace_carrier.PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE
-PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE = workspace_carrier.PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE
+PROGRESS_PORTAL_PAYLOAD_REF = read_model_materializer.PROGRESS_PORTAL_PAYLOAD_REF
+PROGRESS_PORTAL_HTML_REF = read_model_materializer.PROGRESS_PORTAL_HTML_REF
+PROGRESS_PORTAL_HOSTED_PACKAGE_REF = read_model_materializer.PROGRESS_PORTAL_HOSTED_PACKAGE_REF
+PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = (
+    read_model_materializer.PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE
+)
+PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE = (
+    read_model_materializer.PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE
+)
 
 
 def build_progress_portal_payload(
@@ -369,7 +373,7 @@ def materialize_progress_portal(
     open_browser: bool = False,
     auto_refresh_seconds: int | None = None,
 ) -> dict[str, Any]:
-    return workspace_carrier.materialize_progress_portal(
+    return read_model_materializer.materialize_progress_portal(
         profile=profile,
         build_payload=build_progress_portal_payload,
         render_html=render_progress_portal_html,
@@ -401,7 +405,7 @@ def build_progress_portal_hosted_package(
     profile_ref: str | Path | None = None,
     study_pages: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    return workspace_carrier.build_progress_portal_hosted_package(
+    return read_model_materializer.build_progress_portal_hosted_package(
         profile=profile,
         payload=payload,
         payload_path=payload_path,

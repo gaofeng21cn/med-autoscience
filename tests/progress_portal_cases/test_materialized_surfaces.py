@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+import pytest
 
 from tests.study_runtime_test_helpers import make_profile, write_text
 from tests.test_progress_portal import _progress_payload
@@ -74,41 +75,33 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
         "opl_hosted_workbench_consumer": "OPL App/workbench consumes MAS progress payload refs",
         "progress_payload_ref": "artifacts/runtime/progress_portal/latest.json",
     }
-    carrier = hosted_package["hosted_runtime_carrier_contract"]
-    assert carrier["surface_kind"] == "mas_progress_portal_read_model_materializer_boundary"
-    assert carrier["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
-    assert carrier["physical_module"] == (
-        "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
+    assert "hosted_runtime_carrier_contract" not in hosted_package
+    materializer = hosted_package["read_model_materializer_boundary"]
+    assert materializer["surface_kind"] == "mas_progress_portal_read_model_materializer_boundary"
+    assert materializer["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
+    assert materializer["physical_module"] == (
+        "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py"
     )
-    assert carrier["carrier_scope"] == (
+    assert materializer["materializer_scope"] == (
         "domain_owned_payload_html_and_hosted_package_projection"
     )
-    assert carrier["active_callers"] == []
-    assert carrier["domain_repo_physical_delete_authorized"] is False
-    assert carrier["writes_only"] == [
+    assert materializer["active_callers"] == []
+    assert materializer["domain_repo_physical_delete_authorized"] is False
+    assert materializer["writes_only"] == [
         "artifacts/runtime/progress_portal/latest.json",
         "artifacts/runtime/progress_portal/hosted_package.json",
         "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
         "ops/mas/progress/index.html",
         "ops/mas/progress/studies/<study_id>/index.html",
     ]
-    assert "runtime_control_owner" in carrier["does_not_claim"]
-    assert "read-model materializer" in carrier["retention_reason"]
-    assert "MDS WebUI state" in hosted_package["hosted_runtime_carrier_contract"]["must_not_consume"]
-    assert "publication_eval/latest.json" in hosted_package["hosted_runtime_carrier_contract"]["must_not_write"]
-    carrier = hosted_package["hosted_runtime_carrier_contract"]
-    assert carrier["surface_kind"] == "mas_progress_portal_read_model_materializer_boundary"
-    assert carrier["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
-    assert carrier["physical_module"] == (
-        "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
-    )
-    assert carrier["carrier_scope"] == (
-        "domain_owned_payload_html_and_hosted_package_projection"
-    )
-    assert carrier["domain_repo_physical_delete_authorized"] is False
-    assert carrier["active_callers"] == []
-    assert "local_http_service_owner" in carrier["does_not_claim"]
-    assert carrier["writes_only"] == [
+    assert "runtime_control_owner" in materializer["does_not_claim"]
+    assert "read-model materializer" in materializer["retention_reason"]
+    assert "MDS WebUI state" in materializer["must_not_consume"]
+    assert "publication_eval/latest.json" in materializer["must_not_write"]
+    assert materializer["surface_kind"] == "mas_progress_portal_read_model_materializer_boundary"
+    assert materializer["domain_repo_physical_delete_authorized"] is False
+    assert "local_http_service_owner" in materializer["does_not_claim"]
+    assert materializer["writes_only"] == [
         "artifacts/runtime/progress_portal/latest.json",
         "artifacts/runtime/progress_portal/hosted_package.json",
         "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
@@ -453,10 +446,12 @@ def test_materialized_study_page_fails_closed_when_paper_line_workspace_proof_re
 
 def test_materialize_progress_portal_can_open_static_entry(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
-    carrier_module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.workspace_carrier")
+    materializer_module = importlib.import_module(
+        "med_autoscience.controllers.progress_portal_parts.read_model_materializer"
+    )
     profile = make_profile(tmp_path)
     opened: list[str] = []
-    monkeypatch.setattr(carrier_module.webbrowser, "open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(materializer_module.webbrowser, "open", lambda url: opened.append(url) or True)
 
     result = module.materialize_progress_portal(
         profile=profile,
@@ -471,7 +466,14 @@ def test_materialize_progress_portal_can_open_static_entry(monkeypatch, tmp_path
 
 def test_progress_portal_has_no_repo_local_http_service_entry(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
-    carrier_module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.workspace_carrier")
+    materializer_module = importlib.import_module(
+        "med_autoscience.controllers.progress_portal_parts.read_model_materializer"
+    )
 
     assert not hasattr(module, "serve_progress_portal")
-    assert not hasattr(carrier_module, "serve_progress_portal")
+    assert not hasattr(materializer_module, "serve_progress_portal")
+
+
+def test_progress_portal_workspace_carrier_module_is_retired() -> None:
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("med_autoscience.controllers.progress_portal_parts.workspace_carrier")

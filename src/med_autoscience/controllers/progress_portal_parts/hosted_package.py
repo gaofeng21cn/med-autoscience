@@ -76,14 +76,14 @@ def build_progress_portal_hosted_package(
             "opl_hosted_workbench_consumer": "OPL App/workbench consumes MAS progress payload refs",
             "progress_payload_ref": progress_payload_ref,
         },
-        "hosted_runtime_carrier_contract": {
+        "read_model_materializer_boundary": {
             "surface_kind": "mas_progress_portal_read_model_materializer_boundary",
             "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
-            "carrier_owner": "MedAutoScience",
-            "carrier_scope": "domain_owned_payload_html_and_hosted_package_projection",
+            "materializer_owner": "MedAutoScience",
+            "materializer_scope": "domain_owned_payload_html_and_hosted_package_projection",
             "physical_module": (
                 "src/med_autoscience/controllers/progress_portal_parts/"
-                "workspace_carrier.py"
+                "read_model_materializer.py"
             ),
             "active_callers": [],
             "does_not_claim": [

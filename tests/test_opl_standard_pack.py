@@ -406,23 +406,24 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert workbench_thinning["status"] == (
         "opl_hosted_workbench_projection_and_read_model_materializer_landed"
     )
-    carrier_boundary = workbench_thinning["workspace_carrier_boundary"]
-    assert carrier_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
-    assert carrier_boundary["physical_module"] == (
-        "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
+    materializer_boundary = workbench_thinning["read_model_materializer_boundary"]
+    assert materializer_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
+    assert materializer_boundary["physical_module"] == (
+        "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py"
     )
-    assert carrier_boundary["active_callers"] == []
-    assert carrier_boundary["domain_repo_physical_delete_authorized"] is False
-    assert "local_http_service_owner" in carrier_boundary["does_not_claim"]
-    assert "runtime_control_owner" in carrier_boundary["does_not_claim"]
-    assert carrier_boundary["writes_only"] == [
+    assert materializer_boundary["active_callers"] == []
+    assert materializer_boundary["domain_repo_physical_delete_authorized"] is False
+    assert "local_http_service_owner" in materializer_boundary["does_not_claim"]
+    assert "runtime_control_owner" in materializer_boundary["does_not_claim"]
+    assert materializer_boundary["writes_only"] == [
         "artifacts/runtime/progress_portal/latest.json",
         "artifacts/runtime/progress_portal/hosted_package.json",
         "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
         "ops/mas/progress/index.html",
         "ops/mas/progress/studies/<study_id>/index.html",
     ]
-    assert "current_package" in carrier_boundary["does_not_write"]
+    assert "current_package" in materializer_boundary["does_not_write"]
+    assert "workspace_carrier_boundary" not in workbench_thinning
     followthrough = functional_boundary["functional_followthrough_gap_summary"]
     assert "standard_agent_purity_guard" not in followthrough[
         "remaining_functional_followthrough_gate_ids"

@@ -79,7 +79,7 @@ def build_generated_surface_handoff(
                     "src/med_autoscience/controllers/progress_portal.py",
                     (
                         "src/med_autoscience/controllers/progress_portal_parts/"
-                        "workspace_carrier.py"
+                        "read_model_materializer.py"
                     ),
                     "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
                 ],

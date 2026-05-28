@@ -459,15 +459,16 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert workbench_thinning["status"] == (
         "opl_hosted_workbench_projection_and_read_model_materializer_landed"
     )
-    carrier_boundary = workbench_thinning["workspace_carrier_boundary"]
-    assert carrier_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
-    assert carrier_boundary["physical_module"] == (
-        "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
+    materializer_boundary = workbench_thinning["read_model_materializer_boundary"]
+    assert materializer_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
+    assert materializer_boundary["physical_module"] == (
+        "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py"
     )
-    assert carrier_boundary["domain_repo_physical_delete_authorized"] is False
-    assert carrier_boundary["active_callers"] == []
-    assert "runtime_control_owner" in carrier_boundary["does_not_claim"]
-    assert "read-model evidence" in carrier_boundary["retention_reason"]
+    assert materializer_boundary["domain_repo_physical_delete_authorized"] is False
+    assert materializer_boundary["active_callers"] == []
+    assert "runtime_control_owner" in materializer_boundary["does_not_claim"]
+    assert "read-model evidence" in materializer_boundary["retention_reason"]
+    assert "workspace_carrier_boundary" not in workbench_thinning
 
     summary = runtime_boundary["functional_module_inventory_summary"]
     assert summary["classification_counts"] == {

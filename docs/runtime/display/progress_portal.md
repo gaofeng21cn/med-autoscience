@@ -292,7 +292,7 @@ Portal 刷新只允许写 display/read-model evidence：`artifacts/runtime/progr
 当前实现写集：
 
 - `src/med_autoscience/controllers/progress_portal.py`
-- `src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py` 只作为 read-model materializer
+- `src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py` 只作为 read-model materializer；旧 `workspace_carrier.py` 模块已物理退役且无 alias
 - `artifacts/runtime/progress_portal/hosted_package.json` MAS-owned hosted packaging manifest
 - `ops/mas/progress/index.html` 与 per-study HTML 作为静态 evidence 输出
 - `tests/test_progress_portal.py`

@@ -63,7 +63,7 @@ from .workspace_summary import (
     workspace_quality_paragraphs,
     workspace_status_paragraphs,
 )
-from . import workspace_carrier
+from . import read_model_materializer
 
 __all__ = [
     "ARTIFACT_GROUPS",
@@ -105,7 +105,7 @@ __all__ = [
     "unique_text",
     "valid_timezone_name",
     "workspace_alert_projection",
-    "workspace_carrier",
+    "read_model_materializer",
     "workspace_delivery_paragraphs",
     "workspace_next_step_paragraphs",
     "workspace_quality_paragraphs",
