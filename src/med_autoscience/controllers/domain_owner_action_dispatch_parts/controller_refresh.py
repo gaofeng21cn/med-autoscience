@@ -196,6 +196,7 @@ def _tick_request_matches_status_transition(
         transition_action=str(fallback_transition.get("controller_action") or "").strip(),
         transition_type=str(fallback_transition.get("decision_type") or "").strip(),
         transition_unit_id=str(fallback_transition_unit.get("unit_id") or "").strip(),
+        transition_route_target=str(fallback_transition.get("route_target") or "").strip() or None,
     )
 
 
