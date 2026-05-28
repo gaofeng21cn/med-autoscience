@@ -128,6 +128,118 @@ def test_execute_quality_repair_batch_from_persisted_dispatch_and_owner_request(
     assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 
+def test_execute_quality_repair_batch_restores_work_unit_from_owner_route_source_refs_when_action_is_sparse(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    quest_root = profile.runtime_root / f"quest-{study_id}"
+    quest_root.mkdir(parents=True, exist_ok=True)
+    source_eval_id = "publication-eval::dm003::current-manuscript"
+    work_unit_fingerprint = "gate-replay-route-back::write::publication-blockers::5d99b7c4019bd601"
+    route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
+    route.update(
+        {
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "idempotency_key": "owner-route::dm003::write::story-surface-delta-missing",
+            "currentness_contract": {
+                "status": "currentness_basis_required",
+                "basis": {
+                    "source_eval_id": source_eval_id,
+                    "work_unit_id": "manuscript_story_repair",
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "truth_epoch": "truth-event-000008",
+                    "runtime_health_epoch": "runtime-health-event-006109",
+                    "owner_reason": "manuscript_story_surface_delta_missing",
+                },
+            },
+            "source_refs": {
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "manuscript_story_repair",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "owner_route_currentness_basis": {
+                    "source_eval_id": source_eval_id,
+                    "work_unit_id": "manuscript_story_repair",
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "truth_epoch": "truth-event-000008",
+                    "runtime_health_epoch": "runtime-health-event-006109",
+                    "owner_reason": "manuscript_story_surface_delta_missing",
+                },
+            },
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=route,
+    )
+    dispatch_payload["source_action"] = {
+        "action_type": "run_quality_repair_batch",
+        "route_target": "write",
+        "source_eval_id": source_eval_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+    }
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
+    called: dict[str, object] = {}
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fake_run_quality_repair_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    route_context = called["authority_route_context"]
+    assert route_context["work_unit_id"] == "manuscript_story_repair"
+    assert route_context["controller_route_context"] == {
+        "control_surface": "quality_repair_batch",
+        "controller_action_type": "run_quality_repair_batch",
+        "work_unit_id": "manuscript_story_repair",
+        "requires_human_confirmation": False,
+        "source_eval_id": source_eval_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+    }
+    assert route_context["current_owner_route"]["source_refs"]["work_unit_id"] == "manuscript_story_repair"
+
+
 @pytest.mark.parametrize(
     ("failure_signature", "idempotency_key", "string_work_unit_payload"),
     (
