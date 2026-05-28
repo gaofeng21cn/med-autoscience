@@ -396,6 +396,24 @@ def test_ai_reviewer_publication_eval_materializer_writes_review_backed_latest(t
     )
 
 
+def test_ai_reviewer_publication_eval_materializer_promotes_current_manuscript_record(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
+    payload["assessment_provenance"]["source_kind"] = "publication_eval_ai_reviewer_current_manuscript_record"
+
+    result = module.materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=payload)
+
+    assert result["eval_id"] == payload["eval_id"]
+    resolved = module.read_publication_eval_latest(study_root=study_root)
+    assert resolved["assessment_provenance"]["owner"] == "ai_reviewer"
+    assert resolved["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer"
+
+
 def test_ai_reviewer_publication_eval_materializer_rejects_missing_reviewer_os_trace(
     tmp_path: Path,
 ) -> None:
@@ -494,6 +512,45 @@ def test_ai_reviewer_publication_eval_controller_materializes_runtime_checked_la
     record_ref = Path(result["publication_eval_record_ref"])
     assert record_ref.name == "20260405T060000Z_publication_eval_record.json"
     assert record_ref.parent == (study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses").resolve()
+    archived = json.loads(record_ref.read_text(encoding="utf-8"))
+    assert archived == latest
+
+
+def test_ai_reviewer_publication_eval_controller_promotes_current_manuscript_record(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
+    payload["assessment_provenance"]["source_kind"] = "publication_eval_ai_reviewer_current_manuscript_record"
+
+    monkeypatch.setattr(
+        controller.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+        },
+    )
+
+    result = controller.materialize_ai_reviewer_publication_eval(
+        profile=SimpleNamespace(name="nfpitnet"),
+        study_id="001-risk",
+        study_root=None,
+        entry_mode=None,
+        record=payload,
+        source="pytest",
+    )
+
+    assert result["status"] == "materialized"
+    latest = importlib.import_module(MODULE_NAME).read_publication_eval_latest(study_root=study_root)
+    assert latest["eval_id"] == payload["eval_id"]
+    assert latest["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer"
+    record_ref = Path(result["publication_eval_record_ref"])
     archived = json.loads(record_ref.read_text(encoding="utf-8"))
     assert archived == latest
 

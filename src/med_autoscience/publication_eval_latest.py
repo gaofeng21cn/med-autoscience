@@ -10,6 +10,7 @@ from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_op
 
 __all__ = [
     "STABLE_PUBLICATION_EVAL_LATEST_RELATIVE_PATH",
+    "canonicalize_ai_reviewer_publication_eval_record",
     "materialize_ai_reviewer_publication_eval_latest",
     "materialize_publication_eval_latest",
     "read_publication_eval_latest",
@@ -19,6 +20,13 @@ __all__ = [
 
 
 STABLE_PUBLICATION_EVAL_LATEST_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
+AI_REVIEWER_PUBLICATION_EVAL_SOURCE_KIND = "publication_eval_ai_reviewer"
+AI_REVIEWER_PROMOTABLE_SOURCE_KINDS = frozenset(
+    {
+        AI_REVIEWER_PUBLICATION_EVAL_SOURCE_KIND,
+        "publication_eval_ai_reviewer_current_manuscript_record",
+    }
+)
 
 
 def stable_publication_eval_latest_path(*, study_root: Path) -> Path:
@@ -82,6 +90,15 @@ def materialize_ai_reviewer_publication_eval_latest(
     study_root: Path,
     record: PublicationEvalRecord | dict[str, Any],
 ) -> dict[str, str]:
+    return materialize_publication_eval_latest(
+        study_root=study_root,
+        record=canonicalize_ai_reviewer_publication_eval_record(record),
+    )
+
+
+def canonicalize_ai_reviewer_publication_eval_record(
+    record: PublicationEvalRecord | dict[str, Any],
+) -> PublicationEvalRecord:
     normalized_record = (
         record
         if isinstance(record, PublicationEvalRecord)
@@ -91,7 +108,7 @@ def materialize_ai_reviewer_publication_eval_latest(
     provenance = payload["assessment_provenance"]
     if provenance["owner"] != "ai_reviewer":
         raise ValueError("AI reviewer publication eval must declare assessment_provenance.owner=ai_reviewer")
-    if provenance["source_kind"] != "publication_eval_ai_reviewer":
+    if provenance["source_kind"] not in AI_REVIEWER_PROMOTABLE_SOURCE_KINDS:
         raise ValueError("AI reviewer publication eval must declare assessment_provenance.source_kind=publication_eval_ai_reviewer")
     if provenance["ai_reviewer_required"] is not False:
         raise ValueError("AI reviewer publication eval cannot still require AI reviewer judgment")
@@ -110,4 +127,9 @@ def materialize_ai_reviewer_publication_eval_latest(
     reviewer_os_errors = validate_ai_reviewer_operating_system_trace(payload.get("reviewer_operating_system"))
     if reviewer_os_errors:
         raise ValueError("AI reviewer publication eval reviewer_operating_system invalid: " + "; ".join(reviewer_os_errors))
-    return materialize_publication_eval_latest(study_root=study_root, record=normalized_record)
+    if provenance["source_kind"] != AI_REVIEWER_PUBLICATION_EVAL_SOURCE_KIND:
+        payload["assessment_provenance"] = {
+            **provenance,
+            "source_kind": AI_REVIEWER_PUBLICATION_EVAL_SOURCE_KIND,
+        }
+    return PublicationEvalRecord.from_payload(payload)

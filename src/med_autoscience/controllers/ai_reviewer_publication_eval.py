@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.publication_eval_latest import materialize_ai_reviewer_publication_eval_latest
+from med_autoscience.publication_eval_latest import (
+    canonicalize_ai_reviewer_publication_eval_record,
+    materialize_ai_reviewer_publication_eval_latest,
+)
 from med_autoscience.publication_eval_record import PublicationEvalRecord
 
 from . import domain_status_projection
@@ -139,7 +142,9 @@ def materialize_ai_reviewer_publication_eval(
         )
     )
     resolved_study_root = _resolved_study_root(status_payload)
-    normalized_record = _normalize_publication_eval_record(record)
+    normalized_record = canonicalize_ai_reviewer_publication_eval_record(
+        _normalize_publication_eval_record(record)
+    )
     materialized = materialize_ai_reviewer_publication_eval_latest(
         study_root=resolved_study_root,
         record=normalized_record,
