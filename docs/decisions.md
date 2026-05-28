@@ -11,6 +11,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 OPL queue 已按当前 docs/export 使用 `domain_route/reconcile-apply`，但 MAS domain-handler dispatch allowlist 仍只接受旧 `domain_route/owner-handoff`，导致正式 redrive 后返回 `unsupported_task_kind`，论文 owner-route 不能进入 MAS reconcile owner chain。
 - 影响：这是 MAS domain-handler contract/currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。OPL 仍只负责 queue、dispatch transport、retry/dead-letter 和 stage attempt；论文推进仍由 MAS owner/controller/runtime path 产出 owner receipt、typed blocker、AI reviewer eval、publication gate 或 package refresh。
 
+## 2026-05-28：authority-settle retry 不得重建 submission-minimal package
+
+- 决策：`gate_clearing_batch` 上一轮已经成功执行 `create_submission_minimal_package`，且 `sync_submission_minimal_delivery` 仅因 `skipped_authority_not_settled` 暂停时，下一轮 retry 必须在 authority 文件 settle 后直接执行 `submission_delivery_sync_closure`。即使当前 gate report 只暴露 `complete_bundle_stage` / submission hardening blocker、没有 `study_delivery_status=stale*`，也不得重新生成 `submission_minimal` package。
+- 理由：DM003 暴露出 package freshness retry 每次重跑都会刷新 submission-minimal 文件 mtime，随后 delivery sync 又进入 authority settle window，形成 package refresh / authority settle 永不收敛循环。上一轮 package 已有成功 receipt 时，当前缺口是 delivery mirror sync closure，而不是再次 build package。
+- 影响：这是 MAS gate-clearing lifecycle 修复。redrive 只在上一轮 package 成功、delivery sync 明确等待 authority settle、当前 bundle-stage submission refresh 仍可同步 delivery 且核心 submission-minimal 文件存在时触发；不放宽 publication gate，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。
+
 ## 2026-05-28：submission authority note 不属于正文术语扫描面
 
 - 决策：`paper/submission_minimal/manuscript_source.md` 若在 `submission_manifest` 中以 `source_markdown_alias_role=authority_note` 声明为 authority note，publication gate 的 manuscript terminology redline 不能把它当作正文稿件扫描。正文术语扫描继续覆盖 canonical draft、review manuscript、表格正文，以及 `source_markdown_path` 指向的真实 `manuscript_submission.md` 投稿正文。
