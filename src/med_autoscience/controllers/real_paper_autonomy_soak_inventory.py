@@ -786,6 +786,14 @@ def _study_roots(profile: WorkspaceProfile) -> list[Path]:
     return sorted(path.resolve() for path in profile.studies_root.iterdir() if path.is_dir())
 
 
+def _canonical_study_roots(profile: WorkspaceProfile) -> list[Path]:
+    return [root for root in _study_roots(profile) if _is_canonical_study_root(root)]
+
+
+def _is_canonical_study_root(study_root: Path) -> bool:
+    return (study_root / "study.yaml").is_file() or (study_root / "runtime_binding.yaml").is_file()
+
+
 def _study_report(study_root: Path) -> dict[str, Any]:
     surfaces = [_surface_report(study_root, relative_ref) for relative_ref in STATUS_SURFACE_REFS]
     readable = [surface for surface in surfaces if surface["readable"]]

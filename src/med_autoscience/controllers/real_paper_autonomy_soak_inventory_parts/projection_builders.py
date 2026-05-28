@@ -255,7 +255,7 @@ def _profile_soak_projection_from_profile(
     target_set = {str(study_id).strip() for study_id in target_studies if str(study_id).strip()}
     studies = [
         inventory._study_soak_projection(study_root)
-        for study_root in inventory._study_roots(profile)
+        for study_root in inventory._canonical_study_roots(profile)
         if not target_set or inventory._matches_target_study(study_root.name, target_set)
     ]
     return {
@@ -281,7 +281,7 @@ def _loaded_profile_target_studies(
 ) -> tuple[str, ...]:
     if target_studies is not None:
         return tuple(_text(study_id) for study_id in target_studies if _text(study_id))
-    return tuple(study_root.name for study_root in _inventory()._study_roots(profile))
+    return tuple(study_root.name for study_root in _inventory()._canonical_study_roots(profile))
 
 
 def _inventory():

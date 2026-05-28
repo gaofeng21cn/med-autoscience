@@ -324,7 +324,11 @@ def test_product_entry_manifest_exposes_real_paper_owner_payload_closeout(
 
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
-    dm002 = profile.studies_root / "002-dm-china-us-mortality-attribution"
+    dm002 = write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        quest_id="002-dm-china-us-mortality-attribution",
+    )
     write_text(
         dm002 / "artifacts" / "runtime" / "runtime_status_summary.json",
         json.dumps({"study_id": dm002.name}) + "\n",
@@ -396,6 +400,48 @@ def test_product_entry_manifest_exposes_real_paper_owner_payload_closeout(
     assert payload["authority_boundary"]["provider_completion_is_domain_ready"] is False
     assert closeout["no_forbidden_write_proof"]["provider_or_opl_wrote_domain_truth"] is False
     assert closeout["no_forbidden_write_proof"]["provider_or_opl_wrote_current_package"] is False
+
+
+def test_product_entry_guarded_apply_default_targets_ignore_noncanonical_paper_residue(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    canonical_study = write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        quest_id="002-dm-china-us-mortality-attribution",
+    )
+    write_text(
+        canonical_study / "artifacts" / "controller" / "gate_replay_requests" / "latest.json",
+        json.dumps({"request_id": "gate-replay-002"}) + "\n",
+    )
+    for residue_id in ("idea-idea-3839d99b", "paper-run-dfcc79d2"):
+        write_text(
+            profile.studies_root
+            / residue_id
+            / "manuscript"
+            / "current_package"
+            / "manuscript_submission.md",
+            "# Residue\n",
+        )
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    closeout = manifest["real_paper_autonomy_guarded_apply_proof"][
+        "paper_line_provider_canary_closeout"
+    ]
+
+    work_item_ids = [
+        item["study_id"]
+        for item in closeout["paper_line_domain_dispatch_evidence_record_payloads"]
+    ]
+    assert work_item_ids == ["002-dm-china-us-mortality-attribution"]
+    assert closeout["paper_line_owner_payload_summary"]["paper_line_count"] == 1
+    closeout_text = json.dumps(closeout, sort_keys=True)
+    assert "idea-idea-3839d99b" not in closeout_text
+    assert "paper-run-dfcc79d2" not in closeout_text
 
 
 def test_product_entry_manifest_consumes_opl_production_proof_for_provider_availability(
