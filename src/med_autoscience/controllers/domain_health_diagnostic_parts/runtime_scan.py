@@ -61,6 +61,16 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def _outer_loop_request_is_stop_runtime(tick_request: Mapping[str, Any]) -> bool:
+    controller_actions = tick_request.get("controller_actions")
+    first_action = (
+        controller_actions[0]
+        if isinstance(controller_actions, list | tuple) and controller_actions and isinstance(controller_actions[0], Mapping)
+        else {}
+    )
+    return _non_empty_text(first_action.get("action_type")) == "stop_runtime"
+
+
 def _managed_study_recovery_failure_payload(
     *,
     preflight_payload: Mapping[str, Any],
@@ -88,6 +98,7 @@ def _serialize_no_op_suppression(
         "controller_work_unit_blocked",
         "control_plane_dispatch_blocked",
         "explicit_wakeup_required",
+        "non_dispatching_runtime_stop",
     }:
         return None
     payload: dict[str, Any] = {
@@ -128,6 +139,8 @@ def _serialize_no_op_suppression(
         payload["operator_summary"] = CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY
     elif outcome == "explicit_wakeup_required":
         payload["operator_summary"] = "该 study 已进入用户暂停或手动停驻合同；继续监测，但等待显式唤醒前不派发自动 owner work。"
+    elif outcome == "non_dispatching_runtime_stop":
+        payload["operator_summary"] = "运行时停止类 controller decision 已物化；不通过外环 dispatch 启动新的执行。"
     else:
         payload["operator_summary"] = "外环输入或 controller decision 未变化；保持 no-op，等待新证据、新用户反馈或 blocker fingerprint 改变。"
     return payload
@@ -664,6 +677,38 @@ def run_domain_health_diagnostic_for_runtime(
                         "reason": "controller_decisions/latest.json already matches the wakeup request",
                         "no_op_acknowledged": True,
                         "dedupe_scope": "controller_decision",
+                    }
+                    suppression = _serialize_no_op_suppression(
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        wakeup_audit=wakeup_audit,
+                    )
+                    if suppression is not None:
+                        managed_study_no_op_suppressions.append(suppression)
+                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                elif _outer_loop_request_is_stop_runtime(tick_request):
+                    decision_wakeup_audit = {
+                        key: value
+                        for key, value in wakeup_audit.items()
+                        if key != "recorded_at"
+                    }
+                    decision_result = runtime_control_ports.materialize_non_dispatching_decision(
+                        profile=profile,
+                        study_root=study_root,
+                        status_payload=status_payload,
+                        tick_request=tick_request,
+                        wakeup_audit=decision_wakeup_audit,
+                    )
+                    wakeup_audit = {
+                        **wakeup_audit,
+                        "outcome": "non_dispatching_runtime_stop",
+                        "reason": "outer-loop wakeup materialized a stop-runtime controller decision without dispatch",
+                        "no_op_acknowledged": True,
+                        "dedupe_scope": "runtime_stop_controller_decision",
+                        "controller_decision": {
+                            "dispatch_status": decision_result.get("dispatch_status"),
+                            "study_decision_ref": decision_result.get("study_decision_ref"),
+                        },
                     }
                     suppression = _serialize_no_op_suppression(
                         study_root=study_root,

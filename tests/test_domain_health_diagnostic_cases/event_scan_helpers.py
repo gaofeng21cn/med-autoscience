@@ -51,6 +51,15 @@ def ready_reviewer_operating_system(
                 "manuscript_ref": refs["manuscript"],
                 "manuscript_digest": "sha256:event-scan-manuscript",
             },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": refs["manuscript"],
+                "manuscript_digest": "sha256:event-scan-manuscript",
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
+            },
             "current_package_freshness": {
                 "status": "fresh",
                 "source_eval_id": eval_id,

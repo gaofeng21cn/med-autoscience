@@ -307,6 +307,8 @@ def _build_current_domain_transition_outer_loop_request(
         study_root=study_root,
         status_payload=status_payload,
     )
+    if _tick_request_is_submission_milestone_autopark(tick_request):
+        return tick_request
     fallback_tick_request = domain_transition_currentness.status_domain_transition_tick_request(
         study_root=study_root,
         status_payload=status_payload,
@@ -318,6 +320,23 @@ def _build_current_domain_transition_outer_loop_request(
         return fallback_tick_request
     return tick_request
 
+
+def _tick_request_is_submission_milestone_autopark(tick_request: object) -> bool:
+    if not isinstance(tick_request, dict):
+        return False
+    if str(tick_request.get("decision_type") or "").strip() != "continue_same_line":
+        return False
+    controller_actions = tick_request.get("controller_actions")
+    first_action = (
+        controller_actions[0]
+        if isinstance(controller_actions, list) and controller_actions and isinstance(controller_actions[0], dict)
+        else {}
+    )
+    return (
+        str(first_action.get("action_type") or "").strip() == "stop_runtime"
+        and str(tick_request.get("reason") or "").strip()
+        == "Human-review milestone reached; stop the live runtime and wait for explicit resume."
+    )
 
 def _tick_request_matches_status_transition(
     *,

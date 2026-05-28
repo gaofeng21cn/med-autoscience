@@ -19,6 +19,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出 MAS 已生成当前 `medical_prose_write_repair` writer handoff，但 dispatcher 重新进入同一 quality-repair owner callable，得到同一 `writer_worker_handoff` 后按空自旋阻断，导致论文拥有 ready dispatch 却没有真正进入 writer attempt。根因是 MAS dispatch 执行边界把“给 OPL 的 writer handoff”误当作“继续由 MAS owner callable 执行”的输入。
 - 影响：这是 MAS dispatcher / OPL stage-attempt admission 边界修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`，也不授权质量门通过。修复后 DM003 仍必须通过 MAS owner/controller/runtime path 重新 dispatch writer handoff，并等待 OPL/default executor 返回 typed closeout。
 
+## 2026-05-28：live submission milestone autopark 不得被 stale reviewer transition 抢占
+
+- 决策：当 `study_outer_loop` 已从 AI reviewer-backed `publication_eval/latest.json` 与 `evaluation_summary/latest.json` 推导出 live `bundle_stage_ready` / `bundle_only_remaining` 的 submission milestone autopark，`domain_health_diagnostic` 必须保留该 `stop_runtime` controller decision，不得用 status read-model 中的 stale `ai_reviewer_re_eval` domain transition 覆盖它。
+- 决策：`stop_runtime` / pause 类 tick 是 runtime stop/human-gate controller decision，只能通过 non-dispatching materialization 写出 controller authorization refs；不得进入外环 work-unit dispatch、OPL stage attempt 或 default executor queue。该停驻只表示 human-review / bundle milestone 需要显式 resume，不能表达 publication ready、submission ready 或 AI reviewer 质量关闭。
+- 决策：测试 fixture 声称 AI reviewer OS ready 时，必须满足当前 production reviewer OS currentness 合同，包括 `current_manuscript` 与 `source_eval` refs。合同不完整的 ready fixture 应 fail closed 到 AI reviewer re-eval，而不是通过放宽 gate 来掩盖。
+- 理由：control-plane regression 暴露出 live submission milestone 状态下，runtime watch 仍把旧 `ai_reviewer_medical_prose_quality_review` transition 派发为 `return_to_ai_reviewer_workflow`。根因有两层：一是 event-scan ready fixture 缺新版 reviewer OS currentness 字段，被正确判为 reviewer re-eval；二是 runtime watch 对 stop-runtime tick 没有非派发物化路径，容易把停驻动作当成普通 owner work unit。
+- 影响：这是 MAS controller/runtime watch currentness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍由 MAS owner/controller/runtime path 重新运行 writer handoff、AI reviewer recheck、publication gate 和 package refresh。
+
 ## 2026-05-28：owner-route handoff 同轮消费 OPL provider readiness
 
 - 决策：`owner_route_reconcile` 必须在扫描 study 前读取一次 OPL provider readiness，并把同一轮 readiness 注入每个 study 的 supervisor tick / runtime-health 派生输入。`opl_current_control_state_handoff` 的 per-study `runtime_health` 不得滞后一轮继续输出旧 `external_supervisor_required` / `runtime_recovery_retry_budget_exhausted`，而顶层却已经显示 provider/worker ready。
