@@ -6,6 +6,9 @@ from typing import Any
 from med_autoscience.controllers.ai_reviewer_record_contract import (
     ai_reviewer_record_has_valid_evaluation_scope,
 )
+from med_autoscience.policies.publication_critique import (
+    FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS,
+)
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
@@ -45,12 +48,15 @@ def ai_reviewer_record_blocker(record: Mapping[str, Any]) -> dict[str, Any] | No
     invalid_fields = invalid_ai_reviewer_record_fields(record)
     if invalid_fields:
         reviewer_os_errors = reviewer_operating_system_errors(record)
+        future_plan_errors = future_facing_limitations_plan_errors(record)
         payload: dict[str, Any] = {
             "invalid_record_fields": invalid_fields,
             "owner_record_requirements": ai_reviewer_record_requirements(),
         }
         if reviewer_os_errors:
             payload["reviewer_operating_system_errors"] = reviewer_os_errors
+        if future_plan_errors:
+            payload["future_facing_limitations_plan_errors"] = future_plan_errors
         return {
             "reason": "ai_reviewer_record_invalid",
             "payload": payload,
@@ -100,9 +106,30 @@ def invalid_ai_reviewer_record_fields(record: Mapping[str, Any]) -> list[str]:
     invalid: list[str] = []
     if not ai_reviewer_record_has_valid_evaluation_scope(record):
         invalid.append("evaluation_scope")
+    if future_facing_limitations_plan_errors(record):
+        invalid.append("future_facing_limitations_plan")
     if reviewer_operating_system_errors(record):
         invalid.append("reviewer_operating_system")
     return invalid
+
+
+def future_facing_limitations_plan_errors(record: Mapping[str, Any]) -> list[str]:
+    plan = record.get("future_facing_limitations_plan")
+    if not isinstance(plan, list) or not plan:
+        return []
+    errors: list[str] = []
+    for index, item in enumerate(plan):
+        if not isinstance(item, Mapping):
+            errors.append(f"future_facing_limitations_plan[{index}] must be an object")
+            continue
+        for field in FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS:
+            if field == "current_manuscript_wording_must_be_restrained":
+                if field not in item or item.get(field) is None:
+                    errors.append(f"future_facing_limitations_plan[{index}].{field} must be present")
+                continue
+            if not _text(item.get(field)):
+                errors.append(f"future_facing_limitations_plan[{index}].{field} must be non-empty")
+    return errors
 
 
 def reviewer_operating_system_errors(record: Mapping[str, Any]) -> list[str]:
@@ -124,6 +151,7 @@ __all__ = [
     "ai_reviewer_record_blocker",
     "ai_reviewer_record_requirements",
     "ai_reviewer_owned_record",
+    "future_facing_limitations_plan_errors",
     "invalid_ai_reviewer_record_fields",
     "missing_ai_reviewer_record_fields",
 ]

@@ -8,6 +8,7 @@ from tests.domain_owner_action_dispatch_helpers import (
     write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -171,6 +172,85 @@ def test_execute_dispatch_rejects_request_record_without_future_facing_limitatio
         "future_facing_limitations_plan",
         "reviewer_operating_system",
     ]
+
+
+def test_execute_dispatch_rejects_request_record_with_item_only_future_facing_limitations_plan(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_text = "# Current manuscript\n\nCurrent AI reviewer route-back manuscript snapshot.\n"
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    eval_id = "publication-eval::request-record-item-only-limitations"
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {"required_refs": _required_publication_input_refs(study_root)},
+            "ai_reviewer_record": {
+                "eval_id": eval_id,
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "evaluation_scope": "publication",
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {
+                    dimension: {
+                        "status": "blocked" if dimension == "medical_journal_prose_quality" else "ready",
+                        "summary": f"{dimension} was reviewed against the current manuscript.",
+                        "evidence_refs": [str(manuscript_path)],
+                    }
+                    for dimension in (
+                        "clinical_significance",
+                        "evidence_strength",
+                        "novelty_positioning",
+                        "medical_journal_prose_quality",
+                        "human_review_readiness",
+                    )
+                },
+                "future_facing_limitations_plan": [
+                    {
+                        "item": "Keep interpretation limited to the current descriptive evidence and rerun review after repair."
+                    }
+                ],
+                "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+                    study_root=study_root,
+                    manuscript_path=manuscript_path,
+                    manuscript_text=manuscript_text,
+                    eval_id=eval_id,
+                ),
+            },
+        },
+    )
+    _write_ai_reviewer_dispatch(profile, study_root, study_id)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "ai_reviewer_record_invalid"
+    assert execution["invalid_record_fields"] == ["future_facing_limitations_plan"]
+    assert "future_facing_limitations_plan[0].limitation" in "\n".join(
+        execution["future_facing_limitations_plan_errors"]
+    )
 
 
 def test_execute_dispatch_rejects_request_record_with_invalid_evaluation_scope(

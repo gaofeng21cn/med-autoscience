@@ -15,6 +15,9 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 )
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
+from med_autoscience.policies.publication_critique import (
+    FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS,
+)
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -96,6 +99,13 @@ def build_ai_reviewer_record_production_request(
                 "claim_boundary_review",
                 "request_kind",
             ],
+        },
+        "publication_eval_record_contract": {
+            "future_facing_limitations_plan_required_fields": list(
+                FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS
+            ),
+            "future_facing_limitations_plan_item_only_shape_forbidden": True,
+            "record_payload_must_validate_before_owner_callable": True,
         },
         "record_must_consume_refs": required_currentness_refs,
         "followup_actions": [
