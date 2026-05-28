@@ -12,6 +12,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 `controller_decisions/latest.json` 已有 `return_to_ai_reviewer_workflow` / `ai_reviewer_medical_prose_quality_review`，但 current-control 仍显示 `action_queue=[]`、`next_owner=one-person-lab`、`owner_reason=runtime_recovery_not_authorized`。根因是 generic runtime recovery/admission blocker 的优先级高于当前 MAS controller owner action，导致 OPL 只能反复执行 refs-only reconcile/admission，论文质量 owner 没有收到可派发 work unit。
 - 影响：这是 MAS owner-route/read-model closure 修复，不写 DM002 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文是否 ready 仍由 AI reviewer-backed publication eval、publication gate、package freshness proof 与 owner receipt 判定。
 
+## 2026-05-28：quality-repair writer handoff 必须进入 OPL stage attempt，不得回调同一 MAS owner callable
+
+- 决策：当 `domain-owner-action-dispatch` 消费 `dispatch_authority=quality_repair_batch_writer_handoff`、`next_owner=write`、`owner_reason=manuscript_story_surface_delta_missing` 的 `run_quality_repair_batch` dispatch 时，执行结果必须投影为 OPL/default executor stage-attempt handoff：`execution_status=handoff_ready`、`owner_callable_surface=opl_default_executor.stage_attempt`、`will_start_llm=true`。不得再次调用 `quality_repair_batch.run_quality_repair_batch` 生成同一个 writer handoff，也不得把同一 handoff 记录成 `consumed_writer_handoff_empty_spin_blocked`。
+- 决策：该 handoff 仍不表示 domain completion、paper readiness 或 publication readiness；`provider_completion_is_domain_completion=false`，后续必须由 OPL stage attempt 产出 canonical manuscript story-surface delta 或 typed blocker，再由 MAS owner receipt、AI reviewer eval、publication gate 和 package freshness proof 判定下一步。
+- 理由：DM003 暴露出 MAS 已生成当前 `medical_prose_write_repair` writer handoff，但 dispatcher 重新进入同一 quality-repair owner callable，得到同一 `writer_worker_handoff` 后按空自旋阻断，导致论文拥有 ready dispatch 却没有真正进入 writer attempt。根因是 MAS dispatch 执行边界把“给 OPL 的 writer handoff”误当作“继续由 MAS owner callable 执行”的输入。
+- 影响：这是 MAS dispatcher / OPL stage-attempt admission 边界修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`，也不授权质量门通过。修复后 DM003 仍必须通过 MAS owner/controller/runtime path 重新 dispatch writer handoff，并等待 OPL/default executor 返回 typed closeout。
+
 ## 2026-05-28：owner-route handoff 同轮消费 OPL provider readiness
 
 - 决策：`owner_route_reconcile` 必须在扫描 study 前读取一次 OPL provider readiness，并把同一轮 readiness 注入每个 study 的 supervisor tick / runtime-health 派生输入。`opl_current_control_state_handoff` 的 per-study `runtime_health` 不得滞后一轮继续输出旧 `external_supervisor_required` / `runtime_recovery_retry_budget_exhausted`，而顶层却已经显示 provider/worker ready。

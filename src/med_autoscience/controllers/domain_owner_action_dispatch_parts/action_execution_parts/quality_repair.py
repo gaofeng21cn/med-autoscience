@@ -30,6 +30,8 @@ def execute_quality_repair_batch(
             "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
             "quest_root": str(quest_root),
         }
+    if _dispatch_consumes_quality_repair_writer_handoff(dispatch):
+        return _writer_stage_attempt_handoff_execution(dispatch=dispatch, quest_root=quest_root)
     try:
         owner_result = quality_repair_batch.run_quality_repair_batch(
             profile=profile,
@@ -267,6 +269,41 @@ def _dispatch_consumes_quality_repair_writer_handoff(dispatch: Mapping[str, Any]
     route = _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
     route_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
     return _text(route.get("next_owner")) == "write" and route_reason == "manuscript_story_surface_delta_missing"
+
+
+def _writer_stage_attempt_handoff_execution(*, dispatch: Mapping[str, Any], quest_root: Path) -> dict[str, Any]:
+    required_output_surface = _text(dispatch.get("required_output_surface")) or _text(
+        _mapping(dispatch.get("prompt_contract")).get("required_output_surface")
+    )
+    return {
+        "execution_status": "handoff_ready",
+        "blocked_reason": None,
+        "owner_callable_surface": "opl_default_executor.stage_attempt",
+        "writer_worker_handoff": dict(dispatch),
+        "required_next_owner": "write",
+        "required_output_surface": required_output_surface,
+        "stage_attempt_admission": {
+            "surface": "opl_stage_attempt_admission_request",
+            "schema_version": 1,
+            "status": "requested",
+            "owner": "one-person-lab",
+            "domain": "med-autoscience",
+            "action_type": "run_quality_repair_batch",
+            "dispatch_authority": "quality_repair_batch_writer_handoff",
+            "provider_completion_is_domain_completion": False,
+            "domain_completion_authorized": False,
+            "required_closeout_packet": _mapping(dispatch.get("required_closeout_packet"))
+            or _mapping(_mapping(dispatch.get("prompt_contract")).get("required_closeout_packet")),
+        },
+        "owner_result": {
+            "status": "handoff_ready",
+            "paper_work_done": [
+                "Prepared writer owner handoff for a canonical manuscript story-surface delta or typed blocker."
+            ],
+            "writer_worker_handoff_path": _text(_mapping(dispatch.get("refs")).get("dispatch_path")),
+        },
+        "quest_root": str(quest_root),
+    }
 
 
 def _quality_repair_handoff_blocker(result_payload: Mapping[str, Any]) -> str:

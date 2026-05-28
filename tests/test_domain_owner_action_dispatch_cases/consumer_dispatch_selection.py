@@ -480,15 +480,8 @@ def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_st
         },
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
-    called: dict[str, object] = {}
-
     def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
-        called.update(kwargs)
-        return {
-            "ok": True,
-            "status": "executed",
-            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
-        }
+        raise AssertionError("writer handoff dispatch must not re-enter quality_repair_batch owner callable")
 
     monkeypatch.setattr(
         module.action_execution.quality_repair.quality_repair_batch,
@@ -507,8 +500,8 @@ def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_st
     assert result["executed_count"] == 1
     assert result["blocked_count"] == 0
     execution = result["executions"][0]
-    assert execution["execution_status"] == "executed"
+    assert execution["execution_status"] == "handoff_ready"
     assert execution["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert execution["prompt_contract"]["medical_claim_authoring_allowed"] is True
-    assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
-    assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
+    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    assert execution["writer_worker_handoff"]["source_action"]["next_work_unit"]["unit_id"] == "medical_prose_write_repair"

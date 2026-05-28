@@ -51,10 +51,17 @@ def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: 
         "stage_name",
         "problem_summary",
         "stage_goal",
+        "stage_work_done",
         "paper_work_done",
+        "changed_stage_surfaces",
         "changed_paper_surfaces",
         "outcome",
         "remaining_blockers",
+        "duration",
+        "token_usage",
+        "cost",
+        "usage_refs",
+        "cost_refs",
         "evidence_refs",
     ]
     assert closeout_contract["user_stage_log_policy"] == {
@@ -506,12 +513,15 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
     )
 
     assert result["executed_count"] == 1
-    route_context = called["authority_route_context"]
-    assert route_context["work_unit_id"] == materialized_work_unit_id
-    assert route_context["controller_route_context"]["work_unit_id"] == materialized_work_unit_id
-    assert route_context["controller_route_context"]["source_eval_id"] == "publication-eval::dm002::current"
-    assert route_context["current_owner_route"]["source_refs"]["work_unit_id"] == original_work_unit_id
-    assert route_context["current_owner_route"]["source_refs"]["materialized_work_unit_id"] == materialized_work_unit_id
+    assert result["blocked_count"] == 0
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["will_start_llm"] is True
+    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    handoff_route = execution["writer_worker_handoff"]["owner_route"]
+    assert handoff_route["source_refs"]["work_unit_id"] == original_work_unit_id
+    assert handoff_route["source_refs"]["materialized_work_unit_id"] == materialized_work_unit_id
+    assert handoff_route["source_refs"]["source_eval_id"] == "publication-eval::dm002::current"
 
 
 def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_packet(
@@ -615,15 +625,8 @@ def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_pa
     )
     assert not request_path.exists()
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
-    called: dict[str, object] = {}
-
     def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
-        called.update(kwargs)
-        return {
-            "ok": True,
-            "status": "executed",
-            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
-        }
+        raise AssertionError("writer handoff dispatch must not re-enter quality_repair_batch owner callable")
 
     monkeypatch.setattr(
         module.action_execution.quality_repair.quality_repair_batch,
@@ -642,13 +645,14 @@ def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_pa
     assert result["executed_count"] == 1
     assert result["blocked_count"] == 0
     execution = result["executions"][0]
-    assert execution["execution_status"] == "executed"
+    assert execution["execution_status"] == "handoff_ready"
     assert execution["owner_route_current"] is True
-    assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
-    assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
+    assert execution["will_start_llm"] is True
+    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    assert execution["writer_worker_handoff"]["source_action"]["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
 
 
-def test_execute_dispatch_does_not_empty_spin_consumed_quality_repair_writer_handoff(
+def test_execute_dispatch_consumes_quality_repair_writer_handoff_as_stage_attempt(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -740,26 +744,8 @@ def test_execute_dispatch_does_not_empty_spin_consumed_quality_repair_writer_han
         },
     )
     monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
-    called: dict[str, object] = {}
-
     def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
-        called.update(kwargs)
-        return {
-            "ok": True,
-            "status": "handoff_ready",
-            "blocked_reason": None,
-            "next_owner": "write",
-            "writer_worker_handoff": {
-                "surface": "default_executor_dispatch_request",
-                "dispatch_status": "ready",
-                "next_executable_owner": "write",
-                "typed_blocker_if_unresolved": "manuscript_story_surface_delta_missing",
-                "required_output_surface": (
-                    "canonical manuscript story-surface delta or "
-                    "typed blocker:manuscript_story_surface_delta_missing"
-                ),
-            },
-        }
+        raise AssertionError("writer handoff dispatch must not re-enter quality_repair_batch owner callable")
 
     monkeypatch.setattr(
         module.action_execution.quality_repair.quality_repair_batch,
@@ -775,26 +761,29 @@ def test_execute_dispatch_does_not_empty_spin_consumed_quality_repair_writer_han
         apply=True,
     )
 
-    assert result["executed_count"] == 0
-    assert result["blocked_count"] == 1
-    assert result["codex_dispatch_count"] == 0
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["codex_dispatch_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "manuscript_story_surface_delta_missing"
-    assert execution["typed_blocker"] == "manuscript_story_surface_delta_missing"
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
     assert execution["owner_route_current"] is True
-    assert execution["will_start_llm"] is False
-    assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
-    assert execution["consumed_writer_handoff_empty_spin_blocked"] is True
+    assert execution["action_class"] == "codex_worker_dispatch"
+    assert execution["will_start_llm"] is True
+    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    assert execution["writer_worker_handoff"]["dispatch_authority"] == "quality_repair_batch_writer_handoff"
+    assert execution["writer_worker_handoff"]["next_executable_owner"] == "write"
     assert execution["required_next_owner"] == "write"
+    assert execution["stage_attempt_admission"]["status"] == "requested"
+    assert execution["stage_attempt_admission"]["owner"] == "one-person-lab"
+    assert execution["stage_attempt_admission"]["domain_completion_authorized"] is False
     assert execution["paper_stage_log"]["surface_kind"] == "mas_paper_facing_stage_log_summary"
     assert execution["paper_stage_log"]["stage_name"] == "medical_prose_write_repair"
-    assert execution["paper_stage_log"]["outcome"] == "blocked:manuscript_story_surface_delta_missing"
-    assert execution["paper_stage_log"]["remaining_blockers"] == ["manuscript_story_surface_delta_missing"]
+    assert execution["paper_stage_log"]["outcome"] == "handoff_ready"
+    assert execution["paper_stage_log"]["remaining_blockers"] == []
     assert execution["paper_stage_log"]["paper_work_done"] == [
-        "Recorded a typed owner blocker without claiming paper readiness."
+        "Prepared writer owner handoff for a canonical manuscript story-surface delta or typed blocker."
     ]
-    assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 
 def test_quality_repair_writer_handoff_rejects_package_write_surface(
@@ -976,11 +965,9 @@ def test_quality_repair_writer_handoff_retries_after_guard_block(
     monkeypatch.setattr(
         module.action_execution.quality_repair.quality_repair_batch,
         "run_quality_repair_batch",
-        lambda **_: {
-            "ok": True,
-            "status": "executed",
-            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
-        },
+        lambda **_: (_ for _ in ()).throw(
+            AssertionError("writer handoff dispatch must not re-enter quality_repair_batch owner callable")
+        ),
     )
 
     result = module.dispatch_domain_owner_actions(
@@ -994,5 +981,7 @@ def test_quality_repair_writer_handoff_retries_after_guard_block(
     execution = result["executions"][0]
     assert result["executed_count"] == 1
     assert result["repeat_suppressed_count"] == 0
-    assert execution["execution_status"] == "executed"
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["will_start_llm"] is True
+    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
     assert execution["repeat_suppression"]["repeat_suppressed"] is False
