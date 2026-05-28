@@ -8,6 +8,7 @@ from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.runtime_control import repeat_suppression
 
 from . import output_readiness
+from . import publication_owner_materialization_currentness
 
 
 def owner_handoff_allowed(
@@ -163,6 +164,12 @@ def _registered_gate_clearing_handoff(
         owner=_text(owner_route.get("next_owner")),
         action_type=action_type,
     )
+    if _registered_publication_owner_materialization_bridge_handoff(
+        action_type=action_type,
+        dispatch=dispatch,
+        owner_route=owner_route,
+    ):
+        return True
     if reason_contract.get("registered") is not True:
         return False
     if _text(reason_contract.get("owner")) != "gate_clearing_batch":
@@ -189,6 +196,84 @@ def _registered_gate_clearing_handoff(
         return False
     currentness_basis = _owner_route_currentness_basis(owner_route)
     return _text(currentness_basis.get("work_unit_id")) is not None
+
+
+def _registered_publication_owner_materialization_bridge_handoff(
+    *,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    if action_type != "run_gate_clearing_batch":
+        return False
+    if _text(owner_route.get("next_owner")) != "gate_clearing_batch":
+        return False
+    route_reason = _text(owner_route.get("owner_reason")) or _text(owner_route.get("failure_signature"))
+    if route_reason not in publication_owner_materialization_currentness.MATERIALIZED_OWNER_REASONS:
+        return False
+    if not owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route):
+        return False
+
+    source_refs = _mapping(owner_route.get("source_refs"))
+    if _text(source_refs.get("bridge_authority")) != publication_owner_materialization_currentness.BRIDGE_AUTHORITY:
+        return False
+    if _text(source_refs.get("bridged_from_idempotency_key")) is None:
+        return False
+    source_action_type = _text(source_refs.get("materialized_from_action_type"))
+    if source_action_type not in publication_owner_materialization_currentness.SOURCE_ACTION_TYPES:
+        return False
+    if (
+        _text(source_refs.get("materialized_work_unit_id"))
+        not in publication_owner_materialization_currentness.MATERIALIZED_WORK_UNIT_IDS
+    ):
+        return False
+    if not _registered_bridge_source_route(
+        reason=_text(source_refs.get("bridged_from_owner_reason")),
+        action_type=source_action_type,
+    ):
+        return False
+
+    protocol = _mapping(owner_route.get("owner_route_attempt_protocol"))
+    if not protocol:
+        protocol = _mapping(
+            owner_route_attempt_protocol.decorate_owner_route(owner_route).get("owner_route_attempt_protocol")
+        )
+    if protocol.get("dispatchable") is not True:
+        return False
+    if _text(protocol.get("priority_class")) != "package_freshness":
+        return False
+    if _currentness_missing_required_fields(owner_route):
+        return False
+    if _text(owner_route.get("source_fingerprint")) is None:
+        return False
+    currentness_basis = _owner_route_currentness_basis(owner_route)
+    return _text(currentness_basis.get("work_unit_id")) is not None
+
+
+def _registered_bridge_source_route(*, reason: str | None, action_type: str | None) -> bool:
+    if reason is None or action_type is None:
+        return False
+    for owner in _bridge_source_owner_candidates(action_type):
+        reason_contract = owner_route_attempt_protocol.owner_reason_contract(
+            reason=reason,
+            owner=owner,
+            action_type=action_type,
+        )
+        if reason_contract.get("registered") is not True:
+            continue
+        if _text(reason_contract.get("owner")) != owner:
+            continue
+        if action_type in {_text(action) for action in reason_contract.get("allowed_actions") or []}:
+            return True
+    return False
+
+
+def _bridge_source_owner_candidates(action_type: str) -> tuple[str, ...]:
+    if action_type == "run_quality_repair_batch":
+        return ("write",)
+    if action_type == "return_to_ai_reviewer_workflow":
+        return ("ai_reviewer", "write/ai_reviewer")
+    return ()
 
 
 def _currentness_missing_required_fields(owner_route: Mapping[str, Any]) -> list[str]:
