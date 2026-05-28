@@ -28,6 +28,7 @@ from .opl_current_control_state_handoff import (
     build_readonly_ai_repair_lifecycle_projection as _build_readonly_ai_repair_lifecycle_projection,
     current_status_publication_gate_stationary as _current_status_publication_gate_stationary,
     current_status_suppresses_ai_repair_lifecycle as _current_status_suppresses_ai_repair_lifecycle,
+    merge_live_attempt_observability_into_handoff as _merge_live_attempt_observability_into_handoff,
     opl_current_control_state_live_attempt_handoff_projection as _opl_current_control_state_live_attempt_handoff_projection,
     opl_current_control_state_study_handoff_projection as _opl_current_control_state_study_handoff_projection,
     read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
@@ -553,12 +554,14 @@ def build_study_progress_projection(
         profile=profile,
         study_id=resolved_study_id,
     )
-    if opl_current_control_state_handoff is None:
-        opl_current_control_state_handoff = _opl_current_control_state_live_attempt_handoff_projection(
+    opl_current_control_state_handoff = _merge_live_attempt_observability_into_handoff(
+        handoff=opl_current_control_state_handoff,
+        live_attempt_handoff=_opl_current_control_state_live_attempt_handoff_projection(
             profile=profile,
             study_id=resolved_study_id,
             runtime_liveness_audit=_mapping_copy(status.get("runtime_liveness_audit")),
-        )
+        ),
+    )
     operator_status_card = _operator_status_card(
         study_id=resolved_study_id,
         current_stage=current_stage,

@@ -41,6 +41,29 @@ PAPER_STAGE_LOG_KEYS = (
     "cost_refs",
     "evidence_refs",
 )
+STAGE_PROGRESS_LOG_KEYS = (
+    "surface_kind",
+    "projection_scope",
+    "attempt_count",
+    "completed_attempt_count",
+    "blocked_attempt_count",
+    "activity_event_count",
+    "runner_progress_event_count",
+    "duration_observed_attempt_count",
+    "missing_usage_telemetry_attempt_count",
+    "temporal_attempt_count",
+    "temporal_webui_ref_count",
+    "temporal_visibility_readiness_statuses",
+    "activity_event_ref_count",
+    "attempt_refs",
+    "temporal_webui_refs",
+    "authority_boundary",
+)
+LIVE_ATTEMPT_HANDOFF_KEYS = (
+    "active_stage_attempt_id",
+    "active_workflow_id",
+    "running_provider_attempt",
+)
 
 
 def read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
@@ -174,6 +197,10 @@ def _stage_log_mapping(value: object) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
     return {key: value[key] for key in PAPER_STAGE_LOG_KEYS if key in value}
+
+
+def _stage_progress_log_mapping(value: object) -> dict[str, Any]:
+    return _copy_mapping_keys(value, STAGE_PROGRESS_LOG_KEYS)
 
 
 def _observability_mapping(value: object) -> dict[str, Any]:
@@ -562,6 +589,13 @@ def opl_current_control_state_study_handoff_projection(
         "study_id": study_id,
         "quest_status": _non_empty_text(matching.get("quest_status")),
         "active_run_id": _non_empty_text(matching.get("active_run_id")),
+        "active_stage_attempt_id": _non_empty_text(matching.get("active_stage_attempt_id")),
+        "active_workflow_id": _non_empty_text(matching.get("active_workflow_id")),
+        "running_provider_attempt": (
+            bool(matching.get("running_provider_attempt"))
+            if "running_provider_attempt" in matching
+            else False
+        ),
         "runtime_health": _copy_mapping_keys(
             matching.get("runtime_health"),
             ("health_status", "runtime_liveness_status", "summary", "blocked_reason"),
@@ -578,27 +612,7 @@ def opl_current_control_state_study_handoff_projection(
             matching.get("ai_reviewer_status"),
             ("status", "summary", "owner", "trace_complete", "blocked_reason"),
         ),
-        "stage_progress_log": _copy_mapping_keys(
-            matching.get("stage_progress_log"),
-            (
-                "surface_kind",
-                "projection_scope",
-                "attempt_count",
-                "completed_attempt_count",
-                "blocked_attempt_count",
-                "activity_event_count",
-                "runner_progress_event_count",
-                "duration_observed_attempt_count",
-                "missing_usage_telemetry_attempt_count",
-                "temporal_attempt_count",
-                "temporal_webui_ref_count",
-                "temporal_visibility_readiness_statuses",
-                "activity_event_ref_count",
-                "attempt_refs",
-                "temporal_webui_refs",
-                "authority_boundary",
-            ),
-        ),
+        "stage_progress_log": _stage_progress_log_mapping(matching.get("stage_progress_log")),
         "queue_slo": _copy_mapping_keys(
             matching.get("queue_slo"),
             (
@@ -631,27 +645,7 @@ def opl_current_control_state_live_attempt_handoff_projection(
 ) -> dict[str, Any] | None:
     if _non_empty_text(runtime_liveness_audit.get("source")) != "opl_current_control_state_provider_attempt":
         return None
-    stage_progress_log = _copy_mapping_keys(
-        runtime_liveness_audit.get("stage_progress_log"),
-        (
-            "surface_kind",
-            "projection_scope",
-            "attempt_count",
-            "completed_attempt_count",
-            "blocked_attempt_count",
-            "activity_event_count",
-            "runner_progress_event_count",
-            "duration_observed_attempt_count",
-            "missing_usage_telemetry_attempt_count",
-            "temporal_attempt_count",
-            "temporal_webui_ref_count",
-            "temporal_visibility_readiness_statuses",
-            "activity_event_ref_count",
-            "attempt_refs",
-            "temporal_webui_refs",
-            "authority_boundary",
-        ),
-    )
+    stage_progress_log = _stage_progress_log_mapping(runtime_liveness_audit.get("stage_progress_log"))
     if not stage_progress_log:
         return None
     source_path = _non_empty_text(runtime_liveness_audit.get("handoff_path")) or str(
@@ -687,3 +681,35 @@ def opl_current_control_state_live_attempt_handoff_projection(
         "external_supervisor_required": False,
         "blocked_reason": None,
     }
+
+
+def merge_live_attempt_observability_into_handoff(
+    *,
+    handoff: dict[str, Any] | None,
+    live_attempt_handoff: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if handoff is None:
+        return live_attempt_handoff
+    if live_attempt_handoff is None:
+        return handoff
+    active_run_id = _non_empty_text(handoff.get("active_run_id"))
+    live_active_run_id = _non_empty_text(live_attempt_handoff.get("active_run_id"))
+    if active_run_id and live_active_run_id and active_run_id != live_active_run_id:
+        return handoff
+    merged = dict(handoff)
+    for key in LIVE_ATTEMPT_HANDOFF_KEYS:
+        if key not in merged or merged.get(key) in {None, "", False}:
+            if key in live_attempt_handoff:
+                merged[key] = live_attempt_handoff[key]
+    if not _stage_progress_log_mapping(merged.get("stage_progress_log")):
+        stage_progress_log = _stage_progress_log_mapping(live_attempt_handoff.get("stage_progress_log"))
+        if stage_progress_log:
+            merged["stage_progress_log"] = stage_progress_log
+    if not _copy_mapping_keys(merged.get("runtime_health"), ("health_status", "runtime_liveness_status")):
+        runtime_health = _copy_mapping_keys(
+            live_attempt_handoff.get("runtime_health"),
+            ("health_status", "runtime_liveness_status", "summary", "blocked_reason"),
+        )
+        if runtime_health:
+            merged["runtime_health"] = runtime_health
+    return merged
