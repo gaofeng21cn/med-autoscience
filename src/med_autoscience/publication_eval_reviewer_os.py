@@ -28,6 +28,7 @@ _ROUTE_TARGET_ALIASES = {
     "bounded_analysis": "analysis-campaign",
 }
 _ACTION_TYPES_THAT_ROUTE_BACK = frozenset({"route_back_same_line", "bounded_analysis", "stop_loss"})
+_ROUTE_BACK_TARGETS = frozenset({"write", "analysis-campaign", "finalize", "publication_eval", "stop"})
 
 
 def _text(value: object) -> str:
@@ -167,6 +168,39 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
                 "reviewer_operating_system.currentness_checks.medical_prose_review.route_back_required must be true "
                 "when status is requested"
             )
+    if medical_prose_review.get("route_back_required") is True:
+        route_target = _normalized_route_target(medical_prose_review.get("route_target"))
+        if route_target not in _ROUTE_BACK_TARGETS:
+            errors.append(
+                "reviewer_operating_system.currentness_checks.medical_prose_review.route_target "
+                "must name the current route target when route_back_required is true"
+            )
+    current_manuscript = _mapping(currentness_checks.get("current_manuscript"))
+    if not current_manuscript:
+        errors.append("reviewer_operating_system.currentness_checks.current_manuscript must be non-empty")
+    else:
+        if _text(current_manuscript.get("status")) != "current":
+            errors.append("reviewer_operating_system.currentness_checks.current_manuscript.status must be current")
+        for field in ("manuscript_ref", "manuscript_digest"):
+            if not _text(current_manuscript.get(field)):
+                errors.append(
+                    f"reviewer_operating_system.currentness_checks.current_manuscript.{field} must be non-empty"
+                )
+        prose_digest = _text(medical_prose_review.get("manuscript_digest"))
+        current_digest = _text(current_manuscript.get("manuscript_digest"))
+        if prose_digest and current_digest and prose_digest != current_digest:
+            errors.append(
+                "reviewer_operating_system.currentness_checks.current_manuscript.manuscript_digest "
+                "must match medical_prose_review.manuscript_digest"
+            )
+    source_eval = _mapping(currentness_checks.get("source_eval"))
+    if not source_eval:
+        errors.append("reviewer_operating_system.currentness_checks.source_eval must be non-empty")
+    else:
+        if _text(source_eval.get("status")) != "current":
+            errors.append("reviewer_operating_system.currentness_checks.source_eval.status must be current")
+        if not _text(source_eval.get("eval_id")):
+            errors.append("reviewer_operating_system.currentness_checks.source_eval.eval_id must be non-empty")
     package_freshness = _mapping(currentness_checks.get("current_package_freshness"))
     if not package_freshness:
         errors.append("reviewer_operating_system.currentness_checks.current_package_freshness must be non-empty")
@@ -177,6 +211,13 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
     elif not _text(package_freshness.get("source_eval_id")):
         errors.append(
             "reviewer_operating_system.currentness_checks.current_package_freshness.source_eval_id must be non-empty"
+        )
+    source_eval_id = _text(source_eval.get("eval_id"))
+    package_source_eval_id = _text(package_freshness.get("source_eval_id"))
+    if source_eval_id and package_source_eval_id and source_eval_id != package_source_eval_id:
+        errors.append(
+            "reviewer_operating_system.currentness_checks.current_package_freshness.source_eval_id "
+            "must match source_eval.eval_id"
         )
 
     claim_alignment = _mapping(payload.get("claim_evidence_alignment"))
@@ -311,6 +352,16 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
         errors.append("reviewer_operating_system.route_back_decision.recommended_action must be non-empty")
     if not _text(route_back_decision.get("rationale")):
         errors.append("reviewer_operating_system.route_back_decision.rationale must be non-empty")
+    decision_route_target = _normalized_route_target(route_back_decision.get("route_target"))
+    prose_route_target = _normalized_route_target(medical_prose_review.get("route_target"))
+    if _text(route_back_decision.get("recommended_action")) in _ACTION_TYPES_THAT_ROUTE_BACK:
+        if decision_route_target not in _ROUTE_BACK_TARGETS:
+            errors.append("reviewer_operating_system.route_back_decision.route_target must name the current route target")
+        elif prose_route_target and prose_route_target != decision_route_target:
+            errors.append(
+                "reviewer_operating_system.route_back_decision.route_target must match "
+                "currentness_checks.medical_prose_review.route_target"
+            )
     if (
         claim_alignment_status == "blocked" or readiness_status == "blocked"
     ) and _text(route_back_decision.get("recommended_action")) not in _ACTION_TYPES_THAT_ROUTE_BACK:

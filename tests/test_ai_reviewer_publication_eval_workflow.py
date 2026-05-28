@@ -439,6 +439,13 @@ def test_ai_reviewer_publication_eval_workflow_materializes_latest_with_reviewer
             "current_manuscript_wording_must_be_restrained": True,
         }
     ]
+    current_manuscript = latest["reviewer_operating_system"]["currentness_checks"]["current_manuscript"]
+    assert current_manuscript == {
+        "status": "current",
+        "manuscript_ref": refs["manuscript"],
+        "manuscript_digest": prose_currentness["manuscript_digest"],
+        "authority_source_signature": "ai_reviewer_workflow_live_manuscript",
+    }
     assert latest["future_facing_limitations_plan"] == [
         {
             "limitation": "Medication coverage is based on recorded medication fields.",
