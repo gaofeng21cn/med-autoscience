@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：DM002/DM003 real replay 必须以只读 owner-route 证据收口
+
+- 决策：DM002/DM003 的 replay lane 默认执行 `study progress --format json` 与非 `--apply` 的 `domain-health-diagnostic`/owner-route 读面，抽取当前 `intervention_lane`、`next_work_unit`、`dispatch_gate` 与 `allowed_controller_actions` 作为可审计证据；禁止通过 replay lane 写 runtime truth 或手工改写 publication/controller/package 面。
+- 决策：非终局 tick 必须收敛到且仅收敛到一个可执行 owner action，或一个带明确 owner 的 typed blocker。若 read-model 同时出现空 action queue、`next_owner=None` 或无 blocker 说明，按控制面缺陷处理，不把它解释成“论文自然等待”。
+- 理由：2026-05-28 UTC fresh read-only baseline 显示：DM002 当前 `next_work_unit=ai_reviewer_recheck`，但 `dispatch_gate.state=blocked` 且 blocker 为 `quest_marked_running_but_no_live_session` 与 `runtime_recovery_retry_budget_exhausted` 等；DM003 当前 `next_work_unit=owner_authorized_publication_gate_replay`，同样被 `runtime_recovery_retry_budget_exhausted` 阻断。两条线都不是终局完成态，且都存在明确下一跳或 typed blocker。
+- 影响：该决策只更新 replay/read-model 解释层，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或 ready verdict；OPL 仍负责 queue/attempt/retry/dead-letter transport，MAS 继续负责 owner-route currentness、typed blocker 与下一跳收敛。
+
 ## 2026-05-28：domain route family task kind 统一为 reconcile-apply
 
 - 决策：MAS 暴露给 OPL family-runtime 的 owner-route bridge task kind 统一为 `domain_route/reconcile-apply`。`domain-handler export`、product-entry manifest、dispatch allowlist、controller owner-route handoff、evidence payload、tests 和 machine-readable lane manifest 必须使用同一 task kind；旧 `domain_route/owner-handoff` 只保留在 history/provenance 材料中，不作为 active dispatch alias。
