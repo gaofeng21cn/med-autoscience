@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：多 running OPL attempt 时优先投影当前 owner action
+
+- 决策：`owner_route_reconcile` 读取 OPL live provider attempt 时，必须把本轮 MAS owner action queue 作为偏好输入传给 OPL attempt projection。若同一 study 同时存在旧 `return_to_ai_reviewer_workflow` attempt 和当前 `run_quality_repair_batch` / write-route attempt，current-control/progress read-model 必须优先展示当前 owner action 对应的 live attempt、workflow 与 `stage_progress_log`。匹配优先使用 action type、executable/controller work unit 与 dispatch ref；当 MAS 当前 action 的 controller work unit 和 OPL task 的 executable work unit 不同但 action type 已唯一指向当前 owner 类别时，仍按 action type 避免旧 owner attempt 抢占 active projection。
+- 决策：该偏好只影响 observability/read-model 中 active attempt 的选择，不改变 OPL queue、attempt、retry、dead-letter 或 MAS truth/package/publication gate。若没有匹配当前 owner action 的 live attempt，仍按现有 live-state 检查 fail closed，不用 stale run 伪装正在推进。
+- 理由：DM002 暴露出 OPL 已把当前 write repair handoff admitted 为 live `run_quality_repair_batch` stage attempt，但 MAS progress projection 仍可能展示旧 AI reviewer attempt 或空 active projection，导致外围巡检误判论文没有实际推进。根因是 provider attempt projection 只按任务更新时间/状态选择候选，没有把当前 MAS owner route/action 作为 currentness 依据。
+- 影响：这是 MAS/OPL read-model currentness 修复，不写 DM002 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文是否 ready 仍由 owner receipt、AI reviewer-backed eval、publication gate 和 package freshness proof 判定。
+
 ## 2026-05-28：AI reviewer record-production work unit 必须消费当前 reviewer record
 
 - 决策：当当前 owner route 是 `produce_ai_reviewer_publication_eval_record_against_current_manuscript`、`produce_ai_reviewer_publication_eval_record_against_current_inputs` 或 `produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization`，且 MAS 已能验证存在绑定当前 manuscript 的 AI reviewer record 时，`domain_action_request_materializer` 必须把该 record-production work unit 视为已满足，并 bridge 到后续 write story-surface repair 或 publication gate/package freshness owner。不得继续 materialize 同一个 `return_to_ai_reviewer_workflow` fingerprint。

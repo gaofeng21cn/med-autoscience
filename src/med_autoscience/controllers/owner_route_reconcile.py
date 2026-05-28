@@ -591,6 +591,7 @@ def _study_projection(
     live_provider_attempt = opl_provider_attempts.live_provider_attempt_for_study(
         profile=profile,
         study_id=study_id,
+        preferred_actions=actions,
     )
     initial_lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
     lifecycle = initial_lifecycle

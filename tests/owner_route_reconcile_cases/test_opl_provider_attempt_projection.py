@@ -116,6 +116,231 @@ def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, t
     ]
 
 
+def test_live_provider_attempt_projection_prefers_current_owner_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            return {
+                "family_runtime_queue": {
+                    "tasks": [
+                        {
+                            "task_id": "frt-ai-reviewer",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "running",
+                            "updated_at": "2026-05-28T15:17:25Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "study_id": "001-risk",
+                                "action_type": "return_to_ai_reviewer_workflow",
+                                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/return_to_ai_reviewer_workflow.json",
+                            },
+                        },
+                        {
+                            "task_id": "frt-write-repair",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "running",
+                            "updated_at": "2026-05-28T15:15:39Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "study_id": "001-risk",
+                                "action_type": "run_quality_repair_batch",
+                                "work_unit_id": "manuscript_story_repair",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                            },
+                        },
+                    ]
+                }
+            }
+        task_id = args[3]
+        action_type = "run_quality_repair_batch" if task_id == "frt-write-repair" else "return_to_ai_reviewer_workflow"
+        work_unit_id = (
+            "manuscript_story_repair"
+            if task_id == "frt-write-repair"
+            else "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+        )
+        dispatch_ref = (
+            "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json"
+            if task_id == "frt-write-repair"
+            else "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+        )
+        return {
+            "family_runtime_task": {
+                "task": {
+                    "task_id": task_id,
+                    "task_kind": "domain_owner/default-executor-dispatch",
+                    "payload": {
+                        "study_id": "001-risk",
+                        "action_type": action_type,
+                        "work_unit_id": work_unit_id,
+                        "dispatch_ref": dispatch_ref,
+                    },
+                    "current_control_state": {
+                        "active_run_id": f"opl-stage-attempt://sat-{task_id}",
+                        "active_stage_attempt_id": f"sat-{task_id}",
+                        "active_workflow_id": f"wf-{task_id}",
+                        "running_provider_attempt": True,
+                        "provider_kind": "temporal",
+                        "current_attempt_state": "running",
+                        "reconciliation_status": "running",
+                        "provider_run": {"provider_status": "running"},
+                    },
+                },
+                "stage_attempts": [
+                    {
+                        "workspace_locator": {
+                            "workspace_root": str(profile.workspace_root),
+                            "action_type": action_type,
+                            "dispatch_ref": dispatch_ref,
+                        }
+                    }
+                ],
+            }
+        }
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.live_provider_attempt_for_study(
+        profile=profile,
+        study_id="001-risk",
+        preferred_actions=[
+            {
+                "action_type": "run_quality_repair_batch",
+                "controller_work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+                "executable_work_unit": "manuscript_story_repair",
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["task_id"] == "frt-write-repair"
+    assert result["action_type"] == "run_quality_repair_batch"
+    assert result["work_unit_id"] == "manuscript_story_repair"
+    assert commands == [
+        ("family-runtime", "queue", "list", "--json"),
+        ("family-runtime", "queue", "inspect", "frt-write-repair", "--json"),
+    ]
+
+
+def test_live_provider_attempt_projection_uses_action_type_when_work_unit_ids_differ(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            return {
+                "family_runtime_queue": {
+                    "tasks": [
+                        {
+                            "task_id": "frt-ai-reviewer",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "running",
+                            "updated_at": "2026-05-28T15:17:25Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "study_id": "001-risk",
+                                "action_type": "return_to_ai_reviewer_workflow",
+                                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/return_to_ai_reviewer_workflow.json",
+                            },
+                        },
+                        {
+                            "task_id": "frt-write-repair",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "running",
+                            "updated_at": "2026-05-28T15:15:39Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "study_id": "001-risk",
+                                "action_type": "run_quality_repair_batch",
+                                "work_unit_id": "manuscript_story_repair",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                            },
+                        },
+                    ]
+                }
+            }
+        task_id = args[3]
+        action_type = "run_quality_repair_batch" if task_id == "frt-write-repair" else "return_to_ai_reviewer_workflow"
+        work_unit_id = (
+            "manuscript_story_repair"
+            if task_id == "frt-write-repair"
+            else "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+        )
+        return {
+            "family_runtime_task": {
+                "task": {
+                    "task_id": task_id,
+                    "task_kind": "domain_owner/default-executor-dispatch",
+                    "payload": {
+                        "study_id": "001-risk",
+                        "action_type": action_type,
+                        "work_unit_id": work_unit_id,
+                    },
+                    "current_control_state": {
+                        "active_run_id": f"opl-stage-attempt://sat-{task_id}",
+                        "active_stage_attempt_id": f"sat-{task_id}",
+                        "active_workflow_id": f"wf-{task_id}",
+                        "running_provider_attempt": True,
+                        "provider_kind": "temporal",
+                        "current_attempt_state": "running",
+                        "reconciliation_status": "running",
+                        "provider_run": {"provider_status": "running"},
+                    },
+                },
+                "stage_attempts": [
+                    {
+                        "workspace_locator": {
+                            "workspace_root": str(profile.workspace_root),
+                            "action_type": action_type,
+                        }
+                    }
+                ],
+            }
+        }
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.live_provider_attempt_for_study(
+        profile=profile,
+        study_id="001-risk",
+        preferred_actions=[
+            {
+                "action_type": "run_quality_repair_batch",
+                "controller_work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["task_id"] == "frt-write-repair"
+    assert result["action_type"] == "run_quality_repair_batch"
+    assert commands == [
+        ("family-runtime", "queue", "list", "--json"),
+        ("family-runtime", "queue", "inspect", "frt-write-repair", "--json"),
+    ]
+
+
 def test_live_provider_attempt_projection_skips_non_live_tasks(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"

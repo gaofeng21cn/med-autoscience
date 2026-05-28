@@ -56,6 +56,7 @@ def live_provider_attempt_for_study(
     study_id: str,
     timeout_seconds: float = 3.0,
     max_inspect_count: int = 2,
+    preferred_actions: Iterable[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     opl_bin = _opl_bin()
     if opl_bin is None:
@@ -68,7 +69,12 @@ def live_provider_attempt_for_study(
     )
     if queue_payload is None:
         return None
-    candidate_tasks = _candidate_tasks(queue_payload, profile=profile, study_id=study_id)
+    candidate_tasks = _candidate_tasks(
+        queue_payload,
+        profile=profile,
+        study_id=study_id,
+        preferred_actions=preferred_actions,
+    )
     for task in candidate_tasks[: max(0, max_inspect_count)]:
         remaining_seconds = _remaining_seconds(deadline)
         if remaining_seconds <= 0:
@@ -262,6 +268,7 @@ def _candidate_tasks(
     *,
     profile: Any,
     study_id: str,
+    preferred_actions: Iterable[Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     queue = _mapping(queue_payload.get("family_runtime_queue"))
     tasks = [
@@ -276,7 +283,10 @@ def _candidate_tasks(
         and _text(task.get("task_kind")) == "domain_owner/default-executor-dispatch"
         and _text(task.get("status")) in LIVE_ATTEMPT_STATES
     ]
+    preferred = _preferred_action_keys(preferred_actions)
     matched.sort(key=lambda task: _text(task.get("updated_at")) or "", reverse=True)
+    if preferred:
+        matched.sort(key=lambda task: _preferred_task_rank(task, preferred))
     matched.sort(key=_task_status_priority)
     return matched
 
@@ -299,6 +309,81 @@ def _task_matches_study(task: Mapping[str, Any], *, profile: Any, study_id: str)
 def _task_status_priority(task: Mapping[str, Any]) -> int:
     status = _text(task.get("status"))
     return 0 if status in LIVE_ATTEMPT_STATES else 1
+
+
+def _preferred_action_keys(
+    actions: Iterable[Mapping[str, Any]] | None,
+) -> set[tuple[str | None, str | None, str | None]]:
+    keys: set[tuple[str | None, str | None, str | None]] = set()
+    for action in actions or []:
+        if not isinstance(action, Mapping):
+            continue
+        action_type = _text(action.get("action_type"))
+        work_unit_ids = _action_work_unit_ids(action)
+        dispatch_refs = _action_dispatch_refs(action)
+        if action_type is None and not work_unit_ids and not dispatch_refs:
+            continue
+        for work_unit_id in work_unit_ids or {None}:
+            for dispatch_ref in dispatch_refs or {None}:
+                keys.add((action_type, work_unit_id, dispatch_ref))
+        if action_type is not None:
+            keys.add((action_type, None, None))
+    return keys
+
+
+def _preferred_task_rank(
+    task: Mapping[str, Any],
+    preferred: set[tuple[str | None, str | None, str | None]],
+) -> int:
+    payload = _mapping(task.get("payload"))
+    task_action_type = _text(payload.get("action_type"))
+    task_work_unit_ids = _task_work_unit_ids(payload)
+    task_dispatch_refs = _action_dispatch_refs(payload)
+    best_rank = 99
+    for preferred_action, preferred_work_unit, preferred_dispatch_ref in preferred:
+        if preferred_action is not None and preferred_action != task_action_type:
+            continue
+        if preferred_work_unit is not None and preferred_work_unit not in task_work_unit_ids:
+            continue
+        if preferred_dispatch_ref is not None and preferred_dispatch_ref not in task_dispatch_refs:
+            continue
+        specificity = sum(
+            value is not None
+            for value in (preferred_action, preferred_work_unit, preferred_dispatch_ref)
+        )
+        best_rank = min(best_rank, max(0, 3 - specificity))
+    return best_rank
+
+
+def _action_work_unit_ids(action: Mapping[str, Any]) -> set[str]:
+    next_work_unit = action.get("next_work_unit")
+    candidates = {
+        _text(action.get("work_unit_id")),
+        _text(action.get("executable_work_unit")),
+        _text(action.get("controller_work_unit_id")),
+        _text(next_work_unit),
+        _text(_mapping(next_work_unit).get("unit_id")),
+    }
+    return {candidate for candidate in candidates if candidate is not None}
+
+
+def _task_work_unit_ids(payload: Mapping[str, Any]) -> set[str]:
+    basis = _mapping(payload.get("owner_route_currentness_basis"))
+    candidates = {
+        _text(payload.get("work_unit_id")),
+        _text(payload.get("executable_work_unit")),
+        _text(payload.get("controller_work_unit_id")),
+        _text(basis.get("work_unit_id")),
+    }
+    return {candidate for candidate in candidates if candidate is not None}
+
+
+def _action_dispatch_refs(action: Mapping[str, Any]) -> set[str]:
+    candidates = {
+        _text(action.get("dispatch_ref")),
+        _text(action.get("dispatch_path")),
+    }
+    return {candidate for candidate in candidates if candidate is not None}
 
 
 def _live_projection_from_inspect(

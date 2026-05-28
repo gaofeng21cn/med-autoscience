@@ -13,6 +13,10 @@ def _write_json(path: Path, payload: dict) -> None:
 
 def test_scan_projects_current_write_routeback_despite_stale_progress_active_run(monkeypatch, tmp_path: Path) -> None:
     scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
+    opl_attempts = __import__(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts",
+        fromlist=["opl_provider_attempts"],
+    )
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -80,6 +84,17 @@ def test_scan_projects_current_write_routeback_despite_stale_progress_active_run
         "_read_study_projection_inputs",
         lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
     )
+    seen_preferred_actions: list[dict[str, object]] = []
+
+    def fake_live_provider_attempt_for_study(**kwargs: object) -> None:
+        seen_preferred_actions.extend(dict(action) for action in kwargs.get("preferred_actions") or [])
+        return None
+
+    monkeypatch.setattr(
+        opl_attempts,
+        "live_provider_attempt_for_study",
+        fake_live_provider_attempt_for_study,
+    )
 
     result = scan.scan_domain_routes(
         profile=profile,
@@ -106,6 +121,8 @@ def test_scan_projects_current_write_routeback_despite_stale_progress_active_run
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
     assert study["blocked_reason"] == "quest_waiting_opl_runtime_owner_route"
     assert study["next_owner"] == "write"
+    assert [action["action_type"] for action in seen_preferred_actions] == ["run_quality_repair_batch"]
+    assert seen_preferred_actions[0]["next_work_unit"] == "dm002_same_line_publication_paper_repair"
 
 
 def test_fresh_ai_reviewer_write_routeback_supersedes_stale_reviewer_redrive(
