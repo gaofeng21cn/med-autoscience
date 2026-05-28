@@ -20,6 +20,13 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("paper_work_unit_outbox_receipts", Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl"), "paper_work_unit_receipts"),
     ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
 )
+_OPL_CURRENT_CONTROL_REF = Path("artifacts/supervision/opl_current_control_state/latest.json")
+_CURRENTNESS_BASIS_KEYS = (
+    "owner_reason",
+    "runtime_health_epoch",
+    "truth_epoch",
+    "work_unit_fingerprint",
+)
 
 
 def mapping(value: object) -> Mapping[str, Any]:
@@ -69,6 +76,13 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
     for _, relative_path, field_name in _STUDY_SOURCE_REFS:
         if field_name not in payload:
             payload[field_name] = read_json_object(study_root / relative_path)
+    current_control_handoff = current_control_owner_route_handoff_record(
+        study_root=study_root,
+        profile=profile,
+        existing_record=mapping(payload.get("owner_route_handoff")),
+    )
+    if current_control_handoff is not None:
+        payload["owner_route_handoff"] = current_control_handoff
     payload["paper_autonomy_loop"] = paper_autonomy_loop_projection(study_root=study_root)
     payload["publication_aftercare"] = publication_aftercare.build_publication_aftercare_plan(
         study_root=study_root,
@@ -86,6 +100,125 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         "workspace_profile": profile.name,
     }
     return payload
+
+
+def current_control_owner_route_handoff_record(
+    *,
+    study_root: Path,
+    profile: WorkspaceProfile,
+    existing_record: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    handoff_path = profile.workspace_root / _OPL_CURRENT_CONTROL_REF
+    payload = read_json_object(handoff_path)
+    if payload is None:
+        return None
+    matching = _matching_current_control_study(payload, study_id=study_root.name)
+    if matching is None:
+        return None
+    current_recorded_at = text(matching.get("handoff_generated_at")) or text(payload.get("generated_at"))
+    if not _current_control_supersedes_existing(
+        current_recorded_at=current_recorded_at,
+        existing_record=existing_record,
+    ):
+        return None
+    owner_route = mapping(matching.get("owner_route"))
+    if text(owner_route.get("next_owner")) != "one-person-lab":
+        return None
+    reason = text(owner_route.get("owner_reason"))
+    if reason is None:
+        return None
+    currentness_contract = mapping(owner_route.get("currentness_contract"))
+    currentness_basis = _currentness_basis(currentness_contract)
+    if currentness_basis is None:
+        return None
+    runtime_health = mapping(matching.get("runtime_health"))
+    quest_id = text(matching.get("quest_id")) or study_root.name
+    quest_root = text(matching.get("quest_root"))
+    runtime_state_path = text(matching.get("runtime_state_path"))
+    if runtime_state_path is None and quest_root is not None:
+        runtime_state_path = str(Path(quest_root) / ".ds" / "runtime_state.json")
+    owner_route_handoff_ref = workspace_relative(handoff_path, workspace_root=profile.workspace_root)
+    handoff = {
+        "surface_kind": "mas_runtime_owner_route_handoff",
+        "domain_truth_owner": "med-autoscience",
+        "queue_owner": "one-person-lab",
+        "dispatch_surface": "medautosci domain-handler export -> medautosci domain-handler dispatch",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "study_id": study_root.name,
+        "quest_id": quest_id,
+        "runtime_state_path": runtime_state_path,
+        "source": "opl_current_control_state_owner_route_handoff",
+        "reason": reason,
+        "repair_kind": text(runtime_health.get("canonical_runtime_action")) or reason,
+        "recorded_at": current_recorded_at,
+        "work_unit_fingerprint": currentness_basis["work_unit_fingerprint"],
+        "owner_route_currentness_basis": currentness_basis,
+        "owner_route_currentness_contract": dict(currentness_contract),
+        "owner_route_attempt_protocol": dict(mapping(owner_route.get("owner_route_attempt_protocol"))),
+        "owner_route_idempotency_key": text(owner_route.get("idempotency_key")),
+        "runtime_health": dict(runtime_health),
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
+    return {
+        "surface_kind": "mas_runtime_owner_route_handoff_record",
+        "schema_version": 1,
+        "source": "opl_current_control_state_owner_route_handoff",
+        "study_id": study_root.name,
+        "quest_id": quest_id,
+        "recorded_at": current_recorded_at,
+        "runtime_state_mutated": False,
+        "owner_route_handoff_ref": owner_route_handoff_ref,
+        "source_ref_role": "opl_current_control_state_owner_route",
+        "source_relative_path": str(_OPL_CURRENT_CONTROL_REF),
+        "supersedes_recorded_at": _existing_handoff_recorded_at(existing_record),
+        "handoff": handoff,
+    }
+
+
+def _matching_current_control_study(
+    payload: Mapping[str, Any],
+    *,
+    study_id: str,
+) -> dict[str, Any] | None:
+    for item in payload.get("studies") or []:
+        if isinstance(item, Mapping) and text(item.get("study_id")) == study_id:
+            return dict(item)
+    return None
+
+
+def _current_control_supersedes_existing(
+    *,
+    current_recorded_at: str | None,
+    existing_record: Mapping[str, Any],
+) -> bool:
+    existing_recorded_at = _existing_handoff_recorded_at(existing_record)
+    if existing_recorded_at is None:
+        return True
+    if current_recorded_at is None:
+        return False
+    return current_recorded_at > existing_recorded_at
+
+
+def _existing_handoff_recorded_at(record: Mapping[str, Any]) -> str | None:
+    handoff = mapping(record.get("handoff"))
+    return text(handoff.get("recorded_at")) or text(record.get("recorded_at"))
+
+
+def _currentness_basis(contract: Mapping[str, Any]) -> dict[str, str] | None:
+    basis = mapping(contract.get("basis"))
+    currentness_basis = {key: text(basis.get(key)) for key in _CURRENTNESS_BASIS_KEYS}
+    if any(value is None for value in currentness_basis.values()):
+        return None
+    missing = contract.get("missing_required_fields")
+    if isinstance(missing, list) and any(text(item) for item in missing):
+        return None
+    return {key: value for key, value in currentness_basis.items() if value is not None}
 
 
 def study_roots(profile: WorkspaceProfile) -> list[Path]:

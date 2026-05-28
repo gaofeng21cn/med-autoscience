@@ -202,3 +202,148 @@ def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_run
     }
     assert current_package_readme.read_text(encoding="utf-8") == "do-not-touch\n"
     assert current_package_zip.read_bytes() == b"do-not-touch"
+
+
+def test_domain_handler_export_uses_newer_opl_current_control_owner_route_over_stale_handoff(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    runtime_state_path = profile.runtime_root / study_id / ".ds" / "runtime_state.json"
+    stale_handoff_path = study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json"
+    current_control_path = (
+        profile.workspace_root
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    _write_json(
+        stale_handoff_path,
+        {
+            "surface_kind": "mas_runtime_owner_route_handoff_record",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "recorded_at": "2026-05-22T22:47:05+00:00",
+            "runtime_state_mutated": False,
+            "handoff": {
+                "surface_kind": "mas_runtime_owner_route_handoff",
+                "domain_truth_owner": "med-autoscience",
+                "queue_owner": "one-person-lab",
+                "dispatch_surface": "medautosci domain-handler export -> medautosci domain-handler dispatch",
+                "recommended_task_kind": "domain_route/reconcile-apply",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "runtime_state_path": str(runtime_state_path),
+                "source": "owner_route_reconcile_platform_repair",
+                "reason": "runtime_controller_redrive_required",
+                "repair_kind": "domain_transition_redrive",
+                "recorded_at": "2026-05-22T22:47:05+00:00",
+                "work_unit_fingerprint": "stale-work-unit",
+                "authority_boundary": {
+                    "mas_writes_generic_runtime_queue": False,
+                    "mas_submits_runtime_chat": False,
+                    "mas_resumes_provider_worker": False,
+                    "opl_writes_mas_truth": False,
+                    "mas_owner_receipt_required": True,
+                },
+            },
+        },
+    )
+    _write_json(
+        current_control_path,
+        {
+            "surface_kind": "opl_current_control_state_handoff",
+            "generated_at": "2026-05-28T11:52:35+00:00",
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "quest_root": str(profile.runtime_root / study_id),
+                    "handoff_generated_at": "2026-05-28T11:44:44+00:00",
+                    "active_run_id": None,
+                    "running_provider_attempt": False,
+                    "runtime_health": {
+                        "attempt_state": "recovering",
+                        "canonical_runtime_action": "recover_runtime",
+                        "blocking_reasons": ["quest_marked_running_but_no_live_session"],
+                        "retry_budget_remaining": 2,
+                    },
+                    "owner_route": {
+                        "next_owner": "one-person-lab",
+                        "owner_reason": "opl_stage_attempt_admission_required",
+                        "idempotency_key": (
+                            "owner-route::002-dm-china-us-mortality-attribution::"
+                            "truth-event-000024-daa5883571a64a07::one-person-lab"
+                        ),
+                        "currentness_contract": {
+                            "status": "currentness_basis_required",
+                            "missing_required_fields": [],
+                            "basis": {
+                                "owner_reason": "opl_stage_attempt_admission_required",
+                                "runtime_health_epoch": "runtime-health-event-006347-c0dff8bd55747822",
+                                "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                                "work_unit_fingerprint": "truth-snapshot::14a8db38452a814371713a47",
+                            },
+                        },
+                        "owner_route_attempt_protocol": {
+                            "dispatchable": False,
+                            "currentness_contract": "currentness_basis_required",
+                            "completion_boundary": {
+                                "provider_completion_is_domain_ready": False,
+                            },
+                        },
+                        "allowed_actions": [],
+                        "blocked_actions": [
+                            "run_quality_repair_batch",
+                            "run_gate_clearing_batch",
+                        ],
+                    },
+                }
+            ],
+        },
+    )
+
+    export = module.export_family_domain_handler(
+        profile=profile,
+        profile_ref=tmp_path / "profile.toml",
+    )
+
+    route_tasks = [
+        task
+        for task in export["pending_family_tasks"]
+        if task["task_kind"] == "domain_route/reconcile-apply"
+    ]
+    assert len(route_tasks) == 1
+    task = route_tasks[0]
+    assert task["reason"] == "opl_stage_attempt_admission_required"
+    assert task["dedupe_key"] == (
+        "mas:diabetes:002-dm-china-us-mortality-attribution:"
+        "owner-route-handoff:opl_stage_attempt_admission_required"
+    )
+    assert task["payload"]["continuation_reason"] == "opl_stage_attempt_admission_required"
+    assert task["payload"]["owner_route_handoff_ref"] == (
+        "artifacts/supervision/opl_current_control_state/latest.json"
+    )
+    assert task["runtime_state_path"] == str(runtime_state_path)
+    assert task["opl_runtime_owner_route_handoff"]["source"] == (
+        "opl_current_control_state_owner_route_handoff"
+    )
+    assert task["opl_runtime_owner_route_handoff"]["owner_route_currentness_basis"] == {
+        "owner_reason": "opl_stage_attempt_admission_required",
+        "runtime_health_epoch": "runtime-health-event-006347-c0dff8bd55747822",
+        "truth_epoch": "truth-event-000024-daa5883571a64a07",
+        "work_unit_fingerprint": "truth-snapshot::14a8db38452a814371713a47",
+    }
+    assert task["source_refs"] == [
+        {
+            "ref_kind": "repo_path",
+            "role": "opl_current_control_state_owner_route",
+            "ref": "artifacts/supervision/opl_current_control_state/latest.json",
+            "exists": True,
+        }
+    ]
+    assert task["source_fingerprint"] != "1cd5cc0108c99cc0"

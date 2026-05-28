@@ -28,31 +28,27 @@ def owner_route_handoff_task(
         return None
     reason = _text(handoff.get("reason")) or _text(record.get("source")) or "owner_route_handoff"
     study_root = Path(_text(study.get("study_root")) or profile.studies_root / study_id)
-    owner_route_handoff_ref = _workspace_relative(
-        study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json",
+    owner_route_handoff_ref = _owner_route_handoff_ref(
+        record=record,
+        study_root=study_root,
         workspace_root=profile.workspace_root,
     )
     route_transition_contract = _route_transition_contract(handoff=handoff)
     stage_graph_handoff = _stage_graph_handoff()
     stage_evidence_refs = _stage_evidence_refs_for_handoff(stage_graph_handoff=stage_graph_handoff)
-    source_refs = [
-        ref
-        for ref in (
-            _source_ref(
-                study_root=study_root,
-                role="owner_route_handoff",
-                relative_path=Path("artifacts/supervision/owner_route_handoff/latest.json"),
-                workspace_root=profile.workspace_root,
-            ),
-        )
-        if ref["exists"]
-    ]
+    source_refs = _owner_route_source_refs(
+        record=record,
+        study_root=study_root,
+        workspace_root=profile.workspace_root,
+    )
     source_fingerprint = _fingerprint(
         {
             "profile": profile.name,
             "study_id": study_id,
             "reason": reason,
             "owner_route_handoff_ref": owner_route_handoff_ref,
+            "recorded_at": _text(handoff.get("recorded_at")) or _text(record.get("recorded_at")),
+            "owner_route_currentness_basis": _mapping(handoff.get("owner_route_currentness_basis")),
             "route_transition_contract": route_transition_contract,
             "stage_graph_handoff": stage_graph_handoff,
             "source_refs": source_refs,
@@ -280,6 +276,55 @@ def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
         return str(path.relative_to(workspace_root))
     except ValueError:
         return str(path)
+
+
+def _owner_route_handoff_ref(
+    *,
+    record: Mapping[str, Any],
+    study_root: Path,
+    workspace_root: Path,
+) -> str:
+    explicit = _text(record.get("owner_route_handoff_ref"))
+    if explicit is not None:
+        return explicit
+    return _workspace_relative(
+        study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json",
+        workspace_root=workspace_root,
+    )
+
+
+def _owner_route_source_refs(
+    *,
+    record: Mapping[str, Any],
+    study_root: Path,
+    workspace_root: Path,
+) -> list[dict[str, Any]]:
+    relative_path = Path(
+        _text(record.get("source_relative_path"))
+        or "artifacts/supervision/owner_route_handoff/latest.json"
+    )
+    role = _text(record.get("source_ref_role")) or "owner_route_handoff"
+    if relative_path.is_absolute():
+        exists = relative_path.exists()
+        ref = _workspace_relative(relative_path, workspace_root=workspace_root)
+    elif role == "opl_current_control_state_owner_route":
+        path = workspace_root / relative_path
+        exists = path.exists()
+        ref = str(relative_path)
+    else:
+        path = study_root / relative_path
+        exists = path.exists()
+        ref = _workspace_relative(path, workspace_root=workspace_root)
+    if not exists:
+        return []
+    return [
+        {
+            "ref_kind": "repo_path",
+            "role": role,
+            "ref": ref,
+            "exists": True,
+        }
+    ]
 
 
 def _fingerprint(value: object) -> str:
