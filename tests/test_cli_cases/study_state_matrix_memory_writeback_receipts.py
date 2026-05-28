@@ -165,6 +165,28 @@ def test_study_state_matrix_consumes_publication_route_memory_writeback_receipt(
     assert consumption["quality_authorized"] is False
     assert consumption["submission_authorized"] is False
     assert consumption["can_accept_or_reject_writeback"] is False
+    packet_roles = {packet["role"] for packet in consumption["body_free_evidence_packets"]}
+    assert packet_roles == {"memory_write_router_receipt_ref", "memory_writeback_receipt_ref"}
+    assert {packet["ref"] for packet in consumption["body_free_evidence_packets"]} == {
+        str(router_receipt_ref),
+        str(writeback_receipt_ref),
+    }
+    for packet in consumption["body_free_evidence_packets"]:
+        assert set(packet) == {
+            "ref",
+            "role",
+            "freshness",
+            "owner",
+            "receipt_id",
+            "no_forbidden_write_proof",
+        }
+        assert packet["owner"] == "MedAutoScience"
+        proof = packet["no_forbidden_write_proof"]
+        assert proof["write_permitted"] is False
+        assert proof["memory_body_write_performed"] is False
+        assert proof["publication_verdict_write_performed"] is False
+        assert "memory_body" not in packet
+        assert "payload" not in packet
     assert consumption["next_action"] == "honor_mas_memory_owner_writeback_receipt"
     assert "This memory body must not leak" not in rendered
     assert "This prose summary must stay out" not in rendered

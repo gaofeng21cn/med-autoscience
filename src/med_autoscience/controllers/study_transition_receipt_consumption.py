@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -343,11 +343,47 @@ def publication_route_memory_writeback_receipt_consumption(*, study_root: Path) 
             reason for item in receipt_payloads for reason in item["typed_blocker_reasons"]
         ),
         "body_included": False,
+        "body_free_evidence_packets": _publication_route_memory_writeback_packets(
+            router_receipt_refs=router_receipt_refs,
+            writeback_receipt_refs=writeback_receipt_refs,
+        ),
         "quality_authorized": False,
         "submission_authorized": False,
         "can_accept_or_reject_writeback": False,
         "next_action": next_action,
     }
+
+
+def _publication_route_memory_writeback_packets(
+    *,
+    router_receipt_refs: Sequence[str],
+    writeback_receipt_refs: Sequence[str],
+) -> list[dict[str, Any]]:
+    packet_specs = [
+        *(
+            ("memory_write_router_receipt_ref", ref)
+            for ref in router_receipt_refs
+        ),
+        *(
+            ("memory_writeback_receipt_ref", ref)
+            for ref in writeback_receipt_refs
+        ),
+    ]
+    packets: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for role, ref in packet_specs:
+        ref_text = _text(ref)
+        if not ref_text or (role, ref_text) in seen:
+            continue
+        seen.add((role, ref_text))
+        packets.append(
+            build_body_free_evidence_packet(
+                ref=ref_text,
+                role=role,
+                owner="MedAutoScience",
+            )
+        )
+    return packets
 
 
 def human_gate_resume_receipt_consumption(
