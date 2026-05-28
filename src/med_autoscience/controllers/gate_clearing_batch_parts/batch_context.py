@@ -138,16 +138,22 @@ def build_gate_clearing_batch_context(
     submission_minimal_refresh_requested = submission_controller.submission_minimal_refresh_requested(
         gate_report=gate_report
     )
+    can_sync_study_delivery = study_delivery_sync_controller.can_sync_study_delivery(paper_root=paper_root)
     direct_submission_delivery_sync_requested = (
         bundle_stage_repair
         and not submission_minimal_refresh_requested
         and submission_controller.direct_submission_delivery_sync_requested(gate_report=gate_report)
-        and study_delivery_sync_controller.can_sync_study_delivery(paper_root=paper_root)
+        and can_sync_study_delivery
     )
-    authority_settle_delivery_redrive_requested = (
-        authority_redrive_controller.previous_delivery_sync_awaited_authority_settle(latest_batch)
-        and study_delivery_status.startswith("stale")
-        and study_delivery_sync_controller.can_sync_study_delivery(paper_root=paper_root)
+    authority_settle_delivery_redrive_requested = authority_redrive_controller.authority_settle_delivery_redrive_requested(
+        latest_batch=latest_batch,
+        study_delivery_status=study_delivery_status,
+        bundle_stage_repair=bundle_stage_repair,
+        submission_minimal_refresh_requested=submission_minimal_refresh_requested,
+        submission_minimal_core_outputs_missing=submission_controller.submission_minimal_core_outputs_missing(
+            gate_report
+        ),
+        can_sync_study_delivery=can_sync_study_delivery,
     )
     if authority_settle_delivery_redrive_requested:
         direct_submission_delivery_sync_requested = True

@@ -30,6 +30,28 @@ def previous_delivery_sync_awaited_authority_settle(latest_batch: dict[str, Any]
     )
 
 
+def authority_settle_delivery_redrive_requested(
+    *,
+    latest_batch: dict[str, Any],
+    study_delivery_status: str,
+    bundle_stage_repair: bool,
+    submission_minimal_refresh_requested: bool,
+    submission_minimal_core_outputs_missing: bool,
+    can_sync_study_delivery: bool,
+) -> bool:
+    if not previous_delivery_sync_awaited_authority_settle(latest_batch):
+        return False
+    if not can_sync_study_delivery:
+        return False
+    if study_delivery_status.startswith("stale"):
+        return True
+    return (
+        bundle_stage_repair
+        and submission_minimal_refresh_requested
+        and not submission_minimal_core_outputs_missing
+    )
+
+
 def analysis_work_unit_authority_closure_unit_ids(
     *,
     selected_publication_work_unit: dict[str, Any] | None,
