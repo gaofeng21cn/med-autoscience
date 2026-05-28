@@ -641,10 +641,32 @@ def collect_manuscript_surface_paths(paper_root: Path | None) -> list[Path]:
     candidates: list[Path] = []
     for pattern in publication_gate_policy.MANUSCRIPT_SURFACE_GLOBS:
         candidates.extend(path for path in paper_root.glob(pattern) if path.is_file())
+    excluded_paths = _submission_authority_note_paths(paper_root)
     for managed_root in paper_artifacts.resolve_managed_submission_surface_roots(paper_root):
         for pattern in publication_gate_policy.MANAGED_SUBMISSION_SURFACE_GLOBS:
             candidates.extend(path for path in managed_root.glob(pattern) if path.is_file())
-    return _dedupe_resolved_paths(candidates)
+    return [path for path in _dedupe_resolved_paths(candidates) if path.resolve() not in excluded_paths]
+
+
+def _submission_authority_note_paths(paper_root: Path) -> set[Path]:
+    excluded: set[Path] = set()
+    for managed_root in paper_artifacts.resolve_managed_submission_surface_roots(paper_root):
+        manifest = paper_artifacts.load_submission_surface_manifest(managed_root)
+        manuscript = manifest.get("manuscript") if isinstance(manifest, dict) else None
+        if not isinstance(manuscript, dict):
+            continue
+        if _non_empty_text(manuscript.get("source_markdown_alias_role")) != "authority_note":
+            continue
+        alias_path = _non_empty_text(manuscript.get("source_markdown_alias_path"))
+        source_path = _non_empty_text(manuscript.get("source_markdown_path"))
+        if alias_path and alias_path != source_path:
+            resolved_alias = paper_artifacts._resolve_workspace_relative_path(
+                paper_root=paper_root,
+                raw_path=alias_path,
+            )
+            if resolved_alias is not None:
+                excluded.add(resolved_alias.resolve())
+    return excluded
 
 
 def detect_manuscript_terminology_violations(paper_root: Path | None) -> list[dict[str, str]]:

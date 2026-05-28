@@ -5,6 +5,18 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：submission authority note 不属于正文术语扫描面
+
+- 决策：`paper/submission_minimal/manuscript_source.md` 若在 `submission_manifest` 中以 `source_markdown_alias_role=authority_note` 声明为 authority note，publication gate 的 manuscript terminology redline 不能把它当作正文稿件扫描。正文术语扫描继续覆盖 canonical draft、review manuscript、表格正文，以及 `source_markdown_path` 指向的真实 `manuscript_submission.md` 投稿正文。
+- 理由：DM003 的 `submission_minimal_refresh` 已正确生成 clean `manuscript_submission.md`，但 alias authority note 为了说明 MAS/package authority 边界包含 `AI reviewer`、`publication gate`、`submission readiness` 等内部术语。旧 gate 使用 `submission_minimal/**/*.md` 全量扫描，误把 metadata/authority note 当作正文，形成伪 `forbidden_manuscript_terminology` blocker。
+- 影响：这是 MAS publication gate surface-boundary 修复，不放宽正文 forbidden-term 检查，不允许内部运行态语言进入真实稿件，也不手写 DM003 `paper/submission_minimal/`、`manuscript/current_package/` 或 `publication_eval/latest.json`。
+
+## 2026-05-28：consumed package-freshness 后必须继续解析 gate replay blocked follow-through
+
+- 决策：同一 owner route 的 `current_package_freshness_required` 已执行并被 default-executor receipt 消费时，`owner-route-reconcile` 不能把 current-control 队列清空。如果当前 `gate_clearing_batch/latest.json` 的 gate replay 仍 blocked，必须从 replay 结构继续派发下一跳：有可执行 write route-back 时进入 `write/run_quality_repair_batch`；只有通用 label blocker 且缺少具体 claim/figure/table/source target 时，进入 `publication_gate/publication_gate_specificity_required` typed owner。
+- 理由：DM003 刷新投稿包后清掉了旧 stale package blocker，但 gate replay 仍剩 `medical_publication_surface_blocked`、`submission_hardening_incomplete` 等 blocker。旧 receipt consumption 把“刷新已执行”误读为整条 gate blocked route 已完成，导致 `allowed_actions=[]`、`next_owner=None`、`blocked_reason=None`，论文推进空转。
+- 影响：这是 MAS owner-route/read-model closure 修复。它只保证 blocked gate 一定回到下一 owner 或 typed blocker，不授权 publication ready、submission ready，也不直接修改 canonical paper、submission package、current package 或 publication eval truth。
+
 ## 2026-05-28：domain-health diagnostic 也必须使用 current domain-transition tick request
 
 - 决策：`domain-health-diagnostic` 构造 outer-loop tick request 时，必须和 controller refresh 一样校验 status `domain_transition` 的 `decision_type`、`route_target`、`next_work_unit.unit_id` 与 controller action。如果 outer-loop tick request 与当前 transition 不一致，必须切换到 `status_domain_transition_tick_request`，避免用旧 write route 覆盖当前 gate replay route。

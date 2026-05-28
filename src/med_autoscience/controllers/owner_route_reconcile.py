@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
 from med_autoscience.controllers import study_progress, domain_status_projection
 from med_autoscience.controllers.owner_route_reconcile_parts import canonical_inputs
+from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 from med_autoscience.controllers.owner_route_reconcile_parts import default_executor_receipts
 from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.owner_route_reconcile_parts import action_projection
@@ -29,6 +30,8 @@ from med_autoscience.controllers.owner_route_reconcile_parts import request_pack
 from med_autoscience.controllers.owner_route_reconcile_parts import runtime_facts
 from med_autoscience.controllers.owner_route_reconcile_parts import scan_output
 from med_autoscience.controllers.owner_route_reconcile_parts import status_projection
+from med_autoscience.controllers.owner_route_reconcile_parts import story_surface_delta_actions
+from med_autoscience.controllers.owner_route_reconcile_parts import publication_gate_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_parking
 from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_projection
 from med_autoscience.controllers.owner_route_reconcile_parts import study_identity
@@ -443,6 +446,58 @@ def _maybe_blocked_lifecycle_from_scan(
     )
 
 
+def _post_consumed_submission_refresh_followthrough_action(
+    *,
+    study_id: str,
+    quest_id: str | None,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    consumed_receipt: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if _text(consumed_receipt.get("action_type")) != "current_package_freshness_required":
+        return None
+    if _text(consumed_receipt.get("execution_status")) != "executed":
+        return None
+    if _text(consumed_receipt.get("status")) != "consumed":
+        return None
+    controller_route = current_truth_owner.current_gate_replay_routeback_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if controller_route is not None:
+        action = story_surface_delta_actions.write_owner_action_from_controller_route(controller_route)
+    else:
+        refresh_route = current_truth_owner.current_gate_replay_submission_refresh_route(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+        if refresh_route is None:
+            return None
+        action = publication_gate_actions.action_payload(
+            gate_specificity={
+                "required": True,
+                "gate_owner": "publication_gate",
+                "request": {
+                    "source": "consumed_submission_refresh_gate_replay",
+                    "gate_report_path": refresh_route.get("gate_report_path"),
+                    "gate_blockers": list(refresh_route.get("gate_blockers") or []),
+                    "gate_clearing_batch_path": refresh_route.get("gate_clearing_batch_path"),
+                },
+            }
+        )
+        action["controller_route"] = dict(refresh_route)
+        action["work_unit_fingerprint"] = _text(refresh_route.get("work_unit_fingerprint"))
+        action["required_output_surface"] = "artifacts/publication_eval/latest.json#specificity_targets"
+    return action_projection.decorate_action(
+        study_id=study_id,
+        quest_id=quest_id,
+        action=action,
+        request_allowed_write_surfaces=list(SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES),
+        control_allowed_write_surfaces=list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
+        forbidden_actions=list(SUPERVISION_FORBIDDEN_ACTIONS),
+    )
+
+
 def _should_refresh_blocked_lifecycle(
     *,
     developer_mode: DeveloperSupervisorMode,
@@ -670,6 +725,30 @@ def _study_projection(
             why_not_applied = None
             blocked_reason = None
             next_owner = None
+            followthrough_action = _post_consumed_submission_refresh_followthrough_action(
+                study_id=study_id,
+                quest_id=resolved_quest_id,
+                study_root=study_root,
+                publication_eval_payload=publication_eval_payload,
+                consumed_receipt=default_executor_execution_receipt_consumption,
+            )
+            if followthrough_action is not None:
+                actions = [followthrough_action]
+                blocked_reason = _text(followthrough_action.get("reason")) or _text(followthrough_action.get("action_type"))
+                why_not_applied = blocked_reason
+                next_owner = _text(followthrough_action.get("owner")) or block_state_part.next_owner_for_blocked_reason(
+                    blocked_reason
+                )
+                owner_route, actions = owner_route_part.route_and_decorate_actions(
+                    study_id=study_id,
+                    quest_id=resolved_quest_id,
+                    status=status_payload,
+                    progress=progress_payload,
+                    actions=actions,
+                    blocked_reason=blocked_reason,
+                    next_owner=next_owner,
+                    active_run_id=_active_run_id(status_payload, progress_payload),
+                )
     actions = repo_write_policy.attach_repo_write_policy(actions, developer_mode=developer_mode)
     paper_progress_stall_payload, actions = paper_progress_stall_projection.build_and_attach(
         status=status_payload,
