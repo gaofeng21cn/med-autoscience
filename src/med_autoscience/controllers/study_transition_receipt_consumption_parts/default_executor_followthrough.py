@@ -10,6 +10,14 @@ from med_autoscience.controllers.study_transition_receipt_consumption_parts.defa
 
 
 _DEFAULT_EXECUTOR_EXECUTED_STATUSES = frozenset({"executed"})
+_DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES = frozenset({"executed", "applied", "ok"})
+_DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
+    {
+        "progress_delta_candidate",
+        "executed",
+        "applied",
+    }
+)
 
 
 def default_executor_execution_followthrough_receipt_consumption(
@@ -23,6 +31,15 @@ def default_executor_execution_followthrough_receipt_consumption(
         return {}
     for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
         action_type = _text(execution.get("action_type"))
+        owner_result = _mapping(execution.get("owner_result"))
+        repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
+        if action_type in current_action_types and _direct_execution_consumes_current_owner_route(
+            execution=execution,
+            owner_route=owner_route,
+            owner_result=owner_result,
+            repair_evidence=repair_evidence,
+        ):
+            return {}
         if action_type != "publication_gate_specificity_required":
             continue
         if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
@@ -34,8 +51,6 @@ def default_executor_execution_followthrough_receipt_consumption(
             owner_route=owner_route,
         ):
             continue
-        owner_result = _mapping(execution.get("owner_result"))
-        repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
         if _default_executor_dispatch_zero_execution_blocker(owner_result):
             continue
         if not _publication_gate_specificity_owner_result_satisfies_route_output(owner_result=owner_result):
@@ -101,6 +116,87 @@ def _execution_matches_specificity_to_package_freshness_followthrough(
     return False
 
 
+def _direct_execution_consumes_current_owner_route(
+    *,
+    execution: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+    owner_result: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+) -> bool:
+    if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
+        return False
+    if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered":
+        return False
+    if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
+        return False
+    if _default_executor_dispatch_zero_execution_blocker(owner_result):
+        return False
+    return _default_executor_owner_result_consumable(
+        owner_result=owner_result,
+        repair_evidence=repair_evidence,
+    )
+
+
+def _execution_matches_owner_route(
+    *,
+    execution: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    current_idempotency_key = _text(owner_route.get("idempotency_key"))
+    if current_idempotency_key and _text(execution.get("idempotency_key")) == current_idempotency_key:
+        return True
+    prompt_contract = _mapping(execution.get("prompt_contract"))
+    for execution_route in (
+        _mapping(execution.get("current_owner_route")),
+        _mapping(execution.get("owner_route")),
+        _mapping(prompt_contract.get("owner_route")),
+    ):
+        if _owner_route_currentness_matches(execution_route=execution_route, owner_route=owner_route):
+            return True
+    return False
+
+
+def _owner_route_currentness_matches(
+    *,
+    execution_route: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    if not execution_route:
+        return False
+    comparisons = ("route_epoch", "next_owner", "owner_reason")
+    for key in comparisons:
+        current_value = _text(owner_route.get(key))
+        execution_value = _text(execution_route.get(key))
+        if current_value and execution_value and current_value != execution_value:
+            return False
+        if current_value and not execution_value:
+            return False
+    if not _owner_route_work_unit_currentness_matches(execution_route=execution_route, owner_route=owner_route):
+        return False
+    current_allowed = {_text(item) for item in owner_route.get("allowed_actions") or []}
+    execution_allowed = {_text(item) for item in execution_route.get("allowed_actions") or []}
+    current_allowed.discard("")
+    execution_allowed.discard("")
+    return bool(current_allowed) and current_allowed == execution_allowed
+
+
+def _owner_route_work_unit_currentness_matches(
+    *,
+    execution_route: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    current_basis = _owner_route_currentness_basis(owner_route)
+    execution_basis = _owner_route_currentness_basis(execution_route)
+    for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason"):
+        current_value = _text(current_basis.get(key))
+        execution_value = _text(execution_basis.get(key))
+        if current_value and not execution_value:
+            return False
+        if current_value and execution_value and current_value != execution_value:
+            return False
+    return bool(_text(current_basis.get("work_unit_fingerprint")) or _text(current_basis.get("work_unit_id")))
+
+
 def _specificity_to_package_freshness_currentness_matches(
     *,
     execution_route: Mapping[str, Any],
@@ -164,6 +260,20 @@ def _publication_gate_specificity_owner_result_satisfies_route_output(*, owner_r
     if not _text(publication_eval.get("eval_id")):
         return False
     return _is_publication_eval_latest_path(_text(publication_eval.get("artifact_path")))
+
+
+def _default_executor_owner_result_consumable(
+    *,
+    owner_result: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+) -> bool:
+    if owner_result.get("ok") is True:
+        return True
+    if _text(owner_result.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES:
+        return True
+    if _text(repair_evidence.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
+        return True
+    return bool(_mapping_list(repair_evidence.get("changed_artifact_refs")))
 
 
 def _default_executor_dispatch_zero_execution_blocker(owner_result: Mapping[str, Any]) -> bool:
