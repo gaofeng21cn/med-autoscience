@@ -429,7 +429,6 @@ def test_executed_blocked_gate_replay_routes_publication_surface_back_to_write_o
                 "reviewer_first_concerns_unresolved",
                 "submission_hardening_incomplete",
             ],
-            "medical_publication_surface_route_back_recommendation": "return_to_write",
             "blocking_artifact_refs": [
                 {
                     "blocker": "reviewer_first_concerns_unresolved",
@@ -444,6 +443,12 @@ def test_executed_blocked_gate_replay_routes_publication_surface_back_to_write_o
             "schema_version": 1,
             "status": "executed",
             "source_eval_id": eval_id,
+            "current_publication_work_unit": {
+                "unit_id": "manuscript_story_repair",
+                "lane": "write",
+                "summary": "Repair the paper story around the current evidence and claim boundary.",
+            },
+            "work_unit_fingerprint": "publication-blockers::dm003-story-repair",
             "gate_replay": {
                 "status": "blocked",
                 "allow_write": False,

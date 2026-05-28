@@ -11,6 +11,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 `return_to_ai_reviewer_workflow` record-only handoff 已在 `2026-05-28T01:01:03Z` 生成，只授权写 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`；但较早的 `run_quality_repair_batch` dispatch 因携带更晚 `runtime_health_epoch`，在 export candidate currentness 排序中反向压掉 AI reviewer handoff，导致 OPL 看不到当前 reviewer record-production work unit。
 - 影响：这是 MAS sidecar/export currentness 修复；不改变 OPL queue/provider owner，不授权直接写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/` 或 `manuscript/current_package/`。AI reviewer record handoff 仍必须由 MAS owner/controller/runtime path 产出 record，再由 MAS AI reviewer/publication gate 判定论文质量和投稿包状态。
 
+## 2026-05-28：gate-clearing follow-through 必须消费当前 publication work unit
+
+- 决策：`owner-route-reconcile` 在读取已执行且仍 blocked 的 `gate_clearing_batch/latest.json` 时，必须把 batch 自身的 `current_publication_work_unit.lane=write` 作为当前 owner-authorized route-back，投递给 `write/run_quality_repair_batch`。不能只依赖 gate report 内的旧文本字段 `medical_publication_surface_route_back_recommendation=return_to_write`。
+- 理由：DM003 的 gate replay 已由 MAS owner path 执行，并在 `gate_clearing_batch/latest.json` 明确给出 `current_publication_work_unit=manuscript_story_repair`；但 gate report 没有携带旧 route-back 文本字段，导致 current-control action queue 继续排 `run_gate_clearing_batch` 或清空，论文推进停在已完成的 gate replay 后面。根因是 MAS owner-route read model 没消费 gate-clearing batch 的结构化 follow-through，而不是 OPL provider、手工 queue 或论文正文可直接修补的问题。
+- 影响：这是 MAS controller/read-model follow-through 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。后续 DM003 仍必须由 MAS owner/controller/runtime path 消费 write repair、AI reviewer recheck、publication gate replay 和 package refresh。
+
 ## 2026-05-28：default-executor export 必须抑制被当前 owner route 阻断的旧 dispatch
 
 - 决策：`domain-handler export` 扫描同一 study 的 `default_executor_dispatches/*.json` 时，若另一个当前可 dispatch 的 owner route 在同一 work unit 上通过 `blocked_actions` 明确阻断某个旧 action，且阻断者的 currentness basis 更新，则旧 dispatch 不得继续作为 OPL `pending_family_tasks` 导出。旧 dispatch 文件仍可作为 provenance 留存，但不能继续 hydrate 成 provider-backed stage attempt。
