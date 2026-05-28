@@ -60,6 +60,7 @@ STAGE_PROGRESS_LOG_KEYS = (
     "authority_boundary",
 )
 LIVE_ATTEMPT_HANDOFF_KEYS = (
+    "active_run_id",
     "active_stage_attempt_id",
     "active_workflow_id",
     "running_provider_attempt",

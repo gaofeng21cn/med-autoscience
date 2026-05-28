@@ -731,7 +731,7 @@ def test_study_progress_merges_live_stage_log_when_handoff_study_entry_lacks_it(
                 {
                     "study_id": "001-risk",
                     "quest_status": "active",
-                    "active_run_id": "opl-stage-attempt://sat-live-queue",
+                    "active_run_id": None,
                     "active_stage_attempt_id": "sat-live-queue",
                     "active_workflow_id": "wf-live-queue",
                     "running_provider_attempt": True,
