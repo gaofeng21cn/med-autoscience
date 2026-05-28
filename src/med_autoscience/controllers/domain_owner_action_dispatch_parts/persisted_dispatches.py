@@ -9,6 +9,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
+from . import publication_owner_materialization_currentness
 from . import writer_handoff_currentness
 
 
@@ -176,8 +177,14 @@ def _dispatch_currentness_score(dispatch: Mapping[str, Any], current_study: Mapp
         current_study=current_study,
         dispatch=dispatch,
     )
+    publication_owner_bridged_route = (
+        publication_owner_materialization_currentness.bridged_publication_owner_materialization_route_from_study(
+            current_study=current_study,
+            dispatch=dispatch,
+        )
+    )
     route_current = 1 if _dispatch_matches_current_route(dispatch=dispatch, current_route=route) else 0
-    if bridged_route is not None:
+    if bridged_route is not None or publication_owner_bridged_route is not None:
         route_current = 1
     stall_current = 1 if _dispatch_stall_matches_scan(dispatch=dispatch, current_study=current_study) else 0
     return route_current, stall_current
@@ -272,6 +279,32 @@ def bridged_quality_repair_writer_handoff_route(
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     return bridged_quality_repair_writer_handoff_route_from_scan_payload(
+        scan_payload=scan_latest_payload(profile),
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+
+
+def bridged_publication_owner_materialization_route_from_scan_payload(
+    *,
+    scan_payload: Mapping[str, Any] | None,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return publication_owner_materialization_currentness.bridged_publication_owner_materialization_route_from_scan_payload(
+        scan_payload=scan_payload,
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+
+
+def bridged_publication_owner_materialization_route(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return bridged_publication_owner_materialization_route_from_scan_payload(
         scan_payload=scan_latest_payload(profile),
         study_id=study_id,
         dispatch=dispatch,
@@ -606,6 +639,8 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "SUPERVISION_LATEST_RELATIVE_PATH",
+    "bridged_publication_owner_materialization_route",
+    "bridged_publication_owner_materialization_route_from_scan_payload",
     "bridged_quality_repair_writer_handoff_route",
     "bridged_quality_repair_writer_handoff_route_from_scan_payload",
     "current_scan_stall",

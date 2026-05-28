@@ -26,6 +26,7 @@ AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS = frozenset(
     }
 )
 STORY_SURFACE_BRIDGE_AUTHORITY = "domain_action_request_materializer_story_surface_bridge"
+PUBLICATION_OWNER_BRIDGE_AUTHORITY = "domain_action_request_materializer_publication_owner_bridge"
 
 
 def materialization_action(
@@ -294,6 +295,19 @@ def _rewrite_owner_route(
         source_refs["bridge_authority"] = STORY_SURFACE_BRIDGE_AUTHORITY
         if original_idempotency_key is not None:
             source_refs["bridged_from_idempotency_key"] = original_idempotency_key
+    elif _is_publication_owner_materialization_bridge(
+        original_owner_reason=original_owner_reason,
+        owner_reason=owner_reason,
+        work_unit_id=work_unit_id,
+    ):
+        source_refs["materialized_work_unit_id"] = work_unit_id
+        source_refs["materialized_from_action_type"] = _materialized_from_action_type(
+            original_owner_reason=original_owner_reason,
+        )
+        source_refs["bridged_from_owner_reason"] = original_owner_reason
+        source_refs["bridge_authority"] = PUBLICATION_OWNER_BRIDGE_AUTHORITY
+        if original_idempotency_key is not None:
+            source_refs["bridged_from_idempotency_key"] = original_idempotency_key
     else:
         source_refs["work_unit_id"] = work_unit_id
     source_refs["blocked_reason"] = owner_reason
@@ -335,6 +349,25 @@ def _is_runtime_to_story_surface_bridge(
         and owner_reason == "manuscript_story_surface_delta_missing"
         and work_unit_id == DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT
     )
+
+
+def _is_publication_owner_materialization_bridge(
+    *,
+    original_owner_reason: str | None,
+    owner_reason: str,
+    work_unit_id: str,
+) -> bool:
+    return (
+        original_owner_reason in {"quest_waiting_opl_runtime_owner_route", "ai_reviewer_assessment_required"}
+        and owner_reason in {"current_package_freshness_required", "publication_owner_materialization_required"}
+        and work_unit_id in {"current_package_freshness_required", "publication_gate_replay"}
+    )
+
+
+def _materialized_from_action_type(*, original_owner_reason: str | None) -> str:
+    if original_owner_reason == "ai_reviewer_assessment_required":
+        return "return_to_ai_reviewer_workflow"
+    return "run_quality_repair_batch"
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:

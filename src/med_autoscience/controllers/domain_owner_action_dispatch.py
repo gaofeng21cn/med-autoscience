@@ -306,6 +306,16 @@ def _execution_owner_route(
         and _owner_route_block_reason(dispatch=dispatch, current_route=bridged_route) is None
     ):
         return bridged_route, "bridged_writer_handoff"
+    publication_owner_bridge_route = persisted_dispatches.bridged_publication_owner_materialization_route(
+        profile=profile,
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+    if (
+        publication_owner_bridge_route is not None
+        and _owner_route_block_reason(dispatch=dispatch, current_route=publication_owner_bridge_route) is None
+    ):
+        return publication_owner_bridge_route, "bridged_publication_owner_materialization"
     request_route = persisted_dispatches.owner_request_route(
         profile=profile,
         study_id=study_id,

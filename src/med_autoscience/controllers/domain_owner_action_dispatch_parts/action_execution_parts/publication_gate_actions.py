@@ -216,6 +216,7 @@ def _gate_clearing_authority_route_context(dispatch: Mapping[str, Any] | None) -
         or _mapping(source_refs.get("owner_route_currentness_basis"))
     )
     work_unit_id = _first_text(
+        _materialized_publication_owner_work_unit_id(source_refs),
         source_refs.get("work_unit_id"),
         currentness_basis.get("work_unit_id"),
         _mapping(dispatch_payload.get("source_action")).get("next_work_unit"),
@@ -248,6 +249,20 @@ def _first_text(*values: object) -> str | None:
         if text := _text(value):
             return text
     return None
+
+
+def _materialized_publication_owner_work_unit_id(source_refs: Mapping[str, Any]) -> str | None:
+    if _text(source_refs.get("bridge_authority")) != "domain_action_request_materializer_publication_owner_bridge":
+        return None
+    if _text(source_refs.get("blocked_reason")) not in {
+        "current_package_freshness_required",
+        "publication_owner_materialization_required",
+    }:
+        return None
+    materialized_work_unit_id = _text(source_refs.get("materialized_work_unit_id"))
+    if materialized_work_unit_id == "current_package_freshness_required":
+        return "submission_minimal_refresh"
+    return materialized_work_unit_id
 
 
 __all__ = [
