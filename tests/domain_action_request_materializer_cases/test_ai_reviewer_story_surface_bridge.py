@@ -305,3 +305,148 @@ def test_ai_reviewer_record_production_work_unit_consumes_current_record_before_
     assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
     assert source_refs["materialized_from_action_type"] == "return_to_ai_reviewer_workflow"
     assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+
+
+def test_ai_reviewer_record_stale_after_current_inputs_keeps_ai_reviewer_production_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    manuscript_text = "# Draft\n\nCurrent manuscript has updated evidence inputs.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    _write_json(evidence_path, {"schema_version": 1, "updated": "current"})
+    _write_json(claim_map_path, {"schema_version": 1, "updated": "current"})
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260528T153941Z_publication_eval_record.json"
+    )
+    record_payload = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id="publication-eval::003::quest::2026-05-28T15:39:41+00:00::ai-reviewer",
+        emitted_at="2026-05-28T15:39:41+00:00",
+    )
+    _write_json(record_path, record_payload)
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    required_currentness_refs = [str(evidence_path.resolve()), str(claim_map_path.resolve())]
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "state": "requested",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+                "stale_record_ref": str(record_path.resolve()),
+                "required_currentness_refs": required_currentness_refs,
+            },
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+                    "evidence_ledger": {"path": str(evidence_path.resolve()), "present": True, "valid": True},
+                    "claim_evidence_map": {"path": str(claim_map_path.resolve()), "present": True, "valid": True},
+                }
+            },
+            "publication_eval_record_ref": str(record_path.resolve()),
+            "ai_reviewer_record": record_payload,
+        },
+    )
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="ai_reviewer_record_stale_after_current_inputs",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    route.update(
+        {
+            "schema_version": 2,
+            "truth_epoch": "truth-event-000008",
+            "route_epoch": "truth-event-000008",
+            "source_fingerprint": "truth-snapshot::dm003-current-inputs",
+            "runtime_health_epoch": "runtime-health-event-006160",
+            "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+            "idempotency_key": "owner-route::dm003::ai-reviewer-record-stale-after-current-inputs",
+            "source_refs": {
+                "study_truth_epoch": "truth-event-000008",
+                "runtime_health_epoch": "runtime-health-event-006160",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+                    "truth_epoch": "truth-event-000008",
+                    "runtime_health_epoch": "runtime-health-event-006160",
+                    "owner_reason": "ai_reviewer_record_stale_after_current_inputs",
+                },
+            },
+        }
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "owner": "ai_reviewer",
+                    "request_owner": "ai_reviewer",
+                    "reason": "ai_reviewer_record_stale_after_current_inputs",
+                    "next_work_unit": work_unit_id,
+                    "controller_work_unit_id": work_unit_id,
+                    "executable_work_unit": work_unit_id,
+                    "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+                    "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+                    "required_currentness_refs": required_currentness_refs,
+                    "stale_record_ref": str(record_path.resolve()),
+                    "record_only_surface": True,
+                    "publication_eval_latest_write_allowed": False,
+                    "controller_decision_write_allowed": False,
+                    "owner_route": route,
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    request = result["request_tasks"][0]
+    dispatch = result["default_executor_dispatches"][0]
+    source_refs = dispatch["owner_route"]["source_refs"]
+    assert request["action_type"] == "return_to_ai_reviewer_workflow"
+    assert request["request_owner"] == "ai_reviewer"
+    assert request["reason"] == "ai_reviewer_record_stale_after_current_inputs"
+    assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
+    assert dispatch["next_executable_owner"] == "ai_reviewer"
+    assert dispatch["source_action"]["next_work_unit"] == work_unit_id
+    assert source_refs["work_unit_id"] == work_unit_id
+    assert "materialized_work_unit_id" not in source_refs

@@ -10,7 +10,11 @@ from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers.default_executor_action_policy import (
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
 )
+from med_autoscience.controllers.story_surface_work_units import (
+    is_story_surface_delta_write_work_unit,
+)
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.publication_eval_reviewer_os import current_ai_reviewer_route_back_action
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
@@ -19,6 +23,7 @@ CURRENT_MANUSCRIPT_PUBLICATION_SURFACE_RECHECK_WORK_UNIT = (
     "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
 )
 DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT = "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+DEFAULT_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT = "medical_prose_write_repair"
 AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS = frozenset(
     {
         CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT,
@@ -41,6 +46,13 @@ AI_REVIEWER_RECORD_OWNER_REASONS = frozenset(
     {
         "ai_reviewer_assessment_required",
         "domain_transition_ai_reviewer_re_eval",
+    }
+)
+AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS = frozenset(
+    {
+        domain_action_request_lifecycle.AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        domain_action_request_lifecycle.AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
+        domain_action_request_lifecycle.AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
     }
 )
 
@@ -69,6 +81,11 @@ def materialization_action(
     )
     if current_record is None:
         current_record = _request_bound_current_ai_reviewer_record(study_root=study_root)
+    if current_record is not None and not _record_consumes_request_currentness(
+        study_root=study_root,
+        record=current_record[0],
+    ):
+        current_record = None
     if current_record is None:
         if record_production_work_unit:
             return None
@@ -80,6 +97,7 @@ def materialization_action(
         return _story_surface_delta_action(
             action=action,
             owner_route=owner_route,
+            record=record,
             record_ref_path=record_ref_path,
         )
     return _gate_clearing_action(
@@ -141,14 +159,16 @@ def _story_surface_delta_action(
     *,
     action: Mapping[str, Any],
     owner_route: Mapping[str, Any],
+    record: Mapping[str, Any],
     record_ref_path: Path,
 ) -> dict[str, Any]:
+    work_unit_id = _story_surface_work_unit_id(action=action, record=record)
     rewritten_route = _rewrite_owner_route(
         owner_route=owner_route,
         next_owner="write",
         owner_reason="manuscript_story_surface_delta_missing",
         allowed_actions=["run_quality_repair_batch"],
-        work_unit_id=DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT,
+        work_unit_id=work_unit_id,
     )
     return _with_owner_route(
         {
@@ -162,12 +182,50 @@ def _story_surface_delta_action(
                 "canonical manuscript story-surface delta or "
                 "typed blocker:manuscript_story_surface_delta_missing"
             ),
-            "next_work_unit": DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT,
+            "next_work_unit": work_unit_id,
             "materialization_decision": "story_surface_delta_or_typed_blocker_required",
             "reviewer_record_ref": str(record_ref_path.resolve()),
         },
         rewritten_route,
     )
+
+
+def _record_consumes_request_currentness(
+    *,
+    study_root: Path,
+    record: Mapping[str, Any],
+) -> bool:
+    blocked_reason = _request_record_currentness_blocked_reason(study_root=study_root)
+    if blocked_reason is None:
+        return True
+    lifecycle = domain_action_request_lifecycle.project_ai_reviewer_request_lifecycle(
+        study_root=study_root,
+        publication_eval_payload=record,
+    )
+    return (
+        isinstance(lifecycle, Mapping)
+        and lifecycle.get("assessment_written") is True
+        and _text(lifecycle.get("blocked_reason")) is None
+    )
+
+
+def _request_record_currentness_blocked_reason(*, study_root: Path) -> str | None:
+    request = domain_action_request_lifecycle.read_ai_reviewer_request(study_root=study_root)
+    lifecycle = _mapping(_mapping(request).get("request_lifecycle"))
+    blocked_reason = _text(lifecycle.get("blocked_reason"))
+    if blocked_reason in AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS:
+        return blocked_reason
+    return None
+
+
+def _story_surface_work_unit_id(*, action: Mapping[str, Any], record: Mapping[str, Any]) -> str:
+    route_back_action = current_ai_reviewer_route_back_action(dict(record))
+    route_back_unit = _work_unit_id(_mapping(route_back_action).get("next_work_unit"))
+    if route_back_unit and is_story_surface_delta_write_work_unit(route_back_unit):
+        return route_back_unit
+    if _text(action.get("study_id")) == "002-dm-china-us-mortality-attribution":
+        return DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT
+    return DEFAULT_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT
 
 
 def _gate_clearing_action(
@@ -377,7 +435,7 @@ def _is_runtime_to_story_surface_bridge(
         original_owner_reason in {"quest_waiting_opl_runtime_owner_route", *AI_REVIEWER_RECORD_OWNER_REASONS}
         and original_work_unit_id in AI_REVIEWER_CURRENT_RECORD_CONSUMPTION_WORK_UNIT_IDS
         and owner_reason == "manuscript_story_surface_delta_missing"
-        and work_unit_id == DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT
+        and is_story_surface_delta_write_work_unit(work_unit_id)
     )
 
 
@@ -421,6 +479,12 @@ def _resolve_study_ref(*, study_root: Path, ref: str) -> Path:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _work_unit_id(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id")) or _text(value.get("work_unit_id"))
+    return _text(value)
 
 
 def _text(value: object) -> str | None:
