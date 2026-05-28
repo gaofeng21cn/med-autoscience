@@ -36,7 +36,11 @@ def test_multiprofile_guarded_apply_snapshot_records_unique_cross_profile_lines(
     payload = _snapshot()
 
     assert payload["surface_kind"] == "mas_multiprofile_guarded_apply_receipt_scaleout_evidence"
+    assert payload["evidence_id"] == "mas-multiprofile-guarded-apply-receipt-scaleout-20260527"
     assert payload["snapshot_status"] == "refs_only_multiprofile_owner_chain_snapshot_observed"
+    assert payload["opl_ingestable_surface"] == (
+        "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+    )
     assert payload["selected_acceptance_surface"] == {
         "ref": "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
         "role": "selected_existing_mas_evidence_surface",
@@ -83,6 +87,110 @@ def test_multiprofile_guarded_apply_snapshot_preserves_success_and_blocker_count
         "production_ready_claim_count": 0,
         "artifact_mutation_authorized_count": 0,
     }
+    stage_summary = payload["stage_expected_receipt_payload_summary"]
+    assert stage_summary["surface_kind"] == "mas_stage_expected_receipt_payload_summary"
+    assert stage_summary["owner"] == "med-autoscience"
+    assert stage_summary["consumer"] == "one_person_lab"
+    assert stage_summary["status"] == (
+        "per_stage_expected_receipt_payload_refs_ready_with_live_evidence_typed_blockers"
+    )
+    assert stage_summary["payload_body_allowed"] is False
+    assert stage_summary["empty_payload_template_is_success_evidence"] is False
+    assert stage_summary["body_included"] is False
+    assert stage_summary["summary_source_surface"] == "domain_dispatch_payload_summaries"
+    assert stage_summary["paper_line_count"] == 9
+    assert stage_summary["success_payload_count"] == 4
+    assert stage_summary["typed_blocker_payload_count"] == 5
+    assert stage_summary["domain_ready_claim_count"] == 0
+    assert stage_summary["production_ready_claim_count"] == 0
+    assert stage_summary["publication_ready_claim_count"] == 0
+    assert stage_summary["artifact_mutation_authorized_count"] == 0
+    assert stage_summary["current_package_mutation_authorized_count"] == 0
+    assert stage_summary["required_operator_payload_refs"] == [
+        "domain_receipt_refs",
+        "monitor_freshness_refs",
+        "runtime_event_refs",
+        "typed_blocker_refs",
+    ]
+    assert stage_summary["required_return_shapes"] == [
+        "domain_receipt_ref",
+        "monitor_freshness_ref",
+        "runtime_event_ref",
+        "typed_blocker_ref",
+    ]
+    assert stage_summary["stage_count"] == 1
+    assert len(stage_summary["stages"]) == 1
+
+    stage = stage_summary["stages"][0]
+    dispatch_payloads = payload["domain_dispatch_payload_summaries"]
+    success_payloads = [
+        item for item in dispatch_payloads if item["mode"] == "refs_only_domain_owned_success_payload"
+    ]
+    blocker_payloads = [
+        item
+        for item in dispatch_payloads
+        if item["mode"] == "refs_only_domain_owned_typed_blocker_payload"
+    ]
+    assert stage["stage_id"] == "finalize_and_publication_handoff"
+    assert stage["sequence"] == 6
+    assert stage["paper_line_count"] == len(dispatch_payloads)
+    assert stage["success_payload_count"] == len(success_payloads)
+    assert stage["typed_blocker_payload_count"] == len(blocker_payloads)
+    assert stage["domain_owner_receipt_ref_count"] == sum(
+        len(item["domain_owner_receipt_refs"]) for item in success_payloads
+    )
+    assert stage["stable_typed_blocker_ref_count"] == sum(
+        len(item["typed_blocker_refs"]) for item in blocker_payloads
+    )
+    assert stage["stage_expected_receipt_ref_count"] == sum(
+        len(item["stage_expected_receipt_refs"]) for item in dispatch_payloads
+    )
+    assert stage["stage_monitor_freshness_ref_count"] == sum(
+        len(item["stage_monitor_freshness_refs"]) for item in dispatch_payloads
+    )
+    assert stage["no_forbidden_write_guard_ref_count"] == sum(
+        len(item.get("forbidden_write_guard_refs", [])) for item in dispatch_payloads
+    )
+    assert stage["current_payload_template"] == {
+        "domain_receipt_refs": [],
+        "monitor_freshness_refs": [],
+        "runtime_event_refs": [],
+        "typed_blocker_refs": [],
+    }
+    assert stage["success_refs_path_source"] == (
+        "domain_dispatch_payload_summaries[mode=refs_only_domain_owned_success_payload]"
+    )
+    assert stage["typed_blocker_path_source"] == (
+        "domain_dispatch_payload_summaries[mode=refs_only_domain_owned_typed_blocker_payload]"
+    )
+    assert stage["success_refs_path_payload"] == {
+        "domain_receipt_refs": [
+            ref for item in success_payloads for ref in item["stage_expected_receipt_refs"]
+        ],
+        "monitor_freshness_refs": [
+            ref for item in success_payloads for ref in item["stage_monitor_freshness_refs"]
+        ],
+        "runtime_event_refs": [],
+        "typed_blocker_refs": [],
+    }
+    assert stage["typed_blocker_path_payload"] == {
+        "domain_receipt_refs": [],
+        "monitor_freshness_refs": [
+            ref for item in blocker_payloads for ref in item["stage_monitor_freshness_refs"]
+        ],
+        "runtime_event_refs": [],
+        "typed_blocker_refs": [
+            ref for item in blocker_payloads for ref in item["typed_blocker_refs"]
+        ],
+    }
+    assert stage["recommended_current_payload_path"] == "typed_blocker_path"
+    assert stage["success_refs_visible_is_completion"] is False
+    assert stage["typed_blocker_visible_is_domain_ready"] is False
+    assert stage["domain_readiness_claimed"] is False
+    assert stage["production_readiness_claimed"] is False
+    assert stage["publication_readiness_claimed"] is False
+    assert stage["artifact_mutation_authorized"] is False
+    assert stage["current_package_mutation_authorized"] is False
 
     results = {item["paper_line_id"]: item for item in payload["paper_line_owner_chain_results"]}
     assert {item["paper_line_id"] for item in results.values() if item["result_kind"] == "owner_receipt"} == {
@@ -131,6 +239,7 @@ def test_multiprofile_guarded_apply_snapshot_does_not_claim_domain_or_body_autho
     assert boundary["domain_truth_owner"] == "med-autoscience"
     assert boundary["provider_attempt_owner"] == "one-person-lab"
     assert boundary["owner_chain_authority"] == "MedAutoScience"
+    assert payload["opl_ingestable_surface"] == boundary["opl_ingestable_surface"]
     assert boundary["provider_completion_can_close_canary"] is False
     assert boundary["opl_records_refs_only"] is True
     assert boundary["opl_can_write_mas_truth"] is False
@@ -195,8 +304,13 @@ def test_multiprofile_guarded_apply_snapshot_is_refs_only_and_replayable() -> No
 
 def _compact_projection_sha256(payload: dict[str, object]) -> str:
     projection = {
+        "evidence_id": payload["evidence_id"],
+        "opl_ingestable_surface": payload["opl_ingestable_surface"],
         "live_summary": payload["live_summary"],
         "paper_line_owner_payload_summary": payload["paper_line_owner_payload_summary"],
+        "stage_expected_receipt_payload_summary": payload[
+            "stage_expected_receipt_payload_summary"
+        ],
         "paper_line_identity_order": payload["paper_line_identity_order"],
         "paper_line_owner_chain_results": payload["paper_line_owner_chain_results"],
         "domain_dispatch_payload_summaries": payload["domain_dispatch_payload_summaries"],
