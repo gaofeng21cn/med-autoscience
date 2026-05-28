@@ -1577,6 +1577,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出当前 AI reviewer eval `20260528T125118Z` 已 route back 到 `write/run_quality_repair_batch`，并生成 `quality_repair_batch_writer_handoff`，但该 handoff 没有 runtime-health epoch，导致 owner-route attempt envelope fail closed；同时历史 closeout 复用了同一 writer handoff idempotency key，旧 manuscript story delta 被误判为已消费当前 eval-bound medical prose repair。
 - 影响：MAS export 会重新暴露当前 eval-bound `quality_repair_batch_writer_handoff` 给 OPL stage attempt；旧 writer closeout 只有在 source eval/truth/work unit/owner reason/action currentness 一致时才能消费当前 route。不得通过手工 queue update、放宽 owner reason、或直接修改 DM003 paper/current_package 解决此类停滞。
 
+## 2026-05-28：非终态 paper-progress 读模型漂移不得阻断 owner-authorized writer handoff
+
+- 决策：`domain-owner-action-dispatch` 继续把 `owner_route` currentness 作为执行授权真相；`paper_progress_stall` 只作为 stall/progress 读模型。若当前 scan 的 `paper_progress_stall` 明确是 `stalled=false` 且 `terminal=false`，其 `action_fingerprint` 与持久化 dispatch 中的旧读模型指纹不一致时，不得返回 `paper_progress_stall_fingerprint_stale` 阻断当前 owner-authorized `run_quality_repair_batch`。`paper_progress_stall_current_missing`、`paper_progress_stall_terminal` 和 terminal/stalled 保护继续 fail-closed。
+- 理由：DM003 暴露出 MAS publication gate replay 已生成新的 `run_quality_repair_batch` owner request，`owner_route` currentness 完整且 write owner 可执行，但 workspace OPL control-state 的 action queue 已被消费/投影刷新，旧 dispatch 包里的 non-terminal stall fingerprint 与当前 non-terminal stall fingerprint 漂移，导致默认执行器没有启动 writer handoff。这个指纹只能证明 read-model 版本不同，不能替代 owner route 授权，也不能阻断论文质量修复。
+- 影响：质量修复 dispatch 的执行边界收口为：owner route 决定是否可执行，terminal/stalled progress 模型决定是否保护性阻断，非终态 progress 指纹漂移只记录在执行 payload 中，不作为硬 blocker。回归覆盖 `run_quality_repair_batch` 在 DM003 publication-gate route-back 下 action_queue 为空、non-terminal stall 指纹漂移时仍进入 writer owner callable。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

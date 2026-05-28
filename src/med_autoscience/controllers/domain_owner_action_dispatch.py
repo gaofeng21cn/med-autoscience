@@ -365,6 +365,8 @@ def _paper_progress_stall_block_reason(
     dispatch_fingerprint = _text(dispatch_stall.get("action_fingerprint")) or _text(dispatch.get("action_fingerprint"))
     current_fingerprint = _text(current_stall.get("action_fingerprint"))
     if dispatch_fingerprint is not None and current_fingerprint is not None and dispatch_fingerprint != current_fingerprint:
+        if current_stall.get("stalled") is False and current_stall.get("terminal") is False:
+            return None, True
         return "paper_progress_stall_fingerprint_stale", False
     return None, False
 
