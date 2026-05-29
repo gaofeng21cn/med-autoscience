@@ -135,9 +135,15 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         "return_to_ai_reviewer_workflow_payload.json"
     )
     assert production_request["owner_callable_command"] == (
-        "publication materialize-ai-reviewer-record --build-production-trace "
-        f"--payload-file {payload_ref}"
+        "medautosci publication materialize-ai-reviewer-record --profile <profile.toml> "
+        f"--study-id {study_id} --payload-file {payload_ref} --build-production-trace"
     )
+    assert production_request["followup_actions"] == [
+        "fill owner_callable_payload_ref.record_payload with an AI-reviewer-authored publication eval record",
+        "run owner_callable_command exactly as rendered",
+        "domain-action-request-materialize",
+        "domain-owner-action-dispatch --action-types return_to_ai_reviewer_workflow",
+    ]
     assert production_request["reviewer_operating_system_contract"]["production_trace_builder"] == (
         "ai_reviewer_publication_eval_workflow.build_ai_reviewer_publication_eval_record_with_workflow_trace"
     )
@@ -160,12 +166,22 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert handoff["refs"]["owner_callable_payload_ref"] == payload_ref
     assert handoff["prompt_contract"]["owner_callable_payload_ref"] == payload_ref
     assert handoff["prompt_contract"]["owner_callable_command"] == production_request["owner_callable_command"]
+    assert handoff["prompt_contract"]["record_payload_authoring_target_surface"] == (
+        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json"
+    )
+    assert handoff["prompt_contract"]["execution_steps"] == [
+        "Read owner_callable_payload_ref and fill only its record_payload field with the AI reviewer publication eval record.",
+        "Run owner_callable_command exactly as rendered to let MAS rebuild the production reviewer_operating_system trace and write the record-only archive.",
+        "Do not inspect MAS source code to discover alternate CLI spellings or write artifacts/publication_eval/latest.json.",
+        "Emit the required typed closeout packet with the materialized record ref.",
+    ]
     assert handoff["owner_route"]["next_owner"] == "ai_reviewer"
     assert handoff["owner_route"]["owner_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
     assert handoff["owner_route"]["source_refs"]["work_unit_id"] == (
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     )
     assert handoff["prompt_contract"]["allowed_write_surfaces"] == [
+        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json",
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
     ]
     assert "artifacts/publication_eval/latest.json" in handoff["forbidden_surfaces"]
@@ -188,7 +204,69 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert payload["stale_record_ref"] == str(stale_record_path)
     assert payload["required_currentness_refs"] == [str(manuscript_path)]
     assert payload["record_payload"] is None
+    assert payload["allowed_write_surfaces"] == [
+        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json",
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+    ]
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_ai_reviewer_record_handoff_renders_executable_owner_callable_with_profile(
+    tmp_path: Path,
+) -> None:
+    profile_path = tmp_path / "profile.local.toml"
+    profile = make_profile(tmp_path)
+    profile = profile.__class__(**{**profile.__dict__, "profile_ref": profile_path})
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    production_request = build_ai_reviewer_record_production_request(
+        request={"study_id": study_id, "quest_id": study_id},
+        required_refs={"manuscript": str(manuscript_path)},
+        stale_record_ref=str(
+            study_root
+            / "artifacts"
+            / "publication_eval"
+            / "ai_reviewer_responses"
+            / "stale_publication_eval_record.json"
+        ),
+        required_currentness_refs=[str(manuscript_path)],
+        request_kind="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+    )
+    handoff = build_ai_reviewer_record_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        request={"study_id": study_id, "quest_id": study_id},
+        dispatch={
+            "owner_route": _owner_route(
+                study_id=study_id,
+                action_type="return_to_ai_reviewer_workflow",
+                owner="ai_reviewer",
+            )
+        },
+        production_request=production_request,
+    )
+
+    payload_ref = handoff["refs"]["owner_callable_payload_ref"]
+    expected_command = (
+        "medautosci publication materialize-ai-reviewer-record "
+        f"--profile {profile_path.resolve()} "
+        f"--study-id {study_id} "
+        f"--payload-file {payload_ref} "
+        "--build-production-trace"
+    )
+    assert handoff["ai_reviewer_record_production_request"]["owner_callable_profile_ref"] == str(
+        profile_path.resolve()
+    )
+    assert handoff["prompt_contract"]["owner_callable_command"] == expected_command
+    assert handoff["prompt_contract"]["allowed_write_surfaces"] == [
+        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json",
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+    ]
+    assert handoff["prompt_contract"]["execution_steps"][1] == (
+        "Run owner_callable_command exactly as rendered to let MAS rebuild the production "
+        "reviewer_operating_system trace and write the record-only archive."
+    )
 
 
 def test_execute_dispatch_accepts_record_only_handoff_contract_when_selected_from_persisted_dispatch(

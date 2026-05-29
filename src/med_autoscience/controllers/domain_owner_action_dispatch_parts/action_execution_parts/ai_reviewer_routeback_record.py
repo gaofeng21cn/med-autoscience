@@ -204,6 +204,7 @@ def build_current_medical_prose_routeback_record(
             charter_ref=charter_ref,
             prose_ref=str(prose_path.resolve()),
             request_digest=request_digest,
+            route_target=route_target,
             route_reason=route_reason,
             quality_assessment=quality_assessment,
             future_facing_limitations_plan=future_facing_limitations_plan,
@@ -274,6 +275,7 @@ def _routeback_reviewer_operating_system(
     charter_ref: str,
     prose_ref: str,
     request_digest: str,
+    route_target: str,
     route_reason: str,
     quality_assessment: Mapping[str, Any],
     future_facing_limitations_plan: list[dict[str, Any]],
@@ -339,7 +341,11 @@ def _routeback_reviewer_operating_system(
                 "manuscript_ref": manuscript_ref,
                 "manuscript_digest": manuscript_digest,
                 "route_back_required": True,
-                "route_target": "write",
+                "route_target": route_target,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
             },
             "current_manuscript": {
                 "status": "current",
@@ -373,6 +379,7 @@ def _routeback_reviewer_operating_system(
         },
         "route_back_decision": {
             "recommended_action": "route_back_same_line",
+            "route_target": route_target,
             "rationale": route_reason,
         },
     }

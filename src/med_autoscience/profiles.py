@@ -72,6 +72,7 @@ class WorkspaceProfile:
     developer_supervisor_mode_explicit: bool = False
     github_username: str | None = None
     mas_developer_github_usernames: tuple[str, ...] = (EXPECTED_DEVELOPER_GITHUB_LOGIN,)
+    profile_ref: Path | None = None
 
     @property
     def managed_runtime_home(self) -> Path:
@@ -385,6 +386,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
             "mas_developer_github_usernames",
             default=(EXPECTED_DEVELOPER_GITHUB_LOGIN,),
         ),
+        profile_ref=profile_path,
     )
 
 

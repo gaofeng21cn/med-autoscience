@@ -29,8 +29,9 @@ RECORD_PRODUCTION_PAYLOAD_REF = (
     "artifacts/supervision/requests/ai_reviewer/record_production_payloads/"
     f"{ACTION_TYPE}_payload.json"
 )
+RECORD_PAYLOAD_AUTHORING_SURFACE = "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json"
 DISPATCH_AUTHORITY = "ai_reviewer_record_production_handoff"
-ALLOWED_WRITE_SURFACES = [RECORD_OUTPUT_SURFACE]
+ALLOWED_WRITE_SURFACES = [RECORD_PAYLOAD_AUTHORING_SURFACE, RECORD_OUTPUT_SURFACE]
 FORBIDDEN_SURFACES = [
     "paper/**",
     "manuscript/**",
@@ -72,10 +73,19 @@ def _record_production_payload_path(*, profile: WorkspaceProfile, study_id: str)
     return profile.studies_root / study_id / RECORD_PRODUCTION_PAYLOAD_REF
 
 
-def _command_for_payload_ref(payload_ref: str) -> str:
+def _profile_ref(profile: WorkspaceProfile) -> str | None:
+    ref = getattr(profile, "profile_ref", None)
+    return str(Path(ref).expanduser().resolve()) if ref is not None else None
+
+
+def _command_for_payload_ref(*, profile: WorkspaceProfile, study_id: str, payload_ref: str) -> str:
+    profile_arg = f"--profile {_profile_ref(profile)} " if _profile_ref(profile) is not None else "--profile <profile.toml> "
     return (
-        "publication materialize-ai-reviewer-record --build-production-trace "
-        f"--payload-file {payload_ref}"
+        "medautosci publication materialize-ai-reviewer-record "
+        f"{profile_arg}"
+        f"--study-id {study_id} "
+        f"--payload-file {payload_ref} "
+        "--build-production-trace"
     )
 
 
@@ -89,7 +99,12 @@ def _production_request_with_owner_callable_payload_ref(
     result = dict(production_request)
     result["owner_callable_payload_ref"] = payload_ref
     result["owner_callable_payload_role"] = "ai_reviewer_record_payload_authoring_target"
-    result["owner_callable_command"] = _command_for_payload_ref(payload_ref)
+    result["owner_callable_profile_ref"] = _profile_ref(profile)
+    result["owner_callable_command"] = _command_for_payload_ref(
+        profile=profile,
+        study_id=study_id,
+        payload_ref=payload_ref,
+    )
     result["owner_callable_payload_contract"] = {
         "surface": "ai_reviewer_record_payload_authoring_target",
         "record_payload_field": "record_payload",
@@ -123,6 +138,7 @@ def _record_payload_authoring_target(
         "record_payload_contract": dict(_mapping(production_request.get("owner_callable_payload_contract"))),
         "owner_callable_surface": _text(production_request.get("owner_callable_surface")),
         "owner_callable_command": _text(production_request.get("owner_callable_command")),
+        "owner_callable_profile_ref": _text(production_request.get("owner_callable_profile_ref")),
         "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
         "required_output_surface": RECORD_OUTPUT_SURFACE,
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
@@ -162,9 +178,11 @@ def build_ai_reviewer_record_production_request(
         "required_output_surface": RECORD_OUTPUT_SURFACE,
         "owner_callable_surface": "publication materialize-ai-reviewer-record",
         "owner_callable_command": (
-            "publication materialize-ai-reviewer-record --build-production-trace "
-            "--payload-file <ai_reviewer_record_payload.json>"
+            "medautosci publication materialize-ai-reviewer-record --profile <profile.toml> "
+            "--study-id <study-id> --payload-file <ai_reviewer_record_payload.json> "
+            "--build-production-trace"
         ),
+        "owner_callable_profile_required": True,
         "reviewer_operating_system_contract": {
             "contract_id": "medical_publication_ai_reviewer_os_v1",
             "production_trace_builder": "ai_reviewer_publication_eval_workflow.build_ai_reviewer_publication_eval_record_with_workflow_trace",
@@ -184,7 +202,8 @@ def build_ai_reviewer_record_production_request(
         },
         "record_must_consume_refs": required_currentness_refs,
         "followup_actions": [
-            "publication materialize-ai-reviewer-record --build-production-trace",
+            "fill owner_callable_payload_ref.record_payload with an AI-reviewer-authored publication eval record",
+            "run owner_callable_command exactly as rendered",
             "domain-action-request-materialize",
             "domain-owner-action-dispatch --action-types return_to_ai_reviewer_workflow",
         ],
@@ -256,6 +275,14 @@ def build_ai_reviewer_record_worker_handoff(
         "request_packet_ref": REQUEST_PACKET_REF,
         "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
         "owner_callable_command": _text(production_request.get("owner_callable_command")),
+        "owner_callable_profile_ref": _text(production_request.get("owner_callable_profile_ref")),
+        "record_payload_authoring_target_surface": RECORD_PAYLOAD_AUTHORING_SURFACE,
+        "execution_steps": [
+            "Read owner_callable_payload_ref and fill only its record_payload field with the AI reviewer publication eval record.",
+            "Run owner_callable_command exactly as rendered to let MAS rebuild the production reviewer_operating_system trace and write the record-only archive.",
+            "Do not inspect MAS source code to discover alternate CLI spellings or write artifacts/publication_eval/latest.json.",
+            "Emit the required typed closeout packet with the materialized record ref.",
+        ],
         "ai_reviewer_record_production_request": dict(production_request),
         "required_closeout_packet": closeout_contract,
         "terminal_output_instruction": closeout_contract["terminal_output_instruction"],
@@ -306,6 +333,7 @@ def build_ai_reviewer_record_worker_handoff(
             "dispatch_path": str(dispatch_path),
             "request_path": str(profile.studies_root / study_id / REQUEST_PACKET_REF),
             "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
+            "owner_callable_profile_ref": _text(production_request.get("owner_callable_profile_ref")),
         },
         "handoff_semantics": {
             "status": "ai_reviewer_record_production_handoff_ready",

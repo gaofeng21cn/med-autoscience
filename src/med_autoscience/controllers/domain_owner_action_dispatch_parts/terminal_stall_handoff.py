@@ -284,7 +284,6 @@ def _currentness_missing_required_fields(owner_route: Mapping[str, Any]) -> list
             "work_unit_fingerprint",
             "truth_epoch",
             "runtime_health_epoch",
-            "owner_reason",
         )
         if _text(basis.get(field)) is None
     ]
@@ -293,6 +292,9 @@ def _currentness_missing_required_fields(owner_route: Mapping[str, Any]) -> list
 def _owner_route_currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     source_refs = _mapping(owner_route.get("source_refs"))
     basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    if basis:
+        return basis
+    basis = _mapping(_mapping(owner_route.get("currentness_contract")).get("basis"))
     if basis:
         return basis
     return owner_route_attempt_protocol.currentness_basis(owner_route)

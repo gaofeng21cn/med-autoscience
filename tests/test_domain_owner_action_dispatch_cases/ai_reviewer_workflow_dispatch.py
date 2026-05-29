@@ -414,6 +414,7 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
     )
     assert handoff["prompt_contract"]["allowed_write_surfaces"] == [
+        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json",
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
     ]
     assert "artifacts/publication_eval/latest.json" in handoff["forbidden_surfaces"]

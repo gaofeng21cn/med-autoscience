@@ -110,7 +110,10 @@ def _record_only_ai_reviewer_handoff_prompt_contract(prompt_contract: Mapping[st
         for item in prompt_contract.get("allowed_write_surfaces") or []
         if (text := _text(item)) is not None
     }
-    return allowed == {"artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"}
+    return allowed == {
+        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json",
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+    }
 
 
 def _record_only_ai_reviewer_handoff_forbidden_surfaces(forbidden: set[str]) -> bool:
