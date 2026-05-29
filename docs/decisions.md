@@ -1600,6 +1600,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出 MAS publication gate replay 已生成新的 `run_quality_repair_batch` owner request，`owner_route` currentness 完整且 write owner 可执行，但 workspace OPL control-state 的 action queue 已被消费/投影刷新，旧 dispatch 包里的 non-terminal stall fingerprint 与当前 non-terminal stall fingerprint 漂移，导致默认执行器没有启动 writer handoff。这个指纹只能证明 read-model 版本不同，不能替代 owner route 授权，也不能阻断论文质量修复。
 - 影响：质量修复 dispatch 的执行边界收口为：owner route 决定是否可执行，terminal/stalled progress 模型决定是否保护性阻断，非终态 progress 指纹漂移只记录在执行 payload 中，不作为硬 blocker。回归覆盖 `run_quality_repair_batch` 在 DM003 publication-gate route-back 下 action_queue 为空、non-terminal stall 指纹漂移时仍进入 writer owner callable。
 
+## 2026-05-29：AI reviewer record-production handoff 必须带可执行 payload ref
+
+- 决策：`ai_reviewer_record_production_handoff` 不得只给 `<ai_reviewer_record_payload.json>` 这类占位命令。MAS owner handoff 必须物化 `ai_reviewer_record_payload_authoring_target`，在 dispatch、prompt contract 和 refs 中写入真实 `owner_callable_payload_ref` 与可执行 `publication materialize-ai-reviewer-record --build-production-trace --payload-file ...` 命令。该 payload surface 只作为 AI reviewer 填写 `record_payload` 的目标；MAS 不预填质量判断正文，也不写 `publication_eval/latest.json`。
+- 决策：`--build-production-trace` 从当前输入重建 record-only AI reviewer response 时必须生成新鲜 `emitted_at`，不能沿用 stale seed record 的时间戳和 archive 文件名。
+- 理由：DM003 暴露出 record-production stage 可能完成了 dispatch，却没有为 executor 提供可执行 owner payload/ref，导致同一个 stale response 被复用或没有新 record materialized。新合同把“AI reviewer 独立写 record payload”和“MAS owner callable 校验、补 production trace、写 record-only archive”分清，并保证后续 lifecycle 能按新文件名识别 current record。
+- 影响：默认 executor 的 AI reviewer record-production stage 只能写 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`，继续禁止 `paper/**`、`manuscript/**`、`publication_eval/latest.json` 与 `controller_decisions/latest.json`。后续若 record 仍未产出，应归类为 AI reviewer executor 未完成 `record_payload`，而不是 OPL queue 或手工 surface 更新问题。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

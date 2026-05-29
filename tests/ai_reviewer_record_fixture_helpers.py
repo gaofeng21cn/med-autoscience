@@ -116,6 +116,15 @@ def _reviewer_operating_system(
                 "manuscript_ref": input_bundle["manuscript"],
                 "manuscript_digest": "sha256:" + "c" * 64,
             },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": input_bundle["manuscript"],
+                "manuscript_digest": "sha256:" + "c" * 64,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
+            },
             "current_package_freshness": {"status": "fresh", "source_eval_id": eval_id},
         },
         "claim_evidence_alignment": claim_alignment,

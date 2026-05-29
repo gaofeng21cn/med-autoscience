@@ -791,8 +791,10 @@ def test_ai_reviewer_publication_eval_record_controller_rebuilds_production_trac
 
     assert result["status"] == "materialized"
     assert result["publication_eval_surface"] == "not_written"
+    assert Path(result["publication_eval_record_ref"]).name != "20260405T060000Z_publication_eval_record.json"
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     archived = json.loads(Path(result["publication_eval_record_ref"]).read_text(encoding="utf-8"))
+    assert archived["emitted_at"] != payload["emitted_at"]
     reviewer_os = archived["reviewer_operating_system"]
     assert "request_kind" not in reviewer_os
     assert reviewer_os["decision_matrix"]

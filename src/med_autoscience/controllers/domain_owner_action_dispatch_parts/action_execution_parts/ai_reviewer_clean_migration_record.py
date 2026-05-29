@@ -229,6 +229,15 @@ def _reviewer_operating_system(
                 "route_target": "review",
                 "authority_source_signature": "paper_authority_clean_migration",
             },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
+            },
             "current_package_freshness": {"status": "fresh", "source_eval_id": eval_id},
         },
         "claim_evidence_alignment": claim_alignment,
@@ -253,6 +262,7 @@ def _reviewer_operating_system(
         },
         "route_back_decision": {
             "recommended_action": "route_back_same_line",
+            "route_target": "review",
             "rationale": "After AI reviewer writeback, rerun publication gate and delivery sync.",
         },
     }

@@ -25,6 +25,10 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 RECORD_OUTPUT_SURFACE = "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
 REQUEST_PACKET_REF = "artifacts/supervision/requests/ai_reviewer/latest.json"
 ACTION_TYPE = "return_to_ai_reviewer_workflow"
+RECORD_PRODUCTION_PAYLOAD_REF = (
+    "artifacts/supervision/requests/ai_reviewer/record_production_payloads/"
+    f"{ACTION_TYPE}_payload.json"
+)
 DISPATCH_AUTHORITY = "ai_reviewer_record_production_handoff"
 ALLOWED_WRITE_SURFACES = [RECORD_OUTPUT_SURFACE]
 FORBIDDEN_SURFACES = [
@@ -62,6 +66,76 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
         json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def _record_production_payload_path(*, profile: WorkspaceProfile, study_id: str) -> Path:
+    return profile.studies_root / study_id / RECORD_PRODUCTION_PAYLOAD_REF
+
+
+def _command_for_payload_ref(payload_ref: str) -> str:
+    return (
+        "publication materialize-ai-reviewer-record --build-production-trace "
+        f"--payload-file {payload_ref}"
+    )
+
+
+def _production_request_with_owner_callable_payload_ref(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    production_request: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload_ref = str(_record_production_payload_path(profile=profile, study_id=study_id).resolve())
+    result = dict(production_request)
+    result["owner_callable_payload_ref"] = payload_ref
+    result["owner_callable_payload_role"] = "ai_reviewer_record_payload_authoring_target"
+    result["owner_callable_command"] = _command_for_payload_ref(payload_ref)
+    result["owner_callable_payload_contract"] = {
+        "surface": "ai_reviewer_record_payload_authoring_target",
+        "record_payload_field": "record_payload",
+        "record_payload_required_before_owner_callable": True,
+        "record_payload_must_be_publication_eval_record": True,
+        "record_payload_must_be_authored_by_ai_reviewer": True,
+        "record_payload_must_consume_refs": list(result.get("required_currentness_refs") or []),
+        "record_payload_ref_is_materialized_by_mas": True,
+        "record_payload_body_is_not_prefilled_by_mas": True,
+    }
+    return result
+
+
+def _record_payload_authoring_target(
+    *,
+    handoff: Mapping[str, Any],
+    production_request: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface": "ai_reviewer_record_payload_authoring_target",
+        "schema_version": 1,
+        "study_id": _text(handoff.get("study_id")),
+        "quest_id": _text(handoff.get("quest_id")),
+        "action_type": ACTION_TYPE,
+        "request_kind": _text(production_request.get("request_kind")),
+        "request_owner": "ai_reviewer",
+        "stale_record_ref": _text(production_request.get("stale_record_ref")),
+        "required_currentness_refs": list(production_request.get("required_currentness_refs") or []),
+        "required_input_refs": dict(_mapping(production_request.get("required_input_refs"))),
+        "record_payload": None,
+        "record_payload_contract": dict(_mapping(production_request.get("owner_callable_payload_contract"))),
+        "owner_callable_surface": _text(production_request.get("owner_callable_surface")),
+        "owner_callable_command": _text(production_request.get("owner_callable_command")),
+        "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
+        "required_output_surface": RECORD_OUTPUT_SURFACE,
+        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
+        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "authority_contract": dict(_mapping(production_request.get("authority_contract"))),
+        "reviewer_operating_system_contract": dict(
+            _mapping(production_request.get("reviewer_operating_system_contract"))
+        ),
+        "publication_eval_record_contract": dict(
+            _mapping(production_request.get("publication_eval_record_contract"))
+        ),
+        "generated_at": _utc_now(),
+    }
 
 
 def build_ai_reviewer_record_production_request(
@@ -144,6 +218,12 @@ def build_ai_reviewer_record_worker_handoff(
     production_request: Mapping[str, Any],
 ) -> dict[str, Any]:
     quest_id = _text(request.get("quest_id")) or study_id
+    enriched_production_request = _production_request_with_owner_callable_payload_ref(
+        profile=profile,
+        study_id=study_id,
+        production_request=production_request,
+    )
+    production_request = enriched_production_request
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(_mapping(dispatch).get("owner_route"))
         or _mapping(_mapping(_mapping(dispatch).get("prompt_contract")).get("owner_route"))
@@ -174,6 +254,8 @@ def build_ai_reviewer_record_worker_handoff(
         "do_not_repeat": True,
         "repeat_suppression_key": repeat_key,
         "request_packet_ref": REQUEST_PACKET_REF,
+        "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
+        "owner_callable_command": _text(production_request.get("owner_callable_command")),
         "ai_reviewer_record_production_request": dict(production_request),
         "required_closeout_packet": closeout_contract,
         "terminal_output_instruction": closeout_contract["terminal_output_instruction"],
@@ -223,6 +305,7 @@ def build_ai_reviewer_record_worker_handoff(
         "refs": {
             "dispatch_path": str(dispatch_path),
             "request_path": str(profile.studies_root / study_id / REQUEST_PACKET_REF),
+            "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
         },
         "handoff_semantics": {
             "status": "ai_reviewer_record_production_handoff_ready",
@@ -240,6 +323,20 @@ def materialize_ai_reviewer_record_worker_handoff(
     dispatch_path_text = _text(_mapping(handoff.get("refs")).get("dispatch_path"))
     if dispatch_path_text is None:
         raise ValueError("ai_reviewer_record_worker_handoff_dispatch_path_missing")
+    production_request = _mapping(handoff.get("ai_reviewer_record_production_request"))
+    payload_ref = _text(production_request.get("owner_callable_payload_ref")) or _text(
+        _mapping(handoff.get("refs")).get("owner_callable_payload_ref")
+    )
+    if payload_ref is None:
+        raise ValueError("ai_reviewer_record_worker_handoff_payload_ref_missing")
+    payload_path = Path(payload_ref).expanduser()
+    _write_json(
+        payload_path,
+        _record_payload_authoring_target(
+            handoff=handoff,
+            production_request=production_request,
+        ),
+    )
     dispatch_path = Path(dispatch_path_text).expanduser()
     packet_handoff = default_executor_dispatch_packets.dispatch_with_immutable_packet_ref(
         dispatch=handoff,
@@ -283,6 +380,9 @@ def record_production_handoff_execution(
         "owner_callable_surface": "publication materialize-ai-reviewer-record",
         "next_owner": "ai_reviewer",
         **payload,
+        "ai_reviewer_record_production_request": dict(
+            _mapping(handoff.get("ai_reviewer_record_production_request"))
+        ),
         "ai_reviewer_record_worker_handoff": handoff,
     }
     if apply:

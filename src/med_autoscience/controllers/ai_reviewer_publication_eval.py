@@ -89,6 +89,16 @@ def _read_json_object(path: Path) -> dict[str, Any]:
     return dict(payload)
 
 
+def _payload_record(value: PublicationEvalRecord | dict[str, Any]) -> dict[str, Any]:
+    payload = value.to_dict() if isinstance(value, PublicationEvalRecord) else dict(value)
+    if _optional_text(payload.get("surface")) == "ai_reviewer_record_payload_authoring_target":
+        record_payload = _mapping(payload.get("record_payload"))
+        if not record_payload:
+            raise ValueError("AI reviewer record payload authoring target missing record_payload")
+        return record_payload
+    return payload
+
+
 def _refs_from_record_and_request(
     *,
     study_root: Path,
@@ -122,7 +132,7 @@ def _record_with_production_trace(
     study_root: Path,
     record: PublicationEvalRecord | dict[str, Any],
 ) -> dict[str, Any]:
-    record_payload = record.to_dict() if isinstance(record, PublicationEvalRecord) else dict(record)
+    record_payload = _payload_record(record)
     required_refs, optional_refs = _refs_from_record_and_request(
         study_root=study_root,
         record_payload=record_payload,
@@ -154,7 +164,6 @@ def _record_with_production_trace(
         record=record_payload,
         additional_refs=additional_refs,
         workflow_currentness_mode="request_bound_ai_reviewer_record",
-        emitted_at=_optional_text(record_payload.get("emitted_at")),
     )
 
 
@@ -185,6 +194,8 @@ def materialize_ai_reviewer_publication_eval_record(
             study_root=resolved_study_root,
             record=record,
         )
+    else:
+        record = _payload_record(record)
     normalized_record = canonicalize_ai_reviewer_publication_eval_record(
         _normalize_publication_eval_record(record)
     )

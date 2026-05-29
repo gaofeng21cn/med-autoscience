@@ -129,9 +129,14 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert production_request["request_kind"] == (
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     )
+    payload_ref = production_request["owner_callable_payload_ref"]
+    assert payload_ref.endswith(
+        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/"
+        "return_to_ai_reviewer_workflow_payload.json"
+    )
     assert production_request["owner_callable_command"] == (
         "publication materialize-ai-reviewer-record --build-production-trace "
-        "--payload-file <ai_reviewer_record_payload.json>"
+        f"--payload-file {payload_ref}"
     )
     assert production_request["reviewer_operating_system_contract"]["production_trace_builder"] == (
         "ai_reviewer_publication_eval_workflow.build_ai_reviewer_publication_eval_record_with_workflow_trace"
@@ -152,6 +157,9 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
     assert handoff["ai_reviewer_record_production_request"] == production_request
+    assert handoff["refs"]["owner_callable_payload_ref"] == payload_ref
+    assert handoff["prompt_contract"]["owner_callable_payload_ref"] == payload_ref
+    assert handoff["prompt_contract"]["owner_callable_command"] == production_request["owner_callable_command"]
     assert handoff["owner_route"]["next_owner"] == "ai_reviewer"
     assert handoff["owner_route"]["owner_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
     assert handoff["owner_route"]["source_refs"]["work_unit_id"] == (
@@ -171,6 +179,15 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     immutable_dispatch = json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))
     assert immutable_dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert immutable_dispatch["owner_route"] == persisted["owner_route"]
+    payload_path = Path(payload_ref)
+    assert payload_path.is_file()
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    assert payload["surface"] == "ai_reviewer_record_payload_authoring_target"
+    assert payload["request_kind"] == production_request["request_kind"]
+    assert payload["study_id"] == study_id
+    assert payload["stale_record_ref"] == str(stale_record_path)
+    assert payload["required_currentness_refs"] == [str(manuscript_path)]
+    assert payload["record_payload"] is None
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
@@ -300,7 +317,10 @@ def test_execute_dispatch_accepts_record_only_handoff_contract_when_selected_fro
     assert execution["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
-    assert execution["ai_reviewer_record_production_request"] == production_request
+    enriched_request = execution["ai_reviewer_record_production_request"]
+    assert enriched_request["request_kind"] == production_request["request_kind"]
+    assert enriched_request["required_currentness_refs"] == production_request["required_currentness_refs"]
+    assert "owner_callable_payload_ref" in enriched_request
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
@@ -422,7 +442,10 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
     assert execution["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert execution["execution_status"] == "handoff_ready"
     assert execution["blocked_reason"] is None
-    assert execution["ai_reviewer_record_production_request"] == production_request
+    enriched_request = execution["ai_reviewer_record_production_request"]
+    assert enriched_request["request_kind"] == production_request["request_kind"]
+    assert enriched_request["required_currentness_refs"] == production_request["required_currentness_refs"]
+    assert "owner_callable_payload_ref" in enriched_request
     assert execution["next_required_actions"] == [
         "produce_ai_reviewer_publication_eval_record_against_current_inputs",
         "rematerialize_ai_reviewer_request",
