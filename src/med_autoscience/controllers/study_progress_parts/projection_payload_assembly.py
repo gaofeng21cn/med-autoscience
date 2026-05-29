@@ -48,20 +48,27 @@ def _progress_delta_metrics(
     platform_triggered = _platform_repair_triggered(opl_current_control_state_handoff=opl_current_control_state_handoff)
     paper_tokens = total_tokens if paper_triggered and not platform_triggered else 0
     platform_tokens = total_tokens if platform_triggered else 0
+    deliverable_delta = {
+        "count": 1 if paper_triggered else 0,
+        "token_usage_total": paper_tokens,
+        "sources": _paper_progress_sources(
+            quality_repair_batch_followthrough=quality_followthrough,
+            gate_clearing_batch_followthrough=gate_followthrough,
+        ),
+    }
+    platform_delta = {
+        "count": 1 if platform_triggered else 0,
+        "token_usage_total": platform_tokens,
+        "sources": _platform_repair_sources(opl_current_control_state_handoff=opl_current_control_state_handoff),
+    }
     return {
-        "paper_progress_delta": {
-            "count": 1 if paper_triggered else 0,
-            "token_usage_total": paper_tokens,
-            "sources": _paper_progress_sources(
-                quality_repair_batch_followthrough=quality_followthrough,
-                gate_clearing_batch_followthrough=gate_followthrough,
-            ),
-        },
-        "platform_repair_delta": {
-            "count": 1 if platform_triggered else 0,
-            "token_usage_total": platform_tokens,
-            "sources": _platform_repair_sources(opl_current_control_state_handoff=opl_current_control_state_handoff),
-        },
+        "deliverable_progress_delta": deliverable_delta,
+        "paper_progress_delta": deliverable_delta,
+        "platform_repair_delta": platform_delta,
+        "progress_delta_classification": _progress_delta_classification(
+            deliverable_triggered=paper_triggered,
+            platform_triggered=platform_triggered,
+        ),
     }
 
 
@@ -144,6 +151,20 @@ def _platform_repair_sources(*, opl_current_control_state_handoff: dict[str, Any
     if _mapping_copy(handoff.get("runtime_health")):
         result.append("opl_current_control_state.runtime_health")
     return result
+
+
+def _progress_delta_classification(
+    *,
+    deliverable_triggered: bool,
+    platform_triggered: bool,
+) -> str:
+    if deliverable_triggered and platform_triggered:
+        return "mixed"
+    if deliverable_triggered:
+        return "deliverable_progress"
+    if platform_triggered:
+        return "platform_repair"
+    return "typed_blocker"
 
 
 def _token_usage_total(token_usage: dict[str, Any]) -> int:
@@ -593,8 +614,10 @@ def assemble_study_progress_payload(
             refs=refs,
         ),
         "opl_runtime_refs": runtime_facts.to_runtime_refs_dict(),
+        "deliverable_progress_delta": progress_delta["deliverable_progress_delta"],
         "paper_progress_delta": progress_delta["paper_progress_delta"],
         "platform_repair_delta": progress_delta["platform_repair_delta"],
+        "progress_delta_classification": progress_delta["progress_delta_classification"],
         "refs": refs,
     }
     payload.update(build_progress_first_projection(payload))

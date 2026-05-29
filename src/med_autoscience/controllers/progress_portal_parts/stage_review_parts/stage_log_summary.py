@@ -47,6 +47,9 @@ def runtime_stage_log_summary(value: Mapping[str, Any] | None) -> dict[str, Any]
         "changed_paper_surfaces": _string_list(summary.get("changed_paper_surfaces")),
         "outcome": _text(summary.get("outcome")),
         "progress_delta_classification": _text(summary.get("progress_delta_classification")),
+        "deliverable_progress_delta": _mapping(
+            summary.get("deliverable_progress_delta") or summary.get("paper_progress_delta")
+        ),
         "paper_progress_delta": _mapping(summary.get("paper_progress_delta")),
         "platform_repair_delta": _mapping(summary.get("platform_repair_delta")),
         "remaining_blockers": _string_list(summary.get("remaining_blockers")),
@@ -84,6 +87,7 @@ def _normalize_explicit_stage_log_summary(
         "changed_paper_surfaces": _string_list(value.get("changed_paper_surfaces")),
         "outcome": _text(value.get("outcome")),
         "progress_delta_classification": _text(progress_delta.get("classification")),
+        "deliverable_progress_delta": _mapping(progress_delta.get("deliverable_progress_delta")),
         "paper_progress_delta": _mapping(progress_delta.get("paper_progress_delta")),
         "platform_repair_delta": _mapping(progress_delta.get("platform_repair_delta")),
         "remaining_blockers": _string_list(value.get("remaining_blockers")) or _string_list(row.get("blockers")),
@@ -178,6 +182,7 @@ def _derived_stage_log_summary(
         "changed_paper_surfaces": changed_surfaces,
         "outcome": _outcome(evidence=evidence, quality_repair=quality_repair),
         "progress_delta_classification": _text(progress_delta.get("classification")),
+        "deliverable_progress_delta": _mapping(progress_delta.get("deliverable_progress_delta")),
         "paper_progress_delta": _mapping(progress_delta.get("paper_progress_delta")),
         "platform_repair_delta": _mapping(progress_delta.get("platform_repair_delta")),
         "remaining_blockers": blockers,
@@ -262,17 +267,21 @@ def _progress_delta_projection(
         quality_repair=quality_repair,
     )
     if paper_delta and not platform_delta:
-        classification = "paper_progress_delta"
+        classification = "deliverable_progress"
     elif platform_delta and not paper_delta:
-        classification = "platform_repair_delta"
+        classification = "platform_repair"
     elif paper_delta and platform_delta:
         classification = "mixed"
     else:
-        classification = "unknown"
+        classification = "typed_blocker"
     paper_tokens = token_usage_total if paper_delta and not platform_delta else 0
     platform_tokens = token_usage_total if platform_delta else 0
     return {
         "classification": classification,
+        "deliverable_progress_delta": {
+            "count": 1 if paper_delta else 0,
+            "token_usage_total": paper_tokens,
+        },
         "paper_progress_delta": {
             "count": 1 if paper_delta else 0,
             "token_usage_total": paper_tokens,

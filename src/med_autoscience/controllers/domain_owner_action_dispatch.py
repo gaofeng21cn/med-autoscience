@@ -367,6 +367,10 @@ def _progress_first_typed_blocker(
         repeat_count=_repeat_count(execution),
         first_seen=generated_at,
         last_seen=generated_at,
+        deliverable_progress_delta=_mapping(
+            execution.get("deliverable_progress_delta")
+            or execution.get("paper_progress_delta")
+        ),
         paper_progress_delta=_mapping(execution.get("paper_progress_delta")),
         platform_repair_delta=_mapping(execution.get("platform_repair_delta")),
         no_forbidden_write_refs=list(dispatch.get("forbidden_surfaces") or []),

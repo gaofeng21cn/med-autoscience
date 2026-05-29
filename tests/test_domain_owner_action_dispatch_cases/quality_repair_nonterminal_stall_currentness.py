@@ -316,6 +316,7 @@ def test_execute_quality_repair_batch_escalates_after_two_same_auto_failures(
         "single_typed_blocker",
         "human_or_operator_gate",
     ]
-    assert execution["paper_stage_log"]["progress_delta_classification"] == "no_user_visible_progress_delta"
+    assert execution["paper_stage_log"]["progress_delta_classification"] == "typed_blocker"
+    assert execution["paper_stage_log"]["deliverable_progress_delta"] == {"count": 0, "token_usage_total": 0}
     assert execution["paper_stage_log"]["paper_progress_delta"] == {"count": 0, "token_usage_total": 0}
     assert execution["paper_stage_log"]["platform_repair_delta"] == {"count": 0, "token_usage_total": 0}

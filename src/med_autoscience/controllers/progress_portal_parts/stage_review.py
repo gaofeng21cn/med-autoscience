@@ -675,17 +675,18 @@ def _stage_log_html(stage_log: Mapping[str, Any]) -> str:
 
 
 def _stage_log_delta_stats_text(stage_log: Mapping[str, Any]) -> str | None:
+    deliverable = _mapping(stage_log.get("deliverable_progress_delta") or stage_log.get("paper_progress_delta"))
     paper = _mapping(stage_log.get("paper_progress_delta"))
     platform = _mapping(stage_log.get("platform_repair_delta"))
-    if not paper and not platform:
+    if not deliverable and not paper and not platform:
         return None
-    paper_count = int(paper.get("count") or 0)
-    paper_tokens = int(paper.get("token_usage_total") or 0)
+    deliverable_count = int(deliverable.get("count") or 0)
+    deliverable_tokens = int(deliverable.get("token_usage_total") or 0)
     platform_count = int(platform.get("count") or 0)
     platform_tokens = int(platform.get("token_usage_total") or 0)
     return (
         "分账统计: "
-        f"paper_progress_delta={paper_count} (tokens={paper_tokens}); "
+        f"deliverable_progress_delta={deliverable_count} (tokens={deliverable_tokens}); "
         f"platform_repair_delta={platform_count} (tokens={platform_tokens})"
     )
 

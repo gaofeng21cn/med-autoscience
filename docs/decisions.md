@@ -13,11 +13,11 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出当前 AI reviewer record 已绑定当前稿件并明确 route back 到 write owner，但推荐动作只携带 `blocking_work_units`，旧 read-model 因只读 `next_work_unit` 而未生成 write route，随后重复派发旧 reviewer workflow。根因是 MAS owner-route currentness/record consumption 缺口，不是论文正文、OPL queue 或手工 task intake 问题。
 - 影响：这是 MAS owner-route/read-model 修复，不写 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍必须由后续 write owner delta、AI reviewer recheck、publication gate 与 package freshness proof 判定。
 
-## 2026-05-29：study-progress 与 stage-log 必须分离论文推进与平台修复增量
+## 2026-05-29：study-progress 与 stage-log 必须分离交付物推进与平台修复增量
 
-- 决策：`study_progress` read-model 新增 `paper_progress_delta` 与 `platform_repair_delta` 双投影。`paper_progress_delta` 只计论文 surface 变化、AI reviewer eval follow-through、gate replay follow-through 与 write repair delta；`platform_repair_delta` 只计 controller/read-model/currentness/OPL provider 相关修复。
-- 决策：`mas_paper_facing_stage_log_summary` 与 `latest_terminal_stage_log.paper_stage_log` 同步新增 `progress_delta_classification`、`paper_progress_delta`、`platform_repair_delta`。Portal/stage log 展示与 MCP compact 必须按两类分开统计，禁止把平台修复 token 混报成论文推进 token。
-- 决策：当同一轮同时命中论文推进与平台修复信号时，token 分账按平台修复优先；`paper_progress_delta.token_usage_total` 置 `0`，`platform_repair_delta.token_usage_total` 记录当轮 token。
+- 决策：`study_progress` read-model 新增 OPL generic `deliverable_progress_delta` 与 `platform_repair_delta` 双投影。`deliverable_progress_delta` 只计论文/交付物 surface 变化、AI reviewer eval follow-through、gate replay follow-through 与 write repair delta；`platform_repair_delta` 只计 controller/read-model/currentness/OPL provider 相关修复。`paper_progress_delta` 保留为 MAS paper-facing alias，必须与 `deliverable_progress_delta` 同值。
+- 决策：`mas_paper_facing_stage_log_summary` 与 `latest_terminal_stage_log.paper_stage_log` 同步新增 `progress_delta_classification`、`deliverable_progress_delta`、`paper_progress_delta`、`platform_repair_delta`。Portal/stage log 展示与 MCP compact 必须按 generic deliverable/platform 两类分开统计，禁止把平台修复 token 混报成论文推进 token。
+- 决策：当同一轮同时命中论文推进与平台修复信号时，token 分账按平台修复优先；`deliverable_progress_delta.token_usage_total` 与 alias `paper_progress_delta.token_usage_total` 置 `0`，`platform_repair_delta.token_usage_total` 记录当轮 token。
 - 理由：DM002/DM003 的 currentness 修复与论文实质推进经常同轮发生。若 read-model 只看单一 progress delta，会把 controller/provider 修复误读成论文推进，导致 stage log、progress 审阅与资源核算失真。
 - 影响：这是 MAS read-model/projection 语义收紧，不写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json`，也不改变质量裁决、投稿裁决或 artifact authority owner。
 

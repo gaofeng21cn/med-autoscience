@@ -318,7 +318,8 @@ def test_stage_review_derives_stage_log_summary_from_repair_execution_evidence()
         "studies/001-risk/paper/review/review_ledger.json",
     ]
     assert summary["outcome"] == "paper_progress_delta_recorded"
-    assert summary["progress_delta_classification"] == "paper_progress_delta"
+    assert summary["progress_delta_classification"] == "deliverable_progress"
+    assert summary["deliverable_progress_delta"] == {"count": 1, "token_usage_total": 0}
     assert summary["paper_progress_delta"] == {"count": 1, "token_usage_total": 0}
     assert summary["platform_repair_delta"] == {"count": 0, "token_usage_total": 0}
     assert "AI reviewer recheck request still pending" in summary["remaining_blockers"]
@@ -330,7 +331,8 @@ def test_stage_review_derives_stage_log_summary_from_repair_execution_evidence()
         "stage_review_index"
     ]["stage_log_summary"]
     assert lane_summary["outcome"] == "paper_progress_delta_recorded"
-    assert lane_summary["progress_delta_classification"] == "paper_progress_delta"
+    assert lane_summary["progress_delta_classification"] == "deliverable_progress"
+    assert lane_summary["deliverable_progress_delta"] == {"count": 1, "token_usage_total": 0}
     assert lane_summary["paper_progress_delta"] == {"count": 1, "token_usage_total": 0}
     assert lane_summary["platform_repair_delta"] == {"count": 0, "token_usage_total": 0}
     assert lane_summary["authority"]["can_write_paper"] is False
@@ -358,7 +360,8 @@ def test_stage_review_explicit_summary_without_platform_signals_stays_paper_delt
         study_id="001-risk",
     )
     summary = payload["stage_review_index"]["stage_log_summary"]
-    assert summary["progress_delta_classification"] == "paper_progress_delta"
+    assert summary["progress_delta_classification"] == "deliverable_progress"
+    assert summary["deliverable_progress_delta"] == {"count": 1, "token_usage_total": 0}
     assert summary["paper_progress_delta"] == {"count": 1, "token_usage_total": 0}
     assert summary["platform_repair_delta"] == {"count": 0, "token_usage_total": 0}
 

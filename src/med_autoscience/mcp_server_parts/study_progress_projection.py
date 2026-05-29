@@ -479,8 +479,10 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "runtime_reason",
         "progress_freshness",
         "recommended_command",
+        "deliverable_progress_delta",
         "paper_progress_delta",
         "platform_repair_delta",
+        "progress_delta_classification",
     )
     source_payload = dict(payload)
     study_macro_state = compact_study_macro_state_from_payload(source_payload)
