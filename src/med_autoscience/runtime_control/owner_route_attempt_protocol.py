@@ -57,6 +57,16 @@ RUNTIME_COMPLETION_GUARD = {
         "ai_reviewer_or_publication_gate_ref",
     ],
 }
+CLOSEOUT_PREALLOCATED_REF_TEMPLATE = (
+    "studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+    "<stage_attempt_id>.closeout.json"
+)
+CLOSEOUT_FIRST_TERMINAL_OUTCOMES = [
+    "typed_blocker",
+    "owner_receipt",
+    "human_gate",
+    "progress_delta",
+]
 
 
 def owner_reason_contract(
@@ -189,6 +199,16 @@ def default_executor_attempt_envelope(
     )
     basis = currentness_basis(route)
     required_closeout_packet = _required_closeout_packet(dispatch=dispatch, action_type=action_type)
+    closeout_first_contract = _closeout_first_contract(
+        dispatch=dispatch,
+        route=route,
+        required_closeout_packet=required_closeout_packet,
+    )
+    transport_closeout_packet = {
+        **dict(required_closeout_packet),
+        "preallocated_closeout_ref": closeout_first_contract["preallocated_closeout_ref"],
+        "closeout_first_contract": closeout_first_contract,
+    }
     completion_boundary = _completion_boundary(
         required_closeout_packet=required_closeout_packet,
         action_type=action_type,
@@ -196,7 +216,7 @@ def default_executor_attempt_envelope(
     domain_intent = _domain_intent(
         route=route,
         basis=basis,
-        required_closeout_packet=required_closeout_packet,
+        required_closeout_packet=transport_closeout_packet,
     )
     core_fields = {
         "domain_owner": domain_owner,
@@ -207,7 +227,8 @@ def default_executor_attempt_envelope(
         "owner_route_currentness_basis": basis,
         "allowed_write_surfaces": _list_field(dispatch, prompt_contract, "allowed_write_surfaces"),
         "forbidden_surfaces": _list_field(dispatch, prompt_contract, "forbidden_surfaces"),
-        "required_closeout_packet": closeout_packet_for_transport(required_closeout_packet),
+        "required_closeout_packet": closeout_packet_for_transport(transport_closeout_packet),
+        "closeout_first_contract": closeout_first_contract,
         "completion_boundary": completion_boundary,
         "authority_boundary": _authority_boundary(),
         "runtime_completion_guard": _runtime_completion_guard(),
@@ -247,6 +268,7 @@ def payload_fields_for_default_executor_dispatch(
         "allowed_write_surfaces": envelope.get("allowed_write_surfaces"),
         "forbidden_surfaces": envelope.get("forbidden_surfaces"),
         "required_closeout_packet": envelope.get("required_closeout_packet"),
+        "closeout_first_contract": envelope.get("closeout_first_contract"),
         "completion_boundary": envelope.get("completion_boundary"),
     }
 
@@ -262,6 +284,8 @@ def closeout_packet_for_transport(closeout_packet: Mapping[str, Any]) -> dict[st
         "minimum_closeout_refs": int(closeout_packet.get("minimum_closeout_refs") or 0),
     }
     for key in (
+        "preallocated_closeout_ref",
+        "closeout_first_contract",
         "required_user_stage_log_field",
         "accepted_user_stage_log_fields",
         "required_user_stage_log_fields",
@@ -644,6 +668,46 @@ def _domain_intent(
     }
     payload["missing_required_fields"] = _domain_intent_missing_fields(payload)
     return payload
+
+
+def _closeout_first_contract(
+    *,
+    dispatch: Mapping[str, Any],
+    route: Mapping[str, Any],
+    required_closeout_packet: Mapping[str, Any],
+) -> dict[str, Any]:
+    study_id = _text(dispatch.get("study_id")) or _text(route.get("study_id")) or "<study_id>"
+    required_ref_field = _text(required_closeout_packet.get("required_ref_field")) or "closeout_refs"
+    minimum_closeout_refs = int(required_closeout_packet.get("minimum_closeout_refs") or 0)
+    return {
+        "surface_kind": "mas_default_executor_closeout_first_contract",
+        "version": "mas-default-executor-closeout-first-contract.v1",
+        "stage_id": "domain_owner/default-executor-dispatch",
+        "preallocated_closeout_ref": CLOSEOUT_PREALLOCATED_REF_TEMPLATE.format(study_id=study_id),
+        "required_schema": {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "required_ref_field": required_ref_field,
+            "minimum_closeout_refs": minimum_closeout_refs,
+        },
+        "required_paper_stage_log_field": _text(
+            required_closeout_packet.get("required_user_stage_log_field")
+        ),
+        "required_paper_stage_log_fields": list(
+            required_closeout_packet.get("required_user_stage_log_fields") or []
+        ),
+        "evidence_refs_expectation": {
+            "required_ref_field": required_ref_field,
+            "minimum_closeout_refs": minimum_closeout_refs,
+            "missing_refs_closeout": "typed_blocker",
+            "typed_blocker_reason": "typed_closeout_packet_required",
+        },
+        "terminal_outcomes": list(CLOSEOUT_FIRST_TERMINAL_OUTCOMES),
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_without_closeout_refs": "typed_closeout_packet_required",
+        "completed_blocked_double_state_allowed": False,
+    }
 
 
 def _domain_intent_missing_fields(payload: Mapping[str, Any]) -> list[str]:

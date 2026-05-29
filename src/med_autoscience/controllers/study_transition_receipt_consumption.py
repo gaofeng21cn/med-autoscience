@@ -76,9 +76,14 @@ def default_executor_execution_receipt_consumption(
             execution=execution,
             receipt_ref=receipt_ref,
         )
+        missing_refs_typed_closeout = _default_executor_missing_refs_typed_closeout(
+            execution=execution,
+            receipt_ref=receipt_ref,
+        )
         if (
             _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES
             and not blocked_typed_closeout
+            and not missing_refs_typed_closeout
         ):
             continue
         if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered":
@@ -87,6 +92,13 @@ def default_executor_execution_receipt_consumption(
             continue
         if _default_executor_dispatch_zero_execution_blocker(owner_result):
             continue
+        if missing_refs_typed_closeout:
+            return _default_executor_missing_refs_typed_closeout_consumption(
+                execution=execution,
+                receipt_ref=receipt_ref,
+                owner_route=owner_route,
+                action_type=action_type,
+            )
         if not _default_executor_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
@@ -137,9 +149,14 @@ def default_executor_execution_nonconsumable_closeout(
             execution=execution,
             receipt_ref=receipt_ref,
         )
+        missing_refs_typed_closeout = _default_executor_missing_refs_typed_closeout(
+            execution=execution,
+            receipt_ref=receipt_ref,
+        )
         if (
             _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES
             and not blocked_typed_closeout
+            and not missing_refs_typed_closeout
         ):
             continue
         if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
@@ -149,6 +166,8 @@ def default_executor_execution_nonconsumable_closeout(
         )
         owner_result = _mapping(execution.get("owner_result"))
         repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
+        if missing_refs_typed_closeout:
+            continue
         if not recovered_stage_packet_currentness and _default_executor_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
@@ -735,6 +754,60 @@ def _default_executor_blocked_typed_closeout(
         return False
     owner_result = _mapping(execution.get("owner_result"))
     return bool(_text(owner_result.get("blocked_reason")))
+
+
+def _default_executor_missing_refs_typed_closeout(
+    *,
+    execution: Mapping[str, Any],
+    receipt_ref: str,
+) -> bool:
+    if _text(execution.get("stage_closeout_surface_kind")) != "stage_attempt_closeout_packet":
+        return False
+    if not str(receipt_ref).endswith(".closeout.json"):
+        return False
+    required_ref_field = _text(execution.get("stage_closeout_required_ref_field")) or "closeout_refs"
+    if required_ref_field != "closeout_refs":
+        return False
+    closeout_refs = _text_list(execution.get("stage_closeout_refs"))
+    if closeout_refs:
+        return False
+    return _text(execution.get("stage_closeout_status")) in {"completed", "executed", "blocked"}
+
+
+def _default_executor_missing_refs_typed_closeout_consumption(
+    *,
+    execution: Mapping[str, Any],
+    receipt_ref: str,
+    owner_route: Mapping[str, Any],
+    action_type: str | None,
+) -> dict[str, Any]:
+    reason = "typed_closeout_packet_required"
+    closeout_ref = relative_study_artifact_ref(receipt_ref) or str(receipt_ref)
+    return {
+        "status": "consumed",
+        "receipt_kind": "default_executor_execution",
+        "receipt_ref": str(receipt_ref),
+        "closeout_ref": closeout_ref,
+        "execution_id": _text(execution.get("execution_id")) or _text(execution.get("stage_attempt_id")),
+        "action_type": action_type or _text(execution.get("action_type")),
+        "execution_status": "blocked",
+        "blocked_reason": reason,
+        "owner_result_status": "blocked",
+        "repair_execution_evidence_status": "typed_blocker",
+        "typed_blocker": {
+            "reason": reason,
+            "next_owner": "one-person-lab",
+            "write_permitted": False,
+        },
+        "consumed_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
+        "consumed_owner_route_epoch": _text(owner_route.get("route_epoch")),
+        "consumed_owner_route_source_fingerprint": _text(owner_route.get("source_fingerprint")),
+        "changed_artifact_ref_count": 0,
+        "quality_authorized": False,
+        "submission_authorized": False,
+        "current_package_write_authorized": False,
+        "next_action": "honor_typed_blocker_without_redrive",
+    }
 
 
 def _owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:

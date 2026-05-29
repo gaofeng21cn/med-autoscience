@@ -272,6 +272,76 @@ def test_default_executor_attempt_envelope_accepts_eval_bound_writer_route_witho
     assert envelope["domain_intent"]["missing_required_fields"] == []
 
 
+def test_default_executor_attempt_envelope_preallocates_closeout_first_contract() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    envelope = protocol.default_executor_attempt_envelope(
+        dispatch={
+            "action_type": "run_quality_repair_batch",
+            "next_executable_owner": "write",
+            "dispatch_ref": (
+                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                "consumer/default_executor_dispatches/immutable/run_quality_repair_batch/abc123.json"
+            ),
+            "owner_route": {
+                "surface": "domain_route_owner_route",
+                "schema_version": 2,
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "quest_id": "002-dm-china-us-mortality-attribution",
+                "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                "route_epoch": "truth-event-000024-daa5883571a64a07",
+                "runtime_health_epoch": "runtime-health-event-006254-fresh",
+                "source_fingerprint": "truth-snapshot::current-methods-reporting",
+                "work_unit_fingerprint": "work-unit::methods-reporting",
+                "current_owner": "mas_controller",
+                "next_owner": "write",
+                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "failure_signature": "quest_waiting_opl_runtime_owner_route",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "idempotency_key": "owner-route::dm002::methods-reporting",
+                "source_refs": {
+                    "work_unit_id": "dm002_current_manuscript_methods_reporting",
+                    "work_unit_fingerprint": "work-unit::methods-reporting",
+                    "study_truth_epoch": "truth-event-000024-daa5883571a64a07",
+                    "runtime_health_epoch": "runtime-health-event-006254-fresh",
+                },
+            },
+        }
+    )
+
+    contract = envelope["closeout_first_contract"]
+    assert contract["surface_kind"] == "mas_default_executor_closeout_first_contract"
+    assert contract["preallocated_closeout_ref"] == (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+        "consumer/default_executor_execution/<stage_attempt_id>.closeout.json"
+    )
+    assert contract["required_schema"] == {
+        "surface_kind": "stage_attempt_closeout_packet",
+        "schema_version": 1,
+        "stage_id": "domain_owner/default-executor-dispatch",
+        "required_ref_field": "closeout_refs",
+        "minimum_closeout_refs": 1,
+    }
+    assert contract["required_paper_stage_log_field"] == "paper_stage_log"
+    assert "evidence_refs" in contract["required_paper_stage_log_fields"]
+    assert contract["evidence_refs_expectation"] == {
+        "required_ref_field": "closeout_refs",
+        "minimum_closeout_refs": 1,
+        "missing_refs_closeout": "typed_blocker",
+        "typed_blocker_reason": "typed_closeout_packet_required",
+    }
+    assert contract["terminal_outcomes"] == [
+        "typed_blocker",
+        "owner_receipt",
+        "human_gate",
+        "progress_delta",
+    ]
+    assert envelope["required_closeout_packet"]["preallocated_closeout_ref"] == (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+        "consumer/default_executor_execution/<stage_attempt_id>.closeout.json"
+    )
+
+
 def test_default_executor_attempt_envelope_fails_closed_without_domain_intent_required_fields() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
 

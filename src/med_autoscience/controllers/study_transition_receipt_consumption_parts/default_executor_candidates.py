@@ -90,6 +90,13 @@ def _execution_from_stage_closeout(
         "current_owner_route": route or None,
         "owner_route": route or None,
         "owner_route_currentness_source": route_source,
+        "stage_closeout_surface_kind": _text(closeout.get("surface_kind")),
+        "stage_closeout_status": _text(closeout.get("status")),
+        "stage_closeout_refs": _text_list(closeout.get("closeout_refs")),
+        "stage_closeout_required_ref_field": _text(
+            _mapping(closeout.get("required_closeout_packet")).get("required_ref_field")
+        )
+        or "closeout_refs",
         "owner_result": {
             "status": _text(owner_receipt.get("status")) or _text(closeout.get("route_outcome")) or _text(closeout.get("status")),
             "ok": _stage_closeout_has_story_surface_delta(closeout),
@@ -280,6 +287,12 @@ def _mapping_list(value: object) -> list[Mapping[str, Any]]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, Mapping)]
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [_text(item) for item in value if _text(item)]
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
