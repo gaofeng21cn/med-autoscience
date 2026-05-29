@@ -5,15 +5,15 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers.domain_owner_action_dispatch_parts import dispatch_contract
+from tests.ai_reviewer_record_fixture_helpers import minimal_ai_reviewer_record as _minimal_ai_reviewer_record
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
-from tests.test_domain_owner_action_dispatch_cases.ai_reviewer_workflow_dispatch import (
+from tests.test_domain_owner_action_dispatch_cases.ai_reviewer_workflow_helpers import (
     _complete_ai_reviewer_input_refs,
-    _minimal_ai_reviewer_record,
     _write_medical_prose_review_request_inputs,
 )
 

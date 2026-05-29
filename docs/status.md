@@ -129,6 +129,8 @@ MAS repo 的长期源码形态已经按 strict purity 口径收敛为标准 OPL 
 
 Domain dispatch closeout evidence 入口已按 thin public API 收薄：`closeout_evidence.py` 只保留 typed-blocker / owner-receipt evidence 与 refs formatting 对外面，blocked default-executor closeout materializer、write-owner domain-stage closeout matcher、JSON/ref/authority helpers 分别迁入同目录职责模块。该收薄保持 refs-only / no-forbidden-write owner payload 行为，不生成 MAS owner receipt，不声明 domain-ready、production-ready、paper closure 或 artifact/memory/lifecycle authority。
 
+AI reviewer workflow dispatch 测试也已按当前 line-budget / physical-thinning 口径收薄：共享 request-input fixture helpers 从 `ai_reviewer_workflow_dispatch.py` 拆到同目录 helper，`ai_reviewer_medical_prose_review_production.py` 不再反向导入另一个测试 case 文件。该切片只降低测试耦合和文件肥度，不改变 MAS owner payload contract，不写真实 study workspace artifact、paper body、publication truth 或 artifact authority。
+
 本轮不触碰真实 study workspace artifact、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、memory body 或 artifact body。
 
 本轮 `always resolve to next owner` 机制只保证 MAS/OPL 接力不静默停住，并且当前状态能投影到唯一 next owner action、owner receipt、typed blocker、human gate 或 stop-loss。它不授权 paper ready、submission ready、`current_package` 更新、publication eval 更新或 submission package 写入。
