@@ -46,6 +46,8 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
     workspace_diagnostics = _mapping(workspace.get("diagnostics"))
     runtime_continuity = _mapping(study.get("runtime_continuity"))
     production_blocker_impact = _mapping(study.get("production_blocker_impact"))
+    decision_trace = _mapping(study.get("decision_trace"))
+    failed_path_ledger = _mapping(study.get("failed_path_ledger"))
     section_explanations = _mapping_list(payload.get("section_explanations"))
     latest_events = [dict(item) for item in payload.get("latest_events") or [] if isinstance(item, Mapping)]
     source_refs = display_source_refs(payload.get("source_refs"))
@@ -143,6 +145,7 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
             section("下一步", next_step_paragraphs),
             runtime_continuity_section(runtime_continuity),
             _production_blocker_impact_section(production_blocker_impact),
+            _decision_trace_section(decision_trace, failed_path_ledger),
             section("论文与质量", paper_paragraphs),
             section("文件与交付", delivery_paragraphs),
             "</section>",
@@ -218,6 +221,19 @@ def _production_blocker_impact_section(payload: Mapping[str, Any]) -> str:
         if route.get(key):
             items.append(f"route {key}：{route[key]}")
     return list_section("是否真影响产出", [str(item) for item in items], empty_text="当前没有 production blocker impact 投影。")
+
+
+def _decision_trace_section(decision_trace: Mapping[str, Any], failed_path_ledger: Mapping[str, Any]) -> str:
+    items: list[str] = []
+    if summary := _non_empty_text(decision_trace.get("summary")):
+        items.append(f"decision trace：{summary}")
+    items.extend(f"decision ref：{ref}" for ref in _string_list(decision_trace.get("refs"))[:4])
+    if summary := _non_empty_text(failed_path_ledger.get("summary")):
+        items.append(f"failed path：{summary}")
+    items.extend(f"failed-path ref：{ref}" for ref in _string_list(failed_path_ledger.get("refs"))[:4])
+    if not items:
+        return ""
+    return list_section("路线与失败路径", items, empty_text="当前没有 failed-path / decision-trace refs。")
 
 
 def _non_empty_text(value: object) -> str | None:

@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
+from med_autoscience.runtime_control import decision_trace_ledger
 
 
 PROTOCOL_VERSION = "mas-owner-route-attempt-protocol.v1"
@@ -157,6 +158,20 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     action_type = allowed_actions[0] if len(allowed_actions) == 1 else None
     reason_contract = owner_reason_contract(reason=reason, owner=owner, action_type=action_type)
     source_refs = dict(_mapping(route.get("source_refs")))
+    trace_projection = decision_trace_ledger.decision_trace_projection(route, source_refs)
+    route.update(trace_projection)
+    source_refs = {
+        **source_refs,
+        **{
+            key: list(route.get(key) or [])
+            for key in (
+                "decision_trace_refs",
+                "failed_path_refs",
+                "consumed_failed_path_refs",
+            )
+            if route.get(key)
+        },
+    }
     basis = currentness_basis(route)
     if basis:
         source_refs["owner_route_currentness_basis"] = basis
@@ -175,6 +190,15 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
             action_type=action_type or "domain_owner_action"
         )["completion_boundary"],
     }
+    if route.get("decision_trace") or route.get("failed_path_ledger"):
+        route["owner_route_attempt_protocol"]["decision_trace"] = {
+            "decision_trace_refs": list(route.get("decision_trace_refs") or []),
+            "failed_path_refs": list(route.get("failed_path_refs") or []),
+            "consumed_failed_path_refs": list(route.get("consumed_failed_path_refs") or []),
+            "body_included": False,
+            "route_authority": False,
+            "repeated_failed_path_suppressed": bool(route.get("repeated_failed_path_suppressed")),
+        }
     return route
 
 
@@ -234,6 +258,12 @@ def default_executor_attempt_envelope(
         "runtime_completion_guard": _runtime_completion_guard(),
         "domain_intent": domain_intent,
     }
+    if route.get("decision_trace") or route.get("failed_path_ledger"):
+        core_fields["decision_trace"] = _mapping(route.get("decision_trace"))
+        core_fields["decision_trace_refs"] = list(route.get("decision_trace_refs") or [])
+        core_fields["failed_path_ledger"] = _mapping(route.get("failed_path_ledger"))
+        core_fields["failed_path_refs"] = list(route.get("failed_path_refs") or [])
+        core_fields["consumed_failed_path_refs"] = list(route.get("consumed_failed_path_refs") or [])
     dispatchable = (
         bool(action_type)
         and bool(domain_owner)
@@ -270,6 +300,10 @@ def payload_fields_for_default_executor_dispatch(
         "required_closeout_packet": envelope.get("required_closeout_packet"),
         "closeout_first_contract": envelope.get("closeout_first_contract"),
         "completion_boundary": envelope.get("completion_boundary"),
+        "decision_trace": envelope.get("decision_trace"),
+        "decision_trace_refs": envelope.get("decision_trace_refs"),
+        "failed_path_ledger": envelope.get("failed_path_ledger"),
+        "failed_path_refs": envelope.get("failed_path_refs"),
     }
 
 
@@ -666,6 +700,22 @@ def _domain_intent(
             "domain_completion_owner": "med-autoscience",
         },
     }
+    if route.get("decision_trace") or route.get("failed_path_ledger"):
+        payload["decision_trace"] = {
+            "summary": _text(_mapping(route.get("decision_trace")).get("summary")),
+            "refs": list(route.get("decision_trace_refs") or []),
+            "body_included": False,
+            "route_authority": False,
+        }
+        payload["decision_trace_refs"] = list(route.get("decision_trace_refs") or [])
+        payload["failed_path_ledger"] = {
+            "summary": _text(_mapping(route.get("failed_path_ledger")).get("summary")),
+            "refs": list(route.get("failed_path_refs") or []),
+            "consumed_refs": list(route.get("consumed_failed_path_refs") or []),
+            "body_included": False,
+            "route_authority": False,
+        }
+        payload["failed_path_refs"] = list(route.get("failed_path_refs") or [])
     payload["missing_required_fields"] = _domain_intent_missing_fields(payload)
     return payload
 

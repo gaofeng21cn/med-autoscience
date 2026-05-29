@@ -143,6 +143,61 @@ def test_user_visible_projection_uses_macro_state_as_single_user_status() -> Non
     assert projection["evidence_refs"]["publication_eval_path"] == "/tmp/publication_eval/latest.json"
 
 
+def test_user_visible_projection_carries_decision_trace_refs_without_ledger_body() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "002-dm",
+            "quest_id": "quest-dm002",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "002-dm",
+                "writer_state": "queued",
+                "user_next": "repair",
+                "reason": "quality",
+                "details": {"package_delivered": False},
+                "conditions": [],
+            },
+            "owner_route": {
+                "next_owner": "decision",
+                "decision_trace": {
+                    "summary": "Prior route narrowed the claim after a negative sensitivity result.",
+                    "refs": [
+                        "artifacts/controller_decisions/decision-trace-negative-route.json"
+                    ],
+                    "body": "private decision body must not be projected",
+                },
+                "failed_path_ledger": {
+                    "summary": "Transport-model route failed provenance checks.",
+                    "refs": [
+                        "artifacts/evidence/failed_paths/transport-model-route.json"
+                    ],
+                    "body": "private failed-path body must not be projected",
+                },
+            },
+        }
+    )
+
+    assert projection["decision_trace"]["summary"] == (
+        "Prior route narrowed the claim after a negative sensitivity result."
+    )
+    assert projection["decision_trace_refs"] == [
+        "artifacts/controller_decisions/decision-trace-negative-route.json"
+    ]
+    assert projection["failed_path_ledger"]["summary"] == (
+        "Transport-model route failed provenance checks."
+    )
+    assert projection["failed_path_refs"] == [
+        "artifacts/evidence/failed_paths/transport-model-route.json"
+    ]
+    assert projection["decision_trace"]["body_included"] is False
+    assert projection["failed_path_ledger"]["body_included"] is False
+    assert "private decision body" not in str(projection)
+    assert "private failed-path body" not in str(projection)
+
+
 def test_user_visible_projection_fails_closed_when_top_level_writer_conflicts_with_macro_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 

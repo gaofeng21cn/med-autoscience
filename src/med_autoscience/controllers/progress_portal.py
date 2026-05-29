@@ -245,6 +245,10 @@ def build_progress_portal_payload(
             "current_blockers": _list_field(user_visible, "current_blockers"),
             "next_system_action": _field(user_visible, "next_system_action", "等待 MAS 重新生成 canonical progress projection。"),
             "needs_user_decision": bool(user_visible.get("needs_user_decision")),
+            "decision_trace": _body_free_trace(user_visible.get("decision_trace")),
+            "decision_trace_refs": _list_field(user_visible, "decision_trace_refs"),
+            "failed_path_ledger": _body_free_trace(user_visible.get("failed_path_ledger")),
+            "failed_path_refs": _list_field(user_visible, "failed_path_refs"),
             "supervision": _supervision(progress, runtime),
             "outer_supervision_slo": outer_supervision_slo or None,
             "runtime_continuity": runtime_continuity,
@@ -310,6 +314,19 @@ def _attach_study_hrefs(studies: list[dict[str, Any]], *, from_study_page: bool)
         if study_id is None:
             continue
         item["portal_href"] = study_detail_href(study_id, from_study_page=from_study_page)
+
+
+def _body_free_trace(value: object) -> dict[str, Any]:
+    payload = _mapping(value)
+    if not payload:
+        return {}
+    refs = [item for item in payload.get("refs") or [] if isinstance(item, str) and item.strip()]
+    return {
+        "summary": _non_empty_text(payload.get("summary")),
+        "refs": refs,
+        "body_included": False,
+        "route_authority": False,
+    }
 
 
 def _progress_with_study_root(

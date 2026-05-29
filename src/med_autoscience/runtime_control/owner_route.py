@@ -5,6 +5,7 @@ import json
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.runtime_control import decision_trace_ledger
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
@@ -71,6 +72,16 @@ def build_owner_route(
     source_eval_id = _source_eval_id(status=status, progress=progress, actions=normalized_actions)
     work_unit_id = _work_unit_id(status=status, progress=progress, actions=normalized_actions)
     current_owner = _current_owner(status=status, progress=progress, active_run_id=active_run_id)
+    trace_projection = decision_trace_ledger.decision_trace_projection(
+        status,
+        progress,
+        *normalized_actions,
+    )
+    if decision_trace_ledger.repeated_failed_path_suppressed(
+        actions=normalized_actions,
+        trace_projection=trace_projection,
+    ):
+        trace_projection = {**trace_projection, "repeated_failed_path_suppressed": True}
     route = {
         "surface": "domain_route_owner_route",
         "schema_version": 2,
@@ -112,6 +123,8 @@ def build_owner_route(
             "study_macro_state": _macro_state_source_ref(status, progress),
         },
     }
+    route.update(trace_projection)
+    _attach_decision_trace_source_refs(route)
     route["idempotency_key"] = _idempotency_key(
         study_id=study_id,
         route_epoch=route_epoch,
@@ -167,6 +180,9 @@ def ensure_owner_route_v2(route: Mapping[str, Any]) -> dict[str, Any]:
             "source_fingerprint": source_fingerprint,
         }
     )
+    trace_projection = decision_trace_ledger.decision_trace_projection(payload, source_refs)
+    payload.update({key: value for key, value in trace_projection.items() if key not in payload})
+    _attach_decision_trace_source_refs(payload)
     return owner_route_attempt_protocol.decorate_owner_route(payload)
 
 
@@ -181,15 +197,20 @@ def route_and_decorate_actions(
     next_owner: str | None,
     active_run_id: str | None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    normalized_actions = [dict(action) for action in actions]
     owner_route = build_owner_route(
         study_id=study_id,
         quest_id=quest_id,
         status=status,
         progress=progress,
-        actions=actions,
+        actions=normalized_actions,
         blocked_reason=blocked_reason,
         next_owner=next_owner,
         active_run_id=active_run_id,
+    )
+    actions = decision_trace_ledger.filter_actions_consuming_recorded_failed_paths(
+        actions=normalized_actions,
+        trace_projection=owner_route,
     )
     return owner_route, decorate_actions(actions=actions, owner_route=owner_route)
 
@@ -271,6 +292,17 @@ def _macro_state_source_ref_matches(dispatch_route: Mapping[str, Any], current_r
         if current_value and _text(dispatch_macro.get(key)) != current_value:
             return False
     return True
+
+
+def _attach_decision_trace_source_refs(route: dict[str, Any]) -> None:
+    source_refs = dict(_mapping(route.get("source_refs")))
+    if route.get("decision_trace_refs"):
+        source_refs["decision_trace_refs"] = list(route.get("decision_trace_refs") or [])
+    if route.get("failed_path_refs"):
+        source_refs["failed_path_refs"] = list(route.get("failed_path_refs") or [])
+    if route.get("consumed_failed_path_refs"):
+        source_refs["consumed_failed_path_refs"] = list(route.get("consumed_failed_path_refs") or [])
+    route["source_refs"] = source_refs
 
 
 def _owner_from_actions(actions: list[Mapping[str, Any]]) -> str | None:

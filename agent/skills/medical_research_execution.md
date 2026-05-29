@@ -31,6 +31,7 @@ The executor must treat all medical research work as claim-boundary work. A coho
 
 - Keep claims tied to evidence, source, and citation refs.
 - Preserve weak, negative, failed, or uncertain findings as route evidence.
+- Emit failed-path / decision-trace refs for negative results, failed attempts, route switches, claim narrowing, methodology route-back, and stop-loss outcomes. The executor may summarize the lesson, but the durable handoff must stay refs-only and must not copy evidence, memory, artifact, or paper body.
 - Name the clinical interpretation and reviewer risk of each material result.
 - Prefer claim narrowing, stop-loss, or route-back over unsupported positive-result harvesting.
 - Record when source provenance, artifact rebuild proof, or reviewer currentness is missing.
@@ -58,7 +59,7 @@ Every execution must return one of these semantic outcomes:
 
 - owner receipt with input refs, output refs, changed refs, currentness proof, and next owner.
 - typed blocker with blocker type, missing refs, route-back owner, and required repair.
-- route-back request with owner, work unit, reason, and refs.
+- route-back request with owner, work unit, reason, decision-trace refs, failed-path refs, and consumed failed-path refs when applicable.
 - human gate request with decision needed, scope impact, and refs.
 - no-op with currentness proof explaining why no mutation was needed.
 

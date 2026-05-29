@@ -37,7 +37,7 @@ Work from current MAS-owned refs. If the available refs do not establish the stu
 - State the candidate clinical question, population, exposure or model target, outcome, source boundary, and intended contribution.
 - Compare candidate routes by clinical relevance, data fit, novelty, evidence gain, journal fit, reviewer risk, and stop or pivot rule.
 - Treat publication-route memory as reusable experience. It may suggest question shapes, table/figure patterns, or failed-path warnings; it cannot authorize a claim, quality verdict, or final route by itself.
-- Preserve negative, weak, or rejected routes as failed-path evidence with explicit reasons.
+- Preserve negative, weak, or rejected routes as failed-path / decision-trace ledger refs with explicit reasons. If a candidate route repeats a consumed failed-path ref, route around it or request a decision instead of relaunching the same invalid path.
 - Select `baseline_and_evidence_setup` only when source readiness and study boundary are specific enough for managed execution.
 
 ## Forbidden Shortcuts
@@ -53,9 +53,10 @@ This stage produces execution reasoning and an owner route recommendation. It do
 
 ## AI-First Handoff And Receipt
 
-Return a stage execution receipt containing candidate routes, rejected alternatives, selected route, source refs, literature refs, publication-route memory refs used, blockers, and next-owner recommendation. The receipt must make the owner route explicit:
+Return a stage execution receipt containing candidate routes, rejected alternatives, selected route, source refs, literature refs, publication-route memory refs used, decision-trace refs, failed-path refs, blockers, and next-owner recommendation. The receipt must make the owner route explicit:
 
 - `direction_route_selected` with refs and rationale.
+- `decision_trace_refs` / `failed_path_refs` for rejected routes, claim narrowing, methodology route-back, stop-loss pressure, or prior invalid route consumption.
 - typed blocker when the source, study boundary, or memory currentness is insufficient.
 - human gate request when scope expansion, claim shift, or PI decision is required.
 

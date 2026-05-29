@@ -52,6 +52,118 @@ def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() 
     assert "owner_route_currentness_basis" in route["source_refs"]
 
 
+def test_owner_route_protocol_projects_decision_trace_and_failed_path_refs_without_body() -> None:
+    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+
+    route = owner_route_module.build_owner_route(
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        status={
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-negative-route",
+                "source_signature": "truth-source-negative-route",
+            },
+            "runtime_health_snapshot": {"runtime_health_epoch": "runtime-health-negative-route"},
+            "decision_trace": {
+                "summary": "Prior transport-model route narrowed the claim and routed back to methodology.",
+                "refs": [
+                    "artifacts/controller_decisions/decision-trace-negative-route.json",
+                    {
+                        "ref": "artifacts/evidence/failed_paths/transport-model-route.json",
+                        "role": "failed_path",
+                    },
+                ],
+                "body": "private reasoning body must not be projected",
+                "entries": [{"body": "private entry body must not be projected"}],
+            },
+            "failed_path_ledger": {
+                "summary": "Transport model reuse failed source provenance checks.",
+                "refs": ["artifacts/evidence/failed_paths/transport-model-route.json"],
+                "body": "private failed-path body must not be projected",
+            },
+        },
+        progress={},
+        actions=[
+            {
+                "action_type": "methodology_reframe_route_decision",
+                "owner": "decision",
+                "reason": "methodology_reframe_required",
+                "work_unit_id": "methodology_reframe_transport_model",
+                "work_unit_fingerprint": "work-unit::methodology-reframe-transport-model",
+            }
+        ],
+        blocked_reason="methodology_reframe_required",
+        next_owner="decision",
+        active_run_id=None,
+    )
+
+    assert route["decision_trace_refs"] == [
+        "artifacts/controller_decisions/decision-trace-negative-route.json"
+    ]
+    assert route["failed_path_refs"] == [
+        "artifacts/evidence/failed_paths/transport-model-route.json"
+    ]
+    assert route["decision_trace"]["summary"] == (
+        "Prior transport-model route narrowed the claim and routed back to methodology."
+    )
+    assert route["decision_trace"]["refs"] == route["decision_trace_refs"]
+    assert route["decision_trace"]["body_included"] is False
+    assert "body" not in route["decision_trace"]
+    assert route["failed_path_ledger"]["summary"] == (
+        "Transport model reuse failed source provenance checks."
+    )
+    assert route["failed_path_ledger"]["refs"] == route["failed_path_refs"]
+    assert route["failed_path_ledger"]["body_included"] is False
+    assert "body" not in route["failed_path_ledger"]
+    assert route["source_refs"]["decision_trace_refs"] == route["decision_trace_refs"]
+    assert route["source_refs"]["failed_path_refs"] == route["failed_path_refs"]
+    assert route["owner_route_attempt_protocol"]["decision_trace"]["route_authority"] is False
+    assert route["owner_route_attempt_protocol"]["decision_trace"]["body_included"] is False
+    assert "private reasoning body" not in str(route)
+
+
+def test_owner_route_protocol_suppresses_action_with_consumed_failed_path_ref() -> None:
+    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+
+    owner_route, actions = owner_route_module.route_and_decorate_actions(
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        status={
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-negative-route",
+                "source_signature": "truth-source-negative-route",
+            },
+            "runtime_health_snapshot": {"runtime_health_epoch": "runtime-health-negative-route"},
+            "failed_path_ledger": {
+                "refs": ["artifacts/evidence/failed_paths/transport-model-route.json"],
+                "consumed_refs": ["artifacts/evidence/failed_paths/transport-model-route.json"],
+            },
+        },
+        progress={},
+        actions=[
+            {
+                "action_type": "methodology_reframe_route_decision",
+                "owner": "decision",
+                "reason": "methodology_reframe_required",
+                "work_unit_id": "methodology_reframe_transport_model",
+                "work_unit_fingerprint": "work-unit::methodology-reframe-transport-model",
+                "consumes_failed_path_refs": [
+                    "artifacts/evidence/failed_paths/transport-model-route.json"
+                ],
+            }
+        ],
+        blocked_reason="methodology_reframe_required",
+        next_owner="decision",
+        active_run_id=None,
+    )
+
+    assert actions == []
+    assert owner_route["failed_path_ledger"]["consumed_refs"] == [
+        "artifacts/evidence/failed_paths/transport-model-route.json"
+    ]
+    assert owner_route["owner_route_attempt_protocol"]["decision_trace"]["repeated_failed_path_suppressed"] is True
+
+
 def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id() -> None:
     owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
 
@@ -270,6 +382,78 @@ def test_default_executor_attempt_envelope_accepts_eval_bound_writer_route_witho
     assert envelope["source_eval_id"] == source_eval_id
     assert "owner_reason" not in envelope["owner_route_currentness_basis"]
     assert envelope["domain_intent"]["missing_required_fields"] == []
+
+
+def test_default_executor_attempt_envelope_carries_decision_trace_refs_only() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "quest_id": "002-dm-china-us-mortality-attribution",
+        "truth_epoch": "truth-event-negative-route",
+        "route_epoch": "truth-event-negative-route",
+        "runtime_health_epoch": "runtime-health-negative-route",
+        "source_fingerprint": "truth-source-negative-route",
+        "work_unit_fingerprint": "work-unit::methodology-reframe-transport-model",
+        "current_owner": "mas_controller",
+        "next_owner": "decision",
+        "owner_reason": "methodology_reframe_required",
+        "failure_signature": "methodology_reframe_required",
+        "allowed_actions": ["methodology_reframe_route_decision"],
+        "idempotency_key": "owner-route::dm002::decision::methodology",
+        "source_refs": {
+            "work_unit_id": "methodology_reframe_transport_model",
+            "work_unit_fingerprint": "work-unit::methodology-reframe-transport-model",
+            "study_truth_epoch": "truth-event-negative-route",
+            "runtime_health_epoch": "runtime-health-negative-route",
+            "decision_trace_refs": [
+                "artifacts/controller_decisions/decision-trace-negative-route.json"
+            ],
+            "failed_path_refs": [
+                "artifacts/evidence/failed_paths/transport-model-route.json"
+            ],
+        },
+        "decision_trace": {
+            "summary": "Prior route narrowed the claim.",
+            "refs": ["artifacts/controller_decisions/decision-trace-negative-route.json"],
+            "body": "private body must not be transported",
+        },
+        "failed_path_ledger": {
+            "summary": "Transport-model route failed provenance checks.",
+            "refs": ["artifacts/evidence/failed_paths/transport-model-route.json"],
+            "body": "private failed-path body must not be transported",
+        },
+    }
+
+    envelope = protocol.default_executor_attempt_envelope(
+        dispatch={
+            "action_type": "methodology_reframe_route_decision",
+            "next_executable_owner": "decision",
+            "owner_route": owner_route,
+        }
+    )
+
+    assert envelope["dispatchable"] is True
+    assert envelope["decision_trace_refs"] == [
+        "artifacts/controller_decisions/decision-trace-negative-route.json"
+    ]
+    assert envelope["failed_path_refs"] == [
+        "artifacts/evidence/failed_paths/transport-model-route.json"
+    ]
+    assert envelope["decision_trace"]["summary"] == "Prior route narrowed the claim."
+    assert envelope["decision_trace"]["body_included"] is False
+    assert "body" not in envelope["decision_trace"]
+    assert envelope["failed_path_ledger"]["summary"] == (
+        "Transport-model route failed provenance checks."
+    )
+    assert envelope["failed_path_ledger"]["body_included"] is False
+    assert "body" not in envelope["failed_path_ledger"]
+    assert envelope["domain_intent"]["decision_trace_refs"] == envelope["decision_trace_refs"]
+    assert envelope["domain_intent"]["failed_path_refs"] == envelope["failed_path_refs"]
+    assert envelope["domain_intent"]["decision_trace"]["route_authority"] is False
+    assert "private body" not in str(envelope)
 
 
 def test_default_executor_attempt_envelope_preallocates_closeout_first_contract() -> None:

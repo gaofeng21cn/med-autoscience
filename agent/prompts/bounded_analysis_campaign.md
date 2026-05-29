@@ -38,6 +38,7 @@ Weak or negative findings must be preserved and routed into claim impact, stop-l
 - For each candidate, state target claim, expected evidence gain, clinical interpretability, cost/risk, source dependency, and stop condition.
 - Keep analyses tied to the active cohort, endpoint, comparator, and claim boundary.
 - Record evidence impact: confirm, weaken, refute, narrow, downgrade, or require route-back.
+- Record weak, negative, failed, and stop-loss outcomes as failed-path / decision-trace refs. If the current board would rerun an already consumed failed-path ref, stop that branch and route back with the ref instead of repeating the attempt.
 - Preserve runtime event refs and evidence refs so OPL can replay attempt metadata without reading MAS evidence body.
 
 ## Forbidden Shortcuts
@@ -53,7 +54,7 @@ This stage produces analysis evidence and claim-impact recommendations. It does 
 
 ## AI-First Handoff And Receipt
 
-Return analysis result refs, evidence ledger refs, runtime event refs, unresolved blockers, failed-path lessons, claim impact, and next owner. Valid outcomes are:
+Return analysis result refs, evidence ledger refs, runtime event refs, decision-trace refs, failed-path refs, consumed failed-path refs, unresolved blockers, failed-path lessons, claim impact, and next owner. Valid outcomes are:
 
 - `bounded_analysis_evidence_ready` with claim-impact refs.
 - route-back to decision for stop, pivot, claim downgrade, or methodology reframe.

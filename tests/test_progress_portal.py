@@ -46,6 +46,62 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert "live_console" not in payload
 
 
+def test_progress_portal_projects_decision_trace_refs_without_ledger_body() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    progress = _progress_payload()
+    progress["user_visible_projection"] = {
+        **progress["user_visible_projection"],
+        "decision_trace": {
+            "summary": "Prior route narrowed the claim after a negative sensitivity result.",
+            "refs": [
+                "studies/001-risk/artifacts/controller_decisions/decision-trace-negative-route.json"
+            ],
+            "body": "private decision body must not be rendered",
+        },
+        "decision_trace_refs": [
+            "studies/001-risk/artifacts/controller_decisions/decision-trace-negative-route.json"
+        ],
+        "failed_path_ledger": {
+            "summary": "Transport-model route failed provenance checks.",
+            "refs": [
+                "studies/001-risk/artifacts/evidence/failed_paths/transport-model-route.json"
+            ],
+            "body": "private failed-path body must not be rendered",
+        },
+        "failed_path_refs": [
+            "studies/001-risk/artifacts/evidence/failed_paths/transport-model-route.json"
+        ],
+    }
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=progress,
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    html = module.render_progress_portal_html(payload)
+
+    trace = payload["study"]["decision_trace"]
+    failed = payload["study"]["failed_path_ledger"]
+    assert trace["summary"] == "Prior route narrowed the claim after a negative sensitivity result."
+    assert trace["refs"] == [
+        "studies/001-risk/artifacts/controller_decisions/decision-trace-negative-route.json"
+    ]
+    assert trace["body_included"] is False
+    assert failed["summary"] == "Transport-model route failed provenance checks."
+    assert failed["refs"] == [
+        "studies/001-risk/artifacts/evidence/failed_paths/transport-model-route.json"
+    ]
+    assert failed["body_included"] is False
+    assert "body" not in trace
+    assert "body" not in failed
+    assert "Prior route narrowed the claim" in html
+    assert "Transport-model route failed provenance checks" in html
+    assert "private decision body" not in html
+    assert "private failed-path body" not in html
+
+
 def test_progress_portal_payload_has_no_private_live_console_link() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
 

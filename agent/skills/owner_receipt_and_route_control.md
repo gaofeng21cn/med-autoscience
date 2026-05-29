@@ -14,6 +14,7 @@ Every mutating or decision-bearing path must emit a durable owner receipt. The r
 - source, evidence, review, artifact, publication, memory, and runtime refs affected or intentionally left unchanged.
 - currentness basis relative to task intake, controller decision, manuscript/source refs, and artifact rebuild refs.
 - consumed quality pack refs, including journal-family pack refs when in scope.
+- decision-trace refs and failed-path ledger refs for negative results, failed attempts, route switches, claim narrowing, methodology route-back, and stop-loss decisions; include only summaries and refs in handoff/read-model fields, never ledger body.
 - output refs for reviewer response, response difficult-case / appeal-like / author-input routing, Data Availability restricted-access / FAIR metadata, citation support grades and selected reference export, figure source-data/statistics/export QA, figure backend refs, source-grounded reader source maps / block anchors, and presentation PPTX QA / asset manifest when produced.
 - next owner, next stage, or terminal blocker.
 
@@ -42,7 +43,7 @@ A typed blocker must name the blocker semantics, route-back owner, missing refs,
 - Route back when a stage exposes source, evidence, method, claim, writing, artifact, memory, or review currentness gaps.
 - Route forward only when the receipt contains current refs required by the next stage.
 - Route forward from manuscript, review, finalize, or journal-resolution work only when in-scope journal-family packs have output refs, typed blockers, or explicit out-of-scope reasoning in the receipt.
-- Preserve failed-path and stop-loss evidence so later stages do not repeat invalid routes.
+- Preserve failed-path and stop-loss evidence as structured ledger refs so later stages do not repeat invalid routes; downstream route control may consume the ref but must not treat ledger body as route authority.
 - Human gate blocks auto-advance only when the stage or authority boundary says external decision is required.
 
 ## Program And Materializer Boundary

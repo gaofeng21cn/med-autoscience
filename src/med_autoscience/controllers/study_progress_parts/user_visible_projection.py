@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.paper_progress_state import build_paper_progress_state
+from med_autoscience.runtime_control.decision_trace_ledger import decision_trace_projection
 
 from .shared import _mapping_copy, _non_empty_text
 
@@ -133,8 +134,15 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         details=details,
         quality_owner_pending=quality_owner_pending,
     )
+    trace_projection = decision_trace_projection(
+        payload,
+        _mapping_copy(payload.get("owner_route")),
+        _mapping_copy(payload.get("domain_transition")),
+        _mapping_copy(payload.get("controller_decision")),
+        _mapping_copy(payload.get("latest_controller_decision")),
+    )
 
-    return {
+    projection = {
         "surface": USER_VISIBLE_PROJECTION_SURFACE,
         "read_model": USER_VISIBLE_PROJECTION_READ_MODEL,
         "schema_version": 2,
@@ -196,6 +204,8 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
             evidence=evidence,
         ),
     }
+    projection.update(trace_projection)
+    return projection
 
 
 def _normalized_texts(value: object) -> list[str]:
