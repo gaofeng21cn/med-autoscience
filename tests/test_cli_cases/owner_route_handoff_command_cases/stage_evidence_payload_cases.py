@@ -84,6 +84,85 @@ def test_domain_handler_stage_evidence_payload_projects_review_quality_gate_type
     ]
 
     action_payload = payload["opl_runtime_action_execute_payload"]
+    assert action_payload["research_evidence_pack_ref"] == (
+        "mas-research-evidence-pack:medautoscience:stage_production_evidence:"
+        "review_and_quality_gate"
+    )
+    assert action_payload["research_evidence_pack_summary"] == {
+        "surface_kind": "mas_research_evidence_pack_summary",
+        "version": "mas-research-evidence-pack-summary.v1",
+        "domain_id": "medautoscience",
+        "study_id": None,
+        "stage_id": "review_and_quality_gate",
+        "task_kind": "stage_production_evidence",
+        "pack_ref": (
+            "mas-research-evidence-pack:medautoscience:stage_production_evidence:"
+            "review_and_quality_gate"
+        ),
+        "run_manifest_ref": (
+            "mas-research-run-manifest:medautoscience:stage_production_evidence:"
+            "review_and_quality_gate"
+        ),
+        "negative_failed_path_ledger_ref": (
+            "mas-negative-failed-path-ledger:medautoscience:stage_production_evidence:"
+            "review_and_quality_gate"
+        ),
+        "decision_trace_ref": (
+            "mas-decision-trace:medautoscience:stage_production_evidence:"
+            "review_and_quality_gate"
+        ),
+        "artifact_lineage_graph_ref": (
+            "mas-artifact-lineage-graph:medautoscience:stage_production_evidence:"
+            "review_and_quality_gate"
+        ),
+        "reproducibility_bundle_ref": (
+            "mas-reproducibility-bundle:medautoscience:stage_production_evidence:"
+            "review_and_quality_gate"
+        ),
+        "claim_impact_refs": [],
+        "code_refs": [],
+        "decision_trace_refs": [],
+        "negative_failed_path_refs": [],
+        "source_data_version_refs": [],
+        "software_environment_refs": [],
+        "parameter_seed_refs": [],
+        "input_refs": [
+            "stage_production_evidence:medautoscience:review_and_quality_gate",
+            "medautoscience.stage_production_evidence",
+            "stage-production-evidence:medautoscience:review_and_quality_gate:record",
+            "/progress_projection",
+            "/product_entry_manifest/family_stage_control_plane/stages/"
+            "review_and_quality_gate/freshness",
+            "review",
+            "decision",
+            "/product_entry_manifest/family_stage_control_plane/stages/"
+            "review_and_quality_gate/source_refs",
+            "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
+            "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded",
+            "contracts/production_acceptance/mas-production-acceptance.json"
+            "#/paper_line_guarded_apply_evidence",
+        ],
+        "output_refs": [],
+        "checksum_refs": [
+            "mas-no-forbidden-write-proof:medautoscience:"
+            "stage-production-evidence:review_and_quality_gate:refs-only-payload"
+        ],
+        "typed_blocker_refs": [
+            "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:"
+            "real-paper-line-owner-receipt-or-monitor-freshness-pending"
+        ],
+        "owner_receipt_refs": [],
+        "authority_boundary": {
+            "owner": "med-autoscience",
+            "opl_records_refs_only": True,
+            "can_read_domain_body": False,
+            "can_accept_or_reject_owner_receipt": False,
+            "can_sign_domain_receipt": False,
+            "can_authorize_artifact_mutation": False,
+            "can_authorize_publication_readiness": False,
+            "domain_ready_claimed": False,
+        },
+    }
     assert action_payload["domain_receipt_refs"] == []
     assert action_payload["evidence_refs"] == []
     assert action_payload["source_scope_refs"] == []
@@ -120,6 +199,7 @@ def test_domain_handler_stage_evidence_payload_projects_review_quality_gate_type
     assert payload["authority_boundary"]["opl_records_refs_only"] is True
     assert payload["authority_boundary"]["creates_owner_receipt"] is False
     assert payload["authority_boundary"]["claims_stage_ready"] is False
+    assert payload["authority_boundary"]["exports_research_evidence_pack_refs_only"] is True
 
 
 def test_domain_handler_stage_evidence_payload_projects_review_quality_gate_success_refs(
@@ -192,6 +272,17 @@ def test_domain_handler_stage_evidence_payload_projects_review_quality_gate_succ
     assert payload["status"] == "success_payload_ready"
     assert payload["payload_reason"] == "stage_production_evidence_review_quality_gate_refs_observed"
     action_payload = payload["opl_runtime_action_execute_payload"]
+    assert action_payload["research_evidence_pack_ref"] == (
+        "mas-research-evidence-pack:medautoscience:stage_production_evidence:"
+        "review_and_quality_gate"
+    )
+    assert action_payload["research_evidence_pack_summary"]["owner_receipt_refs"] == [
+        str(study_root / "artifacts" / "publication_eval" / "latest.json")
+    ]
+    assert action_payload["research_evidence_pack_summary"]["typed_blocker_refs"] == []
+    assert action_payload["research_evidence_pack_summary"]["output_refs"] == [
+        str(study_root / "artifacts" / "publication_eval" / "latest.json")
+    ]
     assert action_payload["domain_receipt_refs"] == [
         str(study_root / "artifacts" / "publication_eval" / "latest.json")
     ]

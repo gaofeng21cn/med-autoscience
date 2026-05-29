@@ -307,6 +307,24 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     assert payload["record_payload"]["owner_chain_refs"] == payload["record_payload"][
         "evidence_refs"
     ]
+    research_summary = payload["record_payload"]["research_evidence_pack_summary"]
+    assert payload["record_payload"]["research_evidence_pack_ref"] == (
+        "mas-research-evidence-pack:medautoscience:domain_route_reconcile-apply:DM002"
+    )
+    assert research_summary["pack_ref"] == payload["record_payload"]["research_evidence_pack_ref"]
+    assert research_summary["input_refs"] == payload["record_payload"]["evidence_refs"]
+    assert research_summary["output_refs"] == []
+    assert research_summary["typed_blocker_refs"] == payload["record_payload"]["typed_blocker_refs"]
+    assert research_summary["authority_boundary"] == {
+        "owner": "med-autoscience",
+        "opl_records_refs_only": True,
+        "can_read_domain_body": False,
+        "can_accept_or_reject_owner_receipt": False,
+        "can_sign_domain_receipt": False,
+        "can_authorize_artifact_mutation": False,
+        "can_authorize_publication_readiness": False,
+        "domain_ready_claimed": False,
+    }
     assert payload["record_payload"]["domain_owner_receipt_refs"] == []
     assert payload["domain_owner_receipt_refs"] == []
     assert payload["opl_runtime_action_execute_payload"] == payload["record_payload"]
@@ -315,6 +333,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
         "no_regression_evidence_ref",
         "owner_chain_ref",
         "typed_blocker_ref",
+        "research_evidence_pack_ref",
     ]
     accepted_paths = payload["accepted_payload_paths"]
     assert accepted_paths["success_refs_path"] == {
@@ -559,6 +578,13 @@ def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_pa
     ]
     assert record_payload["no_regression_refs"] == record_payload["no_regression_evidence_refs"]
     assert payload["opl_runtime_action_execute_payload"] == record_payload
+    assert record_payload["research_evidence_pack_summary"]["output_refs"] == [
+        "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
+    ]
+    assert record_payload["research_evidence_pack_summary"]["owner_receipt_refs"] == [
+        "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
+    ]
+    assert record_payload["research_evidence_pack_summary"]["typed_blocker_refs"] == []
     assert {
         packet["role"] for packet in payload["body_free_evidence_packets"]
     } == {

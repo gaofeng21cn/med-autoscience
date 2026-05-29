@@ -6,6 +6,7 @@ import re
 from typing import Any, Mapping, Sequence
 
 from .body_free_evidence_packets import build_body_free_evidence_packet
+from .research_evidence_pack import build_research_evidence_pack_summary
 from .stable_blocker_classes import (
     blocker_explanation,
     stable_blocker_class,
@@ -216,6 +217,26 @@ def build_domain_dispatch_evidence_record_payload(
     for key, value in identity_payload_fields.items():
         if value is not None:
             record_payload[key] = value
+    research_evidence_pack_summary = build_research_evidence_pack_summary(
+        domain_id=DOMAIN_ID,
+        task_kind=normalized_task_kind,
+        study_id=normalized_study_id,
+        stage_id=normalized_stage_id,
+        input_refs=evidence_ref_values,
+        output_refs=domain_owner_receipt_ref_values,
+        checksum_refs=no_regression_evidence_ref_values,
+        owner_receipt_refs=domain_owner_receipt_ref_values,
+        typed_blocker_refs=typed_blocker_ref_values,
+        negative_failed_path_refs=normalized_reason_details.get("negative_failed_path_refs", ()),
+        decision_trace_refs=normalized_reason_details.get("decision_trace_refs", ()),
+        claim_impact_refs=normalized_reason_details.get("claim_impact_refs", ()),
+        source_data_version_refs=normalized_reason_details.get("source_data_version_refs", ()),
+        software_environment_refs=normalized_reason_details.get("software_environment_refs", ()),
+        parameter_seed_refs=normalized_reason_details.get("parameter_seed_refs", ()),
+        code_refs=normalized_reason_details.get("code_refs", ()),
+    )
+    record_payload["research_evidence_pack_ref"] = research_evidence_pack_summary["pack_ref"]
+    record_payload["research_evidence_pack_summary"] = research_evidence_pack_summary
     top_level_identity_fields = {
         "source_fingerprint": normalized_payload_source_fingerprint,
         "domain_source_fingerprint": normalized_source_fingerprint,
@@ -273,11 +294,14 @@ def build_domain_dispatch_evidence_record_payload(
         "opl_runtime_action_execute_usage": opl_runtime_action_execute_usage,
         "identity_binding": identity_binding,
         "stage_evidence_handoff": stage_evidence_handoff,
+        "research_evidence_pack_ref": research_evidence_pack_summary["pack_ref"],
+        "research_evidence_pack_summary": research_evidence_pack_summary,
         "required_return_shapes": [
             "domain_owner_receipt_ref",
             "no_regression_evidence_ref",
             "owner_chain_ref",
             "typed_blocker_ref",
+            "research_evidence_pack_ref",
         ],
         "payload_path_policy": (
             "operator_must_choose_success_refs_path_or_domain_owned_typed_blocker_path_empty_template_blocks"
@@ -317,6 +341,10 @@ def build_domain_dispatch_evidence_record_payload(
             "opl_authorizes_quality_or_publication": False,
             "provider_completion_is_domain_ready": False,
             "typed_blocker_is_domain_ready": False,
+            "exports_research_evidence_pack_refs_only": True,
+            "can_read_domain_body": False,
+            "can_accept_or_reject_owner_receipt": False,
+            "can_sign_domain_receipt": False,
         },
         "forbidden_payload_fields": [
             "study_truth_body",

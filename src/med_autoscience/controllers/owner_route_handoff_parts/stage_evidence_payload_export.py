@@ -103,6 +103,8 @@ def build_stage_evidence_payload_export(
             "owner_chain_refs": success_receipt_refs,
             "source_scope_refs": source_scope_refs,
             "runtime_event_refs": runtime_event_refs,
+            "research_evidence_pack_ref": evidence_payload["research_evidence_pack_ref"],
+            "research_evidence_pack_summary": evidence_payload["research_evidence_pack_summary"],
         }
         return {
             "surface_kind": SURFACE_KIND,
@@ -146,6 +148,8 @@ def build_stage_evidence_payload_export(
         "owner_chain_refs": [],
         "source_scope_refs": [],
         "runtime_event_refs": [],
+        "research_evidence_pack_ref": evidence_payload["research_evidence_pack_ref"],
+        "research_evidence_pack_summary": evidence_payload["research_evidence_pack_summary"],
     }
     return {
         "surface_kind": SURFACE_KIND,
@@ -256,6 +260,7 @@ def authority_boundary(*, payload_kind: str = "refs_only_stage_production_eviden
         "creates_owner_receipt": False,
         "claims_stage_ready": False,
         "claims_monitor_freshness": False,
+        "exports_research_evidence_pack_refs_only": True,
     }
 
 
