@@ -62,6 +62,7 @@ def paper_stage_log_for_default_executor_execution(
         "cost": cost,
         "usage_refs": _usage_refs(execution=execution),
         "cost_refs": _cost_refs(execution=execution),
+        **_progress_delta_projection(execution=execution, changed_surfaces=changed_surfaces),
         "evidence_refs": _evidence_refs(
             study_id=study_id,
             dispatch_path=dispatch_path,
@@ -73,6 +74,92 @@ def paper_stage_log_for_default_executor_execution(
         "language_boundary": _language_boundary(),
         "authority": _authority(),
     }
+
+
+def _progress_delta_projection(
+    *,
+    execution: Mapping[str, Any],
+    changed_surfaces: list[str],
+) -> dict[str, Any]:
+    if _mapping(execution.get("anti_loop_budget")):
+        return {
+            "progress_delta_classification": "no_user_visible_progress_delta",
+            "paper_progress_delta": {"count": 0, "token_usage_total": 0},
+            "platform_repair_delta": {"count": 0, "token_usage_total": 0},
+        }
+    total_tokens = _token_usage_total(execution)
+    if changed_surfaces:
+        return {
+            "progress_delta_classification": "paper_progress_delta",
+            "paper_progress_delta": {"count": 1, "token_usage_total": total_tokens},
+            "platform_repair_delta": {"count": 0, "token_usage_total": 0},
+        }
+    if _platform_repair_delta(execution):
+        return {
+            "progress_delta_classification": "platform_repair_delta",
+            "paper_progress_delta": {"count": 0, "token_usage_total": 0},
+            "platform_repair_delta": {"count": 1, "token_usage_total": total_tokens},
+        }
+    return {
+        "progress_delta_classification": "unknown",
+        "paper_progress_delta": {"count": 0, "token_usage_total": 0},
+        "platform_repair_delta": {"count": 0, "token_usage_total": 0},
+    }
+
+
+def _token_usage_total(execution: Mapping[str, Any]) -> int:
+    for value in (_token_usage_observability(execution), _observability_mapping(execution.get("usage"))):
+        total = _first_number_value(
+            value.get("total_tokens"),
+            value.get("total"),
+            value.get("token_total"),
+        )
+        if total is not None:
+            return int(total)
+        partial = _sum_number_values(
+            value.get("input_tokens"),
+            value.get("cached_input_tokens"),
+            value.get("output_tokens"),
+            value.get("reasoning_tokens"),
+        )
+        if partial is not None:
+            return int(partial)
+    return 0
+
+
+def _sum_number_values(*values: object) -> int | float | None:
+    total: int | float = 0
+    observed = False
+    for value in values:
+        number = _number_value(value)
+        if number is None:
+            continue
+        total += number
+        observed = True
+    return total if observed else None
+
+
+def _platform_repair_delta(execution: Mapping[str, Any]) -> bool:
+    reason_blob = " ".join(
+        text
+        for text in (
+            _text(execution.get("blocked_reason")),
+            _text(execution.get("why_not_applied")),
+            *_string_list(_mapping(execution.get("paper_stage_log")).get("remaining_blockers")),
+        )
+        if text is not None
+    ).lower()
+    return any(
+        token in reason_blob
+        for token in (
+            "runtime_recovery",
+            "currentness",
+            "controller",
+            "read_model",
+            "provider",
+            "opl_stage_attempt_admission_required",
+        )
+    )
 
 
 def _stage_name(*, action_type: str, dispatch: Mapping[str, Any]) -> str:
