@@ -150,6 +150,12 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
         allowed_actions = []
         route["allowed_actions"] = []
         route["blocked_actions"] = list(_ROUTED_ACTION_TYPES)
+    elif not allowed_actions and reason_contract["allowed_actions"]:
+        allowed_actions = list(reason_contract["allowed_actions"])
+        route["allowed_actions"] = allowed_actions
+        route["blocked_actions"] = [
+            action for action in _ROUTED_ACTION_TYPES if action not in set(allowed_actions)
+        ]
     source_refs = dict(_mapping(route.get("source_refs")))
     basis = currentness_basis(route)
     if basis:

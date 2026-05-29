@@ -729,6 +729,46 @@ def test_owner_route_requires_explicit_allowed_action_for_dispatch_execution() -
     ) is True
 
 
+def test_registered_owner_route_decorator_restores_missing_allowed_action_for_currentness() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "truth_epoch": "truth-event-000010-4ddbf4400d949140",
+        "runtime_health_epoch": "runtime-health-event-006183-d2a90e5b59194b50",
+        "work_unit_fingerprint": "truth-snapshot::17370fc349aa055738904f6a",
+        "route_epoch": "truth-event-000010-4ddbf4400d949140",
+        "source_fingerprint": "truth-snapshot::17370fc349aa055738904f6a",
+        "current_owner": "mas_controller",
+        "next_owner": "ai_reviewer",
+        "owner_reason": "ai_reviewer_record_stale_after_current_manuscript",
+        "failure_signature": "ai_reviewer_record_stale_after_current_manuscript",
+        "allowed_actions": [],
+        "blocked_actions": [
+            "return_to_ai_reviewer_workflow",
+            "run_quality_repair_batch",
+            "run_gate_clearing_batch",
+        ],
+        "source_refs": {
+            "study_truth_epoch": "truth-event-000010-4ddbf4400d949140",
+            "runtime_health_epoch": "runtime-health-event-006183-d2a90e5b59194b50",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": "truth-snapshot::17370fc349aa055738904f6a",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+        },
+    }
+
+    decorated = protocol.decorate_owner_route(route)
+
+    assert decorated["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert "return_to_ai_reviewer_workflow" not in decorated["blocked_actions"]
+    assert decorated["owner_reason_contract"]["registered"] is True
+    assert decorated["owner_reason_contract"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
+
+
 def test_owner_route_legacy_scan_part_reexports_shared_contract() -> None:
     shared = importlib.import_module("med_autoscience.runtime_control.owner_route")
     legacy = importlib.import_module("med_autoscience.controllers.owner_route_reconcile_parts.owner_route")
