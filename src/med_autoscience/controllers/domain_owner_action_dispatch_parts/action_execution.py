@@ -353,6 +353,7 @@ def execute_ai_reviewer_workflow(
     request = _read_json_object(request_path)
     if request is None or _text(_mapping(request).get("surface_kind")) == "legacy_control_surface_tombstone":
         return _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_request_missing", request_path=request_path)
+    request = _complete_ai_reviewer_request_packet(study_root=study_root, request=request, request_path=request_path)
     record, record_blocker = _ai_reviewer_record_for_execution(request=request, study_root=study_root)
     if record_blocker:
         handoff = record_production_handoff_execution(
@@ -449,6 +450,53 @@ def execute_ai_reviewer_workflow(
         "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
         "owner_result": owner_result,
         "request_path": str(request_path),
+    }
+
+
+def _complete_ai_reviewer_request_packet(
+    *,
+    study_root: Path,
+    request: Mapping[str, Any],
+    request_path: Path,
+) -> dict[str, Any]:
+    completed = {**dict(request)}
+    input_contract = _mapping(completed.get("input_contract"))
+    required_refs = _mapping(input_contract.get("required_refs"))
+    changed = False
+    for surface, path in _canonical_ai_reviewer_ref_paths(study_root=study_root).items():
+        existing = _mapping(required_refs.get(surface))
+        existing_path = _text(existing.get("path")) or _text(existing.get("ref")) or _text(existing.get("relative_path"))
+        if existing_path:
+            continue
+        if not path.is_file():
+            continue
+        required_refs[surface] = {"path": str(path.resolve()), "present": True, "valid": True}
+        changed = True
+    if not changed:
+        return completed
+    input_contract["required_refs"] = required_refs
+    completed["input_contract"] = input_contract
+    lifecycle = _mapping(completed.get("request_lifecycle"))
+    lifecycle["request_packet_materialized"] = True
+    lifecycle["all_required_refs_present"] = all(
+        ref is not None for ref in ai_reviewer_request_refs.required_refs(completed).values()
+    )
+    completed["request_lifecycle"] = lifecycle
+    request_path.parent.mkdir(parents=True, exist_ok=True)
+    request_path.write_text(json.dumps(completed, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return completed
+
+
+def _canonical_ai_reviewer_ref_paths(*, study_root: Path) -> dict[str, Path]:
+    return {
+        "manuscript": study_root / "paper" / "draft.md",
+        "evidence_ledger": study_root / "paper" / "evidence_ledger.json",
+        "review_ledger": study_root / "paper" / "review" / "review_ledger.json",
+        "study_charter": study_root / "artifacts" / "controller" / "study_charter.json",
+        "medical_manuscript_blueprint": study_root / "paper" / "medical_manuscript_blueprint.json",
+        "claim_evidence_map": study_root / "paper" / "claim_evidence_map.json",
+        "medical_prose_review": study_root / "artifacts" / "publication_eval" / "medical_prose_review.json",
+        "publication_gate_projection": study_root / "artifacts" / "publication_eval" / "latest.json",
     }
 
 
