@@ -69,7 +69,12 @@ def discover_yang_profile_paths(
     root = Path(yang_root).expanduser()
     if not root.exists():
         return []
-    return sorted(path.resolve() for path in root.glob(profile_glob) if path.is_file())
+    direct_profile_dir = root / "ops" / "medautoscience" / "profiles"
+    candidates = [
+        *(direct_profile_dir.glob("*.toml") if direct_profile_dir.is_dir() else ()),
+        *root.glob(profile_glob),
+    ]
+    return sorted({path.resolve() for path in candidates if path.is_file()})
 
 
 def build_real_paper_autonomy_soak_inventory(
