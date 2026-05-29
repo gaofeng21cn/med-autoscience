@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-29：study-progress 与 stage-log 必须分离论文推进与平台修复增量
+
+- 决策：`study_progress` read-model 新增 `paper_progress_delta` 与 `platform_repair_delta` 双投影。`paper_progress_delta` 只计论文 surface 变化、AI reviewer eval follow-through、gate replay follow-through 与 write repair delta；`platform_repair_delta` 只计 controller/read-model/currentness/OPL provider 相关修复。
+- 决策：`mas_paper_facing_stage_log_summary` 与 `latest_terminal_stage_log.paper_stage_log` 同步新增 `progress_delta_classification`、`paper_progress_delta`、`platform_repair_delta`。Portal/stage log 展示与 MCP compact 必须按两类分开统计，禁止把平台修复 token 混报成论文推进 token。
+- 决策：当同一轮同时命中论文推进与平台修复信号时，token 分账按平台修复优先；`paper_progress_delta.token_usage_total` 置 `0`，`platform_repair_delta.token_usage_total` 记录当轮 token。
+- 理由：DM002/DM003 的 currentness 修复与论文实质推进经常同轮发生。若 read-model 只看单一 progress delta，会把 controller/provider 修复误读成论文推进，导致 stage log、progress 审阅与资源核算失真。
+- 影响：这是 MAS read-model/projection 语义收紧，不写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json`，也不改变质量裁决、投稿裁决或 artifact authority owner。
+
 ## 2026-05-29：AI reviewer current-manuscript record handoff 必须携带 canonical work unit
 
 - 决策：`ai_reviewer_record_stale_after_current_manuscript` 的显式 AI reviewer request 必须直接生成 record-only `return_to_ai_reviewer_workflow` handoff，并携带 canonical `produce_ai_reviewer_publication_eval_record_against_current_manuscript` work unit、record-only output surface、禁止 `publication_eval/latest.json` / controller decision 直接写入的 authority flags。该 currentness basis 必须在 owner route 中可见，使 default-executor attempt envelope 可被 OPL admission 消费。
