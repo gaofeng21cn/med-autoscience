@@ -763,12 +763,6 @@ def _owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:
             or _text(source_refs.get("source_eval_id"))
             or _text(route.get("source_eval_id"))
         ),
-        "owner_reason": (
-            _text(nested_basis.get("owner_reason"))
-            or _text(source_refs.get("blocked_reason"))
-            or _text(route.get("owner_reason"))
-            or _text(route.get("failure_signature"))
-        ),
     }
 
 

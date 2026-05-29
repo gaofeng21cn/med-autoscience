@@ -69,6 +69,13 @@ class StudyRuntimeDecision(StrEnum):
 
 
 class StudyRuntimeReason(StrEnum):
+    """Diagnostic/read-model detail for runtime status projection.
+
+    These values explain why a projected runtime/status surface looks the way it
+    does. They are intentionally not an execution authorization contract; owner
+    route currentness, allowed actions, receipts, blockers, and evidence refs
+    decide whether any consumer may execute.
+    """
     STUDY_EXECUTION_NOT_MANAGED_RUNTIME_BACKEND = "study_execution_not_managed_runtime_backend"
     STUDY_EXECUTION_RUNTIME_BACKEND_UNBOUND = "study_execution_runtime_backend_unbound"
     STUDY_EXECUTION_NOT_MANAGED = "study_execution_not_managed"

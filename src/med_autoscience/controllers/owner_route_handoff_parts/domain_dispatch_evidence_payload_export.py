@@ -5,6 +5,12 @@ from typing import Any, Mapping, Sequence
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
+from med_autoscience.controllers.stable_blocker_classes import (
+    blocker_details,
+    blocker_explanation,
+    source_refs_from_payloads,
+    stable_blocker_class,
+)
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.closeout_evidence import (
     closeout_evidence_refs,
     owner_receipt_closeout_evidence_refs,
@@ -72,7 +78,7 @@ def build_dispatch_evidence_payload_export(
             workorder=workorder,
             blocked_reason="owner_route_scan_study_missing",
         )
-    payload_reason = payload_reason_for_superseded_dispatch(
+    payload_detail_reason = payload_reason_for_superseded_dispatch(
         action_type=action_type,
         study_scan=study_scan,
     )
@@ -90,11 +96,11 @@ def build_dispatch_evidence_payload_export(
         dispatch_identity=dispatch_identity,
         action_type=action_type,
     )
-    if payload_reason is None and owner_receipt_closeout is not None:
-        payload_reason = PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
-    if payload_reason is None and closeout_evidence is not None:
-        payload_reason = PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER
-    if payload_reason is None:
+    if payload_detail_reason is None and owner_receipt_closeout is not None:
+        payload_detail_reason = PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
+    if payload_detail_reason is None and closeout_evidence is not None:
+        payload_detail_reason = PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER
+    if payload_detail_reason is None:
         return _blocked(
             profile=profile,
             profile_ref=profile_ref,
@@ -111,7 +117,7 @@ def build_dispatch_evidence_payload_export(
     no_regression_evidence_refs: Sequence[object] = ()
     if (
         owner_receipt_closeout is not None
-        and payload_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
+        and payload_detail_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
     ):
         evidence_refs = owner_receipt_closeout_evidence_refs(owner_receipt_closeout)
         domain_owner_receipt_refs = sequence(owner_receipt_closeout.get("owner_receipt_refs"))
@@ -122,7 +128,7 @@ def build_dispatch_evidence_payload_export(
                 "refs-only-owner-receipt-closeout"
             )
         ]
-    elif closeout_evidence is not None and payload_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER:
+    elif closeout_evidence is not None and payload_detail_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER:
         evidence_refs = closeout_evidence_refs(closeout_evidence)
         typed_blocker_refs = sequence(closeout_evidence.get("typed_blocker_refs"))
     else:
@@ -134,6 +140,24 @@ def build_dispatch_evidence_payload_export(
             study_scan=study_scan,
             domain_authority_handoff=domain_authority_handoff,
         )
+    payload_blocker_class = stable_blocker_class(payload_detail_reason) or payload_detail_reason
+    payload_reason = payload_blocker_class
+    reason_source_refs = source_refs_from_payloads(
+        owner_route,
+        domain_transition,
+        completion,
+        domain_authority_handoff,
+        extra_refs=evidence_refs,
+    )
+    reason_details = blocker_details(
+        blocker_class=payload_blocker_class,
+        detail_reason=payload_detail_reason,
+        action_type=action_type,
+        owner_route=owner_route,
+        domain_transition=domain_transition,
+        blocked_reason=text(study_scan.get("blocked_reason")),
+    )
+    explanation = blocker_explanation(payload_blocker_class)
     stage_attempt_source_fingerprint = text(target_identity.get("source_fingerprint"))
     domain_source_fingerprint = text(target_identity.get("domain_source_fingerprint"))
     evidence_payload = build_domain_dispatch_evidence_record_payload(
@@ -145,6 +169,9 @@ def build_dispatch_evidence_payload_export(
         domain_owner_receipt_refs=domain_owner_receipt_refs,
         typed_blocker_refs=typed_blocker_refs,
         no_regression_evidence_refs=no_regression_evidence_refs,
+        reason_details=reason_details,
+        reason_source_refs=reason_source_refs,
+        explanation=explanation,
         source_fingerprint=domain_source_fingerprint,
         stage_attempt_source_fingerprint=stage_attempt_source_fingerprint,
         profile_name=text(target_identity.get("profile_name")) or profile.name,
@@ -153,7 +180,7 @@ def build_dispatch_evidence_payload_export(
         "surface_kind": SURFACE_KIND,
         "status": (
             "owner_receipt_payload_ready"
-            if payload_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
+            if payload_detail_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
             else "typed_blocker_payload_ready"
         ),
         "profile": str(profile_ref),
@@ -162,6 +189,11 @@ def build_dispatch_evidence_payload_export(
         "workorder_action_id": text(workorder.get("action_id")),
         "stage_attempt_id": text(target_identity.get("stage_attempt_id")),
         "payload_reason": payload_reason,
+        "payload_detail_reason": payload_detail_reason,
+        "payload_blocker_class": payload_blocker_class,
+        "details": reason_details,
+        "source_refs": reason_source_refs,
+        **({"explanation": explanation} if explanation is not None else {}),
         "target_identity": dict(target_identity),
         "dispatch_identity_fields": dict(dispatch_identity),
         "domain_transition_receipt_consumption": dict(completion),

@@ -146,16 +146,6 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     allowed_actions = [action for action in allowed_actions if action is not None]
     action_type = allowed_actions[0] if len(allowed_actions) == 1 else None
     reason_contract = owner_reason_contract(reason=reason, owner=owner, action_type=action_type)
-    if reason is not None and not reason_contract["registered"]:
-        allowed_actions = []
-        route["allowed_actions"] = []
-        route["blocked_actions"] = list(_ROUTED_ACTION_TYPES)
-    elif not allowed_actions and reason_contract["allowed_actions"]:
-        allowed_actions = list(reason_contract["allowed_actions"])
-        route["allowed_actions"] = allowed_actions
-        route["blocked_actions"] = [
-            action for action in _ROUTED_ACTION_TYPES if action not in set(allowed_actions)
-        ]
     source_refs = dict(_mapping(route.get("source_refs")))
     basis = currentness_basis(route)
     if basis:
@@ -166,7 +156,7 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     route["currentness_contract"] = currentness_contract(route)
     route["owner_route_attempt_protocol"] = {
         "version": PROTOCOL_VERSION,
-        "dispatchable": bool(reason_contract["registered"] and allowed_actions),
+        "dispatchable": bool(allowed_actions and not route["currentness_contract"]["missing_required_fields"]),
         "priority_class": reason_contract["priority_class"],
         "currentness_contract": route["currentness_contract"]["status"],
         "authority_boundary": _authority_boundary(),
@@ -224,15 +214,14 @@ def default_executor_attempt_envelope(
         "domain_intent": domain_intent,
     }
     dispatchable = (
-        bool(reason_contract["registered"])
-        and bool(action_type)
+        bool(action_type)
         and bool(domain_owner)
         and bool(basis.get("work_unit_id"))
         and bool(basis.get("work_unit_fingerprint"))
         and bool(basis.get("truth_epoch"))
         and _runtime_or_eval_currentness_present(basis)
         and bool(core_fields["source_fingerprint"])
-        and action_type in set(reason_contract["allowed_actions"])
+        and action_type in {_text(action) for action in route.get("allowed_actions") or []}
         and not domain_intent["missing_required_fields"]
     )
     return {
@@ -291,8 +280,7 @@ def route_protocol_dispatchable(owner_route: Mapping[str, Any], *, action_type: 
         return False
     if action_type is None:
         return True
-    contract = _mapping(route.get("owner_reason_contract"))
-    return action_type in set(contract.get("allowed_actions") or [])
+    return action_type in {_text(action) for action in route.get("allowed_actions") or []}
 
 
 def _entry(

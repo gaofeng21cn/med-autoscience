@@ -729,7 +729,7 @@ def test_owner_route_requires_explicit_allowed_action_for_dispatch_execution() -
     ) is True
 
 
-def test_registered_owner_route_decorator_restores_missing_allowed_action_for_currentness() -> None:
+def test_registered_owner_route_decorator_keeps_missing_allowed_action_non_dispatchable() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
     route = {
         "surface": "domain_route_owner_route",
@@ -762,11 +762,11 @@ def test_registered_owner_route_decorator_restores_missing_allowed_action_for_cu
 
     decorated = protocol.decorate_owner_route(route)
 
-    assert decorated["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
-    assert "return_to_ai_reviewer_workflow" not in decorated["blocked_actions"]
+    assert decorated["allowed_actions"] == []
+    assert "return_to_ai_reviewer_workflow" in decorated["blocked_actions"]
     assert decorated["owner_reason_contract"]["registered"] is True
     assert decorated["owner_reason_contract"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
-    assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
+    assert decorated["owner_route_attempt_protocol"]["dispatchable"] is False
 
 
 def test_owner_route_legacy_scan_part_reexports_shared_contract() -> None:

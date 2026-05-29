@@ -75,7 +75,6 @@ def test_quality_repair_writer_handoff_bridges_runtime_owner_route_currentness(t
         "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
         "truth_epoch": source_eval_id,
         "runtime_health_epoch": "runtime-health-dm003-write-route",
-        "owner_reason": "manuscript_story_surface_delta_missing",
     }
     assert handoff["owner_route"]["source_refs"]["bridged_from_owner_reason"] == (
         "quest_waiting_opl_runtime_owner_route"
@@ -785,9 +784,13 @@ def test_execute_dispatch_rejects_materialized_story_surface_route_with_stale_br
 
     execution = result["executions"][0]
     assert result["blocked_count"] == 1
+    assert result["executed_count"] == 0
     assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "owner_route_stale"
-    assert execution["owner_route_basis"] == "scan_latest"
+    assert execution["owner_route_basis"] == "bridge_currentness_failed"
+    assert execution["owner_route_current"] is False
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+    assert not (study_root / "manuscript" / "current_package").exists()
 
 
 def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_current_ai_reviewer_route(

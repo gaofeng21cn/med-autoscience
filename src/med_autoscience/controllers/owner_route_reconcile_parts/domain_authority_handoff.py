@@ -4,6 +4,13 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.stable_blocker_classes import (
+    blocker_details,
+    blocker_explanation,
+    source_refs_from_payloads,
+    stable_blocker_class,
+)
+
 
 SURFACE_KIND = "mas_domain_authority_handoff"
 SCHEMA_VERSION = 1
@@ -129,13 +136,27 @@ def _typed_blocker(
     reason = _text(blocked_reason)
     if reason is None:
         return None
+    blocker_class = stable_blocker_class(reason) or reason
+    details = blocker_details(
+        blocker_class=blocker_class,
+        detail_reason=reason,
+        owner_route=owner_route,
+        blocked_reason=reason,
+    )
+    source_refs = source_refs_from_payloads(owner_route)
+    explanation = blocker_explanation(blocker_class)
     return {
         "surface_kind": "mas_domain_typed_blocker",
-        "blocker_kind": "owner_route_blocked",
+        "blocker_kind": blocker_class,
+        "blocker_class": blocker_class,
         "study_id": study_id,
         "quest_id": quest_id,
         "generated_at": generated_at,
-        "reason": reason,
+        "reason": blocker_class,
+        "detail_reason": reason,
+        "details": details,
+        "source_refs": source_refs,
+        **({"explanation": explanation} if explanation is not None else {}),
         "next_owner": _text(next_owner) or _text(owner_route.get("next_owner")),
         "route_epoch": _text(owner_route.get("route_epoch")),
         "source_fingerprint": _text(owner_route.get("source_fingerprint")),

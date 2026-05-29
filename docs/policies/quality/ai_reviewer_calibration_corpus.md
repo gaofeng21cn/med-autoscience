@@ -58,7 +58,7 @@ AI reviewer 的 clear verdict 还必须包含 IMRAD 关键段落的 section-leve
 
 ## Owner-Route Regression Contract
 
-DM002/DM003 暴露的 stale reviewer record、pending reviewer request、medical prose write route-back、unit harmonization rerun、package freshness 和 typed closeout 问题必须进入 owner-route protocol regression。每个质量 blocker 需要在 MAS registry 中声明 owner、allowed action、required output、forbidden surfaces 和 regression refs；未注册 reason 不得生成 ready dispatch。
+DM002/DM003 暴露的 stale reviewer record、pending reviewer request、medical prose write route-back、unit harmonization rerun、package freshness 和 typed closeout 问题必须进入 owner-route protocol regression。每个质量 blocker 需要在 MAS registry 中声明 owner、allowed action、required output、forbidden surfaces 和 regression refs；registry 只提供 diagnostic / regression / forbidden-surface context，ready dispatch 仍必须由当前 owner route 显式 `allowed_actions`、source/work-unit/truth/runtime-or-eval currentness 和 source fingerprint 授权。
 
 Agent Lab / opl-meta-agent 可以消费这些 refs 生成 developer work order，但不能消费 study truth body、AI reviewer verdict body、paper body 或 package body，也不能把 suite pass 写成 publication-ready。回归 suite 的成功标准是 owner route、request lifecycle、dispatch blocker、typed closeout contract 和 no-forbidden-write proof 正确投影；医学质量闭合仍必须由当前 AI reviewer-backed `publication_eval/latest.json`、publication gate、owner receipt 或 typed blocker 决定。
 

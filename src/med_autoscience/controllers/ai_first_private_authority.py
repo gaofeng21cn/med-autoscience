@@ -78,6 +78,9 @@ def validate_ai_first_private_authority_gate(
         "program_may_emit_pass_ready_verdict": False,
         "decision_output_owner": _text(function.get("decision_output_owner")),
         "reviewer_receipt_ref": _text((reviewer_receipt or {}).get("receipt_ref")) or None,
+        "independent_reviewer_or_auditor_evidence_refs": _independent_quality_evidence_refs(
+            reviewer_receipt or {}
+        ),
     }
 
 
@@ -161,6 +164,18 @@ def _candidate_record_blocker(
             details={"missing_required_record_refs": missing_refs},
         )
     return None
+
+
+def _independent_quality_evidence_refs(receipt: Mapping[str, Any]) -> list[str]:
+    return [
+        ref
+        for ref in (
+            _text(receipt.get("task_record_ref")),
+            _text(receipt.get("context_record_ref")),
+            _text(receipt.get("receipt_ref")),
+        )
+        if ref
+    ]
 
 
 def _candidate_has_required_ref(candidate_record: Mapping[str, Any], required_ref: str) -> bool:

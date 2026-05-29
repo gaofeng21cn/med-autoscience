@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers.stable_blocker_classes import stable_blocker_class
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
     GATE_CLEARING_ACTION_TYPE,
     GATE_CLEARING_OWNER,
@@ -253,7 +254,7 @@ def current_owner_route_typed_blocker_observed(
         and currentness_contract.get("missing_required_fields") == []
         and attempt_protocol.get("dispatchable") is False
         and text(domain_authority_handoff.get("status")) == "typed_blocker"
-        and text(typed_blocker.get("reason")) == blocked_reason
+        and _typed_blocker_matches_reason(typed_blocker, blocked_reason)
         and text(typed_blocker.get("next_owner")) == next_owner
     )
 
@@ -283,7 +284,7 @@ def delivered_package_handoff_typed_blocker_observed(study_scan: Mapping[str, An
         and currentness_contract.get("missing_required_fields") == []
         and attempt_protocol.get("dispatchable") is False
         and text(domain_authority_handoff.get("status")) == "typed_blocker"
-        and text(typed_blocker.get("reason")) == PUBLICATION_GATE_ROUTE_BACK_WRITE_REQUIRED_REASON
+        and _typed_blocker_matches_reason(typed_blocker, PUBLICATION_GATE_ROUTE_BACK_WRITE_REQUIRED_REASON)
         and text(typed_blocker.get("next_owner")) == "external_supervisor"
     )
 
@@ -314,7 +315,7 @@ def owner_authorized_publication_gate_replay_stage_attempt_blocker_observed(
         and currentness_contract.get("missing_required_fields") == []
         and attempt_protocol.get("dispatchable") is False
         and text(domain_authority_handoff.get("status")) == "typed_blocker"
-        and text(typed_blocker.get("reason")) == OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON
+        and _typed_blocker_matches_reason(typed_blocker, OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON)
         and text(typed_blocker.get("next_owner")) == "external_supervisor"
     )
 
@@ -373,6 +374,19 @@ def publication_gate_route_supersession_observed(study_scan: Mapping[str, Any]) 
         and currentness_contract.get("missing_required_fields") == []
         and attempt_protocol.get("dispatchable") is False
     )
+
+
+def _typed_blocker_matches_reason(typed_blocker: Mapping[str, Any], reason: str | None) -> bool:
+    reason_text = text(reason)
+    if reason_text is None:
+        return False
+    blocker_reason = text(typed_blocker.get("reason"))
+    if blocker_reason == reason_text:
+        return True
+    detail_reason = text(typed_blocker.get("detail_reason")) or text(
+        mapping(typed_blocker.get("details")).get("detail_reason")
+    )
+    return blocker_reason == stable_blocker_class(reason_text) and detail_reason == reason_text
 
 
 def _opl_stage_admission_observed(

@@ -130,6 +130,12 @@ def test_ai_first_gate_accepts_independent_reviewer_record_refs() -> None:
     assert result["can_close_quality_gate"] is True
     assert result["judgment_mode"] == "ai_first_stage_gate"
     assert result["program_role"] == "validator"
+    assert result["reviewer_receipt_ref"] == "receipts/review-1.json"
+    assert result["independent_reviewer_or_auditor_evidence_refs"] == [
+        "tasks/review-1.json",
+        "contexts/review-1.json",
+        "receipts/review-1.json",
+    ]
 
 
 def test_mechanical_guard_surfaces_cannot_emit_medical_verdicts() -> None:

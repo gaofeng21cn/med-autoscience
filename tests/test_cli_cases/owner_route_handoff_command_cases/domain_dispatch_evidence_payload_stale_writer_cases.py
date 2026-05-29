@@ -100,8 +100,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_stale_writer_superses
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_run_quality_repair_dispatch_superseded_by_ai_reviewer_currentness_route"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_run_quality_repair_dispatch_superseded_by_ai_reviewer_currentness_route",
     )
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source
@@ -211,8 +213,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_stale_writer_supervis
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_run_quality_repair_dispatch_superseded_by_ai_reviewer_currentness_route"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_run_quality_repair_dispatch_superseded_by_ai_reviewer_currentness_route",
     )
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source
@@ -338,8 +342,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_writer_superseded_by_
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_run_quality_repair_dispatch_superseded_by_current_ai_reviewer_stage_admission"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_run_quality_repair_dispatch_superseded_by_current_ai_reviewer_stage_admission",
     )
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source
@@ -524,8 +530,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_publication_gate_rout
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_run_quality_repair_dispatch_superseded_by_publication_gate_route"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="publication_gate_supersession_blocked",
+        detail_reason="stale_run_quality_repair_dispatch_superseded_by_publication_gate_route",
     )
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source
@@ -681,7 +689,11 @@ def test_domain_handler_dispatch_evidence_payload_projects_writer_dispatch_under
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == "owner_authorized_publication_gate_replay_stage_attempt_blocker"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="publication_gate_supersession_blocked",
+        detail_reason="owner_authorized_publication_gate_replay_stage_attempt_blocker",
+    )
     assert payload["owner_route_next_owner"] == "external_supervisor"
     assert payload["owner_route_owner_reason"] == "owner_authorized_publication_gate_replay"
     record_payload = payload["opl_runtime_action_execute_payload"]
@@ -869,8 +881,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_stale_reviewer_dispat
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_return_to_ai_reviewer_dispatch_superseded_by_publication_gate_route"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="publication_gate_supersession_blocked",
+        detail_reason="stale_return_to_ai_reviewer_dispatch_superseded_by_publication_gate_route",
     )
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source

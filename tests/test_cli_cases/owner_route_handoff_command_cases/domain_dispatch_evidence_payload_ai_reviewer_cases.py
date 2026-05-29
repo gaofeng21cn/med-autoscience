@@ -111,8 +111,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_consumed_ai_reviewer_
     assert exit_code == 0
     assert payload["surface_kind"] == "mas_domain_dispatch_evidence_payload_export"
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_routeback"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_routeback",
     )
     evidence_payload = payload["domain_dispatch_evidence_record_payload"]
     assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
@@ -249,8 +251,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_current_ai_reviewer_s
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_return_to_ai_reviewer_dispatch_superseded_by_current_ai_reviewer_stage_admission"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_return_to_ai_reviewer_dispatch_superseded_by_current_ai_reviewer_stage_admission",
     )
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source
@@ -359,8 +363,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_consumed_ai_reviewer_
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_production_handoff"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_production_handoff",
     )
     assert payload["owner_route_next_owner"] is None
     assert payload["owner_route_owner_reason"] is None
@@ -476,8 +482,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_reviewer_currentness_
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_return_to_ai_reviewer_dispatch_superseded_by_ai_reviewer_currentness_route"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_return_to_ai_reviewer_dispatch_superseded_by_ai_reviewer_currentness_route",
     )
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source

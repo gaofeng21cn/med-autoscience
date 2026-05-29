@@ -129,8 +129,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_delivered_package_han
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "delivered_package_handoff_typed_blocker_observed_for_default_executor_dispatch"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="publication_gate_supersession_blocked",
+        detail_reason="delivered_package_handoff_typed_blocker_observed_for_default_executor_dispatch",
     )
     assert payload["owner_route_next_owner"] == "external_supervisor"
     assert payload["owner_route_owner_reason"] == "publication_gate_route_back_write_required"

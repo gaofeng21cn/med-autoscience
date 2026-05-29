@@ -38,7 +38,7 @@ def test_domain_handler_export_skips_bare_default_executor_dispatch_without_owne
     ] == []
 
 
-def test_domain_handler_export_skips_default_executor_dispatch_with_unregistered_owner_reason(
+def test_domain_handler_export_keeps_current_dispatch_with_unregistered_diagnostic_owner_reason(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -66,8 +66,14 @@ def test_domain_handler_export_skips_default_executor_dispatch_with_unregistered
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    assert [
+    tasks = [
         task
         for task in payload["pending_family_tasks"]
         if task["task_kind"] == "domain_owner/default-executor-dispatch"
-    ] == []
+    ]
+    assert len(tasks) == 1
+    envelope = tasks[0]["owner_route_attempt_envelope"]
+    assert envelope["dispatchable"] is True
+    assert envelope["owner_reason_contract"]["registered"] is False
+    assert envelope["action_type"] == "run_quality_repair_batch"
+    assert envelope["owner_route_currentness_basis"]["work_unit_id"] == "medical_prose_write_repair"

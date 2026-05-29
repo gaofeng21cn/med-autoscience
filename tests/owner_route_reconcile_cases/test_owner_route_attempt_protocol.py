@@ -90,19 +90,27 @@ def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id()
     assert route["currentness_contract"]["missing_required_fields"] == []
 
 
-def test_owner_route_protocol_marks_unregistered_reason_non_dispatchable() -> None:
+def test_owner_route_protocol_treats_unregistered_reason_as_diagnostic_when_route_is_complete() -> None:
     owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
 
     route = owner_route_module.build_owner_route(
         study_id="002-dm-china-us-mortality-attribution",
         quest_id="quest-dm002",
-        status={"study_truth_snapshot": {"truth_epoch": "truth-epoch", "source_signature": "truth-source"}},
+        status={
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch",
+                "source_signature": "truth-source",
+            },
+            "runtime_health_snapshot": {"runtime_health_epoch": "runtime-health-epoch"},
+        },
         progress={},
         actions=[
             {
                 "action_type": "run_quality_repair_batch",
                 "owner": "write",
                 "reason": "unregistered_local_reason",
+                "work_unit_id": "current_manuscript_repair",
+                "work_unit_fingerprint": "work-unit::current-manuscript-repair",
             }
         ],
         blocked_reason="unregistered_local_reason",
@@ -111,8 +119,8 @@ def test_owner_route_protocol_marks_unregistered_reason_non_dispatchable() -> No
     )
 
     assert route["owner_reason_contract"]["registered"] is False
-    assert route["owner_route_attempt_protocol"]["dispatchable"] is False
-    assert route["allowed_actions"] == []
+    assert route["owner_route_attempt_protocol"]["dispatchable"] is True
+    assert route["allowed_actions"] == ["run_quality_repair_batch"]
 
 
 def test_default_executor_attempt_envelope_declares_domain_intent_and_authority_boundary() -> None:

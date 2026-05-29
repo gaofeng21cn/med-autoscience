@@ -113,8 +113,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_consumed_ai_reviewer_
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_routeback"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_routeback",
     )
     assert payload["owner_route_next_owner"] == "external_supervisor"
     assert payload["owner_route_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
@@ -228,8 +230,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_consumed_ai_reviewer_
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stale_run_quality_repair_dispatch_superseded_by_consumed_ai_reviewer_routeback"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_run_quality_repair_dispatch_superseded_by_consumed_ai_reviewer_routeback",
     )
     assert payload["owner_route_next_owner"] == "one-person-lab"
     assert payload["owner_route_owner_reason"] == "runtime_recovery_not_authorized"
@@ -359,7 +363,11 @@ def test_domain_handler_dispatch_evidence_payload_projects_retry_budget_terminal
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == "runtime_recovery_retry_budget_terminal_blocker"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="runtime_recovery_blocked",
+        detail_reason="runtime_recovery_retry_budget_terminal_blocker",
+    )
     assert payload["owner_route_next_owner"] == "one-person-lab"
     assert payload["owner_route_owner_reason"] == "runtime_recovery_retry_budget_exhausted"
     record_payload = payload["opl_runtime_action_execute_payload"]
@@ -488,7 +496,11 @@ def test_domain_handler_dispatch_evidence_payload_projects_ai_reviewer_attempt_r
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == "runtime_recovery_retry_budget_terminal_blocker"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="runtime_recovery_blocked",
+        detail_reason="runtime_recovery_retry_budget_terminal_blocker",
+    )
     assert payload["owner_route_next_owner"] == "one-person-lab"
     assert payload["owner_route_owner_reason"] == "runtime_recovery_retry_budget_exhausted"
     record_payload = payload["opl_runtime_action_execute_payload"]
@@ -617,7 +629,11 @@ def test_domain_handler_dispatch_evidence_payload_projects_ai_reviewer_finalize_
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == "runtime_recovery_retry_budget_terminal_blocker"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="runtime_recovery_blocked",
+        detail_reason="runtime_recovery_retry_budget_terminal_blocker",
+    )
     assert payload["owner_route_next_owner"] == "one-person-lab"
     assert payload["owner_route_owner_reason"] == "runtime_recovery_retry_budget_exhausted"
     record_payload = payload["opl_runtime_action_execute_payload"]
@@ -747,7 +763,11 @@ def test_domain_handler_dispatch_evidence_payload_projects_ai_reviewer_finalize_
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == "runtime_recovery_not_authorized_stage_attempt_blocker"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="runtime_recovery_blocked",
+        detail_reason="runtime_recovery_not_authorized_stage_attempt_blocker",
+    )
     assert payload["owner_route_next_owner"] == "one-person-lab"
     assert payload["owner_route_owner_reason"] == "runtime_recovery_not_authorized"
     record_payload = payload["opl_runtime_action_execute_payload"]
@@ -889,7 +909,11 @@ def test_domain_handler_dispatch_evidence_payload_projects_ai_reviewer_finalize_
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == "owner_authorized_publication_gate_replay_stage_attempt_blocker"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="publication_gate_supersession_blocked",
+        detail_reason="owner_authorized_publication_gate_replay_stage_attempt_blocker",
+    )
     assert payload["owner_route_next_owner"] == "external_supervisor"
     assert payload["owner_route_owner_reason"] == "owner_authorized_publication_gate_replay"
     record_payload = payload["opl_runtime_action_execute_payload"]

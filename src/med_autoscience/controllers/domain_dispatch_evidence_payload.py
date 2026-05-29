@@ -6,6 +6,10 @@ import re
 from typing import Any, Mapping, Sequence
 
 from .body_free_evidence_packets import build_body_free_evidence_packet
+from .stable_blocker_classes import (
+    blocker_explanation,
+    stable_blocker_class,
+)
 
 
 DOMAIN_DISPATCH_EVIDENCE_PAYLOAD_CONTRACT = "mas-domain-dispatch-evidence-record-payload.v1"
@@ -30,12 +34,23 @@ def build_domain_dispatch_evidence_record_payload(
     source_fingerprint: str | None = None,
     stage_attempt_source_fingerprint: str | None = None,
     profile_name: str | None = None,
+    reason_details: Mapping[str, Any] | None = None,
+    reason_source_refs: Sequence[str | Mapping[str, Any]] = (),
+    explanation: str | None = None,
 ) -> dict[str, Any]:
     normalized_task_kind = _text(task_kind) or "domain_route/reconcile-apply"
     normalized_study_id = _text(study_id)
     normalized_stage_id = _text(stage_id)
     normalized_stage_evidence_stage_id = _text(stage_evidence_stage_id) or normalized_stage_id
-    normalized_reason = _text(reason) or "owner_chain_receipt_pending"
+    normalized_detail_reason = _text(reason) or "owner_chain_receipt_pending"
+    normalized_reason = stable_blocker_class(normalized_detail_reason) or normalized_detail_reason
+    normalized_explanation = _text(explanation) or blocker_explanation(normalized_reason)
+    normalized_reason_details = {
+        "blocker_class": normalized_reason,
+        **(dict(reason_details) if isinstance(reason_details, Mapping) else {}),
+    }
+    if "detail_reason" not in normalized_reason_details and normalized_detail_reason != normalized_reason:
+        normalized_reason_details["detail_reason"] = normalized_detail_reason
     normalized_source_fingerprint = _text(source_fingerprint)
     normalized_stage_attempt_source_fingerprint = _text(stage_attempt_source_fingerprint)
     normalized_payload_source_fingerprint = (
@@ -45,6 +60,7 @@ def build_domain_dispatch_evidence_record_payload(
     evidence_ref_values = _unique_refs(
         [
             *[_ref_text(ref) for ref in evidence_refs],
+            *[_ref_text(ref) for ref in reason_source_refs],
             (
                 "contracts/production_acceptance/mas-production-acceptance.json"
                 "#/paper_line_guarded_apply_evidence"
@@ -175,7 +191,12 @@ def build_domain_dispatch_evidence_record_payload(
         "no_regression_evidence_refs": no_regression_evidence_ref_values,
         "domain_receipt_refs": domain_owner_receipt_ref_values,
         "no_regression_refs": no_regression_evidence_ref_values,
+        "blocker_class": normalized_reason,
+        "details": normalized_reason_details,
+        "source_refs": evidence_ref_values,
     }
+    if normalized_explanation is not None:
+        record_payload["explanation"] = normalized_explanation
     if expected_receipt_ref_values:
         record_payload["stage_expected_receipt_refs"] = expected_receipt_ref_values
     if monitor_freshness_ref_values:
@@ -241,6 +262,9 @@ def build_domain_dispatch_evidence_record_payload(
         **({"stage_id": normalized_stage_id} if normalized_stage_id is not None else {}),
         **{key: value for key, value in top_level_identity_fields.items() if value is not None},
         "reason": normalized_reason,
+        "details": normalized_reason_details,
+        "source_refs": evidence_ref_values,
+        **({"explanation": normalized_explanation} if normalized_explanation is not None else {}),
         "request_id_template": f"domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>",
         "record_action_template": f"domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>:record",
         "verify_action_template": f"domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>:verify",

@@ -206,6 +206,8 @@ def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_block
     assert result["blocked_count"] == 1
     execution = result["executions"][0]
     assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] == "scan_latest"
+    assert result["executed_count"] == 0
     assert execution["blocked_reason"] == "owner_callable_surface_missing"
 
 
@@ -394,8 +396,12 @@ def test_execute_dispatch_blocks_when_current_macro_state_drifted(
 
     execution = result["executions"][0]
     assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "owner_route_stale"
     assert execution["owner_route_current"] is False
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+    assert not (study_root / "manuscript" / "current_package").exists()
 
 
 def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
@@ -472,7 +478,14 @@ def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
     assert result["execution_count"] == 1
     assert result["executed_count"] == 1
     assert result["blocked_count"] == 0
-    assert result["executions"][0]["action_type"] == "current_package_freshness_required"
+    actions = [execution["action_type"] for execution in result["executions"]]
+    assert actions == ["current_package_freshness_required"]
+    assert "return_to_ai_reviewer_workflow" not in actions
+    current_execution = result["executions"][0]
+    assert current_execution["owner_route_current"] is True
+    assert current_execution["current_owner_route"]["idempotency_key"] == ready_route["idempotency_key"]
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
 
 
 def test_execute_dispatch_action_type_requires_current_consumer_dispatch(

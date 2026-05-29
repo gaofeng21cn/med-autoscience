@@ -3,6 +3,42 @@ from __future__ import annotations
 from .shared import *  # noqa: F403,F401
 
 
+def _assert_refs_only_current_owner_route_blocker_contract(
+    payload: dict[str, object],
+    *,
+    expected_action_type: str,
+    expected_next_owner: str,
+    expected_owner_reason: str,
+    expected_dispatch_ref: str,
+) -> None:
+    assert payload["status"] == "typed_blocker_payload_ready"
+    assert payload["owner_route_next_owner"] == expected_next_owner
+    assert payload["owner_route_owner_reason"] == expected_owner_reason
+    assert payload["dispatch_identity_fields"]["action_type"] == expected_action_type
+
+    evidence_payload = payload["domain_dispatch_evidence_record_payload"]
+    assert evidence_payload["mode"] == "refs_only_domain_owned_typed_blocker_payload"
+    assert evidence_payload["body_included"] is False
+    assert evidence_payload["domain_ready_claimed"] is False
+    assert evidence_payload["publication_ready_claimed"] is False
+    assert evidence_payload["artifact_mutation_authorized"] is False
+    assert evidence_payload["current_package_mutation_authorized"] is False
+
+    record_payload = evidence_payload["opl_runtime_action_execute_payload"]
+    assert record_payload["typed_blocker_refs"]
+    assert record_payload["domain_owner_receipt_refs"] == []
+    assert expected_dispatch_ref in record_payload["evidence_refs"]
+    assert f"owner-route-reconcile:owner_route_next_owner={expected_next_owner}" in record_payload[
+        "evidence_refs"
+    ]
+    assert "domain-authority-handoff:status=typed_blocker" in record_payload["evidence_refs"]
+    assert record_payload["no_regression_evidence_refs"]
+    assert any(
+        ref.startswith("mas-no-forbidden-write-proof:medautoscience:")
+        for ref in record_payload["no_regression_evidence_refs"]
+    )
+
+
 def _current_owner_route_blocker_scan(study_id: str) -> dict[str, object]:
     return {
         "studies": [
@@ -151,7 +187,6 @@ def _run_payload_export(monkeypatch, tmp_path: Path, capsys, *, action_type: str
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    assert payload["status"] == "typed_blocker_payload_ready"
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source
     assert record_payload["domain_source_fingerprint"] == domain_source
@@ -192,9 +227,21 @@ def test_domain_handler_dispatch_evidence_payload_projects_reviewer_dispatch_cur
         action_type="return_to_ai_reviewer_workflow",
     )
 
-    assert payload["payload_reason"] == "current_owner_route_typed_blocker_observed_for_default_executor_dispatch"
-    assert payload["owner_route_next_owner"] == "external_supervisor"
-    assert payload["owner_route_owner_reason"] == "paper_authority_clean_migration_required"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="current_owner_route_blocked",
+        detail_reason="current_owner_route_typed_blocker_observed_for_default_executor_dispatch",
+    )
+    _assert_refs_only_current_owner_route_blocker_contract(
+        payload,
+        expected_action_type="return_to_ai_reviewer_workflow",
+        expected_next_owner="external_supervisor",
+        expected_owner_reason="paper_authority_clean_migration_required",
+        expected_dispatch_ref=(
+            "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+            "default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+        ),
+    )
 
 
 def test_domain_handler_dispatch_evidence_payload_projects_writer_dispatch_current_owner_route_blocker(
@@ -209,6 +256,18 @@ def test_domain_handler_dispatch_evidence_payload_projects_writer_dispatch_curre
         action_type="run_quality_repair_batch",
     )
 
-    assert payload["payload_reason"] == "current_owner_route_typed_blocker_observed_for_default_executor_dispatch"
-    assert payload["owner_route_next_owner"] == "external_supervisor"
-    assert payload["owner_route_owner_reason"] == "paper_authority_clean_migration_required"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="current_owner_route_blocked",
+        detail_reason="current_owner_route_typed_blocker_observed_for_default_executor_dispatch",
+    )
+    _assert_refs_only_current_owner_route_blocker_contract(
+        payload,
+        expected_action_type="run_quality_repair_batch",
+        expected_next_owner="external_supervisor",
+        expected_owner_reason="paper_authority_clean_migration_required",
+        expected_dispatch_ref=(
+            "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+            "default_executor_dispatches/run_quality_repair_batch.json"
+        ),
+    )

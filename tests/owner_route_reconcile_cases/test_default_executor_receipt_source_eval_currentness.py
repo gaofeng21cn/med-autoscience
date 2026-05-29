@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers.study_transition_receipt_consumption import (
+    default_executor_execution_followthrough_receipt_consumption,
     default_executor_execution_receipt_consumption,
 )
 
@@ -198,3 +199,97 @@ def test_default_executor_receipt_consumes_when_only_diagnostic_owner_reason_cha
 
     assert receipt["status"] == "consumed"
     assert receipt["execution_id"] == "execution::dm003::run_quality_repair_batch::reason-drift"
+
+
+def test_followthrough_receipt_ignores_diagnostic_owner_reason_drift(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    eval_id = "publication-eval::dm003::current-manuscript::20260528T125118Z"
+    truth_epoch = "truth-epoch-dm003-package-followthrough"
+    runtime_health_epoch = "runtime-health-dm003-package-followthrough"
+    work_unit_fingerprint = "gate-replay-route-back::finalize::publication-blockers::submission-refresh"
+    current_route = {
+        "idempotency_key": "owner-route::dm003::current-package-freshness",
+        "route_epoch": truth_epoch,
+        "truth_epoch": truth_epoch,
+        "runtime_health_epoch": runtime_health_epoch,
+        "source_fingerprint": "truth-source-dm003-package-followthrough",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "next_owner": "artifact_os",
+        "owner_reason": "operator_display_note_only",
+        "allowed_actions": ["current_package_freshness_required"],
+        "source_refs": {
+            "source_eval_id": eval_id,
+            "runtime_health_epoch": runtime_health_epoch,
+            "study_truth_epoch": truth_epoch,
+            "work_unit_id": "submission_minimal_refresh",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "blocked_reason": "operator_display_note_only",
+            "owner_route_currentness_basis": {
+                "source_eval_id": eval_id,
+                "runtime_health_epoch": runtime_health_epoch,
+                "truth_epoch": truth_epoch,
+                "work_unit_id": "submission_minimal_refresh",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "owner_reason": "operator_display_note_only",
+            },
+        },
+    }
+    execution_route = {
+        **current_route,
+        "idempotency_key": "owner-route::dm003::specificity-diagnostic-reason",
+        "next_owner": "publication_gate",
+        "owner_reason": "legacy_projection_specificity_reason",
+        "allowed_actions": ["publication_gate_specificity_required"],
+        "source_refs": {
+            **current_route["source_refs"],
+            "blocked_reason": "legacy_projection_specificity_reason",
+            "owner_route_currentness_basis": {
+                **current_route["source_refs"]["owner_route_currentness_basis"],
+                "owner_reason": "legacy_projection_specificity_reason",
+            },
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_root.name,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_root.name,
+                    "quest_id": study_root.name,
+                    "action_type": "publication_gate_specificity_required",
+                    "execution_status": "executed",
+                    "execution_id": "execution::dm003::publication_gate_specificity_required::diagnostic-reason",
+                    "idempotency_key": execution_route["idempotency_key"],
+                    "current_owner_route": execution_route,
+                    "prompt_contract": {"owner_route": execution_route},
+                    "owner_result": {
+                        "status": "blocked",
+                        "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate.json"),
+                        "publication_eval": {
+                            "eval_id": eval_id,
+                            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                        },
+                    },
+                }
+            ],
+        },
+    )
+
+    receipt = default_executor_execution_followthrough_receipt_consumption(
+        study_root=study_root,
+        owner_route=current_route,
+        actions=[{"action_type": "current_package_freshness_required"}],
+    )
+
+    assert receipt["status"] == "consumed"
+    assert receipt["consumption_mode"] == "followthrough_action_transition"
+    assert receipt["action_type"] == "publication_gate_specificity_required"

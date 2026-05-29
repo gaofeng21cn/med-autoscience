@@ -89,10 +89,9 @@ def _writer_handoff_route_shape(route: Mapping[str, Any]) -> bool:
 def _runtime_handoff_route_shape(route: Mapping[str, Any]) -> bool:
     if not route:
         return False
-    reason = _route_reason(route)
-    if reason == "quest_waiting_opl_runtime_owner_route":
-        return _text(route.get("next_owner")) == "write"
-    if reason == "ai_reviewer_assessment_required":
+    if _text(route.get("next_owner")) == "write":
+        return True
+    if _text(route.get("next_owner")) == "ai_reviewer":
         return _text(route.get("next_owner")) == "ai_reviewer"
     return False
 
@@ -103,17 +102,14 @@ def _bridge_refs_match_current(
     current_route: Mapping[str, Any],
 ) -> bool:
     dispatch_refs = _mapping(dispatch_route.get("source_refs"))
-    current_reason = _route_reason(current_route)
-    if current_reason == "ai_reviewer_assessment_required":
+    if _text(dispatch_refs.get("materialized_from_action_type")) == "return_to_ai_reviewer_workflow":
         return (
             _text(dispatch_refs.get("bridge_authority")) in BRIDGE_AUTHORITIES
-            and _text(dispatch_refs.get("bridged_from_owner_reason")) == current_reason
             and _text(dispatch_refs.get("bridged_from_idempotency_key")) == _text(current_route.get("idempotency_key"))
             and _text(dispatch_refs.get("materialized_from_action_type")) == "return_to_ai_reviewer_workflow"
         )
     return (
         _text(dispatch_refs.get("bridge_authority")) in BRIDGE_AUTHORITIES
-        and _text(dispatch_refs.get("bridged_from_owner_reason")) == "quest_waiting_opl_runtime_owner_route"
         and _text(dispatch_refs.get("bridged_from_idempotency_key")) == _text(current_route.get("idempotency_key"))
     )
 
@@ -124,9 +120,8 @@ def _current_route_allows_bridge_source_action(
     dispatch_route: Mapping[str, Any],
     current_route: Mapping[str, Any],
 ) -> bool:
-    current_reason = _route_reason(current_route)
-    if current_reason == "ai_reviewer_assessment_required":
-        source_action_type = _text(_mapping(dispatch_route.get("source_refs")).get("materialized_from_action_type"))
+    source_action_type = _text(_mapping(dispatch_route.get("source_refs")).get("materialized_from_action_type"))
+    if source_action_type == "return_to_ai_reviewer_workflow":
         return owner_route_part.route_allows_action(
             action={
                 "action_type": source_action_type,

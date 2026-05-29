@@ -200,6 +200,19 @@ def _owner_route_work_unit_currentness_matches(
             return False
         if current_value and execution_value and current_value != execution_value:
             return False
+    current_source_eval_id = _text(current_basis.get("source_eval_id"))
+    execution_source_eval_id = _text(execution_basis.get("source_eval_id"))
+    if current_source_eval_id and execution_source_eval_id and current_source_eval_id != execution_source_eval_id:
+        return False
+    if (
+        current_source_eval_id
+        and not execution_source_eval_id
+        and not all(
+            _text(current_basis.get(key)) == _text(execution_basis.get(key)) and _text(current_basis.get(key))
+            for key in ("truth_epoch", "runtime_health_epoch", "work_unit_fingerprint", "work_unit_id")
+        )
+    ):
+        return False
     return bool(_text(current_basis.get("work_unit_fingerprint")) or _text(current_basis.get("work_unit_id")))
 
 
@@ -211,15 +224,7 @@ def _to_package_freshness_currentness_matches(
 ) -> bool:
     if not execution_route:
         return False
-    expected_owner_reason = {
-        "publication_gate_specificity_required": "publication_gate_specificity_required",
-        "run_gate_clearing_batch": "owner_authorized_publication_gate_replay",
-    }.get(from_action_type)
-    if expected_owner_reason is None:
-        return False
-    if _text(execution_route.get("owner_reason")) != expected_owner_reason:
-        return False
-    if _text(owner_route.get("owner_reason")) != "current_package_freshness_required":
+    if from_action_type not in {"publication_gate_specificity_required", "run_gate_clearing_batch"}:
         return False
     execution_allowed = {_text(item) for item in execution_route.get("allowed_actions") or []}
     current_allowed = {_text(item) for item in owner_route.get("allowed_actions") or []}
@@ -238,13 +243,8 @@ def _to_package_freshness_currentness_matches(
             execution_basis=execution_basis,
             current_basis=current_basis,
         )
-    for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id"):
-        current_value = _text(current_basis.get(key))
-        execution_value = _text(execution_basis.get(key))
-        if current_value and not execution_value:
-            return False
-        if current_value and execution_value and current_value != execution_value:
-            return False
+    if not _owner_route_work_unit_currentness_matches(execution_route=execution_route, owner_route=owner_route):
+        return False
     return bool(_text(current_basis.get("work_unit_fingerprint")) and _text(current_basis.get("work_unit_id")))
 
 
@@ -282,24 +282,31 @@ def _owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:
             or _text(route.get("truth_epoch"))
             or _text(route.get("route_epoch"))
         ),
+        "runtime_health_epoch": (
+            _text(nested_basis.get("runtime_health_epoch"))
+            or _text(source_refs.get("runtime_health_epoch"))
+            or _text(route.get("runtime_health_epoch"))
+        ),
         "work_unit_fingerprint": (
             _text(nested_basis.get("work_unit_fingerprint"))
             or _text(source_refs.get("work_unit_fingerprint"))
             or _text(route.get("work_unit_fingerprint"))
         ),
         "work_unit_id": _text(nested_basis.get("work_unit_id")) or _text(source_refs.get("work_unit_id")),
-        "owner_reason": (
-            _text(nested_basis.get("owner_reason"))
-            or _text(source_refs.get("blocked_reason"))
-            or _text(route.get("owner_reason"))
-            or _text(route.get("failure_signature"))
+        "source_eval_id": (
+            _text(nested_basis.get("source_eval_id"))
+            or _text(source_refs.get("source_eval_id"))
+            or _text(route.get("source_eval_id"))
         ),
     }
 
 
 def _source_eval_id(route: Mapping[str, Any]) -> str:
     source_refs = _mapping(route.get("source_refs"))
-    return _text(source_refs.get("source_eval_id")) or _text(route.get("source_eval_id"))
+    nested_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return _text(nested_basis.get("source_eval_id")) or _text(source_refs.get("source_eval_id")) or _text(
+        route.get("source_eval_id")
+    )
 
 
 def _same_non_empty_text(left: str, right: str) -> bool:

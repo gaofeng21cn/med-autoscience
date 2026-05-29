@@ -61,6 +61,29 @@ def _write_opl_production_proof(path: Path) -> None:
     )
 
 
+def assert_stable_blocker_reason(
+    payload: dict[str, object],
+    *,
+    blocker_class: str,
+    detail_reason: str,
+) -> None:
+    assert payload["payload_reason"] == blocker_class
+    assert payload["payload_blocker_class"] == blocker_class
+    assert payload["payload_detail_reason"] == detail_reason
+    assert payload["details"]["blocker_class"] == blocker_class
+    assert payload["details"]["detail_reason"] == detail_reason
+
+    evidence_payload = payload["domain_dispatch_evidence_record_payload"]
+    assert evidence_payload["reason"] == blocker_class
+    assert evidence_payload["details"]["blocker_class"] == blocker_class
+    assert evidence_payload["details"]["detail_reason"] == detail_reason
+
+    record_payload = payload["opl_runtime_action_execute_payload"]
+    assert record_payload["blocker_class"] == blocker_class
+    assert record_payload["details"]["blocker_class"] == blocker_class
+    assert record_payload["details"]["detail_reason"] == detail_reason
+
+
 def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
     quest_root = study_root.parents[1] / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
     main_result_ref = str(quest_root / "artifacts" / "results" / "main_result.json")

@@ -245,8 +245,10 @@ def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_closeou
 
     assert exit_code == 0
     assert payload["status"] == "typed_blocker_payload_ready"
-    assert payload["payload_reason"] == (
-        "stage_attempt_closeout_typed_blocker_observed_for_default_executor_dispatch"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="stage_attempt_closeout_blocked",
+        detail_reason="stage_attempt_closeout_typed_blocker_observed_for_default_executor_dispatch",
     )
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source

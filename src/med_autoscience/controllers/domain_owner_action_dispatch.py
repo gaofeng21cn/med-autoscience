@@ -283,19 +283,6 @@ def _execution_owner_route(
     action_type: str,
     dispatch: Mapping[str, Any],
 ) -> tuple[dict[str, Any] | None, str | None]:
-    scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
-    if _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None:
-        return scan_route, scan_route_basis or "scan_latest"
-    live_attempt_route = persisted_dispatches.live_provider_attempt_owner_route_from_scan_payload(
-        scan_payload=persisted_dispatches.scan_latest_payload(profile),
-        study_id=study_id,
-        dispatch=dispatch,
-    )
-    if (
-        live_attempt_route is not None
-        and _owner_route_block_reason(dispatch=dispatch, current_route=live_attempt_route) is None
-    ):
-        return live_attempt_route, "live_provider_attempt_dispatch"
     bridged_route = persisted_dispatches.bridged_quality_repair_writer_handoff_route(
         profile=profile,
         study_id=study_id,
@@ -316,6 +303,21 @@ def _execution_owner_route(
         and _owner_route_block_reason(dispatch=dispatch, current_route=publication_owner_bridge_route) is None
     ):
         return publication_owner_bridge_route, "bridged_publication_owner_materialization"
+    if _dispatch_uses_bridge_authority(dispatch):
+        return None, "bridge_currentness_failed"
+    scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
+    if _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None:
+        return scan_route, scan_route_basis or "scan_latest"
+    live_attempt_route = persisted_dispatches.live_provider_attempt_owner_route_from_scan_payload(
+        scan_payload=persisted_dispatches.scan_latest_payload(profile),
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+    if (
+        live_attempt_route is not None
+        and _owner_route_block_reason(dispatch=dispatch, current_route=live_attempt_route) is None
+    ):
+        return live_attempt_route, "live_provider_attempt_dispatch"
     request_route = persisted_dispatches.owner_request_route(
         profile=profile,
         study_id=study_id,
@@ -325,6 +327,12 @@ def _execution_owner_route(
     if request_route is not None:
         return request_route, "owner_request"
     return scan_route, scan_route_basis or "scan_latest"
+
+
+def _dispatch_uses_bridge_authority(dispatch: Mapping[str, Any]) -> bool:
+    route = _dispatch_owner_route(dispatch)
+    refs = _mapping(route.get("source_refs"))
+    return _text(refs.get("bridge_authority")) is not None
 
 
 def _paper_progress_stall_block_reason(
