@@ -10,7 +10,12 @@ from med_autoscience import stage_quality_contract
 from med_autoscience import stage_skill_surface_projection
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
 from med_autoscience.autosci_learning_projection import build_autosci_learning_projection
-from med_autoscience.stage_route_contract import STAGE_ROUTE_CONTRACT_REF, load_stage_route_contract_payload
+from med_autoscience.stage_route_contract import (
+    PROGRESS_FIRST_SPRINT_CONTRACT_FIELD,
+    STAGE_ROUTE_CONTRACT_REF,
+    late_stage_progress_sprint_contract_from_payload,
+    load_stage_route_contract_payload,
+)
 from med_autoscience.stage_surface_contract import build_stage_surface_contract
 
 from .agent_pack_refs import (
@@ -203,6 +208,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     route_contract_payload = load_stage_route_contract_payload()
     route_contracts = _mapping(route_contract_payload.get("route_contracts"))
     route_ids = list(route_contracts)
+    late_stage_progress_sprint_contract = late_stage_progress_sprint_contract_from_payload(route_contract_payload)
     knowledge_contract = stage_knowledge_contract.stage_knowledge_plane_contract()
     packet_contracts = _mapping(knowledge_contract.get("packet_contracts"))
     packet_surfaces = list(packet_contracts)
@@ -222,6 +228,9 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "inventory": STAGE_LED_AUTONOMY_INVENTORY_REF,
             "policy": STAGE_LED_AUTONOMY_POLICY_REF,
             "route_contract_source": STAGE_ROUTE_CONTRACT_REF,
+            "late_stage_progress_sprint_contract_source": (
+                f"{STAGE_ROUTE_CONTRACT_REF}#/{PROGRESS_FIRST_SPRINT_CONTRACT_FIELD}"
+            ),
             "canonical_agent_pack_root": "agent/",
             "agent_prompt_sources": AGENT_PROMPT_REFS,
             "agent_stage_policy_sources": AGENT_STAGE_POLICY_REFS,
@@ -254,7 +263,12 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "route_count": len(route_ids),
             "entry_mode_count": len(list(route_contract_payload.get("modes") or [])),
             "descriptor_derives_routes": False,
+            "late_stage_progress_sprint_id": late_stage_progress_sprint_contract["sprint_id"],
+            "late_stage_progress_sprint_work_units": list(
+                late_stage_progress_sprint_contract["covered_work_units"]
+            ),
         },
+        "late_stage_progress_sprint_contract": late_stage_progress_sprint_contract,
         "stage_knowledge_plane": {
             "contract_ref": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "contract_surface": knowledge_contract.get("surface"),
@@ -600,6 +614,9 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         ],
         "user_stage_log_contract": USER_STAGE_LOG_CONTRACT,
     }
+    progress_sprint_contract = _stage_progress_sprint_contract(stage, descriptor=descriptor)
+    if progress_sprint_contract is not None:
+        stage_contract["late_stage_progress_sprint_contract"] = progress_sprint_contract
     trust_boundary = {
         "lane": stage.get("trust_lane", "domain_agent"),
         "static_check_eligible": False,
@@ -702,6 +719,26 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
         },
+    }
+
+
+def _stage_progress_sprint_contract(
+    stage: Mapping[str, Any],
+    *,
+    descriptor: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    sprint_contract = _mapping(descriptor.get("late_stage_progress_sprint_contract"))
+    covered_routes = set(sprint_contract.get("covered_routes") or [])
+    domain_stage_refs = set(stage.get("domain_stage_refs") or [])
+    if not (covered_routes & domain_stage_refs):
+        return None
+    return {
+        "sprint_id": sprint_contract["sprint_id"],
+        "contract_ref": f"{STAGE_ROUTE_CONTRACT_REF}#/{PROGRESS_FIRST_SPRINT_CONTRACT_FIELD}",
+        "covered_work_units": list(sprint_contract["covered_work_units"]),
+        "control_plane_outputs": list(sprint_contract["control_plane_outputs"]),
+        "forbidden_control_plane_outputs": list(sprint_contract["forbidden_control_plane_outputs"]),
+        "authority_boundary": list(sprint_contract["authority_boundary"]),
     }
 
 

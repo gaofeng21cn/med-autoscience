@@ -7,7 +7,11 @@ import yaml
 
 from med_autoscience import stage_route_contract as stage_route_contract_module
 from med_autoscience.stage_route_contract import (
+    PROGRESS_FIRST_SPRINT_CONTRACT_FIELD,
+    PROGRESS_FIRST_SPRINT_ID,
+    PROGRESS_FIRST_SPRINT_WORK_UNIT,
     STAGE_ROUTE_CONTRACT_REF,
+    late_stage_progress_sprint_contract_from_payload,
     load_stage_route_contract,
     load_stage_route_contract_payload,
     stage_entry_modes_from_payload,
@@ -18,7 +22,13 @@ def test_stage_route_contract_source_uses_standard_agent_stage_slot() -> None:
     payload = load_stage_route_contract_payload()
 
     assert STAGE_ROUTE_CONTRACT_REF == "agent/stages/stage_route_contract.yaml"
-    assert set(payload) >= {"compatible_agents", "route_contracts", "modes", "evidence_review_contract"}
+    assert set(payload) >= {
+        "compatible_agents",
+        PROGRESS_FIRST_SPRINT_CONTRACT_FIELD,
+        "route_contracts",
+        "modes",
+        "evidence_review_contract",
+    }
     assert load_stage_route_contract() == stage_entry_modes_from_payload(payload)
 
 
@@ -95,6 +105,24 @@ def test_load_stage_route_contract_payload_reads_canonical_agents_and_mode_count
 
     assert payload["compatible_agents"] == ["Codex", "Claude Code", "OpenClaw"]
     assert len(payload["modes"]) == 6
+
+
+def test_late_stage_progress_sprint_contract_covers_dm002_gate_replay_work_unit() -> None:
+    payload = load_stage_route_contract_payload()
+
+    contract = late_stage_progress_sprint_contract_from_payload(payload)
+
+    assert contract["sprint_id"] == PROGRESS_FIRST_SPRINT_ID
+    assert PROGRESS_FIRST_SPRINT_WORK_UNIT in contract["covered_work_units"]
+    assert set(contract["covered_routes"]) >= {"write", "review", "finalize"}
+    assert contract["control_plane_outputs"] == [
+        "progress_delta",
+        "single_next_owner_blocker",
+        "human_gate",
+        "stop_loss",
+    ]
+    assert "record_only_reviewer_loop" in contract["forbidden_control_plane_outputs"]
+    assert "provider_completed_without_typed_closeout" in contract["forbidden_control_plane_outputs"]
 
 
 def test_stage_entry_modes_from_payload_preserves_mode_level_managed_entry_actions() -> None:

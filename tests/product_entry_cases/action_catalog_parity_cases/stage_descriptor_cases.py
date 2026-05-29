@@ -34,6 +34,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["source_refs"]["route_contract_source"] == (
         "agent/stages/stage_route_contract.yaml"
     )
+    assert descriptor["source_refs"]["late_stage_progress_sprint_contract_source"] == (
+        "agent/stages/stage_route_contract.yaml#/late_stage_progress_sprint_contract"
+    )
     assert descriptor["source_refs"]["knowledge_plane_contract_source"] == (
         "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
     )
@@ -64,6 +67,13 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert snapshot["route_count"] == len(route_payload["route_contracts"])
     assert snapshot["entry_mode_count"] == len(route_payload["modes"])
     assert snapshot["descriptor_derives_routes"] is False
+    assert snapshot["late_stage_progress_sprint_id"] == "publishability_repair_sprint"
+    assert snapshot["late_stage_progress_sprint_work_units"] == [
+        "current_manuscript_prose_currentness_and_gate_replay_write_closeout"
+    ]
+    assert descriptor["late_stage_progress_sprint_contract"] == route_payload[
+        "late_stage_progress_sprint_contract"
+    ]
 
     assert descriptor["stage_knowledge_plane"]["exploratory_stages"] == stage_contract["exploratory_stages"]
     assert descriptor["stage_knowledge_plane"]["packet_surfaces"] == list(stage_contract["packet_contracts"])
@@ -397,6 +407,21 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["stage_contract"]["trigger_refs"]
         assert stage["stage_contract"]["monitor_refs"]
         assert stage["stage_contract"]["dashboard_metric_refs"]
+        if set(stage["domain_stage_refs"]) & {"write", "review", "finalize"}:
+            sprint_contract = stage["stage_contract"]["late_stage_progress_sprint_contract"]
+            assert sprint_contract["sprint_id"] == "publishability_repair_sprint"
+            assert sprint_contract["covered_work_units"] == [
+                "current_manuscript_prose_currentness_and_gate_replay_write_closeout"
+            ]
+            assert sprint_contract["control_plane_outputs"] == [
+                "progress_delta",
+                "single_next_owner_blocker",
+                "human_gate",
+                "stop_loss",
+            ]
+            assert "record_only_reviewer_loop" in sprint_contract["forbidden_control_plane_outputs"]
+        else:
+            assert "late_stage_progress_sprint_contract" not in stage["stage_contract"]
         assert any(
             ref["role"] == "opl_provider_stage_launch_trigger"
             for ref in stage["stage_contract"]["trigger_refs"]

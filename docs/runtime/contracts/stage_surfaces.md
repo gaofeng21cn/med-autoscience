@@ -61,6 +61,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | clinical_question_framing | literature_gap | anchor_paper_role | route_recommendation
+- Late-stage progress sprint: (none)
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/scout/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
@@ -138,6 +139,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | selected_line | rejected_alternatives | selection_rationale | stop_rule | memory_reuse_note
+- Late-stage progress sprint: (none)
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/idea/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
@@ -214,6 +216,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | baseline_cohort_endpoint_comparator_snapshot | baseline_effect_size_or_feasibility_readout | failed_comparator_lesson | continue_reroute_or_stop_recommendation
+- Late-stage progress sprint: (none)
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/baseline/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
@@ -290,6 +293,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | primary_result_with_run_context | result_lineage_update | endpoint_or_comparator_deviation | negative_or_failed_comparator_lesson
+- Late-stage progress sprint: (none)
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/experiment/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
@@ -368,6 +372,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | slice_ledger | negative_or_weak_result_interpretation | route_impact | failed_path_lesson
+- Late-stage progress sprint: (none)
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/analysis-campaign/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
@@ -447,6 +452,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | writing_experience_lesson | claim_wording_boundary_decision | reporting_guideline_gap | display_to_claim_repair_request | journal_neighbor_positioning_lesson
+- Late-stage progress sprint: publishability_repair_sprint | contract_ref=agent/stages/stage_route_contract.yaml#/late_stage_progress_sprint_contract | covered_work_units=current_manuscript_prose_currentness_and_gate_replay_write_closeout | control_plane_outputs=progress_delta,single_next_owner_blocker,human_gate,stop_loss
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/write/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
@@ -524,6 +530,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | reviewer_action_matrix | evidence_or_citation_repair_request | reusable_critique_lesson
+- Late-stage progress sprint: publishability_repair_sprint | contract_ref=agent/stages/stage_route_contract.yaml#/late_stage_progress_sprint_contract | covered_work_units=current_manuscript_prose_currentness_and_gate_replay_write_closeout | control_plane_outputs=progress_delta,single_next_owner_blocker,human_gate,stop_loss
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/review/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
@@ -600,6 +607,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | package_readiness_decision | package_freshness_or_staleness_lesson | declaration_or_ethics_blocker | human_gate_request_or_clearance
+- Late-stage progress sprint: publishability_repair_sprint | contract_ref=agent/stages/stage_route_contract.yaml#/late_stage_progress_sprint_contract | covered_work_units=current_manuscript_prose_currentness_and_gate_replay_write_closeout | control_plane_outputs=progress_delta,single_next_owner_blocker,human_gate,stop_loss
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/finalize/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
@@ -677,6 +685,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | stop_or_pivot_lesson | route_impact | rejected_alternatives
+- Late-stage progress sprint: (none)
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/decision/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
@@ -753,6 +762,7 @@ MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and art
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | selected_outlet_or_profile_rationale | exporter_constraint_lesson | blocked_profile_decision | reporting_guideline_delta
+- Late-stage progress sprint: (none)
 
 ### Deliverable Index
 - Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/journal-resolution/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions

@@ -51,6 +51,7 @@ def render_stage_route_contract_guide() -> str:
     modes = _mode_payload_list(payload)
     route_contracts = _route_contract_payload_map(payload)
     evidence_review_contract = _evidence_review_contract_payload(payload)
+    sprint_contract = _mapping(payload.get("late_stage_progress_sprint_contract"), "late_stage_progress_sprint_contract")
     runtime_modes = sorted({mode["default_runtime_mode"] for mode in modes})
 
     lines: list[str] = [
@@ -113,6 +114,8 @@ def render_stage_route_contract_guide() -> str:
                 _render_optional_list_line("memory_closeout_obligations", route_contract),
             )
         )
+
+    lines.extend(_render_late_stage_progress_sprint_contract(sprint_contract))
 
     lines.extend(
         (
@@ -215,6 +218,7 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
     modes = _mode_payload_list(payload)
     route_contracts = _route_contract_payload_map(payload)
     evidence_review_contract = _evidence_review_contract_payload(payload)
+    sprint_contract = _mapping(payload.get("late_stage_progress_sprint_contract"), "late_stage_progress_sprint_contract")
     runtime_modes = sorted({mode["default_runtime_mode"] for mode in modes})
     lines: list[str] = [
         title,
@@ -286,6 +290,8 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
                 "  " + _render_optional_list_line("memory_closeout_obligations", route_contract, inline=True),
             )
         )
+
+    lines.extend(_render_late_stage_progress_sprint_contract(sprint_contract))
 
     lines.extend(
         (
@@ -392,6 +398,28 @@ def _evidence_review_contract_payload(payload: dict[str, object]) -> dict[str, A
     if not isinstance(raw_contract, dict):
         raise ValueError("evidence_review_contract must be a mapping")
     return raw_contract
+
+
+def _mapping(value: object, field: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{field} must be a mapping")
+    return value
+
+
+def _render_late_stage_progress_sprint_contract(contract: dict[str, Any]) -> list[str]:
+    return [
+        "",
+        "## Late-Stage Progress Sprint Contract",
+        f"- sprint_id: {contract['sprint_id']}",
+        f"- objective: {contract['objective']}",
+        _render_list_line("covered_work_units", contract["covered_work_units"]),
+        _render_list_line("covered_routes", contract["covered_routes"]),
+        _render_list_line("attempt_scope", contract["attempt_scope"]),
+        _render_list_line("control_plane_outputs", contract["control_plane_outputs"]),
+        _render_list_line("forbidden_control_plane_outputs", contract["forbidden_control_plane_outputs"]),
+        _render_list_line("quality_gate_policy", contract["quality_gate_policy"]),
+        _render_list_line("authority_boundary", contract["authority_boundary"]),
+    ]
 
 
 def _render_medical_handoff_evidence_gate(evidence_review_contract: dict[str, Any]) -> list[str]:

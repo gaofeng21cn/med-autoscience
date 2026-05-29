@@ -57,6 +57,7 @@ def test_stage_surface_contract_builds_cards_from_canonical_route_contracts() ->
     assert surface["human_review_policy"]["blocking_only_when"] == "route_contract.human_gate_boundary_triggered"
     assert surface["human_review_policy"]["annotation_can_authorize_quality_verdict"] is False
     assert surface["human_review_policy"]["annotation_can_authorize_submission_readiness"] is False
+    assert surface["late_stage_progress_sprint_contract"] == payload["late_stage_progress_sprint_contract"]
 
     cards = surface["stage_cards"]
     assert isinstance(cards, list)
@@ -83,6 +84,16 @@ def test_stage_surface_contract_builds_cards_from_canonical_route_contracts() ->
         assert "publication_eval/latest.json" in card["quality"]["machine_source_refs"]
         assert "stage_knowledge_packet" in card["knowledge"]["machine_source_refs"]
         assert "stage_memory_closeout_packet" in card["closeout"]["machine_source_refs"]
+        if route_id in {"write", "review", "finalize"}:
+            sprint_contract = card["late_stage_progress_sprint_contract"]
+            assert sprint_contract["sprint_id"] == "publishability_repair_sprint"
+            assert sprint_contract["covered_work_units"] == [
+                "current_manuscript_prose_currentness_and_gate_replay_write_closeout"
+            ]
+            assert "progress_delta" in sprint_contract["control_plane_outputs"]
+            assert "record_only_reviewer_loop" in sprint_contract["forbidden_control_plane_outputs"]
+        else:
+            assert "late_stage_progress_sprint_contract" not in card
 
 
 def test_stage_surface_contract_exposes_deliverable_index_for_human_audit_and_opl_projection() -> None:

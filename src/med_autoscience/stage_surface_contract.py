@@ -3,7 +3,12 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from med_autoscience.stage_route_contract import STAGE_ROUTE_CONTRACT_REF, load_stage_route_contract_payload
+from med_autoscience.stage_route_contract import (
+    PROGRESS_FIRST_SPRINT_CONTRACT_FIELD,
+    STAGE_ROUTE_CONTRACT_REF,
+    late_stage_progress_sprint_contract_from_payload,
+    load_stage_route_contract_payload,
+)
 from med_autoscience.stage_knowledge_contract import STAGE_OBLIGATIONS
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_ref_projection
 
@@ -182,8 +187,12 @@ def build_stage_surface_contract(payload: dict[str, object] | None = None) -> di
     entry_payload = deepcopy(payload) if payload is not None else load_stage_route_contract_payload()
     route_contracts = _route_contracts(entry_payload)
     _validate_main_routes(route_contracts)
+    sprint_contract = late_stage_progress_sprint_contract_from_payload(entry_payload)
 
-    cards = [_build_stage_card(route_contracts[route_id]) for route_id in MAIN_STAGE_ROUTE_IDS]
+    cards = [
+        _build_stage_card(route_contracts[route_id], sprint_contract=sprint_contract)
+        for route_id in MAIN_STAGE_ROUTE_IDS
+    ]
     return {
         "surface_kind": "mas_stage_surface_contract",
         "version": "mas-stage-surface-contract.v1",
@@ -221,6 +230,7 @@ def build_stage_surface_contract(payload: dict[str, object] | None = None) -> di
         },
         "human_review_policy": _human_review_policy(),
         "stage_deliverable_index": _stage_deliverable_index_summary(cards),
+        "late_stage_progress_sprint_contract": sprint_contract,
         "stage_cards": cards,
         "validation": {
             "main_stage_route_ids": list(MAIN_STAGE_ROUTE_IDS),
@@ -270,14 +280,18 @@ def render_stage_surfaces_markdown(surface: dict[str, object] | None = None) -> 
 
 def render_stage_skill_surface_block(stage_id: str) -> str:
     normalized_stage_id = str(stage_id).strip()
-    route_contracts = _route_contracts(load_stage_route_contract_payload())
+    payload = load_stage_route_contract_payload()
+    route_contracts = _route_contracts(payload)
     _validate_main_routes(route_contracts)
     if normalized_stage_id not in MAIN_STAGE_ROUTE_IDS:
         raise ValueError(f"unsupported main stage id: {normalized_stage_id}")
     if normalized_stage_id not in STAGE_OBLIGATIONS:
         raise ValueError(f"stage obligations missing for main stage id: {normalized_stage_id}")
 
-    card = _build_stage_card(route_contracts[normalized_stage_id])
+    card = _build_stage_card(
+        route_contracts[normalized_stage_id],
+        sprint_contract=late_stage_progress_sprint_contract_from_payload(payload),
+    )
     machine_source_refs = _mapping(card["machine_source_refs"], "machine_source_refs")
     knowledge = _mapping(card["knowledge"], "knowledge")
     tools = _mapping(card["tools"], "tools")
@@ -346,7 +360,11 @@ def render_stage_skill_surface_block(stage_id: str) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _build_stage_card(route_payload: dict[str, Any]) -> dict[str, object]:
+def _build_stage_card(
+    route_payload: dict[str, Any],
+    *,
+    sprint_contract: dict[str, Any],
+) -> dict[str, object]:
     route_id = _string(route_payload["route_id"], "route_id")
     projected_route_payload = _project_route_payload(route_id, route_payload)
     knowledge_obligations = _optional_string_list(projected_route_payload, "knowledge_input_obligations")
@@ -357,7 +375,7 @@ def _build_stage_card(route_payload: dict[str, Any]) -> dict[str, object]:
         outputs=_required_string_list(projected_route_payload, "durable_outputs_minimum"),
         next_routes=_required_string_list(projected_route_payload, "next_routes"),
     )
-    return {
+    card = {
         "surface_kind": "mas_stage_card",
         "route_id": route_id,
         "display_name": _string(projected_route_payload["display_name"], "display_name"),
@@ -404,6 +422,29 @@ def _build_stage_card(route_payload: dict[str, Any]) -> dict[str, object]:
             ],
         },
     }
+    if route_id in set(sprint_contract["covered_routes"]):
+        card["late_stage_progress_sprint_contract"] = _route_progress_sprint_projection(sprint_contract)
+    return card
+
+
+def _route_progress_sprint_projection(sprint_contract: dict[str, Any]) -> dict[str, object]:
+    return {
+        "sprint_id": _string(sprint_contract["sprint_id"], "sprint_id"),
+        "contract_ref": f"{CANONICAL_ROUTE_CONTRACT_REF}#/{PROGRESS_FIRST_SPRINT_CONTRACT_FIELD}",
+        "covered_work_units": _string_list(sprint_contract["covered_work_units"], "covered_work_units"),
+        "objective": _string(sprint_contract["objective"], "objective"),
+        "attempt_scope": _string_list(sprint_contract["attempt_scope"], "attempt_scope"),
+        "control_plane_outputs": _string_list(
+            sprint_contract["control_plane_outputs"],
+            "control_plane_outputs",
+        ),
+        "forbidden_control_plane_outputs": _string_list(
+            sprint_contract["forbidden_control_plane_outputs"],
+            "forbidden_control_plane_outputs",
+        ),
+        "quality_gate_policy": _string_list(sprint_contract["quality_gate_policy"], "quality_gate_policy"),
+        "authority_boundary": _string_list(sprint_contract["authority_boundary"], "authority_boundary"),
+    }
 
 
 def _project_route_payload(route_id: str, route_payload: dict[str, Any]) -> dict[str, Any]:
@@ -420,6 +461,7 @@ def _render_stage_card(card: dict[str, Any]) -> list[str]:
     tools = _mapping(card["tools"], "tools")
     quality = _mapping(card["quality"], "quality")
     closeout = _mapping(card["closeout"], "closeout")
+    sprint_contract = card.get("late_stage_progress_sprint_contract")
     deliverable_index = _mapping(card["deliverable_index"], "deliverable_index")
     human_review_page = _mapping(card["human_review_page"], "human_review_page")
     opl_boundary = _mapping(card["opl_boundary"], "opl_boundary")
@@ -459,6 +501,7 @@ def _render_stage_card(card: dict[str, Any]) -> list[str]:
         _render_list_line("Status", [closeout["status"]]),
         _render_list_line("Machine source refs", closeout["machine_source_refs"]),
         _render_list_line("Obligations", closeout["obligations"]),
+        _render_optional_sprint_contract(sprint_contract),
         "",
         "### Deliverable Index",
         _render_ref_list_line("Input refs", deliverable_index["input_refs"]),
@@ -485,6 +528,22 @@ def _render_stage_card(card: dict[str, Any]) -> list[str]:
         _render_list_line("Must not", opl_boundary["must_not"]),
     ]
     return lines
+
+
+def _render_optional_sprint_contract(value: object) -> str:
+    if not isinstance(value, dict):
+        return "- Late-stage progress sprint: (none)"
+    return _render_list_line(
+        "Late-stage progress sprint",
+        [
+            str(value["sprint_id"]),
+            f"contract_ref={value['contract_ref']}",
+            "covered_work_units=" + ",".join(_string_list(value["covered_work_units"], "covered_work_units")),
+            "control_plane_outputs=" + ",".join(
+                _string_list(value["control_plane_outputs"], "control_plane_outputs")
+            ),
+        ],
+    )
 
 
 def _stage_deliverable_index_summary(cards: list[dict[str, object]]) -> dict[str, object]:

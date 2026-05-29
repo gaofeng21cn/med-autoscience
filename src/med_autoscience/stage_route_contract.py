@@ -57,6 +57,19 @@ REQUIRED_EVIDENCE_REVIEW_LIST_FIELDS = (
     "claim_evidence_consistency_requirements",
     "route_back_policy",
 )
+REQUIRED_SPRINT_CONTRACT_STRING_FIELDS = (
+    "sprint_id",
+    "objective",
+)
+REQUIRED_SPRINT_CONTRACT_LIST_FIELDS = (
+    "covered_work_units",
+    "covered_routes",
+    "attempt_scope",
+    "control_plane_outputs",
+    "forbidden_control_plane_outputs",
+    "quality_gate_policy",
+    "authority_boundary",
+)
 REQUIRED_CANONICAL_ROUTE_IDS = (
     "scout",
     "baseline",
@@ -66,6 +79,9 @@ REQUIRED_CANONICAL_ROUTE_IDS = (
     "finalize",
     "decision",
 )
+PROGRESS_FIRST_SPRINT_CONTRACT_FIELD = "late_stage_progress_sprint_contract"
+PROGRESS_FIRST_SPRINT_ID = "publishability_repair_sprint"
+PROGRESS_FIRST_SPRINT_WORK_UNIT = "current_manuscript_prose_currentness_and_gate_replay_write_closeout"
 
 
 @dataclass(frozen=True)
@@ -100,6 +116,14 @@ def load_stage_route_contract_payload(path: Path | None = None) -> dict[str, obj
 
 def load_stage_route_contract(path: Path | None = None) -> tuple[StageEntryMode, ...]:
     return stage_entry_modes_from_payload(load_stage_route_contract_payload(path=path))
+
+
+def late_stage_progress_sprint_contract_from_payload(payload: dict[str, object]) -> dict[str, Any]:
+    _validate_payload_contract(payload)
+    contract = payload[PROGRESS_FIRST_SPRINT_CONTRACT_FIELD]
+    if not isinstance(contract, dict):
+        raise ValueError(f"{PROGRESS_FIRST_SPRINT_CONTRACT_FIELD} must be a mapping")
+    return dict(contract)
 
 
 def stage_entry_modes_from_payload(payload: dict[str, object]) -> tuple[StageEntryMode, ...]:
@@ -178,6 +202,10 @@ def _string_tuple(value: object, field: str) -> tuple[str, ...]:
 def _validate_payload_contract(payload: dict[str, Any]) -> None:
     _string_tuple(payload.get("compatible_agents"), "compatible_agents")
     route_contracts = _route_contract_payload_map(payload.get("route_contracts"))
+    _validate_late_stage_progress_sprint_contract(
+        payload.get(PROGRESS_FIRST_SPRINT_CONTRACT_FIELD),
+        route_contracts=route_contracts,
+    )
     evidence_review_contract = payload.get("evidence_review_contract")
     if not isinstance(evidence_review_contract, dict):
         raise ValueError("evidence_review_contract must be a mapping")
@@ -210,6 +238,40 @@ def _validate_payload_contract(payload: dict[str, Any]) -> None:
             unknown_routes = sorted(set(values) - known_route_ids)
             if unknown_routes:
                 raise ValueError(f"{mode_label} references unknown route ids in {field}: {', '.join(unknown_routes)}")
+
+
+def _validate_late_stage_progress_sprint_contract(
+    value: object,
+    *,
+    route_contracts: dict[str, dict[str, Any]],
+) -> None:
+    field = PROGRESS_FIRST_SPRINT_CONTRACT_FIELD
+    if not isinstance(value, dict):
+        raise ValueError(f"{field} must be a mapping")
+    for string_field in REQUIRED_SPRINT_CONTRACT_STRING_FIELDS:
+        if string_field not in value:
+            raise ValueError(f"{field} missing required field: {string_field}")
+        _non_empty_string_value(value, string_field, field)
+    for list_field in REQUIRED_SPRINT_CONTRACT_LIST_FIELDS:
+        if list_field not in value:
+            raise ValueError(f"{field} missing required field: {list_field}")
+        values = _string_tuple(value[list_field], list_field)
+        if list_field == "covered_routes":
+            unknown_routes = sorted(set(values) - set(route_contracts))
+            if unknown_routes:
+                raise ValueError(f"{field} references unknown route ids in covered_routes: {', '.join(unknown_routes)}")
+    if value["sprint_id"] != PROGRESS_FIRST_SPRINT_ID:
+        raise ValueError(f"{field}.sprint_id must be {PROGRESS_FIRST_SPRINT_ID}")
+    covered_work_units = _string_tuple(value["covered_work_units"], "covered_work_units")
+    if PROGRESS_FIRST_SPRINT_WORK_UNIT not in covered_work_units:
+        raise ValueError(
+            f"{field}.covered_work_units must include {PROGRESS_FIRST_SPRINT_WORK_UNIT}"
+        )
+    covered_routes = set(_string_tuple(value["covered_routes"], "covered_routes"))
+    required_routes = {"write", "review", "finalize"}
+    missing_routes = sorted(required_routes - covered_routes)
+    if missing_routes:
+        raise ValueError(f"{field}.covered_routes missing required route ids: {', '.join(missing_routes)}")
 
 
 def _mode_label(payload: dict[str, Any], index: int) -> str:

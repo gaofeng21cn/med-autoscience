@@ -2,6 +2,38 @@ compatible_agents:
   - Codex
   - Claude Code
   - OpenClaw
+late_stage_progress_sprint_contract:
+  sprint_id: publishability_repair_sprint
+  covered_work_units:
+    - current_manuscript_prose_currentness_and_gate_replay_write_closeout
+  covered_routes:
+    - write
+    - review
+    - finalize
+  objective: Produce one reviewable late-stage paper/package delta before quality gate replay.
+  attempt_scope:
+    - consume current effective AI reviewer eval when its manuscript, evidence, and analysis refs are current
+    - refresh durable prose currentness against canonical manuscript refs
+    - replay publication gate against the effective eval and current manuscript/package refs
+    - materialize candidate package/display freshness proof with not_submission_ready or gate_pending semantics
+    - close the attempt with typed closeout refs that classify paper progress separately from platform repair
+  control_plane_outputs:
+    - progress_delta
+    - single_next_owner_blocker
+    - human_gate
+    - stop_loss
+  forbidden_control_plane_outputs:
+    - record_only_reviewer_loop
+    - stale_fingerprint_execution_block
+    - provider_completed_without_typed_closeout
+    - platform_repair_counted_as_paper_progress
+  quality_gate_policy:
+    - reviewer and publication gate quality still decide readiness after sprint delta exists
+    - candidate package/display freshness proof must not claim submission readiness
+    - publication_eval/latest.json materialization lag cannot alone force a new reviewer-record route when an effective current archive is available
+  authority_boundary:
+    - no direct paper body, memory body, artifact body, publication_eval/latest.json, controller_decisions/latest.json, or current_package write outside MAS owner callable
+    - OPL/provider completion is not paper closure without owner receipt, typed blocker, human gate, stop-loss, or progress_delta refs
 route_contracts:
   scout:
     route_id: scout

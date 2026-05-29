@@ -209,6 +209,17 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 - knowledge_input_obligations: stage_knowledge_packet_ref | official_author_guideline | outlet_profile | exporter_profile_constraints | blocked_profile_evidence
 - memory_closeout_obligations: stage_memory_closeout_packet | selected_outlet_or_profile_rationale | exporter_constraint_lesson | blocked_profile_decision | reporting_guideline_delta
 
+## Late-Stage Progress Sprint Contract
+- sprint_id: publishability_repair_sprint
+- objective: Produce one reviewable late-stage paper/package delta before quality gate replay.
+- covered_work_units: current_manuscript_prose_currentness_and_gate_replay_write_closeout
+- covered_routes: write | review | finalize
+- attempt_scope: consume current effective AI reviewer eval when its manuscript, evidence, and analysis refs are current | refresh durable prose currentness against canonical manuscript refs | replay publication gate against the effective eval and current manuscript/package refs | materialize candidate package/display freshness proof with not_submission_ready or gate_pending semantics | close the attempt with typed closeout refs that classify paper progress separately from platform repair
+- control_plane_outputs: progress_delta | single_next_owner_blocker | human_gate | stop_loss
+- forbidden_control_plane_outputs: record_only_reviewer_loop | stale_fingerprint_execution_block | provider_completed_without_typed_closeout | platform_repair_counted_as_paper_progress
+- quality_gate_policy: reviewer and publication gate quality still decide readiness after sprint delta exists | candidate package/display freshness proof must not claim submission readiness | publication_eval/latest.json materialization lag cannot alone force a new reviewer-record route when an effective current archive is available
+- authority_boundary: no direct paper body, memory body, artifact body, publication_eval/latest.json, controller_decisions/latest.json, or current_package write outside MAS owner callable | OPL/provider completion is not paper closure without owner receipt, typed blocker, human gate, stop-loss, or progress_delta refs
+
 ## Evidence And Review Contract
 - minimum_proof_package: active study charter boundary, current route recommendation, and cited evidence refs must be readable together | every route must leave a durable artifact or durable reference path for the next route | writing and finalize routes must carry a current claim-evidence traceability surface
 - reviewer_first_checks: apply reviewer-first pressure before treating any draft or package as ready | state the strongest concern first and tie it to the affected claim or evidence gap | test whether the current draft underuses verified timepoint, stakeholder, center/geography, guideline, subgroup, or adoption-constraint dimensions | record whether the concern routes back to scout, baseline, analysis-campaign, or write
