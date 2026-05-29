@@ -9,6 +9,9 @@ from med_autoscience.controllers.study_transition_receipt_consumption import (
     default_executor_execution_nonconsumable_closeout,
     default_executor_execution_receipt_consumption,
 )
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    default_executor_execution_candidates,
+)
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -522,6 +525,126 @@ def test_default_executor_stage_closeout_embedded_currentness_consumes_story_sur
         owner_route=owner_route,
         actions=[{"action_type": "run_quality_repair_batch"}],
     ) == {}
+
+
+def test_default_executor_completed_stage_closeout_missing_refs_consumes_typed_packet_blocker(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    owner_route = _current_write_route()
+    closeout_root = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution"
+    _write_json(
+        closeout_root / "sat_missing_refs.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": "sat_missing_refs",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_packet_ref": (
+                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                "consumer/default_executor_dispatches/run_quality_repair_batch.json"
+            ),
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "closeout_id": "stage-attempt-closeout::sat_missing_refs",
+            "owner_route_basis": owner_route["source_refs"]["owner_route_currentness_basis"],
+            "domain_execution": {
+                "action_type": "run_quality_repair_batch",
+                "execution_status": "executed",
+                "domain_owner": "write",
+            },
+            "owner_receipt": {
+                "status": "executed",
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
+            "status": "completed",
+            "route_outcome": "write_repair_delta_recorded",
+            "artifact_delta": {
+                "status": "progress_delta_candidate",
+                "meaningful_artifact_delta": True,
+                "story_surface_delta_present": True,
+                "changed_artifact_refs": [
+                    {"path": str(study_root / "paper" / "draft.md")},
+                    {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
+                ],
+            },
+            "paper_stage_log": {
+                "stage_name": "quality_repair_batch",
+                "problem_summary": "repair manuscript story surface",
+                "stage_goal": "record owner-visible closeout",
+                "stage_work_done": "provider activity completed",
+                "paper_work_done": "draft surfaces updated",
+                "changed_stage_surfaces": [],
+                "changed_paper_surfaces": ["paper/draft.md", "paper/build/review_manuscript.md"],
+                "outcome": "progress_delta",
+                "remaining_blockers": [],
+                "duration": {"seconds": 120},
+                "token_usage": {"total_tokens": 1000},
+                "cost": {"usd": 0.1},
+                "usage_refs": ["usage-ref"],
+                "cost_refs": ["cost-ref"],
+                "evidence_refs": ["paper/draft.md"],
+            },
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json",
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "executor_kind": "codex_cli_default",
+            "owner_route": owner_route,
+            "prompt_contract": {"owner_route": owner_route},
+        },
+    )
+
+    candidates = [
+        execution
+        for execution, _receipt_ref in default_executor_execution_candidates(study_root=study_root)
+        if execution.get("execution_id") == "stage-attempt-closeout::sat_missing_refs"
+    ]
+    assert candidates
+    assert candidates[0]["stage_closeout_surface_kind"] == "stage_attempt_closeout_packet"
+    assert candidates[0]["stage_closeout_status"] == "completed"
+    assert candidates[0]["stage_closeout_refs"] == []
+
+    receipt = default_executor_execution_receipt_consumption(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+
+    assert receipt["status"] == "consumed"
+    assert receipt["execution_status"] == "blocked"
+    assert receipt["blocked_reason"] == "typed_closeout_packet_required"
+    assert receipt["owner_result_status"] == "blocked"
+    assert receipt["repair_execution_evidence_status"] == "typed_blocker"
+    assert receipt["next_action"] == "honor_typed_blocker_without_redrive"
+    assert receipt["typed_blocker"]["reason"] == "typed_closeout_packet_required"
+    assert receipt["typed_blocker"]["next_owner"] == "one-person-lab"
+    assert receipt["closeout_ref"] == (
+        "artifacts/supervision/consumer/default_executor_execution/sat_missing_refs.closeout.json"
+    )
+    assert (
+        default_executor_execution_nonconsumable_closeout(
+            study_root=study_root,
+            owner_route=owner_route,
+            actions=[{"action_type": "run_quality_repair_batch"}],
+        )
+        == {}
+    )
 
 
 def test_scan_keeps_owner_route_and_typed_blocker_after_blocked_story_surface_closeout(
