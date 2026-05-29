@@ -110,6 +110,16 @@ def materialization_action(
             record_ref_path=record_ref_path,
         )
     story_refs = _story_surface_delta_refs(study_root, source_eval_id or record_eval_id)
+    if _current_record_allows_gate_replay(record):
+        return _gate_clearing_action(
+            action=action,
+            owner_route=owner_route,
+            study_root=study_root,
+            source_eval_id=source_eval_id,
+            record_eval_id=record_eval_id,
+            record_ref_path=record_ref_path,
+            story_refs=story_refs,
+        )
     if not story_refs:
         return _story_surface_delta_action(
             action=action,
@@ -289,6 +299,28 @@ def _current_record_requires_write_routeback(record: Mapping[str, Any]) -> bool:
     return _text(route_back_action.get("route_target")) == "write"
 
 
+def _current_record_allows_gate_replay(record: Mapping[str, Any]) -> bool:
+    reviewer_os = _mapping(record.get("reviewer_operating_system"))
+    readiness = _mapping(reviewer_os.get("publication_quality_readiness"))
+    if _text(readiness.get("status")) != "ready":
+        return False
+    claim_alignment = _mapping(reviewer_os.get("claim_evidence_alignment"))
+    if _text(claim_alignment.get("status")) != "ready":
+        return False
+    if claim_alignment.get("missing_required_fields") not in ([], ()):
+        return False
+    if claim_alignment.get("blockers") not in ([], ()):
+        return False
+    quality_assessment = _mapping(record.get("quality_assessment"))
+    if not quality_assessment:
+        return False
+    if any(_text(_mapping(item).get("status")) != "ready" for item in quality_assessment.values()):
+        return False
+    if _current_record_requires_write_routeback(record):
+        return False
+    return True
+
+
 def _gate_clearing_action(
     *,
     action: Mapping[str, Any],
@@ -319,6 +351,9 @@ def _gate_clearing_action(
             source_eval_id=source_eval_id or record_eval_id,
         )
         materialization_decision = "publication_gate_replay"
+    source_refs = _mapping(rewritten_route.get("source_refs"))
+    materialized_work_unit_id = _text(source_refs.get("materialized_work_unit_id"))
+    work_unit_id = materialized_work_unit_id or _text(source_refs.get("work_unit_id"))
     return _with_owner_route(
         {
             **dict(action),
@@ -328,7 +363,7 @@ def _gate_clearing_action(
             "recommended_owner": "gate_clearing_batch",
             "reason": _text(rewritten_route.get("owner_reason")),
             "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
-            "next_work_unit": _text(_mapping(rewritten_route.get("source_refs")).get("work_unit_id")),
+            "next_work_unit": work_unit_id,
             "materialization_decision": materialization_decision,
             "reviewer_record_ref": str(record_ref_path.resolve()),
             "source_eval_id": source_eval_id or record_eval_id,
@@ -521,7 +556,12 @@ def _is_publication_owner_materialization_bridge(
     work_unit_id: str,
 ) -> bool:
     return (
-        original_owner_reason in {"quest_waiting_opl_runtime_owner_route", *AI_REVIEWER_RECORD_OWNER_REASONS}
+        original_owner_reason
+        in {
+            "quest_waiting_opl_runtime_owner_route",
+            *AI_REVIEWER_RECORD_OWNER_REASONS,
+            *AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS,
+        }
         and owner_reason in {"current_package_freshness_required", "publication_owner_materialization_required"}
         and work_unit_id in {"current_package_freshness_required", "publication_gate_replay"}
     )
