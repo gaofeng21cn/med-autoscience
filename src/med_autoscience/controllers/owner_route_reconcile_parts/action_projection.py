@@ -144,6 +144,30 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    current_ai_reviewer_write_action = story_surface_delta_actions.write_owner_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if current_ai_reviewer_write_action is not None:
+        request_lifecycle = ai_reviewer_owner_output_consumption.current_request_lifecycle(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+        current_ai_reviewer_write_action = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
+            payload=current_ai_reviewer_write_action,
+            publication_eval_payload=publication_eval_payload,
+            lifecycle=request_lifecycle,
+        )
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=current_ai_reviewer_write_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     record_production_action = current_ai_reviewer_record_actions.record_production_transition_action(
         status=status,
         ai_reviewer_assessment=ai_reviewer_assessment,
@@ -228,6 +252,26 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    writer_handoff_action = story_surface_delta_actions.quality_repair_writer_handoff_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if writer_handoff_action is not None:
+        writer_handoff_action = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
+            payload=writer_handoff_action,
+            publication_eval_payload=publication_eval_payload,
+            lifecycle=request_lifecycle,
+        )
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=writer_handoff_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     if (
         _explicit_ai_reviewer_request_pending(ai_reviewer_assessment)
         and not _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(
@@ -245,26 +289,6 @@ def action_queue(
                 action=ai_reviewer_actions.ai_reviewer_required_action(
                     reason=_text(ai_reviewer_assessment.get("blocked_reason")) or "ai_reviewer_assessment_required"
                 ),
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    writer_handoff_action = story_surface_delta_actions.quality_repair_writer_handoff_action(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if writer_handoff_action is not None:
-        writer_handoff_action = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
-            payload=writer_handoff_action,
-            publication_eval_payload=publication_eval_payload,
-            lifecycle=request_lifecycle,
-        )
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=writer_handoff_action,
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,

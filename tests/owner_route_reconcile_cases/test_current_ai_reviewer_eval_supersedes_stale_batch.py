@@ -259,3 +259,142 @@ def test_current_ai_reviewer_write_routeback_uses_blocking_work_unit_when_next_w
         "summary": "Refresh durable prose review and repair remaining display-led Results wording.",
     }
     assert route["authorization_basis"] == "ai_reviewer_current_write_routeback"
+
+
+def test_current_ai_reviewer_write_routeback_preempts_stale_current_inputs_record_transition(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    reconcile = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent DPCC manuscript.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    eval_id = "publication-eval::003-dpcc::current-manuscript-record::20260529T120533Z"
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [str(manuscript_path.resolve())],
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": {"medical_journal_prose_quality": {"status": "partial"}},
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "request_digest": "sha256:" + "a" * 64,
+                    "manuscript_ref": str(manuscript_path.resolve()),
+                    "manuscript_digest": _sha256_text(manuscript_text),
+                    "route_back_required": True,
+                    "route_target": "write",
+                },
+                "current_manuscript": {
+                    "status": "current",
+                    "manuscript_ref": str(manuscript_path.resolve()),
+                    "manuscript_digest": _sha256_text(manuscript_text),
+                },
+                "source_eval": {"status": "current", "eval_id": eval_id},
+            }
+        },
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::003-dpcc::route-current-manuscript-to-write-repair",
+                "action_type": "route_back_same_line",
+                "requires_controller_decision": True,
+                "route_target": "write",
+                "work_unit_fingerprint": "stage-attempt::sat-current::medical_prose_write_repair",
+                "blocking_work_units": [
+                    {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                        "summary": "Repair the current manuscript prose and reporting surfaces.",
+                    }
+                ],
+            }
+        ],
+    }
+    _write_json(publication_eval_path, publication_eval)
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "decision": "resume",
+        "reason": "domain_transition_ai_reviewer_re_eval",
+        "active_run_id": None,
+        "publication_eval": publication_eval,
+        "domain_transition": {
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "owner": "ai_reviewer",
+            "next_work_unit": {
+                "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "lane": "review",
+                "summary": "Produce a current AI reviewer publication-eval record against current inputs.",
+            },
+        },
+        "runtime_health_snapshot": {
+            "canonical_runtime_action": "continue_supervising_runtime",
+            "attempt_state": "idle",
+            "retry_budget_remaining": 2,
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm003-current-write-route",
+            "source_signature": "truth-source-dm003-current-write-route",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "publication_supervision",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(publication_eval_path)},
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "ai_reviewer_request_lifecycle": {
+            "surface": "ai_reviewer_request_lifecycle",
+            "state": "requested",
+            "request_owner": "ai_reviewer",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+            "required_currentness_refs": [str(manuscript_path.resolve())],
+        },
+    }
+    monkeypatch.setattr(
+        reconcile,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = reconcile.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == ["run_quality_repair_batch"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "write"
+    assert action["controller_work_unit_id"] == "medical_prose_write_repair"
+    assert action["controller_route"]["authorization_basis"] == "ai_reviewer_current_write_routeback"
+    assert study["owner_route"]["next_owner"] == "write"
+    assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
