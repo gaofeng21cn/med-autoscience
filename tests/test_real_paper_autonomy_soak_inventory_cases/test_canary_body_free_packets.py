@@ -304,9 +304,51 @@ def test_canary_closeout_exposes_per_paper_line_owner_payloads(tmp_path: Path) -
         "runtime_event_ref",
         "typed_blocker_ref",
     ]
-    assert stage_summary["stage_count"] == 1
-    stage = stage_summary["stages"][0]
-    assert stage["stage_id"] == "finalize_and_publication_handoff"
+    assert stage_summary["stage_count"] == 6
+    stages = {stage["stage_id"]: stage for stage in stage_summary["stages"]}
+    assert set(stages) == {
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff",
+    }
+    for stage_id, sequence in {
+        "direction_and_route_selection": 1,
+        "baseline_and_evidence_setup": 2,
+        "bounded_analysis_campaign": 3,
+        "manuscript_authoring": 4,
+        "review_and_quality_gate": 5,
+    }.items():
+        stage = stages[stage_id]
+        assert stage["sequence"] == sequence
+        assert stage["success_refs_path_payload"] == {
+            "domain_receipt_refs": [],
+            "monitor_freshness_refs": [],
+            "runtime_event_refs": [],
+            "typed_blocker_refs": [],
+        }
+        assert stage["typed_blocker_path_payload"] == {
+            "domain_receipt_refs": [],
+            "monitor_freshness_refs": [],
+            "runtime_event_refs": [],
+            "typed_blocker_refs": [
+                (
+                    "mas-stage-typed-blocker:"
+                    f"medautoscience:{stage_id}:"
+                    "real-paper-line-owner-receipt-or-monitor-freshness-pending"
+                )
+            ],
+        }
+        assert stage["recommended_current_payload_path"] == "typed_blocker_path"
+        assert stage["success_refs_visible_is_completion"] is False
+        assert stage["typed_blocker_visible_is_domain_ready"] is False
+        assert stage["domain_readiness_claimed"] is False
+        assert stage["production_readiness_claimed"] is False
+        assert stage["publication_readiness_claimed"] is False
+
+    stage = stages["finalize_and_publication_handoff"]
     assert stage["sequence"] == 6
     assert stage["current_payload_template"] == {
         "domain_receipt_refs": [],

@@ -118,10 +118,55 @@ def test_multiprofile_guarded_apply_snapshot_preserves_success_and_blocker_count
         "runtime_event_ref",
         "typed_blocker_ref",
     ]
-    assert stage_summary["stage_count"] == 1
-    assert len(stage_summary["stages"]) == 1
+    assert stage_summary["stage_count"] == 6
+    assert len(stage_summary["stages"]) == 6
 
-    stage = stage_summary["stages"][0]
+    stages = {stage["stage_id"]: stage for stage in stage_summary["stages"]}
+    assert set(stages) == {
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff",
+    }
+    for stage_id, sequence in {
+        "direction_and_route_selection": 1,
+        "baseline_and_evidence_setup": 2,
+        "bounded_analysis_campaign": 3,
+        "manuscript_authoring": 4,
+        "review_and_quality_gate": 5,
+    }.items():
+        stage = stages[stage_id]
+        assert stage["sequence"] == sequence
+        assert stage["success_payload_count"] == 0
+        assert stage["typed_blocker_payload_count"] == 1
+        assert stage["success_refs_path_payload"] == {
+            "domain_receipt_refs": [],
+            "monitor_freshness_refs": [],
+            "runtime_event_refs": [],
+            "typed_blocker_refs": [],
+        }
+        assert stage["typed_blocker_path_payload"] == {
+            "domain_receipt_refs": [],
+            "monitor_freshness_refs": [],
+            "runtime_event_refs": [],
+            "typed_blocker_refs": [
+                (
+                    "mas-stage-typed-blocker:"
+                    f"medautoscience:{stage_id}:"
+                    "real-paper-line-owner-receipt-or-monitor-freshness-pending"
+                )
+            ],
+        }
+        assert stage["recommended_current_payload_path"] == "typed_blocker_path"
+        assert stage["success_refs_visible_is_completion"] is False
+        assert stage["typed_blocker_visible_is_domain_ready"] is False
+        assert stage["domain_readiness_claimed"] is False
+        assert stage["production_readiness_claimed"] is False
+        assert stage["publication_readiness_claimed"] is False
+
+    stage = stages["finalize_and_publication_handoff"]
     dispatch_payloads = payload["domain_dispatch_payload_summaries"]
     success_payloads = [
         item for item in dispatch_payloads if item["mode"] == "refs_only_domain_owned_success_payload"
@@ -142,11 +187,11 @@ def test_multiprofile_guarded_apply_snapshot_preserves_success_and_blocker_count
     assert stage["stable_typed_blocker_ref_count"] == sum(
         len(item["typed_blocker_refs"]) for item in blocker_payloads
     )
-    assert stage["stage_expected_receipt_ref_count"] == sum(
-        len(item["stage_expected_receipt_refs"]) for item in dispatch_payloads
+    assert stage["stage_expected_receipt_ref_count"] == len(
+        stage["success_refs_path_payload"]["domain_receipt_refs"]
     )
-    assert stage["stage_monitor_freshness_ref_count"] == sum(
-        len(item["stage_monitor_freshness_refs"]) for item in dispatch_payloads
+    assert stage["stage_monitor_freshness_ref_count"] == len(
+        stage["success_refs_path_payload"]["monitor_freshness_refs"]
     )
     assert stage["no_forbidden_write_guard_ref_count"] == sum(
         len(item.get("forbidden_write_guard_refs", [])) for item in dispatch_payloads
@@ -164,24 +209,24 @@ def test_multiprofile_guarded_apply_snapshot_preserves_success_and_blocker_count
         "domain_dispatch_payload_summaries[mode=refs_only_domain_owned_typed_blocker_payload]"
     )
     assert stage["success_refs_path_payload"] == {
-        "domain_receipt_refs": [
+        "domain_receipt_refs": list(dict.fromkeys(
             ref for item in success_payloads for ref in item["stage_expected_receipt_refs"]
-        ],
-        "monitor_freshness_refs": [
+        )),
+        "monitor_freshness_refs": list(dict.fromkeys(
             ref for item in success_payloads for ref in item["stage_monitor_freshness_refs"]
-        ],
+        )),
         "runtime_event_refs": [],
         "typed_blocker_refs": [],
     }
     assert stage["typed_blocker_path_payload"] == {
         "domain_receipt_refs": [],
-        "monitor_freshness_refs": [
+        "monitor_freshness_refs": list(dict.fromkeys(
             ref for item in blocker_payloads for ref in item["stage_monitor_freshness_refs"]
-        ],
+        )),
         "runtime_event_refs": [],
-        "typed_blocker_refs": [
+        "typed_blocker_refs": list(dict.fromkeys(
             ref for item in blocker_payloads for ref in item["typed_blocker_refs"]
-        ],
+        )),
     }
     assert stage["recommended_current_payload_path"] == "typed_blocker_path"
     assert stage["success_refs_visible_is_completion"] is False
