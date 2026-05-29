@@ -262,7 +262,8 @@
     "mas-workbench-projection": {
       "kind": "focused_mas_opl_runtime_workbench_projection_gate",
       "paths": [
-        "tests/test_progress_portal.py"
+        "tests/test_progress_portal.py",
+        "tests/progress_portal_cases/test_study_workbench_and_routes.py"
       ],
       "docs": [
         "docs/active/opl_app_mas_runtime_workbench_program.md"

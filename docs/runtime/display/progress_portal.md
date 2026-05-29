@@ -296,7 +296,9 @@ Portal 刷新只允许写 display/read-model evidence：`artifacts/runtime/progr
 - `artifacts/runtime/progress_portal/hosted_package.json` MAS-owned hosted packaging manifest
 - `ops/mas/progress/index.html` 与 per-study HTML 作为静态 evidence 输出
 - `tests/test_progress_portal.py`
+- `tests/progress_portal_cases/helpers.py`
 - `tests/progress_portal_cases/test_materialized_surfaces.py`
+- `tests/progress_portal_cases/test_study_workbench_and_routes.py`
 - workspace init / README / architecture / status / OPL handoff docs
 
 CLI / helper 形态：

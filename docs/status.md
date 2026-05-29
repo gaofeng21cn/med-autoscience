@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-05-29**
+**更新时间：2026-05-30**
 
 Owner: `MedAutoScience`
 Purpose: `current_truth_summary`
@@ -130,6 +130,8 @@ MAS repo 的长期源码形态已经按 strict purity 口径收敛为标准 OPL 
 Domain dispatch closeout evidence 入口已按 thin public API 收薄：`closeout_evidence.py` 只保留 typed-blocker / owner-receipt evidence 与 refs formatting 对外面，blocked default-executor closeout materializer、write-owner domain-stage closeout matcher、JSON/ref/authority helpers 分别迁入同目录职责模块。该收薄保持 refs-only / no-forbidden-write owner payload 行为，不生成 MAS owner receipt，不声明 domain-ready、production-ready、paper closure 或 artifact/memory/lifecycle authority。
 
 AI reviewer workflow dispatch 测试也已按当前 line-budget / physical-thinning 口径收薄：共享 request-input fixture helpers 从 `ai_reviewer_workflow_dispatch.py` 拆到同目录 helper，`ai_reviewer_medical_prose_review_production.py` 不再反向导入另一个测试 case 文件。该切片只降低测试耦合和文件肥度，不改变 MAS owner payload contract，不写真实 study workspace artifact、paper body、publication truth 或 artifact authority。
+
+Progress Portal 测试也已按 physical-thinning 口径拆分：共享 payload fixtures 进入 `tests/progress_portal_cases/helpers.py`，study workbench 与 route-decision trail case 进入 `tests/progress_portal_cases/test_study_workbench_and_routes.py`，`tests/test_progress_portal.py` 回到 preferred line budget 内；`mas-workbench-projection` lane manifest 同步指向拆分后的 focused case。该切片只收薄测试/source morphology，不改变 Progress Portal read-model 行为，不产生 owner receipt，不关闭 paper-line、memory/artifact/lifecycle、domain-ready 或 production-ready。
 
 本轮不触碰真实 study workspace artifact、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、memory body 或 artifact body。
 

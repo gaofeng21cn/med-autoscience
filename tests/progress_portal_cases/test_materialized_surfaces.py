@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from tests.study_runtime_test_helpers import make_profile, write_text
-from tests.test_progress_portal import _progress_payload
+from tests.progress_portal_cases.helpers import _progress_payload
 from tests.progress_portal_cases.test_stage_review_surface import _stage_review_payload
 
 

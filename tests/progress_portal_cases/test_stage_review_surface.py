@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.test_progress_portal import _progress_payload
+from tests.progress_portal_cases.helpers import _progress_payload
 
 
 def _stage_review_payload() -> dict[str, object]:

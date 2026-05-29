@@ -21,7 +21,6 @@ DEFAULT_BASELINE = {
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": 1289,
     "tests/product_entry_cases/repo_shell_and_handoff_templates.py": 1265,
     "src/med_autoscience/controllers/stage_knowledge_plane.py": 1199,
-    "tests/test_progress_portal.py": 1245,
     "src/med_autoscience/controllers/progress_portal.py": 1207,
     "tests/product_entry_cases/product_entry_preflight_and_task_submission.py": 1180,
     "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_workflow_dispatch.py": 1110,

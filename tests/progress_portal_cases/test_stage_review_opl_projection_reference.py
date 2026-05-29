@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 
 from tests.progress_portal_cases.test_stage_review_surface import _stage_review_payload
-from tests.test_progress_portal import _progress_payload
+from tests.progress_portal_cases.helpers import _progress_payload
 
 
 def test_progress_portal_opl_projection_fails_closed_when_reference_proofs_are_missing() -> None:
