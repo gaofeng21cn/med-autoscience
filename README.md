@@ -15,14 +15,14 @@ Machine boundary: Human-readable public entry only. Machine truth remains in age
 
 <h1 align="center">Med Auto Science</h1>
 
-<p align="center"><strong>A medical research Foundry Agent and OPL-compatible package built on OPL Framework, with a direct MAS app skill for turning data, study questions, and evidence into manuscript-ready work</strong></p>
-<p align="center">Disease Studies · Evidence Organization · Manuscript Delivery</p>
+<p align="center"><strong>An AI research agent for real medical studies, built to turn data, evidence, and drafts into manuscript-ready work</strong></p>
+<p align="center">Disease Studies · Evidence Building · Analysis Support · Manuscript Delivery</p>
 
 <table>
   <tr>
     <td width="33%" valign="top">
       <strong>Who It Serves</strong><br/>
-      Clinicians, PIs, and medical research teams working with disease-specific data and preparing studies for manuscript delivery
+      Clinicians, PIs, and medical research teams working with disease-specific data and moving studies toward manuscripts
     </td>
     <td width="33%" valign="top">
       <strong>What It Organizes</strong><br/>
@@ -36,10 +36,26 @@ Machine boundary: Human-readable public entry only. Machine truth remains in age
 </table>
 
 <p align="center">
-  <img src="assets/branding/medautoscience-overview.png" alt="Med Auto Science overview" width="100%" />
+  <img src="assets/branding/medautoscience-overview-v2.png" alt="Med Auto Science overview" width="100%" />
 </p>
 
-> `Med Auto Science` is for teams already doing real medical research. It keeps topic framing, data preparation, evidence progression, progress reporting, and manuscript-facing delivery on the same line.
+> `Med Auto Science` is for teams already doing real medical research. It keeps study questions, data, analyses, evidence, drafts, and delivery files connected on one governed study line so the work can keep moving and stay reviewable.
+
+## Why Med Auto Science
+
+The hard part of medical research is rarely a single paragraph. It is moving a study from data and ideas toward a paper that can be reviewed, revised, and submitted.
+
+Medical teams often run into the same problems:
+
+- You have data, but it is not clear which question is worth pursuing.
+- You have preliminary results, but they do not yet form one manuscript line.
+- Figures, drafts, analysis notes, and validation results drift across folders and conversations.
+- Review, extra analysis, claim revision, and delivery files overlap until progress is hard to explain.
+- Multiple disease studies run in parallel, and key evidence or decisions can be lost.
+
+**Med Auto Science is built around those research problems.**
+
+It organizes a medical study as a research line: frame the valuable question, prepare the data and evidence, advance analysis and validation, build the manuscript story, and keep paper-facing files ready for review and delivery.
 
 ## One-Sentence Quick Start
 
@@ -49,19 +65,50 @@ You can start with prompts like:
 - "I already have preliminary results. Turn them into one manuscript line and tell me what validation to do next."
 - "Keep pushing this disease study toward a publishable paper, and keep the progress plus files organized as we go."
 
+## Core Highlights
+
+<table width="100%">
+<tr>
+<td width="50%" valign="top">
+
+**Identify paper-worthy questions from data**
+
+Start with a disease cohort, registry, or real-world dataset, then identify questions with clinical value, evidence support, and manuscript potential before piling up analyses.
+
+</td>
+<td width="50%" valign="top">
+
+**Turn scattered results into a manuscript line**
+
+Existing analyses, early findings, figures, and drafts are organized into a clearer research story with explicit next evidence steps.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Keep progress and delivery files together**
+
+Tasks, files, figures, drafts, validation notes, and deliverables stay tied to the same study workspace so the line remains reviewable and easy to continue.
+
+</td>
+<td width="50%" valign="top">
+
+**Let AI do the heavy lifting while researchers keep judgment**
+
+AI can help prepare data, run analyses, organize evidence, and report progress. Clinical framing, claim acceptance, and final submission decisions stay with researchers and PIs.
+
+</td>
+</tr>
+</table>
+
 ## What It Helps With
 
 - Finding a study question worth continuing from a disease-specific dataset, registry, or cohort.
-- Turning existing analyses and early results into one manuscript line with clear next evidence steps.
-- Keeping long-running work organized when files, figures, notes, and drafts would otherwise drift apart.
-- Managing validation, subgroup analysis, calibration, clinical utility analysis, and other supporting evidence in the same workspace.
-- Delivering manuscript-facing outputs as files that stay tied to the study they belong to.
-
-## How It Works
-
-- Researchers provide the clinical question, dataset, constraints, and final judgment.
-- The AI operator moves the study forward through data preparation, analysis, evidence organization, and progress reporting.
-- The workspace keeps tasks, files, progress, and delivery artifacts together so the whole line stays reviewable.
+- Turning existing analyses and early results into one manuscript line.
+- Managing validation, subgroup analysis, calibration, clinical utility analysis, and other supporting evidence.
+- Keeping multiple related studies organized in one workspace.
+- Keeping paper-facing results, figures, drafts, and delivery files tied to their study.
 
 ## Current Position And Boundary
 
