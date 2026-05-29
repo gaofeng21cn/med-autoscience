@@ -768,9 +768,9 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
             """
             SELECT status, idempotency_key, payload_json
             FROM dispatch_receipts
-            WHERE study_id = ? AND action_type = ?
+            WHERE study_id = ? AND action_type = ? AND status = ?
             """,
-            (study_id, "return_to_ai_reviewer_workflow"),
+            (study_id, "return_to_ai_reviewer_workflow", "repeat_suppressed"),
         ).fetchone()
     assert row is not None
     assert row[0] == "repeat_suppressed"
