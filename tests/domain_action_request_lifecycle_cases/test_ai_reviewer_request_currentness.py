@@ -351,6 +351,19 @@ def test_current_input_record_only_request_is_written_when_lifecycle_blocker_was
     assert lifecycle["blocked_reason"] is None
     assert lifecycle["stale_record_ref"] is None
     assert lifecycle["required_currentness_refs"] == []
+    assert lifecycle["owner_output_consumption"] == {
+        "status": "consumed",
+        "receipt_kind": "ai_reviewer_publication_eval",
+        "record_ref": str(record_path.resolve()),
+        "eval_id": current_record["eval_id"],
+        "consumption_mode": "refs_only_current_ai_reviewer_record",
+        "required_currentness_refs": [
+            str(manuscript_path.resolve()),
+            str(evidence_path.resolve()),
+            str(claim_map_path.resolve()),
+        ],
+        "next_action": "honor_ai_reviewer_publication_eval_authority",
+    }
 
 
 def test_ai_reviewer_request_materialization_rejects_record_stale_after_current_manuscript(

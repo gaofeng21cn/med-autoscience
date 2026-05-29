@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import ai_reviewer_publication_eval_records
+from med_autoscience.controllers import ai_reviewer_owner_output_consumption
 from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers.default_executor_action_policy import (
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
@@ -179,6 +180,7 @@ def _story_surface_delta_action(
     record: Mapping[str, Any],
     record_ref_path: Path,
 ) -> dict[str, Any]:
+    study_root = _record_study_root(record_ref_path)
     work_unit_id = _story_surface_work_unit_id(action=action, record=record)
     record_eval_id = _text(record.get("eval_id"))
     rewritten_route = _rewrite_owner_route(
@@ -189,25 +191,57 @@ def _story_surface_delta_action(
         work_unit_id=work_unit_id,
         source_eval_id=record_eval_id,
     )
+    action_payload = {
+        **dict(action),
+        "action_type": "run_quality_repair_batch",
+        "owner": "write",
+        "request_owner": "write",
+        "recommended_owner": "write",
+        "reason": "manuscript_story_surface_delta_missing",
+        "required_output_surface": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        "next_work_unit": work_unit_id,
+        "materialization_decision": "story_surface_delta_or_typed_blocker_required",
+        "reviewer_record_ref": str(record_ref_path.resolve()),
+        "source_eval_id": record_eval_id,
+    }
     return _with_owner_route(
-        {
-            **dict(action),
-            "action_type": "run_quality_repair_batch",
-            "owner": "write",
-            "request_owner": "write",
-            "recommended_owner": "write",
-            "reason": "manuscript_story_surface_delta_missing",
-            "required_output_surface": (
-                "canonical manuscript story-surface delta or "
-                "typed blocker:manuscript_story_surface_delta_missing"
-            ),
-            "next_work_unit": work_unit_id,
-            "materialization_decision": "story_surface_delta_or_typed_blocker_required",
-            "reviewer_record_ref": str(record_ref_path.resolve()),
-            "source_eval_id": record_eval_id,
-        },
+        _with_owner_output_consumption(
+            action=action_payload,
+            study_root=study_root,
+            record=record,
+            record_ref_path=record_ref_path,
+        ),
         rewritten_route,
     )
+
+
+def _with_owner_output_consumption(
+    *,
+    action: Mapping[str, Any],
+    study_root: Path,
+    record: Mapping[str, Any],
+    record_ref_path: Path,
+) -> dict[str, Any]:
+    lifecycle = domain_action_request_lifecycle.project_ai_reviewer_request_lifecycle(
+        study_root=study_root,
+        publication_eval_payload=record,
+    )
+    return ai_reviewer_owner_output_consumption.with_owner_output_consumption(
+        payload=action,
+        publication_eval_payload=record,
+        lifecycle=lifecycle,
+    )
+
+
+def _record_study_root(record_ref_path: Path) -> Path:
+    resolved = record_ref_path.expanduser().resolve()
+    for parent in resolved.parents:
+        if parent.name == "artifacts":
+            return parent.parent
+    return resolved.parents[3]
 
 
 def _record_consumes_request_currentness(

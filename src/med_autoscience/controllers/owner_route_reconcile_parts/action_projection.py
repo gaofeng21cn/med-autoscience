@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import analysis_harmonization_owner_result
+from med_autoscience.controllers import ai_reviewer_owner_output_consumption
 from med_autoscience.controllers import provenance_limited_harmonization_owner_result
 from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.owner_route_reconcile_parts import action_decorators
@@ -26,11 +27,6 @@ from med_autoscience.controllers.owner_route_reconcile_parts import story_surfac
 
 
 REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = Path("artifacts/controller/repair_execution_evidence/latest.json")
-CURRENT_MANUSCRIPT_AI_REVIEWER_RECORD_WORK_UNIT = (
-    "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
-)
-
-
 def action_queue(
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
@@ -164,6 +160,10 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    request_lifecycle = ai_reviewer_owner_output_consumption.current_request_lifecycle(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
     submission_refresh_action = _gate_replay_submission_refresh_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -184,6 +184,11 @@ def action_queue(
         publication_eval_payload=publication_eval_payload,
     )
     if gate_replay_write_action is not None:
+        gate_replay_write_action = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
+            payload=gate_replay_write_action,
+            publication_eval_payload=publication_eval_payload,
+            lifecycle=request_lifecycle,
+        )
         return [
             decorate_action(
                 study_id=study_id,
@@ -215,7 +220,9 @@ def action_queue(
             decorate_action(
                 study_id=study_id,
                 quest_id=quest_id,
-                action=_ai_reviewer_record_current_manuscript_action(ai_reviewer_assessment),
+                action=ai_reviewer_owner_output_consumption.current_manuscript_record_action(
+                    ai_reviewer_assessment
+                ),
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,
@@ -248,6 +255,11 @@ def action_queue(
         publication_eval_payload=publication_eval_payload,
     )
     if writer_handoff_action is not None:
+        writer_handoff_action = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
+            payload=writer_handoff_action,
+            publication_eval_payload=publication_eval_payload,
+            lifecycle=request_lifecycle,
+        )
         return [
             decorate_action(
                 study_id=study_id,
@@ -261,6 +273,7 @@ def action_queue(
     consumed_ai_reviewer_route_back = _consumed_ai_reviewer_route_back_actions(
         status,
         publication_eval_payload=publication_eval_payload,
+        request_lifecycle=request_lifecycle,
     )
     if consumed_ai_reviewer_route_back is not None:
         return [
@@ -274,6 +287,21 @@ def action_queue(
             )
             for action in consumed_ai_reviewer_route_back
         ]
+    record_consumption_actions = ai_reviewer_owner_output_consumption.record_consumption_domain_transition_actions(
+        status=status,
+        publication_eval_payload=publication_eval_payload,
+        request_lifecycle=request_lifecycle,
+    )
+    decorated_record_consumption_actions = ai_reviewer_owner_output_consumption.decorate_record_consumption_actions(
+        study_id=study_id,
+        quest_id=quest_id,
+        actions=record_consumption_actions,
+        request_allowed_write_surfaces=request_allowed_write_surfaces,
+        control_allowed_write_surfaces=control_allowed_write_surfaces,
+        forbidden_actions=forbidden_actions,
+    )
+    if decorated_record_consumption_actions is not None:
+        return decorated_record_consumption_actions
     analysis_handoff_action = analysis_harmonization_ai_review.completed_ai_reviewer_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -298,7 +326,7 @@ def action_queue(
             decorate_action(
                 study_id=study_id,
                 quest_id=quest_id,
-                action=_ai_reviewer_record_current_manuscript_digest_mismatch_action(
+                action=ai_reviewer_owner_output_consumption.current_manuscript_digest_mismatch_action(
                     digest_mismatch_ai_reviewer_route
                 ),
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
@@ -325,6 +353,11 @@ def action_queue(
         publication_eval_payload=publication_eval_payload,
     )
     if story_surface_action is not None:
+        story_surface_action = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
+            payload=story_surface_action,
+            publication_eval_payload=publication_eval_payload,
+            lifecycle=request_lifecycle,
+        )
         return [
             decorate_action(
                 study_id=study_id,
@@ -465,6 +498,7 @@ def _consumed_ai_reviewer_route_back_actions(
     status: Mapping[str, Any],
     *,
     publication_eval_payload: Mapping[str, Any],
+    request_lifecycle: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]] | None:
     transition = _mapping(status.get("domain_transition"))
     receipt_consumption = _mapping(transition.get("completion_receipt_consumption"))
@@ -476,8 +510,14 @@ def _consumed_ai_reviewer_route_back_actions(
         return None
     if _text(transition.get("controller_action")) != "request_opl_stage_attempt":
         return None
-    return domain_transition_actions.actions(status, publication_eval_payload=publication_eval_payload)
-
+    return [
+        ai_reviewer_owner_output_consumption.with_owner_output_consumption(
+            payload=action,
+            publication_eval_payload=publication_eval_payload,
+            lifecycle=request_lifecycle,
+        )
+        for action in domain_transition_actions.actions(status, publication_eval_payload=publication_eval_payload)
+    ]
 
 def _explicit_ai_reviewer_request_pending(ai_reviewer_assessment: Mapping[str, Any]) -> bool:
     return (
@@ -494,64 +534,6 @@ def _explicit_ai_reviewer_record_current_manuscript_request_pending(
         and _text(ai_reviewer_assessment.get("blocked_reason"))
         == ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
     )
-
-
-def _ai_reviewer_record_current_manuscript_action(
-    ai_reviewer_assessment: Mapping[str, Any],
-) -> dict[str, Any]:
-    work_unit_id = CURRENT_MANUSCRIPT_AI_REVIEWER_RECORD_WORK_UNIT
-    action = ai_reviewer_actions.ai_reviewer_required_action(
-        reason=ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
-    )
-    action["summary"] = (
-        "The request-bound AI reviewer record predates the current manuscript; produce a new AI reviewer "
-        "publication-eval record against the current manuscript before refreshing publication_eval/latest.json."
-    )
-    action["required_output_surface"] = "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
-    action["next_work_unit"] = work_unit_id
-    action["executable_work_unit"] = work_unit_id
-    action["controller_work_unit_id"] = work_unit_id
-    action["publication_eval_latest_write_allowed"] = False
-    action["controller_decision_write_allowed"] = False
-    action["record_only_surface"] = True
-    if required_refs := _string_items(ai_reviewer_assessment.get("required_currentness_refs")):
-        action["required_currentness_refs"] = required_refs
-    if stale_record_ref := _text(ai_reviewer_assessment.get("stale_record_ref")):
-        action["stale_record_ref"] = stale_record_ref
-    if source_ref := _text(ai_reviewer_assessment.get("source_ref")):
-        action["source_ref"] = source_ref
-    return action
-
-
-def _ai_reviewer_record_current_manuscript_digest_mismatch_action(
-    controller_route: Mapping[str, Any],
-) -> dict[str, Any]:
-    work_unit_id = CURRENT_MANUSCRIPT_AI_REVIEWER_RECORD_WORK_UNIT
-    action = ai_reviewer_actions.ai_reviewer_required_action(
-        reason=ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
-    )
-    action["summary"] = (
-        "The quality repair batch found that the AI reviewer-bound manuscript digest no longer matches "
-        "the canonical manuscript; produce a current AI reviewer publication-eval record before any "
-        "writer redrive."
-    )
-    action["required_output_surface"] = "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
-    action["next_work_unit"] = work_unit_id
-    action["executable_work_unit"] = work_unit_id
-    action["controller_work_unit_id"] = work_unit_id
-    action["controller_route"] = dict(controller_route)
-    action["work_unit_fingerprint"] = _text(controller_route.get("work_unit_fingerprint"))
-    action["source_eval_id"] = _text(controller_route.get("publication_eval_id"))
-    action["publication_eval_latest_write_allowed"] = False
-    action["controller_decision_write_allowed"] = False
-    action["record_only_surface"] = True
-    if required_refs := _string_items(controller_route.get("required_currentness_refs")):
-        action["required_currentness_refs"] = required_refs
-    if stale_record_ref := _text(controller_route.get("stale_record_ref")):
-        action["stale_record_ref"] = stale_record_ref
-    if source_ref := _text(controller_route.get("source_ref")):
-        action["source_ref"] = source_ref
-    return action
 
 
 def _current_controller_ai_reviewer_action(

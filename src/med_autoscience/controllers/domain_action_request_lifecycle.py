@@ -30,6 +30,11 @@ from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_review
     required_inputs,
 )
 from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_record_production_consumption import (
+    currentness_check_mappings,
+    currentness_check_matches_live_ref,
+    currentness_checks_cover_live_ref,
+    effective_required_currentness_refs,
+    owner_output_consumption_ledger,
     publication_eval_matches_attached_request_record,
     request_currentness_refs_for_blocked_reason,
     request_packet_record_production_blocker_reason,
@@ -280,13 +285,15 @@ def _record_currentness_covers_ref(
     if live_digest is None:
         return False
     return any(
-        _currentness_check_matches_live_ref(
+        currentness_check_matches_live_ref(
             study_root=study_root,
             check=check,
             required_ref=required_ref,
             live_digest=live_digest,
+            text=_text,
+            resolved_text_ref=_resolved_text_ref,
         )
-        for check in _currentness_check_mappings(currentness_checks)
+        for check in currentness_check_mappings(currentness_checks)
     )
 
 
@@ -418,7 +425,7 @@ def _block_ai_reviewer_record_missing_currentness(
         text=_text,
         mapping=_mapping,
         resolved_text_ref=_resolved_text_ref,
-        currentness_check_mappings=_currentness_check_mappings,
+        currentness_check_mappings=currentness_check_mappings,
     )
     payload["request_lifecycle"] = lifecycle
     payload.pop("ai_reviewer_record", None)
@@ -776,18 +783,10 @@ def _publication_eval_consumes_record_blocked_request(
         AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
     }:
         return False
-    required_refs = request_currentness_refs_for_blocked_reason(
+    required_refs = _effective_required_currentness_refs(
         study_root=study_root,
         request_packet=request_packet,
         blocked_reason=blocked_reason,
-        stale_after_current_manuscript=AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
-        stale_after_current_inputs=AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
-        stale_after_unit_harmonized_rerun=AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
-        required_inputs=required_inputs,
-        resolved_text_ref=_resolved_text_ref,
-        required_currentness_refs=_request_required_currentness_refs,
-        record_currentness_input_refs=_request_record_currentness_input_refs,
-        analysis_harmonization_currentness_refs=_analysis_harmonization_currentness_refs,
     )
     if not required_refs:
         return False
@@ -796,10 +795,13 @@ def _publication_eval_consumes_record_blocked_request(
     if not currentness_checks:
         return False
     return all(
-        _currentness_checks_cover_live_ref(
+        currentness_checks_cover_live_ref(
             study_root=study_root,
             currentness_checks=currentness_checks,
             required_ref=required_ref,
+            sha256_file=_sha256_file,
+            text=_text,
+            resolved_text_ref=_resolved_text_ref,
         )
         for required_ref in required_refs
     )
@@ -829,82 +831,6 @@ def _request_record_currentness_input_refs(
         request_packet=request_packet,
         required_inputs=required_inputs,
         resolved_text_ref=_resolved_text_ref,
-    )
-
-
-def _currentness_checks_cover_live_ref(
-    *,
-    study_root: Path,
-    currentness_checks: Mapping[str, Any],
-    required_ref: str,
-) -> bool:
-    ref_path = Path(required_ref).expanduser().resolve()
-    live_digest = _sha256_file(ref_path)
-    if live_digest is None:
-        return False
-    for check in _currentness_check_mappings(currentness_checks):
-        if _currentness_check_matches_live_ref(
-            study_root=study_root,
-            check=check,
-            required_ref=str(ref_path),
-            live_digest=live_digest,
-        ):
-            return True
-    return False
-
-
-def _currentness_check_mappings(value: object, *, depth: int = 0) -> list[Mapping[str, Any]]:
-    if depth > 4:
-        return []
-    if isinstance(value, Mapping):
-        mappings: list[Mapping[str, Any]] = [value]
-        for nested in value.values():
-            mappings.extend(_currentness_check_mappings(nested, depth=depth + 1))
-        return mappings
-    if isinstance(value, list):
-        mappings: list[Mapping[str, Any]] = []
-        for item in value:
-            mappings.extend(_currentness_check_mappings(item, depth=depth + 1))
-        return mappings
-    return []
-
-
-def _currentness_check_matches_live_ref(
-    *,
-    study_root: Path,
-    check: Mapping[str, Any],
-    required_ref: str,
-    live_digest: str,
-) -> bool:
-    status = _text(check.get("status"))
-    if status not in {"current", "ready", "fresh", "completed", "materialized"}:
-        return False
-    matched_ref = False
-    for field in (
-        "manuscript_ref",
-        "ref",
-        "path",
-        "source_ref",
-        "evidence_ref",
-        "result_ref",
-    ):
-        resolved = _resolved_text_ref(study_root=study_root, value=check.get(field))
-        if resolved == required_ref:
-            matched_ref = True
-            break
-    if not matched_ref:
-        return False
-    expected_digests = {live_digest, live_digest.removeprefix("sha256:")}
-    return any(
-        (_text(check.get(field)) or "") in expected_digests
-        for field in (
-            "manuscript_digest",
-            "digest",
-            "sha256",
-            "content_sha256",
-            "file_sha256",
-            "file_digest",
-        )
     )
 
 
@@ -969,7 +895,13 @@ def project_ai_reviewer_request_lifecycle(
 
     lifecycle = _mapping(packet.get("request_lifecycle"))
     stale_fields_resolved = output_written and _request_packet_has_record_currentness_blocker(packet)
-    return {
+    blocked_reason = _text(lifecycle.get("blocked_reason"))
+    required_currentness_refs = _effective_required_currentness_refs(
+        study_root=resolved_study_root,
+        request_packet=packet,
+        blocked_reason=blocked_reason,
+    )
+    projected = {
         "surface": "ai_reviewer_request_lifecycle",
         "schema_version": 1,
         "authority": "observability_only",
@@ -984,11 +916,9 @@ def project_ai_reviewer_request_lifecycle(
         "required_output": dict(_mapping(packet.get("required_output") or packet.get("requested_artifact"))),
         "blockers": input_blockers or list(packet.get("blockers") if isinstance(packet.get("blockers"), list) else []),
         "assessment_written": output_written,
-        "blocked_reason": None if stale_fields_resolved else _text(lifecycle.get("blocked_reason")),
+        "blocked_reason": None if stale_fields_resolved else blocked_reason,
         "stale_record_ref": None if stale_fields_resolved else _text(lifecycle.get("stale_record_ref")),
-        "required_currentness_refs": _string_items(
-            None if stale_fields_resolved else lifecycle.get("required_currentness_refs")
-        ),
+        "required_currentness_refs": [] if stale_fields_resolved else required_currentness_refs,
         "source_ref": None if stale_fields_resolved else _text(lifecycle.get("source_ref")),
         "can_authorize_quality": False,
         "can_authorize_finalize": False,
@@ -997,3 +927,48 @@ def project_ai_reviewer_request_lifecycle(
             "request_path": str(request_path),
         },
     }
+    if owner_output_consumption := owner_output_consumption_ledger(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+        request_packet=packet,
+        output_written=output_written,
+        record_blocker_reason=_request_packet_record_blocker_reason,
+        record_production_blocker_reason=_request_packet_record_production_blocker_reason,
+        text=_text,
+        mapping=_mapping,
+        required_inputs=required_inputs,
+        resolved_text_ref=_resolved_text_ref,
+        required_currentness_refs=_request_required_currentness_refs,
+        record_currentness_input_refs=_request_record_currentness_input_refs,
+        analysis_harmonization_currentness_refs=_analysis_harmonization_currentness_refs,
+        stale_after_current_manuscript=AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        stale_after_current_inputs=AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
+        stale_after_unit_harmonized_rerun=AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+    ):
+        projected["owner_output_consumption"] = owner_output_consumption
+        projected["publication_eval_record_ref"] = owner_output_consumption["record_ref"]
+        projected["consumed_currentness_refs"] = owner_output_consumption.get("required_currentness_refs", [])
+    return projected
+
+
+def _effective_required_currentness_refs(
+    *,
+    study_root: Path,
+    request_packet: Mapping[str, Any],
+    blocked_reason: str | None,
+) -> list[str]:
+    return effective_required_currentness_refs(
+        study_root=study_root,
+        request_packet=request_packet,
+        blocked_reason=blocked_reason,
+        stale_after_current_manuscript=AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        stale_after_current_inputs=AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
+        stale_after_unit_harmonized_rerun=AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+        required_inputs=required_inputs,
+        resolved_text_ref=_resolved_text_ref,
+        required_currentness_refs=_request_required_currentness_refs,
+        record_currentness_input_refs=_request_record_currentness_input_refs,
+        analysis_harmonization_currentness_refs=_analysis_harmonization_currentness_refs,
+        string_items=_string_items,
+        mapping=_mapping,
+    )
