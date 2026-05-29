@@ -943,8 +943,6 @@
           ],
           "read_model_materializer_boundary": {
             "active_callers": [],
-            "hosted_package_role": "read_model_projection_package",
-            "hosted_package_truth_role": "projection_only_no_workspace_runtime_truth",
             "does_not_claim": [
               "workspace_workbench_owner",
               "status_wrapper_owner",
@@ -960,6 +958,8 @@
               "runtime_state"
             ],
             "domain_repo_physical_delete_authorized": false,
+            "hosted_package_role": "read_model_projection_package",
+            "hosted_package_truth_role": "projection_only_no_workspace_runtime_truth",
             "materializer_scope": "domain_owned_payload_html_and_hosted_package_projection",
             "physical_module": "src/med_autoscience/controllers/progress_portal_parts/read_model_materializer.py",
             "retention_reason": "The retained module materializes MAS-owned read-model evidence and hosted package refs; it is not a workspace helper, service wrapper, or runtime control owner.",
