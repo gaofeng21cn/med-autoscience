@@ -12,6 +12,7 @@ from typing import Any
 
 LIVE_ATTEMPT_STATES = {"running", "checkpointed", "human_gate"}
 DEFAULT_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
+DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS = 8.0
 STAGE_PROGRESS_LOG_KEYS = (
     "surface_kind",
     "projection_scope",
@@ -54,7 +55,7 @@ def live_provider_attempt_for_study(
     *,
     profile: Any,
     study_id: str,
-    timeout_seconds: float = 3.0,
+    timeout_seconds: float = DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS,
     max_inspect_count: int = 2,
     preferred_actions: Iterable[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any] | None:

@@ -13,6 +13,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002/DM003 的 currentness 修复与论文实质推进经常同轮发生。若 read-model 只看单一 progress delta，会把 controller/provider 修复误读成论文推进，导致 stage log、progress 审阅与资源核算失真。
 - 影响：这是 MAS read-model/projection 语义收紧，不写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json`，也不改变质量裁决、投稿裁决或 artifact authority owner。
 
+## 2026-05-29：live OPL attempt currentness 必须给 queue inspect 足够预算
+
+- 决策：`owner_route_reconcile` 投影 live OPL provider attempt 时，`queue list` 与后续 `queue inspect` 使用同一个 live-attempt inspection budget；默认预算必须覆盖 Temporal-backed queue inspect 的正常延迟，不能继续沿用只适合本地轻量探测的 3 秒窗口。
+- 决策：该预算只影响 read-model/current-control 对已运行 OPL stage attempt 的发现能力，不改变 OPL queue、attempt、retry、dead-letter、provider lifecycle，也不生成 MAS owner receipt、publication verdict、package freshness proof 或 submission readiness。
+- 理由：DM003 暴露出 OPL Temporal queue 中已有运行中的 `return_to_ai_reviewer_workflow` stage attempt，但 `owner_route_reconcile` 的 3 秒 live-attempt timeout 会在真实 queue inspect 延迟下返回 `None`，使 MAS current-control 把 live attempt 误投影为 runtime blocker/idle。根因是 MAS read-model 对 OPL-owned queue inspect 的观测预算过短，不是论文 truth、AI reviewer 或手工 queue 状态问题。
+- 影响：这是 MAS owner-route/read-model currentness 修复，不写 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。修复后论文推进仍必须通过 MAS owner/controller/runtime path 消费 live OPL attempt closeout、AI reviewer-backed eval、publication gate 与 package freshness proof。
+
 ## 2026-05-29：AI reviewer current-manuscript record handoff 必须携带 canonical work unit
 
 - 决策：`ai_reviewer_record_stale_after_current_manuscript` 的显式 AI reviewer request 必须直接生成 record-only `return_to_ai_reviewer_workflow` handoff，并携带 canonical `produce_ai_reviewer_publication_eval_record_against_current_manuscript` work unit、record-only output surface、禁止 `publication_eval/latest.json` / controller decision 直接写入的 authority flags。该 currentness basis 必须在 owner route 中可见，使 default-executor attempt envelope 可被 OPL admission 消费。

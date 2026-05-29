@@ -112,6 +112,112 @@ def test_scan_domain_routes_projects_opl_provider_readiness_from_owner_surface(
     assert readiness["can_authorize_publication_ready"] is False
 
 
+def test_live_provider_attempt_default_budget_allows_temporal_queue_inspect(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    profile_path = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
+    task_id = "frt-live-ai-reviewer"
+    calls: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+
+    def fake_run_opl_json(
+        _opl_bin: Path,
+        args: tuple[str, ...],
+        *,
+        timeout_seconds: float,
+    ) -> dict[str, object] | None:
+        calls.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            assert timeout_seconds > 3.0
+            assert timeout_seconds <= module.DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS
+            return {
+                "family_runtime_queue": {
+                    "tasks": [
+                        {
+                            "task_id": task_id,
+                            "status": "running",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "payload": {
+                                "profile": str(profile_path),
+                                "study_id": study_id,
+                                "action_type": "return_to_ai_reviewer_workflow",
+                                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                                "dispatch_ref": "studies/003/artifacts/supervision/consumer/default_executor_dispatches/immutable/return_to_ai_reviewer_workflow/live.json",
+                            },
+                        }
+                    ]
+                }
+            }
+        if args == ("family-runtime", "queue", "inspect", task_id, "--json"):
+            assert timeout_seconds > 3.0
+            return {
+                "family_runtime_task": {
+                    "task": {
+                        "task_id": task_id,
+                        "task_kind": "domain_owner/default-executor-dispatch",
+                        "payload": {
+                            "profile": str(profile_path),
+                            "study_id": study_id,
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                            "dispatch_ref": "studies/003/artifacts/supervision/consumer/default_executor_dispatches/immutable/return_to_ai_reviewer_workflow/live.json",
+                        },
+                        "current_control_state": {
+                            "running_provider_attempt": True,
+                            "active_run_id": "opl-stage-attempt://sat-live",
+                            "active_stage_attempt_id": "sat-live",
+                            "active_workflow_id": "wf-live",
+                            "current_attempt_state": "running",
+                            "reconciliation_status": "running",
+                            "provider_kind": "temporal",
+                            "provider_run": {"provider_status": "running"},
+                        },
+                    },
+                    "stage_attempts": [
+                        {
+                            "stage_attempt_id": "sat-live",
+                            "status": "running",
+                            "workspace_locator": {
+                                "workspace_root": str(profile.workspace_root),
+                                "action_type": "return_to_ai_reviewer_workflow",
+                                "dispatch_ref": "studies/003/artifacts/supervision/consumer/default_executor_dispatches/immutable/return_to_ai_reviewer_workflow/live.json",
+                            },
+                        }
+                    ],
+                }
+            }
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_run_opl_json", fake_run_opl_json)
+
+    projection = module.live_provider_attempt_for_study(
+        profile=profile,
+        study_id=study_id,
+        preferred_actions=[
+            {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            }
+        ],
+    )
+
+    assert calls == [
+        ("family-runtime", "queue", "list", "--json"),
+        ("family-runtime", "queue", "inspect", task_id, "--json"),
+    ]
+    assert projection is not None
+    assert projection["running_provider_attempt"] is True
+    assert projection["active_stage_attempt_id"] == "sat-live"
+    assert projection["runtime_health"]["runtime_liveness_status"] == "live"
+
+
 def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtime_health(
     monkeypatch,
     tmp_path: Path,
