@@ -6,6 +6,60 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+_PROGRESS_FIRST_STATUS_KEYS = (
+    "current_stage",
+    "current_stage_summary",
+    "current_stage_label",
+    "status_summary",
+    "paper_stage",
+    "paper_stage_summary",
+    "current_blockers",
+    "latest_events",
+    "next_system_action",
+    "next_step",
+    "needs_user_decision",
+    "needs_physician_decision",
+    "progress_freshness",
+    "paper_progress_delta",
+    "platform_repair_delta",
+    "intervention_lane",
+    "operator_verdict",
+    "operator_status_card",
+    "quality_closure_truth",
+    "quality_execution_lane",
+    "quality_review_loop",
+    "supervision",
+    "continuation_state",
+    "study_macro_state",
+    "ai_repair_lifecycle",
+)
+
+_USER_VISIBLE_STATUS_KEYS = (
+    "state",
+    "writer_state",
+    "user_next",
+    "conflict_reason",
+    "package_delivered",
+    "actual_write_active",
+    "meaningful_artifact_delta",
+    "next_owner",
+    "why_not_progressing",
+    "user_action_required",
+    "state_label",
+    "state_summary",
+    "current_stage",
+    "current_stage_label",
+    "current_stage_summary",
+    "status_summary",
+    "paper_stage",
+    "paper_stage_summary",
+    "current_blockers",
+    "next_system_action",
+    "next_step",
+    "needs_user_decision",
+    "needs_physician_decision",
+)
+
 
 def handle_study_read_command(
     args: argparse.Namespace,
@@ -29,7 +83,13 @@ def handle_study_read_command(
             entry_mode=args.entry_mode,
             sync_runtime_summary=False,
         )
-        print(json.dumps(serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                _progress_first_status_payload(serialize_study_runtime_result(result)),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
 
     if args.command == "study-progress":
@@ -138,6 +198,37 @@ def _read_status_payload(
         sync_runtime_summary=False,
     )
     return serialize_study_runtime_result(status)
+
+
+def _progress_first_status_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    progress_projection = payload.get("progress_projection")
+    if not isinstance(progress_projection, dict):
+        return payload
+    updated = dict(payload)
+    for key in _PROGRESS_FIRST_STATUS_KEYS:
+        if key in progress_projection:
+            updated[key] = progress_projection[key]
+    user_visible = progress_projection.get("user_visible_projection")
+    if _is_current_user_visible_projection(user_visible):
+        updated["user_visible_projection"] = dict(user_visible)
+        for key in _USER_VISIBLE_STATUS_KEYS:
+            if key in user_visible:
+                updated[key] = user_visible[key]
+    updated["progress_first_projection"] = {
+        "surface_kind": "cli_progress_projection_progress_first_view",
+        "source": "progress_projection.user_visible_projection",
+        "runtime_decision_field": "decision",
+        "runtime_reason_field": "reason",
+    }
+    return updated
+
+
+def _is_current_user_visible_projection(value: object) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if value.get("schema_version") != 2:
+        return False
+    return all(key in value for key in ("writer_state", "user_next", "reason", "state_label", "state_summary"))
 
 
 def _resolved_study_refs(
