@@ -69,30 +69,36 @@ def live_provider_attempt_for_study(
         ("family-runtime", "queue", "list", "--json"),
         timeout_seconds=_remaining_seconds(deadline),
     )
-    if queue_payload is None:
-        return None
-    candidate_tasks = _candidate_tasks(
-        queue_payload,
+    if queue_payload is not None:
+        candidate_tasks = _candidate_tasks(
+            queue_payload,
+            profile=profile,
+            study_id=study_id,
+            preferred_actions=preferred_actions,
+        )
+        for task in candidate_tasks[: max(0, max_inspect_count)]:
+            remaining_seconds = _remaining_seconds(deadline)
+            if remaining_seconds <= 0:
+                return None
+            task_id = _text(task.get("task_id"))
+            if task_id is None:
+                continue
+            inspected = _run_opl_json(
+                opl_bin,
+                ("family-runtime", "queue", "inspect", task_id, "--json"),
+                timeout_seconds=remaining_seconds,
+            )
+            projection = _live_projection_from_inspect(inspected, profile=profile, study_id=study_id)
+            if projection is not None:
+                return projection
+    return _live_projection_from_attempt_ledger(
+        opl_bin=opl_bin,
         profile=profile,
         study_id=study_id,
+        deadline=deadline,
+        max_inspect_count=max_inspect_count,
         preferred_actions=preferred_actions,
     )
-    for task in candidate_tasks[: max(0, max_inspect_count)]:
-        remaining_seconds = _remaining_seconds(deadline)
-        if remaining_seconds <= 0:
-            return None
-        task_id = _text(task.get("task_id"))
-        if task_id is None:
-            continue
-        inspected = _run_opl_json(
-            opl_bin,
-            ("family-runtime", "queue", "inspect", task_id, "--json"),
-            timeout_seconds=remaining_seconds,
-        )
-        projection = _live_projection_from_inspect(inspected, profile=profile, study_id=study_id)
-        if projection is not None:
-            return projection
-    return None
 
 
 def current_provider_readiness(
@@ -298,6 +304,135 @@ def _candidate_tasks(
     return matched
 
 
+def _live_projection_from_attempt_ledger(
+    *,
+    opl_bin: Path,
+    profile: Any,
+    study_id: str,
+    deadline: float,
+    max_inspect_count: int,
+    preferred_actions: Iterable[Mapping[str, Any]] | None,
+) -> dict[str, Any] | None:
+    remaining_seconds = _remaining_seconds(deadline)
+    if remaining_seconds <= 0:
+        return None
+    attempts_payload = _run_opl_json(
+        opl_bin,
+        ("family-runtime", "attempt", "list", "--json"),
+        timeout_seconds=remaining_seconds,
+    )
+    if attempts_payload is None:
+        return None
+    candidate_attempts = _candidate_attempts(
+        attempts_payload,
+        profile=profile,
+        study_id=study_id,
+        preferred_actions=preferred_actions,
+    )
+    for attempt in candidate_attempts[: max(0, max_inspect_count)]:
+        remaining_seconds = _remaining_seconds(deadline)
+        if remaining_seconds <= 0:
+            return None
+        stage_attempt_id = _text(attempt.get("stage_attempt_id"))
+        if stage_attempt_id is None:
+            continue
+        inspected = _run_opl_json(
+            opl_bin,
+            ("family-runtime", "attempt", "inspect", stage_attempt_id, "--json"),
+            timeout_seconds=remaining_seconds,
+        )
+        projection = _live_projection_from_attempt_inspect(
+            inspected,
+            profile=profile,
+            study_id=study_id,
+        )
+        if projection is not None:
+            return projection
+    return None
+
+
+def _candidate_attempts(
+    attempts_payload: Mapping[str, Any],
+    *,
+    profile: Any,
+    study_id: str,
+    preferred_actions: Iterable[Mapping[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    attempts_surface = _mapping(attempts_payload.get("family_runtime_stage_attempts"))
+    attempts = [
+        dict(item)
+        for item in attempts_surface.get("attempts") or attempts_surface.get("stage_attempts") or []
+        if isinstance(item, Mapping)
+    ]
+    matched = [
+        attempt
+        for attempt in attempts
+        if _attempt_matches_study(attempt, profile=profile, study_id=study_id)
+        and _text(attempt.get("domain_id")) == "medautoscience"
+        and _text(attempt.get("stage_id")) == "domain_owner/default-executor-dispatch"
+        and _attempt_is_live(attempt)
+    ]
+    preferred = _preferred_action_keys(preferred_actions)
+    matched.sort(key=lambda attempt: _attempt_updated_at(attempt) or "", reverse=True)
+    if preferred:
+        matched.sort(key=lambda attempt: _preferred_attempt_rank(attempt, preferred))
+    matched.sort(key=_attempt_status_priority)
+    return matched
+
+
+def _attempt_matches_study(attempt: Mapping[str, Any], *, profile: Any, study_id: str) -> bool:
+    locator = _mapping(attempt.get("workspace_locator"))
+    attempt_study_id = _text(locator.get("study_id")) or _text(attempt.get("study_id"))
+    attempt_quest_id = _text(locator.get("quest_id")) or _text(attempt.get("quest_id"))
+    if study_id not in {attempt_study_id, attempt_quest_id}:
+        return False
+    workspace_root = _text(locator.get("workspace_root")) or _text(attempt.get("workspace_root"))
+    if workspace_root is None:
+        return True
+    try:
+        return Path(workspace_root).expanduser().resolve() == profile.workspace_root.resolve()
+    except OSError:
+        return False
+
+
+def _attempt_is_live(attempt: Mapping[str, Any]) -> bool:
+    provider_run = _mapping(attempt.get("provider_run"))
+    return (
+        _text(attempt.get("status")) in LIVE_ATTEMPT_STATES
+        or _text(provider_run.get("provider_status")) in LIVE_ATTEMPT_STATES
+    )
+
+
+def _attempt_status_priority(attempt: Mapping[str, Any]) -> int:
+    return 0 if _attempt_is_live(attempt) else 1
+
+
+def _attempt_updated_at(attempt: Mapping[str, Any]) -> str | None:
+    provider_run = _mapping(attempt.get("provider_run"))
+    return (
+        _text(provider_run.get("last_heartbeat_at"))
+        or _text(attempt.get("updated_at"))
+        or _text(attempt.get("created_at"))
+    )
+
+
+def _preferred_attempt_rank(
+    attempt: Mapping[str, Any],
+    preferred: set[tuple[str | None, str | None, str | None]],
+) -> int:
+    locator = _mapping(attempt.get("workspace_locator"))
+    payload_like = {
+        "action_type": _text(locator.get("action_type")) or _text(attempt.get("action_type")),
+        "work_unit_id": _text(locator.get("work_unit_id")) or _text(attempt.get("work_unit_id")),
+        "executable_work_unit": _text(locator.get("executable_work_unit"))
+        or _text(attempt.get("executable_work_unit")),
+        "controller_work_unit_id": _text(locator.get("controller_work_unit_id"))
+        or _text(attempt.get("controller_work_unit_id")),
+        "dispatch_ref": _text(locator.get("dispatch_ref")) or _text(attempt.get("dispatch_ref")),
+    }
+    return _preferred_task_rank({"payload": payload_like}, preferred)
+
+
 def _task_matches_study(task: Mapping[str, Any], *, profile: Any, study_id: str) -> bool:
     payload = _mapping(task.get("payload"))
     if _text(payload.get("study_id")) != study_id:
@@ -460,6 +595,79 @@ def _live_projection_from_inspect(
         },
     }
     stage_progress_log = _stage_progress_log(control.get("stage_progress_log"))
+    if stage_progress_log:
+        projection["stage_progress_log"] = stage_progress_log
+    return projection
+
+
+def _live_projection_from_attempt_inspect(
+    inspect_payload: Mapping[str, Any] | None,
+    *,
+    profile: Any,
+    study_id: str,
+) -> dict[str, Any] | None:
+    if inspect_payload is None:
+        return None
+    attempt_surface = _mapping(inspect_payload.get("family_runtime_stage_attempt"))
+    attempt = _mapping(attempt_surface.get("attempt"))
+    if not attempt:
+        return None
+    if not _attempt_matches_study(attempt, profile=profile, study_id=study_id):
+        return None
+    if _text(attempt.get("domain_id")) != "medautoscience":
+        return None
+    if _text(attempt.get("stage_id")) != "domain_owner/default-executor-dispatch":
+        return None
+    if not _attempt_is_live(attempt):
+        return None
+    stage_attempt_id = _text(attempt.get("stage_attempt_id"))
+    if stage_attempt_id is None:
+        return None
+    locator = _mapping(attempt.get("workspace_locator"))
+    provider_run = _mapping(attempt.get("provider_run"))
+    provider_status = _text(provider_run.get("provider_status"))
+    attempt_state = _text(attempt.get("status"))
+    workflow_id = (
+        _text(attempt.get("workflow_id"))
+        or _text(provider_run.get("workflow_id"))
+        or _text(provider_run.get("run_id"))
+    )
+    task_id = _text(attempt.get("task_id"))
+    projection = {
+        "surface_kind": "opl_current_control_state_provider_attempt",
+        "source": "opl_family_runtime_attempt_inspect",
+        "active_run_id": f"opl-stage-attempt://{stage_attempt_id}",
+        "active_stage_attempt_id": stage_attempt_id,
+        "active_workflow_id": workflow_id,
+        "running_provider_attempt": True,
+        "task_id": task_id,
+        "task_kind": "domain_owner/default-executor-dispatch",
+        "provider_kind": _text(attempt.get("provider_kind")) or _text(provider_run.get("provider_kind")),
+        "action_type": _text(locator.get("action_type")) or _text(attempt.get("action_type")),
+        "work_unit_id": _text(locator.get("work_unit_id")) or _text(attempt.get("work_unit_id")),
+        "dispatch_ref": _text(locator.get("dispatch_ref")) or _text(attempt.get("dispatch_ref")),
+        "current_attempt_state": attempt_state,
+        "reconciliation_status": attempt_state,
+        "provider_run": dict(provider_run),
+        "runtime_health": {
+            "health_status": "running",
+            "runtime_liveness_status": "live",
+            "summary": "OPL family-runtime has a live provider-backed stage attempt for this study.",
+            "provider_status": provider_status,
+        },
+        "refs": {
+            "opl_queue_task": f"opl://family-runtime/tasks/{task_id}" if task_id is not None else None,
+            "opl_stage_attempt": f"opl://stage_attempts/{stage_attempt_id}",
+        },
+        "authority_boundary": {
+            "opl": "provider_attempt_liveness_projection_only",
+            "domain": "truth_quality_artifact_gate_owner",
+            "provider_completion_is_domain_ready": False,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_ready": False,
+        },
+    }
+    stage_progress_log = _stage_progress_log(attempt.get("stage_progress_log"))
     if stage_progress_log:
         projection["stage_progress_log"] = stage_progress_log
     return projection

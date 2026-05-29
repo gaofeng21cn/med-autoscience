@@ -378,7 +378,9 @@ def test_live_provider_attempt_projection_skips_non_live_tasks(monkeypatch, tmp_
                     ]
                 }
             }
-        raise AssertionError(f"non-live tasks must not be inspected: {args}")
+        if args == ("family-runtime", "attempt", "list", "--json"):
+            return {"family_runtime_stage_attempts": {"attempts": []}}
+        raise AssertionError(f"non-live queue tasks must not be inspected: {args}")
 
     monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
     monkeypatch.setattr(module, "_run_opl_json", fake_run)
@@ -386,7 +388,113 @@ def test_live_provider_attempt_projection_skips_non_live_tasks(monkeypatch, tmp_
     result = module.live_provider_attempt_for_study(profile=profile, study_id="001-risk")
 
     assert result is None
-    assert commands == [("family-runtime", "queue", "list", "--json")]
+    assert commands == [
+        ("family-runtime", "queue", "list", "--json"),
+        ("family-runtime", "attempt", "list", "--json"),
+    ]
+
+
+def test_live_provider_attempt_projection_falls_back_to_stage_attempt_ledger(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            return {"family_runtime_queue": {"tasks": []}}
+        if args == ("family-runtime", "attempt", "list", "--json"):
+            return {
+                "family_runtime_stage_attempts": {
+                    "attempts": [
+                        {
+                            "stage_attempt_id": "sat-live",
+                            "domain_id": "medautoscience",
+                            "stage_id": "domain_owner/default-executor-dispatch",
+                            "status": "running",
+                            "task_id": "frt-live",
+                            "provider_run": {
+                                "provider_status": "running",
+                                "workflow_id": "wf-live",
+                                "last_heartbeat_at": "2026-05-29T09:13:53Z",
+                            },
+                            "workspace_locator": {
+                                "workspace_root": str(profile.workspace_root),
+                                "study_id": study_id,
+                                "quest_id": study_id,
+                                "action_type": "run_quality_repair_batch",
+                                "work_unit_id": "medical_prose_write_repair",
+                                "dispatch_ref": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                            },
+                        }
+                    ]
+                }
+            }
+        if args == ("family-runtime", "attempt", "inspect", "sat-live", "--json"):
+            return {
+                "family_runtime_stage_attempt": {
+                    "attempt": {
+                        "stage_attempt_id": "sat-live",
+                        "domain_id": "medautoscience",
+                        "stage_id": "domain_owner/default-executor-dispatch",
+                        "status": "running",
+                        "task_id": "frt-live",
+                        "provider_kind": "temporal",
+                        "workflow_id": "wf-live",
+                        "provider_run": {
+                            "provider_status": "running",
+                            "workflow_id": "wf-live",
+                            "last_heartbeat_at": "2026-05-29T09:13:53Z",
+                        },
+                        "workspace_locator": {
+                            "workspace_root": str(profile.workspace_root),
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": "medical_prose_write_repair",
+                            "dispatch_ref": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                        },
+                        "stage_progress_log": {
+                            "surface_kind": "opl_stage_progress_log_summary",
+                            "projection_scope": "stage_attempt_workbench",
+                            "attempt_count": 1,
+                            "runner_progress_event_count": 4,
+                            "attempt_refs": [
+                                "/stage_attempt_workbench/attempts/sat-live/stage_progress_log"
+                            ],
+                        },
+                    }
+                }
+            }
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.live_provider_attempt_for_study(profile=profile, study_id=study_id)
+
+    assert result is not None
+    assert result["source"] == "opl_family_runtime_attempt_inspect"
+    assert result["active_run_id"] == "opl-stage-attempt://sat-live"
+    assert result["active_stage_attempt_id"] == "sat-live"
+    assert result["active_workflow_id"] == "wf-live"
+    assert result["running_provider_attempt"] is True
+    assert result["task_id"] == "frt-live"
+    assert result["action_type"] == "run_quality_repair_batch"
+    assert result["work_unit_id"] == "medical_prose_write_repair"
+    assert result["runtime_health"]["runtime_liveness_status"] == "live"
+    assert result["stage_progress_log"]["attempt_count"] == 1
+    assert commands == [
+        ("family-runtime", "queue", "list", "--json"),
+        ("family-runtime", "attempt", "list", "--json"),
+        ("family-runtime", "attempt", "inspect", "sat-live", "--json"),
+    ]
 
 
 def test_live_provider_attempt_projection_limits_queue_inspect_candidates(monkeypatch, tmp_path: Path) -> None:
@@ -441,6 +549,7 @@ def test_live_provider_attempt_projection_limits_queue_inspect_candidates(monkey
         ("family-runtime", "queue", "list", "--json"),
         ("family-runtime", "queue", "inspect", "frt-4", "--json"),
         ("family-runtime", "queue", "inspect", "frt-3", "--json"),
+        ("family-runtime", "attempt", "list", "--json"),
     ]
 
 
