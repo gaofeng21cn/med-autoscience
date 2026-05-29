@@ -525,6 +525,43 @@
             "role": "runtime_status_monitor"
           }
         ],
+        "progress_delta_policy": {
+          "authority_boundary": {
+            "mas_retains_publication_quality_authority": true,
+            "opl_can_authorize_quality_or_export": false,
+            "opl_can_infer_domain_work": false,
+            "opl_can_read_artifact_body": false,
+            "opl_can_write_domain_truth": false
+          },
+          "classification_values": [
+            "deliverable_progress",
+            "platform_repair",
+            "mixed",
+            "typed_blocker",
+            "human_gate",
+            "stop_loss"
+          ],
+          "deliverable_delta_aliases": {
+            "paper_progress_delta": "deliverable_progress_delta",
+            "paper_work_progress": "deliverable_progress_delta"
+          },
+          "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "owner": "one-person-lab",
+          "platform_delta_aliases": {
+            "platform_repair_delta": "platform_repair_delta"
+          },
+          "platform_only_is_not_deliverable_progress": true,
+          "projection_surface": "stage_progress_log.user_stage_log",
+          "required_fields": [
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta"
+          ],
+          "standard_agent_requirement": "stage_closeout_must_classify_deliverable_progress_vs_platform_repair_or_return_typed_blocker",
+          "surface_kind": "opl_stage_progress_delta_policy",
+          "version": "progress-delta-policy.v1"
+        },
         "requires": [
           "study_direction_request_received"
         ],
@@ -564,6 +601,37 @@
             "role": "mas_guarded_action_trigger_candidates"
           }
         ],
+        "typed_blocker_lineage_policy": {
+          "authority_boundary": {
+            "mas_retains_typed_blocker_authority": true,
+            "opl_can_claim_deliverable_progress_from_platform_repair": false,
+            "opl_can_escalate_without_domain_or_human_gate_ref": false,
+            "opl_can_generate_domain_blocker": false
+          },
+          "owner": "one-person-lab",
+          "platform_only_delta_policy": "does_not_reset_deliverable_stall_budget",
+          "repeat_budget": {
+            "human_gate_or_stop_loss_after_repeat_count": 3,
+            "mechanism_repair_after_repeat_count": 2
+          },
+          "required_fields": [
+            "blocker_family",
+            "study_id_or_domain_identity",
+            "work_unit_id",
+            "eval_id_or_review_ref",
+            "source_fingerprint",
+            "repeat_count",
+            "first_seen",
+            "last_seen",
+            "last_deliverable_delta",
+            "next_forced_delta",
+            "escalation_owner",
+            "terminal"
+          ],
+          "standard_agent_requirement": "typed_blockers_must_include_repeat_budget_lineage_next_forced_delta_and_escalation_owner",
+          "surface_kind": "family-stall-lineage.v1",
+          "version": "family-stall-lineage.v1"
+        },
         "user_stage_log_contract": {
           "authority_boundary": {
             "mas_retains_publication_quality_authority": true,
@@ -1116,6 +1184,43 @@
             "role": "runtime_status_monitor"
           }
         ],
+        "progress_delta_policy": {
+          "authority_boundary": {
+            "mas_retains_publication_quality_authority": true,
+            "opl_can_authorize_quality_or_export": false,
+            "opl_can_infer_domain_work": false,
+            "opl_can_read_artifact_body": false,
+            "opl_can_write_domain_truth": false
+          },
+          "classification_values": [
+            "deliverable_progress",
+            "platform_repair",
+            "mixed",
+            "typed_blocker",
+            "human_gate",
+            "stop_loss"
+          ],
+          "deliverable_delta_aliases": {
+            "paper_progress_delta": "deliverable_progress_delta",
+            "paper_work_progress": "deliverable_progress_delta"
+          },
+          "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "owner": "one-person-lab",
+          "platform_delta_aliases": {
+            "platform_repair_delta": "platform_repair_delta"
+          },
+          "platform_only_is_not_deliverable_progress": true,
+          "projection_surface": "stage_progress_log.user_stage_log",
+          "required_fields": [
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta"
+          ],
+          "standard_agent_requirement": "stage_closeout_must_classify_deliverable_progress_vs_platform_repair_or_return_typed_blocker",
+          "surface_kind": "opl_stage_progress_delta_policy",
+          "version": "progress-delta-policy.v1"
+        },
         "requires": [
           "direction_route_selected"
         ],
@@ -1154,6 +1259,37 @@
             "role": "mas_guarded_action_trigger_candidates"
           }
         ],
+        "typed_blocker_lineage_policy": {
+          "authority_boundary": {
+            "mas_retains_typed_blocker_authority": true,
+            "opl_can_claim_deliverable_progress_from_platform_repair": false,
+            "opl_can_escalate_without_domain_or_human_gate_ref": false,
+            "opl_can_generate_domain_blocker": false
+          },
+          "owner": "one-person-lab",
+          "platform_only_delta_policy": "does_not_reset_deliverable_stall_budget",
+          "repeat_budget": {
+            "human_gate_or_stop_loss_after_repeat_count": 3,
+            "mechanism_repair_after_repeat_count": 2
+          },
+          "required_fields": [
+            "blocker_family",
+            "study_id_or_domain_identity",
+            "work_unit_id",
+            "eval_id_or_review_ref",
+            "source_fingerprint",
+            "repeat_count",
+            "first_seen",
+            "last_seen",
+            "last_deliverable_delta",
+            "next_forced_delta",
+            "escalation_owner",
+            "terminal"
+          ],
+          "standard_agent_requirement": "typed_blockers_must_include_repeat_budget_lineage_next_forced_delta_and_escalation_owner",
+          "surface_kind": "family-stall-lineage.v1",
+          "version": "family-stall-lineage.v1"
+        },
         "user_stage_log_contract": {
           "authority_boundary": {
             "mas_retains_publication_quality_authority": true,
@@ -1726,6 +1862,43 @@
             "role": "runtime_status_monitor"
           }
         ],
+        "progress_delta_policy": {
+          "authority_boundary": {
+            "mas_retains_publication_quality_authority": true,
+            "opl_can_authorize_quality_or_export": false,
+            "opl_can_infer_domain_work": false,
+            "opl_can_read_artifact_body": false,
+            "opl_can_write_domain_truth": false
+          },
+          "classification_values": [
+            "deliverable_progress",
+            "platform_repair",
+            "mixed",
+            "typed_blocker",
+            "human_gate",
+            "stop_loss"
+          ],
+          "deliverable_delta_aliases": {
+            "paper_progress_delta": "deliverable_progress_delta",
+            "paper_work_progress": "deliverable_progress_delta"
+          },
+          "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "owner": "one-person-lab",
+          "platform_delta_aliases": {
+            "platform_repair_delta": "platform_repair_delta"
+          },
+          "platform_only_is_not_deliverable_progress": true,
+          "projection_surface": "stage_progress_log.user_stage_log",
+          "required_fields": [
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta"
+          ],
+          "standard_agent_requirement": "stage_closeout_must_classify_deliverable_progress_vs_platform_repair_or_return_typed_blocker",
+          "surface_kind": "opl_stage_progress_delta_policy",
+          "version": "progress-delta-policy.v1"
+        },
         "requires": [
           "baseline_evidence_ready"
         ],
@@ -1763,6 +1936,37 @@
             "role": "mas_guarded_action_trigger_candidates"
           }
         ],
+        "typed_blocker_lineage_policy": {
+          "authority_boundary": {
+            "mas_retains_typed_blocker_authority": true,
+            "opl_can_claim_deliverable_progress_from_platform_repair": false,
+            "opl_can_escalate_without_domain_or_human_gate_ref": false,
+            "opl_can_generate_domain_blocker": false
+          },
+          "owner": "one-person-lab",
+          "platform_only_delta_policy": "does_not_reset_deliverable_stall_budget",
+          "repeat_budget": {
+            "human_gate_or_stop_loss_after_repeat_count": 3,
+            "mechanism_repair_after_repeat_count": 2
+          },
+          "required_fields": [
+            "blocker_family",
+            "study_id_or_domain_identity",
+            "work_unit_id",
+            "eval_id_or_review_ref",
+            "source_fingerprint",
+            "repeat_count",
+            "first_seen",
+            "last_seen",
+            "last_deliverable_delta",
+            "next_forced_delta",
+            "escalation_owner",
+            "terminal"
+          ],
+          "standard_agent_requirement": "typed_blockers_must_include_repeat_budget_lineage_next_forced_delta_and_escalation_owner",
+          "surface_kind": "family-stall-lineage.v1",
+          "version": "family-stall-lineage.v1"
+        },
         "user_stage_log_contract": {
           "authority_boundary": {
             "mas_retains_publication_quality_authority": true,
@@ -2354,6 +2558,43 @@
             "role": "runtime_status_monitor"
           }
         ],
+        "progress_delta_policy": {
+          "authority_boundary": {
+            "mas_retains_publication_quality_authority": true,
+            "opl_can_authorize_quality_or_export": false,
+            "opl_can_infer_domain_work": false,
+            "opl_can_read_artifact_body": false,
+            "opl_can_write_domain_truth": false
+          },
+          "classification_values": [
+            "deliverable_progress",
+            "platform_repair",
+            "mixed",
+            "typed_blocker",
+            "human_gate",
+            "stop_loss"
+          ],
+          "deliverable_delta_aliases": {
+            "paper_progress_delta": "deliverable_progress_delta",
+            "paper_work_progress": "deliverable_progress_delta"
+          },
+          "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "owner": "one-person-lab",
+          "platform_delta_aliases": {
+            "platform_repair_delta": "platform_repair_delta"
+          },
+          "platform_only_is_not_deliverable_progress": true,
+          "projection_surface": "stage_progress_log.user_stage_log",
+          "required_fields": [
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta"
+          ],
+          "standard_agent_requirement": "stage_closeout_must_classify_deliverable_progress_vs_platform_repair_or_return_typed_blocker",
+          "surface_kind": "opl_stage_progress_delta_policy",
+          "version": "progress-delta-policy.v1"
+        },
         "requires": [
           "bounded_analysis_evidence_ready"
         ],
@@ -2391,6 +2632,37 @@
             "role": "mas_guarded_action_trigger_candidates"
           }
         ],
+        "typed_blocker_lineage_policy": {
+          "authority_boundary": {
+            "mas_retains_typed_blocker_authority": true,
+            "opl_can_claim_deliverable_progress_from_platform_repair": false,
+            "opl_can_escalate_without_domain_or_human_gate_ref": false,
+            "opl_can_generate_domain_blocker": false
+          },
+          "owner": "one-person-lab",
+          "platform_only_delta_policy": "does_not_reset_deliverable_stall_budget",
+          "repeat_budget": {
+            "human_gate_or_stop_loss_after_repeat_count": 3,
+            "mechanism_repair_after_repeat_count": 2
+          },
+          "required_fields": [
+            "blocker_family",
+            "study_id_or_domain_identity",
+            "work_unit_id",
+            "eval_id_or_review_ref",
+            "source_fingerprint",
+            "repeat_count",
+            "first_seen",
+            "last_seen",
+            "last_deliverable_delta",
+            "next_forced_delta",
+            "escalation_owner",
+            "terminal"
+          ],
+          "standard_agent_requirement": "typed_blockers_must_include_repeat_budget_lineage_next_forced_delta_and_escalation_owner",
+          "surface_kind": "family-stall-lineage.v1",
+          "version": "family-stall-lineage.v1"
+        },
         "user_stage_log_contract": {
           "authority_boundary": {
             "mas_retains_publication_quality_authority": true,
@@ -3006,6 +3278,43 @@
             "role": "runtime_status_monitor"
           }
         ],
+        "progress_delta_policy": {
+          "authority_boundary": {
+            "mas_retains_publication_quality_authority": true,
+            "opl_can_authorize_quality_or_export": false,
+            "opl_can_infer_domain_work": false,
+            "opl_can_read_artifact_body": false,
+            "opl_can_write_domain_truth": false
+          },
+          "classification_values": [
+            "deliverable_progress",
+            "platform_repair",
+            "mixed",
+            "typed_blocker",
+            "human_gate",
+            "stop_loss"
+          ],
+          "deliverable_delta_aliases": {
+            "paper_progress_delta": "deliverable_progress_delta",
+            "paper_work_progress": "deliverable_progress_delta"
+          },
+          "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "owner": "one-person-lab",
+          "platform_delta_aliases": {
+            "platform_repair_delta": "platform_repair_delta"
+          },
+          "platform_only_is_not_deliverable_progress": true,
+          "projection_surface": "stage_progress_log.user_stage_log",
+          "required_fields": [
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta"
+          ],
+          "standard_agent_requirement": "stage_closeout_must_classify_deliverable_progress_vs_platform_repair_or_return_typed_blocker",
+          "surface_kind": "opl_stage_progress_delta_policy",
+          "version": "progress-delta-policy.v1"
+        },
         "requires": [
           "manuscript_draft_reviewable"
         ],
@@ -3044,6 +3353,37 @@
             "role": "mas_guarded_action_trigger_candidates"
           }
         ],
+        "typed_blocker_lineage_policy": {
+          "authority_boundary": {
+            "mas_retains_typed_blocker_authority": true,
+            "opl_can_claim_deliverable_progress_from_platform_repair": false,
+            "opl_can_escalate_without_domain_or_human_gate_ref": false,
+            "opl_can_generate_domain_blocker": false
+          },
+          "owner": "one-person-lab",
+          "platform_only_delta_policy": "does_not_reset_deliverable_stall_budget",
+          "repeat_budget": {
+            "human_gate_or_stop_loss_after_repeat_count": 3,
+            "mechanism_repair_after_repeat_count": 2
+          },
+          "required_fields": [
+            "blocker_family",
+            "study_id_or_domain_identity",
+            "work_unit_id",
+            "eval_id_or_review_ref",
+            "source_fingerprint",
+            "repeat_count",
+            "first_seen",
+            "last_seen",
+            "last_deliverable_delta",
+            "next_forced_delta",
+            "escalation_owner",
+            "terminal"
+          ],
+          "standard_agent_requirement": "typed_blockers_must_include_repeat_budget_lineage_next_forced_delta_and_escalation_owner",
+          "surface_kind": "family-stall-lineage.v1",
+          "version": "family-stall-lineage.v1"
+        },
         "user_stage_log_contract": {
           "authority_boundary": {
             "mas_retains_publication_quality_authority": true,
@@ -3659,6 +3999,43 @@
             "role": "runtime_status_monitor"
           }
         ],
+        "progress_delta_policy": {
+          "authority_boundary": {
+            "mas_retains_publication_quality_authority": true,
+            "opl_can_authorize_quality_or_export": false,
+            "opl_can_infer_domain_work": false,
+            "opl_can_read_artifact_body": false,
+            "opl_can_write_domain_truth": false
+          },
+          "classification_values": [
+            "deliverable_progress",
+            "platform_repair",
+            "mixed",
+            "typed_blocker",
+            "human_gate",
+            "stop_loss"
+          ],
+          "deliverable_delta_aliases": {
+            "paper_progress_delta": "deliverable_progress_delta",
+            "paper_work_progress": "deliverable_progress_delta"
+          },
+          "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "owner": "one-person-lab",
+          "platform_delta_aliases": {
+            "platform_repair_delta": "platform_repair_delta"
+          },
+          "platform_only_is_not_deliverable_progress": true,
+          "projection_surface": "stage_progress_log.user_stage_log",
+          "required_fields": [
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta"
+          ],
+          "standard_agent_requirement": "stage_closeout_must_classify_deliverable_progress_vs_platform_repair_or_return_typed_blocker",
+          "surface_kind": "opl_stage_progress_delta_policy",
+          "version": "progress-delta-policy.v1"
+        },
         "requires": [
           "ai_reviewer_gate_receipt_recorded"
         ],
@@ -3698,6 +4075,37 @@
             "role": "mas_guarded_action_trigger_candidates"
           }
         ],
+        "typed_blocker_lineage_policy": {
+          "authority_boundary": {
+            "mas_retains_typed_blocker_authority": true,
+            "opl_can_claim_deliverable_progress_from_platform_repair": false,
+            "opl_can_escalate_without_domain_or_human_gate_ref": false,
+            "opl_can_generate_domain_blocker": false
+          },
+          "owner": "one-person-lab",
+          "platform_only_delta_policy": "does_not_reset_deliverable_stall_budget",
+          "repeat_budget": {
+            "human_gate_or_stop_loss_after_repeat_count": 3,
+            "mechanism_repair_after_repeat_count": 2
+          },
+          "required_fields": [
+            "blocker_family",
+            "study_id_or_domain_identity",
+            "work_unit_id",
+            "eval_id_or_review_ref",
+            "source_fingerprint",
+            "repeat_count",
+            "first_seen",
+            "last_seen",
+            "last_deliverable_delta",
+            "next_forced_delta",
+            "escalation_owner",
+            "terminal"
+          ],
+          "standard_agent_requirement": "typed_blockers_must_include_repeat_budget_lineage_next_forced_delta_and_escalation_owner",
+          "surface_kind": "family-stall-lineage.v1",
+          "version": "family-stall-lineage.v1"
+        },
         "user_stage_log_contract": {
           "authority_boundary": {
             "mas_retains_publication_quality_authority": true,

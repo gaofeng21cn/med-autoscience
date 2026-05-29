@@ -299,6 +299,30 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         }
         assert user_stage_log["authority_boundary"]["opl_can_infer_domain_semantics"] is False
         assert user_stage_log["authority_boundary"]["mas_retains_publication_quality_authority"] is True
+        progress_delta_policy = stage["stage_contract"]["progress_delta_policy"]
+        assert progress_delta_policy["surface_kind"] == "opl_stage_progress_delta_policy"
+        assert set(progress_delta_policy["required_fields"]) >= {
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta",
+        }
+        assert progress_delta_policy["platform_only_is_not_deliverable_progress"] is True
+        assert progress_delta_policy["deliverable_delta_aliases"]["paper_progress_delta"] == (
+            "deliverable_progress_delta"
+        )
+        typed_blocker_lineage_policy = stage["stage_contract"]["typed_blocker_lineage_policy"]
+        assert typed_blocker_lineage_policy["surface_kind"] == "family-stall-lineage.v1"
+        assert set(typed_blocker_lineage_policy["required_fields"]) >= {
+            "blocker_family",
+            "repeat_count",
+            "next_forced_delta",
+            "escalation_owner",
+        }
+        assert typed_blocker_lineage_policy["repeat_budget"] == {
+            "mechanism_repair_after_repeat_count": 2,
+            "human_gate_or_stop_loss_after_repeat_count": 3,
+        }
     assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
     assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"
     assert generated["functional_privatization_audit"]["functional_followthrough_gap_summary"][
