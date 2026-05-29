@@ -190,6 +190,9 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
     assert "missing_usage_telemetry_attempt_count: `1`" in markdown
     assert "developer_supervisor_attention_required: `True`" in markdown
     assert "runtime_recovery_retry_budget_exhausted" in markdown
+    assert result["paper_progress_delta"]["count"] == 0
+    assert result["paper_progress_delta"]["token_usage_total"] == 0
+    assert result["platform_repair_delta"]["count"] == 1
 
 
 def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(

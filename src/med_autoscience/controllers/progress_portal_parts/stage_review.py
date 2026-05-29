@@ -654,6 +654,10 @@ def _stage_log_html(stage_log: Mapping[str, Any]) -> str:
         f"结果: {_non_empty_text(stage_log.get('outcome'))}"
         if _non_empty_text(stage_log.get("outcome"))
         else None,
+        f"进展分类: {_non_empty_text(stage_log.get('progress_delta_classification'))}"
+        if _non_empty_text(stage_log.get("progress_delta_classification"))
+        else None,
+        _stage_log_delta_stats_text(stage_log),
         f"剩余阻塞: {'; '.join(_string_list(stage_log.get('remaining_blockers')))}"
         if _string_list(stage_log.get("remaining_blockers"))
         else None,
@@ -667,6 +671,22 @@ def _stage_log_html(stage_log: Mapping[str, Any]) -> str:
     return "<h3>Stage Log 摘要</h3>" + list_html(
         filtered,
         empty_text="当前没有可展示的 stage log 摘要。",
+    )
+
+
+def _stage_log_delta_stats_text(stage_log: Mapping[str, Any]) -> str | None:
+    paper = _mapping(stage_log.get("paper_progress_delta"))
+    platform = _mapping(stage_log.get("platform_repair_delta"))
+    if not paper and not platform:
+        return None
+    paper_count = int(paper.get("count") or 0)
+    paper_tokens = int(paper.get("token_usage_total") or 0)
+    platform_count = int(platform.get("count") or 0)
+    platform_tokens = int(platform.get("token_usage_total") or 0)
+    return (
+        "分账统计: "
+        f"paper_progress_delta={paper_count} (tokens={paper_tokens}); "
+        f"platform_repair_delta={platform_count} (tokens={platform_tokens})"
     )
 
 

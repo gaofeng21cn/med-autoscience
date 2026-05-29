@@ -20,6 +20,174 @@ from .shared import SCHEMA_VERSION, _mapping_copy, _non_empty_text
 from .user_visible_projection import build_user_visible_projection
 
 
+def _progress_delta_metrics(
+    *,
+    quality_repair_batch_followthrough: dict[str, Any],
+    gate_clearing_batch_followthrough: dict[str, Any],
+    opl_current_control_state_handoff: dict[str, Any] | None,
+    runtime_efficiency: dict[str, Any],
+) -> dict[str, Any]:
+    quality_followthrough = (
+        quality_repair_batch_followthrough
+        if isinstance(quality_repair_batch_followthrough, dict)
+        else {}
+    )
+    gate_followthrough = (
+        gate_clearing_batch_followthrough
+        if isinstance(gate_clearing_batch_followthrough, dict)
+        else {}
+    )
+    efficiency = runtime_efficiency if isinstance(runtime_efficiency, dict) else {}
+    token_usage = _mapping_copy(efficiency.get("token_usage"))
+    total_tokens = _token_usage_total(token_usage)
+    paper_triggered = _paper_progress_triggered(
+        quality_repair_batch_followthrough=quality_followthrough,
+        gate_clearing_batch_followthrough=gate_followthrough,
+    )
+    platform_triggered = _platform_repair_triggered(opl_current_control_state_handoff=opl_current_control_state_handoff)
+    paper_tokens = total_tokens if paper_triggered and not platform_triggered else 0
+    platform_tokens = total_tokens if platform_triggered else 0
+    return {
+        "paper_progress_delta": {
+            "count": 1 if paper_triggered else 0,
+            "token_usage_total": paper_tokens,
+            "sources": _paper_progress_sources(
+                quality_repair_batch_followthrough=quality_followthrough,
+                gate_clearing_batch_followthrough=gate_followthrough,
+            ),
+        },
+        "platform_repair_delta": {
+            "count": 1 if platform_triggered else 0,
+            "token_usage_total": platform_tokens,
+            "sources": _platform_repair_sources(opl_current_control_state_handoff=opl_current_control_state_handoff),
+        },
+    }
+
+
+def _paper_progress_triggered(
+    *,
+    quality_repair_batch_followthrough: dict[str, Any],
+    gate_clearing_batch_followthrough: dict[str, Any],
+) -> bool:
+    quality_status = _non_empty_text(quality_repair_batch_followthrough.get("status"))
+    gate_status = _non_empty_text(gate_clearing_batch_followthrough.get("status"))
+    if quality_status in {"executed", "handoff_ready", "pending"}:
+        return True
+    if gate_status in {"executed", "pending"}:
+        return True
+    if _non_empty_text(quality_repair_batch_followthrough.get("gate_replay_status")) is not None:
+        return True
+    return _non_empty_text(gate_clearing_batch_followthrough.get("gate_replay_status")) is not None
+
+
+def _platform_repair_triggered(*, opl_current_control_state_handoff: dict[str, Any] | None) -> bool:
+    handoff = _mapping_copy(opl_current_control_state_handoff)
+    if not handoff:
+        return False
+    runtime_health = _mapping_copy(handoff.get("runtime_health"))
+    blocked_reason = _non_empty_text(handoff.get("blocked_reason"))
+    next_owner = _non_empty_text(handoff.get("next_owner"))
+    health_status = _non_empty_text(runtime_health.get("health_status"))
+    if blocked_reason in {
+        "runtime_recovery_not_authorized",
+        "runtime_recovery_retry_budget_exhausted",
+        "opl_stage_attempt_admission_required",
+    }:
+        return True
+    if health_status in {"recover_runtime", "escalated", "degraded"}:
+        return True
+    reason_blob = " ".join(
+        text
+        for text in (blocked_reason, next_owner, health_status)
+        if text is not None
+    ).lower()
+    if any(
+        token in reason_blob
+        for token in (
+            "currentness",
+            "controller",
+            "read_model",
+            "provider",
+            "runtime_recovery",
+            "opl_stage_attempt_admission_required",
+        )
+    ):
+        return True
+    return False
+
+
+def _paper_progress_sources(
+    *,
+    quality_repair_batch_followthrough: dict[str, Any],
+    gate_clearing_batch_followthrough: dict[str, Any],
+) -> list[str]:
+    result: list[str] = []
+    if _non_empty_text(quality_repair_batch_followthrough.get("status")) is not None:
+        result.append("quality_repair_batch_followthrough")
+    if _non_empty_text(gate_clearing_batch_followthrough.get("status")) is not None:
+        result.append("gate_clearing_batch_followthrough")
+    if _non_empty_text(quality_repair_batch_followthrough.get("gate_replay_status")) is not None:
+        result.append("quality_repair_gate_replay")
+    if _non_empty_text(gate_clearing_batch_followthrough.get("gate_replay_status")) is not None:
+        result.append("gate_clearing_gate_replay")
+    return result
+
+
+def _platform_repair_sources(*, opl_current_control_state_handoff: dict[str, Any] | None) -> list[str]:
+    handoff = _mapping_copy(opl_current_control_state_handoff)
+    result: list[str] = []
+    if _non_empty_text(handoff.get("blocked_reason")) is not None:
+        result.append("opl_current_control_state.blocked_reason")
+    if _mapping_copy(handoff.get("stage_progress_log")):
+        result.append("opl_current_control_state.stage_progress_log")
+    if _mapping_copy(handoff.get("runtime_health")):
+        result.append("opl_current_control_state.runtime_health")
+    return result
+
+
+def _token_usage_total(token_usage: dict[str, Any]) -> int:
+    total = _number(
+        token_usage.get("total_tokens")
+        if token_usage
+        else None
+    )
+    if total is not None:
+        return total
+    partial = _sum_numbers(
+        token_usage.get("input_tokens") if token_usage else None,
+        token_usage.get("cached_input_tokens") if token_usage else None,
+        token_usage.get("output_tokens") if token_usage else None,
+        token_usage.get("reasoning_tokens") if token_usage else None,
+    )
+    return partial or 0
+
+
+def _number(value: object) -> int | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            return int(float(text))
+        except ValueError:
+            return None
+    return None
+
+
+def _sum_numbers(*values: object) -> int | None:
+    present = [_number(value) for value in values]
+    numbers = [value for value in present if value is not None]
+    if not numbers:
+        return None
+    return sum(numbers)
+
+
 def _progress_payload_identity_fields(
     *,
     generated_at: str,
@@ -325,6 +493,12 @@ def assemble_study_progress_payload(
     supervision_health_status: str | None,
     refs: dict[str, Any],
 ) -> dict[str, Any]:
+    progress_delta = _progress_delta_metrics(
+        quality_repair_batch_followthrough=quality_repair_batch_followthrough,
+        gate_clearing_batch_followthrough=gate_clearing_batch_followthrough,
+        opl_current_control_state_handoff=opl_current_control_state_handoff,
+        runtime_efficiency=runtime_efficiency,
+    )
     payload = {
         **_progress_payload_identity_fields(
             generated_at=generated_at,
@@ -418,6 +592,8 @@ def assemble_study_progress_payload(
             refs=refs,
         ),
         "opl_runtime_refs": runtime_facts.to_runtime_refs_dict(),
+        "paper_progress_delta": progress_delta["paper_progress_delta"],
+        "platform_repair_delta": progress_delta["platform_repair_delta"],
         "refs": refs,
     }
     payload["production_blocker_impact"] = build_production_blocker_impact_projection(

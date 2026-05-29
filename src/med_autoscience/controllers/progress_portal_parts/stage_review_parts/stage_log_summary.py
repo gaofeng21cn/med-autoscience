@@ -46,6 +46,9 @@ def runtime_stage_log_summary(value: Mapping[str, Any] | None) -> dict[str, Any]
         "paper_work_done": _string_list(summary.get("paper_work_done")),
         "changed_paper_surfaces": _string_list(summary.get("changed_paper_surfaces")),
         "outcome": _text(summary.get("outcome")),
+        "progress_delta_classification": _text(summary.get("progress_delta_classification")),
+        "paper_progress_delta": _mapping(summary.get("paper_progress_delta")),
+        "platform_repair_delta": _mapping(summary.get("platform_repair_delta")),
         "remaining_blockers": _string_list(summary.get("remaining_blockers")),
         "evidence_refs": _dedupe_refs(summary.get("evidence_refs") or []),
         "language_boundary": _mapping(summary.get("language_boundary")) or _language_boundary(),
@@ -62,6 +65,13 @@ def _normalize_explicit_stage_log_summary(
 ) -> dict[str, Any]:
     row = _mapping(fallback_row)
     next_owner = _mapping(row.get("next_owner"))
+    progress_delta = _progress_delta_projection(
+        stage_log=_mapping(value),
+        evidence={},
+        quality_repair={},
+        paper_asset_delta={},
+        changed_paper_surfaces=_string_list(value.get("changed_paper_surfaces")),
+    )
     return {
         "surface_kind": "mas_paper_facing_stage_log_summary",
         "schema_version": 1,
@@ -73,6 +83,9 @@ def _normalize_explicit_stage_log_summary(
         "paper_work_done": _string_list(value.get("paper_work_done")),
         "changed_paper_surfaces": _string_list(value.get("changed_paper_surfaces")),
         "outcome": _text(value.get("outcome")),
+        "progress_delta_classification": _text(progress_delta.get("classification")),
+        "paper_progress_delta": _mapping(progress_delta.get("paper_progress_delta")),
+        "platform_repair_delta": _mapping(progress_delta.get("platform_repair_delta")),
         "remaining_blockers": _string_list(value.get("remaining_blockers")) or _string_list(row.get("blockers")),
         "evidence_refs": _dedupe_refs(
             [
@@ -134,6 +147,14 @@ def _derived_stage_log_summary(
             _text(quality_repair.get("repair_execution_evidence_path")),
         ]
     )
+    stage_log = _mapping(progress.get("stage_log_summary")) or _mapping(progress.get("paper_facing_stage_log_summary"))
+    progress_delta = _progress_delta_projection(
+        stage_log=stage_log,
+        evidence=evidence,
+        quality_repair=quality_repair,
+        paper_asset_delta=paper_asset_delta,
+        changed_paper_surfaces=changed_surfaces,
+    )
     return {
         "surface_kind": "mas_paper_facing_stage_log_summary",
         "schema_version": 1,
@@ -156,6 +177,9 @@ def _derived_stage_log_summary(
         ),
         "changed_paper_surfaces": changed_surfaces,
         "outcome": _outcome(evidence=evidence, quality_repair=quality_repair),
+        "progress_delta_classification": _text(progress_delta.get("classification")),
+        "paper_progress_delta": _mapping(progress_delta.get("paper_progress_delta")),
+        "platform_repair_delta": _mapping(progress_delta.get("platform_repair_delta")),
         "remaining_blockers": blockers,
         "evidence_refs": evidence_refs,
         "language_boundary": _language_boundary(),
@@ -214,6 +238,185 @@ def _outcome(*, evidence: Mapping[str, Any], quality_repair: Mapping[str, Any]) 
     if status == "pending":
         return "pending_required_followthrough"
     return status
+
+
+def _progress_delta_projection(
+    *,
+    stage_log: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    quality_repair: Mapping[str, Any],
+    paper_asset_delta: Mapping[str, Any],
+    changed_paper_surfaces: list[str],
+) -> dict[str, Any]:
+    token_usage_total = _token_usage_total(stage_log, evidence, quality_repair)
+    paper_delta = _is_paper_progress_delta(
+        stage_log=stage_log,
+        evidence=evidence,
+        quality_repair=quality_repair,
+        paper_asset_delta=paper_asset_delta,
+        changed_paper_surfaces=changed_paper_surfaces,
+    )
+    platform_delta = _is_platform_repair_delta(
+        stage_log=stage_log,
+        evidence=evidence,
+        quality_repair=quality_repair,
+    )
+    if paper_delta and not platform_delta:
+        classification = "paper_progress_delta"
+    elif platform_delta and not paper_delta:
+        classification = "platform_repair_delta"
+    elif paper_delta and platform_delta:
+        classification = "mixed"
+    else:
+        classification = "unknown"
+    paper_tokens = token_usage_total if paper_delta and not platform_delta else 0
+    platform_tokens = token_usage_total if platform_delta else 0
+    return {
+        "classification": classification,
+        "paper_progress_delta": {
+            "count": 1 if paper_delta else 0,
+            "token_usage_total": paper_tokens,
+        },
+        "platform_repair_delta": {
+            "count": 1 if platform_delta else 0,
+            "token_usage_total": platform_tokens,
+        },
+    }
+
+
+def _token_usage_total(
+    stage_log: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    quality_repair: Mapping[str, Any],
+) -> int:
+    for value in (stage_log, evidence, quality_repair):
+        token_usage = _mapping(value.get("token_usage")) or _mapping(value.get("usage"))
+        total = _first_number(
+            token_usage.get("total_tokens"),
+            token_usage.get("total"),
+            token_usage.get("token_total"),
+            value.get("token_total"),
+            value.get("token_count"),
+        )
+        if total is not None:
+            return total
+        partial = _sum_numbers(
+            token_usage.get("input_tokens"),
+            token_usage.get("cached_input_tokens"),
+            token_usage.get("output_tokens"),
+            token_usage.get("reasoning_tokens"),
+        )
+        if partial is not None:
+            return partial
+    return 0
+
+
+def _is_paper_progress_delta(
+    *,
+    stage_log: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    quality_repair: Mapping[str, Any],
+    paper_asset_delta: Mapping[str, Any],
+    changed_paper_surfaces: list[str],
+) -> bool:
+    if _text(_outcome(evidence=evidence, quality_repair=quality_repair)) == "paper_progress_delta_recorded":
+        return True
+    if _text(evidence.get("status")) == "progress_delta_candidate":
+        return True
+    if _text(quality_repair.get("route_outcome")) == "write_repair_delta_recorded":
+        return True
+    if _text(quality_repair.get("gate_replay_status")) is not None:
+        return True
+    if evidence.get("ai_reviewer_recheck_done") is True or _text(evidence.get("ai_reviewer_recheck_request_ref")) is not None:
+        return True
+    if changed_paper_surfaces:
+        return True
+    if _string_list(paper_asset_delta.get("delta_types")):
+        return True
+    canonical_delta = _mapping(evidence.get("canonical_artifact_delta"))
+    return canonical_delta.get("meaningful_artifact_delta") is True
+
+
+def _is_platform_repair_delta(
+    *,
+    stage_log: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    quality_repair: Mapping[str, Any],
+) -> bool:
+    if _text(_outcome(evidence=evidence, quality_repair=quality_repair)) == "controller_progress_delta_recorded":
+        return True
+    if _text(evidence.get("status")) == "controller_progress_delta_candidate":
+        return True
+    blocker_text = " ".join(_string_list(stage_log.get("remaining_blockers"))).lower()
+    if any(
+        keyword in blocker_text
+        for keyword in (
+            "runtime_recovery",
+            "currentness",
+            "controller",
+            "read_model",
+            "provider",
+            "opl_stage_attempt_admission_required",
+        )
+    ):
+        return True
+    text_hints = " ".join(
+        text
+        for text in (
+            _text(stage_log.get("stage_goal")),
+            _text(stage_log.get("problem_summary")),
+            _text(stage_log.get("outcome")),
+            _text(quality_repair.get("summary")),
+            _text(quality_repair.get("route_outcome")),
+            _text(evidence.get("status")),
+        )
+        if text is not None
+    ).lower()
+    return any(
+        keyword in text_hints
+        for keyword in (
+            "controller",
+            "read_model",
+            "currentness",
+            "provider",
+            "runtime_recovery",
+            "opl_stage_attempt_admission_required",
+        )
+    )
+
+
+def _number(value: object) -> int | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            return int(float(text))
+        except ValueError:
+            return None
+    return None
+
+
+def _first_number(*values: object) -> int | None:
+    for value in values:
+        number = _number(value)
+        if number is not None:
+            return number
+    return None
+
+
+def _sum_numbers(*values: object) -> int | None:
+    numbers = [_number(value) for value in values]
+    present = [number for number in numbers if number is not None]
+    if not present:
+        return None
+    return sum(present)
 
 
 def _first_mapping(*values: object) -> dict[str, Any]:

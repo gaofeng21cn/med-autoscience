@@ -318,6 +318,9 @@ def test_stage_review_derives_stage_log_summary_from_repair_execution_evidence()
         "studies/001-risk/paper/review/review_ledger.json",
     ]
     assert summary["outcome"] == "paper_progress_delta_recorded"
+    assert summary["progress_delta_classification"] == "paper_progress_delta"
+    assert summary["paper_progress_delta"] == {"count": 1, "token_usage_total": 0}
+    assert summary["platform_repair_delta"] == {"count": 0, "token_usage_total": 0}
     assert "AI reviewer recheck request still pending" in summary["remaining_blockers"]
     assert (
         "studies/001-risk/artifacts/controller/repair_execution_evidence/latest.json"
@@ -327,7 +330,37 @@ def test_stage_review_derives_stage_log_summary_from_repair_execution_evidence()
         "stage_review_index"
     ]["stage_log_summary"]
     assert lane_summary["outcome"] == "paper_progress_delta_recorded"
+    assert lane_summary["progress_delta_classification"] == "paper_progress_delta"
+    assert lane_summary["paper_progress_delta"] == {"count": 1, "token_usage_total": 0}
+    assert lane_summary["platform_repair_delta"] == {"count": 0, "token_usage_total": 0}
     assert lane_summary["authority"]["can_write_paper"] is False
+
+
+def test_stage_review_explicit_summary_without_platform_signals_stays_paper_delta() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    progress = _stage_review_payload()
+    progress["stage_log_summary"] = {
+        "stage_name": "write",
+        "current_owner": "write",
+        "problem_summary": "Update manuscript wording after reviewer feedback.",
+        "stage_goal": "Polish methods prose and keep figures aligned.",
+        "paper_work_done": ["Updated manuscript wording."],
+        "changed_paper_surfaces": ["studies/001-risk/paper/draft.md"],
+        "remaining_blockers": [],
+        "outcome": "writer_handoff_ready",
+        "stage_progress_log": {"attempt_count": 2},
+    }
+    payload = parts.build_study_workbench_payload(
+        progress=progress,
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+    )
+    summary = payload["stage_review_index"]["stage_log_summary"]
+    assert summary["progress_delta_classification"] == "paper_progress_delta"
+    assert summary["paper_progress_delta"] == {"count": 1, "token_usage_total": 0}
+    assert summary["platform_repair_delta"] == {"count": 0, "token_usage_total": 0}
 
 
 def test_study_workbench_reads_stage_review_page_and_index_from_artifact_locator(tmp_path: Path) -> None:
