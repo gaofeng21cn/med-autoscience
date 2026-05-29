@@ -64,8 +64,7 @@ def status_to_dict(status: Any) -> dict[str, Any]:
     if status.reason is not None:
         payload["reason"] = status.reason.value
     payload.update(status.extras)
-    if "active_run_id" not in payload:
-        active_run_id = resolved_active_run_id(extras=status.extras)
-        if active_run_id is not None:
-            payload["active_run_id"] = active_run_id
+    active_run_id = resolved_active_run_id(extras=status.extras)
+    if active_run_id is not None and not str(payload.get("active_run_id") or "").strip():
+        payload["active_run_id"] = active_run_id
     return payload

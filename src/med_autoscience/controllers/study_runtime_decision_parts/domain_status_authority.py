@@ -48,7 +48,9 @@ def _status_state(
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = quest_runtime.quest_exists
     quest_status = ProgressProjectionStatus._normalize_quest_status_field(quest_runtime.quest_status)
-    if quest_status in _LIVE_QUEST_STATUSES and opl_runtime_contract.is_opl_hosted_research_execution(execution):
+    if _quest_status_allows_opl_liveness_projection(
+        quest_status
+    ) and opl_runtime_contract.is_opl_hosted_research_execution(execution):
         runtime_liveness_projection = _opl_current_control_state_runtime_liveness_projection(
             profile=profile,
             study_root=study_root,
@@ -529,6 +531,10 @@ def _unknown_opl_current_control_state_runtime_liveness(
         "provider_completion_is_domain_completion": False,
         "snapshot": {"status": quest_status.value if quest_status is not None else None},
     }
+
+
+def _quest_status_allows_opl_liveness_projection(quest_status: StudyRuntimeQuestStatus | None) -> bool:
+    return quest_status in _LIVE_QUEST_STATUSES or quest_status is StudyRuntimeQuestStatus.WAITING_FOR_USER
 
 
 def _runtime_health_liveness_status(study_entry: dict[str, object]) -> str | None:
