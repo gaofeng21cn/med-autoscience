@@ -13,9 +13,9 @@ from med_autoscience.controllers.owner_route_reconcile_parts import action_decor
 from med_autoscience.controllers.owner_route_reconcile_parts import analysis_harmonization_ai_review
 from med_autoscience.controllers.owner_route_reconcile_parts import artifact_freshness
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer_actions
-from med_autoscience.controllers.owner_route_reconcile_parts import claim_evidence_alignment_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import completion_evidence
 from med_autoscience.controllers.owner_route_reconcile_parts import current_ai_reviewer_record_actions
+from med_autoscience.controllers.owner_route_reconcile_parts import currentness_preemption_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_transition_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import evidence_adoption
@@ -144,7 +144,23 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    current_ai_reviewer_write_action = story_surface_delta_actions.write_owner_action(
+    pre_write_route_action = currentness_preemption_actions.pre_write_route_action(
+        ai_reviewer_assessment=ai_reviewer_assessment,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if pre_write_route_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=pre_write_route_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    current_ai_reviewer_write_action = currentness_preemption_actions.current_ai_reviewer_write_routeback_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     )
@@ -252,6 +268,21 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    ai_reviewer_freshness_action = artifact_freshness.blocked_action_from_ai_reviewer_freshness_mismatch(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if ai_reviewer_freshness_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=ai_reviewer_freshness_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     writer_handoff_action = story_surface_delta_actions.quality_repair_writer_handoff_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -341,37 +372,6 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    digest_mismatch_ai_reviewer_route = current_truth_owner.current_manuscript_digest_mismatch_ai_reviewer_route(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if digest_mismatch_ai_reviewer_route is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=ai_reviewer_owner_output_consumption.current_manuscript_digest_mismatch_action(
-                    digest_mismatch_ai_reviewer_route
-                ),
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    claim_alignment_action = claim_evidence_alignment_actions.action_from_ai_reviewer_alignment_blocker(
-        study_root=study_root,
-    )
-    if claim_alignment_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=claim_alignment_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
     story_surface_action = story_surface_delta_actions.write_owner_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -400,21 +400,6 @@ def action_queue(
                 action=ai_reviewer_actions.ai_reviewer_required_action(
                     reason=ai_reviewer_actions.STALE_AFTER_REVIEWER_REVISION_REASON
                 ),
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    ai_reviewer_freshness_action = artifact_freshness.blocked_action_from_ai_reviewer_freshness_mismatch(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if ai_reviewer_freshness_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=ai_reviewer_freshness_action,
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,

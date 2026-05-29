@@ -65,6 +65,15 @@ LIVE_ATTEMPT_HANDOFF_KEYS = (
     "active_workflow_id",
     "running_provider_attempt",
 )
+OWNER_ROUTE_PROJECTION_KEYS = (
+    "next_owner",
+    "owner_reason",
+    "failure_signature",
+    "source_fingerprint",
+    "source_refs",
+    "allowed_actions",
+    "idempotency_key",
+)
 
 
 def read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
@@ -206,6 +215,10 @@ def _stage_progress_log_mapping(value: object) -> dict[str, Any]:
 
 def _observability_mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _owner_route_projection(value: object) -> dict[str, Any]:
+    return _copy_mapping_keys(value, OWNER_ROUTE_PROJECTION_KEYS)
 
 
 def _number_value(value: object) -> int | float | None:
@@ -569,6 +582,11 @@ def opl_current_control_state_study_handoff_projection(
                 "queue_age_hours",
                 "queued_first_seen_at",
                 "repeat_fingerprint",
+                "next_work_unit",
+                "controller_work_unit_id",
+                "work_unit_id",
+                "source_eval_id",
+                "source_fingerprint",
                 "owner_pickup",
                 "consumption",
             ),
@@ -614,6 +632,7 @@ def opl_current_control_state_study_handoff_projection(
             ("status", "summary", "owner", "trace_complete", "blocked_reason"),
         ),
         "stage_progress_log": _stage_progress_log_mapping(matching.get("stage_progress_log")),
+        "owner_route": _owner_route_projection(matching.get("owner_route")),
         "queue_slo": _copy_mapping_keys(
             matching.get("queue_slo"),
             (

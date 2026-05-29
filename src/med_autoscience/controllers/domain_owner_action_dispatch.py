@@ -13,7 +13,7 @@ from med_autoscience.runtime_control import paper_work_unit_lifecycle_for_action
 from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 
-from . import runtime_dispatch_cost, domain_status_projection
+from . import runtime_dispatch_cost, domain_status_projection, progress_first_blocker_budget
 from .default_executor_stage_log import paper_stage_log_for_default_executor_execution
 from .domain_owner_action_dispatch_parts import action_execution
 from .domain_owner_action_dispatch_parts import action_router
@@ -335,6 +335,55 @@ def _dispatch_uses_bridge_authority(dispatch: Mapping[str, Any]) -> bool:
     return _text(refs.get("bridge_authority")) is not None
 
 
+def _progress_first_closeout_block_reason(dispatch: Mapping[str, Any]) -> str | None:
+    admission = _mapping(dispatch.get("progress_first_closeout_admission"))
+    if _text(admission.get("admission_status")) != "blocked":
+        return None
+    return _text(admission.get("blocked_reason")) or "closeout_required_before_new_default_executor_task"
+
+
+def _progress_first_typed_blocker(
+    *,
+    dispatch: Mapping[str, Any],
+    execution: Mapping[str, Any],
+    generated_at: str,
+) -> dict[str, Any] | None:
+    admission = _mapping(dispatch.get("progress_first_closeout_admission"))
+    source = _mapping(admission.get("typed_blocker"))
+    if not source and _text(admission.get("blocked_reason")) is None:
+        return None
+    owner_route = _dispatch_owner_route(dispatch)
+    source_refs = _mapping(owner_route.get("source_refs"))
+    return progress_first_blocker_budget.enrich_typed_blocker(
+        source
+        or {
+            "reason": _text(admission.get("blocked_reason")),
+            "next_owner": _text(owner_route.get("next_owner")),
+        },
+        study_id=_text(dispatch.get("study_id")) or "unknown-study",
+        work_unit_id=_text(source_refs.get("work_unit_id")) or _text(owner_route.get("work_unit_id")) or "unknown_work_unit",
+        eval_id=_text(source_refs.get("source_eval_id")) or _text(dispatch.get("source_eval_id")),
+        source_fingerprint=_text(owner_route.get("source_fingerprint")) or _text(dispatch.get("source_fingerprint")),
+        repeat_count=_repeat_count(execution),
+        first_seen=generated_at,
+        last_seen=generated_at,
+        paper_progress_delta=_mapping(execution.get("paper_progress_delta")),
+        platform_repair_delta=_mapping(execution.get("platform_repair_delta")),
+        no_forbidden_write_refs=list(dispatch.get("forbidden_surfaces") or []),
+    )
+
+
+def _repeat_count(execution: Mapping[str, Any]) -> int:
+    value = execution.get("repeat_count")
+    if isinstance(value, bool) or value is None:
+        return 1
+    if isinstance(value, int):
+        return max(1, value)
+    if isinstance(value, float):
+        return max(1, int(value))
+    return 1
+
+
 def _execute_publication_gate_specificity(
     *,
     profile: WorkspaceProfile,
@@ -508,12 +557,14 @@ def _execute_dispatch(
         previous_execution_latest=_read_json_object(_execution_latest_path(profile, study_id)),
         required_output_pending=required_output_pending,
     )
+    closeout_block_reason = _progress_first_closeout_block_reason(dispatch)
     execution = _dispatch_pre_execution_block(
         guard_ok=guard_ok,
         guard_reason=guard_reason,
         owner_route_block_reason=owner_route_block_reason,
         current_route=current_route,
         stall_block_reason=stall_block_reason,
+        closeout_block_reason=closeout_block_reason,
         repeat_guard=repeat_guard,
         dispatch=dispatch,
         developer_mode_payload=developer_mode_payload,
@@ -562,6 +613,7 @@ def _dispatch_pre_execution_block(
     owner_route_block_reason: str | None,
     current_route: Mapping[str, Any] | None,
     stall_block_reason: str | None,
+    closeout_block_reason: str | None,
     repeat_guard: Mapping[str, Any],
     dispatch: Mapping[str, Any],
     developer_mode_payload: Mapping[str, Any],
@@ -587,6 +639,13 @@ def _dispatch_pre_execution_block(
             "blocked_reason": stall_block_reason,
             "owner_callable_surface": None,
             "paper_progress_stall_current": False,
+        }
+    if closeout_block_reason is not None:
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": closeout_block_reason,
+            "owner_callable_surface": None,
+            "progress_first_closeout_required": True,
         }
     if repeat_guard["repeat_suppressed"]:
         anti_loop_budget = _mapping(repeat_guard.get("anti_loop_budget"))
@@ -713,6 +772,13 @@ def _dispatch_execution_payload(
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         **execution,
     }
+    progress_first_typed_blocker = _progress_first_typed_blocker(
+        dispatch=dispatch,
+        execution=execution_payload,
+        generated_at=generated_at,
+    )
+    if progress_first_typed_blocker is not None:
+        execution_payload["progress_first_typed_blocker"] = progress_first_typed_blocker
     if "paper_stage_log" not in execution_payload:
         execution_payload["paper_stage_log"] = paper_stage_log_for_default_executor_execution(
             study_id=study_id,

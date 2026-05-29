@@ -16,6 +16,7 @@ from med_autoscience.controllers import current_execution_envelope
 from .ai_first_runtime_projection import attach_ai_first_runtime_projection
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .parked_projection import parked_progress_fields
+from .progress_first_projection import build_progress_first_projection
 from .shared import SCHEMA_VERSION, _mapping_copy, _non_empty_text
 from .user_visible_projection import build_user_visible_projection
 
@@ -596,6 +597,7 @@ def assemble_study_progress_payload(
         "platform_repair_delta": progress_delta["platform_repair_delta"],
         "refs": refs,
     }
+    payload.update(build_progress_first_projection(payload))
     payload["production_blocker_impact"] = build_production_blocker_impact_projection(
         payload,
         status,

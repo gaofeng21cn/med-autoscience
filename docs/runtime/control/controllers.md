@@ -123,6 +123,12 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 
 - `docs/runtime/control/study_runtime_orchestration.md`
 
+## Progress-First current contract
+
+Progress-First 当前合同采用 closeout-first 口径：每个非终局 controller / owner-route / domain-handler attempt 必须先形成可消费的 typed closeout refs，再由 MAS owner surface 判断它是论文进度、单一下一个 owner blocker、human gate、stop-loss，还是 stable typed blocker。typed blocker 必须保留 blocker lineage，包括 current owner、work unit、source/runtime/truth currentness refs、forbidden-write proof 或 no-progress reason；它可以关闭本轮不可执行状态，但不能被写成 paper ready、publication ready、submission ready 或 artifact/package authority。
+
+currentness resolver、owner-route read-model、`study_progress` / `progress_projection` 只能消费 MAS owner surface：controller decision、owner receipt、AI reviewer / publication eval currentness、repair / gate / delivery controller evidence、typed closeout refs、stable typed blocker refs、human gate refs 和 OPL provider refs 的 MAS-owned projection。OPL provider completion、queue 状态、retry/dead-letter、platform liveness 修复、manifest refresh、read-model refresh 或 currentness resolver 修复只属于 transport / platform repair evidence；除非同一 MAS owner chain 还产出 canonical paper / evidence / review / gate follow-through delta 或 stable owner blocker，否则不得记为论文推进。
+
 MAS domain-handler bridge 是 `OPL` provider-backed family runtime 进入 MAS owner surface 的受控入口，不是新的 controller truth owner。`domain-handler export` 只把 MAS-owned domain/status/source refs、owner receipt refs 和 typed blocker refs 投影给 typed family queue；`domain-handler dispatch` 只接受 allowlisted task，回到 MAS controller/domain authority owner chain 产出 dispatch receipt、owner receipt 或 typed blocker。OPL provider 承载 stage attempt、queue/wakeup、retry/dead-letter、human-gate signal、attempt receipt 和 projection，但不得写 study truth、publication quality verdict、artifact gate、paper package、`progress_projection` 或 `domain_health_diagnostic`。这条边界的机器合同由 `contracts/test-lane-manifest.json` 的 `focused_lanes.mas-entry-boundary` 持有；本文件只做人读导航。
 
 `owner-route-reconcile` 读取 OPL provider liveness 时采用 queue-first、attempt-ledger fallback 的只读 projection：先消费 `family-runtime queue list/inspect` 中的 current-control-state；若 queue list 对当前 study 没有可用 live projection，再读取 `family-runtime attempt list/inspect` 中同 workspace、同 study、同 `domain_owner/default-executor-dispatch` 的 running stage attempt。fallback 只用于避免 stale queue projection 把 live OPL attempt 误报为 `opl_stage_attempt_admission_required`；它不写 OPL/MAS truth，不关闭 owner receipt，不宣布 AI reviewer 或 publication gate ready。

@@ -11,6 +11,7 @@ from med_autoscience.controllers.default_executor_closeout_contract import (
 )
 from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers import default_executor_dispatch_packets
+from med_autoscience.controllers import progress_first_closeout
 from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
@@ -140,6 +141,38 @@ def _current_scan_study(scan_payload: Mapping[str, Any], study_id: str) -> dict[
     return None
 
 
+def _progress_first_closeout_admission(
+    *,
+    scan_payload: Mapping[str, Any],
+    study_id: str,
+    action: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> dict[str, Any]:
+    study = _current_scan_study(scan_payload, study_id) or {}
+    source_refs = _mapping(owner_route.get("source_refs"))
+    running_attempt = _mapping(study.get("running_attempt")) or _mapping(study.get("current_running_attempt"))
+    packet = (
+        _mapping(running_attempt.get("immutable_dispatch_packet"))
+        or _mapping(running_attempt.get("stage_packet"))
+        or _mapping(study.get("immutable_dispatch_packet"))
+    )
+    identity = {
+        "study_id": study_id,
+        "quest_id": _text(action.get("quest_id")) or _text(study.get("quest_id")),
+        "work_unit_id": _text(source_refs.get("work_unit_id")) or _text(owner_route.get("work_unit_id")),
+        "stage_attempt_id": _text(running_attempt.get("stage_attempt_id"))
+        or _text(study.get("active_stage_attempt_id")),
+    }
+    return progress_first_closeout.closeout_first_admission(
+        identity=identity,
+        immutable_dispatch_packet=packet,
+        running_attempt=running_attempt,
+        owner_receipt=_mapping(study.get("owner_receipt")),
+        stage_closeout=_mapping(study.get("stage_closeout")) or _mapping(study.get("latest_stage_closeout")),
+        stable_typed_blocker=_mapping(study.get("stable_typed_blocker")),
+    )
+
+
 def _required_output_pending(
     *,
     profile: WorkspaceProfile,
@@ -256,6 +289,12 @@ def _default_executor_dispatch(
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
     )
+    closeout_admission = _progress_first_closeout_admission(
+        scan_payload=scan_payload,
+        study_id=study_id,
+        action=action,
+        owner_route=owner_route,
+    )
     preserved_writer_handoff = writer_handoff_preservation.preserved_quality_repair_writer_handoff_dispatch(
         profile=profile,
         study_id=study_id,
@@ -338,6 +377,9 @@ def _default_executor_dispatch(
     if dispatch_status == "ready" and repeat_guard["repeat_suppressed"]:
         dispatch_status = "repeat_suppressed"
         blocked_reason = repeat_suppression.REPEAT_SUPPRESSED_REASON
+    if dispatch_status == "ready" and closeout_admission.get("admission_status") == "blocked":
+        dispatch_status = "blocked"
+        blocked_reason = _text(closeout_admission.get("blocked_reason"))
     dispatch_shell = {
         "action_type": action_type,
         "next_executable_owner": next_executable_owner,
@@ -369,6 +411,7 @@ def _default_executor_dispatch(
         typed_closeout_contract=typed_closeout_contract,
         owner_route_attempt_envelope=owner_route_attempt_envelope,
         prompt_contract=prompt_contract,
+        progress_first_closeout_admission=closeout_admission,
     )
 
 
@@ -391,6 +434,7 @@ def _default_executor_dispatch_payload(
     typed_closeout_contract: Mapping[str, Any],
     owner_route_attempt_envelope: Mapping[str, Any],
     prompt_contract: Mapping[str, Any],
+    progress_first_closeout_admission: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         "surface": "default_executor_dispatch_request",
@@ -419,6 +463,7 @@ def _default_executor_dispatch_payload(
         "default_executor_policy": dict(executor_policy),
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "prompt_contract": dict(prompt_contract),
+        "progress_first_closeout_admission": dict(progress_first_closeout_admission),
         "executor_prompt": _executor_prompt(
             action_type=action_type,
             study_id=study_id,
@@ -656,6 +701,33 @@ def _persist_request_packets(request_tasks: list[dict[str, Any]]) -> list[str]:
     return written_files
 
 
+def _apply_progress_first_closeout_to_request_tasks(
+    *,
+    request_tasks: list[dict[str, Any]],
+    default_executor_dispatches: list[dict[str, Any]],
+) -> None:
+    admissions_by_identity: dict[tuple[str | None, str | None], dict[str, Any]] = {}
+    for dispatch in default_executor_dispatches:
+        admission = _mapping(dispatch.get("progress_first_closeout_admission"))
+        if _text(admission.get("admission_status")) != "blocked":
+            continue
+        identity = (_text(dispatch.get("study_id")), _text(dispatch.get("action_type")))
+        admissions_by_identity[identity] = admission
+    if not admissions_by_identity:
+        return
+    for task in request_tasks:
+        admission = admissions_by_identity.get((_text(task.get("study_id")), _text(task.get("action_type"))))
+        if admission is None:
+            continue
+        task["dispatch_status"] = "blocked"
+        task["blocked_reason"] = _text(admission.get("blocked_reason"))
+        task["progress_first_closeout_admission"] = dict(admission)
+        handoff = dict(_mapping(task.get("handoff_packet")))
+        handoff["progress_first_closeout_admission"] = dict(admission)
+        handoff["blocked_reason"] = _text(admission.get("blocked_reason"))
+        task["handoff_packet"] = handoff
+
+
 def _request_packet_for_persistence(
     *,
     task: Mapping[str, Any],
@@ -790,6 +862,10 @@ def materialize_domain_action_requests(
         )
         for action in selected_request_actions
     ]
+    _apply_progress_first_closeout_to_request_tasks(
+        request_tasks=request_tasks,
+        default_executor_dispatches=default_executor_dispatches,
+    )
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
     if apply and developer_mode.safe_actions_enabled:
