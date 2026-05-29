@@ -151,9 +151,6 @@ def _execution_matches_owner_route(
     execution: Mapping[str, Any],
     owner_route: Mapping[str, Any],
 ) -> bool:
-    current_idempotency_key = _text(owner_route.get("idempotency_key"))
-    if current_idempotency_key and _text(execution.get("idempotency_key")) == current_idempotency_key:
-        return True
     prompt_contract = _mapping(execution.get("prompt_contract"))
     for execution_route in (
         _mapping(execution.get("current_owner_route")),
@@ -172,7 +169,7 @@ def _owner_route_currentness_matches(
 ) -> bool:
     if not execution_route:
         return False
-    comparisons = ("route_epoch", "next_owner", "owner_reason")
+    comparisons = ("route_epoch", "next_owner")
     for key in comparisons:
         current_value = _text(owner_route.get(key))
         execution_value = _text(execution_route.get(key))
@@ -196,7 +193,7 @@ def _owner_route_work_unit_currentness_matches(
 ) -> bool:
     current_basis = _owner_route_currentness_basis(owner_route)
     execution_basis = _owner_route_currentness_basis(execution_route)
-    for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason"):
+    for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id"):
         current_value = _text(current_basis.get(key))
         execution_value = _text(execution_basis.get(key))
         if current_value and not execution_value:

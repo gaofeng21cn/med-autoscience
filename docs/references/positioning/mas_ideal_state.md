@@ -23,6 +23,8 @@ MAS 的核心价值是医学研究知识、研究路线、stage 语义、AI-firs
 
 MAS 不应长期维护一套独立 agent runtime platform。通用 scheduler、queue、attempt ledger、generic transition runner、memory/artifact locator、lifecycle/restore/retention shell、observability/SLO、CLI/MCP/Skill/product-entry/sidecar/status wrapper 和跨 domain App/workbench shell 应由 OPL Framework / One Person Lab App 承载或生成。
 
+MAS 也不应长期维护一套膨胀的局部状态平台。理想控制面应收敛为 `macro_state + owner_route + receipt_or_blocker + evidence_refs`：宏观状态服务用户和 operator，owner route 服务执行与幂等，receipt/blocker 服务闭环，evidence refs 指向 AI reviewer、auditor、publication gate、artifact、memory 或 runtime evidence。细分 runtime reason、publication supervisor phase、stale/superseded reason 和 workbench 文案只属于 diagnostic / read-model detail，不作为跨入口执行 contract。
+
 Direct MAS app skill path 仍是一等入口。经 direct path 或 OPL-hosted path 调用时，都必须回到同一套 MAS-owned stage、controller、ledger、review、quality gate、domain transition table、publication-route memory 和 artifact surface。
 
 MAS 的理想物理源码形态也必须表达这个边界。`agent/` 是医学研究语义包；`contracts/` 是机器合同和 OPL handoff；`runtime/authority_functions/`、`src/med_autoscience/**` 或测试夹具中长期保留的程序面只能是 medical authority function、domain handler、refs-only adapter、native helper、diagnostic probe 或 fixture。`supervisor`、`supervision_scheduler`、`runtime_supervisor_*`、`runtime_transport`、`worker lease`、`turn runner`、`lifecycle_refs_adapter.py` 这类名称不能长期让源码读者误以为 MAS 拥有 generic runtime / queue / scheduler / worker residency / persistence engine。当前若这些文件仍存在，理想处理是 rename、split、delete、archive 或 tombstone 到医学语义角色：domain route projection、owner action request、authority receipt dispatch、typed blocker reconcile、lifecycle refs adapter 或 diagnostic provenance。
@@ -48,6 +50,8 @@ OPL 持有：
 - generated runtime-facing adapter / projection：CLI、MCP、Skill、product-entry、sidecar、status、workbench、projection 和 test-lane harness 的通用 wrapper。
 
 OPL 只执行 MAS 声明的 spec、attempt、receipt、retry/dead-letter 和 human-gate transport，不解释医学质量、不改写 MAS study truth、不读取 memory body、不签发 artifact authority、不声明 publication ready。
+
+在该边界下，OPL 和 MAS 之间只传递 current owner ticket、refs-only evidence、owner receipt、typed blocker 或 human-gate signal。开放式医学语义由 MAS stage prompt、skill、AI executor 与独立 reviewer/auditor 根据 evidence refs 判断；程序函数不得为了减少不确定性而继续扩展长状态枚举或局部 supervisor 状态机。
 
 ## AI-first Quality Gate
 
@@ -104,6 +108,7 @@ MAS 达到生产级目标态时，应满足：
 - 通用 runtime、queue、memory locator、artifact lifecycle、restore/retention、projection、workbench shell 和 generated entry/status wrapper 已上收到 OPL / shared family layer；MAS 保留领域知识、authority、owner receipt、声明式 pack 和 minimal authority functions。
 - OPL generated / hosted surfaces 完成 active caller cutover；MAS 旧手写 shell 只保留 direct domain entry、domain handler、authority function、diagnostic cleanup 或 provenance fixture。
 - MAS 非知识代码均能归类为 declarative pack / generated surface handoff、refs-only domain authority projection 或 minimal authority function，并完成对应 cutover、收薄或退役；已退役的旧面必须另有 tombstone/provenance refs、forbidden-caller proof 和 explicit retired 机器标记。
+- MAS control contract 已收薄为 `macro_state + owner_route + receipt_or_blocker + evidence_refs`，且 consumer、dispatch、product-entry、progress projection 和 OPL handoff 不再把细分 `StudyRuntimeReason`、supersession reason 或 projection-local status 当作执行授权。
 - MAS cleanup 证据必须区分 OPL refs-only ledger 与 MAS repo 物理删除：OPL `agents legacy-cleanup apply` 的 dry-run / apply / verify ready 只证明 MAS tombstone / replacement / no-regression refs 可被 OPL 消费，不等于 tracked runtime transport、supervisor 或 SQLite refs index 已物理清零。
 - 默认 managed runtime backend 必须是 OPL-owned provider surface，例如当前 `opl_provider_backed_stage_runtime`。`mas_runtime_core`、runtime supervisor、turn runner、worker lease 与 runtime lifecycle SQLite 的长期角色只能是 `runtime_backend_is_generic_owner=false` 的 delegated domain adapter / owner receipt / typed blocker / refs-only sidecar / diagnostic surface。它们不能重新声明 MAS-owned generic runtime、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 或 workbench owner。
 - runtime-guard stage descriptor 明确声明 machine-readable `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs`，OPL proof bundle / admission 能把 route decision、baseline/evidence readiness、analysis evidence closure、draft reviewability、AI reviewer gate receipt、publication handoff 和 replay/audit event refs 读成可组合合同，而不是只靠人读 stage 文案。

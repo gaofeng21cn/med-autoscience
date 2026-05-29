@@ -115,9 +115,6 @@ def currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
             "runtime_health_epoch": route.get("runtime_health_epoch")
             or source_refs.get("runtime_health_epoch")
             or embedded_basis.get("runtime_health_epoch"),
-            "owner_reason": route.get("owner_reason")
-            or route.get("failure_signature")
-            or embedded_basis.get("owner_reason"),
         }
     )
 
@@ -128,7 +125,6 @@ def currentness_contract(owner_route: Mapping[str, Any]) -> dict[str, Any]:
         "work_unit_fingerprint",
         "truth_epoch",
         "runtime_health_epoch_or_source_eval_id",
-        "owner_reason",
     ]
     missing = [field for field in required if _currentness_required_field_missing(field, basis)]
     return {
@@ -666,7 +662,6 @@ def _domain_intent_missing_fields(payload: Mapping[str, Any]) -> list[str]:
         "owner_route_currentness_basis.work_unit_id": basis.get("work_unit_id"),
         "owner_route_currentness_basis.work_unit_fingerprint": basis.get("work_unit_fingerprint"),
         "owner_route_currentness_basis.truth_epoch": basis.get("truth_epoch"),
-        "owner_route_currentness_basis.owner_reason": basis.get("owner_reason"),
     }
     missing = [field for field, value in checks.items() if _text(value) is None]
     if not _runtime_or_eval_currentness_present(basis):

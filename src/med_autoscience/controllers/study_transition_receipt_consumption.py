@@ -677,7 +677,7 @@ def _owner_route_currentness_matches(
 ) -> bool:
     if not execution_route:
         return False
-    comparisons = ("route_epoch", "next_owner", "owner_reason")
+    comparisons = ("route_epoch", "next_owner")
     for key in comparisons:
         current_value = _text(owner_route.get(key))
         execution_value = _text(execution_route.get(key))
@@ -701,7 +701,7 @@ def _owner_route_work_unit_currentness_matches(
 ) -> bool:
     current_basis = _owner_route_currentness_basis(owner_route)
     execution_basis = _owner_route_currentness_basis(execution_route)
-    for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason"):
+    for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id"):
         current_value = _text(current_basis.get(key))
         execution_value = _text(execution_basis.get(key))
         if current_value and not execution_value:
@@ -717,7 +717,7 @@ def _owner_route_work_unit_currentness_matches(
         and not execution_source_eval_id
         and not all(
             _text(current_basis.get(key)) == _text(execution_basis.get(key)) and _text(current_basis.get(key))
-            for key in ("truth_epoch", "runtime_health_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason")
+            for key in ("truth_epoch", "runtime_health_epoch", "work_unit_fingerprint", "work_unit_id")
         )
     ):
         return False

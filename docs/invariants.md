@@ -37,6 +37,7 @@ Machine boundary: 本文是人读不可变约束。机器真相继续归 `contra
 
 - `study_macro_state/latest.json` 是用户宏观状态的唯一 read model，用户可见投影固定从 `writer_state/user_next/reason` 派生；缺少 canonical macro state 或出现 writer 冲突时必须 fail-closed 为 `inspect/conflict`。
 - `owner_route` 是 `scan -> consume -> execute-dispatch -> rescan` 的唯一执行票据。request handoff、default executor dispatch 和执行端都必须校验 `route_epoch/source_fingerprint/next_owner/allowed_actions/idempotency_key`，旧 dispatch 文件不能绕过 workspace-level consumer latest。
+- 稳定控制面只承认 `macro_state`、`owner_route`、`receipt_or_blocker` 和 `evidence_refs`。细分 runtime/status reason、supersession reason、publication supervisor phase、operator/workbench 文案和 projection-local status 只能作为 diagnostic/read-model detail 或 typed blocker payload，不得单独授权执行、恢复、写 artifact、刷新 publication eval 或关闭质量门。
 - Runtime health append 只有在显式 `source_signature` 相同的情况下幂等返回 existing event；没有 source signature 的 recover/launch attempt 仍代表新的真实尝试并消耗 retry budget。
 - 文件生命周期治理不得从 cleanup plan 反向推断 study truth；终局止损文件生命周期 plan 只能由 materialized macro state 授权，物理 apply 仍要求 manifest、sha256、restore index 与 restore proof。
 - lifecycle refs SQLite store 只做 refs index、read model、receipt 和幂等检索，不替代 paper/manuscript/package、publication eval、controller decision、user intervention memory、restore metadata 或 dataset manifest。

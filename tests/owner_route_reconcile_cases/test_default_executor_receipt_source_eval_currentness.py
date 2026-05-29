@@ -108,3 +108,93 @@ def test_default_executor_receipt_rejects_same_handoff_key_when_source_eval_adva
     )
 
     assert receipt == {}
+
+
+def test_default_executor_receipt_consumes_when_only_diagnostic_owner_reason_changes(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    current_eval_id = "publication-eval::dm003::current-manuscript::20260528T125118Z"
+    current_route = {
+        "idempotency_key": "owner-route::dm003::current-writer-route",
+        "route_epoch": current_eval_id,
+        "truth_epoch": current_eval_id,
+        "source_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+        "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+        "next_owner": "write",
+        "owner_reason": "manuscript_story_surface_delta_missing",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "source_refs": {
+            "source_eval_id": current_eval_id,
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+            "study_truth_epoch": current_eval_id,
+            "owner_route_currentness_basis": {
+                "source_eval_id": current_eval_id,
+                "truth_epoch": current_eval_id,
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+                "work_unit_id": "medical_prose_write_repair",
+                "owner_reason": "manuscript_story_surface_delta_missing",
+            },
+        },
+    }
+    execution_route = {
+        **current_route,
+        "idempotency_key": "owner-route::dm003::old-reason-key",
+        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "failure_signature": "quest_waiting_opl_runtime_owner_route",
+        "source_refs": {
+            **current_route["source_refs"],
+            "owner_route_currentness_basis": {
+                **current_route["source_refs"]["owner_route_currentness_basis"],
+                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            },
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_root.name,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_root.name,
+                    "quest_id": study_root.name,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "executed",
+                    "execution_id": "execution::dm003::run_quality_repair_batch::reason-drift",
+                    "idempotency_key": execution_route["idempotency_key"],
+                    "current_owner_route": execution_route,
+                    "prompt_contract": {"owner_route": execution_route},
+                    "owner_result": {
+                        "status": "executed",
+                        "ok": True,
+                        "repair_execution_evidence": {
+                            "status": "manuscript_story_surface_delta_present",
+                            "changed_artifact_refs": [
+                                {"path": str(study_root / "paper" / "draft.md")},
+                                {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
+                            ],
+                        },
+                        "quality_authorized": False,
+                        "submission_authorized": False,
+                        "current_package_write_authorized": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    receipt = default_executor_execution_receipt_consumption(
+        study_root=study_root,
+        owner_route=current_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+
+    assert receipt["status"] == "consumed"
+    assert receipt["execution_id"] == "execution::dm003::run_quality_repair_batch::reason-drift"

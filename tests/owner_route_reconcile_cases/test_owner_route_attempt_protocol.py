@@ -86,6 +86,7 @@ def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id()
 
     basis = route["source_refs"]["owner_route_currentness_basis"]
     assert basis["work_unit_id"] == "dm002_current_publication_hardening_after_ai_reviewer_eval"
+    assert "owner_reason" not in basis
     assert route["currentness_contract"]["missing_required_fields"] == []
 
 
@@ -259,6 +260,7 @@ def test_default_executor_attempt_envelope_accepts_eval_bound_writer_route_witho
 
     assert envelope["dispatchable"] is True
     assert envelope["source_eval_id"] == source_eval_id
+    assert "owner_reason" not in envelope["owner_route_currentness_basis"]
     assert envelope["domain_intent"]["missing_required_fields"] == []
 
 
@@ -285,6 +287,7 @@ def test_default_executor_attempt_envelope_fails_closed_without_domain_intent_re
     )
 
     assert envelope["dispatchable"] is False
+    assert "owner_route_currentness_basis.owner_reason" not in envelope["domain_intent"]["missing_required_fields"]
     assert set(envelope["domain_intent"]["missing_required_fields"]) >= {
         "source_fingerprint",
         "route_epoch",

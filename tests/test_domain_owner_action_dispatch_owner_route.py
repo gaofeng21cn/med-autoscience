@@ -209,6 +209,195 @@ def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_block
     assert execution["blocked_reason"] == "owner_callable_surface_missing"
 
 
+def test_execute_dispatch_authorization_ignores_diagnostic_owner_reason_drift(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    route.update(
+        {
+            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "source_refs": {
+                "owner_route_currentness_basis": {
+                    "truth_epoch": route["truth_epoch"],
+                    "runtime_health_epoch": route["runtime_health_epoch"],
+                    "work_unit_fingerprint": route["work_unit_fingerprint"],
+                    "work_unit_id": "current_manuscript_repair",
+                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                },
+                "study_macro_state": {
+                    "writer_state": "queued",
+                    "user_next": "repair",
+                    "reason": "quality",
+                    "source_fingerprint": "study-macro-state::quality",
+                },
+            },
+        }
+    )
+    current_route = {
+        **route,
+        "owner_reason": "manuscript_story_surface_delta_missing",
+        "failure_signature": "manuscript_story_surface_delta_missing",
+        "source_refs": {
+            **route["source_refs"],
+            "owner_route_currentness_basis": {
+                **route["source_refs"]["owner_route_currentness_basis"],
+                "owner_reason": "manuscript_story_surface_delta_missing",
+            },
+        },
+    }
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface="typed blocker:manuscript_story_surface_delta_missing",
+        owner_route=route,
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": current_route}],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+        },
+    )
+    monkeypatch.setattr(
+        module.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        lambda **_: {
+            "execution_status": "blocked",
+            "blocked_reason": "owner_callable_surface_missing",
+            "owner_callable_surface": None,
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert execution["owner_route_current"] is True
+    assert execution["blocked_reason"] == "owner_callable_surface_missing"
+
+
+def test_execute_dispatch_blocks_when_current_macro_state_drifted(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    route["source_refs"] = {
+        "owner_route_currentness_basis": {
+            "truth_epoch": route["truth_epoch"],
+            "runtime_health_epoch": route["runtime_health_epoch"],
+            "work_unit_fingerprint": route["work_unit_fingerprint"],
+            "work_unit_id": "current_manuscript_repair",
+        },
+        "study_macro_state": {
+            "writer_state": "queued",
+            "user_next": "repair",
+            "reason": "quality",
+            "source_fingerprint": "study-macro-state::old",
+        },
+    }
+    current_route = {
+        **route,
+        "source_refs": {
+            **route["source_refs"],
+            "study_macro_state": {
+                "writer_state": "parked",
+                "user_next": "none",
+                "reason": "stop_loss",
+                "source_fingerprint": "study-macro-state::current",
+            },
+        },
+    }
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface="typed blocker:manuscript_story_surface_delta_missing",
+        owner_route=route,
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": current_route}],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "owner_route_stale"
+    assert execution["owner_route_current"] is False
+
+
 def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
     monkeypatch,
     tmp_path: Path,

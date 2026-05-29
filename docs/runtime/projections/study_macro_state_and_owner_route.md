@@ -27,6 +27,8 @@ MAS 的状态读取、runtime 修复、publication gate、AI reviewer 与 dispat
 - `user_next`: `watch`、`submit_info`、`repair`、`revise`、`runtime_handoff`、`none`、`inspect`
 - `reason`: `runtime`、`external_info`、`stop_loss`、`user_stop`、`quality`、`truth_conflict`、`unknown`
 
+稳定控制面只承认这层 `macro_state`、下文的 `owner_route`、owner receipt / typed blocker，以及指向真实 authority surface 的 `evidence_refs`。更细的 `status`、`reason` 细分、supersession lineage、liveness audit、quest diagnostic、review note 和 read-model explanation 只能帮助人或 reviewer 定位问题，不能作为跨 CLI、MCP、product-entry、dispatch executor、runtime recovery 的执行合同。任何入口要执行、恢复、停止、重开或移交 work unit，必须先回到同一份 materialized macro state / owner route / evidence refs，再由 owner route 授权动作。
+
 具体差异写入 `details` 和 `conditions`：
 
 - DM001、NF002、NF003 同归 `parked / submit_info / external_info`，差异只体现在 journal/format/missing metadata。
@@ -48,6 +50,8 @@ MAS 的状态读取、runtime 修复、publication gate、AI reviewer 与 dispat
 - `source_refs`
 
 consumer 和 dispatch executor 只能传播并执行 route 允许的动作。request handoff 和 default executor dispatch 都必须携带同一个 route、`idempotency_key` 和 allowed action；缺 route、route stale 或 next owner 不匹配时只能落账 blocked，不得写 owner request 或调用 owner workflow。宏观状态为 `parked` 且原因是 `external_info`、`stop_loss`、`user_stop` 时，stale runtime recovery、legacy platform-repair token 和 external supervisor escalation 必须让位给 controller stop / human gate truth；MAS 只能产出 typed blocker / owner-route handoff refs，provider repair lifecycle 归 OPL。
+
+`owner_route` 不承载开放式医学判断本身。AI-first executor、AI reviewer 和 auditor 根据 prompt、skill、study truth、publication eval、controller decision、manuscript/source/package refs 与 evidence refs 完成医学语义判断；程序侧只负责确认 authority refs 是否一致、禁止越权写入、维护 idempotency、签收 owner receipt 或 typed blocker。route consumer 不得把 diagnostic status、read-model reason 或 supersession detail 当成可绕过 reviewer / domain owner 的自动裁决。
 
 ## 复扫规则
 

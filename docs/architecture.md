@@ -114,7 +114,7 @@ MAS 的模块数量已经足够大，单靠文档描述 owner 容易漂移。因
 - `Observability OS` 只提供 evidence、calibration、analytics 和 replay proof，不直接授权 finalize、submission 或 publication readiness。
 - External backend / oracle 只保留 explicit backend audit、explicit archive import reference、upstream intake、parity oracle 四类角色。
 
-当前状态一致性合同已经收敛为一条执行链：`StudyTruthKernel/RuntimeHealthKernel -> study_macro_state -> owner_route -> consumer latest -> executor -> rescan`。`study_macro_state` 给出短枚举用户状态，细节进入 `details`；`owner_route` 持有当前可执行 owner、allowed action 和 idempotency key；consumer 和 executor 传播或执行这张票据。Artifact lifecycle 属 Artifact OS / maintainability，生成 retention plan、terminal lifecycle dry-run、checksum 与 restore-proof gate；study truth 和论文 authority 留在对应 owner surface。
+当前状态一致性合同已经收敛为一条执行链：`StudyTruthKernel/RuntimeHealthKernel -> study_macro_state -> owner_route -> consumer latest -> executor -> rescan`。`study_macro_state` 给出短枚举用户状态，细节进入 `details`；`owner_route` 持有当前可执行 owner、allowed action 和 idempotency key；consumer 和 executor 传播或执行这张票据。下一轮收薄目标是把稳定控制面明确压到 `macro_state + owner_route + receipt_or_blocker + evidence_refs`：细分 runtime reason、supersession reason、publication supervisor phase 和 workbench 文案只能作为 diagnostic / read-model detail，不再扩展成跨入口执行 contract。Artifact lifecycle 属 Artifact OS / maintainability，生成 retention plan、terminal lifecycle dry-run、checksum 与 restore-proof gate；study truth 和论文 authority 留在对应 owner surface。
 
 ## Boundary Governance 与自然边界
 

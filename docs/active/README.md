@@ -14,6 +14,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 - [文档索引](../README.md)
 - [当前状态](../status.md)
 - [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)
+- [MAS 状态与 Contract 收薄计划](./mas-state-contract-thinning-plan.md)
 - [MAS Current Development Lines](./current-development-lines.md)
 - [Program Portfolio Consolidation](./program_portfolio_consolidation.md)
 - [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)
@@ -29,6 +30,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 | 层次 | 文档 | 当前作用 |
 | --- | --- | --- |
 | 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前唯一真相、已落地状态、功能/结构差距、测试/证据差距、完善顺序、历史索引和禁止误写口径。 |
+| 控制面收薄子计划 | [MAS 状态与 Contract 收薄计划](./mas-state-contract-thinning-plan.md) | 服务 gap plan 的当前控制面收薄目标；把稳定 execution contract 收敛到 `macro_state + owner_route + receipt_or_blocker + evidence_refs`，不维护第二套 active truth。 |
 | 当前内容线索引 | [MAS Current Development Lines](./current-development-lines.md) | 把仍有效内容线归为 landed foundation、functional follow-through gate 或 production evidence gate；不维护第二 backlog，若与 gap plan 冲突以 gap plan 为准。 |
 | 文档组合 / 历史归位 | [Program Portfolio Consolidation](./program_portfolio_consolidation.md) | 只说明 active program 文档唯一职责、历史记录去向和 direct retirement rule；不替代 gap plan，也不作为第二 backlog。 |
 | 目标 / 验收 owner | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | 只定义 MAS 论文自治验收合同和 AI-first quality gate；dated evidence 与 full record 回 history。 |

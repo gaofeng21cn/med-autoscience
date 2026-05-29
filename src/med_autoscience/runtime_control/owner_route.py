@@ -201,12 +201,16 @@ def owner_route_matches(*, dispatch: Mapping[str, Any], current_route: Mapping[s
     normalized_current_route = ensure_owner_route_v2(_mapping(current_route))
     if not dispatch_route or not normalized_current_route:
         return False
+    if not _currentness_matches(dispatch_route=dispatch_route, current_route=normalized_current_route):
+        return False
+    dispatch_allowed = {_text(item) for item in dispatch_route.get("allowed_actions") or []}
+    current_allowed = {_text(item) for item in normalized_current_route.get("allowed_actions") or []}
+    dispatch_allowed.discard(None)
+    current_allowed.discard(None)
     return (
-        _text(dispatch_route.get("idempotency_key")) == _text(normalized_current_route.get("idempotency_key"))
-        and _text(dispatch_route.get("route_epoch")) == _text(normalized_current_route.get("route_epoch"))
-        and _text(dispatch_route.get("source_fingerprint")) == _text(normalized_current_route.get("source_fingerprint"))
-        and _text(dispatch_route.get("next_owner")) == _text(normalized_current_route.get("next_owner"))
-        and _text(dispatch_route.get("owner_reason")) == _text(normalized_current_route.get("owner_reason"))
+        bool(dispatch_allowed)
+        and dispatch_allowed == current_allowed
+        and _macro_state_source_ref_matches(dispatch_route, normalized_current_route)
     )
 
 
@@ -224,6 +228,49 @@ def route_allows_action(*, action: Mapping[str, Any], owner_route: Mapping[str, 
     allowed_actions = {_text(item) for item in route.get("allowed_actions") or []}
     allowed_actions.discard(None)
     return bool(allowed_actions) and action_type in allowed_actions
+
+
+def _currentness_matches(*, dispatch_route: Mapping[str, Any], current_route: Mapping[str, Any]) -> bool:
+    comparisons = (
+        ("route_epoch", _text(dispatch_route.get("route_epoch")), _text(current_route.get("route_epoch"))),
+        (
+            "source_fingerprint",
+            _text(dispatch_route.get("source_fingerprint")),
+            _text(current_route.get("source_fingerprint")),
+        ),
+        ("next_owner", _text(dispatch_route.get("next_owner")), _text(current_route.get("next_owner"))),
+    )
+    for _key, dispatch_value, current_value in comparisons:
+        if current_value and dispatch_value != current_value:
+            return False
+    return _basis_matches(dispatch_route=dispatch_route, current_route=current_route)
+
+
+def _basis_matches(*, dispatch_route: Mapping[str, Any], current_route: Mapping[str, Any]) -> bool:
+    dispatch_basis = owner_route_attempt_protocol.currentness_basis(dispatch_route)
+    current_basis = owner_route_attempt_protocol.currentness_basis(current_route)
+    for key in ("source_eval_id", "work_unit_id", "work_unit_fingerprint", "truth_epoch", "runtime_health_epoch"):
+        current_value = _text(current_basis.get(key))
+        dispatch_value = _text(dispatch_basis.get(key))
+        if current_value and dispatch_value and current_value != dispatch_value:
+            return False
+        if current_value and not dispatch_value and key in {"work_unit_id", "work_unit_fingerprint", "truth_epoch"}:
+            return False
+    return bool(_text(current_basis.get("work_unit_id")) or _text(current_basis.get("work_unit_fingerprint")))
+
+
+def _macro_state_source_ref_matches(dispatch_route: Mapping[str, Any], current_route: Mapping[str, Any]) -> bool:
+    dispatch_macro = _mapping(_mapping(dispatch_route.get("source_refs")).get("study_macro_state"))
+    current_macro = _mapping(_mapping(current_route.get("source_refs")).get("study_macro_state"))
+    if not current_macro:
+        return True
+    if not dispatch_macro:
+        return False
+    for key in ("writer_state", "user_next", "reason", "source_fingerprint"):
+        current_value = _text(current_macro.get(key))
+        if current_value and _text(dispatch_macro.get(key)) != current_value:
+            return False
+    return True
 
 
 def _owner_from_actions(actions: list[Mapping[str, Any]]) -> str | None:

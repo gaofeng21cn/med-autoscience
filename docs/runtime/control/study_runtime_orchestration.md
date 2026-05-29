@@ -183,6 +183,19 @@ stage-attempt request port 接受：
 
 2026-05-21 owner-route 边界补充：`request_opl_stage_attempt(...)` 仍是 MAS direct diagnostic / controller contract，但不能被新的 domain-route repair 当成 MAS 私有 provider resume、queue hydration、attempt retry 或 relaunch owner。stopped / failed / no-live / waiting-owner 这类通用运行恢复，现在由 MAS 写出 controller authorization、owner-route handoff、owner receipt 或 typed blocker，再交给 OPL runtime manager 承担 generic liveness、queue、attempt、retry/dead-letter 和 provider resume/relaunch；OPL dispatch 回 MAS 后，MAS 再执行 domain owner callable 或签收 blocker。
 
+## 控制面收薄合同
+
+跨入口执行合同只允许绑定四类稳定信号：
+
+- `macro_state`
+- `owner_route`
+- owner receipt / typed blocker
+- `evidence_refs`
+
+`status`、`reason`、supersession、quest liveness、runtime audit、publication/read-model explanation、diagnostic details 和 orchestration extras 都属于 diagnostic / read-model detail。它们可以解释当前投影为什么长这样，也可以作为 AI reviewer、auditor 或 operator 追查 evidence 的线索，但不得独立驱动跨入口 resume、relaunch、stop、rerun、publication gate closure、reviewer gate closure 或 provider handoff。需要执行动作时，consumer 必须读取同源 macro state、owner route、receipt/blocker 和 evidence refs，并按 route 授权的 action 写入新的 receipt 或 blocker。
+
+AI-first 语义判断由独立 executor / reviewer / auditor invocation 通过 prompt、skill 和 evidence refs 完成。MAS 程序合同只承担 authority refs 对齐、forbidden writes 拒绝、idempotency key / source fingerprint 校验、receipt/blocker 持久化和 read-model 投影；不得把开放式医学质量、投稿可行性、claim/evidence 充分性或 manuscript revision 判断编码成通用 runtime 状态机的隐藏分支。
+
 ## 稳定 typed surface
 
 以下 typed symbols 现在属于稳定机器接口的一部分：
