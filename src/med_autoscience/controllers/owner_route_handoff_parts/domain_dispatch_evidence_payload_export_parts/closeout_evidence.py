@@ -1,8 +1,18 @@
 from __future__ import annotations
 
-import json
 from typing import Any, Mapping
 
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.blocked_closeout_materializer import (
+    materialize_blocked_default_executor_closeout,
+)
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.closeout_io import (
+    is_matching_owner_receipt_closeout,
+    read_json_object,
+    relative_stage_attempt_closeout_ref,
+)
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.domain_stage_closeout import (
+    domain_stage_closeout_owner_evidence,
+)
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
     mapping,
     sequence,
@@ -32,7 +42,16 @@ def stage_attempt_closeout_typed_blocker_evidence(
         / "default_executor_execution"
         / f"{stage_attempt_id}.closeout.json"
     )
-    closeout = _read_json_object(closeout_path)
+    closeout = read_json_object(closeout_path)
+    if closeout is None:
+        closeout = materialize_blocked_default_executor_closeout(
+            profile=profile,
+            study_id=study_id,
+            target_identity=target_identity,
+            dispatch_identity=dispatch_identity,
+            action_type=action_type,
+            closeout_path=closeout_path,
+        )
     if closeout is None:
         return None
     domain_blocker = mapping(closeout.get("domain_blocker"))
@@ -85,9 +104,16 @@ def stage_attempt_closeout_owner_receipt_evidence(
         / "default_executor_execution"
         / f"{stage_attempt_id}.closeout.json"
     )
-    closeout = _read_json_object(closeout_path)
+    closeout = read_json_object(closeout_path)
     if closeout is None:
-        return None
+        return domain_stage_closeout_owner_evidence(
+            profile=profile,
+            study_id=study_id,
+            target_identity=target_identity,
+            dispatch_identity=dispatch_identity,
+            stage_attempt_id=stage_attempt_id,
+            action_type=action_type,
+        )
     owner_receipt = mapping(closeout.get("owner_receipt"))
     domain_execution = mapping(closeout.get("domain_execution"))
     verification = mapping(closeout.get("verification"))
@@ -96,7 +122,7 @@ def stage_attempt_closeout_owner_receipt_evidence(
         stage_attempt_id=stage_attempt_id,
     )
     owner_receipt_ref = f"{closeout_ref}#owner_receipt"
-    if not _is_matching_owner_receipt_closeout(
+    if not is_matching_owner_receipt_closeout(
         closeout=closeout,
         owner_receipt=owner_receipt,
         domain_execution=domain_execution,
@@ -119,6 +145,9 @@ def stage_attempt_closeout_owner_receipt_evidence(
         "quality_status": text(verification.get("quality_status")),
         "claim_evidence_alignment_status": text(verification.get("claim_evidence_alignment_status")),
         "artifact_delta_refs": sequence(closeout.get("artifact_delta_refs")),
+        "status": text(closeout.get("status")),
+        "artifact_delta_status": None,
+        "required_output_surface": text(closeout.get("required_output_surface")),
     }
 
 
@@ -166,7 +195,7 @@ def owner_receipt_closeout_evidence_refs(closeout_evidence: Mapping[str, Any]) -
     refs.extend(
         texts(
             [
-                f"stage-attempt-closeout:status=executed",
+                f"stage-attempt-closeout:status={text(closeout_evidence.get('status')) or 'executed'}",
                 (
                     "stage-attempt-closeout:route_outcome="
                     f"{text(closeout_evidence.get('route_outcome'))}"
@@ -187,83 +216,22 @@ def owner_receipt_closeout_evidence_refs(closeout_evidence: Mapping[str, Any]) -
                     "stage-attempt-closeout:claim_evidence_alignment_status="
                     f"{text(closeout_evidence.get('claim_evidence_alignment_status'))}"
                 ),
+                _evidence_label(
+                    "stage-attempt-closeout:artifact_delta_status",
+                    closeout_evidence.get("artifact_delta_status"),
+                ),
+                _evidence_label(
+                    "stage-attempt-closeout:required_output_surface",
+                    closeout_evidence.get("required_output_surface"),
+                ),
             ]
         )
     )
     return unique(refs)
 
 
-def relative_stage_attempt_closeout_ref(*, study_id: str, stage_attempt_id: str) -> str:
-    return (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
-        f"{stage_attempt_id}.closeout.json"
-    )
-
-
-def _is_matching_owner_receipt_closeout(
-    *,
-    closeout: Mapping[str, Any],
-    owner_receipt: Mapping[str, Any],
-    domain_execution: Mapping[str, Any],
-    target_identity: Mapping[str, Any],
-    study_id: str,
-    stage_attempt_id: str,
-    action_type: str,
-) -> bool:
-    return (
-        _matches_stage_attempt_identity(
-            closeout=closeout,
-            target_identity=target_identity,
-            study_id=study_id,
-            stage_attempt_id=stage_attempt_id,
-            action_type=action_type,
-        )
-        and text(closeout.get("status")) == "executed"
-        and _owner_receipt_is_refs_only(owner_receipt)
-        and text(domain_execution.get("execution_status")) == "executed"
-        and _closeout_does_not_claim_domain_completion(closeout)
-    )
-
-
-def _matches_stage_attempt_identity(
-    *,
-    closeout: Mapping[str, Any],
-    target_identity: Mapping[str, Any],
-    study_id: str,
-    stage_attempt_id: str,
-    action_type: str,
-) -> bool:
-    return (
-        text(closeout.get("surface_kind")) == "stage_attempt_closeout_packet"
-        and text(closeout.get("stage_attempt_id")) == stage_attempt_id
-        and text(closeout.get("stage_id")) == text(target_identity.get("stage_id"))
-        and text(closeout.get("study_id")) == study_id
-        and text(closeout.get("action_type")) == action_type
-    )
-
-
-def _owner_receipt_is_refs_only(owner_receipt: Mapping[str, Any]) -> bool:
-    return (
-        text(owner_receipt.get("status")) == "executed"
-        and text(owner_receipt.get("owner")) is not None
-        and text(owner_receipt.get("publication_eval_ref")) is not None
-        and owner_receipt.get("quality_authorized") is False
-        and owner_receipt.get("submission_authorized") is False
-        and owner_receipt.get("current_package_write_authorized") is False
-    )
-
-
-def _closeout_does_not_claim_domain_completion(closeout: Mapping[str, Any]) -> bool:
-    return (
-        closeout.get("provider_completion_is_domain_completion") is False
-        and closeout.get("provider_completion_is_domain_ready") is False
-        and closeout.get("domain_completion_claimed") is False
-    )
-
-
-def _read_json_object(path: object) -> dict[str, Any] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))  # type: ignore[attr-defined]
-    except (OSError, json.JSONDecodeError):
+def _evidence_label(label: str, value: object) -> str | None:
+    value_text = text(value)
+    if value_text is None:
         return None
-    return dict(payload) if isinstance(payload, Mapping) else None
+    return f"{label}={value_text}"
