@@ -174,3 +174,88 @@ def test_current_ai_reviewer_eval_supersedes_stale_quality_batch_digest_mismatch
     assert action["controller_route"]["authorization_basis"] == "ai_reviewer_current_write_routeback"
     assert study["next_owner"] == "write"
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
+
+
+def test_current_ai_reviewer_write_routeback_uses_blocking_work_unit_when_next_work_unit_absent(
+    tmp_path: Path,
+) -> None:
+    current_truth_owner = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.current_truth_owner"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent DM003 manuscript.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    eval_id = "publication-eval::003-dpcc::current-manuscript-record::20260529T120533Z"
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "study_id": "003-dpcc",
+        "quest_id": "003-dpcc",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [str(manuscript_path.resolve())],
+            "ai_reviewer_required": False,
+        },
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "request_digest": "sha256:" + "a" * 64,
+                    "manuscript_ref": str(manuscript_path.resolve()),
+                    "manuscript_digest": _sha256_text(manuscript_text),
+                    "route_back_required": True,
+                    "route_target": "write",
+                },
+                "current_manuscript": {
+                    "status": "current",
+                    "manuscript_ref": str(manuscript_path.resolve()),
+                    "manuscript_digest": _sha256_text(manuscript_text),
+                },
+                "source_eval": {"status": "current", "eval_id": eval_id},
+                "current_package_freshness": {
+                    "status": "downstream_pending",
+                    "source_eval_id": eval_id,
+                },
+            }
+        },
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::003-dpcc::route-current-manuscript-to-write-repair",
+                "action_type": "route_back_same_line",
+                "priority": "now",
+                "reason": "Route the current manuscript back to MAS write owner.",
+                "requires_controller_decision": True,
+                "route_target": "write",
+                "route_key_question": "Can MAS write owner finish current manuscript prose/reporting repair?",
+                "route_rationale": "The record-only AI reviewer verdict cannot authorize submission readiness.",
+                "work_unit_fingerprint": "stage-attempt::sat-current::medical_prose_write_repair",
+                "blocking_work_units": [
+                    {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                        "summary": "Refresh durable prose review and repair remaining display-led Results wording.",
+                    }
+                ],
+            }
+        ],
+    }
+
+    route = current_truth_owner.current_ai_reviewer_write_routeback_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval,
+    )
+
+    assert route is not None
+    assert route["controller_actions"] == ["run_quality_repair_batch"]
+    assert route["route_target"] == "write"
+    assert route["work_unit_id"] == "medical_prose_write_repair"
+    assert route["next_work_unit"] == {
+        "unit_id": "medical_prose_write_repair",
+        "lane": "write",
+        "summary": "Refresh durable prose review and repair remaining display-led Results wording.",
+    }
+    assert route["authorization_basis"] == "ai_reviewer_current_write_routeback"

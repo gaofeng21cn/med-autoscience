@@ -376,7 +376,7 @@ def current_ai_reviewer_write_routeback_route(
     action = _publication_story_repair_action(publication_eval_payload)
     if action is None:
         return None
-    next_work_unit = _mapping(action.get("next_work_unit"))
+    next_work_unit = _publication_story_repair_work_unit(action)
     work_unit_id = _text(next_work_unit.get("unit_id"))
     if not _is_ai_reviewer_write_repair_work_unit(next_work_unit):
         return None
@@ -472,7 +472,7 @@ def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]
     for action in actions:
         if not isinstance(action, Mapping):
             continue
-        next_work_unit = _mapping(action.get("next_work_unit"))
+        next_work_unit = _publication_story_repair_work_unit(action)
         work_unit_id = _text(next_work_unit.get("unit_id"))
         if _text(action.get("action_type")) != "route_back_same_line":
             continue
@@ -484,6 +484,19 @@ def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]
             continue
         return dict(action)
     return None
+
+
+def _publication_story_repair_work_unit(action: Mapping[str, Any]) -> dict[str, Any]:
+    next_work_unit = _mapping(action.get("next_work_unit"))
+    if next_work_unit:
+        return next_work_unit
+    for item in action.get("blocking_work_units") or []:
+        if not isinstance(item, Mapping):
+            continue
+        candidate = dict(item)
+        if _is_ai_reviewer_write_repair_work_unit(candidate):
+            return candidate
+    return {}
 
 
 def _is_ai_reviewer_write_repair_work_unit(next_work_unit: Mapping[str, Any]) -> bool:

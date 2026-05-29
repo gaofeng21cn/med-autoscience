@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-29：current AI reviewer write route-back 可从 blocking work units 恢复
+
+- 决策：`owner-route-reconcile` 读取当前 AI reviewer-backed `route_back_same_line` / `route_target=write` 推荐动作时，write work unit 可来自 `recommended_actions[].next_work_unit`，也可来自同一动作的 `recommended_actions[].blocking_work_units[]` 中第一个已注册 write/story-surface work unit。
+- 决策：当 record-only reviewer verdict 只给出 `blocking_work_units[]`，例如 `medical_prose_write_repair`，controller 必须仍投递 `write/run_quality_repair_batch`；缺少 `next_work_unit` 不是回落到 stale `return_to_ai_reviewer_workflow` 的理由。
+- 理由：DM003 暴露出当前 AI reviewer record 已绑定当前稿件并明确 route back 到 write owner，但推荐动作只携带 `blocking_work_units`，旧 read-model 因只读 `next_work_unit` 而未生成 write route，随后重复派发旧 reviewer workflow。根因是 MAS owner-route currentness/record consumption 缺口，不是论文正文、OPL queue 或手工 task intake 问题。
+- 影响：这是 MAS owner-route/read-model 修复，不写 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍必须由后续 write owner delta、AI reviewer recheck、publication gate 与 package freshness proof 判定。
+
 ## 2026-05-29：study-progress 与 stage-log 必须分离论文推进与平台修复增量
 
 - 决策：`study_progress` read-model 新增 `paper_progress_delta` 与 `platform_repair_delta` 双投影。`paper_progress_delta` 只计论文 surface 变化、AI reviewer eval follow-through、gate replay follow-through 与 write repair delta；`platform_repair_delta` 只计 controller/read-model/currentness/OPL provider 相关修复。
