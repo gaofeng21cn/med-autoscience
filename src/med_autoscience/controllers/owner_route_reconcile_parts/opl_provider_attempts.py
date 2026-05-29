@@ -11,7 +11,8 @@ from typing import Any
 
 
 LIVE_ATTEMPT_STATES = {"running", "checkpointed", "human_gate"}
-DEFAULT_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
+PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
+DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
 DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS = 8.0
 STAGE_PROGRESS_LOG_KEYS = (
     "surface_kind",
@@ -202,8 +203,13 @@ def projection_fields(
 
 def _opl_bin() -> Path | None:
     configured = os.environ.get("OPL_BIN") or os.environ.get("OPL_FAMILY_RUNTIME_BIN")
-    path = Path(configured).expanduser() if configured else DEFAULT_OPL_BIN
-    return path if path.exists() else None
+    if configured:
+        path = Path(configured).expanduser()
+        return path if path.exists() else None
+    for path in (PACKAGED_OPL_BIN, DEV_OPL_BIN):
+        if path.exists():
+            return path
+    return None
 
 
 def _run_opl_json(opl_bin: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, Any] | None:

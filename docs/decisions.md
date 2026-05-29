@@ -20,6 +20,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出 OPL Temporal queue 中已有运行中的 `return_to_ai_reviewer_workflow` stage attempt，但 `owner_route_reconcile` 的 3 秒 live-attempt timeout 会在真实 queue inspect 延迟下返回 `None`，使 MAS current-control 把 live attempt 误投影为 runtime blocker/idle。根因是 MAS read-model 对 OPL-owned queue inspect 的观测预算过短，不是论文 truth、AI reviewer 或手工 queue 状态问题。
 - 影响：这是 MAS owner-route/read-model currentness 修复，不写 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。修复后论文推进仍必须通过 MAS owner/controller/runtime path 消费 live OPL attempt closeout、AI reviewer-backed eval、publication gate 与 package freshness proof。
 
+## 2026-05-29：MAS OPL provider read-model 默认读取 packaged runtime CLI
+
+- 决策：MAS `owner_route_reconcile` 在未显式设置 `OPL_BIN` / `OPL_FAMILY_RUNTIME_BIN` 时，默认读取 OPL packaged current runtime CLI；只有 packaged runtime CLI 不存在时才回退到 dev checkout CLI。显式环境变量继续拥有最高优先级。
+- 决策：该 locator 只决定 MAS read-model 查询哪个 OPL-owned provider/queue/status surface，不改变 OPL provider lifecycle、安装路径、queue/attempt schema 或 MAS paper/publication authority。
+- 理由：DM003 暴露出 packaged OPL worker 已经按当前 runtime source 运行，但 MAS 默认调用 dev checkout `/Users/gaofeng/workspace/one-person-lab/bin/opl`，该 CLI 的 expected worker source 指向 dev repo，导致同一 worker 被误判为 `temporal_worker_source_stale`。根因是 MAS read-model 绑定了开发 checkout，而当前生产 owner 是 packaged runtime current。
+- 影响：这是 MAS/OPL locator currentness 修复，不写 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。修复后 owner-route provider readiness 应与 OPL packaged runtime truth 一致，论文推进仍由 MAS owner/controller/runtime path 判定。
+
 ## 2026-05-29：AI reviewer current-manuscript record handoff 必须携带 canonical work unit
 
 - 决策：`ai_reviewer_record_stale_after_current_manuscript` 的显式 AI reviewer request 必须直接生成 record-only `return_to_ai_reviewer_workflow` handoff，并携带 canonical `produce_ai_reviewer_publication_eval_record_against_current_manuscript` work unit、record-only output surface、禁止 `publication_eval/latest.json` / controller decision 直接写入的 authority flags。该 currentness basis 必须在 owner route 中可见，使 default-executor attempt envelope 可被 OPL admission 消费。

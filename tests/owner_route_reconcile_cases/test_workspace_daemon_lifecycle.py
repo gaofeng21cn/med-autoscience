@@ -112,6 +112,41 @@ def test_scan_domain_routes_projects_opl_provider_readiness_from_owner_surface(
     assert readiness["can_authorize_publication_ready"] is False
 
 
+def test_opl_bin_prefers_packaged_runtime_over_dev_checkout(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    packaged_bin = tmp_path / "runtime" / "current" / "bin" / "opl"
+    dev_bin = tmp_path / "one-person-lab" / "bin" / "opl"
+    packaged_bin.parent.mkdir(parents=True)
+    dev_bin.parent.mkdir(parents=True)
+    packaged_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    dev_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    monkeypatch.delenv("OPL_BIN", raising=False)
+    monkeypatch.delenv("OPL_FAMILY_RUNTIME_BIN", raising=False)
+    monkeypatch.setattr(module, "PACKAGED_OPL_BIN", packaged_bin)
+    monkeypatch.setattr(module, "DEV_OPL_BIN", dev_bin)
+
+    assert module._opl_bin() == packaged_bin
+
+
+def test_opl_bin_keeps_explicit_env_override(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    override_bin = tmp_path / "custom" / "opl"
+    packaged_bin = tmp_path / "runtime" / "current" / "bin" / "opl"
+    override_bin.parent.mkdir(parents=True)
+    packaged_bin.parent.mkdir(parents=True)
+    override_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    packaged_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+    monkeypatch.setenv("OPL_BIN", str(override_bin))
+    monkeypatch.delenv("OPL_FAMILY_RUNTIME_BIN", raising=False)
+    monkeypatch.setattr(module, "PACKAGED_OPL_BIN", packaged_bin)
+
+    assert module._opl_bin() == override_bin
+
+
 def test_live_provider_attempt_default_budget_allows_temporal_queue_inspect(
     monkeypatch,
     tmp_path: Path,
