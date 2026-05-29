@@ -240,7 +240,7 @@ def test_typed_blocker_repeat_budget_escalates_without_paper_delta() -> None:
         repeat_count=2,
         first_seen="2026-05-29T00:00:00+00:00",
         last_seen="2026-05-29T00:10:00+00:00",
-        paper_progress_delta={"count": 0},
+        deliverable_progress_delta={"count": 0},
         platform_repair_delta={"count": 1},
     )
     third = module.enrich_typed_blocker(
@@ -252,16 +252,33 @@ def test_typed_blocker_repeat_budget_escalates_without_paper_delta() -> None:
         repeat_count=3,
         first_seen="2026-05-29T00:00:00+00:00",
         last_seen="2026-05-29T00:20:00+00:00",
-        paper_progress_delta={"count": 0},
+        deliverable_progress_delta={"count": 0},
         platform_repair_delta={"count": 2},
     )
 
     assert second["blocker_family"] == "ai_reviewer_record_stale_after_current_inputs"
     assert second["next_escalation"] == "mechanism_repair_owner"
+    assert second["deliverable_progress_delta"] == second["paper_progress_delta"]
     assert second["paper_progress_delta"]["count"] == 0
+    assert second["progress_delta_classification"] == "platform_repair"
     assert third["next_escalation"] == "human_gate_or_stop_loss_candidate"
+    assert third["deliverable_progress_delta"] == third["paper_progress_delta"]
     assert third["paper_progress_delta"]["count"] == 0
     assert third["platform_repair_delta"]["count"] == 2
+
+    terminal = module.enrich_typed_blocker(
+        {"reason": "same_blocker_without_any_delta"},
+        study_id="002-dm-china-us-mortality-attribution",
+        work_unit_id="publishability_repair_sprint",
+        eval_id="eval-current",
+        source_fingerprint="source-current",
+        repeat_count=3,
+        first_seen="2026-05-29T00:00:00+00:00",
+        last_seen="2026-05-29T00:30:00+00:00",
+        deliverable_progress_delta={"count": 0},
+        platform_repair_delta={"count": 0},
+    )
+    assert terminal["progress_delta_classification"] == "human_gate"
 
 
 def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(

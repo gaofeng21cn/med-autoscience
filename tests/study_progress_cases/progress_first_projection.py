@@ -70,10 +70,12 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
+    assert result["deliverable_progress_delta"] == result["paper_progress_delta"]
     assert result["paper_progress_delta"]["count"] == 0
     assert result["platform_repair_delta"]["count"] == 1
-    assert result["progress_first_sprint_state"]["classification"] == "platform_repair_only"
+    assert result["progress_delta_classification"] == "platform_repair"
+    assert result["progress_first_sprint_state"]["deliverable_progress_delta"] == result["paper_progress_delta"]
+    assert result["progress_first_sprint_state"]["classification"] == "platform_repair"
     assert result["progress_first_sprint_state"]["paper_progress_delta_counted"] is False
     assert result["next_forced_delta"]["required_delta_kind"] == "paper_progress_delta_or_typed_blocker"
     assert result["next_forced_delta"]["work_unit_id"] == "publishability_repair_sprint"
-

@@ -83,25 +83,30 @@ def _progress_delta_projection(
 ) -> dict[str, Any]:
     if _mapping(execution.get("anti_loop_budget")):
         return {
-            "progress_delta_classification": "no_user_visible_progress_delta",
+            "progress_delta_classification": "typed_blocker",
+            "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
             "paper_progress_delta": {"count": 0, "token_usage_total": 0},
             "platform_repair_delta": {"count": 0, "token_usage_total": 0},
         }
     total_tokens = _token_usage_total(execution)
     if changed_surfaces:
+        deliverable_delta = {"count": 1, "token_usage_total": total_tokens}
         return {
-            "progress_delta_classification": "paper_progress_delta",
-            "paper_progress_delta": {"count": 1, "token_usage_total": total_tokens},
+            "progress_delta_classification": "deliverable_progress",
+            "deliverable_progress_delta": deliverable_delta,
+            "paper_progress_delta": deliverable_delta,
             "platform_repair_delta": {"count": 0, "token_usage_total": 0},
         }
     if _platform_repair_delta(execution):
         return {
-            "progress_delta_classification": "platform_repair_delta",
+            "progress_delta_classification": "platform_repair",
+            "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
             "paper_progress_delta": {"count": 0, "token_usage_total": 0},
             "platform_repair_delta": {"count": 1, "token_usage_total": total_tokens},
         }
     return {
-        "progress_delta_classification": "unknown",
+        "progress_delta_classification": "typed_blocker",
+        "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
         "paper_progress_delta": {"count": 0, "token_usage_total": 0},
         "platform_repair_delta": {"count": 0, "token_usage_total": 0},
     }

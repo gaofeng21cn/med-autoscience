@@ -91,8 +91,10 @@ Machine boundary: Human-readable projection support only; projection truth remai
 - `runtime_reason`
 - `task_intake`
 - `progress_freshness`
+- `deliverable_progress_delta`
 - `paper_progress_delta`
 - `platform_repair_delta`
+- `progress_delta_classification`
 - `opl_current_control_state_refs`
 - `domain_authority_refs`
 - `runtime_reconcile_trigger`
@@ -118,7 +120,9 @@ Machine boundary: Human-readable projection support only; projection truth remai
 - `task_intake` 表示当前 latest durable study task intake 摘要
 - `paper_stage` 表示论文主线当前建议推进阶段
 - `progress_freshness` 表示“最近有没有明确研究推进信号”，用于尽早暴露卡住、没进度或空转
-- `paper_progress_delta` / `platform_repair_delta` 是进展增量分账投影：前者只计论文推进、candidate package/display freshness proof、AI reviewer eval follow-through、gate replay 和 write repair，后者只计 controller/read-model/currentness/OPL provider 修复，避免把平台修复混报为论文推进
+- `deliverable_progress_delta` / `platform_repair_delta` 是 OPL generic 进展增量分账投影：前者只计论文/交付物推进、candidate package/display freshness proof、AI reviewer eval follow-through、gate replay 和 write repair，后者只计 controller/read-model/currentness/OPL provider 修复，避免把平台修复混报为交付物推进
+- `paper_progress_delta` 是 MAS paper-facing alias，必须与 `deliverable_progress_delta` 同值；新 generic consumer 应优先读取 `deliverable_progress_delta`
+- `progress_delta_classification` 使用 OPL shared 分类：`deliverable_progress`、`platform_repair`、`mixed`、`typed_blocker`、`human_gate` 或 `stop_loss`
 - `opl_current_control_state_refs` 表示 OPL 当前 attempt / provider / queue / retry-dead-letter / worker liveness projection refs；MAS 不重新解释为 runtime authority
 - `domain_authority_refs` 表示 MAS owner receipt、typed blocker、owner-route locator、artifact/source/status locator 和 no-forbidden-write refs
 - `runtime_reconcile_trigger` 表示读入口是否可以展示 OPL next action 或 MAS typed blocker；它只返回推荐命令、去重 fingerprint 和 blocked reasons，不直接执行 relaunch/redrive
@@ -135,7 +139,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 - `runtime_continuity` 和 `runtime_reconcile_trigger` 的 authority flags 必须保持 `quality_ready_authorized=false`、`publication_ready_authorized=false`、`submission_ready_authorized=false`
 - 双 delta 分账属于 read-model 解释层：不得据此写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper/package 或任何 domain/runtime authority surface
 
-Late-stage read-model 必须按 progress-first 解释：当同一轮同时出现 sprint delta、candidate package/display freshness proof、gate replay request 和 single next owner blocker / human gate 时，前台先报告 paper-facing delta，再报告 gate replay 与下一 owner；不能先把 quality gate blocker 当成“没有论文进展”。平台修复、projection hygiene、owner-route currentness 或 OPL refs-only ledger closure 只能进入 `platform_repair_delta`，不能冒充 DM002/DM003 paper progress。
+Late-stage read-model 必须按 progress-first 解释：当同一轮同时出现 sprint delta、candidate package/display freshness proof、gate replay request 和 single next owner blocker / human gate 时，前台先报告 deliverable/paper-facing delta，再报告 gate replay 与下一 owner；不能先把 quality gate blocker 当成“没有交付物进展”。平台修复、projection hygiene、owner-route currentness 或 OPL refs-only ledger closure 只能进入 `platform_repair_delta`，不能冒充 DM002/DM003 deliverable/paper progress。
 
 前台 markdown / 线程回报的固定口径至少保持下面顺序：
 

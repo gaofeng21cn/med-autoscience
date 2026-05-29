@@ -449,7 +449,8 @@ def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
                         "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
                     ],
                     "outcome": "blocked_with_domain_typed_blocker",
-                    "progress_delta_classification": "platform_repair_delta",
+                    "progress_delta_classification": "platform_repair",
+                    "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
                     "paper_progress_delta": {"count": 0, "token_usage_total": 0},
                     "platform_repair_delta": {"count": 1, "token_usage_total": 12345},
                     "remaining_blockers": ["authority_route_blocked"],
@@ -481,7 +482,8 @@ def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
         "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
     ]
     assert terminal_log["paper_stage_log"]["outcome"] == "blocked_with_domain_typed_blocker"
-    assert terminal_log["paper_stage_log"]["progress_delta_classification"] == "platform_repair_delta"
+    assert terminal_log["paper_stage_log"]["progress_delta_classification"] == "platform_repair"
+    assert terminal_log["paper_stage_log"]["deliverable_progress_delta"] == {"count": 0, "token_usage_total": 0}
     assert terminal_log["paper_stage_log"]["paper_progress_delta"] == {"count": 0, "token_usage_total": 0}
     assert terminal_log["paper_stage_log"]["platform_repair_delta"] == {"count": 1, "token_usage_total": 12345}
     assert terminal_log["paper_stage_log"]["remaining_blockers"] == ["authority_route_blocked"]

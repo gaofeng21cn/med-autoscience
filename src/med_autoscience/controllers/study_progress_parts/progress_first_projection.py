@@ -16,14 +16,15 @@ PROGRESS_FIRST_OUTCOME_CLASSES = (
 
 
 def build_progress_first_projection(payload: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    paper_delta = _mapping(payload.get("paper_progress_delta"))
+    deliverable_delta = _mapping(payload.get("deliverable_progress_delta")) or _mapping(payload.get("paper_progress_delta"))
+    paper_delta = _mapping(payload.get("paper_progress_delta")) or deliverable_delta
     platform_delta = _mapping(payload.get("platform_repair_delta"))
     owner_route = _current_owner_route(payload)
     source_refs = _mapping(owner_route.get("source_refs"))
     work_unit_id = _text(source_refs.get("work_unit_id")) or _text(owner_route.get("work_unit_id"))
     eval_id = _text(source_refs.get("source_eval_id")) or _text(owner_route.get("source_eval_id"))
     source_fingerprint = _text(owner_route.get("source_fingerprint")) or _text(source_refs.get("source_fingerprint"))
-    paper_count = _delta_count(paper_delta)
+    paper_count = _delta_count(deliverable_delta)
     platform_count = _delta_count(platform_delta)
     classification = _classification(paper_count=paper_count, platform_count=platform_count)
     state = {
@@ -33,6 +34,7 @@ def build_progress_first_projection(payload: Mapping[str, Any]) -> dict[str, dic
         "classification": classification,
         "paper_progress_delta_counted": paper_count > 0,
         "platform_repair_delta_counted": platform_count > 0,
+        "deliverable_progress_delta": deliverable_delta,
         "paper_progress_delta": paper_delta,
         "platform_repair_delta": platform_delta,
         "work_unit_id": work_unit_id,
@@ -77,15 +79,17 @@ def _next_forced_delta(
 
 
 def _classification(*, paper_count: int, platform_count: int) -> str:
+    if paper_count > 0 and platform_count > 0:
+        return "mixed"
     if paper_count > 0:
-        return "paper_progress"
+        return "deliverable_progress"
     if platform_count > 0:
-        return "platform_repair_only"
-    return "awaiting_progress_delta"
+        return "platform_repair"
+    return "typed_blocker"
 
 
 def _forced_delta_reason(*, classification: str | None, current_blockers: object) -> str:
-    if classification == "platform_repair_only":
+    if classification == "platform_repair":
         return "platform_repair_does_not_count_as_paper_progress"
     blockers = [item for item in current_blockers or [] if _text(item)]
     if blockers:
@@ -130,4 +134,3 @@ def _text(value: object) -> str | None:
 
 
 __all__ = ["PROGRESS_FIRST_OUTCOME_CLASSES", "build_progress_first_projection"]
-
