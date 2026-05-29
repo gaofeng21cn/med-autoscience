@@ -38,6 +38,7 @@ _USER_VISIBLE_STATUS_KEYS = (
     "state",
     "writer_state",
     "user_next",
+    "reason",
     "conflict_reason",
     "package_delivered",
     "actual_write_active",
@@ -85,7 +86,10 @@ def handle_study_read_command(
         )
         print(
             json.dumps(
-                _progress_first_status_payload(serialize_study_runtime_result(result)),
+                _progress_first_status_payload(
+                    serialize_study_runtime_result(result),
+                    preserve_runtime_reason=True,
+                ),
                 ensure_ascii=False,
                 indent=2,
             )
@@ -105,7 +109,7 @@ def handle_study_read_command(
             materialize_read_model_artifacts=False,
         )
         if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print(json.dumps(_progress_first_status_payload(result), ensure_ascii=False, indent=2))
         else:
             print(study_progress.render_study_progress_markdown(result), end="")
         return 0
@@ -200,23 +204,34 @@ def _read_status_payload(
     return serialize_study_runtime_result(status)
 
 
-def _progress_first_status_payload(payload: dict[str, Any]) -> dict[str, Any]:
+def _progress_first_status_payload(
+    payload: dict[str, Any],
+    *,
+    preserve_runtime_reason: bool = False,
+) -> dict[str, Any]:
     progress_projection = payload.get("progress_projection")
-    if not isinstance(progress_projection, dict):
+    source_payload = progress_projection if isinstance(progress_projection, dict) else payload
+    user_visible = source_payload.get("user_visible_projection")
+    if not isinstance(progress_projection, dict) and not _is_current_user_visible_projection(user_visible):
         return payload
     updated = dict(payload)
     for key in _PROGRESS_FIRST_STATUS_KEYS:
-        if key in progress_projection:
-            updated[key] = progress_projection[key]
-    user_visible = progress_projection.get("user_visible_projection")
+        if key in source_payload:
+            updated[key] = source_payload[key]
     if _is_current_user_visible_projection(user_visible):
         updated["user_visible_projection"] = dict(user_visible)
         for key in _USER_VISIBLE_STATUS_KEYS:
+            if preserve_runtime_reason and key == "reason":
+                continue
             if key in user_visible:
                 updated[key] = user_visible[key]
     updated["progress_first_projection"] = {
         "surface_kind": "cli_progress_projection_progress_first_view",
-        "source": "progress_projection.user_visible_projection",
+        "source": (
+            "progress_projection.user_visible_projection"
+            if isinstance(progress_projection, dict)
+            else "user_visible_projection"
+        ),
         "runtime_decision_field": "decision",
         "runtime_reason_field": "reason",
     }

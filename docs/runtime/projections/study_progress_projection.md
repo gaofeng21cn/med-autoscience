@@ -189,7 +189,7 @@ Late-stage read-model 必须按 progress-first 解释：当同一轮同时出现
 入口层规则：
 
 - MCP compact / markdown、CLI markdown、`workspace-cockpit`、workspace alerts 和 product-entry-status preview 必须读取 schema v2 `user_visible_projection`。
-- `progress-projection --format json` 的顶层 `current_stage`、`current_stage_summary`、`current_blockers`、`next_system_action`、`paper_stage` 和用户态 writer 字段也必须来自 `progress_projection.user_visible_projection`；runtime 控制字段 `decision` / `reason` 保持原始 controller 语义，用于诊断而不是用户态阶段判断。
+- `progress-projection --format json` 的顶层 `current_stage`、`current_stage_summary`、`current_blockers`、`next_system_action`、`paper_stage` 和用户态 writer 字段也必须来自 `progress_projection.user_visible_projection`；runtime 控制字段 `decision` / `reason` 保持原始 controller 语义，用于诊断而不是用户态阶段判断。`study-progress --format json` 的同名顶层字段必须来自自身的 `user_visible_projection`，其中 `reason` 是用户态 Progress-First reason。
 - 缺少 v2 `user_visible_projection` 时，入口只允许通过 assembly/read-model 层用 `study_macro_state` 生成；缺 `study_macro_state` 或发现 writer 冲突时必须 fail-closed 为 `inspect/conflict`，提示重新生成 canonical projection。
 - 入口不得回退到 legacy top-level `current_stage/current_blockers/next_system_action` 作为用户状态来源。
 - `user_visible_projection.conditions` 只表达 projection 状态，例如 `macro_state_known`、`package_delivered`、`actual_write_active`、`blocked`、`next_action_known`、`evidence_available`、`user_action_required`、`runtime_supervised`；不得作为 runtime write gate 或 publication quality authority。
