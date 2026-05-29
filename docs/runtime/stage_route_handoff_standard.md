@@ -138,6 +138,8 @@ MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v
 5. `required_closeout_packet` 必须要求终端 typed closeout 同时携带 `paper_stage_log`（或同义 `user_stage_log` / `stage_log_summary`），字段覆盖 stage_name、problem_summary、stage_goal、paper_work_done、changed_paper_surfaces、outcome、remaining_blockers 和 evidence_refs。该摘要只用于 OPL/MAS read-model 回答用户“这个 stage 做了什么、耗时/token 怎么样”，不得写入论文正文、不得声明 quality/submission/publication ready。
 6. OPL 只记录 attempt started/completed/blocked/failed、typed closeout refs、stdout/session/provider timing；MAS 消费 closeout refs 后再决定 owner receipt、AI reviewer eval、publication gate、package freshness或 typed blocker。
 
+Late-stage paper flow 的默认顺序是 progress-first：在 `review_and_quality_gate` / `finalize_and_publication_handoff` 一类 late-stage route 中，MAS owner chain 必须先看到 sprint delta、candidate package/display freshness proof 或同等 paper-facing progress ref，再把 AI reviewer / publication gate replay 作为后续质量复核。quality gate 可以把 delta 转成 route-back、single next owner blocker、human gate 或 stable typed blocker；它不能替代 sprint delta，也不能把 controller/read-model/currentness/provider 修复包装成 paper progress。DM002 `20260529T095414Z` effective-eval sprint repo canary 用 refs-only fixture 固化这一顺序：progress proof 与 gate replay request 可同时进入 handoff refs，但 stage success refs 仍不声明 domain ready、publication ready 或 `current_package` 更新。
+
 ## 落地状态与证据门
 
 下面只记录当前标准的落地状态与仍需补证的门槛，不作为新的并行任务板。后续如果按这些方向实施，仍必须独立 worktree、独立验证，完成后吸收回 main 并清理本次 worktree/branch。
@@ -150,7 +152,7 @@ MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v
 | `executor_reviewer_auditor_split` | stage control plane 和 handoff tests 已要求 executor、reviewer、auditor 分离为独立 OPL invocations。 | quality/format/publication gate 不允许同一 invocation 自审关闭。 |
 | `transition_matrix_consumption` | MAS `study_state_matrix` / transition table 持续暴露给 OPL runner。 | OPL runner pass 只证明 matrix 可消费；真实 owner receipt/typed blocker 才能关闭 route。 |
 | `runtime_control_plane_retirement` | runtime_transport、SQLite lifecycle、worker lease、status/workbench shell 中的通用 runtime 控制面按 no-alias 退役；当前 handoff/read-model 语义禁止 MAS generic queue、attempt ledger、scheduler、retry/dead-letter、worker residency、runtime lifecycle 或 read-model owner。 | 新投影只允许 domain authority refs、owner receipt、typed blocker 和 OPL handoff refs；发现 generic runtime owner 语义时按复活控制面处理。 |
-| `paper_line_canary` | 真实 paper-line 证明仍是开放证据尾项。 | 产出真实 OPL attempt -> MAS owner chain 的 progress delta、AI reviewer/gate receipt、artifact movement、human gate、stop-loss、owner receipt 或 stable typed blocker。 |
+| `paper_line_canary` | 真实 paper-line 证明仍是开放证据尾项；repo canary 已固化 DM002 progress-first late-stage 顺序。 | 产出真实 OPL attempt -> MAS owner chain 的 progress delta、candidate package/display freshness proof、AI reviewer/gate receipt、artifact movement、human gate、stop-loss、owner receipt 或 stable typed blocker；success refs 不得读成 domain ready。 |
 
 ## 禁止误写
 

@@ -1,0 +1,14 @@
+{
+  "surface": "controller_decision",
+  "decision_id": "dm002-20260529T095414Z-single-next-owner-human-gate",
+  "effective_eval_id": "20260529T095414Z",
+  "route_decision": "human_gate",
+  "route_target": "human_gate",
+  "next_owner": "human",
+  "requires_human_confirmation": true,
+  "blocked_reason": "candidate package and display freshness proof need human gate or reviewer replay before current_package mutation",
+  "single_next_owner": true,
+  "body_included": false,
+  "claims_publication_ready": false,
+  "claims_current_package_updated": false
+}

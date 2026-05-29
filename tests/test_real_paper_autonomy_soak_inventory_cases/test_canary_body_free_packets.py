@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 from med_autoscience.controllers.real_paper_autonomy_soak_inventory import (
@@ -33,6 +34,9 @@ def _write_profile(workspace: Path, profile_path: Path) -> None:
     )
 
 
+FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "fixtures"
+
+
 def _assert_body_free_canary_packet(packet: dict[str, object], *, owner: str) -> None:
     assert set(packet) == {
         "ref",
@@ -52,6 +56,129 @@ def _assert_body_free_canary_packet(packet: dict[str, object], *, owner: str) ->
     assert "artifact_body" not in packet
     assert "memory_body" not in packet
     assert "current_package" not in packet
+
+
+def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quality_gate(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "Yang" / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    fixture = FIXTURE_ROOT / "dm002_20260529T095414Z_effective_eval_sprint_canary"
+    dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+    shutil.copytree(fixture, dm002)
+
+    payload = build_real_paper_autonomy_guarded_apply_proof(
+        yang_root=tmp_path / "Yang",
+        profile_paths=[profile_path],
+        target_studies=("DM002",),
+    )["paper_line_provider_canary_closeout"]
+
+    result = payload["paper_line_owner_chain_results"][0]
+    refs = payload["live_paper_line_evidence_refs"]
+    stage = {
+        stage["stage_id"]: stage
+        for stage in payload["stage_expected_receipt_payload_summary"]["stages"]
+    }["finalize_and_publication_handoff"]
+    evidence_payload = payload["domain_dispatch_evidence_record_payload"]
+    record = evidence_payload["record_payload"]
+    fixture_progress = json.loads(
+        (dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    fixture_gate_replay = json.loads(
+        (dm002 / "artifacts" / "controller" / "gate_replay_requests" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    fixture_decision = json.loads(
+        (dm002 / "artifacts" / "controller_decisions" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    progress_ref = str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json")
+    owner_receipt_ref = str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json")
+    gate_replay_ref = str(dm002 / "artifacts" / "controller" / "gate_replay_requests" / "latest.json")
+    human_gate_ref = str(dm002 / "artifacts" / "controller_decisions" / "latest.json")
+
+    assert result["paper_line_id"] == "002-dm-china-us-mortality-attribution"
+    assert result["result_kind"] == "owner_receipt"
+    assert result["owner_receipt_refs"] == [
+        owner_receipt_ref,
+        progress_ref,
+        gate_replay_ref,
+        human_gate_ref,
+    ]
+    assert result["progress_delta_refs"] == [progress_ref]
+    assert result["artifact_movement_refs"] == [owner_receipt_ref]
+    assert result["human_gate_or_resume_refs"] == [human_gate_ref]
+    assert result["ai_reviewer_gate_receipt_refs"] == []
+    assert result["readiness_claims"] == {
+        "claims_paper_closure": False,
+        "claims_publication_ready": False,
+        "claims_artifact_mutation_authorized": False,
+        "claims_current_package_updated": False,
+    }
+    assert refs["progress_delta_refs"] == [progress_ref]
+    assert refs["artifact_movement_refs"] == [owner_receipt_ref]
+    assert refs["human_gate_or_resume_refs"] == [human_gate_ref]
+    assert payload["no_forbidden_write_proof"]["provider_or_opl_wrote_current_package"] is False
+    assert payload["no_forbidden_write_proof"]["provider_or_opl_wrote_artifact_body"] is False
+    assert fixture_progress["effective_eval_id"] == "20260529T095414Z"
+    assert fixture_progress["candidate_package_freshness"]["status"] == "freshness_proof_observed"
+    assert fixture_progress["display_freshness"]["status"] == "freshness_proof_observed"
+    assert fixture_progress["gate_order"] == {
+        "principle": "sprint_delta_before_quality_gate",
+        "gate_replay_requested_after_delta": True,
+        "platform_repair_can_count_as_paper_progress": False,
+    }
+    assert fixture_gate_replay["requested_after_progress_delta"] is True
+    assert fixture_decision["requires_human_confirmation"] is True
+    assert fixture_decision["single_next_owner"] is True
+
+    assert record["stage_expected_receipt_refs"] == [
+        owner_receipt_ref,
+        progress_ref,
+        gate_replay_ref,
+        human_gate_ref,
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+    ]
+    assert record["stage_monitor_freshness_refs"] == [
+        progress_ref,
+        owner_receipt_ref,
+        human_gate_ref,
+        gate_replay_ref,
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+    ]
+    assert gate_replay_ref in record["evidence_refs"]
+    assert stage["success_refs_path_payload"]["domain_receipt_refs"] == record[
+        "stage_expected_receipt_refs"
+    ]
+    assert stage["success_refs_path_payload"]["monitor_freshness_refs"] == record[
+        "stage_monitor_freshness_refs"
+    ]
+    assert stage["typed_blocker_path_payload"]["typed_blocker_refs"] == [
+        (
+            "mas-stage-typed-blocker:"
+            "medautoscience:finalize_and_publication_handoff:"
+            "real-paper-line-owner-receipt-or-monitor-freshness-pending"
+        )
+    ]
+    assert stage["recommended_current_payload_path"] == "typed_blocker_path"
+    assert stage["success_refs_visible_is_completion"] is False
+    assert stage["domain_readiness_claimed"] is False
+    assert stage["publication_readiness_claimed"] is False
+
+    packet_roles = {packet["role"] for packet in payload["body_free_evidence_packets"]}
+    assert {
+        "owner_receipt_ref",
+        "progress_delta_ref",
+        "artifact_movement_ref",
+        "human_gate_or_resume_ref",
+        "no_forbidden_write_proof_ref",
+    } <= packet_roles
 
 
 def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: Path) -> None:

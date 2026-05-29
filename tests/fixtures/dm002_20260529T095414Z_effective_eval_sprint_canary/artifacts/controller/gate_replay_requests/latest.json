@@ -1,0 +1,11 @@
+{
+  "surface": "paper_repair_gate_replay_request",
+  "request_id": "dm002-20260529T095414Z-gate-replay-after-sprint-delta",
+  "effective_eval_id": "20260529T095414Z",
+  "sprint_id": "dm002-real-paper-canary-progress-first",
+  "requested_after_progress_delta": true,
+  "requested_gate": "publication_quality_replay",
+  "source_progress_delta_ref": "studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json",
+  "body_included": false,
+  "claims_publication_ready": false
+}

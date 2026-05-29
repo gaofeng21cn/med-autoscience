@@ -1,0 +1,29 @@
+{
+  "surface": "dm002_real_paper_canary_sprint_progress_delta",
+  "effective_eval_id": "20260529T095414Z",
+  "sprint_id": "dm002-real-paper-canary-progress-first",
+  "progress_delta_candidate": true,
+  "canonical_artifact_delta": {
+    "meaningful_artifact_delta": true,
+    "delta_kind": "candidate_package_and_display_freshness"
+  },
+  "candidate_package_freshness": {
+    "status": "freshness_proof_observed",
+    "ref": "studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json#/candidate_package_freshness",
+    "body_included": false,
+    "claims_current_package_updated": false
+  },
+  "display_freshness": {
+    "status": "freshness_proof_observed",
+    "ref": "studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json#/display_freshness",
+    "body_included": false,
+    "claims_display_ready": false
+  },
+  "gate_order": {
+    "principle": "sprint_delta_before_quality_gate",
+    "gate_replay_requested_after_delta": true,
+    "platform_repair_can_count_as_paper_progress": false
+  },
+  "paper_body_included": false,
+  "artifact_body_included": false
+}
