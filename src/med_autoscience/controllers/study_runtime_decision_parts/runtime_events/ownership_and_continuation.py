@@ -68,11 +68,18 @@ def _record_execution_owner_guard(
     execution = status.execution
     if not opl_runtime_contract.is_opl_hosted_research_execution(execution):
         return
-    if not status.quest_exists or status.quest_status not in _LIVE_QUEST_STATUSES:
+    if not status.quest_exists:
         return
     try:
         runtime_liveness = status.runtime_liveness_audit_record
     except KeyError:
+        return
+    live_opl_provider_attempt = (
+        runtime_liveness.status is StudyRuntimeAuditStatus.LIVE
+        and str(runtime_liveness.payload.get("source") or "").strip()
+        == "opl_current_control_state_provider_attempt"
+    )
+    if status.quest_status not in _LIVE_QUEST_STATUSES and not live_opl_provider_attempt:
         return
     if runtime_liveness.status is StudyRuntimeAuditStatus.NONE:
         return
