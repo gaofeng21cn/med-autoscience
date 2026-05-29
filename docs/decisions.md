@@ -1607,6 +1607,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出 record-production stage 可能完成了 dispatch，却没有为 executor 提供可执行 owner payload/ref，导致同一个 stale response 被复用或没有新 record materialized。新合同把“AI reviewer 独立写 record payload”和“MAS owner callable 校验、补 production trace、写 record-only archive”分清，并保证后续 lifecycle 能按新文件名识别 current record。
 - 影响：默认 executor 的 AI reviewer record-production stage 只能写 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`，继续禁止 `paper/**`、`manuscript/**`、`publication_eval/latest.json` 与 `controller_decisions/latest.json`。后续若 record 仍未产出，应归类为 AI reviewer executor 未完成 `record_payload`，而不是 OPL queue 或手工 surface 更新问题。
 
+## 2026-05-29：current AI reviewer record 已消费后必须回到 write route
+
+- 决策：当最新 `publication_eval/latest.json` 已是当前 manuscript/input 对应的 AI reviewer record，且对应 `return_to_ai_reviewer_workflow` record-production receipt 已被消费时，`owner-route-reconcile` 必须清理旧 `ai_reviewer_record_stale_after_current_manuscript` lifecycle residue，并根据 reviewer route-back 重新投影 `write/run_quality_repair_batch`，不得重复把 next work unit 投给 AI reviewer record-production。
+- 决策：`owner_route_currentness_basis` 只承载 `source_eval_id`、`work_unit_id`、`work_unit_fingerprint`、`truth_epoch` 与 `runtime_health_epoch` 这类时效锚点；`owner_reason` 归属 `owner_reason_contract`、route reason 或 source refs，不得混入 currentness basis 作为 OPL payload 的 exact contract。
+- 理由：DM003 暴露出 current AI reviewer record 已经 materialized 并被 MAS owner 接收后，旧 stale reviewer lifecycle 仍在 read-model 中残留，controller next work unit 回到 `produce_ai_reviewer_publication_eval_record_against_current_manuscript`，造成巡检层重复等待 reviewer 而没有推进论文修复。根因是 MAS lifecycle/currentness closure 未在 receipt consumed 后关闭 reviewer route，不是 OPL queue 或论文正文可手工修改的问题。
+- 影响：该修复只改变 MAS owner-route/read-model 和默认执行器 handoff contract。后续论文质量仍由 write owner、claim-evidence/display 修复、AI reviewer-backed publication eval 与 publication gate 判断；不得手工写 DM003 `paper/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json` 绕过 owner。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

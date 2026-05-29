@@ -205,11 +205,10 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
         "owner_route_currentness_basis": {
             "source_eval_id": "publication-eval::002::current",
             "work_unit_id": "medical_prose_write_repair",
-            "work_unit_fingerprint": "medical-prose-routeback::write::fp",
-            "truth_epoch": "publication-eval::002::current",
-            "runtime_health_epoch": "runtime-health-event-002",
-            "owner_reason": "manuscript_story_surface_delta_missing",
-        },
+        "work_unit_fingerprint": "medical-prose-routeback::write::fp",
+        "truth_epoch": "publication-eval::002::current",
+        "runtime_health_epoch": "runtime-health-event-002",
+    },
         "allowed_write_surfaces": [
             "paper/draft.md",
             "paper/build/review_manuscript.md",
@@ -776,8 +775,8 @@ def test_domain_handler_export_projects_bridged_dm003_writer_handoff(tmp_path: P
         "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
         "truth_epoch": "truth-event-dm003-medical-prose",
         "runtime_health_epoch": "runtime-health-event-dm003-medical-prose",
-        "owner_reason": "manuscript_story_surface_delta_missing",
     }
+    assert "owner_reason" not in task["payload"]["owner_route_currentness_basis"]
     assert task["owner_route_attempt_envelope"]["dispatchable"] is True
     source_refs_by_role = {ref["role"]: ref for ref in task["source_refs"]}
     assert source_refs_by_role["owner_route_runtime_health_epoch"]["ref"] == (
@@ -912,8 +911,8 @@ def test_domain_handler_export_projects_ai_reviewer_default_executor_dispatch_re
         "work_unit_fingerprint": "truth-snapshot::085b4164f248a2f4c92bf66b",
         "truth_epoch": "truth-event-000017-bac190eb1c889a78",
         "runtime_health_epoch": "runtime-health-event-006195-9cdb58e3383bd0a9",
-        "owner_reason": "ai_reviewer_record_stale_after_current_manuscript",
     }
+    assert "owner_reason" not in task["payload"]["owner_route_currentness_basis"]
     assert task["owner_route_attempt_envelope"]["domain_owner"] == "ai_reviewer"
     assert task["owner_route_attempt_envelope"]["dispatchable"] is True
     assert {

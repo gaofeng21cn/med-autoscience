@@ -36,7 +36,7 @@ def maybe_blocked_lifecycle_from_scan(
         status=status,
     ):
         return {}
-    if blocked_reason is None and block_state.ai_reviewer_lifecycle_resolved(
+    if block_state.ai_reviewer_lifecycle_resolved(
         lifecycle=lifecycle,
         ai_reviewer_assessment=ai_reviewer_assessment,
         status=status,

@@ -96,6 +96,8 @@ def write_owner_action_from_controller_route(controller_route: Mapping[str, Any]
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+    if source_eval_id := _text(controller_route.get("publication_eval_id")):
+        action["source_eval_id"] = source_eval_id
     if original_route_target := _text(controller_route.get("original_route_target")):
         action["original_route_target"] = original_route_target
     return action
