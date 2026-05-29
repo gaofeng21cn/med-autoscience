@@ -1,0 +1,23 @@
+{
+  "surface": "paper_repair_owner_receipt",
+  "receipt_id": "dm002-20260529T095414Z-effective-eval-sprint-repair",
+  "accepted": true,
+  "execution_status": "executed",
+  "effective_eval_id": "20260529T095414Z",
+  "sprint_id": "dm002-real-paper-canary-progress-first",
+  "canonical_artifact_delta_refs": [
+    {
+      "role": "candidate_package_freshness_proof",
+      "path": "studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json#/candidate_package_freshness"
+    },
+    {
+      "role": "display_freshness_proof",
+      "path": "studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json#/display_freshness"
+    }
+  ],
+  "direct_current_package_write": false,
+  "quality_authorized": false,
+  "submission_authorized": false,
+  "paper_body_included": false,
+  "artifact_body_included": false
+}
