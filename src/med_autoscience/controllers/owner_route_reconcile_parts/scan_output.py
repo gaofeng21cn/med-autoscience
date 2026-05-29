@@ -55,6 +55,7 @@ def build_scan_domain_routes_payload(
     two_layer_ai_repair_policy: Mapping[str, Any],
     studies: list[dict[str, Any]],
     action_queue: list[dict[str, Any]],
+    current_execution_envelopes: Mapping[str, Any],
     queue_history: Mapping[str, Any],
     workspace_daemon_lifecycle: Mapping[str, Any],
     provider_readiness: Mapping[str, Any] | None,
@@ -93,6 +94,10 @@ def build_scan_domain_routes_payload(
         "two_layer_ai_repair_policy": dict(two_layer_ai_repair_policy),
         "studies": studies,
         "action_queue": action_queue,
+        "current_execution_envelopes": dict(current_execution_envelopes),
+        "current_execution_evidence": {
+            "action_queue": action_queue,
+        },
         "queue_history": dict(queue_history),
         "workspace_daemon_lifecycle": dict(workspace_daemon_lifecycle),
         "provider_readiness": readiness or None,

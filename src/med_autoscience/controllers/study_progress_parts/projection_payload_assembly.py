@@ -11,6 +11,7 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
 )
 import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
+from med_autoscience.controllers import current_execution_envelope
 
 from .ai_first_runtime_projection import attach_ai_first_runtime_projection
 from .macro_state_projection import compact_study_macro_state_from_payload
@@ -427,6 +428,22 @@ def assemble_study_progress_payload(
     payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    payload["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+        status=status,
+        progress=payload,
+        actions=handoff.get("action_queue") if isinstance(handoff.get("action_queue"), list) else [],
+        blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
+        next_owner=_non_empty_text(handoff.get("next_owner")),
+        runtime_health=runtime_health_snapshot,
+    )
+    payload["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+        action_queue=handoff.get("action_queue") if isinstance(handoff.get("action_queue"), list) else [],
+        runtime_health=runtime_health_snapshot,
+        extra={
+            "opl_current_control_state_handoff": handoff or None,
+        },
+    )
     payload = _apply_current_redrive_user_visible_status(payload)
     payload = _apply_runtime_medical_publication_surface_user_visible_status(payload)
     payload = _apply_terminal_delivery_user_visible_status(payload)

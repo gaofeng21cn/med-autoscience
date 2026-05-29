@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
 from med_autoscience.controllers import study_progress, domain_status_projection
+from med_autoscience.controllers import current_execution_envelope
 from med_autoscience.controllers.owner_route_reconcile_parts import canonical_inputs
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 from med_autoscience.controllers.owner_route_reconcile_parts import default_executor_receipts
@@ -795,6 +796,24 @@ def _study_projection(
             or _mapping(progress_payload.get("runtime_health_snapshot"))
         ),
     )
+    runtime_health = provider_attempt_projection["runtime_health"]
+    execution_envelope = current_execution_envelope.build_current_execution_envelope(
+        status=status_payload,
+        progress=progress_payload,
+        actions=actions,
+        blocked_reason=blocked_reason,
+        next_owner=next_owner,
+        runtime_health=runtime_health,
+    )
+    execution_evidence = current_execution_envelope.build_current_execution_evidence(
+        action_queue=actions,
+        runtime_health=runtime_health,
+        no_op=_mapping(repeat_guard),
+        extra={
+            "owner_route": owner_route,
+            "domain_authority_handoff": domain_handoff,
+        },
+    )
     return {
         "study_id": study_id,
         "handoff_generated_at": generated_at,
@@ -811,7 +830,9 @@ def _study_projection(
         "running_provider_attempt": provider_attempt_projection["running_provider_attempt"],
         "supervision_url": _text(supervision.get("browser_url")),
         "paper_stage": _text(progress_payload.get("paper_stage")),
-        "runtime_health": provider_attempt_projection["runtime_health"],
+        "runtime_health": runtime_health,
+        "current_execution_envelope": execution_envelope,
+        "current_execution_evidence": execution_evidence,
         "meaningful_artifact_delta": artifact_freshness.meaningful_artifact_delta_observed(progress_payload),
         "artifact_delta": artifact_freshness.artifact_delta(progress_payload),
         "gate_specificity": _gate_specificity_status(gate_specificity),
@@ -932,6 +953,11 @@ def scan_domain_routes(
         "previous_action_count": len(previous_action_ids),
         **queue_slo_payload,
     }
+    current_execution_envelopes = {
+        study["study_id"]: study["current_execution_envelope"]
+        for study in output_studies
+        if _text(study.get("study_id")) is not None and isinstance(study.get("current_execution_envelope"), Mapping)
+    }
     workspace_daemon_lifecycle = workspace_daemon.workspace_daemon_lifecycle(
         profile=profile,
         developer_mode=developer_mode,
@@ -945,6 +971,7 @@ def scan_domain_routes(
         two_layer_ai_repair_policy=two_layer_ai_repair_policy_payload(),
         studies=output_studies,
         action_queue=action_queue,
+        current_execution_envelopes=current_execution_envelopes,
         queue_history=queue_history,
         workspace_daemon_lifecycle=workspace_daemon_lifecycle,
         provider_readiness=provider_readiness,
