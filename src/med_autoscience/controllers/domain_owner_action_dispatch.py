@@ -343,24 +343,52 @@ def _paper_progress_stall_block_reason(
     current_route: Mapping[str, Any] | None,
     required_output_pending: bool,
 ) -> tuple[str | None, bool]:
+    diagnostic = _paper_progress_stall_diagnostic(
+        action_type=action_type,
+        dispatch=dispatch,
+        current_study=current_study,
+        current_route=current_route,
+        required_output_pending=required_output_pending,
+    )
+    return _text(diagnostic.get("blocked_reason")), bool(diagnostic.get("handoff_allowed"))
+
+
+def _paper_progress_stall_block_from_diagnostic(diagnostic: Mapping[str, Any]) -> tuple[str | None, bool]:
+    return _text(diagnostic.get("blocked_reason")), bool(diagnostic.get("handoff_allowed"))
+
+
+def _paper_progress_stall_diagnostic(
+    *,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+    current_study: Mapping[str, Any] | None,
+    current_route: Mapping[str, Any] | None,
+    required_output_pending: bool,
+) -> dict[str, Any]:
     if action_type == "return_to_ai_reviewer_workflow" and owner_route_part.route_allows_action(
         action=dispatch,
         owner_route=current_route,
     ):
-        return None, True
+        return _stall_diagnostic(status="owner_authorized_bypass", blocking=False, handoff_allowed=True)
     if (
         action_type in {"current_package_freshness_required", "canonical_paper_inputs_rehydrate_required"}
         and required_output_pending
         and owner_route_part.route_allows_action(action=dispatch, owner_route=current_route)
     ):
-        return None, True
+        return _stall_diagnostic(status="required_output_pending_bypass", blocking=False, handoff_allowed=True)
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     dispatch_stall = _mapping(dispatch.get("paper_progress_stall")) or _mapping(prompt_contract.get("paper_progress_stall"))
     if not dispatch_stall:
-        return None, False
+        return _stall_diagnostic(status="missing", blocking=False, handoff_allowed=False)
     current_stall = _mapping(_mapping(current_study).get("paper_progress_stall"))
     if not current_stall:
-        return "paper_progress_stall_current_missing", False
+        return _stall_diagnostic(
+            status="current_missing",
+            blocking=True,
+            blocked_reason="paper_progress_stall_current_missing",
+            handoff_allowed=False,
+            dispatch_stall=dispatch_stall,
+        )
     if current_stall.get("terminal") is True:
         if terminal_stall_handoff.owner_handoff_allowed(
             action_type=action_type,
@@ -368,48 +396,85 @@ def _paper_progress_stall_block_reason(
             current_study=current_study,
             current_route=current_route,
         ):
-            return None, True
-        return "paper_progress_stall_terminal", False
+            return _stall_diagnostic(
+                status="terminal_owner_handoff_allowed",
+                blocking=False,
+                handoff_allowed=True,
+                dispatch_stall=dispatch_stall,
+                current_stall=current_stall,
+            )
+        return _stall_diagnostic(
+            status="terminal_blocking",
+            blocking=True,
+            blocked_reason="paper_progress_stall_terminal",
+            handoff_allowed=False,
+            dispatch_stall=dispatch_stall,
+            current_stall=current_stall,
+        )
     dispatch_fingerprint = _text(dispatch_stall.get("action_fingerprint")) or _text(dispatch.get("action_fingerprint"))
     current_fingerprint = _text(current_stall.get("action_fingerprint"))
     if dispatch_fingerprint is not None and current_fingerprint is not None and dispatch_fingerprint != current_fingerprint:
         if current_stall.get("stalled") is False and current_stall.get("terminal") is False:
-            return None, True
-        if _nonterminal_stall_refresh_handoff_allowed(
-            action_type=action_type,
-            dispatch=dispatch,
-            current_study=current_study,
-            current_route=current_route,
-            current_stall=current_stall,
+            return _stall_diagnostic(
+                status="fingerprint_stale_after_progress_refresh",
+                blocking=False,
+                handoff_allowed=True,
+                dispatch_stall=dispatch_stall,
+                current_stall=current_stall,
+            )
+        if (
+            current_stall.get("terminal") is not True
+            and terminal_stall_handoff.owner_handoff_allowed(
+                action_type=action_type,
+                dispatch=dispatch,
+                current_study=current_study,
+                current_route=current_route,
+            )
         ):
-            return None, True
-        return "paper_progress_stall_fingerprint_stale", False
-    return None, False
-
-
-def _nonterminal_stall_refresh_handoff_allowed(
-    *,
-    action_type: str,
-    dispatch: Mapping[str, Any],
-    current_study: Mapping[str, Any] | None,
-    current_route: Mapping[str, Any] | None,
-    current_stall: Mapping[str, Any],
-) -> bool:
-    if current_stall.get("stalled") is not True:
-        return False
-    if current_stall.get("terminal") is True:
-        return False
-    if current_stall.get("safe_reconcile_candidate") is not True:
-        return False
-    if "same_fingerprint_loop" not in {str(item) for item in current_stall.get("stall_reasons") or []}:
-        return False
-    return terminal_stall_handoff.owner_handoff_allowed(
-        action_type=action_type,
-        dispatch=dispatch,
-        current_study=current_study,
-        current_route=current_route,
+            return _stall_diagnostic(
+                status="nonterminal_fingerprint_stale_diagnostic",
+                blocking=False,
+                handoff_allowed=True,
+                dispatch_stall=dispatch_stall,
+                current_stall=current_stall,
+            )
+        return _stall_diagnostic(
+            status="paper_progress_stall_fingerprint_stale",
+            blocking=True,
+            blocked_reason="paper_progress_stall_fingerprint_stale",
+            handoff_allowed=False,
+            dispatch_stall=dispatch_stall,
+            current_stall=current_stall,
+        )
+    return _stall_diagnostic(
+        status="current",
+        blocking=False,
+        handoff_allowed=False,
+        dispatch_stall=dispatch_stall,
+        current_stall=current_stall,
     )
 
+
+def _stall_diagnostic(
+    *,
+    status: str,
+    blocking: bool,
+    handoff_allowed: bool,
+    blocked_reason: str | None = None,
+    dispatch_stall: Mapping[str, Any] | None = None,
+    current_stall: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "paper_progress_stall_diagnostic",
+        "status": status,
+        "blocking": bool(blocking),
+        "blocked_reason": blocked_reason,
+        "handoff_allowed": bool(handoff_allowed),
+        "dispatch_action_fingerprint": _text(_mapping(dispatch_stall).get("action_fingerprint")),
+        "current_action_fingerprint": _text(_mapping(current_stall).get("action_fingerprint")),
+        "current_terminal": _mapping(current_stall).get("terminal"),
+        "current_stalled": _mapping(current_stall).get("stalled"),
+    }
 
 def _execute_publication_gate_specificity(
     *,
@@ -570,13 +635,14 @@ def _execute_dispatch(
         action_type=action_type,
         current_study=current_study,
     )
-    stall_block_reason, stall_handoff_allowed = _paper_progress_stall_block_reason(
+    stall_diagnostic = _paper_progress_stall_diagnostic(
         action_type=action_type,
         dispatch=dispatch,
         current_study=current_study,
         current_route=current_route,
         required_output_pending=required_output_pending,
     )
+    stall_block_reason, stall_handoff_allowed = _paper_progress_stall_block_from_diagnostic(stall_diagnostic)
     repeat_guard = repeat_suppression.execution_repeat_suppression(
         dispatch={**dict(dispatch), "owner_route": _dispatch_owner_route(dispatch), "prompt_contract": prompt_contract},
         current_study=current_study,
@@ -590,6 +656,7 @@ def _execute_dispatch(
         current_route=current_route,
         stall_block_reason=stall_block_reason,
         repeat_guard=repeat_guard,
+        dispatch=dispatch,
         developer_mode_payload=developer_mode_payload,
         apply=apply,
     ) or _execute_owner_dispatch_action(
@@ -622,6 +689,7 @@ def _execute_dispatch(
         action_fingerprint=action_fingerprint,
         action_cost=action_cost,
         stall_handoff_allowed=stall_handoff_allowed,
+        stall_diagnostic=stall_diagnostic,
         apply=apply,
         developer_mode_payload=developer_mode_payload,
         execution=execution,
@@ -636,6 +704,7 @@ def _dispatch_pre_execution_block(
     current_route: Mapping[str, Any] | None,
     stall_block_reason: str | None,
     repeat_guard: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
     developer_mode_payload: Mapping[str, Any],
     apply: bool,
 ) -> dict[str, Any] | None:
@@ -661,6 +730,23 @@ def _dispatch_pre_execution_block(
             "paper_progress_stall_current": False,
         }
     if repeat_guard["repeat_suppressed"]:
+        anti_loop_budget = _mapping(repeat_guard.get("anti_loop_budget"))
+        if anti_loop_budget:
+            blocker_reason = _text(anti_loop_budget.get("blocker_reason")) or repeat_suppression.ANTI_LOOP_BUDGET_EXHAUSTED_REASON
+            return {
+                "execution_status": "repeat_suppressed",
+                "blocked_reason": repeat_suppression.ANTI_LOOP_BUDGET_EXHAUSTED_REASON,
+                "owner_callable_surface": None,
+                "repeat_suppressed": True,
+                "why_not_applied": repeat_suppression.ANTI_LOOP_BUDGET_EXHAUSTED_REASON,
+                "typed_blocker": {
+                    "blocker_id": blocker_reason,
+                    "owner": "one-person-lab",
+                    "write_permitted": False,
+                    "escalation_route": _text(anti_loop_budget.get("escalation_route")),
+                },
+                "anti_loop_budget": dict(anti_loop_budget),
+            }
         return {
             "execution_status": "repeat_suppressed",
             "blocked_reason": repeat_suppression.REPEAT_SUPPRESSED_REASON,
@@ -718,6 +804,7 @@ def _dispatch_execution_payload(
     action_fingerprint: str,
     action_cost: Mapping[str, Any],
     stall_handoff_allowed: bool,
+    stall_diagnostic: Mapping[str, Any],
     apply: bool,
     developer_mode_payload: Mapping[str, Any],
     execution: Mapping[str, Any],
@@ -749,6 +836,7 @@ def _dispatch_execution_payload(
         or None,
         "current_paper_progress_stall": persisted_dispatches.current_scan_stall(profile=profile, study_id=study_id) or None,
         "paper_progress_stall_handoff_allowed": bool(stall_handoff_allowed),
+        "paper_progress_stall_diagnostic": dict(stall_diagnostic),
         "paper_work_unit_lifecycle": paper_work_unit_lifecycle,
         "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),
         "repeat_suppression_key": repeat_guard["repeat_suppression_key"],

@@ -611,7 +611,7 @@ def test_execute_dispatch_blocks_unsupported_executor_kind_fail_closed(
     }
 
 
-def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_and_indexes_receipt(
+def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budget_and_indexes_receipt(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -673,41 +673,47 @@ def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_an
             ],
         },
     )
+    _execution_latest_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    prior_failure = {
+        "surface": "default_executor_dispatch_execution",
+        "study_id": study_id,
+        "quest_id": f"quest-{study_id}",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "execution_status": "blocked",
+        "blocked_reason": "ai_reviewer_request_missing",
+        "owner_route": route,
+        "prompt_contract": dispatch_payload["prompt_contract"],
+        "repeat_suppression_key": "publication-blockers::repeat-executor",
+    }
     _write_json(
-        _execution_latest_path := (
-            study_root
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_execution"
-            / "latest.json"
-        ),
+        _execution_latest_path,
         {
             "surface": "default_executor_dispatch_execution_study_latest",
-            "executions": [
-                {
-                    "surface": "default_executor_dispatch_execution",
-                    "study_id": study_id,
-                    "quest_id": f"quest-{study_id}",
-                    "action_type": "return_to_ai_reviewer_workflow",
-                    "execution_status": "blocked",
-                    "blocked_reason": "ai_reviewer_request_missing",
-                    "owner_route": route,
-                    "prompt_contract": dispatch_payload["prompt_contract"],
-                    "repeat_suppression_key": "publication-blockers::repeat-executor",
-                }
-            ],
+            "executions": [{**prior_failure, "execution_id": "execution::first"}],
         },
     )
     assert _execution_latest_path.is_file()
+    called = {"count": 0}
+
+    def fake_ai_reviewer_workflow(**_) -> dict[str, object]:
+        called["count"] += 1
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "ai_reviewer_workflow",
+        }
+
     monkeypatch.setattr(
         module,
         "_execute_ai_reviewer_workflow",
-        lambda **_: {
-            "execution_status": "executed",
-            "blocked_reason": None,
-            "owner_callable_surface": "should_not_run",
-        },
+        fake_ai_reviewer_workflow,
     )
 
     result = module.dispatch_domain_owner_actions(
@@ -719,13 +725,41 @@ def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_an
     )
 
     execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert result["repeat_suppressed_count"] == 0
+    assert execution["execution_status"] == "executed"
+    assert execution["owner_callable_surface"] == "ai_reviewer_workflow"
+    assert called["count"] == 1
+    assert execution["prompt_contract"]["repeat_suppression_key"] == "publication-blockers::repeat-executor"
+
+    _write_json(
+        _execution_latest_path,
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "execution_ledger": [
+                {**prior_failure, "execution_id": "execution::first"},
+                {**prior_failure, "execution_id": "execution::second"},
+            ],
+        },
+    )
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
     assert result["executed_count"] == 0
     assert result["repeat_suppressed_count"] == 1
+    assert called["count"] == 1
     assert execution["execution_status"] == "repeat_suppressed"
     assert execution["repeat_suppressed"] is True
-    assert execution["why_not_applied"] == "repeat_suppressed"
+    assert execution["why_not_applied"] == "anti_loop_budget_exhausted"
     assert execution["owner_callable_surface"] is None
-    assert execution["prompt_contract"]["repeat_suppression_key"] == "publication-blockers::repeat-executor"
+    assert execution["anti_loop_budget"]["failure_count"] == 2
+    assert execution["anti_loop_budget"]["escalation_route"] == "publishability_repair_sprint"
 
     db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
     assert db_path.is_file()
@@ -741,7 +775,7 @@ def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_an
     assert row is not None
     assert row[0] == "repeat_suppressed"
     assert row[1] == route["idempotency_key"]
-    assert json.loads(row[2])["why_not_applied"] == "repeat_suppressed"
+    assert json.loads(row[2])["why_not_applied"] == "anti_loop_budget_exhausted"
 
 
 def test_execute_dispatch_does_not_repeat_suppress_pending_ai_reviewer_output(
