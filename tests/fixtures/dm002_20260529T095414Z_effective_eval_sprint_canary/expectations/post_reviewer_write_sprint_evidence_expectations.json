@@ -1,0 +1,68 @@
+{
+  "surface": "dm002_post_reviewer_write_sprint_evidence_expectations",
+  "canary_id": "dm002-20260529T095414Z-effective-eval-sprint",
+  "study_id": "002-dm-china-us-mortality-attribution",
+  "effective_eval_id": "20260529T095414Z",
+  "scope": "contract_expectation_only",
+  "description": "After a current positive AI-reviewer or write sprint path, DM002 must either expose the required research audit ref families or return a stable typed blocker that names the missing families and route-back owner.",
+  "accepted_terminal_shapes": [
+    "owner_receipt_with_required_ref_families",
+    "stable_typed_blocker_with_required_routeback"
+  ],
+  "positive_path": {
+    "required_ref_families": [
+      "research_evidence_pack_refs",
+      "negative_or_failed_path_ledger_refs",
+      "decision_trace_refs",
+      "artifact_lineage_or_reproducibility_refs"
+    ],
+    "current_fixture_seed_refs": {
+      "research_evidence_pack_refs": [
+        "studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json"
+      ],
+      "negative_or_failed_path_ledger_refs": [
+        "stable_typed_blocker_or_failed_path_ledger_ref_required_when_no_negative_path_observed"
+      ],
+      "decision_trace_refs": [
+        "studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_replay_requests/latest.json",
+        "studies/002-dm-china-us-mortality-attribution/artifacts/controller_decisions/latest.json"
+      ],
+      "artifact_lineage_or_reproducibility_refs": [
+        "studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json#/candidate_package_freshness",
+        "studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json#/display_freshness"
+      ]
+    }
+  },
+  "stable_typed_blocker_path": {
+    "required_ref_families": [
+      "typed_blocker_refs",
+      "routeback_owner_refs",
+      "missing_ref_family_refs",
+      "no_forbidden_write_proof_refs"
+    ],
+    "allowed_reasons": [
+      "research_evidence_pack_refs_missing",
+      "negative_or_failed_path_ledger_refs_missing",
+      "decision_trace_refs_missing",
+      "artifact_lineage_or_reproducibility_refs_missing"
+    ]
+  },
+  "authority_boundary": {
+    "opl_lifecycle_substrate_can_transport_refs": true,
+    "opl_lifecycle_substrate_can_index_lifecycle_refs": true,
+    "opl_lifecycle_substrate_can_decide_medical_authority": false,
+    "mas_medical_authority_required_for_publication_quality": true,
+    "mas_medical_authority_required_for_artifact_mutation": true,
+    "mas_medical_authority_required_for_memory_writeback": true
+  },
+  "forbidden_claims": {
+    "claims_domain_ready": false,
+    "claims_publication_ready": false,
+    "claims_current_package_updated": false,
+    "claims_artifact_mutation_authorized": false
+  },
+  "workspace_mutation": {
+    "real_dm002_workspace_touched": false,
+    "fixture_only": true
+  }
+}

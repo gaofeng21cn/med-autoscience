@@ -97,6 +97,13 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
             encoding="utf-8"
         )
     )
+    fixture_expectations = json.loads(
+        (
+            dm002
+            / "expectations"
+            / "post_reviewer_write_sprint_evidence_expectations.json"
+        ).read_text(encoding="utf-8")
+    )
 
     progress_ref = str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json")
     owner_receipt_ref = str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json")
@@ -137,6 +144,69 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
     assert fixture_gate_replay["requested_after_progress_delta"] is True
     assert fixture_decision["requires_human_confirmation"] is True
     assert fixture_decision["single_next_owner"] is True
+    assert fixture_expectations["surface"] == (
+        "dm002_post_reviewer_write_sprint_evidence_expectations"
+    )
+    assert fixture_expectations["canary_id"] == "dm002-20260529T095414Z-effective-eval-sprint"
+    assert fixture_expectations["scope"] == "contract_expectation_only"
+    assert fixture_expectations["forbidden_claims"] == {
+        "claims_domain_ready": False,
+        "claims_publication_ready": False,
+        "claims_current_package_updated": False,
+        "claims_artifact_mutation_authorized": False,
+    }
+    assert fixture_expectations["accepted_terminal_shapes"] == [
+        "owner_receipt_with_required_ref_families",
+        "stable_typed_blocker_with_required_routeback",
+    ]
+    assert fixture_expectations["positive_path"]["required_ref_families"] == [
+        "research_evidence_pack_refs",
+        "negative_or_failed_path_ledger_refs",
+        "decision_trace_refs",
+        "artifact_lineage_or_reproducibility_refs",
+    ]
+    assert fixture_expectations["stable_typed_blocker_path"]["required_ref_families"] == [
+        "typed_blocker_refs",
+        "routeback_owner_refs",
+        "missing_ref_family_refs",
+        "no_forbidden_write_proof_refs",
+    ]
+    assert (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/controller/"
+        "repair_execution_evidence/latest.json#/candidate_package_freshness"
+    ) in fixture_expectations["positive_path"]["current_fixture_seed_refs"][
+        "artifact_lineage_or_reproducibility_refs"
+    ]
+    assert (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/controller/"
+        "gate_replay_requests/latest.json"
+    ) in fixture_expectations["positive_path"]["current_fixture_seed_refs"][
+        "decision_trace_refs"
+    ]
+    assert (
+        fixture_expectations["authority_boundary"][
+            "opl_lifecycle_substrate_can_transport_refs"
+        ]
+        is True
+    )
+    assert (
+        fixture_expectations["authority_boundary"][
+            "opl_lifecycle_substrate_can_decide_medical_authority"
+        ]
+        is False
+    )
+    assert (
+        fixture_expectations["authority_boundary"][
+            "mas_medical_authority_required_for_publication_quality"
+        ]
+        is True
+    )
+    assert (
+        fixture_expectations["authority_boundary"][
+            "mas_medical_authority_required_for_artifact_mutation"
+        ]
+        is True
+    )
 
     assert record["stage_expected_receipt_refs"] == [
         owner_receipt_ref,

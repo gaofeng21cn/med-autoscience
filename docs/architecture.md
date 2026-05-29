@@ -79,6 +79,8 @@ MAS repo-source 目录按标准 domain agent 职责分层：
 
 MAS 的 authority 边界不因 refs-only lifecycle 上收而外移：study truth、publication/quality verdict、AI reviewer judgment、artifact mutation authority、publication-route memory body accept/reject 和 owner receipt 继续由 MAS owner surface 决定；OPL 只能消费 locator、receipt ref、typed blocker 或 no-regression evidence。
 
+科研 lifecycle 审计链不随旧 runtime UX 退役而降级。OPL 可以持有 attempt ledger、file lifecycle shell、generic artifact/memory transport、restore/retention orchestration 和 workbench drilldown；MAS 必须在 reviewer / writer sprint、analysis campaign、publication gate 或 artifact handoff 后留下研究 evidence pack refs、negative / failed-path ledger refs、decision trace refs、artifact lineage / reproducibility refs，或返回命名缺失 ref family 与 route-back owner 的 stable typed blocker。缺这条链时，transport 成功、queue 完成、package 存在或 UI 可见都不能关闭医学研究 authority。
+
 ## 当前自治与质量合同主线
 
 - `study charter` 冻结方向锁定后的自治边界与论文质量合同。
@@ -98,6 +100,7 @@ MAS 的 authority 边界不因 refs-only lifecycle 上收而外移：study truth
 - `Quality OS` 的当前落点是 pre-draft quality runtime、evidence ledger、review ledger 与 AI reviewer-backed `publication_eval/latest.json` 的闭环；真实论文 soak 仍需继续积累。
 - `Runtime OS` 的当前落点是 OPL-owned stage/runtime control plane 加 MAS domain authority refs。OPL 持有 attempt、queue、wakeup、provider query、typed closeout、retry/dead-letter、worker residency、human gate transport、current-control-state 和 lifecycle/index；MAS 只持有 DomainIntent / owner route、owner receipt、typed blocker、artifact/source/quality refs、guarded apply receipt、paper-progress SLO 解释与 diagnostic explanation。
 - `Artifact OS` 固定 canonical-source-first：manuscript、figures、tables、submission package 都从 canonical source 重建，并通过 artifact rebuild proof 支撑交付判断。
+- Artifact / lifecycle owner split 固定为：OPL 持有 generic locator/index、retention/restore shell、lifecycle report 和 App/workbench 展示；MAS 持有 artifact mutation authorization、canonical-source rebuild proof、publication-route memory decision、package freshness interpretation 和 current package authority。OPL lifecycle receipt 可以作为 evidence ref 被 MAS 消费，不能直接授权 cleanup apply、artifact mutation、publication readiness 或 submission readiness。
 - `Evaluation OS` 的目标是把历史返工转为 AI reviewer calibration corpus、quality regression 与 AI-first drift audit；这些目标项按证据逐步关闭。
 - `Observability OS` 面向维护者暴露 drift、trace、route-back、cache freshness、artifact stale 和 runtime recovery，但不成为 authority。
 

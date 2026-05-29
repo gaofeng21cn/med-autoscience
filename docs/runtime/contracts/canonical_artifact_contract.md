@@ -7,6 +7,8 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 
 Artifact OS 的目标是让 manuscript、figures、tables 和 submission package 全部从 canonical sources 与 AI reviewer quality decision 重建。派生产物可以交付给人看，但不能反向成为 edit source 或 quality authority。
 
+Artifact OS 的 owner split 固定为：OPL / shared family layer 持有通用 locator/index、lifecycle transport、restore/retention shell、attempt/workbench projection 和 artifact refs 展示；MAS 持有医学 artifact authority，包括 artifact mutation authorization、canonical-source rebuild proof、publication-route memory decision、AI reviewer / publication gate 解释、package freshness interpretation 和 current package authority。OPL 可以把 artifact refs、lifecycle refs、restore proof refs 或 typed blocker refs 交回 MAS；它不能直接决定 artifact mutation、publication quality、submission readiness 或 `current_package` 更新。
+
 ## Layers
 
 1. canonical sources：study charter、evidence ledger、analysis outputs、AI reviewer quality decision、canonical blueprint。
@@ -36,6 +38,7 @@ Artifact OS 的目标是让 manuscript、figures、tables 和 submission package
 - figures 必须从 canonical sources + AI reviewer quality decision 重建。
 - tables 必须从 canonical sources + AI reviewer quality decision 重建。
 - submission package 必须从 canonical sources + AI reviewer quality decision 重建。
+- reviewer / writer sprint、analysis campaign、gate replay 或 artifact handoff 后的 positive path 必须留下 research evidence pack refs、negative / failed-path ledger refs、decision trace refs、artifact lineage / reproducibility refs。缺任一 ref family 时，Artifact OS 只能返回 stable typed blocker，并命名缺失 ref family、route-back owner 和 no-forbidden-write proof。
 
 派生 projection 可以作为人读 handoff、提交镜像或 traceability output 使用；不能作为后续编辑、质量关闭、投稿授权的根。
 
