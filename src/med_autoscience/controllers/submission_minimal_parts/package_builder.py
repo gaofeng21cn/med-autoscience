@@ -12,8 +12,11 @@ from collections.abc import Mapping
 import inspect
 from med_autoscience.controllers import paper_authority_delivery_guard
 from med_autoscience.controllers.submission_package_layout import (
+    build_analysis_results_from_source_contract,
     build_analysis_manifest_document,
+    build_artifact_lineage_graph_document,
     build_package_layout_block,
+    build_software_environment_document,
     build_source_relative_paths_document,
     build_source_signature_document,
     audit_path,
@@ -64,13 +67,33 @@ def _write_submission_reproducibility_documents(
     )
 
 
-def _write_submission_analysis_manifest(*, target_submission_root: Path) -> None:
+def _write_submission_lineage_reproducibility_bundle(
+    *,
+    target_submission_root: Path,
+    source_contract: dict[str, Any],
+) -> None:
+    analysis_results = build_analysis_results_from_source_contract(source_contract)
+    dump_json(
+        reproducibility_path(target_submission_root, "software_environment"),
+        build_software_environment_document(
+            package_role="controller_authorized_package_source",
+        ),
+    )
     dump_json(
         reproducibility_path(target_submission_root, "analysis_manifest"),
         build_analysis_manifest_document(
             analysis_manifest_source=None,
-            analysis_manifest_present=False,
+            analysis_manifest_present=bool(analysis_results),
             package_role="controller_authorized_package_source",
+            analysis_results=analysis_results,
+        ),
+    )
+    dump_json(
+        reproducibility_path(target_submission_root, "artifact_lineage_graph"),
+        build_artifact_lineage_graph_document(
+            package_role="controller_authorized_package_source",
+            source_signature=source_contract["source_signature"],
+            source_contract=source_contract,
         ),
     )
 
@@ -607,7 +630,10 @@ def create_submission_minimal_package(
         target_submission_root=target_submission_root,
         source_contract=refreshed_source_contract,
     )
-    _write_submission_analysis_manifest(target_submission_root=target_submission_root)
+    _write_submission_lineage_reproducibility_bundle(
+        target_submission_root=target_submission_root,
+        source_contract=refreshed_source_contract,
+    )
     archived_surface_roots = materialize_archived_reference_only_submission_surface_manifests(
         paper_root,
         active_manifest_path=submission_manifest_path,
@@ -650,6 +676,10 @@ def create_submission_minimal_package(
         )
         dump_json(submission_manifest_path, manifest)
         _write_submission_reproducibility_documents(
+            target_submission_root=target_submission_root,
+            source_contract=refreshed_source_contract,
+        )
+        _write_submission_lineage_reproducibility_bundle(
             target_submission_root=target_submission_root,
             source_contract=refreshed_source_contract,
         )

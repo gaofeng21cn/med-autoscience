@@ -82,6 +82,31 @@ def test_artifact_rebuild_integrity_contract_proves_each_generated_artifact_sour
         assert proof["controller_decision_ref"] == "controller_decisions/latest.json"
 
 
+def test_canonical_artifact_contract_fixes_reproducibility_lineage_chain() -> None:
+    module = importlib.import_module("med_autoscience.controllers.canonical_artifact_contract")
+
+    contract = module.build_canonical_artifact_contract()
+
+    assert contract["lineage_chain"] == [
+        "canonical_source",
+        "analysis_result",
+        "evidence_ledger",
+        "claim_map",
+        "manuscript_table_figure",
+        "submission_package",
+    ]
+    assert contract["lineage_graph_projection"]["path"] == (
+        "reproducibility/artifact_lineage_graph.json"
+    )
+    assert contract["lineage_graph_projection"]["edit_source"] is False
+    assert contract["lineage_graph_projection"]["quality_authority"] is False
+    assert contract["lineage_graph_projection"]["dispatch_authority"] is False
+
+    validation = module.validate_canonical_artifact_contract(contract)
+
+    assert validation["ok"] is True
+
+
 def test_artifact_rebuild_integrity_validation_fails_when_proof_loses_authority_refs() -> None:
     module = importlib.import_module("med_autoscience.controllers.canonical_artifact_contract")
     contract = module.build_artifact_rebuild_integrity_contract()
@@ -113,6 +138,15 @@ def test_canonical_artifact_validation_fails_when_package_becomes_source() -> No
     contract["derived_paths"][0]["quality_authority"] = True
     contract["rebuild_requirements"][0]["must_rebuild_from"] = ["canonical_sources"]
     contract["artifact_layers"][0]["authority"] = "current_package"
+    contract["lineage_chain"] = [
+        "canonical_source",
+        "evidence_ledger",
+        "analysis_result",
+        "claim_map",
+        "manuscript_table_figure",
+        "submission_package",
+    ]
+    contract["lineage_graph_projection"]["dispatch_authority"] = True
 
     validation = module.validate_canonical_artifact_contract(contract)
 
@@ -123,6 +157,8 @@ def test_canonical_artifact_validation_fails_when_package_becomes_source() -> No
         "derived_path_used_as_quality_authority",
         "rebuild_requirement_missing_input",
         "canonical_layer_authority_drift",
+        "artifact_lineage_chain_drift",
+        "lineage_graph_projection_used_as_dispatch_authority",
     }
 
 

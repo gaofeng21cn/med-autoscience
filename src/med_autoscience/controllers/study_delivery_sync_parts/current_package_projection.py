@@ -5,7 +5,10 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.submission_package_layout import (
+    build_analysis_results_from_source_contract,
     build_analysis_manifest_document,
+    build_artifact_lineage_graph_document,
+    build_software_environment_document,
     build_source_relative_paths_document,
     build_source_signature_document,
     audit_path,
@@ -170,19 +173,51 @@ def _write_current_package_reproducibility_documents(
         path=source_paths_path,
     )
 
+    analysis_results = build_analysis_results_from_source_contract(
+        dict(source_signature_payload.get("source_contract") or {})
+    )
     analysis_manifest_path = reproducibility_path(current_package_root, "analysis_manifest")
     dump_json(
         analysis_manifest_path,
         build_analysis_manifest_document(
             analysis_manifest_source=None,
-            analysis_manifest_present=False,
+            analysis_manifest_present=bool(analysis_results),
             package_role="human_facing_mirror",
+            analysis_results=analysis_results,
         ),
     )
     _append_generated_file(
         generated_files,
         category="current_package_reproducibility",
         path=analysis_manifest_path,
+    )
+
+    software_environment_path = reproducibility_path(current_package_root, "software_environment")
+    dump_json(
+        software_environment_path,
+        build_software_environment_document(
+            package_role="human_facing_mirror",
+        ),
+    )
+    _append_generated_file(
+        generated_files,
+        category="current_package_reproducibility",
+        path=software_environment_path,
+    )
+
+    artifact_lineage_graph_path = reproducibility_path(current_package_root, "artifact_lineage_graph")
+    dump_json(
+        artifact_lineage_graph_path,
+        build_artifact_lineage_graph_document(
+            package_role="human_facing_mirror",
+            source_signature=str(source_signature_payload.get("source_signature") or ""),
+            source_contract=dict(source_signature_payload.get("source_contract") or {}),
+        ),
+    )
+    _append_generated_file(
+        generated_files,
+        category="current_package_reproducibility",
+        path=artifact_lineage_graph_path,
     )
 
 

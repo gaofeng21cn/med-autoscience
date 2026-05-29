@@ -27,9 +27,12 @@ from med_autoscience.publication_profiles import (
 )
 from med_autoscience.controllers import study_delivery_sync
 from med_autoscience.controllers.submission_package_layout import (
+    build_analysis_results_from_source_contract,
     AUDIT_DIRNAME,
     build_package_layout_block,
     build_analysis_manifest_document,
+    build_artifact_lineage_graph_document,
+    build_software_environment_document,
     build_source_relative_paths_document,
     build_source_signature_document,
     reproducibility_path,
@@ -108,6 +111,7 @@ def _write_journal_reproducibility_documents(
     source_manifest: Mapping[str, Any],
 ) -> None:
     source_payload = _source_signature_payload(source_manifest)
+    analysis_results = build_analysis_results_from_source_contract(source_payload["source_contract"])
     study_delivery_sync.dump_json(
         reproducibility_path(package_root, "source_signature"),
         build_source_signature_document(
@@ -128,8 +132,23 @@ def _write_journal_reproducibility_documents(
         reproducibility_path(package_root, "analysis_manifest"),
         build_analysis_manifest_document(
             analysis_manifest_source=None,
-            analysis_manifest_present=False,
+            analysis_manifest_present=bool(analysis_results),
             package_role="journal_targeted_projection",
+            analysis_results=analysis_results,
+        ),
+    )
+    study_delivery_sync.dump_json(
+        reproducibility_path(package_root, "software_environment"),
+        build_software_environment_document(
+            package_role="journal_targeted_projection",
+        ),
+    )
+    study_delivery_sync.dump_json(
+        reproducibility_path(package_root, "artifact_lineage_graph"),
+        build_artifact_lineage_graph_document(
+            package_role="journal_targeted_projection",
+            source_signature=source_payload["source_signature"] or "",
+            source_contract=source_payload["source_contract"],
         ),
     )
 

@@ -20,6 +20,16 @@ Artifact OS 的目标是让 manuscript、figures、tables 和 submission package
 
 在 `submission-package.v2` layout 下，`audit/*` 与 `reproducibility/*` 是交付包内的 traceability projection，用于核查来源、审计和复现索引；它们不把交付包提升为 edit source、quality authority 或 dispatch authority。
 
+`submission-package.v2` 的 reproducibility bundle 固定包含：
+
+- `source_signature.json`：记录 source signature 与 source contract，并把 signature 作为 sha256-grade package fingerprint 引用。
+- `source_relative_paths.json`：记录 canonical/package source 相对路径与每个 source file 的 sha256。
+- `analysis_manifest.json`：记录 analysis result refs、analysis source sha256、software/environment ref 与 lineage graph ref。
+- `software_environment.json`：记录 repo/runtime/software env refs；它是复现索引，不是 runtime truth。
+- `artifact_lineage_graph.json`：固定 `canonical_source -> analysis_result -> evidence_ledger -> claim_map -> manuscript_table_figure -> submission_package`。
+
+上述 graph 只是 lineage projection。`current_package`、DOCX/PDF、ZIP、`audit/` 和 `reproducibility/` 都不能成为 edit source、quality authority 或 dispatch authority。
+
 ## Rebuild Requirements
 
 - manuscript 必须从 canonical sources + AI reviewer quality decision 重建。

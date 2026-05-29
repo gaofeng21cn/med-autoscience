@@ -54,6 +54,15 @@ REBUILD_REQUIRED_INPUTS: tuple[str, ...] = (
     "ai_reviewer_quality_decision",
 )
 
+LINEAGE_CHAIN: tuple[str, ...] = (
+    "canonical_source",
+    "analysis_result",
+    "evidence_ledger",
+    "claim_map",
+    "manuscript_table_figure",
+    "submission_package",
+)
+
 GENERATED_ARTIFACT_ROLES: dict[str, str] = {
     "manuscript": "generated_manuscript_projection",
     "tables": "generated_table_projection",
@@ -121,6 +130,14 @@ def build_canonical_artifact_contract() -> dict[str, Any]:
             "controller_decision_ref",
             "generated_at",
         ],
+        "lineage_chain": list(LINEAGE_CHAIN),
+        "lineage_graph_projection": {
+            "path": "reproducibility/artifact_lineage_graph.json",
+            "edit_source": False,
+            "quality_authority": False,
+            "dispatch_authority": False,
+            "role": "derived_traceability_projection",
+        },
         "rebuild_requirements": [
             {
                 "target": target,
@@ -259,6 +276,20 @@ def validate_canonical_artifact_contract(contract: Mapping[str, Any]) -> dict[st
             issues.append({"code": "canonical_layer_missing"})
         elif _text(first.get("authority")) != "study_charter_evidence_analysis_ai_review_sources":
             issues.append({"code": "canonical_layer_authority_drift"})
+    if [_text(item) for item in _list(contract.get("lineage_chain"))] != list(LINEAGE_CHAIN):
+        issues.append({"code": "artifact_lineage_chain_drift"})
+    lineage_projection = contract.get("lineage_graph_projection")
+    if not isinstance(lineage_projection, Mapping):
+        issues.append({"code": "lineage_graph_projection_missing"})
+    else:
+        if _text(lineage_projection.get("path")) != "reproducibility/artifact_lineage_graph.json":
+            issues.append({"code": "lineage_graph_projection_path_drift"})
+        if lineage_projection.get("edit_source") is not False:
+            issues.append({"code": "lineage_graph_projection_used_as_edit_source"})
+        if lineage_projection.get("quality_authority") is not False:
+            issues.append({"code": "lineage_graph_projection_used_as_quality_authority"})
+        if lineage_projection.get("dispatch_authority") is not False:
+            issues.append({"code": "lineage_graph_projection_used_as_dispatch_authority"})
     rebuild_requirements = _list(contract.get("rebuild_requirements"))
     requirements_by_target = {
         _text(item.get("target")): item

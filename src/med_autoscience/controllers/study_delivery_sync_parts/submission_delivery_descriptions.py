@@ -67,10 +67,21 @@ CURRENT_PACKAGE_GENERATED_PROJECTION_RELATIVE_PATHS = frozenset(
     }
 )
 
+_ROLE_SPECIFIC_REPRODUCIBILITY_JSON_NAMES = (
+    "source_signature.json",
+    "source_relative_paths.json",
+    "analysis_manifest.json",
+    "software_environment.json",
+    "artifact_lineage_graph.json",
+)
+
 CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS: dict[Path, frozenset[str]] = {
     Path("evidence_ledger.json"): frozenset({"updated_at"}),
     Path("audit/evidence_ledger.json"): frozenset({"updated_at"}),
-    **{Path("reproducibility") / name: frozenset({"package_role"}) for name in ("source_signature.json", "source_relative_paths.json", "analysis_manifest.json")},
+    **{
+        Path("reproducibility") / name: frozenset({"package_role"})
+        for name in _ROLE_SPECIFIC_REPRODUCIBILITY_JSON_NAMES
+    },
 }
 
 
@@ -83,12 +94,10 @@ def _submission_projection_target_relative_path(relative_path: Path) -> Path:
         return Path("audit") / "review_ledger.json"
     if relative_path == Path("controller") / "study_charter.json":
         return Path("audit") / "study_charter.json"
-    if relative_path == Path("reproducibility") / "source_signature.json":
-        return Path("reproducibility") / "source_signature.json"
-    if relative_path == Path("reproducibility") / "source_relative_paths.json":
-        return Path("reproducibility") / "source_relative_paths.json"
-    if relative_path == Path("reproducibility") / "analysis_manifest.json":
-        return Path("reproducibility") / "analysis_manifest.json"
+    if relative_path.name in _ROLE_SPECIFIC_REPRODUCIBILITY_JSON_NAMES and relative_path.parent == Path(
+        "reproducibility"
+    ):
+        return relative_path
     return relative_path
 
 
