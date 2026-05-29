@@ -99,6 +99,52 @@ def _payload_record(value: PublicationEvalRecord | dict[str, Any]) -> dict[str, 
     return payload
 
 
+def _record_payload_missing_blocker(
+    *,
+    payload: Mapping[str, Any],
+    status_payload: Mapping[str, Any],
+    source: str,
+) -> dict[str, Any] | None:
+    if _optional_text(payload.get("surface")) != "ai_reviewer_record_payload_authoring_target":
+        return None
+    if _mapping(payload.get("record_payload")):
+        return None
+    study_id = (
+        _optional_text(status_payload.get("study_id"))
+        or _optional_text(payload.get("study_id"))
+        or _optional_text(Path(str(status_payload.get("study_root") or "")).name)
+    )
+    return {
+        "status": "blocked",
+        "blocked_reason": "ai_reviewer_record_payload_missing",
+        "source": source,
+        "study_id": study_id,
+        "quest_id": _optional_text(status_payload.get("quest_id")) or _optional_text(payload.get("quest_id")),
+        "assessment_owner": "ai_reviewer",
+        "publication_eval_surface": "not_written",
+        "publication_eval_record_surface": "not_written",
+        "owner_callable_surface": "publication materialize-ai-reviewer-record",
+        "owner_callable_payload_ref": _optional_text(payload.get("owner_callable_payload_ref")),
+        "payload_surface": "ai_reviewer_record_payload_authoring_target",
+        "required_payload_field": "record_payload",
+        "next_owner": "ai_reviewer",
+        "next_required_actions": [
+            _optional_text(payload.get("request_kind")) or "produce_ai_reviewer_publication_eval_record",
+            "fill_record_payload_with_ai_reviewer_publication_eval_record",
+            "rerun_publication_materialize_ai_reviewer_record_build_production_trace",
+        ],
+        "authority_boundary": {
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
+            "medical_claim_authoring_allowed": False,
+            "publication_eval_latest_write_allowed": False,
+            "controller_decision_write_allowed": False,
+            "record_only_surface": True,
+        },
+    }
+
+
 def _refs_from_record_and_request(
     *,
     study_root: Path,
@@ -189,6 +235,14 @@ def materialize_ai_reviewer_publication_eval_record(
         )
     )
     resolved_study_root = _resolved_study_root(status_payload)
+    record_input_payload = record.to_dict() if isinstance(record, PublicationEvalRecord) else dict(record)
+    missing_payload_blocker = _record_payload_missing_blocker(
+        payload=record_input_payload,
+        status_payload=status_payload,
+        source=source,
+    )
+    if missing_payload_blocker is not None:
+        return missing_payload_blocker
     if build_production_trace:
         record = _record_with_production_trace(
             study_root=resolved_study_root,

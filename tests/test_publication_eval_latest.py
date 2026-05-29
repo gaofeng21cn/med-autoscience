@@ -615,6 +615,53 @@ def test_ai_reviewer_publication_eval_record_controller_materializes_owner_recor
     assert archived["eval_id"] == payload["eval_id"]
 
 
+def test_ai_reviewer_publication_eval_record_controller_blocks_empty_authoring_target_without_writes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+
+    monkeypatch.setattr(
+        controller.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+        },
+    )
+
+    result = controller.materialize_ai_reviewer_publication_eval_record(
+        profile=SimpleNamespace(name="nfpitnet"),
+        study_id="001-risk",
+        study_root=None,
+        entry_mode=None,
+        record={
+            "surface": "ai_reviewer_record_payload_authoring_target",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "request_kind": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            "owner_callable_payload_ref": str(
+                study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+            ),
+            "record_payload": None,
+        },
+        source="pytest",
+        build_production_trace=True,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["blocked_reason"] == "ai_reviewer_record_payload_missing"
+    assert result["publication_eval_surface"] == "not_written"
+    assert result["publication_eval_record_surface"] == "not_written"
+    assert result["next_owner"] == "ai_reviewer"
+    assert result["authority_boundary"]["publication_eval_latest_write_allowed"] is False
+    assert result["authority_boundary"]["controller_decision_write_allowed"] is False
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses").exists()
+
+
 def test_ai_reviewer_publication_eval_record_controller_rejects_invalid_reviewer_os_trace(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

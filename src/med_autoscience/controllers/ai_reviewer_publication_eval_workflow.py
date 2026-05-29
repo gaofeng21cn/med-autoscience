@@ -460,6 +460,7 @@ def _medical_prose_review_currentness(
     if paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):
         return _clean_migration_medical_prose_review_request_currentness(
             study_root=study_root,
+            record_payload=record_payload,
             ref_bundle=ref_bundle,
         )
     if _record_embeds_ai_reviewer_output(workflow_currentness_mode):
@@ -664,6 +665,7 @@ def _route_back_record_medical_prose_review_currentness(
 def _clean_migration_medical_prose_review_request_currentness(
     *,
     study_root: Path,
+    record_payload: Mapping[str, Any],
     ref_bundle: Mapping[str, str],
 ) -> dict[str, Any]:
     request_path = stable_medical_prose_review_request_path(study_root=study_root)
@@ -686,6 +688,9 @@ def _clean_migration_medical_prose_review_request_currentness(
         right=manuscript_ref,
     ):
         raise ValueError("medical_prose_review_request_manuscript_ref_mismatch")
+    route_target = "review"
+    if _record_routes_back_before_delivery(record_payload):
+        route_target = _record_route_target(record_payload) or route_target
     return {
         "status": "requested",
         "ref": _text(ref_bundle.get("medical_prose_review")),
@@ -696,7 +701,7 @@ def _clean_migration_medical_prose_review_request_currentness(
         "prose_status": "underdefined",
         "overall_style_verdict": "review_required",
         "route_back_required": True,
-        "route_target": "review",
+        "route_target": route_target,
         "authority_source_signature": "paper_authority_clean_migration",
     }
 

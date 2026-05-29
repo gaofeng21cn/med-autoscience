@@ -10,9 +10,15 @@ from tests.domain_owner_action_dispatch_helpers import (
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
+from tests.reviewer_os_fixture_helpers import (
+    claim_evidence_map_payload,
+    evidence_ledger_payload,
+    review_ledger_payload,
+)
 
 
 def _write_clean_migration_ai_reviewer_inputs(study_root: Path, study_id: str) -> None:
+    evidence_ledger_ref = str(study_root / "paper" / "evidence_ledger.json")
     _write_json(
         study_root / "paper" / "medical_manuscript_blueprint.json",
         {
@@ -55,11 +61,20 @@ def _write_clean_migration_ai_reviewer_inputs(study_root: Path, study_id: str) -
             "source_refs": [str(study_root / "paper" / "claim_evidence_map.json")],
         },
     )
-    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claims": [{"claim_id": "C1"}]})
+    _write_json(
+        study_root / "paper" / "claim_evidence_map.json",
+        claim_evidence_map_payload(evidence_ledger_ref=evidence_ledger_ref),
+    )
     _write_json(study_root / "paper" / "results_narrative_map.json", {"sections": [{"section_id": "results"}]})
     _write_json(study_root / "paper" / "figure_semantics_manifest.json", {"figures": [{"figure_id": "F1"}]})
-    _write_json(study_root / "paper" / "evidence_ledger.json", {"items": [{"claim_id": "C1"}]})
-    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"items": []})
+    _write_json(
+        study_root / "paper" / "evidence_ledger.json",
+        evidence_ledger_payload(evidence_ledger_ref=evidence_ledger_ref),
+    )
+    _write_json(
+        study_root / "paper" / "review" / "review_ledger.json",
+        review_ledger_payload(revision_log_path=study_root / "paper" / "revision_log.json"),
+    )
     (study_root / "paper" / "draft.md").write_text(
         "## Results\n\nFigure 1 shows that the model stratified observed mortality risk.\n",
         encoding="utf-8",
