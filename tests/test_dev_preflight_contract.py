@@ -648,6 +648,9 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "contracts/pack_compiler_input.json",
             "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
+            "templates/codex/medautoscience-entry.SKILL.md",
+            "templates/openclaw/medautoscience-entry.prompt.md",
+            "templates/stage_route_contract.yaml",
         ]
     )
 
@@ -660,6 +663,49 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "tests/test_test_lane_governance.py -q"
         ),
         "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
+    ]
+
+
+def test_classify_changed_files_matches_domain_action_materializer_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer_parts/publication_owner_materialization.py",
+            "tests/domain_action_request_materializer_cases/test_dm002_effective_eval_gate_sprint.py",
+            (
+                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
+                "artifacts/controller/gate_replay_requests/latest.json"
+            ),
+            (
+                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
+                "artifacts/controller/repair_execution_evidence/latest.json"
+            ),
+            (
+                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
+                "artifacts/controller/repair_execution_receipts/latest.json"
+            ),
+            (
+                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
+                "artifacts/controller_decisions/latest.json"
+            ),
+            (
+                "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/"
+                "artifacts/runtime/runtime_status_summary.json"
+            ),
+            "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/study.yaml",
+        ]
+    )
+
+    assert result.matched_categories == ("domain_action_materializer_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        (
+            "scripts/run-pytest-clean.sh "
+            "tests/domain_action_request_materializer_cases/test_dm002_effective_eval_gate_sprint.py -q"
+        ),
+        "scripts/run-pytest-clean.sh tests/test_domain_action_request_materializer.py -q",
     ]
 
 

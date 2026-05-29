@@ -248,6 +248,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/private_functional_surface_policy.json",
             "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
+            "templates/codex/medautoscience-entry.SKILL.md",
+            "templates/openclaw/medautoscience-entry.prompt.md",
+            "templates/stage_route_contract.yaml",
         ),
         prefix_paths=(
             "agent/knowledge/",
@@ -263,6 +266,21 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
                 "tests/test_test_lane_governance.py -q"
             ),
             f"{PYTEST_CLEAN_RUNNER} tests/test_product_entry.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="domain_action_materializer_surface",
+        exact_paths=(
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer_parts/publication_owner_materialization.py",
+            "tests/domain_action_request_materializer_cases/test_dm002_effective_eval_gate_sprint.py",
+        ),
+        prefix_paths=(
+            "tests/fixtures/dm002_20260529T095414Z_effective_eval_sprint_canary/",
+        ),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/domain_action_request_materializer_cases/test_dm002_effective_eval_gate_sprint.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_domain_action_request_materializer.py -q",
         ),
     ),
     PreflightCategorySpec(
