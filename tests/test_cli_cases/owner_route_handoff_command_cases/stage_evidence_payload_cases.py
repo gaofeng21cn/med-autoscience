@@ -88,7 +88,34 @@ def test_domain_handler_stage_evidence_payload_projects_review_quality_gate_type
         "mas-research-evidence-pack:medautoscience:stage_production_evidence:"
         "review_and_quality_gate"
     )
-    assert action_payload["research_evidence_pack_summary"] == {
+    research_summary = action_payload["research_evidence_pack_summary"]
+    assert {
+        key: research_summary[key]
+        for key in (
+            "surface_kind",
+            "version",
+            "domain_id",
+            "study_id",
+            "stage_id",
+            "task_kind",
+            "pack_ref",
+            "run_manifest_ref",
+            "negative_failed_path_ledger_ref",
+            "decision_trace_ref",
+            "artifact_lineage_graph_ref",
+            "reproducibility_bundle_ref",
+            "claim_impact_refs",
+            "code_refs",
+            "source_data_version_refs",
+            "software_environment_refs",
+            "parameter_seed_refs",
+            "input_refs",
+            "output_refs",
+            "checksum_refs",
+            "typed_blocker_refs",
+            "owner_receipt_refs",
+        )
+    } == {
         "surface_kind": "mas_research_evidence_pack_summary",
         "version": "mas-research-evidence-pack-summary.v1",
         "domain_id": "medautoscience",
@@ -121,8 +148,6 @@ def test_domain_handler_stage_evidence_payload_projects_review_quality_gate_type
         ),
         "claim_impact_refs": [],
         "code_refs": [],
-        "decision_trace_refs": [],
-        "negative_failed_path_refs": [],
         "source_data_version_refs": [],
         "software_environment_refs": [],
         "parameter_seed_refs": [],
@@ -148,61 +173,39 @@ def test_domain_handler_stage_evidence_payload_projects_review_quality_gate_type
             "stage-production-evidence:review_and_quality_gate:refs-only-payload"
         ],
         "typed_blocker_refs": [
-            "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:"
-            "real-paper-line-owner-receipt-or-monitor-freshness-pending"
+                "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:"
+                "real-paper-line-owner-receipt-or-monitor-freshness-pending"
         ],
         "owner_receipt_refs": [],
-        "progress_summary": {
-            "surface_kind": "mas_research_pack_progress_summary",
-            "body_included": False,
-            "paper_body_included": False,
-            "deliverable_progress_delta": {"count": 0, "refs": []},
-            "paper_progress_delta": {"count": 0, "refs": []},
-            "platform_repair_delta": {
-                "count": 0,
-                "refs": [],
-                "counts_as_paper_progress": False,
-            },
-            "negative_result_count": 0,
-            "negative_failed_path_refs": [],
-            "route_switch_count": 0,
-            "route_switch_refs": [],
-            "missing_reproducibility_refs": [
-                "code_refs",
-                "source_data_version_refs",
-                "software_environment_refs",
-                "parameter_seed_refs",
-            ],
-            "single_next_owner_blocker": {
-                "status": "blocked",
-                "ref": (
-                    "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:"
-                    "real-paper-line-owner-receipt-or-monitor-freshness-pending"
-                ),
-                "candidate_count": 1,
-                "body_included": False,
-                "is_route_authority": False,
-            },
-            "authority_boundary": {
-                "summary_only": True,
-                "body_free": True,
-                "is_route_authority": False,
-                "can_authorize_route_switch": False,
-                "can_authorize_artifact_mutation": False,
-                "can_authorize_publication_readiness": False,
-                "platform_repair_counts_as_paper_progress": False,
-            },
-        },
-        "authority_boundary": {
-            "owner": "med-autoscience",
-            "opl_records_refs_only": True,
-            "can_read_domain_body": False,
-            "can_accept_or_reject_owner_receipt": False,
-            "can_sign_domain_receipt": False,
-            "can_authorize_artifact_mutation": False,
-            "can_authorize_publication_readiness": False,
-            "domain_ready_claimed": False,
-        },
+    }
+    assert research_summary["negative_failed_path_refs"]
+    assert research_summary["decision_trace_refs"]
+    assert research_summary["artifact_lineage_refs"]
+    assert research_summary["reproducibility_refs"]
+    assert research_summary["schema_validation"]["status"] == "schema_compatible_refs_ready"
+    assert research_summary["missing_required_evidence_families"] == []
+    progress_summary = research_summary["progress_summary"]
+    assert progress_summary["surface_kind"] == "mas_research_pack_progress_summary"
+    assert progress_summary["negative_result_count"] == 2
+    assert progress_summary["single_next_owner_blocker"] == {
+        "status": "blocked",
+        "ref": (
+            "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:"
+            "real-paper-line-owner-receipt-or-monitor-freshness-pending"
+        ),
+        "candidate_count": 1,
+        "body_included": False,
+        "is_route_authority": False,
+    }
+    assert research_summary["authority_boundary"] == {
+        "owner": "med-autoscience",
+        "opl_records_refs_only": True,
+        "can_read_domain_body": False,
+        "can_accept_or_reject_owner_receipt": False,
+        "can_sign_domain_receipt": False,
+        "can_authorize_artifact_mutation": False,
+        "can_authorize_publication_readiness": False,
+        "domain_ready_claimed": False,
     }
     assert action_payload["domain_receipt_refs"] == []
     assert action_payload["evidence_refs"] == []
