@@ -146,6 +146,7 @@ AI can help prepare data, run analyses, organize evidence, and report progress. 
 <details>
   <summary><strong>Start here if you are handing this repo to Codex or another agent</strong></summary>
 
+- No. Cloning this repo does not auto-install OPL Framework or the production runtime. To make MAS usable, first make the current `one-person-lab` checkout or release bundle available, then use `medautosci product skill-catalog --profile <profile> --format json` to inspect the skill or `medautosci domain-handler export --profile <profile> --format json` to hand off to OPL or Codex.
 - Read the [Docs Guide](./docs/README.md) first. It maps the current product boundary, operator entry surfaces, and the technical reading order.
 - If you need to bootstrap or take over a disease workspace, read [Bootstrap](./bootstrap/README.md) next. It explains the workspace-first model and the `init-workspace -> doctor -> show-profile -> bootstrap` path.
 - Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked human-readable truth set before changing runtime or docs.
