@@ -82,6 +82,7 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
     }["finalize_and_publication_handoff"]
     evidence_payload = payload["domain_dispatch_evidence_record_payload"]
     record = evidence_payload["record_payload"]
+    research_summary = record["research_evidence_pack_summary"]
     fixture_progress = json.loads(
         (dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json").read_text(
             encoding="utf-8"
@@ -223,6 +224,36 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
         "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
     ]
     assert gate_replay_ref in record["evidence_refs"]
+    assert record["research_evidence_pack_ref"] == (
+        "mas-research-evidence-pack:medautoscience:paper_autonomy_guarded-apply:"
+        "002-dm-china-us-mortality-attribution"
+    )
+    assert research_summary["pack_ref"] == record["research_evidence_pack_ref"]
+    assert research_summary["output_refs"] == record["domain_owner_receipt_refs"]
+    assert research_summary["owner_receipt_refs"] == record["domain_owner_receipt_refs"]
+    assert research_summary["typed_blocker_refs"] == []
+    assert research_summary["negative_failed_path_refs"] == [
+        "mas-negative-failed-path-ledger:medautoscience:paper_autonomy_guarded-apply:"
+        "002-dm-china-us-mortality-attribution"
+    ]
+    assert research_summary["decision_trace_refs"] == [gate_replay_ref, human_gate_ref]
+    assert research_summary["artifact_lineage_graph_ref"] == (
+        "mas-artifact-lineage-graph:medautoscience:paper_autonomy_guarded-apply:"
+        "002-dm-china-us-mortality-attribution"
+    )
+    assert research_summary["reproducibility_bundle_ref"] == (
+        "mas-reproducibility-bundle:medautoscience:paper_autonomy_guarded-apply:"
+        "002-dm-china-us-mortality-attribution"
+    )
+    assert record["details"]["artifact_lineage_or_reproducibility_refs"] == [
+        f"{progress_ref}#/candidate_package_freshness",
+        f"{progress_ref}#/display_freshness",
+        owner_receipt_ref,
+    ]
+    assert record["details"]["routeback_owner_refs"] == [
+        "MedAutoScience:finalize_and_publication_handoff"
+    ]
+    assert record["details"]["missing_ref_family_refs"] == []
     assert stage["success_refs_path_payload"]["domain_receipt_refs"] == record[
         "stage_expected_receipt_refs"
     ]
@@ -390,6 +421,32 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
     assert evidence_payload["mode"] == "refs_only_domain_owned_typed_blocker_payload"
     assert evidence_payload["record_payload"]["domain_owner_receipt_refs"] == []
     assert evidence_payload["record_payload"]["typed_blocker_refs"]
+    record = evidence_payload["record_payload"]
+    research_summary = record["research_evidence_pack_summary"]
+    assert record["research_evidence_pack_ref"] == (
+        "mas-research-evidence-pack:medautoscience:paper_autonomy_guarded-apply:"
+        "002-dm-china-us-mortality-attribution"
+    )
+    assert research_summary["owner_receipt_refs"] == []
+    assert research_summary["typed_blocker_refs"] == record["typed_blocker_refs"]
+    assert research_summary["negative_failed_path_refs"] == record["typed_blocker_refs"]
+    assert research_summary["decision_trace_refs"] == []
+    assert research_summary["artifact_lineage_graph_ref"] == (
+        "mas-artifact-lineage-graph:medautoscience:paper_autonomy_guarded-apply:"
+        "002-dm-china-us-mortality-attribution"
+    )
+    assert research_summary["reproducibility_bundle_ref"] == (
+        "mas-reproducibility-bundle:medautoscience:paper_autonomy_guarded-apply:"
+        "002-dm-china-us-mortality-attribution"
+    )
+    assert record["details"]["artifact_lineage_or_reproducibility_refs"] == []
+    assert record["details"]["routeback_owner_refs"] == [
+        "MedAutoScience:finalize_and_publication_handoff"
+    ]
+    assert record["details"]["missing_ref_family_refs"] == [
+        "decision_trace_refs",
+        "artifact_lineage_or_reproducibility_refs",
+    ]
     expected_stage_refs = [
         evidence_payload["record_payload"]["typed_blocker_refs"][0],
         "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",

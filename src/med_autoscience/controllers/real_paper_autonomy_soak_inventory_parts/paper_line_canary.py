@@ -645,6 +645,12 @@ def _domain_dispatch_evidence_record_payload(
         live_evidence_refs=live_evidence_refs,
         no_forbidden_write_ref=no_forbidden_write_ref,
     )
+    research_audit_details = _research_audit_ref_family_details(
+        paper_line_id=paper_line_id,
+        owner_receipt_refs=owner_receipt_refs,
+        stable_blocker_refs=stable_blocker_refs,
+        live_evidence_refs=live_evidence_refs,
+    )
     return build_domain_dispatch_evidence_record_payload(
         task_kind="paper_autonomy/guarded-apply",
         study_id=paper_line_id,
@@ -661,7 +667,67 @@ def _domain_dispatch_evidence_record_payload(
         no_regression_evidence_refs=[no_forbidden_write_ref] if no_forbidden_write_ref else [],
         expected_receipt_refs=expected_receipt_refs,
         monitor_freshness_refs=monitor_freshness_refs,
+        reason_details=research_audit_details,
     )
+
+
+def _research_audit_ref_family_details(
+    *,
+    paper_line_id: str,
+    owner_receipt_refs: Sequence[str],
+    stable_blocker_refs: Sequence[str],
+    live_evidence_refs: Mapping[str, Any],
+) -> dict[str, Any]:
+    decision_trace_refs = _dedupe_text(
+        [
+            *_refs_with_suffix(owner_receipt_refs, "gate_replay_requests/latest.json"),
+            *_refs_with_suffix(owner_receipt_refs, "controller_decisions/latest.json"),
+            *_sequence(live_evidence_refs.get("human_gate_or_resume_refs")),
+        ]
+    )
+    lineage_refs = _artifact_lineage_or_reproducibility_refs(live_evidence_refs)
+    negative_failed_path_refs = _dedupe_text(stable_blocker_refs) or [
+        _negative_failed_path_ledger_ref(paper_line_id)
+    ]
+    missing_ref_family_refs = [
+        family
+        for family, refs in (
+            ("negative_or_failed_path_ledger_refs", negative_failed_path_refs),
+            ("decision_trace_refs", decision_trace_refs),
+            ("artifact_lineage_or_reproducibility_refs", lineage_refs),
+        )
+        if not refs
+    ]
+    return {
+        "negative_failed_path_refs": negative_failed_path_refs,
+        "decision_trace_refs": decision_trace_refs,
+        "artifact_lineage_or_reproducibility_refs": lineage_refs,
+        "routeback_owner_refs": ["MedAutoScience:finalize_and_publication_handoff"],
+        "missing_ref_family_refs": missing_ref_family_refs,
+    }
+
+
+def _artifact_lineage_or_reproducibility_refs(
+    live_evidence_refs: Mapping[str, Any],
+) -> list[str]:
+    refs: list[str] = []
+    for progress_ref in _sequence(live_evidence_refs.get("progress_delta_refs")):
+        progress_text = _text(progress_ref)
+        if not progress_text:
+            continue
+        refs.append(f"{progress_text}#/candidate_package_freshness")
+        refs.append(f"{progress_text}#/display_freshness")
+    refs.extend(_sequence(live_evidence_refs.get("artifact_movement_refs")))
+    return _dedupe_text(refs)
+
+
+def _refs_with_suffix(refs: Sequence[str], suffix: str) -> list[str]:
+    return [ref for ref in refs if suffix in _text(ref)]
+
+
+def _negative_failed_path_ledger_ref(paper_line_id: str) -> str:
+    token = _text(paper_line_id).replace("/", "_") or "paper-line"
+    return f"mas-negative-failed-path-ledger:medautoscience:paper_autonomy_guarded-apply:{token}"
 
 
 def _stage_expected_receipt_refs(
