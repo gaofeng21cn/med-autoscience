@@ -40,6 +40,8 @@ PAPER_STAGE_LOG_KEYS = (
     "usage_refs",
     "cost_refs",
     "evidence_refs",
+    "research_pack_progress_summary",
+    "research_evidence_pack_summary",
 )
 STAGE_PROGRESS_LOG_KEYS = (
     "surface_kind",
@@ -599,6 +601,7 @@ def opl_current_control_state_study_handoff_projection(
         profile=profile,
         study_id=study_id,
     )
+    matching_terminal_stage_log = _observability_mapping(matching.get("latest_terminal_stage_log"))
     projection = {
         "surface_kind": "opl_current_control_state_study_handoff",
         "read_model": "study_opl_current_control_state_handoff_projection",
@@ -653,6 +656,8 @@ def opl_current_control_state_study_handoff_projection(
     }
     if latest_terminal_stage_log is not None:
         projection["latest_terminal_stage_log"] = latest_terminal_stage_log
+    elif matching_terminal_stage_log:
+        projection["latest_terminal_stage_log"] = matching_terminal_stage_log
     projection.update(_opl_current_control_state_mode_fields(payload))
     return projection
 

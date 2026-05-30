@@ -54,6 +54,7 @@ def runtime_stage_log_summary(value: Mapping[str, Any] | None) -> dict[str, Any]
         "platform_repair_delta": _mapping(summary.get("platform_repair_delta")),
         "remaining_blockers": _string_list(summary.get("remaining_blockers")),
         "evidence_refs": _dedupe_refs(summary.get("evidence_refs") or []),
+        "research_pack_progress_summary": _research_pack_progress_summary(summary),
         "language_boundary": _mapping(summary.get("language_boundary")) or _language_boundary(),
         "authority": _mapping(summary.get("authority")) or _authority(),
     }
@@ -98,6 +99,7 @@ def _normalize_explicit_stage_log_summary(
                 *fallback_source_refs,
             ]
         ),
+        "research_pack_progress_summary": _research_pack_progress_summary(value),
         "language_boundary": _language_boundary(),
         "authority": _authority(),
     }
@@ -187,6 +189,22 @@ def _derived_stage_log_summary(
         "platform_repair_delta": _mapping(progress_delta.get("platform_repair_delta")),
         "remaining_blockers": blockers,
         "evidence_refs": evidence_refs,
+        "research_pack_progress_summary": _research_pack_progress_summary(
+            _first_mapping(
+                progress.get("research_evidence_pack_summary"),
+                _mapping(progress.get("domain_dispatch_evidence_record_payload")).get("research_evidence_pack_summary"),
+                _mapping(_mapping(progress.get("domain_dispatch_evidence_record_payload")).get("record_payload")).get(
+                    "research_evidence_pack_summary"
+                ),
+                _mapping(quality_repair.get("domain_dispatch_evidence_record_payload")).get(
+                    "research_evidence_pack_summary"
+                ),
+                _mapping(_mapping(quality_repair.get("domain_dispatch_evidence_record_payload")).get("record_payload")).get(
+                    "research_evidence_pack_summary"
+                ),
+                evidence.get("research_evidence_pack_summary"),
+            )
+        ),
         "language_boundary": _language_boundary(),
         "authority": _authority(),
     }
@@ -291,6 +309,71 @@ def _progress_delta_projection(
             "token_usage_total": platform_tokens,
         },
     }
+
+
+def _research_pack_progress_summary(value: Mapping[str, Any]) -> dict[str, Any]:
+    pack = _mapping(value.get("research_pack_progress_summary")) or _mapping(
+        value.get("progress_summary")
+    )
+    if not pack and _text(value.get("surface_kind")) == "mas_research_evidence_pack_summary":
+        pack = _mapping(value.get("progress_summary"))
+    if not pack:
+        return {}
+    deliverable = _mapping(pack.get("deliverable_progress_delta") or pack.get("paper_progress_delta"))
+    paper = _mapping(pack.get("paper_progress_delta") or deliverable)
+    platform = _mapping(pack.get("platform_repair_delta"))
+    owner_blocker = _mapping(pack.get("single_next_owner_blocker"))
+    return {
+        "surface_kind": "mas_research_pack_progress_summary_projection",
+        "body_included": False,
+        "paper_body_included": False,
+        "paper_progress_delta": _delta_count_and_refs(paper),
+        "deliverable_progress_delta": _delta_count_and_refs(deliverable),
+        "platform_repair_delta": {
+            **_delta_count_and_refs(platform),
+            "counts_as_paper_progress": False,
+        },
+        "negative_result_count": _count_field(
+            pack.get("negative_result_count"),
+            _string_list(pack.get("negative_failed_path_refs")),
+        ),
+        "route_switch_count": _count_field(
+            pack.get("route_switch_count"),
+            _string_list(pack.get("route_switch_refs")),
+        ),
+        "missing_reproducibility_refs": _dedupe_texts(_string_list(pack.get("missing_reproducibility_refs"))),
+        "single_next_owner_blocker": {
+            "status": _text(owner_blocker.get("status")) or "clear",
+            "ref": _text(owner_blocker.get("ref")),
+            "candidate_count": _number(owner_blocker.get("candidate_count")) or 0,
+            "body_included": False,
+            "is_route_authority": False,
+        },
+        "authority": {
+            "read_model_only": True,
+            "body_free": True,
+            "is_route_authority": False,
+            "can_authorize_route_switch": False,
+            "can_authorize_artifact_mutation": False,
+            "can_authorize_publication_readiness": False,
+            "platform_repair_counts_as_paper_progress": False,
+        },
+    }
+
+
+def _delta_count_and_refs(value: Mapping[str, Any]) -> dict[str, Any]:
+    refs = _dedupe_refs(_string_list(value.get("refs")))
+    return {
+        "count": _number(value.get("count")) or len(refs),
+        "refs": refs,
+    }
+
+
+def _count_field(value: object, refs: Sequence[str]) -> int:
+    number = _number(value)
+    if number is not None:
+        return number
+    return len(refs)
 
 
 def _token_usage_total(

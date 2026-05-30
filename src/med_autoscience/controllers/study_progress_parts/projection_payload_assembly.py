@@ -72,6 +72,88 @@ def _progress_delta_metrics(
     }
 
 
+def _research_pack_progress_summary(
+    *,
+    opl_current_control_state_handoff: dict[str, Any] | None,
+) -> dict[str, Any]:
+    handoff = _mapping_copy(opl_current_control_state_handoff)
+    terminal = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+    pack = (
+        _mapping_copy(paper_stage_log.get("research_pack_progress_summary"))
+        or _mapping_copy(paper_stage_log.get("research_evidence_pack_summary")).get("progress_summary")
+        or _mapping_copy(handoff.get("research_pack_progress_summary"))
+        or _mapping_copy(handoff.get("research_evidence_pack_summary")).get("progress_summary")
+    )
+    if not isinstance(pack, dict) or not pack:
+        return {}
+    deliverable = _mapping_copy(pack.get("deliverable_progress_delta") or pack.get("paper_progress_delta"))
+    paper = _mapping_copy(pack.get("paper_progress_delta") or deliverable)
+    platform = _mapping_copy(pack.get("platform_repair_delta"))
+    blocker = _mapping_copy(pack.get("single_next_owner_blocker"))
+    return {
+        "surface_kind": "mas_research_pack_progress_summary_projection",
+        "body_included": False,
+        "paper_body_included": False,
+        "paper_progress_delta": _progress_summary_delta(paper),
+        "deliverable_progress_delta": _progress_summary_delta(deliverable),
+        "platform_repair_delta": {
+            **_progress_summary_delta(platform),
+            "counts_as_paper_progress": False,
+        },
+        "negative_result_count": _progress_summary_count(
+            pack.get("negative_result_count"),
+            pack.get("negative_failed_path_refs"),
+        ),
+        "route_switch_count": _progress_summary_count(
+            pack.get("route_switch_count"),
+            pack.get("route_switch_refs"),
+        ),
+        "missing_reproducibility_refs": _progress_summary_string_list(
+            pack.get("missing_reproducibility_refs")
+        ),
+        "single_next_owner_blocker": {
+            "status": _non_empty_text(blocker.get("status")) or "clear",
+            "ref": _non_empty_text(blocker.get("ref")),
+            "candidate_count": _number(blocker.get("candidate_count")) or 0,
+            "body_included": False,
+            "is_route_authority": False,
+        },
+        "authority": {
+            "read_model_only": True,
+            "body_free": True,
+            "is_route_authority": False,
+            "can_authorize_route_switch": False,
+            "can_authorize_artifact_mutation": False,
+            "can_authorize_publication_readiness": False,
+            "platform_repair_counts_as_paper_progress": False,
+        },
+    }
+
+
+def _progress_summary_delta(value: dict[str, Any]) -> dict[str, Any]:
+    refs = _progress_summary_string_list(value.get("refs"))
+    return {
+        "count": _number(value.get("count")) or len(refs),
+        "refs": refs,
+    }
+
+
+def _progress_summary_count(value: object, refs: object) -> int:
+    return _number(value) or len(_progress_summary_string_list(refs))
+
+
+def _progress_summary_string_list(value: object) -> list[str]:
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _non_empty_text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
+
+
 def _paper_progress_triggered(
     *,
     quality_repair_batch_followthrough: dict[str, Any],
@@ -521,6 +603,9 @@ def assemble_study_progress_payload(
         opl_current_control_state_handoff=opl_current_control_state_handoff,
         runtime_efficiency=runtime_efficiency,
     )
+    research_pack_progress_summary = _research_pack_progress_summary(
+        opl_current_control_state_handoff=opl_current_control_state_handoff,
+    )
     payload = {
         **_progress_payload_identity_fields(
             generated_at=generated_at,
@@ -618,6 +703,7 @@ def assemble_study_progress_payload(
         "paper_progress_delta": progress_delta["paper_progress_delta"],
         "platform_repair_delta": progress_delta["platform_repair_delta"],
         "progress_delta_classification": progress_delta["progress_delta_classification"],
+        "research_pack_progress_summary": research_pack_progress_summary,
         "refs": refs,
     }
     payload.update(build_progress_first_projection(payload))

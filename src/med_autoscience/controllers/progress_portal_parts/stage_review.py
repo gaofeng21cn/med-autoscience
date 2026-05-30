@@ -150,6 +150,7 @@ def runtime_stage_review_summary(value: Mapping[str, Any] | None) -> dict[str, A
         "blockers": _string_list(row.get("blockers")),
         "continue_state": _non_empty_text(continue_state.get("state")),
         "stage_log_summary": stage_log,
+        "research_pack_progress_summary": _mapping(stage_log.get("research_pack_progress_summary")),
         "opl_projection_boundary": "read_only_locator_no_truth_write",
         "can_authorize_quality_verdict": False,
         "can_authorize_submission_readiness": False,
@@ -658,6 +659,7 @@ def _stage_log_html(stage_log: Mapping[str, Any]) -> str:
         if _non_empty_text(stage_log.get("progress_delta_classification"))
         else None,
         _stage_log_delta_stats_text(stage_log),
+        _research_pack_progress_text(stage_log),
         f"剩余阻塞: {'; '.join(_string_list(stage_log.get('remaining_blockers')))}"
         if _string_list(stage_log.get("remaining_blockers"))
         else None,
@@ -689,6 +691,29 @@ def _stage_log_delta_stats_text(stage_log: Mapping[str, Any]) -> str | None:
         f"deliverable_progress_delta={deliverable_count} (tokens={deliverable_tokens}); "
         f"platform_repair_delta={platform_count} (tokens={platform_tokens})"
     )
+
+
+def _research_pack_progress_text(stage_log: Mapping[str, Any]) -> str | None:
+    summary = _mapping(stage_log.get("research_pack_progress_summary"))
+    if not summary:
+        return None
+    deliverable = _mapping(summary.get("deliverable_progress_delta") or summary.get("paper_progress_delta"))
+    platform = _mapping(summary.get("platform_repair_delta"))
+    blocker = _mapping(summary.get("single_next_owner_blocker"))
+    missing_reproducibility = _string_list(summary.get("missing_reproducibility_refs"))
+    parts = [
+        f"paper/deliverable_delta={int(deliverable.get('count') or 0)}",
+        f"platform_repair_delta={int(platform.get('count') or 0)}",
+        f"negative_results={int(summary.get('negative_result_count') or 0)}",
+        f"route_switches={int(summary.get('route_switch_count') or 0)}",
+        "missing_reproducibility_refs=" + ",".join(missing_reproducibility)
+        if missing_reproducibility
+        else "missing_reproducibility_refs=none",
+    ]
+    blocker_ref = _non_empty_text(blocker.get("ref"))
+    if blocker_ref is not None:
+        parts.append(f"single_next_owner_blocker={blocker_ref}")
+    return "Research pack 摘要: " + "; ".join(parts)
 
 
 def _dedupe_refs(values: Iterable[object]) -> list[str]:

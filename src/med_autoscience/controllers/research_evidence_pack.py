@@ -39,6 +39,11 @@ def build_research_evidence_pack_summary(
     decision_trace_refs: Sequence[str | Mapping[str, Any]] = (),
     artifact_lineage_refs: Sequence[str | Mapping[str, Any]] = (),
     reproducibility_refs: Sequence[str | Mapping[str, Any]] = (),
+    paper_delta_refs: Sequence[str | Mapping[str, Any]] = (),
+    deliverable_delta_refs: Sequence[str | Mapping[str, Any]] = (),
+    platform_repair_refs: Sequence[str | Mapping[str, Any]] = (),
+    route_switch_refs: Sequence[str | Mapping[str, Any]] = (),
+    next_owner_blocker_refs: Sequence[str | Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     normalized_domain = _text(domain_id) or "medautoscience"
     normalized_task = _text(task_kind) or "domain_owner"
@@ -47,12 +52,24 @@ def build_research_evidence_pack_summary(
     task_ref = _ref_token(normalized_task)
     scope_ref = _ref_token(normalized_study or normalized_stage or "workspace")
     ref_prefix = f"mas-research-evidence-pack:{normalized_domain}:{task_ref}:{scope_ref}"
+    normalized_code_refs = _unique_refs(code_refs)
+    normalized_source_data_version_refs = _unique_refs(source_data_version_refs)
+    normalized_software_environment_refs = _unique_refs(software_environment_refs)
+    normalized_parameter_seed_refs = _unique_refs(parameter_seed_refs)
+    normalized_input_refs = _unique_refs(input_refs)
+    normalized_output_refs = _unique_refs(output_refs)
+    normalized_checksum_refs = _unique_refs(checksum_refs)
+    normalized_claim_impact_refs = _unique_refs(claim_impact_refs)
     normalized_negative_failed_path_refs = _unique_refs(negative_failed_path_refs)
     normalized_decision_trace_refs = _unique_refs(decision_trace_refs)
     normalized_artifact_lineage_refs = _unique_refs(artifact_lineage_refs)
     normalized_reproducibility_refs = _unique_refs(reproducibility_refs)
     normalized_owner_receipt_refs = _unique_refs(owner_receipt_refs)
     normalized_typed_blocker_refs = _unique_refs(typed_blocker_refs)
+    normalized_deliverable_delta_refs = _unique_refs([*paper_delta_refs, *deliverable_delta_refs])
+    normalized_platform_repair_refs = _unique_refs(platform_repair_refs)
+    normalized_route_switch_refs = _unique_refs(route_switch_refs)
+    normalized_next_owner_blocker_refs = _unique_refs(next_owner_blocker_refs)
     validation = schema_compatible_validation_summary(
         run_manifest_ref=ref_prefix.replace(
             "mas-research-evidence-pack:",
@@ -66,6 +83,48 @@ def build_research_evidence_pack_summary(
         owner_receipt_refs=normalized_owner_receipt_refs,
         typed_blocker_refs=normalized_typed_blocker_refs,
     )
+    missing_reproducibility_refs = _missing_reproducibility_refs(
+        code_refs=normalized_code_refs,
+        source_data_version_refs=normalized_source_data_version_refs,
+        software_environment_refs=normalized_software_environment_refs,
+        parameter_seed_refs=normalized_parameter_seed_refs,
+    )
+    progress_delta_summary = {
+        "surface_kind": "mas_research_pack_progress_summary",
+        "body_included": False,
+        "paper_body_included": False,
+        "deliverable_progress_delta": {
+            "count": len(normalized_deliverable_delta_refs),
+            "refs": normalized_deliverable_delta_refs,
+        },
+        "paper_progress_delta": {
+            "count": len(normalized_deliverable_delta_refs),
+            "refs": normalized_deliverable_delta_refs,
+        },
+        "platform_repair_delta": {
+            "count": len(normalized_platform_repair_refs),
+            "refs": normalized_platform_repair_refs,
+            "counts_as_paper_progress": False,
+        },
+        "negative_result_count": len(normalized_negative_failed_path_refs),
+        "negative_failed_path_refs": normalized_negative_failed_path_refs,
+        "route_switch_count": len(normalized_route_switch_refs),
+        "route_switch_refs": normalized_route_switch_refs,
+        "missing_reproducibility_refs": missing_reproducibility_refs,
+        "single_next_owner_blocker": _single_next_owner_blocker(
+            typed_blocker_refs=normalized_typed_blocker_refs,
+            next_owner_blocker_refs=normalized_next_owner_blocker_refs,
+        ),
+        "authority_boundary": {
+            "summary_only": True,
+            "body_free": True,
+            "is_route_authority": False,
+            "can_authorize_route_switch": False,
+            "can_authorize_artifact_mutation": False,
+            "can_authorize_publication_readiness": False,
+            "platform_repair_counts_as_paper_progress": False,
+        },
+    }
     summary = {
         "surface_kind": SURFACE_KIND,
         "version": VERSION,
@@ -99,14 +158,14 @@ def build_research_evidence_pack_summary(
             "mas-reproducibility-bundle:",
             1,
         ),
-        "code_refs": _unique_refs(code_refs),
-        "source_data_version_refs": _unique_refs(source_data_version_refs),
-        "software_environment_refs": _unique_refs(software_environment_refs),
-        "parameter_seed_refs": _unique_refs(parameter_seed_refs),
-        "input_refs": _unique_refs(input_refs),
-        "output_refs": _unique_refs(output_refs),
-        "checksum_refs": _unique_refs(checksum_refs),
-        "claim_impact_refs": _unique_refs(claim_impact_refs),
+        "code_refs": normalized_code_refs,
+        "source_data_version_refs": normalized_source_data_version_refs,
+        "software_environment_refs": normalized_software_environment_refs,
+        "parameter_seed_refs": normalized_parameter_seed_refs,
+        "input_refs": normalized_input_refs,
+        "output_refs": normalized_output_refs,
+        "checksum_refs": normalized_checksum_refs,
+        "claim_impact_refs": normalized_claim_impact_refs,
         "negative_failed_path_refs": normalized_negative_failed_path_refs,
         "decision_trace_refs": normalized_decision_trace_refs,
         "artifact_lineage_refs": normalized_artifact_lineage_refs,
@@ -116,6 +175,7 @@ def build_research_evidence_pack_summary(
         "schema_validation": validation,
         "missing_required_evidence_families": validation["missing_required_evidence_families"],
         "fail_closed_required": bool(validation["missing_required_evidence_families"]),
+        "progress_summary": progress_delta_summary,
         "authority_boundary": {
             "owner": "med-autoscience",
             "opl_records_refs_only": True,
@@ -191,6 +251,40 @@ def missing_required_evidence_families(
     if not (_unique_refs(owner_receipt_refs) or _unique_refs(typed_blocker_refs)):
         missing.append("owner_receipt_or_typed_blocker_refs")
     return missing
+
+
+def _missing_reproducibility_refs(
+    *,
+    code_refs: Sequence[str],
+    source_data_version_refs: Sequence[str],
+    software_environment_refs: Sequence[str],
+    parameter_seed_refs: Sequence[str],
+) -> list[str]:
+    missing: list[str] = []
+    if not code_refs:
+        missing.append("code_refs")
+    if not source_data_version_refs:
+        missing.append("source_data_version_refs")
+    if not software_environment_refs:
+        missing.append("software_environment_refs")
+    if not parameter_seed_refs:
+        missing.append("parameter_seed_refs")
+    return missing
+
+
+def _single_next_owner_blocker(
+    *,
+    typed_blocker_refs: Sequence[str],
+    next_owner_blocker_refs: Sequence[str],
+) -> dict[str, Any]:
+    refs = _unique_refs([*next_owner_blocker_refs, *typed_blocker_refs])
+    return {
+        "status": "blocked" if refs else "clear",
+        "ref": refs[0] if refs else None,
+        "candidate_count": len(refs),
+        "body_included": False,
+        "is_route_authority": False,
+    }
 
 
 def _unique_refs(values: Sequence[str | Mapping[str, Any]]) -> list[str]:

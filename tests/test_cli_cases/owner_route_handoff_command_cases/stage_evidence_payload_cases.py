@@ -152,6 +152,47 @@ def test_domain_handler_stage_evidence_payload_projects_review_quality_gate_type
             "real-paper-line-owner-receipt-or-monitor-freshness-pending"
         ],
         "owner_receipt_refs": [],
+        "progress_summary": {
+            "surface_kind": "mas_research_pack_progress_summary",
+            "body_included": False,
+            "paper_body_included": False,
+            "deliverable_progress_delta": {"count": 0, "refs": []},
+            "paper_progress_delta": {"count": 0, "refs": []},
+            "platform_repair_delta": {
+                "count": 0,
+                "refs": [],
+                "counts_as_paper_progress": False,
+            },
+            "negative_result_count": 0,
+            "negative_failed_path_refs": [],
+            "route_switch_count": 0,
+            "route_switch_refs": [],
+            "missing_reproducibility_refs": [
+                "code_refs",
+                "source_data_version_refs",
+                "software_environment_refs",
+                "parameter_seed_refs",
+            ],
+            "single_next_owner_blocker": {
+                "status": "blocked",
+                "ref": (
+                    "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:"
+                    "real-paper-line-owner-receipt-or-monitor-freshness-pending"
+                ),
+                "candidate_count": 1,
+                "body_included": False,
+                "is_route_authority": False,
+            },
+            "authority_boundary": {
+                "summary_only": True,
+                "body_free": True,
+                "is_route_authority": False,
+                "can_authorize_route_switch": False,
+                "can_authorize_artifact_mutation": False,
+                "can_authorize_publication_readiness": False,
+                "platform_repair_counts_as_paper_progress": False,
+            },
+        },
         "authority_boundary": {
             "owner": "med-autoscience",
             "opl_records_refs_only": True,

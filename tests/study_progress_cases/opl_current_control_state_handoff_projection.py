@@ -68,6 +68,46 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
                             "can_authorize_quality_verdict": False,
                         },
                     },
+                    "latest_terminal_stage_log": {
+                        "surface_kind": "mas_latest_terminal_stage_log_projection",
+                        "read_model": "study_latest_terminal_stage_log_projection",
+                        "authority": "observability_only",
+                        "study_id": "001-risk",
+                        "paper_stage_log": {
+                            "surface_kind": "mas_paper_facing_stage_log_summary",
+                            "stage_name": "write",
+                            "research_pack_progress_summary": {
+                                "surface_kind": "mas_research_pack_progress_summary",
+                                "body_included": False,
+                                "paper_body_included": False,
+                                "deliverable_progress_delta": {
+                                    "count": 1,
+                                    "refs": ["studies/001-risk/paper/draft.md"],
+                                },
+                                "paper_progress_delta": {
+                                    "count": 1,
+                                    "refs": ["studies/001-risk/paper/draft.md"],
+                                },
+                                "platform_repair_delta": {
+                                    "count": 1,
+                                    "refs": [
+                                        "studies/001-risk/artifacts/controller/currentness/latest.json"
+                                    ],
+                                    "counts_as_paper_progress": False,
+                                },
+                                "negative_result_count": 2,
+                                "route_switch_count": 1,
+                                "missing_reproducibility_refs": ["parameter_seed_refs"],
+                                "single_next_owner_blocker": {
+                                    "status": "blocked",
+                                    "ref": "studies/001-risk/artifacts/blockers/next-owner.json",
+                                    "candidate_count": 1,
+                                    "body_included": False,
+                                    "is_route_authority": False,
+                                },
+                            },
+                        },
+                    },
                     "action_queue": [
                         {
                             "action_type": "publication_gate_specificity_required",
@@ -149,6 +189,9 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
         "/stage_attempt_workbench/attempts/sat-001/stage_progress_log",
         "/stage_attempt_workbench/attempts/sat-002/stage_progress_log",
     ]
+    assert dashboard["latest_terminal_stage_log"]["paper_stage_log"]["research_pack_progress_summary"][
+        "body_included"
+    ] is False
     assert (
         dashboard["stage_progress_log"]["authority_boundary"]["can_authorize_quality_verdict"]
         is False
@@ -193,6 +236,25 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
     assert result["paper_progress_delta"]["count"] == 0
     assert result["paper_progress_delta"]["token_usage_total"] == 0
     assert result["platform_repair_delta"]["count"] == 1
+    research_pack_summary = result["research_pack_progress_summary"]
+    assert research_pack_summary["body_included"] is False
+    assert research_pack_summary["paper_body_included"] is False
+    assert research_pack_summary["deliverable_progress_delta"]["count"] == 1
+    assert research_pack_summary["paper_progress_delta"]["count"] == 1
+    assert research_pack_summary["platform_repair_delta"] == {
+        "count": 1,
+        "refs": ["studies/001-risk/artifacts/controller/currentness/latest.json"],
+        "counts_as_paper_progress": False,
+    }
+    assert research_pack_summary["negative_result_count"] == 2
+    assert research_pack_summary["route_switch_count"] == 1
+    assert research_pack_summary["missing_reproducibility_refs"] == ["parameter_seed_refs"]
+    assert research_pack_summary["single_next_owner_blocker"]["ref"] == (
+        "studies/001-risk/artifacts/blockers/next-owner.json"
+    )
+    assert research_pack_summary["single_next_owner_blocker"]["is_route_authority"] is False
+    assert research_pack_summary["authority"]["is_route_authority"] is False
+    assert research_pack_summary["authority"]["platform_repair_counts_as_paper_progress"] is False
 
 
 def test_stage_progress_log_alone_does_not_trigger_platform_repair_delta(
