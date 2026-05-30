@@ -43,7 +43,7 @@ OPL 持有通用 lifecycle substrate：stage attempt、queue、retry/dead-letter
 
    Framework、App、domain agent、shell、artifact、truth 和 authority 都有唯一 owner。共享能力上收，领域真相和交付裁决留在 domain owner；投影、generated surface、read model 和 UI 承接展示、路由和审计职责。
 
-   历史系统的 resident daemon、GitOps、interactive artifact UX 或 WebUI 体验可以作为 provenance、fixture 或 OPL-owned product direction 退役；不能因此降低 domain agent 的核心科研审计能力。研究 evidence pack、negative / failed-path ledger、decision trace、artifact lineage / reproducibility refs、owner receipt 和 stable typed blocker 是研究推进的最低审计链。
+   历史系统的 resident daemon、GitOps、interactive artifact UX 或 WebUI 体验可以作为 provenance、fixture 或 OPL-owned product direction 退役；不能因此降低 domain agent 的核心科研审计能力。研究 evidence pack、negative / failed-path ledger、decision trace、artifact lineage / reproducibility refs、owner receipt 和 stable typed blocker 是研究推进的最低审计链。合同落地之后，下一层完成口径必须推进到 read-model 能投影这些 ref family、schema validation 能 fail closed、真实 canary 能给出可审计证据；不能把“contract landed”长期停留为完成声明。
 
 7. **单一来源派生多入口**
 

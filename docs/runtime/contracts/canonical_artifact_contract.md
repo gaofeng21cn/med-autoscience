@@ -38,7 +38,7 @@ Artifact OS 的 owner split 固定为：OPL / shared family layer 持有通用 l
 - figures 必须从 canonical sources + AI reviewer quality decision 重建。
 - tables 必须从 canonical sources + AI reviewer quality decision 重建。
 - submission package 必须从 canonical sources + AI reviewer quality decision 重建。
-- reviewer / writer sprint、analysis campaign、gate replay 或 artifact handoff 后的 positive path 必须留下 research evidence pack refs、negative / failed-path ledger refs、decision trace refs、artifact lineage / reproducibility refs。缺任一 ref family 时，Artifact OS 只能返回 stable typed blocker，并命名缺失 ref family、route-back owner 和 no-forbidden-write proof。
+- reviewer / writer sprint、analysis campaign、gate replay 或 artifact handoff 后的 positive path 必须留下 research evidence pack refs、negative / failed-path ledger refs、decision trace refs、artifact lineage / reproducibility refs。缺任一 ref family 时，Artifact OS 只能返回 stable typed blocker，并命名缺失 ref family、route-back owner 和 no-forbidden-write proof。下一层目标是把这些 ref family 进入 read-model projection 和 schema validation：read-model 显示 availability，schema validation 对缺失 ref、placeholder ref、forbidden write 或 owner-route mismatch fail closed，DM002 canary 给出 evidence available 或 stable typed blocker；这仍不授权 publication-ready、artifact mutation 或 `current_package` 更新。
 
 派生 projection 可以作为人读 handoff、提交镜像或 traceability output 使用；不能作为后续编辑、质量关闭、投稿授权的根。
 

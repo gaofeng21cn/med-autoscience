@@ -7,7 +7,7 @@ Machine boundary: 人读交付契约。正式 delivery authority 继续归 `pape
 
 `inspection_package` 是人工检查导出面。blocked gate、bundle blocked、`submission_minimal` / `current_package` stale 或 missing 时，它导出当前 draft / canonical paper surfaces 的快照；当 `delivery_inspector` 证明现有 `current_package.zip` 已是 controller-authorized current package 时，它可以只写 human-inspection-only review pointer，并返回 `authorized_current_package_available` 与 `recommended_human_review_path`。两种路径都帮助人工理解当前稿件、证据、图表、review ledger 和 delivery 状态；两种路径都不创建投稿授权。
 
-Delivery / inspection package 使用 OPL lifecycle substrate 时，只能消费 locator、artifact refs、lifecycle refs、owner receipt refs、typed blocker refs 和 no-forbidden-write proof。通用 lifecycle / App/workbench surface 可以运输和展示这些 refs；MAS 继续持有 publication quality、artifact mutation、package freshness、current package authority、memory writeback decision 和 source readiness。检查包可作为 human inspection input，不能替代 research evidence pack、negative / failed-path ledger、decision trace 或 artifact lineage / reproducibility refs。
+Delivery / inspection package 使用 OPL lifecycle substrate 时，只能消费 locator、artifact refs、lifecycle refs、owner receipt refs、typed blocker refs 和 no-forbidden-write proof。通用 lifecycle / App/workbench surface 可以运输和展示这些 refs；MAS 继续持有 publication quality、artifact mutation、package freshness、current package authority、memory writeback decision 和 source readiness。检查包可作为 human inspection input，不能替代 research evidence pack、negative / failed-path ledger、decision trace 或 artifact lineage / reproducibility refs；即使后续 read-model 显示这些 ref family available，或 DM002 canary 通过 schema validation，也仍需要 MAS owner receipt、独立 reviewer/auditor record、publication gate / human gate 与 artifact/memory/lifecycle authority receipt 才能进入 publication-ready 口径。
 
 ## 允许输入
 
@@ -84,7 +84,7 @@ blocked/stale snapshot 路径允许写入：
 
 导出成功只代表 inspection snapshot 或 review pointer 可读。它不改变 gate status，不关闭 blocker，不更新 `publication_eval/latest.json`，不写 `controller_decisions/latest.json`，不生成 `current_package` freshness proof。
 
-若导出发生在 positive reviewer / write sprint 后，closeout 仍必须回到 MAS owner chain，并提供 research evidence pack refs、negative / failed-path ledger refs、decision trace refs、artifact lineage / reproducibility refs，或 stable typed blocker。单独存在 inspection output、zip、manifest、OPL lifecycle receipt 或 workbench pointer，不能关闭医学审计链。
+若导出发生在 positive reviewer / write sprint 后，closeout 仍必须回到 MAS owner chain，并提供 research evidence pack refs、negative / failed-path ledger refs、decision trace refs、artifact lineage / reproducibility refs，或 stable typed blocker。read-model/schema/canary 只能证明最低审计链可见且可校验；单独存在 inspection output、zip、manifest、OPL lifecycle receipt、workbench pointer 或 canary success，不能关闭医学审计链。
 
 ## 测试计划
 
