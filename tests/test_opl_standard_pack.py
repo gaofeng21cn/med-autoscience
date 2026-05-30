@@ -45,6 +45,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert _read_contract("domain_descriptor") == generated["domain_descriptor"]
     assert _read_contract("action_catalog") == generated["action_catalog"]
     assert _read_contract("stage_control_plane") == generated["stage_control_plane"]
+    assert _read_contract("foundry_agent_series") == generated["foundry_agent_series"]
     assert _read_contract("functional_privatization_audit") == generated["functional_privatization_audit"]
 
     assert generated["action_catalog"]["actions"] == action_catalog["actions"]
@@ -54,6 +55,23 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["pack_compiler_input"]["canonical_semantic_pack_role"] == (
         "declarative_medical_research_semantics_for_opl_pack_compiler"
     )
+    foundry_series = generated["foundry_agent_series"]
+    assert foundry_series["surface_kind"] == "opl_foundry_agent_series_contract"
+    assert foundry_series["version"] == "foundry-agent-series.v1"
+    assert foundry_series["product_layer"] == "foundry_agent"
+    assert foundry_series["domain_id"] == "medautoscience"
+    assert foundry_series["stage_control_plane_target_domain_id"] == "med-autoscience"
+    assert foundry_series["domain_progress_aliases"]["deliverable"] == [
+        "paper_progress_delta",
+        "paper_work_progress",
+    ]
+    assert foundry_series["domain_adapter_policy"]["no_parallel_progress_schema"] is True
+    assert foundry_series["domain_adapter_policy"]["no_parallel_blocker_lineage_schema"] is True
+    assert (
+        foundry_series["app_projection_policy"]["app_consumes_shared_progress_projection_only"]
+        is True
+    )
+    assert foundry_series["authority_boundary"]["opl_owns_series_contract"] is True
     assert generated["pack_compiler_input"]["src_role"] == (
         "domain_handler_minimal_authority_functions_and_native_helpers_only"
     )

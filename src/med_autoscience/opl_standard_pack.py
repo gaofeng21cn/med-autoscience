@@ -225,6 +225,7 @@ def build_standard_pack() -> dict[str, Any]:
         "generated_surface_handoff": _generated_surface_handoff(),
         "action_catalog": _with_forbidden_roles(action_catalog),
         "stage_control_plane": stage_control_plane,
+        "foundry_agent_series": _foundry_agent_series_contract(stage_control_plane),
         "memory_descriptor": _memory_descriptor(),
         "artifact_locator_contract": _artifact_locator_contract(),
         "owner_receipt_contract": _owner_receipt_contract(),
@@ -266,6 +267,7 @@ def _domain_descriptor() -> dict[str, Any]:
         "generated_descriptor_surfaces": list(GENERATED_SURFACES),
         "standard_contract_refs": {
             "action_catalog": "contracts/action_catalog.json",
+            "foundry_agent_series": "contracts/foundry_agent_series.json",
             "stage_control_plane": "contracts/stage_control_plane.json",
             "pack_compiler_input": "contracts/pack_compiler_input.json",
             "generated_surface_handoff": "contracts/generated_surface_handoff.json",
@@ -277,6 +279,72 @@ def _domain_descriptor() -> dict[str, Any]:
             "opl_can_authorize_quality_or_export": False,
             "domain_owns_truth_quality_artifact_memory_and_receipts": True,
             "domain_truth_owner": DOMAIN_OWNER,
+        },
+    }
+
+
+def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_foundry_agent_series_contract",
+        "version": "foundry-agent-series.v1",
+        "owner": "one-person-lab",
+        "product_layer": "foundry_agent",
+        "product_model": "OPL Framework -> One Person Lab App -> Foundry Agents",
+        "standard_agent_requirement": (
+            "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_"
+            "and_app_projection_packets"
+        ),
+        "domain_id": "medautoscience",
+        "foundry_agent_id": "medautoscience",
+        "domain_label": "Research Foundry",
+        "domain_aliases": [TARGET_DOMAIN_ID, "mas", "med_auto_science"],
+        "authority_owner": stage_control_plane["owner"],
+        "stage_control_plane_ref": "contracts/stage_control_plane.json",
+        "stage_control_plane_target_domain_id": stage_control_plane["target_domain_id"],
+        "app_projection_ref": "contracts/generated_surface_handoff.json#/product_entry",
+        "required_identity_fields": [
+            "domain_id",
+            "foundry_agent_id",
+            "product_layer",
+            "domain_label",
+            "authority_owner",
+            "stage_control_plane_ref",
+        ],
+        "required_stage_packets": [
+            "user_stage_log_contract",
+            "progress_delta_policy",
+            "typed_blocker_lineage_policy",
+            "effective_current_context",
+            "owner_receipt_or_typed_blocker_closeout",
+        ],
+        "shared_progress_projection_fields": [
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta",
+        ],
+        "domain_progress_aliases": {
+            "deliverable": ["paper_progress_delta", "paper_work_progress"],
+            "platform": ["platform_repair_delta"],
+        },
+        "domain_adapter_policy": {
+            "domain_specific_aliases_only": True,
+            "no_parallel_progress_schema": True,
+            "no_parallel_blocker_lineage_schema": True,
+            "no_domain_runtime_fork": True,
+        },
+        "app_projection_policy": {
+            "app_consumes_shared_progress_projection_only": True,
+            "app_can_read_domain_body": False,
+            "app_can_write_domain_truth": False,
+            "app_can_claim_quality_or_export": False,
+            "display_policy": "classification_only_no_domain_artifact_body",
+        },
+        "authority_boundary": {
+            "opl_owns_series_contract": True,
+            "domain_owns_truth_quality_artifact_memory_and_receipts": True,
+            "app_owns_display_and_user_action_shell": True,
+            "generated_surface_can_claim_domain_ready": False,
         },
     }
 

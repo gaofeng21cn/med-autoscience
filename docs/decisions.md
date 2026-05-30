@@ -15,7 +15,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-29：study-progress 与 stage-log 必须分离交付物推进与平台修复增量
 
-- 决策：`study_progress` read-model 新增 OPL generic `deliverable_progress_delta` 与 `platform_repair_delta` 双投影。`deliverable_progress_delta` 只计论文/交付物 surface 变化、AI reviewer eval follow-through、gate replay follow-through 与 write repair delta；`platform_repair_delta` 只计 controller/read-model/currentness/OPL provider 相关修复。`paper_progress_delta` 保留为 MAS paper-facing alias，必须与 `deliverable_progress_delta` 同值。
+- 决策：MAS 通过 `contracts/foundry_agent_series.json` 声明自身是 OPL Foundry Agent series 的 Research Foundry adapter，`study_progress` read-model 新增 OPL generic `deliverable_progress_delta` 与 `platform_repair_delta` 双投影。`deliverable_progress_delta` 只计论文/交付物 surface 变化、AI reviewer eval follow-through、gate replay follow-through 与 write repair delta；`platform_repair_delta` 只计 controller/read-model/currentness/OPL provider 相关修复。`paper_progress_delta` 保留为 MAS paper-facing alias，必须与 `deliverable_progress_delta` 同值。
 - 决策：`mas_paper_facing_stage_log_summary` 与 `latest_terminal_stage_log.paper_stage_log` 同步新增 `progress_delta_classification`、`deliverable_progress_delta`、`paper_progress_delta`、`platform_repair_delta`。Portal/stage log 展示与 MCP compact 必须按 generic deliverable/platform 两类分开统计，禁止把平台修复 token 混报成论文推进 token。
 - 决策：当同一轮同时命中论文推进与平台修复信号时，token 分账按平台修复优先；`deliverable_progress_delta.token_usage_total` 与 alias `paper_progress_delta.token_usage_total` 置 `0`，`platform_repair_delta.token_usage_total` 记录当轮 token。
 - 理由：DM002/DM003 的 currentness 修复与论文实质推进经常同轮发生。若 read-model 只看单一 progress delta，会把 controller/provider 修复误读成论文推进，导致 stage log、progress 审阅与资源核算失真。

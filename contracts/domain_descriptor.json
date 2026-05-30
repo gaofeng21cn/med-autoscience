@@ -25,6 +25,7 @@
   "schema_version": 1,
   "standard_contract_refs": {
     "action_catalog": "contracts/action_catalog.json",
+    "foundry_agent_series": "contracts/foundry_agent_series.json",
     "functional_privatization_audit": "contracts/functional_privatization_audit.json",
     "generated_surface_handoff": "contracts/generated_surface_handoff.json",
     "pack_compiler_input": "contracts/pack_compiler_input.json",
