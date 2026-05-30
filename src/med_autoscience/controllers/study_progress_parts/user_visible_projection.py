@@ -81,7 +81,11 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     paper_progress_state = build_paper_progress_state(payload)
     package_delivered = bool(details.get("package_delivered")) or bool(paper_progress_state.get("package_delivered"))
     terminal_delivery = _non_empty_text(paper_progress_state.get("state")) == "terminal_delivered"
-    actual_write_active = _actual_write_active(writer_state=writer_state, macro_state=macro_state, payload=payload)
+    actual_write_active = bool(paper_progress_state.get("actual_write_active")) or _actual_write_active(
+        writer_state=writer_state,
+        macro_state=macro_state,
+        payload=payload,
+    )
     meaningful_artifact_delta = _meaningful_artifact_delta(payload)
     next_owner = _non_empty_text(paper_progress_state.get("next_owner")) or _next_owner(payload=payload, details=details)
     why_not_progressing = _non_empty_text(paper_progress_state.get("why_not_progressing")) or _why_not_progressing(
