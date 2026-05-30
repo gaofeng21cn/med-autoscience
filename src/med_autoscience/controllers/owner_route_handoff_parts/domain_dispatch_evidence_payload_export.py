@@ -157,6 +157,19 @@ def build_dispatch_evidence_payload_export(
         domain_transition=domain_transition,
         blocked_reason=text(study_scan.get("blocked_reason")),
     )
+    if (
+        owner_receipt_closeout is not None
+        and payload_detail_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
+    ):
+        reason_details = {
+            **reason_details,
+            **_owner_receipt_research_evidence_details(
+                stage_attempt_id=text(target_identity.get("stage_attempt_id")),
+                evidence_refs=evidence_refs,
+                domain_owner_receipt_refs=domain_owner_receipt_refs,
+                no_regression_evidence_refs=no_regression_evidence_refs,
+            ),
+        }
     explanation = blocker_explanation(payload_blocker_class)
     stage_attempt_source_fingerprint = text(target_identity.get("source_fingerprint"))
     domain_source_fingerprint = text(target_identity.get("domain_source_fingerprint"))
@@ -293,6 +306,34 @@ def _label_ref(label: str, value: object) -> str | None:
     if (ref_value := text(value)) is None:
         return None
     return f"{label}={ref_value}"
+
+
+def _owner_receipt_research_evidence_details(
+    *,
+    stage_attempt_id: str | None,
+    evidence_refs: Sequence[object],
+    domain_owner_receipt_refs: Sequence[object],
+    no_regression_evidence_refs: Sequence[object],
+) -> dict[str, list[str]]:
+    scope = text(stage_attempt_id) or "unknown-stage-attempt"
+    return {
+        "negative_failed_path_refs": [
+            f"mas-negative-failed-path-ledger:medautoscience:domain-dispatch-owner-receipt:{scope}",
+        ],
+        "decision_trace_refs": unique(
+            [
+                *texts(domain_owner_receipt_refs),
+                *texts(evidence_refs),
+            ]
+        ),
+        "artifact_lineage_refs": unique(texts(evidence_refs)),
+        "reproducibility_refs": unique(
+            [
+                *texts(no_regression_evidence_refs),
+                *texts(domain_owner_receipt_refs),
+            ]
+        ),
+    }
 
 
 def _study_scan(owner_route_scan: Mapping[str, Any], *, study_id: str) -> Mapping[str, Any] | None:
