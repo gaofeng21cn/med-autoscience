@@ -6,7 +6,10 @@ import re
 from typing import Any, Mapping, Sequence
 
 from .body_free_evidence_packets import build_body_free_evidence_packet
-from .research_evidence_pack import build_research_evidence_pack_summary
+from .research_evidence_pack import (
+    build_research_evidence_pack_summary,
+    missing_required_evidence_families,
+)
 from .stable_blocker_classes import (
     blocker_explanation,
     stable_blocker_class,
@@ -75,6 +78,49 @@ def build_domain_dispatch_evidence_record_payload(
         [_ref_text(ref) for ref in domain_owner_receipt_refs]
     )
     supplied_typed_blocker_ref_values = _unique_refs([_ref_text(ref) for ref in typed_blocker_refs])
+    research_family_refs = {
+        "negative_failed_path_refs": _detail_refs(
+            normalized_reason_details,
+            "negative_failed_path_refs",
+        ),
+        "decision_trace_refs": _detail_refs(normalized_reason_details, "decision_trace_refs"),
+        "artifact_lineage_refs": _detail_refs(normalized_reason_details, "artifact_lineage_refs"),
+        "reproducibility_refs": _detail_refs(normalized_reason_details, "reproducibility_refs"),
+    }
+    schema_missing_families = missing_required_evidence_families(
+        run_manifest_ref="mas-generated-run-manifest-ref",
+        negative_failed_path_refs=research_family_refs["negative_failed_path_refs"],
+        decision_trace_refs=research_family_refs["decision_trace_refs"],
+        artifact_lineage_refs=research_family_refs["artifact_lineage_refs"],
+        reproducibility_refs=research_family_refs["reproducibility_refs"],
+        owner_receipt_refs=domain_owner_receipt_ref_values,
+        typed_blocker_refs=supplied_typed_blocker_ref_values,
+    )
+    schema_fail_closed_missing_families = [
+        family
+        for family in schema_missing_families
+        if family != "owner_receipt_or_typed_blocker_refs"
+    ]
+    schema_fail_closed_required = bool(
+        domain_owner_receipt_ref_values and schema_fail_closed_missing_families
+    )
+    if schema_fail_closed_required:
+        original_detail_reason = normalized_detail_reason
+        normalized_detail_reason = "research_evidence_pack_required_refs_missing"
+        normalized_reason = normalized_detail_reason
+        normalized_explanation = (
+            "The MAS owner receipt is present, but mandatory research evidence pack "
+            "ref families are incomplete; OPL must record a stable typed blocker "
+            "instead of a success path."
+        )
+        normalized_reason_details = {
+            **normalized_reason_details,
+            "blocker_class": normalized_reason,
+            "detail_reason": normalized_detail_reason,
+            "original_detail_reason": original_detail_reason,
+            "missing_required_evidence_families": list(schema_fail_closed_missing_families),
+            "blocked_owner_receipt_refs": domain_owner_receipt_ref_values,
+        }
     slug_scope = normalized_study_id or (
         normalized_stage_id if normalized_stage_id != normalized_task_kind else None
     )
@@ -107,20 +153,27 @@ def build_domain_dispatch_evidence_record_payload(
             no_forbidden_write_ref if not supplied_no_regression_evidence_ref_values else None,
         ]
     )
+    success_domain_owner_receipt_ref_values = (
+        [] if schema_fail_closed_required else domain_owner_receipt_ref_values
+    )
     typed_blocker_ref_values = (
         []
-        if domain_owner_receipt_ref_values
+        if success_domain_owner_receipt_ref_values
         else (supplied_typed_blocker_ref_values or [typed_blocker_ref])
     )
     mode = (
         "refs_only_domain_owned_success_payload"
-        if domain_owner_receipt_ref_values
+        if success_domain_owner_receipt_ref_values
         else "refs_only_domain_owned_typed_blocker_payload"
     )
     closeout_semantics = (
         "domain_owner_receipt_refs_only_owner_chain_evidence_not_domain_ready"
-        if domain_owner_receipt_ref_values
-        else "typed_blocker_until_real_owner_receipt_or_live_paper_line_closeout"
+        if success_domain_owner_receipt_ref_values
+        else (
+            "research_evidence_pack_refs_missing_fail_closed_typed_blocker"
+            if schema_fail_closed_required
+            else "typed_blocker_until_real_owner_receipt_or_live_paper_line_closeout"
+        )
     )
     stage_evidence_handoff = _stage_evidence_handoff(
         task_kind=normalized_task_kind,
@@ -144,7 +197,7 @@ def build_domain_dispatch_evidence_record_payload(
             role="domain_owner_receipt_ref",
             owner=OWNER,
         )
-        for ref in domain_owner_receipt_ref_values
+        for ref in success_domain_owner_receipt_ref_values
     ]
     typed_blocker_packets = [
         build_body_free_evidence_packet(
@@ -185,17 +238,20 @@ def build_domain_dispatch_evidence_record_payload(
     record_payload = {
         "domain_id": DOMAIN_ID,
         "task_kind": normalized_task_kind,
-        "domain_owner_receipt_refs": domain_owner_receipt_ref_values,
+        "domain_owner_receipt_refs": success_domain_owner_receipt_ref_values,
         "typed_blocker_refs": typed_blocker_ref_values,
         "owner_chain_refs": owner_chain_refs,
         "evidence_refs": evidence_ref_values,
         "no_regression_evidence_refs": no_regression_evidence_ref_values,
-        "domain_receipt_refs": domain_owner_receipt_ref_values,
+        "domain_receipt_refs": success_domain_owner_receipt_ref_values,
         "no_regression_refs": no_regression_evidence_ref_values,
         "blocker_class": normalized_reason,
         "details": normalized_reason_details,
         "source_refs": evidence_ref_values,
     }
+    if schema_fail_closed_required:
+        record_payload["schema_validation_fail_closed"] = True
+        record_payload["blocked_owner_receipt_refs"] = domain_owner_receipt_ref_values
     if normalized_explanation is not None:
         record_payload["explanation"] = normalized_explanation
     if expected_receipt_ref_values:
@@ -223,12 +279,14 @@ def build_domain_dispatch_evidence_record_payload(
         study_id=normalized_study_id,
         stage_id=normalized_stage_id,
         input_refs=evidence_ref_values,
-        output_refs=domain_owner_receipt_ref_values,
+        output_refs=success_domain_owner_receipt_ref_values,
         checksum_refs=no_regression_evidence_ref_values,
-        owner_receipt_refs=domain_owner_receipt_ref_values,
+        owner_receipt_refs=success_domain_owner_receipt_ref_values,
         typed_blocker_refs=typed_blocker_ref_values,
-        negative_failed_path_refs=normalized_reason_details.get("negative_failed_path_refs", ()),
-        decision_trace_refs=normalized_reason_details.get("decision_trace_refs", ()),
+        negative_failed_path_refs=research_family_refs["negative_failed_path_refs"],
+        decision_trace_refs=research_family_refs["decision_trace_refs"],
+        artifact_lineage_refs=research_family_refs["artifact_lineage_refs"],
+        reproducibility_refs=research_family_refs["reproducibility_refs"],
         claim_impact_refs=normalized_reason_details.get("claim_impact_refs", ()),
         source_data_version_refs=normalized_reason_details.get("source_data_version_refs", ()),
         software_environment_refs=normalized_reason_details.get("software_environment_refs", ()),
@@ -311,7 +369,7 @@ def build_domain_dispatch_evidence_record_payload(
             "domain_receipt_refs": "domain_owner_receipt_refs",
             "no_regression_refs": "no_regression_evidence_refs",
         },
-        "domain_owner_receipt_refs": domain_owner_receipt_ref_values,
+        "domain_owner_receipt_refs": success_domain_owner_receipt_ref_values,
         "typed_blocker_refs": typed_blocker_ref_values,
         "owner_chain_refs": owner_chain_refs,
         "evidence_refs": evidence_ref_values,
@@ -327,6 +385,7 @@ def build_domain_dispatch_evidence_record_payload(
             *stage_evidence_packets,
         ],
         "closeout_semantics": closeout_semantics,
+        "schema_validation_fail_closed": schema_fail_closed_required,
         "body_included": False,
         "domain_ready_claimed": False,
         "publication_ready_claimed": False,
@@ -366,6 +425,15 @@ def _ref_text(value: str | Mapping[str, Any]) -> str | None:
     if isinstance(value, Mapping):
         return _text(value.get("ref"))
     return _text(value)
+
+
+def _detail_refs(details: Mapping[str, Any], key: str) -> list[str]:
+    value = details.get(key)
+    if isinstance(value, Mapping):
+        return _unique_refs([_ref_text(ref) for ref in value.values()])
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return _unique_refs([_ref_text(ref) if isinstance(ref, Mapping) else _text(ref) for ref in value])
+    return _unique_refs([_text(value)])
 
 
 def _unique_refs(values: Sequence[str | None]) -> list[str]:

@@ -94,6 +94,11 @@ def build_stage_evidence_payload_export(
             runtime_event_refs=runtime_event_refs,
             source_fingerprint=_source_fingerprint(workorder),
             profile_name=profile.name,
+            reason_details=_research_evidence_reason_details(
+                stage_id=stage_id,
+                typed_blocker_ref=None,
+                no_regression_ref=no_regression_ref,
+            ),
         )
         opl_payload = {
             "domain_receipt_refs": success_receipt_refs,
@@ -139,6 +144,11 @@ def build_stage_evidence_payload_export(
         runtime_event_refs=runtime_event_refs,
         source_fingerprint=_source_fingerprint(workorder),
         profile_name=profile.name,
+        reason_details=_research_evidence_reason_details(
+            stage_id=stage_id,
+            typed_blocker_ref=typed_blocker_ref,
+            no_regression_ref=no_regression_ref,
+        ),
     )
     opl_payload = {
         "domain_receipt_refs": [],
@@ -225,6 +235,35 @@ def _stage_success_receipt_refs(*, profile: Any, stage_id: str) -> list[str]:
         ):
             refs.append(str(publication_eval_ref))
     return unique(refs)
+
+
+def _research_evidence_reason_details(
+    *,
+    stage_id: str,
+    typed_blocker_ref: str | None,
+    no_regression_ref: str,
+) -> dict[str, list[str]]:
+    prefix = f"stage-production-evidence:medautoscience:{stage_id}"
+    return {
+        "negative_failed_path_refs": unique(
+            [
+                typed_blocker_ref,
+                f"mas-negative-failed-path-ledger:medautoscience:{prefix}",
+            ]
+        ),
+        "decision_trace_refs": [
+            f"mas-decision-trace:medautoscience:{prefix}",
+        ],
+        "artifact_lineage_refs": [
+            f"mas-artifact-lineage-graph:medautoscience:{prefix}",
+        ],
+        "reproducibility_refs": unique(
+            [
+                no_regression_ref,
+                f"mas-reproducibility-bundle:medautoscience:{prefix}",
+            ]
+        ),
+    }
 
 
 def _read_json_mapping(path: Path) -> Mapping[str, Any]:

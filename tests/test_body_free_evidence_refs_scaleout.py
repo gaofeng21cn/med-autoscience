@@ -543,7 +543,7 @@ def test_domain_dispatch_evidence_payload_typed_blocker_ref_keeps_identity_token
     assert "12b16bbd3018014cbf0a20a5" in second_ref
 
 
-def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_path() -> None:
+def test_domain_dispatch_evidence_payload_fails_closed_when_owner_receipt_lacks_research_pack_refs() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 
     payload = module.build_domain_dispatch_evidence_record_payload(
@@ -565,7 +565,78 @@ def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_pa
     )
 
     record_payload = payload["record_payload"]
+    assert payload["mode"] == "refs_only_domain_owned_typed_blocker_payload"
+    assert payload["reason"] == "research_evidence_pack_required_refs_missing"
+    assert payload["schema_validation_fail_closed"] is True
+    assert payload["closeout_semantics"] == "research_evidence_pack_refs_missing_fail_closed_typed_blocker"
+    assert record_payload["domain_owner_receipt_refs"] == []
+    assert record_payload["domain_receipt_refs"] == []
+    assert record_payload["blocked_owner_receipt_refs"] == [
+        "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
+    ]
+    assert record_payload["details"]["missing_required_evidence_families"] == [
+        "negative_failed_path_refs",
+        "decision_trace_refs",
+        "artifact_lineage_refs",
+        "reproducibility_refs",
+    ]
+    assert record_payload["research_evidence_pack_summary"]["fail_closed_required"] is True
+    assert record_payload["research_evidence_pack_summary"]["missing_required_evidence_families"] == [
+        "negative_failed_path_refs",
+        "decision_trace_refs",
+        "artifact_lineage_refs",
+        "reproducibility_refs",
+    ]
+    assert record_payload["typed_blocker_refs"]
+    assert {
+        packet["role"] for packet in payload["body_free_evidence_packets"]
+    } == {
+        "stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
+    }
+    assert payload["domain_ready_claimed"] is False
+    assert payload["publication_ready_claimed"] is False
+    assert payload["artifact_mutation_authorized"] is False
+
+
+def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_path() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
+
+    payload = module.build_domain_dispatch_evidence_record_payload(
+        task_kind="paper_autonomy/guarded-apply",
+        study_id="DM002",
+        reason="real_paper_line_owner_receipt_observed",
+        evidence_refs=[
+            "studies/DM002/artifacts/controller/repair_execution_evidence/latest.json",
+            "studies/DM002/artifacts/controller_decisions/latest.json",
+        ],
+        domain_owner_receipt_refs=[
+            "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
+        ],
+        no_regression_evidence_refs=[
+            "studies/DM002/artifacts/supervision/no_forbidden_write/guarded_apply.json",
+        ],
+        source_fingerprint="guarded-owner-success-001",
+        profile_name="nfpitnet",
+        reason_details={
+            "negative_failed_path_refs": [
+                "studies/DM002/artifacts/research/negative_failed_path_ledger/latest.json",
+            ],
+            "decision_trace_refs": [
+                "studies/DM002/artifacts/research/decision_trace/latest.json",
+            ],
+            "artifact_lineage_refs": [
+                "studies/DM002/artifacts/research/artifact_lineage_graph/latest.json",
+            ],
+            "reproducibility_refs": [
+                "studies/DM002/artifacts/research/reproducibility_bundle/latest.json",
+            ],
+        },
+    )
+
+    record_payload = payload["record_payload"]
     assert payload["mode"] == "refs_only_domain_owned_success_payload"
+    assert payload["schema_validation_fail_closed"] is False
     assert record_payload["domain_owner_receipt_refs"] == [
         "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
     ]
@@ -585,6 +656,23 @@ def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_pa
         "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
     ]
     assert record_payload["research_evidence_pack_summary"]["typed_blocker_refs"] == []
+    assert record_payload["research_evidence_pack_summary"]["negative_failed_path_refs"] == [
+        "studies/DM002/artifacts/research/negative_failed_path_ledger/latest.json",
+    ]
+    assert record_payload["research_evidence_pack_summary"]["decision_trace_refs"] == [
+        "studies/DM002/artifacts/research/decision_trace/latest.json",
+    ]
+    assert record_payload["research_evidence_pack_summary"]["artifact_lineage_refs"] == [
+        "studies/DM002/artifacts/research/artifact_lineage_graph/latest.json",
+    ]
+    assert record_payload["research_evidence_pack_summary"]["reproducibility_refs"] == [
+        "studies/DM002/artifacts/research/reproducibility_bundle/latest.json",
+    ]
+    assert record_payload["research_evidence_pack_summary"]["schema_validation"]["status"] == (
+        "schema_compatible_refs_ready"
+    )
+    assert record_payload["research_evidence_pack_summary"]["missing_required_evidence_families"] == []
+    assert record_payload["research_evidence_pack_summary"]["fail_closed_required"] is False
     assert {
         packet["role"] for packet in payload["body_free_evidence_packets"]
     } == {
