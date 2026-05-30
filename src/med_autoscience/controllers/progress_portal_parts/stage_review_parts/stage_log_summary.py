@@ -351,8 +351,13 @@ def _research_pack_progress_summary(value: Mapping[str, Any]) -> dict[str, Any]:
             "body_included": False,
             "is_route_authority": False,
         },
-        "ref_family_status": _ref_family_status(pack),
-        "schema_validation": _schema_validation_projection(_mapping(source.get("schema_validation"))),
+        "ref_family_status": _ref_family_status(
+            pack=pack,
+            schema_validation=_mapping(pack.get("schema_validation")) or _mapping(source.get("schema_validation")),
+        ),
+        "schema_validation": _schema_validation_projection(
+            _mapping(pack.get("schema_validation")) or _mapping(source.get("schema_validation"))
+        ),
         "authority": {
             "read_model_only": True,
             "body_free": True,
@@ -380,8 +385,12 @@ def _count_field(value: object, refs: Sequence[str]) -> int:
     return len(refs)
 
 
-def _ref_family_status(pack: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    source = _mapping(pack.get("ref_family_status"))
+def _ref_family_status(
+    *,
+    pack: Mapping[str, Any],
+    schema_validation: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    source = _mapping(schema_validation.get("ref_family_status")) or _mapping(pack.get("ref_family_status"))
     result: dict[str, dict[str, Any]] = {}
     if source:
         for family, payload in source.items():

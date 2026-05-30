@@ -11,6 +11,58 @@ def test_stage_review_projects_research_pack_progress_summary_body_free() -> Non
         **_stage_review_payload(),
         "research_evidence_pack_summary": {
             "surface_kind": "mas_research_evidence_pack_summary",
+            "schema_validation": {
+                "status": "schema_compatible_refs_ready",
+                "missing_required_evidence_families": [],
+                "fail_closed_reasons": [],
+                "placeholder_ref_families": [],
+                "forbidden_write_refs": [],
+                "owner_route_mismatch_refs": [],
+                "body_free_payload": True,
+                "non_body_free_payload_detected": False,
+                "ref_family_status": {
+                    "run_manifest_ref": {
+                        "status": "present",
+                        "ref_count": 1,
+                        "refs": ["run-manifest-ref:001-risk"],
+                        "body_included": False,
+                    },
+                    "negative_failed_path_refs": {
+                        "status": "present",
+                        "ref_count": 3,
+                        "refs": [
+                            "studies/001-risk/artifacts/negative_paths/path-1.json",
+                            "studies/001-risk/artifacts/negative_paths/path-2.json",
+                            "studies/001-risk/artifacts/negative_paths/path-3.json",
+                        ],
+                        "body_included": False,
+                    },
+                    "decision_trace_refs": {
+                        "status": "present",
+                        "ref_count": 1,
+                        "refs": ["studies/001-risk/artifacts/routes/switch-1.json"],
+                        "body_included": False,
+                    },
+                    "artifact_lineage_refs": {
+                        "status": "present",
+                        "ref_count": 1,
+                        "refs": ["studies/001-risk/artifacts/lineage/graph.json"],
+                        "body_included": False,
+                    },
+                    "reproducibility_refs": {
+                        "status": "present",
+                        "ref_count": 1,
+                        "refs": ["studies/001-risk/artifacts/reproducibility/bundle.json"],
+                        "body_included": False,
+                    },
+                    "owner_receipt_or_typed_blocker_refs": {
+                        "status": "blocker",
+                        "ref_count": 1,
+                        "refs": ["studies/001-risk/artifacts/blockers/next-owner.json"],
+                        "body_included": False,
+                    },
+                },
+            },
             "progress_summary": {
                 "surface_kind": "mas_research_pack_progress_summary",
                 "body_included": False,
@@ -89,6 +141,10 @@ def test_stage_review_projects_research_pack_progress_summary_body_free() -> Non
         "studies/001-risk/artifacts/blockers/next-owner.json"
     )
     assert summary["single_next_owner_blocker"]["is_route_authority"] is False
+    assert summary["schema_validation"]["status"] == "schema_compatible_refs_ready"
+    assert summary["schema_validation"]["fail_closed_reasons"] == []
+    assert summary["ref_family_status"]["negative_failed_path_refs"]["status"] == "present"
+    assert summary["ref_family_status"]["owner_receipt_or_typed_blocker_refs"]["status"] == "blocker"
     assert summary["authority"]["is_route_authority"] is False
     assert summary["authority"]["platform_repair_counts_as_paper_progress"] is False
     stage_review = payload["mas_opl_runtime_workbench_projection"]["studies"][0]["stage_review"]
