@@ -448,6 +448,54 @@ def test_dm003_live_worker_with_ai_reviewer_request_delta_is_progressing() -> No
     assert state["why_not_progressing"] is None
 
 
+def test_dm003_opl_live_provider_attempt_with_paper_delta_is_progressing() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "study_macro_state": {
+                "writer_state": "queued",
+                "user_next": "repair",
+                "reason": "quality",
+                "details": {"package_delivered": False},
+            },
+            "runtime_liveness_audit": {
+                "active_stage_attempt_id": "sat-live",
+                "running_provider_attempt": True,
+                "runtime_health": {"provider_status": "running"},
+            },
+            "opl_current_control_state_handoff": {
+                "active_run_id": "opl-stage-attempt://sat-live",
+                "active_stage_attempt_id": "sat-live",
+                "running_provider_attempt": True,
+                "runtime_health": {"health_status": "running"},
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-05-30T03:51:42+00:00",
+                    "changed_refs": [
+                        "paper/evidence_ledger.json",
+                        "paper/claim_evidence_map.json",
+                        "paper/review/review_ledger.json",
+                    ],
+                },
+            },
+            "publication_supervisor_state": {"bundle_tasks_downstream_only": True},
+            "owner_route": {"next_owner": "ai_reviewer"},
+        }
+    )
+
+    assert state["state"] == "progressing"
+    assert state["actual_write_active"] is True
+    assert state["meaningful_artifact_delta"] is True
+    assert state["paper_facing_progress_slo"]["visible_as_progressing"] is True
+    assert state["paper_facing_progress_slo"]["satisfied_delta_classes"] == [
+        "claim_evidence",
+        "review_ledger",
+    ]
+    assert state["why_not_progressing"] is None
+
+
 def test_user_visible_projection_embeds_paper_progress_state() -> None:
     study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
 

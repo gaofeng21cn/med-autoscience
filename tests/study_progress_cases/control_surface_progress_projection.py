@@ -249,8 +249,16 @@ def test_study_progress_counts_gate_clearing_paper_outputs_as_artifact_delta(
     assert artifact_freshness["latest_progress_at"] == "2026-05-09T08:10:00+00:00"
     assert artifact_freshness["latest_progress_source"] == "gate_clearing_batch"
     assert "4 paper-facing artifact(s)" in artifact_freshness["summary"]
+    assert set(artifact_freshness["changed_refs"]) == {
+        str(study_root / "paper" / "claim_evidence_map.json"),
+        str(study_root / "paper" / "evidence_ledger.json"),
+        str(study_root / "paper" / "figures" / "generated" / "F1_cohort_flow.png"),
+        str(study_root / "paper" / "tables" / "generated" / "T1_baseline.md"),
+    }
     assert result["progress_freshness"]["activity_timeout"]["state"] == "ok"
     assert result["user_visible_projection"]["actual_write_active"] is True
+    assert result["user_visible_projection"]["paper_progress_state"]["state"] == "progressing"
+    assert result["user_visible_projection"]["paper_progress_state"]["paper_facing_progress_slo"]["visible_as_progressing"] is True
     assert "系统有实际 writer/run 正在推进" in result["user_visible_projection"]["status_summary"]
 
 
@@ -353,5 +361,12 @@ def test_study_progress_counts_runtime_closeout_paper_outputs_as_artifact_delta(
     assert artifact_freshness["latest_progress_at"] == "2026-05-13T14:55:14+00:00"
     assert artifact_freshness["latest_progress_source"] == "runtime_turn_closeout"
     assert "3 paper-facing artifact(s)" in artifact_freshness["summary"]
+    assert artifact_freshness["changed_refs"] == [
+        "../../../studies/003-dm/paper/claim_evidence_map.json",
+        "../../../studies/003-dm/paper/evidence_ledger.json",
+        "../../../studies/003-dm/paper/review/review_ledger.json",
+    ]
     assert result["progress_freshness"]["activity_timeout"]["state"] == "ok"
     assert result["user_visible_projection"]["actual_write_active"] is True
+    assert result["user_visible_projection"]["paper_progress_state"]["state"] == "progressing"
+    assert result["user_visible_projection"]["paper_progress_state"]["paper_facing_progress_slo"]["visible_as_progressing"] is True

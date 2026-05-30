@@ -124,11 +124,13 @@ def _gate_clearing_artifact_delta_freshness(
     if display_count:
         summary += f", including {display_count} table/figure artifact(s)"
     summary += "."
-    return _freshness_from_timestamp(
+    freshness = _freshness_from_timestamp(
         timestamp=_gate_clearing_timestamp(gate_clearing_batch_payload),
         source="gate_clearing_batch",
         summary=summary,
     )
+    freshness["changed_refs"] = changed_paths
+    return freshness
 
 
 def _runtime_turn_closeout_artifact_delta_freshness(
@@ -176,11 +178,13 @@ def _runtime_turn_closeout_artifact_delta_freshness(
     if display_count:
         summary += f", including {display_count} table/figure artifact(s)"
     summary += "."
-    return _freshness_from_timestamp(
+    freshness = _freshness_from_timestamp(
         timestamp=timestamp.isoformat(),
         source="runtime_turn_closeout",
         summary=summary,
     )
+    freshness["changed_refs"] = paper_refs
+    return freshness
 
 
 def _closeout_paper_artifact_delta_refs(closeout_payload: Mapping[str, Any]) -> list[str]:

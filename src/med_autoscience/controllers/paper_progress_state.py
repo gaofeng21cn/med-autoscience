@@ -89,6 +89,8 @@ def _paper_state(
 ) -> str:
     if requires_user_input:
         return "awaiting_human"
+    if _live_provider_attempt(payload) and actual_write_active and meaningful_artifact_delta:
+        return "progressing"
     if _is_downstream_only(payload, blocking_reasons):
         return "downstream_only"
     same_line_reactivation = _same_line_reactivation_active(payload)
@@ -154,7 +156,7 @@ def _paper_delta_changed_refs(payload: Mapping[str, Any]) -> list[str]:
 def _actual_write_active(payload: Mapping[str, Any], *, visible_progress: bool) -> bool:
     macro_state = _study_macro_state(payload)
     writer_state = _text(macro_state.get("writer_state"))
-    if writer_state != "live":
+    if writer_state != "live" and not _live_provider_attempt(payload):
         return False
     if not visible_progress:
         return False
@@ -162,7 +164,41 @@ def _actual_write_active(payload: Mapping[str, Any], *, visible_progress: bool) 
         _text(_mapping(macro_state.get("details")).get("active_run_id"))
         or _text(payload.get("active_run_id"))
         or _text(_mapping(payload.get("supervision")).get("active_run_id"))
+        or _provider_attempt_run_id(payload)
     )
+
+
+def _live_provider_attempt(payload: Mapping[str, Any]) -> bool:
+    runtime_liveness = _mapping(payload.get("runtime_liveness_audit"))
+    if runtime_liveness.get("running_provider_attempt") is True:
+        return True
+    handoff = _mapping(payload.get("opl_current_control_state_handoff"))
+    if handoff.get("running_provider_attempt") is True:
+        return True
+    provider_status = _text(_mapping(handoff.get("runtime_health")).get("health_status"))
+    if provider_status == "running" and _text(handoff.get("active_stage_attempt_id")) is not None:
+        return True
+    execution = _mapping(payload.get("current_execution_evidence"))
+    execution_handoff = _mapping(execution.get("opl_current_control_state_handoff"))
+    if execution_handoff.get("running_provider_attempt") is True:
+        return True
+    return False
+
+
+def _provider_attempt_run_id(payload: Mapping[str, Any]) -> str | None:
+    runtime_liveness = _mapping(payload.get("runtime_liveness_audit"))
+    handoff = _mapping(payload.get("opl_current_control_state_handoff"))
+    execution = _mapping(payload.get("current_execution_evidence"))
+    execution_handoff = _mapping(execution.get("opl_current_control_state_handoff"))
+    for surface in (runtime_liveness, handoff, execution_handoff):
+        text = (
+            _text(surface.get("active_run_id"))
+            or _text(surface.get("active_stage_attempt_id"))
+            or _text(surface.get("active_workflow_id"))
+        )
+        if text is not None:
+            return text
+    return None
 
 
 def _package_delivered(payload: Mapping[str, Any], details: Mapping[str, Any]) -> bool:
