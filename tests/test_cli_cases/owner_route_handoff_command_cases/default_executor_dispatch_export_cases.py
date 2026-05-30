@@ -188,7 +188,7 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
         "default-executor:run_quality_repair_batch:quality_repair_batch_writer_handoff:"
     )
     assert task["dedupe_key"].endswith(task["source_fingerprint"])
-    assert task["payload"] == {
+    expected_payload_core = {
         "profile": str(profile_path),
         "study_id": "002-dm-china-us-mortality-attribution",
         "quest_id": "002-dm-china-us-mortality-attribution",
@@ -205,10 +205,10 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
         "owner_route_currentness_basis": {
             "source_eval_id": "publication-eval::002::current",
             "work_unit_id": "medical_prose_write_repair",
-        "work_unit_fingerprint": "medical-prose-routeback::write::fp",
-        "truth_epoch": "publication-eval::002::current",
-        "runtime_health_epoch": "runtime-health-event-002",
-    },
+            "work_unit_fingerprint": "medical-prose-routeback::write::fp",
+            "truth_epoch": "publication-eval::002::current",
+            "runtime_health_epoch": "runtime-health-event-002",
+        },
         "allowed_write_surfaces": [
             "paper/draft.md",
             "paper/build/review_manuscript.md",
@@ -224,55 +224,84 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
             "artifacts/publication_eval/latest.json",
             "artifacts/controller_decisions/latest.json",
         ],
-        "required_closeout_packet": {
-            "typed_closeout_required_for_completion": True,
-            "free_text_closeout_accepted": False,
-            "accepted_surface_kinds": [
-                "stage_attempt_closeout_packet",
-                "stage_memory_closeout_packet",
-                "domain_stage_closeout_packet",
-            ],
-            "required_ref_field": "closeout_refs",
-            "minimum_closeout_refs": 1,
-            "required_user_stage_log_field": "paper_stage_log",
-            "accepted_user_stage_log_fields": [
-                "paper_stage_log",
-                "user_stage_log",
-                "stage_log_summary",
-            ],
-            "required_user_stage_log_fields": [
-                "stage_name",
-                "problem_summary",
-                "stage_goal",
-                "stage_work_done",
-                "paper_work_done",
-                "changed_stage_surfaces",
-                "changed_paper_surfaces",
-                "outcome",
-                "remaining_blockers",
-                "duration",
-                "token_usage",
-                "cost",
-                "usage_refs",
-                "cost_refs",
-                "evidence_refs",
-            ],
-            "user_stage_log_policy": {
-                "surface_kind": "mas_paper_facing_stage_log_summary",
-                "summary_scope": "stage_log_read_model_only",
-                "paper_body_included": False,
-                "paper_body_target": False,
-                "internal_review_language_allowed_in_paper_body": False,
-                "quality_verdict_authorized": False,
-                "submission_readiness_authorized": False,
-            },
-        },
         "completion_boundary": {
             "provider_completion": "typed_closeout_packet_observed",
             "domain_ready_verdict": "read_from_mas_publication_or_gate_surface",
             "provider_completion_is_domain_ready": False,
         },
     }
+    assert {key: task["payload"][key] for key in expected_payload_core} == expected_payload_core
+    assert task["payload"]["decision_trace"] is None
+    assert task["payload"]["decision_trace_refs"] is None
+    assert task["payload"]["failed_path_ledger"] is None
+    assert task["payload"]["failed_path_refs"] is None
+    closeout_packet = task["payload"]["required_closeout_packet"]
+    assert {
+        key: closeout_packet[key]
+        for key in (
+            "typed_closeout_required_for_completion",
+            "free_text_closeout_accepted",
+            "accepted_surface_kinds",
+            "required_ref_field",
+            "minimum_closeout_refs",
+            "required_user_stage_log_field",
+            "accepted_user_stage_log_fields",
+            "required_user_stage_log_fields",
+            "user_stage_log_policy",
+        )
+    } == {
+        "typed_closeout_required_for_completion": True,
+        "free_text_closeout_accepted": False,
+        "accepted_surface_kinds": [
+            "stage_attempt_closeout_packet",
+            "stage_memory_closeout_packet",
+            "domain_stage_closeout_packet",
+        ],
+        "required_ref_field": "closeout_refs",
+        "minimum_closeout_refs": 1,
+        "required_user_stage_log_field": "paper_stage_log",
+        "accepted_user_stage_log_fields": [
+            "paper_stage_log",
+            "user_stage_log",
+            "stage_log_summary",
+        ],
+        "required_user_stage_log_fields": [
+            "stage_name",
+            "problem_summary",
+            "stage_goal",
+            "stage_work_done",
+            "paper_work_done",
+            "changed_stage_surfaces",
+            "changed_paper_surfaces",
+            "outcome",
+            "remaining_blockers",
+            "duration",
+            "token_usage",
+            "cost",
+            "usage_refs",
+            "cost_refs",
+            "evidence_refs",
+        ],
+        "user_stage_log_policy": {
+            "surface_kind": "mas_paper_facing_stage_log_summary",
+            "summary_scope": "stage_log_read_model_only",
+            "paper_body_included": False,
+            "paper_body_target": False,
+            "internal_review_language_allowed_in_paper_body": False,
+            "quality_verdict_authorized": False,
+            "submission_readiness_authorized": False,
+        },
+    }
+    assert closeout_packet["preallocated_closeout_ref"] == (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+        "default_executor_execution/<stage_attempt_id>.closeout.json"
+    )
+    assert task["payload"]["closeout_first_contract"] == closeout_packet["closeout_first_contract"]
+    closeout_contract = task["payload"]["closeout_first_contract"]
+    assert closeout_contract["surface_kind"] == "mas_default_executor_closeout_first_contract"
+    assert closeout_contract["provider_completion_is_domain_completion"] is False
+    assert closeout_contract["provider_completion_without_closeout_refs"] == "typed_closeout_packet_required"
+    assert closeout_contract["completed_blocked_double_state_allowed"] is False
     envelope = task["owner_route_attempt_envelope"]
     assert envelope["version"] == "mas-owner-route-attempt-protocol.v1"
     assert envelope["domain_owner"] == "write"
@@ -350,7 +379,20 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
         "stable_typed_blocker_ref",
         "no_forbidden_write_proof_ref",
     }
-    assert evidence_payload["authority_boundary"] == {
+    authority_boundary = evidence_payload["authority_boundary"]
+    assert {
+        key: authority_boundary[key]
+        for key in (
+            "owner",
+            "opl_records_refs_only",
+            "opl_writes_mas_truth",
+            "opl_reads_memory_body",
+            "opl_reads_artifact_body",
+            "opl_authorizes_quality_or_publication",
+            "provider_completion_is_domain_ready",
+            "typed_blocker_is_domain_ready",
+        )
+    } == {
         "owner": "med-autoscience",
         "opl_records_refs_only": True,
         "opl_writes_mas_truth": False,
@@ -360,6 +402,15 @@ def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_p
         "provider_completion_is_domain_ready": False,
         "typed_blocker_is_domain_ready": False,
     }
+    assert authority_boundary["exports_research_evidence_pack_refs_only"] is True
+    assert all(
+        authority_boundary[field] is False
+        for field in (
+            "can_accept_or_reject_owner_receipt",
+            "can_read_domain_body",
+            "can_sign_domain_receipt",
+        )
+    )
 
 
 def test_default_executor_dispatch_dedupe_key_tracks_owner_route_currentness(
