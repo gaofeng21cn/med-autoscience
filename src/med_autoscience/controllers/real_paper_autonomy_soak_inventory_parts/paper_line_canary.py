@@ -678,6 +678,8 @@ def _research_audit_ref_family_details(
     stable_blocker_refs: Sequence[str],
     live_evidence_refs: Mapping[str, Any],
 ) -> dict[str, Any]:
+    progress_refs = _sequence(live_evidence_refs.get("progress_delta_refs"))
+    artifact_movement_refs = _sequence(live_evidence_refs.get("artifact_movement_refs"))
     decision_trace_refs = _dedupe_text(
         [
             *_refs_with_suffix(owner_receipt_refs, "gate_replay_requests/latest.json"),
@@ -685,7 +687,13 @@ def _research_audit_ref_family_details(
             *_sequence(live_evidence_refs.get("human_gate_or_resume_refs")),
         ]
     )
-    lineage_refs = _artifact_lineage_or_reproducibility_refs(live_evidence_refs)
+    if owner_receipt_refs and not decision_trace_refs:
+        decision_trace_refs = _dedupe_text([*owner_receipt_refs, *progress_refs])
+    artifact_lineage_refs = _artifact_lineage_refs(live_evidence_refs)
+    reproducibility_refs = _dedupe_text(artifact_movement_refs)
+    lineage_or_reproducibility_refs = _dedupe_text(
+        [*artifact_lineage_refs, *reproducibility_refs]
+    )
     negative_failed_path_refs = _dedupe_text(stable_blocker_refs) or [
         _negative_failed_path_ledger_ref(paper_line_id)
     ]
@@ -694,20 +702,22 @@ def _research_audit_ref_family_details(
         for family, refs in (
             ("negative_or_failed_path_ledger_refs", negative_failed_path_refs),
             ("decision_trace_refs", decision_trace_refs),
-            ("artifact_lineage_or_reproducibility_refs", lineage_refs),
+            ("artifact_lineage_or_reproducibility_refs", lineage_or_reproducibility_refs),
         )
         if not refs
     ]
     return {
         "negative_failed_path_refs": negative_failed_path_refs,
         "decision_trace_refs": decision_trace_refs,
-        "artifact_lineage_or_reproducibility_refs": lineage_refs,
+        "artifact_lineage_refs": artifact_lineage_refs,
+        "reproducibility_refs": reproducibility_refs,
+        "artifact_lineage_or_reproducibility_refs": lineage_or_reproducibility_refs,
         "routeback_owner_refs": ["MedAutoScience:finalize_and_publication_handoff"],
         "missing_ref_family_refs": missing_ref_family_refs,
     }
 
 
-def _artifact_lineage_or_reproducibility_refs(
+def _artifact_lineage_refs(
     live_evidence_refs: Mapping[str, Any],
 ) -> list[str]:
     refs: list[str] = []
