@@ -9,6 +9,7 @@ from .body_free_evidence_packets import build_body_free_evidence_packet
 from .research_evidence_pack import (
     build_research_evidence_pack_summary,
     missing_required_evidence_families,
+    schema_compatible_validation_summary,
 )
 from .stable_blocker_classes import (
     blocker_explanation,
@@ -86,8 +87,13 @@ def build_domain_dispatch_evidence_record_payload(
         "decision_trace_refs": _detail_refs(normalized_reason_details, "decision_trace_refs"),
         "artifact_lineage_refs": _detail_refs(normalized_reason_details, "artifact_lineage_refs"),
         "reproducibility_refs": _detail_refs(normalized_reason_details, "reproducibility_refs"),
+        "forbidden_write_refs": _detail_refs(normalized_reason_details, "forbidden_write_refs"),
+        "owner_route_mismatch_refs": _detail_refs(
+            normalized_reason_details,
+            "owner_route_mismatch_refs",
+        ),
     }
-    schema_missing_families = missing_required_evidence_families(
+    schema_validation = schema_compatible_validation_summary(
         run_manifest_ref="mas-generated-run-manifest-ref",
         negative_failed_path_refs=research_family_refs["negative_failed_path_refs"],
         decision_trace_refs=research_family_refs["decision_trace_refs"],
@@ -95,14 +101,26 @@ def build_domain_dispatch_evidence_record_payload(
         reproducibility_refs=research_family_refs["reproducibility_refs"],
         owner_receipt_refs=domain_owner_receipt_ref_values,
         typed_blocker_refs=supplied_typed_blocker_ref_values,
+        forbidden_write_refs=research_family_refs["forbidden_write_refs"],
+        owner_route_match_status=_text(normalized_reason_details.get("owner_route_match_status")),
+        owner_route_mismatch_refs=research_family_refs["owner_route_mismatch_refs"],
+        body_included=normalized_reason_details.get("body_included") is True,
+        paper_body_included=normalized_reason_details.get("paper_body_included") is True,
     )
     schema_fail_closed_missing_families = [
         family
-        for family in schema_missing_families
+        for family in schema_validation["missing_required_evidence_families"]
         if family != "owner_receipt_or_typed_blocker_refs"
     ]
     schema_fail_closed_required = bool(
-        domain_owner_receipt_ref_values and schema_fail_closed_missing_families
+        domain_owner_receipt_ref_values
+        and (
+            schema_fail_closed_missing_families
+            or schema_validation["placeholder_refs"]
+            or schema_validation["forbidden_write_refs"]
+            or schema_validation["owner_route_mismatch"]
+            or schema_validation["non_body_free_payload_detected"]
+        )
     )
     if schema_fail_closed_required:
         original_detail_reason = normalized_detail_reason
@@ -119,6 +137,12 @@ def build_domain_dispatch_evidence_record_payload(
             "detail_reason": normalized_detail_reason,
             "original_detail_reason": original_detail_reason,
             "missing_required_evidence_families": list(schema_fail_closed_missing_families),
+            "schema_validation_fail_closed_reasons": list(schema_validation["fail_closed_reasons"]),
+            "placeholder_ref_families": list(schema_validation["placeholder_ref_families"]),
+            "placeholder_refs": list(schema_validation["placeholder_refs"]),
+            "forbidden_write_refs": list(schema_validation["forbidden_write_refs"]),
+            "owner_route_mismatch_refs": list(schema_validation["owner_route_mismatch_refs"]),
+            "non_body_free_payload_detected": schema_validation["non_body_free_payload_detected"],
             "blocked_owner_receipt_refs": domain_owner_receipt_ref_values,
         }
     slug_scope = normalized_study_id or (
@@ -293,6 +317,11 @@ def build_domain_dispatch_evidence_record_payload(
         platform_repair_refs=normalized_reason_details.get("platform_repair_refs", ()),
         route_switch_refs=normalized_reason_details.get("route_switch_refs", ()),
         next_owner_blocker_refs=normalized_reason_details.get("next_owner_blocker_refs", ()),
+        forbidden_write_refs=normalized_reason_details.get("forbidden_write_refs", ()),
+        owner_route_match_status=_text(normalized_reason_details.get("owner_route_match_status")),
+        owner_route_mismatch_refs=normalized_reason_details.get("owner_route_mismatch_refs", ()),
+        body_included=normalized_reason_details.get("body_included") is True,
+        paper_body_included=normalized_reason_details.get("paper_body_included") is True,
         source_data_version_refs=normalized_reason_details.get("source_data_version_refs", ()),
         software_environment_refs=normalized_reason_details.get("software_environment_refs", ()),
         parameter_seed_refs=normalized_reason_details.get("parameter_seed_refs", ()),

@@ -599,6 +599,126 @@ def test_domain_dispatch_evidence_payload_fails_closed_when_owner_receipt_lacks_
     assert payload["artifact_mutation_authorized"] is False
 
 
+@pytest.mark.parametrize(
+    ("reason_details", "expected_reason", "expected_detail"),
+    [
+        (
+            {
+                "negative_failed_path_refs": ["placeholder:negative-path"],
+                "decision_trace_refs": ["studies/DM002/artifacts/research/decision_trace/latest.json"],
+                "artifact_lineage_refs": [
+                    "studies/DM002/artifacts/research/artifact_lineage_graph/latest.json"
+                ],
+                "reproducibility_refs": [
+                    "studies/DM002/artifacts/research/reproducibility_bundle/latest.json"
+                ],
+            },
+            "placeholder_refs",
+            ("placeholder_ref_families", ["negative_failed_path_refs"]),
+        ),
+        (
+            {
+                "negative_failed_path_refs": [
+                    "studies/DM002/artifacts/research/negative_failed_path_ledger/latest.json"
+                ],
+                "decision_trace_refs": ["studies/DM002/artifacts/research/decision_trace/latest.json"],
+                "artifact_lineage_refs": [
+                    "studies/DM002/artifacts/research/artifact_lineage_graph/latest.json"
+                ],
+                "reproducibility_refs": [
+                    "studies/DM002/artifacts/research/reproducibility_bundle/latest.json"
+                ],
+                "forbidden_write_refs": [
+                    "forbidden-write:studies/DM002/paper/draft.md"
+                ],
+            },
+            "forbidden_write_refs",
+            ("forbidden_write_refs", ["forbidden-write:studies/DM002/paper/draft.md"]),
+        ),
+        (
+            {
+                "negative_failed_path_refs": [
+                    "studies/DM002/artifacts/research/negative_failed_path_ledger/latest.json"
+                ],
+                "decision_trace_refs": ["studies/DM002/artifacts/research/decision_trace/latest.json"],
+                "artifact_lineage_refs": [
+                    "studies/DM002/artifacts/research/artifact_lineage_graph/latest.json"
+                ],
+                "reproducibility_refs": [
+                    "studies/DM002/artifacts/research/reproducibility_bundle/latest.json"
+                ],
+                "owner_route_match_status": "mismatch",
+                "owner_route_mismatch_refs": ["owner-route-mismatch:DM002:stale-route"],
+            },
+            "owner_route_mismatch",
+            ("owner_route_mismatch_refs", ["owner-route-mismatch:DM002:stale-route"]),
+        ),
+        (
+            {
+                "negative_failed_path_refs": [
+                    "studies/DM002/artifacts/research/negative_failed_path_ledger/latest.json"
+                ],
+                "decision_trace_refs": ["studies/DM002/artifacts/research/decision_trace/latest.json"],
+                "artifact_lineage_refs": [
+                    "studies/DM002/artifacts/research/artifact_lineage_graph/latest.json"
+                ],
+                "reproducibility_refs": [
+                    "studies/DM002/artifacts/research/reproducibility_bundle/latest.json"
+                ],
+                "body_included": True,
+            },
+            "non_body_free_payload",
+            ("non_body_free_payload_detected", True),
+        ),
+    ],
+)
+def test_domain_dispatch_evidence_payload_fails_closed_on_schema_violations(
+    reason_details: dict[str, object],
+    expected_reason: str,
+    expected_detail: tuple[str, object],
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
+
+    payload = module.build_domain_dispatch_evidence_record_payload(
+        task_kind="paper_autonomy/guarded-apply",
+        study_id="DM002",
+        reason="real_paper_line_owner_receipt_observed",
+        evidence_refs=[
+            "studies/DM002/artifacts/controller/repair_execution_evidence/latest.json",
+            "studies/DM002/artifacts/controller_decisions/latest.json",
+        ],
+        domain_owner_receipt_refs=[
+            "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
+        ],
+        no_regression_evidence_refs=[
+            "studies/DM002/artifacts/supervision/no_forbidden_write/guarded_apply.json",
+        ],
+        source_fingerprint="guarded-owner-success-001",
+        reason_details=reason_details,
+    )
+
+    record_payload = payload["record_payload"]
+    summary = record_payload["research_evidence_pack_summary"]
+    validation = summary["schema_validation"]
+    detail_key, detail_value = expected_detail
+    assert payload["mode"] == "refs_only_domain_owned_typed_blocker_payload"
+    assert payload["schema_validation_fail_closed"] is True
+    assert payload["reason"] == "research_evidence_pack_required_refs_missing"
+    assert payload["closeout_semantics"] == "research_evidence_pack_refs_missing_fail_closed_typed_blocker"
+    assert record_payload["domain_owner_receipt_refs"] == []
+    assert record_payload["blocked_owner_receipt_refs"] == [
+        "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
+    ]
+    assert expected_reason in validation["fail_closed_reasons"]
+    assert validation["status"] == "fail_closed_schema_violation"
+    assert validation[detail_key] == detail_value
+    assert summary["fail_closed_required"] is True
+    assert record_payload["details"][detail_key] == detail_value
+    assert payload["domain_ready_claimed"] is False
+    assert payload["publication_ready_claimed"] is False
+    assert payload["artifact_mutation_authorized"] is False
+
+
 def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_path() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 

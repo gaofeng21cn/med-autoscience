@@ -44,6 +44,11 @@ def build_research_evidence_pack_summary(
     platform_repair_refs: Sequence[str | Mapping[str, Any]] = (),
     route_switch_refs: Sequence[str | Mapping[str, Any]] = (),
     next_owner_blocker_refs: Sequence[str | Mapping[str, Any]] = (),
+    forbidden_write_refs: Sequence[str | Mapping[str, Any]] = (),
+    owner_route_match_status: str | None = None,
+    owner_route_mismatch_refs: Sequence[str | Mapping[str, Any]] = (),
+    body_included: bool = False,
+    paper_body_included: bool = False,
 ) -> dict[str, Any]:
     normalized_domain = _text(domain_id) or "medautoscience"
     normalized_task = _text(task_kind) or "domain_owner"
@@ -70,6 +75,9 @@ def build_research_evidence_pack_summary(
     normalized_platform_repair_refs = _unique_refs(platform_repair_refs)
     normalized_route_switch_refs = _unique_refs(route_switch_refs)
     normalized_next_owner_blocker_refs = _unique_refs(next_owner_blocker_refs)
+    normalized_forbidden_write_refs = _unique_refs(forbidden_write_refs)
+    normalized_owner_route_match_status = _text(owner_route_match_status)
+    normalized_owner_route_mismatch_refs = _unique_refs(owner_route_mismatch_refs)
     validation = schema_compatible_validation_summary(
         run_manifest_ref=ref_prefix.replace(
             "mas-research-evidence-pack:",
@@ -82,6 +90,11 @@ def build_research_evidence_pack_summary(
         reproducibility_refs=normalized_reproducibility_refs,
         owner_receipt_refs=normalized_owner_receipt_refs,
         typed_blocker_refs=normalized_typed_blocker_refs,
+        forbidden_write_refs=normalized_forbidden_write_refs,
+        owner_route_match_status=normalized_owner_route_match_status,
+        owner_route_mismatch_refs=normalized_owner_route_mismatch_refs,
+        body_included=body_included,
+        paper_body_included=paper_body_included,
     )
     missing_reproducibility_refs = _missing_reproducibility_refs(
         code_refs=normalized_code_refs,
@@ -173,8 +186,9 @@ def build_research_evidence_pack_summary(
         "typed_blocker_refs": normalized_typed_blocker_refs,
         "owner_receipt_refs": normalized_owner_receipt_refs,
         "schema_validation": validation,
+        "ref_family_status": validation["ref_family_status"],
         "missing_required_evidence_families": validation["missing_required_evidence_families"],
-        "fail_closed_required": bool(validation["missing_required_evidence_families"]),
+        "fail_closed_required": bool(validation["fail_closed_reasons"]),
         "progress_summary": progress_delta_summary,
         "authority_boundary": {
             "owner": "med-autoscience",
@@ -199,7 +213,21 @@ def schema_compatible_validation_summary(
     reproducibility_refs: Sequence[str | Mapping[str, Any]] = (),
     owner_receipt_refs: Sequence[str | Mapping[str, Any]] = (),
     typed_blocker_refs: Sequence[str | Mapping[str, Any]] = (),
+    forbidden_write_refs: Sequence[str | Mapping[str, Any]] = (),
+    owner_route_match_status: str | None = None,
+    owner_route_mismatch_refs: Sequence[str | Mapping[str, Any]] = (),
+    body_included: bool = False,
+    paper_body_included: bool = False,
 ) -> dict[str, Any]:
+    normalized = _validation_ref_sets(
+        run_manifest_ref=run_manifest_ref,
+        negative_failed_path_refs=negative_failed_path_refs,
+        decision_trace_refs=decision_trace_refs,
+        artifact_lineage_refs=artifact_lineage_refs,
+        reproducibility_refs=reproducibility_refs,
+        owner_receipt_refs=owner_receipt_refs,
+        typed_blocker_refs=typed_blocker_refs,
+    )
     missing = missing_required_evidence_families(
         run_manifest_ref=run_manifest_ref,
         negative_failed_path_refs=negative_failed_path_refs,
@@ -209,13 +237,57 @@ def schema_compatible_validation_summary(
         owner_receipt_refs=owner_receipt_refs,
         typed_blocker_refs=typed_blocker_refs,
     )
+    placeholder_ref_map = _placeholder_ref_map(normalized)
+    placeholder_refs = [
+        ref
+        for refs in placeholder_ref_map.values()
+        for ref in refs
+    ]
+    normalized_forbidden_write_refs = _unique_refs(forbidden_write_refs)
+    owner_route_status = _text(owner_route_match_status)
+    normalized_owner_route_mismatch_refs = _unique_refs(owner_route_mismatch_refs)
+    owner_route_mismatch = bool(normalized_owner_route_mismatch_refs) or owner_route_status in {
+        "mismatch",
+        "owner_route_mismatch",
+        "identity_mismatch",
+        "conflict",
+    }
+    non_body_free_payload = bool(body_included or paper_body_included)
+    fail_closed_reasons = []
+    if missing:
+        fail_closed_reasons.append("missing_required_refs")
+    if placeholder_refs:
+        fail_closed_reasons.append("placeholder_refs")
+    if normalized_forbidden_write_refs:
+        fail_closed_reasons.append("forbidden_write_refs")
+    if owner_route_mismatch:
+        fail_closed_reasons.append("owner_route_mismatch")
+    if non_body_free_payload:
+        fail_closed_reasons.append("non_body_free_payload")
     return {
         "surface_kind": "mas_research_evidence_pack_schema_validation",
         "version": SCHEMA_VALIDATION_VERSION,
-        "status": "schema_compatible_refs_ready" if not missing else "fail_closed_missing_required_refs",
+        "status": _validation_status(
+            missing_required_families=missing,
+            fail_closed_reasons=fail_closed_reasons,
+        ),
         "opl_schema_family": "research_evidence_pack.v1",
         "required_evidence_families": list(REQUIRED_EVIDENCE_FAMILIES),
+        "ref_family_status": _ref_family_status(
+            normalized_refs=normalized,
+            missing_required_families=missing,
+            typed_blocker_refs=normalized["owner_receipt_or_typed_blocker_refs"]["typed_blocker_refs"],
+        ),
         "missing_required_evidence_families": missing,
+        "placeholder_ref_families": list(placeholder_ref_map),
+        "placeholder_refs": placeholder_refs,
+        "forbidden_write_refs": normalized_forbidden_write_refs,
+        "owner_route_match_status": owner_route_status,
+        "owner_route_mismatch_refs": normalized_owner_route_mismatch_refs,
+        "owner_route_mismatch": owner_route_mismatch,
+        "body_free_payload": not non_body_free_payload,
+        "non_body_free_payload_detected": non_body_free_payload,
+        "fail_closed_reasons": fail_closed_reasons,
         "body_included": False,
         "authority_boundary": {
             "mas_validates_refs_shape_only": True,
@@ -251,6 +323,103 @@ def missing_required_evidence_families(
     if not (_unique_refs(owner_receipt_refs) or _unique_refs(typed_blocker_refs)):
         missing.append("owner_receipt_or_typed_blocker_refs")
     return missing
+
+
+def _validation_ref_sets(
+    *,
+    run_manifest_ref: str | None,
+    negative_failed_path_refs: Sequence[str | Mapping[str, Any]],
+    decision_trace_refs: Sequence[str | Mapping[str, Any]],
+    artifact_lineage_refs: Sequence[str | Mapping[str, Any]],
+    reproducibility_refs: Sequence[str | Mapping[str, Any]],
+    owner_receipt_refs: Sequence[str | Mapping[str, Any]],
+    typed_blocker_refs: Sequence[str | Mapping[str, Any]],
+) -> dict[str, dict[str, list[str]]]:
+    owner_refs = _unique_refs(owner_receipt_refs)
+    blocker_refs = _unique_refs(typed_blocker_refs)
+    return {
+        "run_manifest_ref": {"refs": [_text(run_manifest_ref)] if _text(run_manifest_ref) else []},
+        "negative_failed_path_refs": {"refs": _unique_refs(negative_failed_path_refs)},
+        "decision_trace_refs": {"refs": _unique_refs(decision_trace_refs)},
+        "artifact_lineage_refs": {"refs": _unique_refs(artifact_lineage_refs)},
+        "reproducibility_refs": {"refs": _unique_refs(reproducibility_refs)},
+        "owner_receipt_or_typed_blocker_refs": {
+            "refs": _unique_refs([*owner_refs, *blocker_refs]),
+            "owner_receipt_refs": owner_refs,
+            "typed_blocker_refs": blocker_refs,
+        },
+    }
+
+
+def _ref_family_status(
+    *,
+    normalized_refs: Mapping[str, Mapping[str, list[str]]],
+    missing_required_families: Sequence[str],
+    typed_blocker_refs: Sequence[str],
+) -> dict[str, dict[str, Any]]:
+    missing = set(missing_required_families)
+    result: dict[str, dict[str, Any]] = {}
+    for family in REQUIRED_EVIDENCE_FAMILIES:
+        family_refs = normalized_refs.get(family, {})
+        refs = list(family_refs.get("refs", []))
+        status = "present" if refs else "missing"
+        if family == "owner_receipt_or_typed_blocker_refs" and family_refs.get("typed_blocker_refs"):
+            status = "blocker"
+        elif family in missing and typed_blocker_refs:
+            status = "blocker"
+        result[family] = {
+            "status": status,
+            "ref_count": len(refs),
+            "refs": refs,
+            "body_included": False,
+        }
+    return result
+
+
+def _placeholder_ref_map(
+    normalized_refs: Mapping[str, Mapping[str, list[str]]]
+) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {}
+    for family, payload in normalized_refs.items():
+        refs = [
+            ref
+            for ref in payload.get("refs", [])
+            if _is_placeholder_ref(ref)
+        ]
+        if refs:
+            result[family] = refs
+    return result
+
+
+def _is_placeholder_ref(value: str) -> bool:
+    text = value.strip().lower()
+    if not text:
+        return True
+    if text.startswith("<") or text.endswith(">"):
+        return True
+    return text in {
+        "todo",
+        "tbd",
+        "n/a",
+        "na",
+        "none",
+        "null",
+        "placeholder",
+        "example",
+        "sample",
+    } or text.startswith(("placeholder:", "todo:", "tbd:"))
+
+
+def _validation_status(
+    *,
+    missing_required_families: Sequence[str],
+    fail_closed_reasons: Sequence[str],
+) -> str:
+    if not fail_closed_reasons:
+        return "schema_compatible_refs_ready"
+    if missing_required_families:
+        return "fail_closed_missing_required_refs"
+    return "fail_closed_schema_violation"
 
 
 def _missing_reproducibility_refs(
