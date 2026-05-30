@@ -79,3 +79,11 @@ def test_quality_repair_writer_handoff_carries_structured_reporting_checklist(tm
         "publication gate",
         "controller",
     ]
+    assert prompt_contract["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
+    assert "grep -R" in prompt_contract["search_boundaries"]["forbidden_command_patterns"]
+    assert "runtime/.ds/**" in prompt_contract["search_boundaries"]["forbidden_path_globs"]
+    assert "runtime/**/codex_homes/**" in prompt_contract["tool_discipline"]["forbidden_path_globs"]
+    assert any(
+        command.startswith("rg --hidden")
+        for command in prompt_contract["search_boundaries"]["recommended_search_commands"]
+    )

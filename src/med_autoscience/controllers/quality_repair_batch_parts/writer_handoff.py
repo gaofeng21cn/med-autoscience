@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.default_executor_action_policy import default_executor_search_discipline
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.controllers.default_executor_closeout_contract import default_executor_typed_closeout_contract
 from med_autoscience.profiles import WorkspaceProfile
@@ -144,6 +145,8 @@ def build_writer_worker_handoff(
         "repair_execution_evidence_ref": str(repair_execution_evidence_path),
         "required_closeout_packet": typed_closeout_contract,
         "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
+        "tool_discipline": default_executor_search_discipline(),
+        "search_boundaries": default_executor_search_discipline(),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "paper_package_mutation_allowed": False,

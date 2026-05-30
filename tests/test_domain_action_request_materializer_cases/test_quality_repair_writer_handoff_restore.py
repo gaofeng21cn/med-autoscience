@@ -214,10 +214,15 @@ def test_materialize_domain_action_requests_restores_writer_handoff_from_owner_r
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["medical_claim_authoring_allowed"] is True
     assert "paper/draft.md" in dispatch["prompt_contract"]["allowed_write_surfaces"]
+    assert dispatch["prompt_contract"]["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
+    assert "grep -R" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_command_patterns"]
+    assert "runtime/**/codex_homes/**" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_path_globs"]
     assert persisted["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert persisted["owner_route"]["source_refs"]["bridged_from_idempotency_key"] == current_route["idempotency_key"]
     assert immutable_dispatch_path.is_file()
-    assert json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))["owner_route"] == persisted["owner_route"]
+    immutable_dispatch = json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))
+    assert immutable_dispatch["owner_route"] == persisted["owner_route"]
+    assert immutable_dispatch["prompt_contract"]["search_boundaries"] == dispatch["prompt_contract"]["search_boundaries"]
 
 
 def test_materialize_domain_action_requests_restores_writer_handoff_when_current_route_is_story_surface(

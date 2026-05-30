@@ -34,6 +34,10 @@ Before leaving the stage, write or refresh a stage-end packet with:
 - Use memory only when a reusable lesson should change future default behavior.
 - Use execution logs as first-hand evidence, not as paper or publication authority.
 - Do not use prose-only summaries as a substitute for route truth, ledger closure, or publication gate state.
+- Keep repository searches bounded to cited evidence refs or stage-packet roots. Do not run unbounded recursive scans such as `grep -R`, `find .`, or repository-wide `Path('.').rglob('*')` over `runtime/`, plugin caches, or Codex homes.
+- Exclude runtime control/cache/plugin roots from text search: `runtime/.ds/**`, `runtime/**/.ds/**`, `runtime/**/codex_homes/**`, `runtime/**/.codex/.tmp/plugins/**`, and plugin asset directories.
+- Prefer scoped `rg` over recursive grep, for example `rg --hidden --glob '!runtime/.ds/**' --glob '!runtime/**/.ds/**' <pattern> paper artifacts/controller artifacts/publication_eval artifacts/supervision/requests`.
+- If required evidence cannot be found through bounded refs and scoped roots, emit a typed blocker with the missing evidence ref instead of broadening into runtime cache scans.
 
 ### Medical route mapping
 

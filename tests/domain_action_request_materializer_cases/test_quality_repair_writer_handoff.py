@@ -139,6 +139,9 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
         "paper/evidence_ledger.json",
         "paper/review/**",
     ]
+    assert dispatch["prompt_contract"]["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
+    assert "grep -R" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_command_patterns"]
+    assert "runtime/.ds/**" in dispatch["prompt_contract"]["search_boundaries"]["forbidden_path_globs"]
     assert dispatch["source_action"]["surface"] == "quality_repair_batch"
     assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
     assert written_dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
@@ -146,7 +149,9 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
     assert immutable_dispatch_path.is_file()
     assert immutable_dispatch_path.parent.name == "run_quality_repair_batch"
     assert immutable_dispatch_path.parent.parent.name == "immutable"
-    assert json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))["owner_route"] == route
+    immutable_dispatch = json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))
+    assert immutable_dispatch["owner_route"] == route
+    assert immutable_dispatch["prompt_contract"]["search_boundaries"] == dispatch["prompt_contract"]["search_boundaries"]
 
 
 def _writer_handoff(*, study_id: str, dispatch_path: Path, route: dict[str, object]) -> dict[str, object]:

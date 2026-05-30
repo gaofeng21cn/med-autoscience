@@ -9,6 +9,7 @@ from med_autoscience.controllers.domain_owner_action_dispatch_parts import (
     dispatch_contract,
     persisted_dispatches,
 )
+from med_autoscience.controllers.default_executor_action_policy import default_executor_search_discipline
 from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -94,12 +95,22 @@ def preserved_quality_repair_writer_handoff_dispatch(
     if current_work_unit_id is not None and handoff_work_unit_id is not None and current_work_unit_id != handoff_work_unit_id:
         return None
     return {
-        **payload,
+        **_upgrade_writer_handoff_dispatch(payload),
         "refs": {
             **_mapping(payload.get("refs")),
             "dispatch_path": str(dispatch_path),
         },
     }
+
+
+def _upgrade_writer_handoff_dispatch(payload: Mapping[str, Any]) -> dict[str, Any]:
+    upgraded = dict(payload)
+    prompt_contract = dict(_mapping(payload.get("prompt_contract")))
+    search_discipline = default_executor_search_discipline()
+    prompt_contract.setdefault("tool_discipline", search_discipline)
+    prompt_contract.setdefault("search_boundaries", search_discipline)
+    upgraded["prompt_contract"] = prompt_contract
+    return upgraded
 
 
 def _writer_handoff_dispatch_payload(

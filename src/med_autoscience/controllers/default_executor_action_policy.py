@@ -47,6 +47,44 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/requests/provenance_limited_harmonization/latest.json",
 ]
 
+DEFAULT_EXECUTOR_SEARCH_DISCIPLINE = {
+    "surface": "default_executor_search_discipline.v1",
+    "policy": "bounded_refs_and_scoped_text_search_only",
+    "forbidden_command_patterns": [
+        "grep -R",
+        "grep -r",
+        "find .",
+        "find runtime",
+        "python rglob('.')",
+        "Path('.').rglob('*')",
+    ],
+    "forbidden_path_globs": [
+        "runtime/.ds/**",
+        "runtime/**/.ds/**",
+        "runtime/**/codex_homes/**",
+        "runtime/**/.codex/.tmp/plugins/**",
+        "runtime/**/plugins/**/assets/**",
+        ".git/**",
+        "node_modules/**",
+        ".venv/**",
+        "__pycache__/**",
+    ],
+    "recommended_search_commands": [
+        "rg --hidden --glob '!runtime/.ds/**' --glob '!runtime/**/.ds/**' --glob '!node_modules/**' <pattern> <scoped-paths>",
+        "rg <pattern> paper artifacts/controller artifacts/publication_eval artifacts/supervision/requests",
+    ],
+    "allowed_search_roots": [
+        "paper/",
+        "artifacts/controller/",
+        "artifacts/publication_eval/",
+        "artifacts/eval_hygiene/",
+        "artifacts/supervision/requests/",
+        "artifacts/supervision/consumer/default_executor_dispatches/",
+        "study.yaml",
+    ],
+    "blocker_on_missing_evidence": "typed_blocker:bounded_search_evidence_ref_missing",
+}
+
 SOURCE_ACTION_REF_FIELDS = (
     "surface",
     "study_id",
@@ -175,8 +213,19 @@ def request_packet_ref_for_dispatch(action_type: str) -> str | None:
     return None
 
 
+def default_executor_search_discipline() -> dict[str, object]:
+    return {
+        **DEFAULT_EXECUTOR_SEARCH_DISCIPLINE,
+        "forbidden_command_patterns": list(DEFAULT_EXECUTOR_SEARCH_DISCIPLINE["forbidden_command_patterns"]),
+        "forbidden_path_globs": list(DEFAULT_EXECUTOR_SEARCH_DISCIPLINE["forbidden_path_globs"]),
+        "recommended_search_commands": list(DEFAULT_EXECUTOR_SEARCH_DISCIPLINE["recommended_search_commands"]),
+        "allowed_search_roots": list(DEFAULT_EXECUTOR_SEARCH_DISCIPLINE["allowed_search_roots"]),
+    }
+
+
 __all__ = [
     "ALLOWED_WRITE_SURFACES",
+    "DEFAULT_EXECUTOR_SEARCH_DISCIPLINE",
     "FORBIDDEN_SURFACES",
     "REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE",
     "REQUEST_OWNER_BY_ACTION_TYPE",
@@ -187,6 +236,7 @@ __all__ = [
     "SUPPORTED_ACTION_TYPES",
     "request_output_surface_for_action_type",
     "request_owner_for_action_type",
+    "default_executor_search_discipline",
     "request_packet_ref_for_action_type",
     "request_packet_ref_for_dispatch",
 ]

@@ -284,6 +284,9 @@ def test_default_executor_attempt_envelope_declares_domain_intent_and_authority_
     )
 
     assert envelope["dispatchable"] is True
+    assert envelope["search_boundaries"]["surface"] == "default_executor_search_discipline.v1"
+    assert "grep -R" in envelope["search_boundaries"]["forbidden_command_patterns"]
+    assert "runtime/.ds/**" in envelope["tool_discipline"]["forbidden_path_globs"]
     assert envelope["authority_boundary"] == {
         "opl_owns": [
             "queue",

@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
+from med_autoscience.controllers.default_executor_action_policy import default_executor_search_discipline
 from med_autoscience.runtime_control import decision_trace_ledger
 
 
@@ -251,6 +252,12 @@ def default_executor_attempt_envelope(
         "owner_route_currentness_basis": basis,
         "allowed_write_surfaces": _list_field(dispatch, prompt_contract, "allowed_write_surfaces"),
         "forbidden_surfaces": _list_field(dispatch, prompt_contract, "forbidden_surfaces"),
+        "tool_discipline": _mapping(prompt_contract.get("tool_discipline"))
+        or _mapping(dispatch.get("tool_discipline"))
+        or default_executor_search_discipline(),
+        "search_boundaries": _mapping(prompt_contract.get("search_boundaries"))
+        or _mapping(dispatch.get("search_boundaries"))
+        or default_executor_search_discipline(),
         "required_closeout_packet": closeout_packet_for_transport(transport_closeout_packet),
         "closeout_first_contract": closeout_first_contract,
         "completion_boundary": completion_boundary,
