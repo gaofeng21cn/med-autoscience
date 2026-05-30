@@ -43,34 +43,92 @@ def test_research_pack_progress_summary_projects_from_current_control_state(
                         "paper_stage_log": {
                             "surface_kind": "mas_paper_facing_stage_log_summary",
                             "stage_name": "write",
-                            "research_pack_progress_summary": {
-                                "surface_kind": "mas_research_pack_progress_summary",
-                                "body_included": False,
-                                "paper_body_included": False,
-                                "deliverable_progress_delta": {
-                                    "count": 1,
-                                    "refs": ["studies/001-risk/paper/draft.md"],
-                                },
-                                "paper_progress_delta": {
-                                    "count": 1,
-                                    "refs": ["studies/001-risk/paper/draft.md"],
-                                },
-                                "platform_repair_delta": {
-                                    "count": 1,
-                                    "refs": [
-                                        "studies/001-risk/artifacts/controller/currentness/latest.json"
+                            "research_evidence_pack_summary": {
+                                "surface_kind": "mas_research_evidence_pack_summary",
+                                "schema_validation": {
+                                    "status": "fail_closed_missing_required_refs",
+                                    "missing_required_evidence_families": [
+                                        "reproducibility_refs"
                                     ],
-                                    "counts_as_paper_progress": False,
+                                    "fail_closed_reasons": ["missing_required_refs"],
+                                    "placeholder_ref_families": [],
+                                    "forbidden_write_refs": [],
+                                    "owner_route_mismatch_refs": [],
+                                    "body_free_payload": True,
+                                    "non_body_free_payload_detected": False,
+                                    "ref_family_status": {
+                                        "run_manifest_ref": {
+                                            "status": "present",
+                                            "ref_count": 1,
+                                            "refs": ["run-manifest-ref:001-risk"],
+                                            "body_included": False,
+                                        },
+                                        "negative_failed_path_refs": {
+                                            "status": "present",
+                                            "ref_count": 2,
+                                            "refs": [
+                                                "negative-ledger-ref:a",
+                                                "negative-ledger-ref:b",
+                                            ],
+                                            "body_included": False,
+                                        },
+                                        "decision_trace_refs": {
+                                            "status": "present",
+                                            "ref_count": 1,
+                                            "refs": ["decision-trace-ref:001-risk"],
+                                            "body_included": False,
+                                        },
+                                        "artifact_lineage_refs": {
+                                            "status": "present",
+                                            "ref_count": 1,
+                                            "refs": ["artifact-lineage-ref:001-risk"],
+                                            "body_included": False,
+                                        },
+                                        "reproducibility_refs": {
+                                            "status": "blocker",
+                                            "ref_count": 0,
+                                            "refs": [],
+                                            "body_included": False,
+                                        },
+                                        "owner_receipt_or_typed_blocker_refs": {
+                                            "status": "blocker",
+                                            "ref_count": 1,
+                                            "refs": [
+                                                "studies/001-risk/artifacts/blockers/next-owner.json"
+                                            ],
+                                            "body_included": False,
+                                        },
+                                    },
                                 },
-                                "negative_result_count": 2,
-                                "route_switch_count": 1,
-                                "missing_reproducibility_refs": ["parameter_seed_refs"],
-                                "single_next_owner_blocker": {
-                                    "status": "blocked",
-                                    "ref": "studies/001-risk/artifacts/blockers/next-owner.json",
-                                    "candidate_count": 1,
+                                "progress_summary": {
+                                    "surface_kind": "mas_research_pack_progress_summary",
                                     "body_included": False,
-                                    "is_route_authority": False,
+                                    "paper_body_included": False,
+                                    "deliverable_progress_delta": {
+                                        "count": 1,
+                                        "refs": ["studies/001-risk/paper/draft.md"],
+                                    },
+                                    "paper_progress_delta": {
+                                        "count": 1,
+                                        "refs": ["studies/001-risk/paper/draft.md"],
+                                    },
+                                    "platform_repair_delta": {
+                                        "count": 1,
+                                        "refs": [
+                                            "studies/001-risk/artifacts/controller/currentness/latest.json"
+                                        ],
+                                        "counts_as_paper_progress": False,
+                                    },
+                                    "negative_result_count": 2,
+                                    "route_switch_count": 1,
+                                    "missing_reproducibility_refs": ["parameter_seed_refs"],
+                                    "single_next_owner_blocker": {
+                                        "status": "blocked",
+                                        "ref": "studies/001-risk/artifacts/blockers/next-owner.json",
+                                        "candidate_count": 1,
+                                        "body_included": False,
+                                        "is_route_authority": False,
+                                    },
                                 },
                             },
                         },
@@ -119,5 +177,25 @@ def test_research_pack_progress_summary_projects_from_current_control_state(
         "studies/001-risk/artifacts/blockers/next-owner.json"
     )
     assert research_pack_summary["single_next_owner_blocker"]["is_route_authority"] is False
+    assert research_pack_summary["schema_validation"] == {
+        "status": "fail_closed_missing_required_refs",
+        "missing_required_evidence_families": ["reproducibility_refs"],
+        "fail_closed_reasons": ["missing_required_refs"],
+        "placeholder_ref_families": [],
+        "forbidden_write_refs": [],
+        "owner_route_mismatch_refs": [],
+        "body_free_payload": True,
+        "non_body_free_payload_detected": False,
+        "body_included": False,
+    }
+    assert research_pack_summary["ref_family_status"]["reproducibility_refs"] == {
+        "status": "blocker",
+        "ref_count": 0,
+        "refs": [],
+        "body_included": False,
+    }
+    assert research_pack_summary["ref_family_status"]["owner_receipt_or_typed_blocker_refs"]["status"] == (
+        "blocker"
+    )
     assert research_pack_summary["authority"]["is_route_authority"] is False
     assert research_pack_summary["authority"]["platform_repair_counts_as_paper_progress"] is False
