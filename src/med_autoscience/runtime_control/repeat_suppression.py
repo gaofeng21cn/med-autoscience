@@ -21,6 +21,10 @@ PROVENANCE_LIMITED_REASON = "provenance_limited_harmonization_audit_required"
 PROVENANCE_LIMITED_ACTION = "provenance_limited_harmonization_audit"
 PROVENANCE_LIMITED_OWNER = "provenance_limited_harmonization_owner"
 CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+PROGRESS_FIRST_OWNER_ACTIONS = {
+    "write": frozenset({"run_quality_repair_batch"}),
+    "ai_reviewer": frozenset({"return_to_ai_reviewer_workflow"}),
+}
 
 
 def repeat_key(payload: Mapping[str, Any] | None) -> str | None:
@@ -81,6 +85,7 @@ def scan_repeat_suppression(
         or hard_methodology_harmonization_route(owner_route)
         or source_provenance_recovery_route(owner_route)
         or provenance_limited_harmonization_route(owner_route)
+        or progress_first_owner_action_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)
@@ -184,6 +189,7 @@ def dispatch_repeat_suppression(
         or hard_methodology_harmonization_route(owner_route)
         or source_provenance_recovery_route(owner_route)
         or provenance_limited_harmonization_route(owner_route)
+        or progress_first_owner_action_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)
@@ -588,6 +594,20 @@ def publication_gate_specificity_route(owner_route: Mapping[str, Any]) -> bool:
     }
 
 
+def progress_first_owner_action_route(owner_route: Mapping[str, Any]) -> bool:
+    route = _mapping(owner_route)
+    next_owner = _text(route.get("next_owner"))
+    if next_owner is None:
+        return False
+    required_actions = PROGRESS_FIRST_OWNER_ACTIONS.get(next_owner)
+    if required_actions is None:
+        return False
+    allowed_actions = {
+        item for value in route.get("allowed_actions") or [] if (item := _text(value)) is not None
+    }
+    return bool(required_actions & allowed_actions)
+
+
 def hard_methodology_harmonization_route(owner_route: Mapping[str, Any]) -> bool:
     route = _mapping(owner_route)
     if _text(route.get("next_owner")) != ANALYSIS_HARMONIZATION_OWNER:
@@ -700,6 +720,7 @@ __all__ = [
     "hard_methodology_harmonization_route",
     "meaningful_artifact_delta_observed",
     "publication_gate_specificity_route",
+    "progress_first_owner_action_route",
     "provenance_limited_harmonization_route",
     "repeat_key",
     "scan_repeat_suppression",

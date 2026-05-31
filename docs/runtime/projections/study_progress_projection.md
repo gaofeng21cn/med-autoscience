@@ -150,6 +150,8 @@ Progress-first 也适用于无实际 writer 的停滞解释：当 `active_run_id
 
 `progress_first_monitoring_summary` 是这套解释顺序的单字段监督入口。`study-state-matrix`、MCP compact projection 和 Portal/workbench 消费该字段时，应优先展示它的 `active_run_id`、`running_provider_attempt`、`worker_liveness`、`next_owner`、`controller_action`、`next_work_unit`、`progress_delta_classification`、`stage_progress_log` 和 `latest_terminal_stage`。该字段的 `authority_boundary` 必须保持 `can_write_runtime_owned_surfaces=false`、`can_write_paper_or_package=false`、`can_authorize_quality_verdict=false`、`can_authorize_publication_ready=false`；`foreground_write_policy.supervisor_only=true` 时，前台只能监督或走 MAS/OPL owner route，不得直接写 runtime-owned surfaces。
 
+Progress-first owner action 不能被同 fingerprint 读模型误判为重复调度。当当前 owner route 已授权 `write/run_quality_repair_batch` 或 `ai_reviewer/return_to_ai_reviewer_workflow`，且没有已消费 owner receipt 或明确 terminal gate 时，safe reconcile / same-fingerprint scan 仍必须保留当前 owner action，直到 owner pickup、typed blocker、human gate 或新的 paper-facing artifact delta 关闭该 work unit。repeat suppression 的职责是阻止重复 executor dispatch 和已消费失败路径重放，不能清空当前 owner-authorized action queue。
+
 前台 markdown / 线程回报的固定口径至少保持下面顺序：
 
 1. 当前阶段

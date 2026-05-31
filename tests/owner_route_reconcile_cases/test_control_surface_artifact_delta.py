@@ -442,3 +442,79 @@ def test_repeat_suppression_keeps_unconsumed_scan_action_visible() -> None:
     assert guard["repeat_suppressed"] is False
     assert guard["why_not_applied"] is None
     assert guard["work_unit_fingerprint"] == "publication-blockers::submission-refresh"
+
+
+def test_repeat_suppression_does_not_drop_progress_first_write_owner_action() -> None:
+    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    owner_route = {
+        "work_unit_fingerprint": "paper-quality::dm003-story-delta",
+        "next_owner": "write",
+        "owner_reason": "manuscript_story_surface_delta_missing",
+        "allowed_actions": ["run_quality_repair_batch"],
+    }
+
+    guard = module.scan_repeat_suppression(
+        previous_payload={
+            "studies": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "meaningful_artifact_delta": False,
+                    "owner_route": owner_route,
+                    "dispatch_status": "ready",
+                }
+            ],
+            "action_queue": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "action_type": "run_quality_repair_batch",
+                    "owner_route": owner_route,
+                    "dispatch_status": "ready",
+                }
+            ],
+        },
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        owner_route=owner_route,
+        current_meaningful_artifact_delta=False,
+    )
+
+    assert guard["repeat_suppressed"] is False
+    assert guard["why_not_applied"] is None
+    assert guard["work_unit_fingerprint"] == "paper-quality::dm003-story-delta"
+
+
+def test_repeat_suppression_does_not_drop_progress_first_ai_reviewer_owner_action() -> None:
+    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    owner_route = {
+        "work_unit_fingerprint": "publication-blockers::pending-ai-reviewer",
+        "next_owner": "ai_reviewer",
+        "owner_reason": "ai_reviewer_record_stale_after_current_manuscript",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+    }
+
+    guard = module.scan_repeat_suppression(
+        previous_payload={
+            "studies": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "meaningful_artifact_delta": False,
+                    "owner_route": owner_route,
+                    "dispatch_status": "ready",
+                }
+            ],
+            "action_queue": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "owner_route": owner_route,
+                    "dispatch_status": "ready",
+                }
+            ],
+        },
+        study_id="002-dm-china-us-mortality-attribution",
+        owner_route=owner_route,
+        current_meaningful_artifact_delta=False,
+    )
+
+    assert guard["repeat_suppressed"] is False
+    assert guard["why_not_applied"] is None
+    assert guard["work_unit_fingerprint"] == "publication-blockers::pending-ai-reviewer"
