@@ -159,6 +159,9 @@ def _paper_delta_changed_refs(payload: Mapping[str, Any]) -> list[str]:
     scan_delta = _mapping(payload.get("artifact_delta"))
     refs.extend(_string_items(scan_delta.get("changed_refs")))
     refs.extend(_string_items(scan_delta.get("evidence_refs")))
+    stage_log = _mapping(_mapping(payload.get("latest_terminal_stage_log")).get("paper_stage_log"))
+    refs.extend(_string_items(stage_log.get("changed_paper_surfaces")))
+    refs.extend(_string_items(stage_log.get("changed_stage_surfaces")))
     return _dedupe(refs)
 
 
@@ -268,6 +271,8 @@ def _package_delivered(payload: Mapping[str, Any], details: Mapping[str, Any]) -
 def _meaningful_artifact_delta(payload: Mapping[str, Any], *, visible_progress: bool) -> bool:
     if not visible_progress:
         return False
+    if _paper_facing_progress_slo(payload)["visible_as_progressing"]:
+        return True
     if _fresh_artifact_delta_present(payload):
         return True
     if _scan_artifact_delta_present(payload):

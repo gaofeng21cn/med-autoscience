@@ -496,6 +496,45 @@ def test_dm003_opl_live_provider_attempt_with_paper_delta_is_progressing() -> No
     assert state["why_not_progressing"] is None
 
 
+def test_paper_facing_stage_log_refs_count_as_meaningful_delta() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "study_macro_state": {
+                "writer_state": "queued",
+                "user_next": "repair",
+                "reason": "quality",
+                "details": {"package_delivered": False},
+            },
+            "opl_current_control_state_handoff": {
+                "active_run_id": "opl-stage-attempt://sat-dm002",
+                "active_stage_attempt_id": "sat-dm002",
+                "running_provider_attempt": True,
+                "runtime_health": {"health_status": "running"},
+            },
+            "latest_terminal_stage_log": {
+                "paper_stage_log": {
+                    "changed_paper_surfaces": [
+                        "studies/002-dm-china-us-mortality-attribution/paper/claim_evidence_map.json",
+                        "studies/002-dm-china-us-mortality-attribution/paper/evidence_ledger.json",
+                        "studies/002-dm-china-us-mortality-attribution/paper/review/review_ledger.json",
+                    ],
+                    "changed_stage_surfaces": [],
+                }
+            },
+            "owner_route": {"next_owner": "write"},
+        }
+    )
+
+    assert state["meaningful_artifact_delta"] is True
+    assert state["paper_facing_progress_slo"]["visible_as_progressing"] is True
+    assert state["paper_facing_progress_slo"]["satisfied_delta_classes"] == [
+        "claim_evidence",
+        "review_ledger",
+    ]
+    assert state["why_not_progressing"] is None
+
+
 def test_user_visible_projection_embeds_paper_progress_state() -> None:
     study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
 
