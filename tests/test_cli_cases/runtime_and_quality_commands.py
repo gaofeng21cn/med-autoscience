@@ -219,6 +219,52 @@ def test_progress_projection_command_dispatches_controller(monkeypatch, tmp_path
     assert called["entry_mode"] is None
     assert called["sync_runtime_summary"] is False
     assert '"quest_status": "running"' in captured.out
+
+
+def test_progress_projection_command_accepts_legacy_json_alias(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_status(
+        *,
+        profile,
+        study_id: str | None,
+        study_root: Path | None,
+        entry_mode: str | None,
+        sync_runtime_summary: bool,
+    ) -> dict:
+        called["profile"] = profile
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["entry_mode"] = entry_mode
+        called["sync_runtime_summary"] = sync_runtime_summary
+        return {"decision": "noop", "study_id": study_id, "quest_status": "running"}
+
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
+
+    exit_code = cli.main(
+        [
+            "progress-projection",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_id"] == "001-risk"
+    assert called["study_root"] is None
+    assert called["entry_mode"] is None
+    assert called["sync_runtime_summary"] is False
+    assert json.loads(captured.out)["quest_status"] == "running"
+
+
 def test_progress_projection_command_serializes_typed_controller_result(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

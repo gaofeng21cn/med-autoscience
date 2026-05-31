@@ -427,6 +427,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     progress_projection_parser.add_argument("--study-root", type=str)
     progress_projection_parser.add_argument("--entry-mode", type=str)
     progress_projection_parser.add_argument("--format", choices=("json",), default="json")
+    progress_projection_parser.add_argument("--json", action="store_const", const="json", dest="format")
     study_progress_parser = subparsers.add_parser("study-progress")
     study_progress_parser.add_argument("--profile", required=True)
     study_progress_parser.add_argument("--study-id", type=str)

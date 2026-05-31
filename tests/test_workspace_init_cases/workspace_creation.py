@@ -126,6 +126,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     bootstrap = workspace_root / "ops" / "medautoscience" / "bin" / "bootstrap"
     enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"
     progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
+    study_state_matrix = workspace_root / "ops" / "medautoscience" / "bin" / "study-state-matrix"
     domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
     study_runtime_status = workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status"
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
@@ -148,6 +149,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert show_profile.is_file()
     assert enter_study.is_file()
     assert progress_projection.is_file()
+    assert study_state_matrix.is_file()
     assert domain_health_diagnostic.is_file()
     assert not study_runtime_status.exists()
     assert not watch_runtime.exists()
@@ -173,6 +175,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(show_profile, os.X_OK)
     assert os.access(enter_study, os.X_OK)
     assert os.access(progress_projection, os.X_OK)
+    assert os.access(study_state_matrix, os.X_OK)
     assert os.access(domain_health_diagnostic, os.X_OK)
     assert os.access(maintain_runtime_storage, os.X_OK)
     assert os.access(storage_audit, os.X_OK)
@@ -187,6 +190,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(runtime_bridge_status, os.X_OK)
     assert os.access(runtime_bridge_stop, os.X_OK)
     progress_projection_text = progress_projection.read_text(encoding="utf-8")
+    study_state_matrix_text = study_state_matrix.read_text(encoding="utf-8")
     domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
     storage_audit_text = storage_audit.read_text(encoding="utf-8")
@@ -210,6 +214,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci launch-study --profile "${PROFILE_PATH}" "$@"' in enter_study_text
     assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in progress_projection_text
     assert '--study-id "${study_id}"' in progress_projection_text
+    assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
     assert '--profile "${PROFILE_PATH}"' in domain_health_diagnostic_text
     assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
     assert 'apply_args=(--request-opl-stage-attempts --request-opl-owner-route-reconcile --apply)' in domain_health_diagnostic_text
@@ -231,6 +236,11 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "run_med_deepscientist_launcher" not in runtime_bridge_doctor_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_status_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_stop_text
+    med_readme_text = (workspace_root / "ops" / "medautoscience" / "README.md").read_text(encoding="utf-8")
+    agents_text = (workspace_root / "AGENTS.md").read_text(encoding="utf-8")
+    assert "bin/study-state-matrix" in med_readme_text
+    assert "bin/progress-projection <study_id> --format json" in med_readme_text
+    assert "ops/medautoscience/bin/study-state-matrix --format json" in agents_text
 
     portfolio_memory_readme = workspace_root / "portfolio" / "research_memory" / "README.md"
     portfolio_memory_registry = workspace_root / "portfolio" / "research_memory" / "registry.yaml"

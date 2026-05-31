@@ -18,6 +18,7 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
     progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
+    study_state_matrix = workspace_root / "ops" / "medautoscience" / "bin" / "study-state-matrix"
     domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
 
@@ -86,16 +87,19 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     assert not watch_runtime.exists()
     assert not install_service.exists()
     assert progress_projection.is_file()
+    assert study_state_matrix.is_file()
     assert domain_health_diagnostic.is_file()
 
     shared_text = shared.read_text(encoding="utf-8")
     progress_projection_text = progress_projection.read_text(encoding="utf-8")
+    study_state_matrix_text = study_state_matrix.read_text(encoding="utf-8")
     domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
     assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"' in shared_text
     assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in shared_text
     assert "command -v uv" not in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
     assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in progress_projection_text
+    assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in domain_health_diagnostic_text
     assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
     assert 'apply_args=(--request-opl-stage-attempts --request-opl-owner-route-reconcile --apply)' in domain_health_diagnostic_text

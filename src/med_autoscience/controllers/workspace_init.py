@@ -420,6 +420,11 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "study-state-matrix",
+            content=_render_forward_script("study-state-matrix", with_profile=True),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic",
             content=_render_domain_health_diagnostic_script(workspace_root=workspace_root, runtime_quests_root=layout.quests_root),
             executable=True,
