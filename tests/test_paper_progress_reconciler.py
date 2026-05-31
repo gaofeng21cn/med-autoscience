@@ -275,6 +275,162 @@ def test_reconciler_keeps_obesity_delivery_missing_downstream_only(tmp_path: Pat
     assert decision["decision"] == "monitor_live_quality_repair"
 
 
+def test_reconciler_prefers_runtime_liveness_owner_route_over_downstream_bundle_gate(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        owner="one-person-lab",
+        reason="runtime_recovery_retry_budget_exhausted",
+        action_type="request_opl_stage_attempt",
+    )
+    scan = {
+        "studies": [
+            {
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "active_run_id": None,
+                "study_macro_state": {
+                    "writer_state": "queued",
+                    "user_next": "runtime_handoff",
+                    "reason": "runtime",
+                    "details": {"package_delivered": False},
+                },
+                "runtime_health_snapshot": {
+                    "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+                    "worker_liveness_state": {"state": "not_ready", "worker_running": False},
+                },
+                "authority_snapshot": {
+                    "dispatch_gate": {
+                        "state": "blocked",
+                        "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+                    }
+                },
+                "owner_route": route,
+                "progress_freshness": {
+                    "meaningful_artifact_delta_freshness": {"status": "missing"},
+                },
+                "publication_supervisor_state": {
+                    "bundle_tasks_downstream_only": True,
+                    "deferred_downstream_actions": ["delivery_sync"],
+                },
+            }
+        ]
+    }
+
+    receipt = module.build_paper_progress_reconcile_receipt(
+        profile=profile,
+        requested_study_ids=(study_id,),
+        resolved_study_ids=(study_id,),
+        before_scan=scan,
+        consumed={},
+        executed={},
+        after_scan=scan,
+        apply=False,
+        generated_at="2026-05-10T00:00:00+00:00",
+    )
+
+    decision = receipt["decisions"][0]
+    assert decision["current_state"]["state"] == "opl_stage_attempt_admission_required"
+    assert decision["current_state"]["actual_write_active"] is False
+    assert decision["current_state"]["why_not_progressing"] == "runtime_recovery_retry_budget_exhausted"
+    assert decision["why_not_progressing"] == "runtime_recovery_retry_budget_exhausted"
+    assert decision["decision"] == "opl_stage_attempt_admission"
+
+
+def test_reconciler_projects_route_back_checklist_and_runtime_closeout_only_stage_log(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    scan = {
+        "studies": [
+            {
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "domain_transition": {
+                    "decision_type": "route_back_same_line",
+                    "route_target": "write",
+                    "owner": "write",
+                    "next_work_unit": {
+                        "unit_id": "medical_prose_currentness_recheck",
+                        "required_output_surface": "paper/build/review_manuscript.md",
+                    },
+                    "evidence_refs": {
+                        "publication_eval": "artifacts/publication_eval/latest.json",
+                    },
+                    "expected_repair_result": "paper-facing story delta or typed blocker",
+                },
+                "study_macro_state": {
+                    "writer_state": "queued",
+                    "user_next": "repair",
+                    "reason": "quality",
+                    "details": {"package_delivered": False},
+                },
+                "opl_current_control_state_handoff": {
+                    "surface_kind": "opl_current_control_state_study_handoff",
+                    "latest_terminal_stage_log": {
+                        "status": "handoff_ready",
+                        "action_type": "run_quality_repair_batch",
+                        "paper_stage_log": {
+                            "current_owner": "write",
+                            "progress_delta_classification": "platform_repair",
+                            "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
+                            "paper_progress_delta": {"count": 0, "token_usage_total": 0},
+                            "platform_repair_delta": {"count": 1, "token_usage_total": 101},
+                            "changed_paper_surfaces": [],
+                            "changed_stage_surfaces": ["artifacts/runtime/closeout.json"],
+                            "remaining_blockers": {
+                                "typed_blocker": "manuscript_story_surface_delta_missing",
+                            },
+                            "evidence_refs": ["artifacts/controller/quality_repair_batch/latest.json"],
+                        },
+                    },
+                },
+                "progress_freshness": {
+                    "meaningful_artifact_delta_freshness": {"status": "missing"},
+                },
+            }
+        ]
+    }
+
+    receipt = module.build_paper_progress_reconcile_receipt(
+        profile=profile,
+        requested_study_ids=(study_id,),
+        resolved_study_ids=(study_id,),
+        before_scan=scan,
+        consumed={},
+        executed={},
+        after_scan=scan,
+        apply=False,
+        generated_at="2026-05-10T00:00:00+00:00",
+    )
+
+    state = receipt["decisions"][0]["current_state"]
+    checklist = state["route_back_checklist"]
+    closeout = state["stage_closeout_progress"]
+    assert state["state"] == "awaiting_callable_owner"
+    assert checklist["blockers"] == ["manuscript_story_surface_delta_missing"]
+    assert checklist["route_target"] == "write"
+    assert checklist["next_work_units"] == [
+        {
+            "unit_id": "medical_prose_currentness_recheck",
+            "required_output_surface": "paper/build/review_manuscript.md",
+        }
+    ]
+    assert checklist["evidence_refs"] == [
+        "artifacts/controller/quality_repair_batch/latest.json",
+        "artifacts/publication_eval/latest.json",
+    ]
+    assert checklist["expected_repair_result"] == "paper-facing story delta or typed blocker"
+    assert closeout["classification"] == "platform_repair"
+    assert closeout["runtime_closeout_only"] is True
+    assert closeout["paper_facing_delta_present"] is False
+    assert closeout["changed_stage_surfaces"] == ["artifacts/runtime/closeout.json"]
+
+
 def test_reconciler_accepts_scan_domain_routes_artifact_delta_projection(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
     profile = make_profile(tmp_path)

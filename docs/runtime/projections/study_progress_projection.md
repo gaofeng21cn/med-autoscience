@@ -141,6 +141,8 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 Late-stage read-model 必须按 progress-first 解释：当同一轮同时出现 sprint delta、candidate package/display freshness proof、gate replay request 和 single next owner blocker / human gate 时，前台先报告 deliverable/paper-facing delta，再报告 gate replay 与下一 owner；不能先把 quality gate blocker 当成“没有交付物进展”。平台修复、projection hygiene、owner-route currentness 或 OPL refs-only ledger closure 只能进入 `platform_repair_delta`，不能冒充 DM002/DM003 deliverable/paper progress。
 
+Progress-first 也适用于无实际 writer 的停滞解释：当 `active_run_id=null`、`actual_write_active=false`，且 OPL provider / worker 未 ready、runtime handoff stale、runtime retry/dead-letter 或 owner-route admission 仍未完成时，`why_not_progressing` 必须优先暴露 runtime / liveness / owner-route 阻断，例如 `runtime_recovery_retry_budget_exhausted` 或当前 owner handoff blocker。`publication_supervisor_state.bundle_tasks_downstream_only` 只能保留为次级 paper gate / downstream delivery 信息，不能抢占主因。typed blocker closeout 中的 structured `remaining_blockers` 也必须折回可执行 current owner projection，例如 `manuscript_story_surface_delta_missing` 进入 write route-back，而不是表现成空等。
+
 前台 markdown / 线程回报的固定口径至少保持下面顺序：
 
 1. 当前阶段
