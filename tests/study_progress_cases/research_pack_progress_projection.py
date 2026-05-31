@@ -129,6 +129,52 @@ def test_research_pack_progress_summary_projects_from_current_control_state(
                                         "body_included": False,
                                         "is_route_authority": False,
                                     },
+                                    "evidence_tail_closure_summary": {
+                                        "surface_kind": "mas_paper_line_evidence_tail_closure_summary",
+                                        "study_id": "001-risk",
+                                        "all_required_tails_closed": False,
+                                        "summary_counts": {
+                                            "required_tail_count": 5,
+                                            "closed_tail_count": 4,
+                                            "evidence_gap_count": 0,
+                                            "stable_blocker_count": 1,
+                                            "not_triggered_count": 1,
+                                        },
+                                        "tails": {
+                                            "real_paper_line_provider_apply": {
+                                                "status": "refs_observed",
+                                                "refs": ["owner-receipt-ref:001-risk"],
+                                                "required": True,
+                                                "body_included": False,
+                                            },
+                                            "publication_route_memory_writeback": {
+                                                "status": "refs_observed",
+                                                "refs": ["memory-writeback-ref:001-risk"],
+                                                "required": True,
+                                                "body_included": False,
+                                            },
+                                            "artifact_lifecycle": {
+                                                "status": "closed_by_stable_typed_blocker",
+                                                "refs": [
+                                                    "studies/001-risk/artifacts/blockers/next-owner.json"
+                                                ],
+                                                "required": True,
+                                                "body_included": False,
+                                            },
+                                            "human_gate_resume": {
+                                                "status": "not_triggered",
+                                                "refs": [],
+                                                "required": True,
+                                                "body_included": False,
+                                            },
+                                            "family_transition_live_receipt": {
+                                                "status": "refs_observed",
+                                                "refs": ["stage-expected-ref:001-risk"],
+                                                "required": True,
+                                                "body_included": False,
+                                            },
+                                        },
+                                    },
                                 },
                             },
                         },
@@ -176,6 +222,17 @@ def test_research_pack_progress_summary_projects_from_current_control_state(
     assert research_pack_summary["single_next_owner_blocker"]["ref"] == (
         "studies/001-risk/artifacts/blockers/next-owner.json"
     )
+    assert research_pack_summary["evidence_tail_closure_summary"]["summary_counts"] == {
+        "required_tail_count": 5,
+        "closed_tail_count": 4,
+        "evidence_gap_count": 0,
+        "stable_blocker_count": 1,
+        "not_triggered_count": 1,
+    }
+    assert research_pack_summary["evidence_tail_closure_summary"]["tails"][
+        "artifact_lifecycle"
+    ]["status"] == "closed_by_stable_typed_blocker"
+    assert research_pack_summary["evidence_tail_closure_summary"]["authority"]["is_route_authority"] is False
     assert research_pack_summary["single_next_owner_blocker"]["is_route_authority"] is False
     assert research_pack_summary["schema_validation"] == {
         "status": "fail_closed_missing_required_refs",

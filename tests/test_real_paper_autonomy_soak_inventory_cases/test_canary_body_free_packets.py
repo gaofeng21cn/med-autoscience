@@ -122,6 +122,37 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
     assert result["progress_delta_refs"] == [progress_ref]
     assert result["artifact_movement_refs"] == [owner_receipt_ref]
     assert result["human_gate_or_resume_refs"] == [human_gate_ref]
+    tail_closure = result["evidence_tail_closure_summary"]
+    assert tail_closure["surface_kind"] == "mas_paper_line_evidence_tail_closure_summary"
+    assert tail_closure["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert tail_closure["all_required_tails_closed"] is False
+    assert tail_closure["summary_counts"] == {
+        "required_tail_count": 5,
+        "closed_tail_count": 3,
+        "evidence_gap_count": 0,
+        "stable_blocker_count": 0,
+        "not_triggered_count": 2,
+    }
+    assert tail_closure["tails"]["real_paper_line_provider_apply"]["status"] == "refs_observed"
+    assert tail_closure["tails"]["real_paper_line_provider_apply"]["refs"] == result[
+        "owner_receipt_refs"
+    ]
+    assert tail_closure["tails"]["publication_route_memory_writeback"]["status"] == "not_triggered"
+    assert tail_closure["tails"]["artifact_lifecycle"]["status"] == "not_triggered"
+    assert tail_closure["tails"]["human_gate_resume"]["status"] == "refs_observed"
+    assert tail_closure["tails"]["family_transition_live_receipt"]["status"] == "refs_observed"
+    assert tail_closure["tails"]["family_transition_live_receipt"]["refs"] == record[
+        "stage_expected_receipt_refs"
+    ]
+    assert tail_closure["authority_boundary"] == {
+        "summary_only": True,
+        "body_free": True,
+        "is_route_authority": False,
+        "can_authorize_domain_ready": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_artifact_mutation": False,
+        "not_triggered_is_not_success": True,
+    }
     assert result["ai_reviewer_gate_receipt_refs"] == []
     assert result["readiness_claims"] == {
         "claims_paper_closure": False,
@@ -237,6 +268,7 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
         "002-dm-china-us-mortality-attribution"
     ]
     assert research_summary["decision_trace_refs"] == [gate_replay_ref, human_gate_ref]
+    assert research_summary["progress_summary"]["evidence_tail_closure_summary"] == tail_closure
     assert research_summary["artifact_lineage_graph_ref"] == (
         "mas-artifact-lineage-graph:medautoscience:paper_autonomy_guarded-apply:"
         "002-dm-china-us-mortality-attribution"
@@ -366,6 +398,29 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
         "artifact-lifecycle-receipt:dm002:repair-execution-rebuild"
     ]
     assert per_line_result["human_gate_or_resume_refs"] == []
+    tail_closure = per_line_result["evidence_tail_closure_summary"]
+    assert tail_closure["all_required_tails_closed"] is False
+    assert tail_closure["summary_counts"] == {
+        "required_tail_count": 5,
+        "closed_tail_count": 4,
+        "evidence_gap_count": 0,
+        "stable_blocker_count": 0,
+        "not_triggered_count": 1,
+    }
+    assert tail_closure["tails"]["publication_route_memory_writeback"] == {
+        "status": "refs_observed",
+        "refs": ["receipt:memory-router", "receipt:writeback", "receipt:aion"],
+        "required": True,
+        "body_included": False,
+    }
+    assert tail_closure["tails"]["artifact_lifecycle"] == {
+        "status": "refs_observed",
+        "refs": ["artifact-lifecycle-receipt:dm002:repair-execution-rebuild"],
+        "required": True,
+        "body_included": False,
+    }
+    assert tail_closure["tails"]["human_gate_resume"]["status"] == "not_triggered"
+    assert tail_closure["tails"]["family_transition_live_receipt"]["status"] == "refs_observed"
     assert per_line_result["no_forbidden_write_proof_ref"] == (
         "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
     )
@@ -493,6 +548,18 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
     assert record["details"]["routeback_owner_refs"] == [
         "MedAutoScience:finalize_and_publication_handoff"
     ]
+    tail_closure = evidence_payload["record_payload"]["details"]["evidence_tail_closure_summary"]
+    assert tail_closure["all_required_tails_closed"] is True
+    assert tail_closure["summary_counts"] == {
+        "required_tail_count": 5,
+        "closed_tail_count": 5,
+        "evidence_gap_count": 0,
+        "stable_blocker_count": 5,
+        "not_triggered_count": 0,
+    }
+    for tail in tail_closure["tails"].values():
+        assert tail["status"] == "closed_by_stable_typed_blocker"
+        assert tail["refs"] == record["typed_blocker_refs"]
     assert record["details"]["missing_ref_family_refs"] == [
         "decision_trace_refs",
         "artifact_lineage_or_reproducibility_refs",

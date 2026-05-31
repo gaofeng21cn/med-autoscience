@@ -105,6 +105,50 @@ def test_stage_review_projects_research_pack_progress_summary_body_free() -> Non
                     "body_included": False,
                     "is_route_authority": False,
                 },
+                "evidence_tail_closure_summary": {
+                    "surface_kind": "mas_paper_line_evidence_tail_closure_summary",
+                    "study_id": "001-risk",
+                    "all_required_tails_closed": False,
+                    "summary_counts": {
+                        "required_tail_count": 5,
+                        "closed_tail_count": 3,
+                        "evidence_gap_count": 1,
+                        "stable_blocker_count": 1,
+                        "not_triggered_count": 1,
+                    },
+                    "tails": {
+                        "real_paper_line_provider_apply": {
+                            "status": "refs_observed",
+                            "refs": ["owner-receipt-ref:001-risk"],
+                            "required": True,
+                            "body_included": False,
+                        },
+                        "publication_route_memory_writeback": {
+                            "status": "evidence_gap",
+                            "refs": [],
+                            "required": True,
+                            "body_included": False,
+                        },
+                        "artifact_lifecycle": {
+                            "status": "closed_by_stable_typed_blocker",
+                            "refs": ["studies/001-risk/artifacts/blockers/next-owner.json"],
+                            "required": True,
+                            "body_included": False,
+                        },
+                        "human_gate_resume": {
+                            "status": "not_triggered",
+                            "refs": [],
+                            "required": True,
+                            "body_included": False,
+                        },
+                        "family_transition_live_receipt": {
+                            "status": "refs_observed",
+                            "refs": ["stage-expected-ref:001-risk"],
+                            "required": True,
+                            "body_included": False,
+                        },
+                    },
+                },
             },
         },
     }
@@ -141,6 +185,18 @@ def test_stage_review_projects_research_pack_progress_summary_body_free() -> Non
         "studies/001-risk/artifacts/blockers/next-owner.json"
     )
     assert summary["single_next_owner_blocker"]["is_route_authority"] is False
+    assert summary["evidence_tail_closure_summary"]["all_required_tails_closed"] is False
+    assert summary["evidence_tail_closure_summary"]["summary_counts"] == {
+        "required_tail_count": 5,
+        "closed_tail_count": 3,
+        "evidence_gap_count": 1,
+        "stable_blocker_count": 1,
+        "not_triggered_count": 1,
+    }
+    assert summary["evidence_tail_closure_summary"]["tails"][
+        "publication_route_memory_writeback"
+    ]["status"] == "evidence_gap"
+    assert summary["evidence_tail_closure_summary"]["authority"]["is_route_authority"] is False
     assert summary["schema_validation"]["status"] == "schema_compatible_refs_ready"
     assert summary["schema_validation"]["fail_closed_reasons"] == []
     assert summary["ref_family_status"]["negative_failed_path_refs"]["status"] == "present"
@@ -156,3 +212,6 @@ def test_stage_review_projects_research_pack_progress_summary_body_free() -> Non
     assert "Research pack 摘要" in html
     assert "paper/deliverable_delta=2" in html
     assert "platform_repair_delta=1" in html
+    assert "tail_closed=3/5" in html
+    assert "tail_gap=1" in html
+    assert "tail_not_triggered=1" in html

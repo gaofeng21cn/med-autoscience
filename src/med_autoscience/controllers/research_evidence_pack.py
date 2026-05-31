@@ -47,6 +47,7 @@ def build_research_evidence_pack_summary(
     forbidden_write_refs: Sequence[str | Mapping[str, Any]] = (),
     owner_route_match_status: str | None = None,
     owner_route_mismatch_refs: Sequence[str | Mapping[str, Any]] = (),
+    evidence_tail_closure_summary: Mapping[str, Any] | None = None,
     body_included: bool = False,
     paper_body_included: bool = False,
 ) -> dict[str, Any]:
@@ -138,6 +139,15 @@ def build_research_evidence_pack_summary(
             "platform_repair_counts_as_paper_progress": False,
         },
     }
+    normalized_evidence_tail_closure_summary = (
+        dict(evidence_tail_closure_summary)
+        if isinstance(evidence_tail_closure_summary, Mapping)
+        else {}
+    )
+    if normalized_evidence_tail_closure_summary:
+        progress_delta_summary["evidence_tail_closure_summary"] = (
+            normalized_evidence_tail_closure_summary
+        )
     failed_path_consumption = failed_path_consumption_summary(
         domain_id=normalized_domain,
         task_kind=normalized_task,

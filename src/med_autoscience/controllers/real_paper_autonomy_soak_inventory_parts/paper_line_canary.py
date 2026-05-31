@@ -5,6 +5,7 @@ from typing import Any
 
 from ..body_free_evidence_packets import build_body_free_evidence_packet
 from ..domain_dispatch_evidence_payload import build_domain_dispatch_evidence_record_payload
+from .evidence_tail_closure import build_evidence_tail_closure_summary
 
 
 GATE_ID = "real_paper_line_provider_canary"
@@ -119,6 +120,14 @@ def _paper_line_owner_chain_results(
             guarded_receipts=[receipt],
             stable_blocker_refs=stable_blocker_refs,
         )
+        family_transition_refs = _stage_expected_receipt_refs(
+            owner_receipt_refs=receipt_refs,
+            stable_blocker_refs=stable_blocker_refs,
+            live_evidence_refs=live_refs,
+            no_forbidden_write_ref=proof_ref,
+        )
+        if stable_blocker_refs and not receipt_refs:
+            family_transition_refs = stable_blocker_refs
         result_kind = (
             "owner_receipt"
             if receipt_refs
@@ -147,6 +156,13 @@ def _paper_line_owner_chain_results(
                 ),
                 "human_gate_or_resume_refs": _sequence(
                     live_refs.get("human_gate_or_resume_refs")
+                ),
+                "evidence_tail_closure_summary": build_evidence_tail_closure_summary(
+                    study_id=_text(receipt.get("study_id")),
+                    owner_receipt_refs=receipt_refs,
+                    stable_blocker_refs=stable_blocker_refs,
+                    live_evidence_refs=live_refs,
+                    family_transition_receipt_refs=family_transition_refs,
                 ),
                 "no_forbidden_write_proof_ref": proof_ref,
                 "body_included": False,
@@ -684,6 +700,11 @@ def _domain_dispatch_evidence_record_payload(
         owner_receipt_refs=owner_receipt_refs,
         stable_blocker_refs=stable_blocker_refs,
         live_evidence_refs=live_evidence_refs,
+        stage_expected_receipt_refs=(
+            stable_blocker_refs
+            if stable_blocker_refs and not owner_receipt_refs
+            else expected_receipt_refs
+        ),
     )
     return build_domain_dispatch_evidence_record_payload(
         task_kind="paper_autonomy/guarded-apply",
@@ -711,6 +732,7 @@ def _research_audit_ref_family_details(
     owner_receipt_refs: Sequence[str],
     stable_blocker_refs: Sequence[str],
     live_evidence_refs: Mapping[str, Any],
+    stage_expected_receipt_refs: Sequence[str],
 ) -> dict[str, Any]:
     progress_refs = _sequence(live_evidence_refs.get("progress_delta_refs"))
     artifact_movement_refs = _sequence(live_evidence_refs.get("artifact_movement_refs"))
@@ -753,6 +775,13 @@ def _research_audit_ref_family_details(
         "decision_trace_refs": decision_trace_refs,
         "artifact_lineage_refs": artifact_lineage_refs,
         "reproducibility_refs": reproducibility_refs,
+        "evidence_tail_closure_summary": build_evidence_tail_closure_summary(
+            study_id=paper_line_id,
+            owner_receipt_refs=owner_receipt_refs,
+            stable_blocker_refs=stable_blocker_refs,
+            live_evidence_refs=live_evidence_refs,
+            family_transition_receipt_refs=stage_expected_receipt_refs,
+        ),
         "publication_route_memory_writeback_receipt_refs": memory_writeback_refs,
         "artifact_lifecycle_receipt_refs": artifact_lifecycle_refs,
         "artifact_lineage_or_reproducibility_refs": lineage_or_reproducibility_refs,

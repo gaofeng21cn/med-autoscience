@@ -320,6 +320,9 @@ def build_domain_dispatch_evidence_record_payload(
         forbidden_write_refs=normalized_reason_details.get("forbidden_write_refs", ()),
         owner_route_match_status=_text(normalized_reason_details.get("owner_route_match_status")),
         owner_route_mismatch_refs=normalized_reason_details.get("owner_route_mismatch_refs", ()),
+        evidence_tail_closure_summary=normalized_reason_details.get(
+            "evidence_tail_closure_summary"
+        ),
         body_included=normalized_reason_details.get("body_included") is True,
         paper_body_included=normalized_reason_details.get("paper_body_included") is True,
         source_data_version_refs=normalized_reason_details.get("source_data_version_refs", ()),

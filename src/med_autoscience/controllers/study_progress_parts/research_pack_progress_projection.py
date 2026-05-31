@@ -58,6 +58,9 @@ def build_research_pack_progress_summary_projection(
             "body_included": False,
             "is_route_authority": False,
         },
+        "evidence_tail_closure_summary": _evidence_tail_closure_summary(
+            _mapping_copy(pack.get("evidence_tail_closure_summary"))
+        ),
         "ref_family_status": _ref_family_status(pack=pack, schema_validation=schema_validation),
         "schema_validation": _schema_validation_projection(schema_validation),
         "authority": {
@@ -68,6 +71,60 @@ def build_research_pack_progress_summary_projection(
             "can_authorize_artifact_mutation": False,
             "can_authorize_publication_readiness": False,
             "platform_repair_counts_as_paper_progress": False,
+        },
+    }
+
+
+def _evidence_tail_closure_summary(value: dict[str, Any]) -> dict[str, Any]:
+    if not value:
+        return {}
+    tails: dict[str, dict[str, Any]] = {}
+    for tail_id, raw_tail in _mapping_copy(value.get("tails")).items():
+        tail_key = _non_empty_text(tail_id)
+        if tail_key is None:
+            continue
+        tail = _mapping_copy(raw_tail)
+        tails[tail_key] = {
+            "status": _non_empty_text(tail.get("status")) or "not_triggered",
+            "refs": _progress_summary_string_list(tail.get("refs")),
+            "required": tail.get("required") is not False,
+            "body_included": False,
+        }
+    return {
+        "surface_kind": "mas_paper_line_evidence_tail_closure_summary_projection",
+        "study_id": _non_empty_text(value.get("study_id")),
+        "all_required_tails_closed": value.get("all_required_tails_closed") is True,
+        "summary_counts": {
+            "required_tail_count": _number(
+                _mapping_copy(value.get("summary_counts")).get("required_tail_count")
+            )
+            or len(tails),
+            "closed_tail_count": _number(
+                _mapping_copy(value.get("summary_counts")).get("closed_tail_count")
+            )
+            or 0,
+            "evidence_gap_count": _number(
+                _mapping_copy(value.get("summary_counts")).get("evidence_gap_count")
+            )
+            or 0,
+            "stable_blocker_count": _number(
+                _mapping_copy(value.get("summary_counts")).get("stable_blocker_count")
+            )
+            or 0,
+            "not_triggered_count": _number(
+                _mapping_copy(value.get("summary_counts")).get("not_triggered_count")
+            )
+            or 0,
+        },
+        "tails": tails,
+        "authority": {
+            "read_model_only": True,
+            "body_free": True,
+            "is_route_authority": False,
+            "can_authorize_domain_ready": False,
+            "can_authorize_publication_readiness": False,
+            "can_authorize_artifact_mutation": False,
+            "not_triggered_is_not_success": True,
         },
     }
 

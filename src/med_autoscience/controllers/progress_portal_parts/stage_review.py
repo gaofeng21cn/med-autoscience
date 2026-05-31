@@ -700,6 +700,8 @@ def _research_pack_progress_text(stage_log: Mapping[str, Any]) -> str | None:
     deliverable = _mapping(summary.get("deliverable_progress_delta") or summary.get("paper_progress_delta"))
     platform = _mapping(summary.get("platform_repair_delta"))
     blocker = _mapping(summary.get("single_next_owner_blocker"))
+    tail_closure = _mapping(summary.get("evidence_tail_closure_summary"))
+    tail_counts = _mapping(tail_closure.get("summary_counts"))
     missing_reproducibility = _string_list(summary.get("missing_reproducibility_refs"))
     parts = [
         f"paper/deliverable_delta={int(deliverable.get('count') or 0)}",
@@ -713,6 +715,14 @@ def _research_pack_progress_text(stage_log: Mapping[str, Any]) -> str | None:
     blocker_ref = _non_empty_text(blocker.get("ref"))
     if blocker_ref is not None:
         parts.append(f"single_next_owner_blocker={blocker_ref}")
+    if tail_counts:
+        parts.append(
+            "tail_closed="
+            f"{int(tail_counts.get('closed_tail_count') or 0)}/"
+            f"{int(tail_counts.get('required_tail_count') or 0)}"
+        )
+        parts.append(f"tail_gap={int(tail_counts.get('evidence_gap_count') or 0)}")
+        parts.append(f"tail_not_triggered={int(tail_counts.get('not_triggered_count') or 0)}")
     return "Research pack 摘要: " + "; ".join(parts)
 
 
