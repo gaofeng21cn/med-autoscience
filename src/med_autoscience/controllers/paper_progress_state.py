@@ -287,7 +287,7 @@ def _fresh_artifact_delta_present(payload: Mapping[str, Any]) -> bool:
     artifact_delta = _mapping(progress_freshness.get("meaningful_artifact_delta_freshness"))
     return (
         _text(artifact_delta.get("status")) == "fresh"
-        and _text(artifact_delta.get("latest_progress_at")) is not None
+        and (_text(artifact_delta.get("latest_progress_at")) is not None or bool(_paper_delta_changed_refs(payload)))
     ) or _scan_artifact_delta_present(payload)
 
 

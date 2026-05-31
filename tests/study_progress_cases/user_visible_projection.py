@@ -335,6 +335,47 @@ def test_user_visible_projection_exposes_paper_progress_slo_fields() -> None:
     assert "why_not_progressing" in projection["answer_focus"]
 
 
+def test_user_visible_projection_counts_fresh_paper_facing_refs_as_meaningful_delta() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "002-dm",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "002-dm",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-dm002", "package_delivered": False},
+                "conditions": [],
+            },
+            "runtime_liveness_audit": {
+                "active_stage_attempt_id": "sat-dm002",
+                "running_provider_attempt": True,
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": None,
+                    "changed_refs": ["paper/figures/figure_1_panel.png"],
+                },
+            },
+            "supervision": {"active_run_id": "run-dm002", "health_status": "live"},
+        }
+    )
+
+    assert projection["paper_progress_state"]["paper_facing_progress_slo"]["visible_as_progressing"] is True
+    assert projection["paper_progress_state"]["paper_facing_progress_slo"]["satisfied_delta_classes"] == [
+        "figure_table"
+    ]
+    assert projection["meaningful_artifact_delta"] is True
+    assert projection["paper_progress_state"]["meaningful_artifact_delta"] is True
+    assert projection["actual_write_active"] is True
+    assert projection["why_not_progressing"] is None
+
+
 def test_user_visible_projection_uses_interaction_arbitration_owner_and_reason() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 

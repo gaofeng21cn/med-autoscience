@@ -87,7 +87,9 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         macro_state=macro_state,
         payload=payload,
     )
-    meaningful_artifact_delta = _meaningful_artifact_delta(payload)
+    meaningful_artifact_delta = bool(paper_progress_state.get("meaningful_artifact_delta")) or _meaningful_artifact_delta(
+        payload
+    )
     next_owner = _non_empty_text(paper_progress_state.get("next_owner")) or _next_owner(payload=payload, details=details)
     why_not_progressing = _non_empty_text(paper_progress_state.get("why_not_progressing")) or _why_not_progressing(
         payload=payload,
