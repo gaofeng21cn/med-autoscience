@@ -63,7 +63,7 @@ def current_owner_handoff_action(payload: Mapping[str, Any]) -> dict[str, Any] |
         "action_type": action_type,
         "status": _non_empty_text(terminal_log.get("status")),
         "blocked_reason": _non_empty_text(handoff.get("blocked_reason"))
-        or _first_remaining_blocker(paper_log.get("remaining_blockers")),
+        or _handoff_remaining_blocker_for_current_route(payload, paper_log),
         "summary": _non_empty_text(paper_log.get("problem_summary")),
         "route_target": _non_empty_text(paper_log.get("route_target")),
         "next_work_units": _next_work_units(payload=payload, action=terminal_log, paper_log=paper_log),
@@ -96,6 +96,16 @@ def _first_remaining_blocker(value: object) -> str | None:
         if text := _non_empty_text(item):
             return text
     return None
+
+
+def _handoff_remaining_blocker_for_current_route(
+    payload: Mapping[str, Any],
+    paper_log: Mapping[str, Any],
+) -> str | None:
+    remaining_blockers = paper_log.get("remaining_blockers")
+    if isinstance(remaining_blockers, Mapping) and not current_owner_redrive_domain_transition(payload):
+        return None
+    return _first_remaining_blocker(remaining_blockers)
 
 
 def _next_work_units(
@@ -387,7 +397,16 @@ def current_owner_route_back_checklist(
         item
         for item in (
             _non_empty_text(action.get("blocked_reason")),
-            _first_remaining_blocker(_mapping_copy(_mapping_copy(payload.get("opl_current_control_state_handoff")).get("latest_terminal_stage_log")).get("remaining_blockers")),
+            _handoff_remaining_blocker_for_current_route(
+                payload,
+                _mapping_copy(
+                    _mapping_copy(
+                        _mapping_copy(payload.get("opl_current_control_state_handoff")).get(
+                            "latest_terminal_stage_log"
+                        )
+                    ).get("paper_stage_log")
+                ),
+            ),
             _non_empty_text(transition.get("blocked_reason")),
             _non_empty_text(transition.get("reason")),
         )
