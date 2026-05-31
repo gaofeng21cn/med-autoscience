@@ -467,6 +467,46 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
                 "evidence_packet_count": 22,
                 "latest_evidence_packets": [{"payload": "large"}],
             },
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "authority": "refs_only_observability",
+                "study_id": "001-risk",
+                "active_run_id": "run-001",
+                "active_stage_attempt_id": "stage-attempt-001",
+                "active_workflow_id": "workflow-001",
+                "running_provider_attempt": True,
+                "worker_liveness": {"health_status": "live"},
+                "execution_state_kind": "running_provider_attempt",
+                "next_owner": "mas_controller",
+                "controller_action": "run_quality_repair_batch",
+                "next_work_unit": {
+                    "unit_id": "quality_repair_batch",
+                    "summary": "Repair paper evidence.",
+                },
+                "stage_progress_log": {
+                    "attempt_count": 1,
+                    "completed_attempt_count": 0,
+                    "blocked_attempt_count": 0,
+                    "runner_progress_event_count": 3,
+                    "attempt_refs": [f"attempt-ref-{index}" for index in range(10)],
+                },
+                "latest_terminal_stage": {
+                    "action_type": "run_quality_repair_batch",
+                    "status": "blocked",
+                    "outcome": "typed_blocker",
+                    "remaining_blockers": ["current package stale"],
+                    "evidence_refs": ["/tmp/evidence.json"],
+                },
+                "foreground_write_policy": {
+                    "supervisor_only": True,
+                    "foreground_can_write_runtime_owned_surfaces": False,
+                },
+                "authority_boundary": {
+                    "refs_only": True,
+                    "can_write_runtime_owned_surfaces": False,
+                    "can_write_paper_or_package": False,
+                },
+            },
         }
 
     monkeypatch.setattr(module.study_progress, "read_study_progress", fake_read_study_progress)
@@ -494,6 +534,19 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     assert len(result["structuredContent"]["task_intake"]["constraints"]) == 8
     assert "submission_revision_operating_contract" not in result["structuredContent"]["task_intake"]
     assert "latest_evidence_packets" not in result["structuredContent"]["runtime_efficiency"]
+    monitoring = result["structuredContent"]["progress_first_monitoring_summary"]
+    assert monitoring["active_run_id"] == "run-001"
+    assert monitoring["active_stage_attempt_id"] == "stage-attempt-001"
+    assert monitoring["worker_liveness"]["health_status"] == "live"
+    assert monitoring["next_owner"] == "mas_controller"
+    assert monitoring["controller_action"] == "run_quality_repair_batch"
+    assert monitoring["next_work_unit"]["unit_id"] == "quality_repair_batch"
+    assert monitoring["stage_progress_log"]["attempt_count"] == 1
+    assert monitoring["stage_progress_log"]["attempt_refs"][-1] == "attempt-ref-5"
+    assert monitoring["latest_terminal_stage"]["remaining_blockers"] == ["current package stale"]
+    assert monitoring["foreground_write_policy"]["foreground_can_write_runtime_owned_surfaces"] is False
+    assert monitoring["authority_boundary"]["can_write_paper_or_package"] is False
+    assert "## Progress-First Monitoring" in result["content"][0]["text"]
     assert "自动推进研究" in result["content"][0]["text"]
 
 

@@ -32,6 +32,7 @@ _PROGRESS_FIRST_STATUS_KEYS = (
     "continuation_state",
     "study_macro_state",
     "ai_repair_lifecycle",
+    "progress_first_monitoring_summary",
 )
 
 _USER_VISIBLE_STATUS_KEYS = (

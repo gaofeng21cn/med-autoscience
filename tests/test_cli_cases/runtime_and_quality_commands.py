@@ -375,6 +375,24 @@ def test_progress_projection_command_surfaces_progress_first_user_visible_view(
                 "paper_stage_summary": "old paper stage summary",
                 "next_system_action": "old runtime-facing action",
                 "needs_physician_decision": False,
+                "progress_first_monitoring_summary": {
+                    "surface": "progress_first_monitoring_summary",
+                    "authority": "refs_only_observability",
+                    "study_id": kwargs["study_id"],
+                    "active_run_id": "run-003",
+                    "active_stage_attempt_id": "attempt-003",
+                    "running_provider_attempt": True,
+                    "worker_liveness": {"health_status": "live"},
+                    "next_owner": "ai_reviewer",
+                    "controller_action": "return_to_ai_reviewer_workflow",
+                    "next_work_unit": {
+                        "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    },
+                    "foreground_write_policy": {
+                        "supervisor_only": True,
+                        "foreground_can_write_runtime_owned_surfaces": False,
+                    },
+                },
                 "user_visible_projection": {
                     "schema_version": 2,
                     "writer_state": "queued",
@@ -418,6 +436,15 @@ def test_progress_projection_command_surfaces_progress_first_user_visible_view(
     assert payload["paper_stage"] == "analysis-campaign"
     assert payload["current_blockers"] == ["medical journal prose style not met"]
     assert payload["user_visible_projection"]["state"] == "queued/repair/quality"
+    monitoring = payload["progress_first_monitoring_summary"]
+    assert monitoring["authority"] == "refs_only_observability"
+    assert monitoring["active_run_id"] == "run-003"
+    assert monitoring["active_stage_attempt_id"] == "attempt-003"
+    assert monitoring["worker_liveness"]["health_status"] == "live"
+    assert monitoring["next_owner"] == "ai_reviewer"
+    assert monitoring["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert monitoring["next_work_unit"]["unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert monitoring["foreground_write_policy"]["foreground_can_write_runtime_owned_surfaces"] is False
     assert payload["progress_first_projection"]["source"] == "progress_projection.user_visible_projection"
 
 
