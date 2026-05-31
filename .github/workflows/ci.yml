@@ -1,6 +1,10 @@
 name: macOS CI
 
 on:
+  pull_request:
+    branches:
+      - main
+      - development
   push:
     branches:
       - main
@@ -42,7 +46,7 @@ jobs:
         run: uv sync --frozen --group dev --no-install-project
 
       - name: Run change-aware CI preflight
-        run: scripts/verify.sh ci-preflight "${{ github.event.before }}"
+        run: scripts/verify.sh ci-preflight "${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"
 
       - name: Run medical paper ops contract guard
         run: make test-medical-paper-ops
