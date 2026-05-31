@@ -27,6 +27,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DOMAIN_LABEL = "Med Auto Science"
 DOMAIN_OWNER = "MedAutoScience"
 GENERATED_SURFACE_OWNER = "one-person-lab"
+SHARED_POLICY_RELEASE = {
+    "policy_release_contract_ref": (
+        "contracts/opl-framework/foundry-agent-series-policy-release.json"
+    ),
+    "policy_bundle_fingerprint": (
+        "sha256:5d77102e99e6e49acd88714cd94dcafe0969b8f2a5529928d753002ac3d4619d"
+    ),
+    "fingerprint_algorithm": "sha256:stable-json",
+    "domain_contract_policy_release_pin_required": True,
+    "domain_adapter_must_not_copy_policy_body_as_authority": True,
+    "consumer_alignment_check": "foundry:policy-release",
+}
 
 FORBIDDEN_GENERIC_OWNER_ROLES = [
     "generic_scheduler_owner",
@@ -268,6 +280,9 @@ def _domain_descriptor() -> dict[str, Any]:
         "standard_contract_refs": {
             "action_catalog": "contracts/action_catalog.json",
             "foundry_agent_series": "contracts/foundry_agent_series.json",
+            "foundry_agent_series_policy_release": (
+                "contracts/opl-framework/foundry-agent-series-policy-release.json"
+            ),
             "stage_control_plane": "contracts/stage_control_plane.json",
             "pack_compiler_input": "contracts/pack_compiler_input.json",
             "generated_surface_handoff": "contracts/generated_surface_handoff.json",
@@ -311,6 +326,7 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
             "consumer_alignment_check": "family:shared-release",
             "domain_contract_version_pin_does_not_authorize_domain_truth": True,
         },
+        "shared_policy_release": SHARED_POLICY_RELEASE,
         "domain_id": "medautoscience",
         "foundry_agent_id": "medautoscience",
         "domain_label": "Research Foundry",

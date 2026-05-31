@@ -14,6 +14,16 @@
     "opl_owns_series_contract": true
   },
   "authority_owner": "MedAutoScience",
+  "contract_version_policy": {
+    "breaking_change_requires_new_version": true,
+    "compatible_version_range": [
+      "foundry-agent-series.v1"
+    ],
+    "current_version": "foundry-agent-series.v1",
+    "domain_contract_ref": "contracts/foundry_agent_series.json",
+    "domain_descriptor_must_reference_domain_contract": true,
+    "exact_version_pin_required": true
+  },
   "domain_adapter_policy": {
     "domain_specific_aliases_only": true,
     "no_domain_runtime_fork": true,
@@ -55,26 +65,20 @@
     "effective_current_context",
     "owner_receipt_or_typed_blocker_closeout"
   ],
+  "shared_policy_release": {
+    "consumer_alignment_check": "foundry:policy-release",
+    "domain_adapter_must_not_copy_policy_body_as_authority": true,
+    "domain_contract_policy_release_pin_required": true,
+    "fingerprint_algorithm": "sha256:stable-json",
+    "policy_bundle_fingerprint": "sha256:5d77102e99e6e49acd88714cd94dcafe0969b8f2a5529928d753002ac3d4619d",
+    "policy_release_contract_ref": "contracts/opl-framework/foundry-agent-series-policy-release.json"
+  },
   "shared_progress_projection_fields": [
     "progress_delta_classification",
     "deliverable_progress_delta",
     "platform_repair_delta",
     "next_forced_delta"
   ],
-  "stage_control_plane_ref": "contracts/stage_control_plane.json",
-  "stage_control_plane_target_domain_id": "med-autoscience",
-  "standard_agent_requirement": "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_and_app_projection_packets",
-  "contract_version_policy": {
-    "breaking_change_requires_new_version": true,
-    "compatible_version_range": [
-      "foundry-agent-series.v1"
-    ],
-    "current_version": "foundry-agent-series.v1",
-    "domain_contract_ref": "contracts/foundry_agent_series.json",
-    "domain_descriptor_must_reference_domain_contract": true,
-    "exact_version_pin_required": true
-  },
-  "surface_kind": "opl_foundry_agent_series_contract",
   "shared_release_pin_strategy": {
     "consumer_alignment_check": "family:shared-release",
     "domain_contract_version_pin_does_not_authorize_domain_truth": true,
@@ -87,5 +91,9 @@
       "uv.lock"
     ]
   },
+  "stage_control_plane_ref": "contracts/stage_control_plane.json",
+  "stage_control_plane_target_domain_id": "med-autoscience",
+  "standard_agent_requirement": "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_and_app_projection_packets",
+  "surface_kind": "opl_foundry_agent_series_contract",
   "version": "foundry-agent-series.v1"
 }
