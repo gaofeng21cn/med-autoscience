@@ -75,6 +75,13 @@ def build_study_state_matrix(
             status=status,
             transition=transition,
             active_run_id=active_run_id,
+            study_root=study_root,
+        )
+        supervisor_bundle = _supervisor_monitoring_bundle(
+            status=status,
+            monitoring=monitoring,
+            transition=transition,
+            study_root=study_root,
         )
         monitoring_summaries.append(monitoring)
         transitions.append(transition)
@@ -86,6 +93,7 @@ def build_study_state_matrix(
                 "active_run_id": active_run_id,
                 "monitoring": monitoring,
                 "progress_first_monitoring_summary": monitoring,
+                "supervisor_monitoring_bundle": supervisor_bundle,
                 "delivered_package": delivered_package or None,
                 "study_macro_state": macro,
                 "domain_transition": transition,
@@ -110,12 +118,15 @@ def render_study_state_matrix_markdown(payload: Mapping[str, Any]) -> str:
         f"- workspace_root: `{payload.get('workspace_root')}`",
         f"- study_count: `{payload.get('study_count')}`",
         "",
-        "| study_id | writer | user_next | reason | active_run_id |",
-        "| --- | --- | --- | --- | --- |",
+        "| study_id | writer | user_next | reason | active_run_id | provider | next_work_unit |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
     ]
     for study in payload.get("studies") or []:
         study_payload = _dict(study)
         macro = _dict(study_payload.get("study_macro_state"))
+        bundle = _dict(study_payload.get("supervisor_monitoring_bundle"))
+        provider_status = _dict(bundle.get("provider_status"))
+        next_work_unit = _dict(bundle.get("next_work_unit"))
         lines.append(
             "| "
             + " | ".join(
@@ -125,6 +136,8 @@ def render_study_state_matrix_markdown(payload: Mapping[str, Any]) -> str:
                     _text(macro.get("user_next")) or "",
                     _text(macro.get("reason")) or "",
                     _text(study_payload.get("active_run_id")) or "",
+                    _text(provider_status.get("status")) or "",
+                    _text(next_work_unit.get("unit_id")) or _text(bundle.get("next_work_unit")) or "",
                 ]
             )
             + " |"
@@ -288,6 +301,7 @@ def _progress_first_monitoring_summary(
     status: Mapping[str, Any],
     transition: Mapping[str, Any],
     active_run_id: str | None,
+    study_root: Path,
 ) -> dict[str, Any]:
     projection = _dict(status.get("progress_projection"))
     existing = _dict(status.get("progress_first_monitoring_summary")) or _dict(
@@ -311,6 +325,8 @@ def _progress_first_monitoring_summary(
         "schema_version": existing.get("schema_version") or 1,
         "authority": existing.get("authority") or "refs_only_observability",
         "study_id": _text(existing.get("study_id")) or _text(status.get("study_id")),
+        "current_stage": _text(existing.get("current_stage")) or _text(status.get("current_stage")),
+        "paper_stage": _text(existing.get("paper_stage")) or _text(status.get("paper_stage")),
         "active_run_id": _text(existing.get("active_run_id")) or active_run_id,
         "active_stage_attempt_id": _text(existing.get("active_stage_attempt_id")),
         "active_workflow_id": _text(existing.get("active_workflow_id")),
@@ -332,7 +348,126 @@ def _progress_first_monitoring_summary(
         "latest_terminal_stage": _dict(existing.get("latest_terminal_stage")) or None,
         "dispatch_consumption": _dict(existing.get("dispatch_consumption")),
         "foreground_write_policy": _dict(existing.get("foreground_write_policy")),
+        "source_refs": _string_list(existing.get("source_refs")),
+        "publication_eval": _publication_eval_monitoring_summary(study_root=study_root),
         "source": "progress_projection",
+    }
+
+
+def _supervisor_monitoring_bundle(
+    *,
+    status: Mapping[str, Any],
+    monitoring: Mapping[str, Any],
+    transition: Mapping[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    publication_eval = _dict(monitoring.get("publication_eval")) or _publication_eval_monitoring_summary(
+        study_root=study_root
+    )
+    return {
+        "surface": "study_state_matrix_supervisor_monitoring_bundle",
+        "schema_version": 1,
+        "authority": "refs_only_supervisor_read_model",
+        "current_stage": _text(monitoring.get("current_stage")) or _text(status.get("current_stage")),
+        "paper_stage": _text(monitoring.get("paper_stage")) or _text(status.get("paper_stage")),
+        "active_run_id": _text(monitoring.get("active_run_id")),
+        "active_stage_attempt_id": _text(monitoring.get("active_stage_attempt_id")),
+        "provider_status": _provider_status(monitoring),
+        "worker_liveness": _dict(monitoring.get("worker_liveness")) or None,
+        "latest_24h_timeline_refs": _latest_24h_timeline_refs(monitoring),
+        "latest_closeout": _latest_closeout_summary(monitoring),
+        "publication_eval": publication_eval or None,
+        "verdict": _dict(publication_eval.get("verdict")) or _text(publication_eval.get("verdict")),
+        "currentness": publication_eval.get("currentness"),
+        "typed_blocker": _dict(monitoring.get("typed_blocker")) or _dict(transition.get("typed_blocker")) or None,
+        "next_owner": _text(monitoring.get("next_owner")) or _text(transition.get("owner")),
+        "controller_action": _text(monitoring.get("controller_action")) or _text(transition.get("controller_action")),
+        "next_work_unit": _dict(monitoring.get("next_work_unit"))
+        or _dict(transition.get("next_work_unit"))
+        or _text(monitoring.get("next_work_unit")),
+        "authority_boundary": {
+            "refs_only": True,
+            "can_write_study_truth": False,
+            "can_write_runtime_owned_surfaces": False,
+            "can_write_paper_or_package": False,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_publication_ready": False,
+        },
+    }
+
+
+def _provider_status(monitoring: Mapping[str, Any]) -> dict[str, Any]:
+    running = monitoring.get("running_provider_attempt")
+    if running is True:
+        status = "running_provider_attempt"
+    elif running is False:
+        status = "provider_not_running"
+    else:
+        status = "provider_liveness_unknown"
+    return {
+        "status": status,
+        "running_provider_attempt": running if isinstance(running, bool) else None,
+        "active_workflow_id": _text(monitoring.get("active_workflow_id")),
+        "execution_state_kind": _text(monitoring.get("execution_state_kind")),
+    }
+
+
+def _latest_24h_timeline_refs(monitoring: Mapping[str, Any]) -> dict[str, Any]:
+    stage_log = _dict(monitoring.get("stage_progress_log"))
+    latest_terminal_stage = _dict(monitoring.get("latest_terminal_stage"))
+    refs = _string_list(stage_log.get("attempt_refs"))
+    refs.extend(_string_list(monitoring.get("source_refs")))
+    if source_path := _text(latest_terminal_stage.get("source_path")):
+        refs.append(source_path)
+    if closeout_ref := _text(_latest_closeout_summary(monitoring).get("ref")):
+        refs.append(closeout_ref)
+    return {
+        "window_hours": 24,
+        "refs": _dedupe(refs)[:20],
+        "stage_progress_log": stage_log or None,
+        "latest_terminal_stage_ref": _text(latest_terminal_stage.get("source_path")),
+    }
+
+
+def _latest_closeout_summary(monitoring: Mapping[str, Any]) -> dict[str, Any]:
+    latest_terminal_stage = _dict(monitoring.get("latest_terminal_stage"))
+    closeout_refs = _string_list(latest_terminal_stage.get("closeout_refs")) or [
+        ref for ref in _string_list(monitoring.get("source_refs")) if "closeout" in ref
+    ]
+    return {
+        "ref": closeout_refs[0] if closeout_refs else _text(latest_terminal_stage.get("source_path")),
+        "stage_attempt_id": _text(latest_terminal_stage.get("stage_attempt_id")),
+        "stage_id": _text(latest_terminal_stage.get("stage_id")),
+        "status": _text(latest_terminal_stage.get("status")),
+        "outcome": _text(latest_terminal_stage.get("outcome")),
+        "remaining_blockers": _string_list(latest_terminal_stage.get("remaining_blockers")),
+    }
+
+
+def _publication_eval_monitoring_summary(*, study_root: Path) -> dict[str, Any]:
+    path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {
+            "ref": str(path),
+            "observed": False,
+        }
+    if not isinstance(payload, Mapping):
+        return {
+            "ref": str(path),
+            "observed": False,
+        }
+    reviewer_os = _dict(payload.get("reviewer_operating_system"))
+    return {
+        "ref": str(path),
+        "observed": True,
+        "status": _text(payload.get("status")),
+        "eval_id": _text(payload.get("eval_id")),
+        "domain_ready_verdict": _text(payload.get("domain_ready_verdict")),
+        "verdict": _dict(payload.get("verdict")) or _text(payload.get("verdict")),
+        "currentness": _dict(reviewer_os.get("currentness_checks")) or _dict(payload.get("currentness_checks")) or None,
+        "assessment_provenance": _dict(payload.get("assessment_provenance")) or None,
     }
 
 
@@ -433,6 +568,14 @@ def _string_list(value: object) -> list[str]:
         text = _text(item)
         if text is not None and text not in result:
             result.append(text)
+    return result
+
+
+def _dedupe(values: Iterable[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        if value and value not in result:
+            result.append(value)
     return result
 
 
