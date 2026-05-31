@@ -37,6 +37,10 @@ from .study_workbench import (
     build_study_workbench_payload,
     render_study_workbench_sections,
 )
+from .progress_first_operator import (
+    build_progress_first_operator_projection,
+    render_progress_first_operator_section,
+)
 from .route_decision_trail import (
     build_route_decision_trail_payload,
     render_route_decision_trail_section,
@@ -70,6 +74,7 @@ __all__ = [
     "build_route_decision_trail_payload",
     "build_route_map_payload",
     "build_runtime_workbench_projection",
+    "build_progress_first_operator_projection",
     "build_study_workbench_payload",
     "condition_badge",
     "condition_section",
@@ -91,6 +96,7 @@ __all__ = [
     "render_route_decision_trail_section",
     "render_route_map_section",
     "render_study_workbench_sections",
+    "render_progress_first_operator_section",
     "render_section_explanations_section",
     "runtime_continuity_section",
     "section",

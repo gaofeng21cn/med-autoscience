@@ -153,6 +153,80 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     assert tabs_by_id["artifacts"] == {"id": "artifacts", "label": "产物", "status": "available"}
 
 
+def test_study_workbench_projects_progress_first_next_delta_for_operator_visibility() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    progress = {
+        **_progress_payload(),
+        "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
+        "paper_progress_delta": {"count": 0, "token_usage_total": 0},
+        "platform_repair_delta": {"count": 1, "token_usage_total": 2048},
+        "progress_delta_classification": "platform_repair",
+        "progress_first_sprint_state": {
+            "classification": "platform_repair",
+            "paper_progress_delta_counted": False,
+            "platform_repair_delta_counted": True,
+            "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
+            "paper_progress_delta": {"count": 0, "token_usage_total": 0},
+            "platform_repair_delta": {"count": 1, "token_usage_total": 2048},
+        },
+        "next_forced_delta": {
+            "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+            "reason": "platform_repair_does_not_count_as_paper_progress",
+            "work_unit_id": "publishability_repair_sprint",
+            "target_surface": {
+                "ref_kind": "route_obligation",
+                "route_target": "write",
+                "surface_ref": "canonical_manuscript",
+            },
+            "acceptance_refs": [
+                "canonical_manuscript_delta",
+                "ai_reviewer_gate_replay_request",
+            ],
+            "owner_action": {
+                "next_owner": "runtime_mechanism_repair",
+                "work_unit_id": "publishability_repair_sprint",
+                "allowed_actions": ["paper_autonomy/repair-recheck"],
+                "owner_receipt_required": True,
+            },
+        },
+    }
+
+    payload = parts.build_study_workbench_payload(
+        progress=progress,
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+    )
+    html = parts.render_study_workbench_sections(payload)
+
+    tabs_by_id = {item["id"]: item for item in payload["tabs"]}
+    assert tabs_by_id["progress_first"] == {
+        "id": "progress_first",
+        "label": "Progress-First",
+        "status": "available",
+    }
+    projection = payload["progress_first"]
+    assert projection["status"] == "available"
+    assert projection["progress_delta_classification"] == "platform_repair"
+    assert projection["deliverable_progress_delta"]["count"] == 0
+    assert projection["paper_progress_delta"]["count"] == 0
+    assert projection["platform_repair_delta"]["count"] == 1
+    assert projection["platform_repair_is_deliverable_progress"] is False
+    assert projection["next_forced_delta"]["required_delta_kind"] == "paper_progress_delta_or_typed_blocker"
+    assert projection["next_forced_delta"]["target_surface"]["surface_ref"] == "canonical_manuscript"
+    assert projection["next_forced_delta"]["acceptance_refs"] == [
+        "canonical_manuscript_delta",
+        "ai_reviewer_gate_replay_request",
+    ]
+    assert projection["next_forced_delta"]["owner_action"]["next_owner"] == "runtime_mechanism_repair"
+    assert projection["authority"]["writes_authority_surface"] is False
+    assert projection["authority"]["can_authorize_quality_verdict"] is False
+    assert "Progress-First" in html
+    assert "paper_progress_delta_or_typed_blocker" in html
+    assert "platform_repair_delta=1" in html
+
+
 def test_study_workbench_helper_does_not_accept_runtime_conversation_read_model() -> None:
     parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
     portal_module = importlib.import_module("med_autoscience.controllers.progress_portal")

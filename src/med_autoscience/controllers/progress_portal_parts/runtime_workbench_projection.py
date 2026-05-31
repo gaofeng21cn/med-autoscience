@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from .progress_first_operator import build_progress_first_operator_projection
 from .runtime_workbench_projection_parts import build_paper_route_lens, paper_route_lens_summary
 from .runtime_workbench_projection_parts.common import (
     dedupe_refs as _dedupe_refs,
@@ -183,6 +184,7 @@ def _selected_workbench_study(
         stage_review=stage_review,
         paper_route_lens=paper_route_lens,
     )
+    progress_first = build_progress_first_operator_projection(progress)
     return {
         "study_id": study_id,
         "display_title": study_id,
@@ -203,6 +205,7 @@ def _selected_workbench_study(
         "actions": _workbench_actions(),
         "workbench": dict(study_workbench),
         "stage_review": stage_review,
+        "progress_first": progress_first,
         "paper_route_lens": paper_route_lens,
         "reference_projection": reference_projection,
     }
@@ -221,6 +224,7 @@ def _reference_projection(
     memory_receipt = _memory_receipt_lane(progress)
     freshness_lane = _freshness_lane(freshness=freshness, stage_review=stage_review)
     runtime_owner_route_handoffs = _runtime_owner_route_handoff_lane(progress=progress, runtime=runtime)
+    progress_first = build_progress_first_operator_projection(progress)
     lanes = {
         "provider_attempt": provider_attempt,
         "guarded_apply": guarded_apply,
@@ -228,6 +232,7 @@ def _reference_projection(
         "memory_receipt": memory_receipt,
         "freshness": freshness_lane,
         "runtime_owner_route_handoffs": runtime_owner_route_handoffs,
+        "progress_first": progress_first,
         "paper_route_lens": dict(paper_route_lens),
     }
     return {

@@ -16,6 +16,9 @@ from med_autoscience.controllers.progress_portal_parts import (
     workspace_alert_projection,
     workspace_studies,
 )
+from med_autoscience.controllers.progress_portal_parts.progress_first_operator import (
+    build_progress_first_operator_projection,
+)
 from med_autoscience.controllers.progress_portal_parts.html import (
     render_progress_portal_html as render_progress_portal_html_part,
 )
@@ -151,6 +154,7 @@ def build_progress_portal_payload(
         runtime,
         study_id=resolved_study_id,
     )
+    progress_first = build_progress_first_operator_projection(progress)
     study_workbench = (
         build_study_workbench_payload(
             progress,
@@ -253,6 +257,7 @@ def build_progress_portal_payload(
             "outer_supervision_slo": outer_supervision_slo or None,
             "runtime_continuity": runtime_continuity,
             "production_blocker_impact": production_blocker_impact,
+            "progress_first": progress_first,
         },
         "freshness": freshness,
         "latest_events": latest_events,
