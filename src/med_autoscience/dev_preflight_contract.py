@@ -202,6 +202,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         category_id="root_governance_contract_surface",
         exact_paths=(
             "AGENTS.md",
+            "TASTE.md",
             "agent/standard-domain-agent-anchor.json",
             "contracts/README.md",
             "contracts/test-lane-manifest.json",
@@ -291,7 +292,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "tests/test_mas_production_acceptance.py",
             "tests/test_opl_standard_pack.py",
         ),
-        prefix_paths=(),
+        prefix_paths=(
+            "contracts/production_acceptance/",
+        ),
         commands=(
             f"{PYTEST_CLEAN_RUNNER} tests/test_mas_production_acceptance.py -q",
             f"{PYTEST_CLEAN_RUNNER} tests/test_opl_standard_pack.py -q",

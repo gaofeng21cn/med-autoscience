@@ -598,6 +598,7 @@ def test_classify_changed_files_matches_root_governance_contract_surface() -> No
     result = module.classify_changed_files(
         [
             "AGENTS.md",
+            "TASTE.md",
             "agent/standard-domain-agent-anchor.json",
             "contracts/README.md",
             "contracts/test-lane-manifest.json",
@@ -715,6 +716,7 @@ def test_classify_changed_files_matches_production_acceptance_surface() -> None:
     result = module.classify_changed_files(
         [
             "contracts/agent_lab_handoff.json",
+            "contracts/production_acceptance/mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json",
             "contracts/production_acceptance/mas-production-acceptance.json",
             "tests/test_mas_production_acceptance.py",
             "tests/test_opl_standard_pack.py",
