@@ -345,7 +345,7 @@ def _progress_first_tick_accounting(monitoring_summaries: list[dict[str, Any]]) 
             item["monitoring_status"] in {"ready_for_dispatch", "stalled_unconsumed_action"}
             for item in study_items
         ),
-        "running_provider_attempt_count": sum(item["monitoring_status"] == "running" for item in study_items),
+        "running_provider_attempt_count": sum(item["running_provider_attempt"] is True for item in study_items),
         "typed_blocker_count": sum(item["monitoring_status"] == "blocked_typed_owner" for item in study_items),
         "human_gate_count": sum(item["monitoring_status"] == "human_gate" for item in study_items),
         "unconsumed_owner_action_count": sum(
@@ -385,7 +385,7 @@ def _progress_first_monitoring_status(
     summary: Mapping[str, Any],
     dispatch_consumption: Mapping[str, Any],
 ) -> str:
-    if summary.get("running_provider_attempt") is True or _text(summary.get("active_run_id")) is not None:
+    if summary.get("running_provider_attempt") is True:
         return "running"
     if _is_human_gate(summary):
         return "human_gate"

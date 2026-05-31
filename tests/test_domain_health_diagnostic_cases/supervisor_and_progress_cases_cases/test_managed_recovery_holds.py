@@ -220,9 +220,11 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
-    study_root = profile.studies_root / "001-risk"
-    study_root.mkdir(parents=True, exist_ok=True)
-    dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
+    study_ids = ("001-risk", "002-risk")
+    for study_id in study_ids:
+        study_root = profile.studies_root / study_id
+        study_root.mkdir(parents=True, exist_ok=True)
+        dump_json(study_root / "study.yaml", {"study_id": study_id})
     calls: list[dict[str, object]] = []
     materialize_calls: list[dict[str, object]] = []
     dispatch_calls: list[dict[str, object]] = []
@@ -269,22 +271,22 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
 
     assert len(calls) == 1
     assert calls[0]["profile"] == profile
-    assert calls[0]["study_ids"] == ("001-risk",)
+    assert calls[0]["study_ids"] == study_ids
     assert calls[0]["apply_safe_actions"] is True
     assert calls[0]["developer_supervisor_mode"] == "developer_apply_safe"
     assert result["opl_owner_route_reconcile_request"] == {
         "surface": "portable_owner_route_reconcile",
         "apply_safe_actions": True,
-        "study_count": 1,
+        "study_count": 2,
     }
     assert len(materialize_calls) == 1
     assert materialize_calls[0]["profile"] == profile
-    assert materialize_calls[0]["study_ids"] == ("001-risk",)
+    assert materialize_calls[0]["study_ids"] == study_ids
     assert materialize_calls[0]["mode"] == "developer_apply_safe"
     assert materialize_calls[0]["apply"] is True
     assert len(dispatch_calls) == 1
     assert dispatch_calls[0]["profile"] == profile
-    assert dispatch_calls[0]["study_ids"] == ("001-risk",)
+    assert dispatch_calls[0]["study_ids"] == study_ids
     assert dispatch_calls[0]["action_types"] == ()
     assert dispatch_calls[0]["mode"] == "developer_apply_safe"
     assert dispatch_calls[0]["apply"] is True
@@ -292,7 +294,7 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
         "surface": "developer_supervisor_same_tick",
         "schema_version": 1,
         "mode": "developer_apply_safe",
-        "study_ids": ["001-risk"],
+        "study_ids": ["001-risk", "002-risk"],
         "actions": [
             "domain-action-request-materialize",
             "domain-owner-action-dispatch",
