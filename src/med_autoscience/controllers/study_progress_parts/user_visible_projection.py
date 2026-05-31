@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.controllers.paper_progress_state import build_paper_progress_state
 from med_autoscience.runtime_control.decision_trace_ledger import decision_trace_projection
 
+from .current_owner_handoff_projection import current_owner_handoff_action
 from .shared import _mapping_copy, _non_empty_text
 
 USER_VISIBLE_PROJECTION_SURFACE = "study_progress_user_visible_projection"
@@ -369,7 +370,7 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
     owner_route = _mapping_copy(payload.get("owner_route"))
     paper_progress_stall = _mapping_copy(payload.get("paper_progress_stall"))
     interaction_arbitration = _mapping_copy(payload.get("interaction_arbitration"))
-    opl_handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    opl_handoff_action = current_owner_handoff_action(payload)
     ai_repair_lifecycle = _mapping_copy(payload.get("ai_repair_lifecycle"))
     return (
         _non_empty_text(impact.get("next_owner"))
@@ -377,7 +378,7 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
         or _non_empty_text(details.get("decision_owner"))
         or _non_empty_text(paper_progress_stall.get("next_owner"))
         or _non_empty_text(interaction_arbitration.get("next_owner"))
-        or _non_empty_text(opl_handoff.get("next_owner"))
+        or _non_empty_text((opl_handoff_action or {}).get("owner"))
         or _non_empty_text(ai_repair_lifecycle.get("next_owner"))
     )
 

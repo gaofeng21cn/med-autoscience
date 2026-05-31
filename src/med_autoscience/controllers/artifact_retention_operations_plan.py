@@ -14,6 +14,14 @@ SURFACE_KIND = "artifact_retention_operations_plan"
 TERMINAL_STUDY_SURFACE_KIND = "terminal_study_file_lifecycle_plan"
 ALLOWED_PHYSICAL_ACTIONS = ("delete-safe-cache",)
 DEFAULT_OPERATION_SAMPLE_LIMIT = 50
+RECEIPT_REF_SAMPLE_LIMIT = 50
+_RECEIPT_REF_FAMILY_KEYS = (
+    "artifact_lifecycle_receipt_refs",
+    "artifact_authority_receipt_refs",
+    "cleanup_receipt_refs",
+    "restore_proof_refs",
+    "retention_receipt_refs",
+)
 _KEEP_ONLINE_ROLES = frozenset(
     {
         "canonical_source",
@@ -44,6 +52,7 @@ def build_artifact_retention_operations_plan(
     ]
     if terminal_study_compaction_eligible:
         operations = [_terminal_retention_operation(operation) for operation in operations]
+    receipt_ref_families = _artifact_lifecycle_receipt_ref_families(operations)
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
@@ -51,6 +60,7 @@ def build_artifact_retention_operations_plan(
         "mutation_policy": _mutation_policy(),
         "retention_policy_catalog": retention_policy_catalog(),
         "summary": _summary(operations),
+        **receipt_ref_families,
         "operations": operations,
     }
 
@@ -60,12 +70,24 @@ def aggregate_artifact_retention_operations_plans(
 ) -> dict[str, Any]:
     action_counts: dict[str, int] = {}
     applyable_action_counts: dict[str, int] = {}
+    receipt_ref_families = _empty_artifact_lifecycle_receipt_ref_families()
     operation_count = 0
     for plan in plans:
         summary = _mapping(plan.get("summary"))
         operation_count += int(summary.get("operation_count") or 0)
         _merge_counts(action_counts, _mapping(summary.get("action_counts")))
         _merge_counts(applyable_action_counts, _mapping(summary.get("applyable_action_counts")))
+        _merge_artifact_lifecycle_receipt_ref_families(
+            receipt_ref_families,
+            _artifact_lifecycle_receipt_ref_families_from_plan(
+                plan,
+                sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
+            ),
+        )
+    receipt_ref_families = _bounded_artifact_lifecycle_receipt_ref_families(
+        receipt_ref_families,
+        sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
+    )
     return {
         "surface_kind": SURFACE_KIND,
         "summary": {
@@ -75,6 +97,7 @@ def aggregate_artifact_retention_operations_plans(
         },
         "mutation_policy": _mutation_policy(),
         "retention_policy_catalog": retention_policy_catalog(),
+        **receipt_ref_families,
     }
 
 
@@ -85,6 +108,10 @@ def compact_artifact_retention_operations_plan(
 ) -> dict[str, Any]:
     operations = _list(plan.get("operations"))
     sample = operations[:operation_sample_limit]
+    receipt_ref_families = _artifact_lifecycle_receipt_ref_families_from_plan(
+        plan,
+        sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
+    )
     return {
         "schema_version": int(plan.get("schema_version") or SCHEMA_VERSION),
         "surface_kind": _text(plan.get("surface_kind")) or SURFACE_KIND,
@@ -93,6 +120,7 @@ def compact_artifact_retention_operations_plan(
         "retention_policy_catalog": dict(_mapping(plan.get("retention_policy_catalog")))
         or retention_policy_catalog(),
         "summary": dict(_mapping(plan.get("summary"))),
+        **receipt_ref_families,
         "operation_listing": "bounded",
         "operation_sample": [dict(item) for item in sample if isinstance(item, Mapping)],
         "operation_sample_limit": operation_sample_limit,
@@ -315,6 +343,106 @@ def _summary(operations: list[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _artifact_lifecycle_receipt_ref_families(operations: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    families = _empty_artifact_lifecycle_receipt_ref_families()
+    for operation in operations:
+        packet = _mapping(operation.get("body_free_evidence_packet"))
+        receipt_id = _text(packet.get("receipt_id"))
+        if not receipt_id:
+            continue
+        role = _text(packet.get("role"))
+        action = _text(operation.get("retention_action"))
+        families["artifact_lifecycle_receipt_refs"].append(receipt_id)
+        families["artifact_authority_receipt_refs"].append(receipt_id)
+        if action == "delete_safe_cache":
+            families["cleanup_receipt_refs"].append(receipt_id)
+        if role == "artifact_restore_receipt_ref":
+            families["restore_proof_refs"].append(receipt_id)
+        if role == "artifact_retention_receipt_ref":
+            families["retention_receipt_refs"].append(receipt_id)
+    return _bounded_artifact_lifecycle_receipt_ref_families(
+        families,
+        sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
+    )
+
+
+def _artifact_lifecycle_receipt_ref_families_from_plan(
+    plan: Mapping[str, Any],
+    *,
+    sample_limit: int | None = None,
+) -> dict[str, Any]:
+    existing = _empty_artifact_lifecycle_receipt_ref_families()
+    for key in _RECEIPT_REF_FAMILY_KEYS:
+        refs = _string_list(plan.get(key))
+        existing[key] = refs
+        existing[_receipt_count_key(key)] = _int(plan.get(_receipt_count_key(key))) or len(refs)
+        existing[_receipt_truncated_key(key)] = bool(plan.get(_receipt_truncated_key(key)))
+    if any(existing.values()):
+        return _bounded_artifact_lifecycle_receipt_ref_families(
+            existing,
+            sample_limit=sample_limit,
+        )
+    operations = [
+        operation
+        for operation in [*_list(plan.get("operations")), *_list(plan.get("operation_sample"))]
+        if isinstance(operation, Mapping)
+    ]
+    return _bounded_artifact_lifecycle_receipt_ref_families(
+        _artifact_lifecycle_receipt_ref_families(operations),
+        sample_limit=sample_limit,
+    )
+
+
+def _empty_artifact_lifecycle_receipt_ref_families() -> dict[str, Any]:
+    families: dict[str, Any] = {}
+    for key in _RECEIPT_REF_FAMILY_KEYS:
+        families[key] = []
+        families[_receipt_count_key(key)] = 0
+        families[_receipt_truncated_key(key)] = False
+    return families
+
+
+def _bounded_artifact_lifecycle_receipt_ref_families(
+    families: Mapping[str, Any],
+    *,
+    sample_limit: int | None = None,
+) -> dict[str, Any]:
+    bounded = _empty_artifact_lifecycle_receipt_ref_families()
+    for key in _RECEIPT_REF_FAMILY_KEYS:
+        refs = _dedupe(_string_list(families.get(key)))
+        count_key = _receipt_count_key(key)
+        truncated_key = _receipt_truncated_key(key)
+        count = _int(families.get(count_key)) or len(refs)
+        limit = sample_limit if sample_limit is not None else len(refs)
+        bounded_refs = refs[:limit]
+        bounded[key] = bounded_refs
+        bounded[count_key] = max(count, len(refs))
+        bounded[truncated_key] = bool(families.get(truncated_key)) or len(refs) > len(bounded_refs)
+    return bounded
+
+
+def _merge_artifact_lifecycle_receipt_ref_families(
+    target: dict[str, Any],
+    source: Mapping[str, Any],
+) -> None:
+    for key in _RECEIPT_REF_FAMILY_KEYS:
+        count_key = _receipt_count_key(key)
+        truncated_key = _receipt_truncated_key(key)
+        target[key] = _dedupe([*_string_list(target.get(key)), *_string_list(source.get(key))])
+        target[count_key] = _int(target.get(count_key)) + (
+            _int(source.get(count_key)) or len(_string_list(source.get(key)))
+        )
+        target[truncated_key] = bool(target.get(truncated_key)) or bool(source.get(truncated_key))
+
+
+def _receipt_count_key(key: str) -> str:
+    return key.removesuffix("_refs") + "_ref_count"
+
+
+def _receipt_truncated_key(key: str) -> str:
+    return f"{key}_truncated"
+
+
 def _terminal_stop_loss_eligibility(macro_state: Mapping[str, Any]) -> tuple[bool, list[str]]:
     details = _mapping(macro_state.get("details"))
     eligible = (
@@ -427,6 +555,19 @@ def _workspace_relative_path(artifact: Mapping[str, Any], workspace_root: Path) 
 
 def _text(value: object) -> str:
     return value.strip() if isinstance(value, str) else ""
+
+
+def _int(value: object) -> int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return 0
+    return 0
 
 
 def _mapping(value: object) -> Mapping[str, Any]:

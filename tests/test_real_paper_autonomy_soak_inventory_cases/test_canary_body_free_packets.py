@@ -295,9 +295,27 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
             "accepted": True,
             "execution_status": "executed",
             "canonical_artifact_delta_refs": [{"path": str(dm002 / "paper" / "manuscript.md")}],
+            "artifact_lifecycle_receipt_refs": [
+                "artifact-lifecycle-receipt:dm002:repair-execution-rebuild"
+            ],
             "direct_current_package_write": False,
             "quality_authorized": False,
             "submission_authorized": False,
+        },
+    )
+    _write_json(
+        dm002 / "artifacts" / "stage_knowledge" / "paper_soak_memory_apply_proof" / "latest.json",
+        {
+            "surface": "paper_soak_memory_apply_proof",
+            "status": "ready",
+            "stage_entry": {
+                "publication_route_memory_refs": [
+                    {"memory_id": "publication_route_memory_seed__negative_result_stoploss"}
+                ]
+            },
+            "mas_router_receipt_refs": [{"ref": "receipt:memory-router"}],
+            "workspace_writeback_receipt_refs": [{"ref": "receipt:writeback"}],
+            "opl_aion_readonly_receipt_refs": [{"ref": "receipt:aion", "body_included": False}],
         },
     )
     _write_json(
@@ -339,6 +357,14 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     assert per_line_result["artifact_movement_refs"] == [
         str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json")
     ]
+    assert per_line_result["publication_route_memory_writeback_receipt_refs"] == [
+        "receipt:memory-router",
+        "receipt:writeback",
+        "receipt:aion",
+    ]
+    assert per_line_result["artifact_lifecycle_receipt_refs"] == [
+        "artifact-lifecycle-receipt:dm002:repair-execution-rebuild"
+    ]
     assert per_line_result["human_gate_or_resume_refs"] == []
     assert per_line_result["no_forbidden_write_proof_ref"] == (
         "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
@@ -360,6 +386,22 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
         str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"),
     } <= set(evidence_payload["record_payload"]["domain_owner_receipt_refs"])
     assert evidence_payload["record_payload"]["typed_blocker_refs"] == []
+    assert {
+        "receipt:memory-router",
+        "receipt:writeback",
+        "receipt:aion",
+        "artifact-lifecycle-receipt:dm002:repair-execution-rebuild",
+    } <= set(evidence_payload["record_payload"]["evidence_refs"])
+    assert evidence_payload["record_payload"]["details"][
+        "publication_route_memory_writeback_receipt_refs"
+    ] == [
+        "receipt:memory-router",
+        "receipt:writeback",
+        "receipt:aion",
+    ]
+    assert evidence_payload["record_payload"]["details"]["artifact_lifecycle_receipt_refs"] == [
+        "artifact-lifecycle-receipt:dm002:repair-execution-rebuild"
+    ]
     assert evidence_payload["record_payload"]["domain_receipt_refs"] == evidence_payload[
         "record_payload"
     ]["domain_owner_receipt_refs"]
@@ -370,6 +412,10 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     expected_stage_refs = [
         str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"),
         str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"),
+        "receipt:memory-router",
+        "receipt:writeback",
+        "receipt:aion",
+        "artifact-lifecycle-receipt:dm002:repair-execution-rebuild",
         "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
     ]
     assert evidence_payload["record_payload"]["stage_expected_receipt_refs"] == expected_stage_refs
@@ -383,6 +429,10 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     stage_packet_roles = {packet["role"] for packet in evidence_payload["body_free_evidence_packets"]}
     assert "stage_expected_receipt_ref" in stage_packet_roles
     assert "stage_monitor_freshness_ref" in stage_packet_roles
+    assert {
+        "publication_route_memory_writeback_receipt_ref",
+        "artifact_lifecycle_receipt_ref",
+    } <= packet_roles
     for packet in payload["body_free_evidence_packets"]:
         _assert_body_free_canary_packet(packet, owner="MedAutoScience")
 

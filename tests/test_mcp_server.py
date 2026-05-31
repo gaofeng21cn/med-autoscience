@@ -688,6 +688,45 @@ def test_mcp_authority_operations_can_call_lifecycle_report_with_scan_options(mo
     assert "artifact_lifecycle_report" in result["content"][0]["text"]
 
 
+def test_mcp_authority_operations_lifecycle_report_bounds_receipt_ref_families(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    retention_module = importlib.import_module("med_autoscience.controllers.artifact_retention_operations_plan")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    for index in range(60):
+        source_path = study_root / "paper" / "source" / f"manuscript-{index}.md"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("source\n", encoding="utf-8")
+        projection_path = study_root / "manuscript" / "current_package" / f"projection-{index}.pdf"
+        projection_path.parent.mkdir(parents=True, exist_ok=True)
+        projection_path.write_text("pdf\n", encoding="utf-8")
+
+    result = module.call_tool(
+        "authority_operations",
+        {
+            "mode": "artifact_lifecycle_report",
+            "workspace_roots": [str(workspace_root)],
+            "deep": True,
+        },
+    )
+
+    assert result["isError"] is False
+    plan = result["structuredContent"]["retention_plan"]
+    assert plan["summary"]["operation_count"] == 120
+    assert len(plan["artifact_lifecycle_receipt_refs"]) == retention_module.RECEIPT_REF_SAMPLE_LIMIT
+    assert plan["artifact_lifecycle_receipt_ref_count"] == 120
+    assert plan["artifact_lifecycle_receipt_refs_truncated"] is True
+    assert len(plan["artifact_authority_receipt_refs"]) == retention_module.RECEIPT_REF_SAMPLE_LIMIT
+    assert plan["artifact_authority_receipt_ref_count"] == 120
+    assert plan["artifact_authority_receipt_refs_truncated"] is True
+    assert len(plan["retention_receipt_refs"]) == retention_module.RECEIPT_REF_SAMPLE_LIMIT
+    assert plan["retention_receipt_ref_count"] == 60
+    assert plan["retention_receipt_refs_truncated"] is True
+    assert plan["cleanup_receipt_ref_count"] == 0
+    assert plan["restore_proof_ref_count"] == 0
+    assert result["structuredContent"]["mutation_policy"]["physical_cleanup_performed"] is False
+
+
 def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}

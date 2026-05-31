@@ -36,6 +36,7 @@ from .action_execution_parts.ai_reviewer_record_validation import (
     missing_ai_reviewer_record_fields,
 )
 from .action_execution_parts.ai_reviewer_record_production import (
+    attach_incomplete_ai_reviewer_record_handoff,
     attach_invalid_ai_reviewer_record_handoff,
     record_production_handoff_execution,
 )
@@ -747,6 +748,12 @@ def _ai_reviewer_record_for_execution(
                 required_refs=ai_reviewer_request_refs.required_refs(request),
                 record=request_record,
             )
+            attach_incomplete_ai_reviewer_record_handoff(
+                record_blocker=record_blocker,
+                request=request,
+                required_refs=ai_reviewer_request_refs.required_refs(request),
+                record=request_record,
+            )
             return {}, record_blocker
         return request_record, None
 
@@ -764,26 +771,40 @@ def _ai_reviewer_record_for_execution(
                 required_refs=ai_reviewer_request_refs.required_refs(request),
                 record=request_record,
             )
+            attach_incomplete_ai_reviewer_record_handoff(
+                record_blocker=record_blocker,
+                request=request,
+                required_refs=ai_reviewer_request_refs.required_refs(request),
+                record=request_record,
+            )
             return {}, record_blocker
         return request_record, None
 
-    if paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root) and not request_record:
+    cutover_requires_ai_reviewer = paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root)
+    if cutover_requires_ai_reviewer and not request_record:
         request_record = _clean_migration_request_record(study_root=study_root, request=request)
 
     if (
         current_record
         and ai_reviewer_owned_record(current_record)
-        and not paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root)
+        and not cutover_requires_ai_reviewer
     ):
         missing_fields = missing_ai_reviewer_record_fields(current_record)
         if missing_fields:
-            return {}, {
+            record_blocker = {
                 "reason": "ai_reviewer_record_incomplete",
                 "payload": {
                     "missing_record_fields": missing_fields,
                     "owner_record_requirements": ai_reviewer_record_requirements(),
                 },
             }
+            attach_incomplete_ai_reviewer_record_handoff(
+                record_blocker=record_blocker,
+                request=request,
+                required_refs=ai_reviewer_request_refs.required_refs(request),
+                record=current_record,
+            )
+            return {}, record_blocker
         return current_record, None
 
     if request_record:
@@ -795,6 +816,13 @@ def _ai_reviewer_record_for_execution(
                 required_refs=ai_reviewer_request_refs.required_refs(request),
                 record=request_record,
             )
+            if cutover_requires_ai_reviewer:
+                attach_incomplete_ai_reviewer_record_handoff(
+                    record_blocker=record_blocker,
+                    request=request,
+                    required_refs=ai_reviewer_request_refs.required_refs(request),
+                    record=request_record,
+                )
             return {}, record_blocker
         return request_record, None
 

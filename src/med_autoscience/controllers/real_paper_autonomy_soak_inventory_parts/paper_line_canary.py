@@ -139,6 +139,12 @@ def _paper_line_owner_chain_results(
                     live_refs.get("ai_reviewer_gate_receipt_refs")
                 ),
                 "artifact_movement_refs": _sequence(live_refs.get("artifact_movement_refs")),
+                "publication_route_memory_writeback_receipt_refs": _sequence(
+                    live_refs.get("publication_route_memory_writeback_receipt_refs")
+                ),
+                "artifact_lifecycle_receipt_refs": _sequence(
+                    live_refs.get("artifact_lifecycle_receipt_refs")
+                ),
                 "human_gate_or_resume_refs": _sequence(
                     live_refs.get("human_gate_or_resume_refs")
                 ),
@@ -520,6 +526,12 @@ def _live_paper_line_evidence_refs(
             "ai_reviewer_re_eval",
         ),
         "artifact_movement_refs": _artifact_movement_refs(guarded_receipts),
+        "publication_route_memory_writeback_receipt_refs": (
+            _publication_route_memory_writeback_receipt_refs(guarded_receipts)
+        ),
+        "artifact_lifecycle_receipt_refs": _artifact_lifecycle_receipt_refs(
+            guarded_receipts
+        ),
         "human_gate_or_resume_refs": _refs_for_observed_flag(
             guarded_receipts,
             flag="human_gate_observed",
@@ -579,6 +591,26 @@ def _artifact_movement_refs(guarded_receipts: Sequence[Mapping[str, Any]]) -> li
     )
 
 
+def _publication_route_memory_writeback_receipt_refs(
+    guarded_receipts: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    return _dedupe_text(
+        ref
+        for receipt in guarded_receipts
+        for ref in _sequence(receipt.get("publication_route_memory_writeback_receipt_refs"))
+    )
+
+
+def _artifact_lifecycle_receipt_refs(
+    guarded_receipts: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    return _dedupe_text(
+        ref
+        for receipt in guarded_receipts
+        for ref in _sequence(receipt.get("artifact_lifecycle_receipt_refs"))
+    )
+
+
 def _matching_refs(receipt: Mapping[str, Any], suffix: str) -> list[str]:
     refs = [ref for ref in receipt.get("mas_owner_apply_receipt_refs", []) if suffix in _text(ref)]
     if refs:
@@ -627,6 +659,8 @@ def _domain_dispatch_evidence_record_payload(
             *_sequence(live_evidence_refs.get("progress_delta_refs")),
             *_sequence(live_evidence_refs.get("ai_reviewer_gate_receipt_refs")),
             *_sequence(live_evidence_refs.get("artifact_movement_refs")),
+            *_sequence(live_evidence_refs.get("publication_route_memory_writeback_receipt_refs")),
+            *_sequence(live_evidence_refs.get("artifact_lifecycle_receipt_refs")),
             *_sequence(live_evidence_refs.get("human_gate_or_resume_refs")),
             *_sequence(live_evidence_refs.get("stable_typed_blocker_refs")),
             no_forbidden_write_ref,
@@ -680,6 +714,12 @@ def _research_audit_ref_family_details(
 ) -> dict[str, Any]:
     progress_refs = _sequence(live_evidence_refs.get("progress_delta_refs"))
     artifact_movement_refs = _sequence(live_evidence_refs.get("artifact_movement_refs"))
+    memory_writeback_refs = _sequence(
+        live_evidence_refs.get("publication_route_memory_writeback_receipt_refs")
+    )
+    artifact_lifecycle_refs = _sequence(
+        live_evidence_refs.get("artifact_lifecycle_receipt_refs")
+    )
     decision_trace_refs = _dedupe_text(
         [
             *_refs_with_suffix(owner_receipt_refs, "gate_replay_requests/latest.json"),
@@ -690,7 +730,9 @@ def _research_audit_ref_family_details(
     if owner_receipt_refs and not decision_trace_refs:
         decision_trace_refs = _dedupe_text([*owner_receipt_refs, *progress_refs])
     artifact_lineage_refs = _artifact_lineage_refs(live_evidence_refs)
-    reproducibility_refs = _dedupe_text(artifact_movement_refs)
+    reproducibility_refs = _dedupe_text(
+        [*artifact_movement_refs, *artifact_lifecycle_refs]
+    )
     lineage_or_reproducibility_refs = _dedupe_text(
         [*artifact_lineage_refs, *reproducibility_refs]
     )
@@ -711,6 +753,8 @@ def _research_audit_ref_family_details(
         "decision_trace_refs": decision_trace_refs,
         "artifact_lineage_refs": artifact_lineage_refs,
         "reproducibility_refs": reproducibility_refs,
+        "publication_route_memory_writeback_receipt_refs": memory_writeback_refs,
+        "artifact_lifecycle_receipt_refs": artifact_lifecycle_refs,
         "artifact_lineage_or_reproducibility_refs": lineage_or_reproducibility_refs,
         "routeback_owner_refs": ["MedAutoScience:finalize_and_publication_handoff"],
         "missing_ref_family_refs": missing_ref_family_refs,
@@ -753,6 +797,8 @@ def _stage_expected_receipt_refs(
             *_sequence(live_evidence_refs.get("progress_delta_refs")),
             *_sequence(live_evidence_refs.get("ai_reviewer_gate_receipt_refs")),
             *_sequence(live_evidence_refs.get("artifact_movement_refs")),
+            *_sequence(live_evidence_refs.get("publication_route_memory_writeback_receipt_refs")),
+            *_sequence(live_evidence_refs.get("artifact_lifecycle_receipt_refs")),
             *_sequence(live_evidence_refs.get("human_gate_or_resume_refs")),
             *stable_blocker_refs,
             *_sequence(live_evidence_refs.get("stable_typed_blocker_refs")),
@@ -773,6 +819,8 @@ def _stage_monitor_freshness_refs(
             *_sequence(live_evidence_refs.get("progress_delta_refs")),
             *_sequence(live_evidence_refs.get("ai_reviewer_gate_receipt_refs")),
             *_sequence(live_evidence_refs.get("artifact_movement_refs")),
+            *_sequence(live_evidence_refs.get("publication_route_memory_writeback_receipt_refs")),
+            *_sequence(live_evidence_refs.get("artifact_lifecycle_receipt_refs")),
             *_sequence(live_evidence_refs.get("human_gate_or_resume_refs")),
             *stable_blocker_refs,
             *_sequence(live_evidence_refs.get("stable_typed_blocker_refs")),
@@ -816,6 +864,14 @@ def _body_free_owner_chain_packets(
     packet_specs.extend(
         ("artifact_movement_ref", ref)
         for ref in _sequence(live_evidence_refs.get("artifact_movement_refs"))
+    )
+    packet_specs.extend(
+        ("publication_route_memory_writeback_receipt_ref", ref)
+        for ref in _sequence(live_evidence_refs.get("publication_route_memory_writeback_receipt_refs"))
+    )
+    packet_specs.extend(
+        ("artifact_lifecycle_receipt_ref", ref)
+        for ref in _sequence(live_evidence_refs.get("artifact_lifecycle_receipt_refs"))
     )
     packet_specs.extend(
         ("human_gate_or_resume_ref", ref)

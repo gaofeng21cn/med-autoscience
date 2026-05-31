@@ -63,6 +63,9 @@ def scan_repeat_suppression(
     required_output_pending: bool = False,
 ) -> dict[str, Any]:
     key = repeat_key(owner_route)
+    failed_path_guard = _recorded_failed_path_guard_or_none(owner_route=owner_route, key=key)
+    if failed_path_guard is not None:
+        return failed_path_guard
     materialization_guard = _materialization_loop_guard_or_none(
         previous_payload=previous_payload,
         study_id=study_id,
@@ -246,6 +249,51 @@ def _not_suppressed(key: str | None) -> dict[str, Any]:
         "work_unit_fingerprint": key,
         "repeat_suppression_key": key,
     }
+
+
+def _recorded_failed_path_guard_or_none(
+    *,
+    owner_route: Mapping[str, Any],
+    key: str | None,
+) -> dict[str, Any] | None:
+    route = _mapping(owner_route)
+    if route.get("repeated_failed_path_suppressed") is not True:
+        return None
+    refs = _failed_path_consumption_refs(route)
+    if not refs:
+        return None
+    return {
+        "repeat_suppressed": True,
+        "why_not_applied": REPEAT_SUPPRESSED_REASON,
+        "work_unit_fingerprint": key,
+        "repeat_suppression_key": key,
+        "suppression_source": "owner_route_recorded_failed_path_refs",
+        "failed_path_consumption": {
+            "status": "recorded_failed_path_consumed",
+            "refs": refs,
+            "route_authority": False,
+        },
+    }
+
+
+def _failed_path_consumption_refs(owner_route: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    refs.extend(_string_items(owner_route.get("consumed_failed_path_refs")))
+    refs.extend(_string_items(_mapping(owner_route.get("failed_path_ledger")).get("consumed_refs")))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    refs.extend(_string_items(source_refs.get("consumed_failed_path_refs")))
+    return list(dict.fromkeys(refs))
+
+
+def _string_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if isinstance(value, Mapping | bytes):
+        return []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return list(dict.fromkeys(text for item in value if (text := _text(item)) is not None))
 
 
 def _anti_loop_budget_guard(

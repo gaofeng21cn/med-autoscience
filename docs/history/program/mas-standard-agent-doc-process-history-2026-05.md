@@ -60,6 +60,16 @@ MAS functional consumer boundary 已把通用 scheduler、daemon、queue、attem
 
 这些都是过程性 guard 与 currentness 修复，不应在主文档中展开成流水。
 
+### 2026-05-30 owner-chain refs-only refresh 与 DM003 current-owner foldback
+
+同日 owner-chain latest refresh 继续把 OPL domain-dispatch workorder 回查到 MAS owner surface，并记录 success refs path 或 typed-blocker refs path。过程性 receipt IDs、per-attempt counters、record / verify preflight 和具体 no-forbidden-write refs 属于 OPL runtime ledger / action receipt history；active docs 只保留 latest current readout。
+
+本轮 latest post-verify readout 为 `open_worklist_item_count=0`、`open_safe_action_payload_required_item_count=0`、`open_safe_action_payload_free_item_count=0`、`closed_refs_only_item_count=430`、`domain_dispatch_evidence_receipt_item_count=388`、`domain_dispatch_evidence_workorder_count=0`、`stage_receipt_freshness_open_workorder_count=0`。本轮新增 success owner-receipt refs-only receipt `opl://external-evidence/medautoscience/domain_dispatch:medautoscience:sat_d9a709c902ff095f3573ccab`，receipt refs 为 `studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_execution/sat_d9a709c902ff095f3573ccab.closeout.json`，owner-chain refs 为 `studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/publication_eval/ai_reviewer_responses/20260530T094529Z_publication_eval_record.json` 与 `studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller_decisions/latest.json`，`receipt_semantics=domain_owned_receipt_ref`。Framework readiness 仍是 `framework_control_plane_available_with_blocked_refs_only_attention`，`evidence_envelope_blocked_count=1290`、`domain_dispatch_attention_count=11`；zero-open worklist 仍显式不等于 completion、domain-ready 或 production-ready。App/operator drilldown 显示 `domain_dispatch_evidence_current_default_actionable_attempt_count=0`、`domain_dispatch_evidence_receipt_action_route_count=0`、`app_operator_production_evidence_tail_open_item_count=0`，但 App release/user path 与 Codex App runtime evidence action route 仍为 0，不能写成 App release closeout 或 production long-soak。
+
+本轮追加 provenance：`sat_e751c4fc044fa19dcef294f9` 由 MAS owner surface 生成 success refs path，OPL verify receipt 为 `opl://external-evidence/medautoscience/domain_dispatch:medautoscience:sat_e751c4fc044fa19dcef294f9`；`sat_692da0876d18ea13f46396f7` 由 MAS owner surface 生成 `dispatch_superseded_by_current_owner_route` typed-blocker path，OPL verify receipt 为 `opl://external-evidence/medautoscience/domain_dispatch:medautoscience:sat_692da0876d18ea13f46396f7`。两条 receipt 都是 refs-only ledger closure，不授权 MAS truth、paper body、artifact body、memory body、quality/export verdict、domain-ready 或 production-ready。
+
+同轮还把 DM003 `study_progress` current-owner read-model 从 stale `external_supervisor` repair lifecycle 折回当前 OPL terminal handoff：repo-local clean-runner projection 显示 `ai_repair_lifecycle=null`，并把 next owner/action 指向最新 terminal handoff 的 MAS owner action。具体 owner/action 是 volatile live projection，不作为历史归档的稳定事实；该 foldback 是 status/currentness 修复和 owner-chain 接力显示修复，不写真实 paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、memory body 或 artifact body，也不声明 paper closure、publication-ready、domain-ready、production-ready 或 global completion。
+
 ## 当前归档后的文档职责
 
 - `docs/status.md`：只保留最新状态和当前差距。

@@ -86,6 +86,32 @@ def test_current_checkout_family_shared_pins_align_with_opl_release_contract(tmp
     assert all(item["pins"] == [inspection["owner_commit"]] for item in inspection["findings"])
 
 
+def test_foundry_agent_series_contract_pins_opl_owner_release_contract() -> None:
+    contract = json.loads(
+        (module.repo_root() / "contracts" / "foundry_agent_series.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert contract["contract_version_policy"] == {
+        "breaking_change_requires_new_version": True,
+        "compatible_version_range": ["foundry-agent-series.v1"],
+        "current_version": "foundry-agent-series.v1",
+        "domain_contract_ref": "contracts/foundry_agent_series.json",
+        "domain_descriptor_must_reference_domain_contract": True,
+        "exact_version_pin_required": True,
+    }
+    release_pin = contract["shared_release_pin_strategy"]
+    assert release_pin["owner_release_contract_ref"] == (
+        "contracts/family-release/shared-owner-release.json"
+    )
+    assert release_pin["owner_commit_pin_required"] is True
+    assert release_pin["owner_commit_pin"] == "c5d4a93bd4bb64adf1228ecf7f2a9038c7dce278"
+    assert release_pin["domain_dependency_pin_required"] is True
+    assert release_pin["consumer_alignment_check"] == "family:shared-release"
+    assert release_pin["domain_contract_version_pin_does_not_authorize_domain_truth"] is True
+
+
 def test_family_shared_alignment_uses_repo_root_by_default(monkeypatch, tmp_path: Path) -> None:
     repo_root = tmp_path / "med-autoscience"
     owner_repo_root = tmp_path / "one-person-lab"

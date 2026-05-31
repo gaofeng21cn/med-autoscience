@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection import (
+    current_owner_handoff_action,
+)
+
 
 PUBLIC_STATES = frozenset(
     {
@@ -266,7 +270,8 @@ def _next_owner(payload: Mapping[str, Any], details: Mapping[str, Any]) -> str |
     owner_route = _mapping(payload.get("owner_route"))
     production_impact = _mapping(payload.get("production_blocker_impact"))
     paper_progress_stall = _mapping(payload.get("paper_progress_stall"))
-    opl_handoff = _mapping(payload.get("opl_current_control_state_handoff"))
+    domain_transition = _mapping(payload.get("domain_transition"))
+    opl_handoff_action = current_owner_handoff_action(payload)
     ai_repair_lifecycle = _mapping(payload.get("ai_repair_lifecycle"))
     control_plane = _mapping(payload.get("authority_snapshot"))
     if _supervisor_only_live_quality_repair(payload):
@@ -276,8 +281,10 @@ def _next_owner(payload: Mapping[str, Any], details: Mapping[str, Any]) -> str |
         or _text(owner_route.get("next_owner"))
         or _text(production_impact.get("next_owner"))
         or _text(details.get("decision_owner"))
+        or _text(details.get("route_owner"))
+        or _text(domain_transition.get("owner"))
         or _text(paper_progress_stall.get("next_owner"))
-        or _text(opl_handoff.get("next_owner"))
+        or _text((opl_handoff_action or {}).get("owner"))
         or _text(ai_repair_lifecycle.get("next_owner"))
         or _text(control_plane.get("next_owner"))
     )

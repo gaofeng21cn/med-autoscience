@@ -394,6 +394,8 @@ def _opl_stage_admission_observed(
     study_scan: Mapping[str, Any],
     owner_route: Mapping[str, Any],
 ) -> bool:
+    if text(study_scan.get("active_stage_attempt_id")) and study_scan.get("running_provider_attempt") is True:
+        return True
     return (
         text(owner_route.get("next_owner")) == "one-person-lab"
         and (

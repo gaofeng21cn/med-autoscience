@@ -276,6 +276,15 @@ def _evidence_refs(
                 ),
                 _label_ref("owner-route-reconcile:blocked_reason", blocked_reason),
                 f"owner-route-reconcile:owner_route_next_owner={text(owner_route.get('next_owner'))}",
+                _label_ref(
+                    "opl-provider-attempt:active_stage_attempt_id",
+                    study_scan.get("active_stage_attempt_id"),
+                ),
+                (
+                    "opl-provider-attempt:running_provider_attempt=true"
+                    if study_scan.get("running_provider_attempt") is True
+                    else None
+                ),
             ]
         )
     )

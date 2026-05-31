@@ -12,28 +12,7 @@ PREFERRED_LINE_LIMIT = 1000
 CLEAR_VIOLATION_LINE_LIMIT = 1500
 PART_NEAR_LINE_LIMIT = 900
 SHARED_BASE_BUCKET_LINE_LIMIT = 800
-DEFAULT_BASELINE = {
-    "src/med_autoscience/controllers/domain_health_diagnostic.py": 1499,
-    "src/med_autoscience/cli.py": 1475,
-    "src/med_autoscience/controllers/gate_clearing_batch.py": 1363,
-    "src/med_autoscience/controllers/mainline_status.py": 1301,
-    "src/med_autoscience/controllers/product_entry_parts/workspace_surfaces.py": 1292,
-    "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": 1289,
-    "tests/product_entry_cases/repo_shell_and_handoff_templates.py": 1265,
-    "src/med_autoscience/controllers/stage_knowledge_plane.py": 1199,
-    "src/med_autoscience/controllers/progress_portal.py": 1207,
-    "tests/product_entry_cases/product_entry_preflight_and_task_submission.py": 1180,
-    "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_workflow_dispatch.py": 1110,
-    "src/med_autoscience/controllers/time_to_event_direct_migration.py": 1094,
-    "tests/study_progress_cases/markdown_and_followthrough_projection.py": 1075,
-    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases.py": 1066,
-    "src/med_autoscience/controllers/product_entry_parts/shared_base.py": 1020,
-    "tests/test_cli_cases/owner_route_handoff_command.py": 1025,
-    "tests/product_entry_cases/action_catalog_parity.py": 1004,
-    "tests/display_surface_materialization_cases/basic_displays_and_renderers.py": 1083,
-    "tests/test_overlay_installer.py": 1018,
-    "src/med_autoscience/publication_eval_record.py": 1005,
-}
+DEFAULT_BASELINE: dict[str, int] = {}
 CODE_EXTENSIONS = frozenset(
     {
         ".py",

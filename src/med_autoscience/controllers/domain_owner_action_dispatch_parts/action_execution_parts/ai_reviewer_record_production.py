@@ -46,6 +46,10 @@ STALENESS_HANDOFF_REASONS = {
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 }
+RECORD_PRODUCTION_HANDOFF_REASONS = {
+    *STALENESS_HANDOFF_REASONS,
+    "ai_reviewer_record_incomplete",
+}
 
 
 def _text(value: object) -> str | None:
@@ -389,7 +393,7 @@ def record_production_handoff_execution(
     record_blocker: Mapping[str, Any],
     apply: bool,
 ) -> dict[str, Any] | None:
-    if _text(record_blocker.get("reason")) not in STALENESS_HANDOFF_REASONS:
+    if _text(record_blocker.get("reason")) not in RECORD_PRODUCTION_HANDOFF_REASONS:
         return None
     payload = _mapping(record_blocker.get("payload"))
     production_request = _mapping(payload.get("ai_reviewer_record_production_request"))
@@ -451,6 +455,40 @@ def attach_invalid_ai_reviewer_record_handoff(
     record_blocker["payload"] = payload
 
 
+def attach_incomplete_ai_reviewer_record_handoff(
+    *,
+    record_blocker: dict[str, Any],
+    request: Mapping[str, Any],
+    required_refs: Mapping[str, str | None],
+    record: Mapping[str, Any],
+) -> None:
+    if _text(record_blocker.get("reason")) != "ai_reviewer_record_incomplete":
+        return
+    payload = _mapping(record_blocker.get("payload"))
+    missing_fields = [field for field in payload.get("missing_record_fields") or [] if _text(field)]
+    if missing_fields != ["reviewer_operating_system"]:
+        return
+    required_currentness_refs, request_kind = _record_production_currentness(
+        record=record,
+        required_refs=required_refs,
+    )
+    payload["stale_record_ref"] = _text(request.get("publication_eval_record_ref")) or _text(record.get("eval_id"))
+    payload["required_currentness_refs"] = required_currentness_refs
+    payload["ai_reviewer_record_production_request"] = build_ai_reviewer_record_production_request(
+        request=request,
+        required_refs=required_refs,
+        stale_record_ref=payload["stale_record_ref"],
+        required_currentness_refs=required_currentness_refs,
+        request_kind=request_kind,
+    )
+    payload["next_required_actions"] = [
+        request_kind,
+        "rematerialize_ai_reviewer_request",
+        "return_to_ai_reviewer_workflow",
+    ]
+    record_blocker["payload"] = payload
+
+
 def _record_production_currentness(
     *,
     record: Mapping[str, Any],
@@ -474,6 +512,7 @@ def _record_production_currentness(
 
 
 __all__ = [
+    "attach_incomplete_ai_reviewer_record_handoff",
     "attach_invalid_ai_reviewer_record_handoff",
     "build_ai_reviewer_record_production_request",
     "build_ai_reviewer_record_worker_handoff",

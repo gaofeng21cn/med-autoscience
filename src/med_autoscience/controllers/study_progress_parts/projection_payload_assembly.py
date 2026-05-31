@@ -14,6 +14,10 @@ import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
 from med_autoscience.controllers import current_execution_envelope
 
 from .ai_first_runtime_projection import attach_ai_first_runtime_projection
+from .current_owner_handoff_projection import (
+    apply_current_owner_handoff_user_visible_status,
+    current_owner_redrive_domain_transition,
+)
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .parked_projection import parked_progress_fields
 from .progress_first_projection import build_progress_first_projection
@@ -650,7 +654,7 @@ def assemble_study_progress_payload(
             "opl_current_control_state_handoff": handoff or None,
         },
     )
-    payload = _apply_current_redrive_user_visible_status(payload)
+    payload = apply_current_owner_handoff_user_visible_status(payload)
     payload = _apply_runtime_medical_publication_surface_user_visible_status(payload)
     payload = _apply_terminal_delivery_user_visible_status(payload)
     return attach_ai_first_runtime_projection(
@@ -658,31 +662,6 @@ def assemble_study_progress_payload(
         study_root=study_root,
         generated_at=generated_at,
     )
-
-
-def _apply_current_redrive_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
-    if not _current_redrive_domain_transition(payload):
-        return payload
-    user_visible = _mapping_copy(payload.get("user_visible_projection"))
-    next_step = _current_redrive_next_action(payload, user_visible=user_visible)
-    if next_step is None:
-        return payload
-    updated = dict(payload)
-    updated["next_system_action"] = next_step
-    if user_visible:
-        user_visible["next_system_action"] = next_step
-        user_visible["next_step"] = next_step
-        updated["user_visible_projection"] = user_visible
-    status_contract = _mapping_copy(updated.get("status_narration_contract"))
-    if status_contract:
-        status_contract["next_step"] = next_step
-        updated["status_narration_contract"] = status_contract
-    operator_status = _mapping_copy(updated.get("operator_status_card"))
-    if operator_status:
-        operator_status["current_focus"] = next_step
-        updated["operator_status_card"] = operator_status
-    return updated
-
 
 def _apply_runtime_medical_publication_surface_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
     blockers = _current_runtime_medical_publication_surface_blockers(payload)
@@ -723,24 +702,6 @@ def _merge_blockers(existing: object, blockers: list[str]) -> list[str]:
         if text is not None and text not in merged:
             merged.append(text)
     return merged
-
-
-def _current_redrive_next_action(payload: Mapping[str, Any], *, user_visible: Mapping[str, Any]) -> str | None:
-    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
-    transition = _mapping_copy(payload.get("domain_transition"))
-    next_work_unit = _mapping_copy(transition.get("next_work_unit"))
-    work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
-    route_target = _non_empty_text(transition.get("route_target")) or _non_empty_text(intervention_lane.get("route_target"))
-    owner = _non_empty_text(transition.get("owner")) or route_target
-    if route_summary := (
-        _non_empty_text(intervention_lane.get("route_summary"))
-        or _non_empty_text(intervention_lane.get("summary"))
-    ):
-        return route_summary
-    if work_unit_id is not None:
-        owner_text = f"{owner} owner" if owner is not None else "当前 owner"
-        return f"等待 {owner_text} 处理 work unit {work_unit_id}。"
-    return _non_empty_text(user_visible.get("next_system_action")) or _non_empty_text(user_visible.get("next_step"))
 
 
 def _apply_terminal_delivery_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
@@ -788,7 +749,7 @@ def _apply_terminal_delivery_user_visible_status(payload: dict[str, Any]) -> dic
 
 
 def _terminal_delivery_closed(payload: Mapping[str, Any]) -> bool:
-    if _current_redrive_domain_transition(payload):
+    if current_owner_redrive_domain_transition(payload):
         return False
     user_visible = _mapping_copy(payload.get("user_visible_projection"))
     paper_progress = _mapping_copy(user_visible.get("paper_progress_state"))
@@ -807,16 +768,6 @@ def _terminal_delivery_closed(payload: Mapping[str, Any]) -> bool:
         _non_empty_text(followthrough.get("gate_replay_status")) == "clear"
         and int(followthrough.get("failed_unit_count") or 0) == 0
     )
-
-
-def _current_redrive_domain_transition(payload: Mapping[str, Any]) -> bool:
-    transition = _mapping_copy(payload.get("domain_transition"))
-    return _non_empty_text(transition.get("decision_type")) in {
-        "ai_reviewer_re_eval",
-        "bundle_stage_finalize",
-        "publication_gate_blocker",
-        "route_back_same_line",
-    }
 
 
 def _terminal_delivery_operator_status_card(

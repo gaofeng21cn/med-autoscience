@@ -68,15 +68,6 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-def _string_items(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if not isinstance(value, Iterable) or isinstance(value, Mapping | bytes):
-        return []
-    return list(dict.fromkeys(text for item in value if (text := _text(item)) is not None))
-
-
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -137,42 +128,6 @@ def _clear_resolved_repair_lifecycle(
     except FileNotFoundError:
         return False
     return True
-
-
-def _read_last_json_line(path: Path) -> dict[str, Any] | None:
-    try:
-        lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    except OSError:
-        return None
-    for line in reversed(lines):
-        try:
-            payload = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(payload, Mapping):
-            return dict(payload)
-    return None
-
-
-def _parse_utc_datetime(value: object) -> datetime | None:
-    text = _text(value)
-    if text is None:
-        return None
-    try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
-
-
-def _duration_hours(*, start_at: object, end_at: object) -> float:
-    start = _parse_utc_datetime(start_at)
-    end = _parse_utc_datetime(end_at)
-    if start is None or end is None or end < start:
-        return 0.0
-    return round((end - start).total_seconds() / 3600, 3)
 
 
 def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:

@@ -13,6 +13,7 @@ def build_mas_owner_apply_evidence(study: Mapping[str, Any]) -> dict[str, Any]:
     evidence_ref = _source_ref_path(study, "artifacts/controller/repair_execution_evidence/latest.json")
     gate_replay_ref = _source_ref_path(study, "artifacts/controller/gate_replay_requests/latest.json")
     controller_decisions_ref = _source_ref_path(study, "artifacts/controller_decisions/latest.json")
+    artifact_lifecycle_receipt_refs = _artifact_lifecycle_receipt_refs(repair_receipt)
     receipt_executed = (
         repair_receipt.get("surface") == "paper_repair_owner_receipt"
         and repair_receipt.get("accepted") is True
@@ -64,6 +65,7 @@ def build_mas_owner_apply_evidence(study: Mapping[str, Any]) -> dict[str, Any]:
         "receipt_refs": list(dict.fromkeys(refs)),
         "receipt_surface": _text(repair_receipt.get("surface")),
         "receipt_execution_status": _text(repair_receipt.get("execution_status")),
+        "artifact_lifecycle_receipt_refs": artifact_lifecycle_receipt_refs,
         "evidence_progress_observed": evidence_progress_observed,
         "gate_replay_observed": gate_replay_observed,
         "route_decision_observed": route_decision_observed,
@@ -79,6 +81,7 @@ def empty_mas_owner_apply_evidence() -> dict[str, Any]:
         "receipt_refs": [],
         "receipt_surface": "",
         "receipt_execution_status": "",
+        "artifact_lifecycle_receipt_refs": [],
         "evidence_progress_observed": False,
         "gate_replay_observed": False,
         "route_decision_observed": False,
@@ -94,6 +97,30 @@ def _source_ref_path(study: Mapping[str, Any], relative_ref: str) -> str:
         if ref.get("exists") is True and ref.get("relative_ref") == relative_ref:
             return _text(ref.get("path"))
     return ""
+
+
+def _artifact_lifecycle_receipt_refs(repair_receipt: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for key in (
+        "artifact_lifecycle_receipt_refs",
+        "artifact_authority_receipt_refs",
+        "cleanup_receipt_refs",
+        "restore_proof_refs",
+        "retention_receipt_refs",
+    ):
+        refs.extend(_refs(repair_receipt.get(key)))
+    return list(dict.fromkeys(refs))
+
+
+def _refs(value: object) -> list[str]:
+    if isinstance(value, Mapping):
+        return [_text(value.get("ref") or value.get("receipt_ref") or value.get("path"))]
+    if isinstance(value, list | tuple):
+        refs: list[str] = []
+        for item in value:
+            refs.extend(_refs(item))
+        return [ref for ref in refs if ref]
+    return [_text(value)] if _text(value) else []
 
 
 def _mapping(value: object) -> dict[str, Any]:

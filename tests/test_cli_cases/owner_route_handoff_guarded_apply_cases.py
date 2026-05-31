@@ -97,9 +97,17 @@ def test_domain_handler_dispatch_records_provider_hosted_guarded_apply_receipt_w
     )
     canary_packets = canary["body_free_evidence_packets"]
     assert {packet["role"] for packet in canary_packets} == {
+        "publication_route_memory_writeback_receipt_ref",
         "stable_typed_blocker_ref",
         "no_forbidden_write_proof_ref",
     }
+    assert canary["paper_line_owner_chain_results"][0][
+        "publication_route_memory_writeback_receipt_refs"
+    ] == [
+        "receipt:memory-router",
+        "receipt:writeback",
+        "receipt:aion",
+    ]
     for packet in canary_packets:
         assert set(packet) == {
             "ref",

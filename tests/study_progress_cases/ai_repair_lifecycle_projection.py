@@ -147,6 +147,79 @@ def test_study_progress_suppresses_stale_repair_lifecycle_after_work_unit_eviden
     assert result["module_surfaces"]["runtime"]["health_status"] == "publication_gate_blocked"
 
 
+def test_study_progress_suppresses_opl_handoff_lifecycle_after_newer_owner_truth(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    _write_json(
+        study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json",
+        {
+            "surface": "ai_repair_lifecycle",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "state": "blocked",
+            "top_action": {"action_type": "controller_repair", "repair_kind": "bounded_work_unit_redrive"},
+            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+            "last_apply_attempt_at": "2026-04-10T09:08:30+00:00",
+        },
+    )
+    _write_publication_eval(study_root, quest_root)
+    _write_controller_decision(
+        study_root,
+        quest_root,
+        decision_type="route_back_same_line",
+        requires_human_confirmation=False,
+        action_type="return_to_ai_reviewer_workflow",
+        reason="Current AI reviewer record supersedes the older OPL handoff repair lifecycle.",
+    )
+
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "waiting_for_user",
+            "decision": "resume",
+            "reason": "domain_transition_ai_reviewer_re_eval",
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "next_work_unit": {
+                    "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                },
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "probe_runtime_liveness",
+                "attempt_state": "idle",
+                "blocking_reasons": ["live_worker_requires_worker_running"],
+            },
+        },
+    )
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["ai_repair_lifecycle"] is None
+    assert result["refs"]["ai_repair_lifecycle_path"] is None
+    assert result["user_visible_projection"]["next_owner"] != "external_supervisor"
+
+
 def test_study_progress_builds_readonly_ai_repair_lifecycle_from_ready_repair_action(
     monkeypatch,
     tmp_path: Path,

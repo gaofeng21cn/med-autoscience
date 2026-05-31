@@ -177,6 +177,125 @@ def test_retention_plan_only_marks_safe_cache_as_applyable(tmp_path: Path) -> No
     assert plan["operations"][1]["restore_contract_gate"]["status"] == "required_before_cleanup"
 
 
+def test_retention_plan_preserves_artifact_lifecycle_receipt_ref_families(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_retention_operations_plan")
+    cache_path = tmp_path / ".pytest_cache" / "v" / "cache" / "nodeids"
+    cache_path.parent.mkdir(parents=True)
+    cache_path.write_text("nodeids\n", encoding="utf-8")
+    artifacts = [
+        _artifact(
+            Path("studies/001/paper/source/manuscript.md"),
+            role="canonical_source",
+            lifecycle="active_authority",
+            cleanup_candidate_action="keep-online",
+        ),
+        _artifact(
+            Path("studies/001/manuscript/current_package.zip"),
+            role="derived_projection",
+            lifecycle="rebuildable_projection",
+            cleanup_candidate_action="rebuildable",
+        ),
+        _artifact(
+            cache_path,
+            role="cache",
+            lifecycle="cache_transient",
+            cleanup_candidate_action="delete-safe-cache",
+            workspace_relative_path=".pytest_cache/v/cache/nodeids",
+        ),
+        _artifact(
+            Path("ops/runtime/quests/001/.ds/cold_archive/payload.tar.gz"),
+            role="cold_archive",
+            lifecycle="archived_restore_candidate",
+            cleanup_candidate_action="restore-gated",
+        ),
+    ]
+
+    plan = module.build_artifact_retention_operations_plan(
+        workspace_root=tmp_path,
+        artifacts=artifacts,
+    )
+    compact = module.compact_artifact_retention_operations_plan(plan)
+    aggregate = module.aggregate_artifact_retention_operations_plans([compact])
+
+    for result in (plan, compact, aggregate):
+        assert result["artifact_lifecycle_receipt_refs"]
+        assert result["artifact_authority_receipt_refs"]
+        assert result["cleanup_receipt_refs"]
+        assert result["restore_proof_refs"]
+        assert result["retention_receipt_refs"]
+        assert set(result["artifact_authority_receipt_refs"]).issubset(
+            set(result["artifact_lifecycle_receipt_refs"])
+        )
+        assert set(result["cleanup_receipt_refs"]).issubset(
+            set(result["artifact_lifecycle_receipt_refs"])
+        )
+        assert set(result["restore_proof_refs"]).issubset(
+            set(result["artifact_lifecycle_receipt_refs"])
+        )
+        assert set(result["retention_receipt_refs"]).issubset(
+            set(result["artifact_lifecycle_receipt_refs"])
+        )
+    assert plan["mutation_policy"]["physical_cleanup_performed"] is False
+
+
+def test_retention_plan_bounds_artifact_receipt_ref_families_and_preserves_counts(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_retention_operations_plan")
+    artifacts: list[dict[str, object]] = []
+    for index in range(60):
+        artifacts.extend(
+            [
+                _artifact(
+                    Path(f"studies/001/paper/source/manuscript-{index}.md"),
+                    role="canonical_source",
+                    lifecycle="active_authority",
+                    cleanup_candidate_action="keep-online",
+                ),
+                _artifact(
+                    Path(f".pytest_cache/v/cache/nodeids-{index}"),
+                    role="cache",
+                    lifecycle="cache_transient",
+                    cleanup_candidate_action="delete-safe-cache",
+                    workspace_relative_path=f".pytest_cache/v/cache/nodeids-{index}",
+                ),
+                _artifact(
+                    Path(f"ops/runtime/quests/{index}/.ds/cold_archive/payload.tar.gz"),
+                    role="cold_archive",
+                    lifecycle="archived_restore_candidate",
+                    cleanup_candidate_action="restore-gated",
+                ),
+            ]
+        )
+
+    plan = module.build_artifact_retention_operations_plan(
+        workspace_root=tmp_path,
+        artifacts=artifacts,
+    )
+    compact = module.compact_artifact_retention_operations_plan(plan)
+    aggregate = module.aggregate_artifact_retention_operations_plans([compact])
+
+    for result in (plan, compact, aggregate):
+        assert len(result["artifact_lifecycle_receipt_refs"]) == module.RECEIPT_REF_SAMPLE_LIMIT
+        assert result["artifact_lifecycle_receipt_ref_count"] == 180
+        assert result["artifact_lifecycle_receipt_refs_truncated"] is True
+        assert len(result["artifact_authority_receipt_refs"]) == module.RECEIPT_REF_SAMPLE_LIMIT
+        assert result["artifact_authority_receipt_ref_count"] == 180
+        assert result["artifact_authority_receipt_refs_truncated"] is True
+        assert len(result["cleanup_receipt_refs"]) == module.RECEIPT_REF_SAMPLE_LIMIT
+        assert result["cleanup_receipt_ref_count"] == 60
+        assert result["cleanup_receipt_refs_truncated"] is True
+        assert len(result["restore_proof_refs"]) == module.RECEIPT_REF_SAMPLE_LIMIT
+        assert result["restore_proof_ref_count"] == 60
+        assert result["restore_proof_refs_truncated"] is True
+        assert len(result["retention_receipt_refs"]) == module.RECEIPT_REF_SAMPLE_LIMIT
+        assert result["retention_receipt_ref_count"] == 60
+        assert result["retention_receipt_refs_truncated"] is True
+    assert plan["summary"]["operation_count"] == 180
+
+
 def test_terminal_stop_loss_retention_plan_requires_explicit_non_reopenable_macro_state(
     tmp_path: Path,
 ) -> None:

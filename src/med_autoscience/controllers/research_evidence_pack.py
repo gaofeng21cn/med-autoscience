@@ -138,6 +138,17 @@ def build_research_evidence_pack_summary(
             "platform_repair_counts_as_paper_progress": False,
         },
     }
+    failed_path_consumption = failed_path_consumption_summary(
+        domain_id=normalized_domain,
+        task_kind=normalized_task,
+        study_id=normalized_study,
+        stage_id=normalized_stage,
+        negative_failed_path_refs=normalized_negative_failed_path_refs,
+        decision_trace_refs=normalized_decision_trace_refs,
+        route_switch_refs=normalized_route_switch_refs,
+        owner_receipt_refs=normalized_owner_receipt_refs,
+        typed_blocker_refs=normalized_typed_blocker_refs,
+    )
     summary = {
         "surface_kind": SURFACE_KIND,
         "version": VERSION,
@@ -187,6 +198,7 @@ def build_research_evidence_pack_summary(
         "owner_receipt_refs": normalized_owner_receipt_refs,
         "schema_validation": validation,
         "ref_family_status": validation["ref_family_status"],
+        "failed_path_consumption": failed_path_consumption,
         "missing_required_evidence_families": validation["missing_required_evidence_families"],
         "fail_closed_required": bool(validation["fail_closed_reasons"]),
         "progress_summary": progress_delta_summary,
@@ -202,6 +214,64 @@ def build_research_evidence_pack_summary(
         },
     }
     return summary
+
+
+def failed_path_consumption_summary(
+    *,
+    domain_id: str,
+    task_kind: str,
+    study_id: str | None = None,
+    stage_id: str | None = None,
+    negative_failed_path_refs: Sequence[str | Mapping[str, Any]] = (),
+    decision_trace_refs: Sequence[str | Mapping[str, Any]] = (),
+    route_switch_refs: Sequence[str | Mapping[str, Any]] = (),
+    owner_receipt_refs: Sequence[str | Mapping[str, Any]] = (),
+    typed_blocker_refs: Sequence[str | Mapping[str, Any]] = (),
+) -> dict[str, Any]:
+    normalized_domain = _text(domain_id) or "medautoscience"
+    normalized_task = _text(task_kind) or "domain_owner"
+    normalized_scope = _text(study_id) or _text(stage_id) or "workspace"
+    failed_refs = _unique_refs(negative_failed_path_refs)
+    decision_refs = _unique_refs(decision_trace_refs)
+    switch_refs = _unique_refs(route_switch_refs)
+    result_refs = _unique_refs([*owner_receipt_refs, *typed_blocker_refs])
+    consumption_key = ":".join(
+        [
+            "mas-failed-path-consumption",
+            _ref_token(normalized_domain),
+            _ref_token(normalized_task),
+            _ref_token(normalized_scope),
+            _ref_token("|".join(failed_refs) or "none"),
+        ]
+    )
+    return {
+        "surface_kind": "mas_failed_path_consumption_summary",
+        "version": "mas-failed-path-consumption-summary.v1",
+        "status": "consumed" if failed_refs else "no_failed_path_refs",
+        "consumption_key": consumption_key,
+        "negative_failed_path_refs": failed_refs,
+        "decision_trace_refs": decision_refs,
+        "route_switch_refs": switch_refs,
+        "owner_result_refs": result_refs,
+        "duplicate_invalid_attempt_suppression": {
+            "enabled": bool(failed_refs),
+            "suppression_basis": "negative_failed_path_refs",
+            "same_failed_path_refs_should_not_spawn_same_work_unit": bool(failed_refs),
+            "requires_new_decision_trace_or_route_switch_ref_for_redrive": bool(failed_refs),
+            "new_attempt_allowed_when_new_decision_trace_or_route_switch_ref": bool(
+                failed_refs and (decision_refs or switch_refs)
+            ),
+        },
+        "authority_boundary": {
+            "summary_only": True,
+            "body_free": True,
+            "is_route_authority": False,
+            "can_block_owner_route": False,
+            "can_authorize_route_switch": False,
+            "can_authorize_artifact_mutation": False,
+            "can_authorize_publication_readiness": False,
+        },
+    }
 
 
 def schema_compatible_validation_summary(
@@ -484,6 +554,7 @@ __all__ = [
     "SURFACE_KIND",
     "VERSION",
     "build_research_evidence_pack_summary",
+    "failed_path_consumption_summary",
     "missing_required_evidence_families",
     "schema_compatible_validation_summary",
 ]

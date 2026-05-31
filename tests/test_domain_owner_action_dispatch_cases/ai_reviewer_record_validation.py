@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.domain_owner_action_dispatch_helpers import (
@@ -8,7 +9,11 @@ from tests.domain_owner_action_dispatch_helpers import (
     write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
-from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
+from tests.reviewer_os_fixture_helpers import (
+    current_manuscript_routeback_reviewer_os,
+    current_routeback_future_plan,
+    current_routeback_quality_assessment,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -318,6 +323,150 @@ def test_execute_dispatch_rejects_request_record_with_invalid_evaluation_scope(
         "rematerialize_ai_reviewer_request",
         "return_to_ai_reviewer_workflow",
     ]
+
+
+def test_execute_dispatch_materializes_handoff_for_incomplete_current_ai_reviewer_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Current manuscript\n\nCurrent AI reviewer route-back manuscript snapshot.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {"required_refs": _required_publication_input_refs(study_root)},
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::current-incomplete",
+            "study_id": study_id,
+            "quest_id": f"quest-{study_id}",
+            "emitted_at": "2026-05-30T03:45:22+00:00",
+            "evaluation_scope": "publication",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "blocked",
+                    "summary": "Reviewer operating system trace must be rebuilt.",
+                    "evidence_refs": [str(manuscript_path)],
+                }
+            },
+            "future_facing_limitations_plan": [
+                {
+                    "limitation": "The current manuscript needs record production trace hardening.",
+                    "impact_on_claim": "Claims must remain bounded until a traced AI reviewer record exists.",
+                    "required_future_analysis_data_or_design": "Repeat the AI reviewer record-production workflow.",
+                    "current_manuscript_wording_must_be_restrained": True,
+                }
+            ],
+        },
+    )
+    _write_ai_reviewer_dispatch(profile, study_root, study_id)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
+    assert execution["next_owner"] == "ai_reviewer"
+    production_request = execution["ai_reviewer_record_production_request"]
+    assert production_request["request_kind"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert production_request["stale_record_ref"] == "publication-eval::current-incomplete"
+    assert production_request["record_must_consume_refs"] == [str(manuscript_path)]
+    payload_ref = Path(production_request["owner_callable_payload_ref"])
+    assert payload_ref.is_file()
+    payload = json.loads(payload_ref.read_text(encoding="utf-8"))
+    assert payload["surface"] == "ai_reviewer_record_payload_authoring_target"
+    assert payload["record_payload"] is None
+    assert payload["owner_callable_command"].startswith("medautosci publication materialize-ai-reviewer-record ")
+    assert Path(execution["ai_reviewer_record_worker_handoff_path"]).is_file()
+
+
+def test_execute_dispatch_materializes_handoff_when_request_record_only_needs_production_trace(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Current manuscript\n\nCurrent AI reviewer route-back manuscript snapshot.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {"required_refs": _required_publication_input_refs(study_root)},
+            "ai_reviewer_record": {
+                "schema_version": 1,
+                "eval_id": "publication-eval::request-record-needs-trace",
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "emitted_at": "2026-05-30T03:45:22+00:00",
+                "evaluation_scope": "publication",
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": current_routeback_quality_assessment(
+                    manuscript_ref=str(manuscript_path),
+                    evidence_ref=str(study_root / "paper" / "evidence_ledger.json"),
+                    review_ref=str(study_root / "paper" / "review" / "review_ledger.json"),
+                ),
+                "future_facing_limitations_plan": current_routeback_future_plan(),
+                "recommended_actions": [{"action_type": "route_back_same_line"}],
+            },
+        },
+    )
+    _write_ai_reviewer_dispatch(profile, study_root, study_id)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "handoff_ready"
+    production_request = execution["ai_reviewer_record_production_request"]
+    assert production_request["stale_record_ref"] == "publication-eval::request-record-needs-trace"
+    assert production_request["request_kind"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    payload = json.loads(Path(production_request["owner_callable_payload_ref"]).read_text(encoding="utf-8"))
+    assert payload["record_payload"] is None
+    assert payload["record_payload_contract"]["record_payload_must_be_authored_by_ai_reviewer"] is True
 
 
 def test_execute_dispatch_rejects_request_record_with_invalid_reviewer_operating_system(

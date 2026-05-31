@@ -134,6 +134,68 @@ def test_acceptance_requires_owner_receipt_or_typed_blocker_and_next_verificatio
         )
 
 
+def test_stage_replay_human_gate_blocker_summary_is_refs_only_and_non_authority() -> None:
+    payload = _acceptance()
+    blocker = payload["stage_replay_human_gate_blocker_summary"]
+
+    assert blocker["surface_kind"] == "mas_stage_replay_human_gate_blocker_summary"
+    assert blocker["owner"] == "med-autoscience"
+    assert blocker["role"] == "domain_owned_body_free_typed_blocker_for_stage_replay_missing_receipt"
+    assert blocker["target_missing_ref"] == "human_gate:study_user_decision_gate"
+    assert blocker["missing_ref_kind"] == "human_gate_ref"
+    assert blocker["payload_path"] == "typed_blocker_path"
+    assert blocker["stage_count"] == 3
+    assert blocker["success_claimed"] is False
+    assert blocker["human_gate_approval_claimed"] is False
+    assert blocker["domain_ready_claimed"] is False
+    assert blocker["production_ready_claimed"] is False
+    assert blocker["publication_ready_claimed"] is False
+    assert blocker["current_package_update_claimed"] is False
+
+    expected_blocker_refs = {
+        "baseline_and_evidence_setup": (
+            "mas-stage-typed-blocker:medautoscience:baseline_and_evidence_setup:"
+            "study-user-decision-gate-receipt-pending"
+        ),
+        "bounded_analysis_campaign": (
+            "mas-stage-typed-blocker:medautoscience:bounded_analysis_campaign:"
+            "study-user-decision-gate-receipt-pending"
+        ),
+        "manuscript_authoring": (
+            "mas-stage-typed-blocker:medautoscience:manuscript_authoring:"
+            "study-user-decision-gate-receipt-pending"
+        ),
+    }
+    stages = {stage["stage_id"]: stage for stage in blocker["stages"]}
+    assert set(stages) == set(expected_blocker_refs)
+    for stage_id, typed_blocker_ref in expected_blocker_refs.items():
+        stage = stages[stage_id]
+        assert stage["target_identity"] == {
+            "domain_id": "med-autoscience",
+            "stage_id": stage_id,
+            "missing_ref": "human_gate:study_user_decision_gate",
+        }
+        assert stage["typed_blocker_refs"] == [typed_blocker_ref]
+        assert stage["source_ref"].startswith(
+            "contracts/production_acceptance/mas-production-acceptance.json#/"
+        )
+        assert (REPO_ROOT / stage["source_ref"].split("#")[0]).exists()
+        assert "receipt is pending" in stage["blocker_reason"]
+
+    boundary = blocker["authority_boundary"]
+    assert boundary["refs_only"] is True
+    assert boundary["can_requery_human"] is False
+    assert boundary["can_write_owner_receipt"] is False
+    assert boundary["can_write_domain_truth"] is False
+    assert boundary["can_write_publication_eval"] is False
+    assert boundary["can_write_controller_decisions"] is False
+    assert boundary["can_write_current_package"] is False
+    assert boundary["can_mutate_artifact_body"] is False
+    assert boundary["can_write_memory_body"] is False
+    assert boundary["can_authorize_quality_or_export"] is False
+    assert boundary["can_close_replay_success_path"] is False
+
+
 def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body() -> None:
     payload = _acceptance()
     evidence = payload["paper_line_guarded_apply_evidence"]

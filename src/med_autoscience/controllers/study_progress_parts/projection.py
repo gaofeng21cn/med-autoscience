@@ -33,6 +33,11 @@ from .opl_current_control_state_handoff import (
     opl_current_control_state_study_handoff_projection as _opl_current_control_state_study_handoff_projection,
     read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
 )
+from .current_domain_truth_projection import (
+    _current_blockers_respecting_controller_closure,
+    domain_truth_supersedes_ai_repair_lifecycle as _domain_truth_supersedes_ai_repair_lifecycle,
+    progress_projection_respecting_current_domain_truth as _progress_projection_respecting_current_domain_truth,
+)
 from .projection_sources import (
     _attach_existing_autonomy_slo_projection,
     _autonomy_slo_observer_status,
@@ -132,7 +137,7 @@ def build_study_progress_projection(
             }
         )
         normalized_existing.pop("publication_supervisor_state", None)
-        normalized_existing = _progress_projection_respecting_controller_closure(
+        normalized_existing = _progress_projection_respecting_current_domain_truth(
             study_root=study_root,
             publication_eval_payload=_read_json_object(
                 study_root / "artifacts" / "publication_eval" / "latest.json"
@@ -540,16 +545,26 @@ def build_study_progress_projection(
         }
     )
     repair_recommendation = _mapping_copy((autonomy_slo_status or {}).get("repair_recommendation"))
-    ai_repair_lifecycle = (
-        None
-        if _current_status_suppresses_ai_repair_lifecycle(status)
-        else _read_ai_repair_lifecycle(
-            study_root=resolved_study_root
-        ) or _build_readonly_ai_repair_lifecycle_projection(
-            study_root=resolved_study_root,
-            status_payload=status,
-        )
-    )
+    ai_repair_lifecycle = None
+    if not _current_status_suppresses_ai_repair_lifecycle(status):
+        persisted_ai_repair_lifecycle = _read_ai_repair_lifecycle(study_root=resolved_study_root)
+        stale_opl_route_superseded = False
+        if _domain_truth_supersedes_ai_repair_lifecycle(
+            persisted_ai_repair_lifecycle,
+            latest_events=latest_events,
+        ):
+            persisted_ai_repair_lifecycle = None
+            stale_opl_route_superseded = True
+        if stale_opl_route_superseded:
+            ai_repair_lifecycle = None
+        else:
+            ai_repair_lifecycle = (
+                persisted_ai_repair_lifecycle
+                or _build_readonly_ai_repair_lifecycle_projection(
+                    study_root=resolved_study_root,
+                    status_payload=status,
+                )
+            )
     opl_current_control_state_handoff = _opl_current_control_state_study_handoff_projection(
         profile=profile,
         study_id=resolved_study_id,
@@ -801,7 +816,7 @@ def build_study_progress_projection(
         if ai_reviewer_request_lifecycle is not None
         else None
     )
-    return assemble_study_progress_payload(
+    payload = assemble_study_progress_payload(
         generated_at=generated_at,
         study_id=resolved_study_id,
         study_root=resolved_study_root,
@@ -879,75 +894,10 @@ def build_study_progress_projection(
         supervision_health_status=supervision_health_status,
         refs=refs,
     )
-
-
-def _current_blockers_respecting_controller_closure(
-    *,
-    study_root: Path,
-    publication_eval_payload: dict[str, Any] | None,
-    blockers: list[str],
-) -> list[str]:
-    if not _submission_authority_sync_closed_for_eval(
-        study_root=study_root,
+    return _progress_projection_respecting_current_domain_truth(
+        study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
-    ):
-        return blockers
-    return [
-        blocker
-        for blocker in blockers
-        if _non_empty_text(blocker) != "stale_submission_minimal_authority"
-    ]
-
-
-def _progress_projection_respecting_controller_closure(
-    *,
-    study_root: Path,
-    publication_eval_payload: dict[str, Any] | None,
-    payload: dict[str, Any],
-) -> dict[str, Any]:
-    blockers = _current_blockers_respecting_controller_closure(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-        blockers=[
-            str(item)
-            for item in payload.get("current_blockers") or []
-            if str(item or "").strip()
-        ],
-    )
-    if blockers == payload.get("current_blockers"):
-        return payload
-    updated = dict(payload)
-    updated["current_blockers"] = blockers
-    user_visible = _mapping_copy(updated.get("user_visible_projection"))
-    if user_visible:
-        user_visible["current_blockers"] = blockers
-        updated["user_visible_projection"] = user_visible
-    status_contract = _mapping_copy(updated.get("status_narration_contract"))
-    if status_contract:
-        status_contract["current_blockers"] = blockers[:8]
-        updated["status_narration_contract"] = status_contract
-    return updated
-
-
-def _submission_authority_sync_closed_for_eval(
-    *,
-    study_root: Path,
-    publication_eval_payload: dict[str, Any] | None,
-) -> bool:
-    current_eval_id = _non_empty_text((publication_eval_payload or {}).get("eval_id"))
-    if current_eval_id is None:
-        return False
-    lifecycle = _read_json_object(
-        study_root / "artifacts" / "controller" / "publication_work_unit_lifecycle" / "latest.json"
-    )
-    freshness = _read_json_object(
-        study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
-    )
-    return (
-        _non_empty_text((lifecycle or {}).get("source_eval_id")) == current_eval_id
-        and _non_empty_text((lifecycle or {}).get("status")) == "done"
-        and _non_empty_text((freshness or {}).get("source_eval_id")) == current_eval_id
-        and _non_empty_text((freshness or {}).get("status")) == "fresh"
+        payload=payload,
     )
 
 

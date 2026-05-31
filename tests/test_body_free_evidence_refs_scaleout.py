@@ -791,6 +791,32 @@ def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_pa
     assert record_payload["research_evidence_pack_summary"]["schema_validation"]["status"] == (
         "schema_compatible_refs_ready"
     )
+    failed_path_consumption = record_payload["research_evidence_pack_summary"][
+        "failed_path_consumption"
+    ]
+    assert failed_path_consumption["status"] == "consumed"
+    assert failed_path_consumption["negative_failed_path_refs"] == [
+        "studies/DM002/artifacts/research/negative_failed_path_ledger/latest.json",
+    ]
+    assert failed_path_consumption["decision_trace_refs"] == [
+        "studies/DM002/artifacts/research/decision_trace/latest.json",
+    ]
+    assert failed_path_consumption["duplicate_invalid_attempt_suppression"] == {
+        "enabled": True,
+        "suppression_basis": "negative_failed_path_refs",
+        "same_failed_path_refs_should_not_spawn_same_work_unit": True,
+        "requires_new_decision_trace_or_route_switch_ref_for_redrive": True,
+        "new_attempt_allowed_when_new_decision_trace_or_route_switch_ref": True,
+    }
+    assert failed_path_consumption["authority_boundary"] == {
+        "summary_only": True,
+        "body_free": True,
+        "is_route_authority": False,
+        "can_block_owner_route": False,
+        "can_authorize_route_switch": False,
+        "can_authorize_artifact_mutation": False,
+        "can_authorize_publication_readiness": False,
+    }
     assert record_payload["research_evidence_pack_summary"]["missing_required_evidence_families"] == []
     assert record_payload["research_evidence_pack_summary"]["fail_closed_required"] is False
     assert {

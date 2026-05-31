@@ -128,6 +128,19 @@ def test_current_repo_boundary_guard_has_no_blocking_findings() -> None:
         assert finding.severity == "advisory"
 
 
+def test_current_default_boundary_baseline_does_not_keep_under_limit_entries() -> None:
+    module = _boundary_fitness_module()
+    repo_root = Path(__file__).resolve().parents[1]
+
+    stale_under_limit_entries = []
+    for relative_path in module.DEFAULT_BASELINE:
+        candidate = repo_root / relative_path
+        if candidate.exists() and module.count_lines(candidate) <= module.PREFERRED_LINE_LIMIT:
+            stale_under_limit_entries.append(relative_path)
+
+    assert stale_under_limit_entries == []
+
+
 def test_submission_minimal_shared_facade_is_physically_retired() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     retired_facade = repo_root / "src/med_autoscience/controllers/submission_minimal_parts/shared.py"

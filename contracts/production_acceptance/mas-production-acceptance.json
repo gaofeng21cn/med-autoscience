@@ -618,6 +618,75 @@
       "opl_stage_production_evidence_receipt_verify"
     ]
   },
+  "stage_replay_human_gate_blocker_summary": {
+    "surface_kind": "mas_stage_replay_human_gate_blocker_summary",
+    "owner": "med-autoscience",
+    "role": "domain_owned_body_free_typed_blocker_for_stage_replay_missing_receipt",
+    "target_missing_ref": "human_gate:study_user_decision_gate",
+    "missing_ref_kind": "human_gate_ref",
+    "payload_path": "typed_blocker_path",
+    "stage_count": 3,
+    "stages": [
+      {
+        "stage_id": "baseline_and_evidence_setup",
+        "target_identity": {
+          "domain_id": "med-autoscience",
+          "stage_id": "baseline_and_evidence_setup",
+          "missing_ref": "human_gate:study_user_decision_gate"
+        },
+        "typed_blocker_refs": [
+          "mas-stage-typed-blocker:medautoscience:baseline_and_evidence_setup:study-user-decision-gate-receipt-pending"
+        ],
+        "source_ref": "contracts/production_acceptance/mas-production-acceptance.json#/stage_replay_human_gate_blocker_summary/stages/0",
+        "blocker_reason": "study user decision gate receipt is pending; MAS can only return a typed blocker until the study user or human gate owner produces a receipt"
+      },
+      {
+        "stage_id": "bounded_analysis_campaign",
+        "target_identity": {
+          "domain_id": "med-autoscience",
+          "stage_id": "bounded_analysis_campaign",
+          "missing_ref": "human_gate:study_user_decision_gate"
+        },
+        "typed_blocker_refs": [
+          "mas-stage-typed-blocker:medautoscience:bounded_analysis_campaign:study-user-decision-gate-receipt-pending"
+        ],
+        "source_ref": "contracts/production_acceptance/mas-production-acceptance.json#/stage_replay_human_gate_blocker_summary/stages/1",
+        "blocker_reason": "study user decision gate receipt is pending; MAS can only return a typed blocker until the study user or human gate owner produces a receipt"
+      },
+      {
+        "stage_id": "manuscript_authoring",
+        "target_identity": {
+          "domain_id": "med-autoscience",
+          "stage_id": "manuscript_authoring",
+          "missing_ref": "human_gate:study_user_decision_gate"
+        },
+        "typed_blocker_refs": [
+          "mas-stage-typed-blocker:medautoscience:manuscript_authoring:study-user-decision-gate-receipt-pending"
+        ],
+        "source_ref": "contracts/production_acceptance/mas-production-acceptance.json#/stage_replay_human_gate_blocker_summary/stages/2",
+        "blocker_reason": "study user decision gate receipt is pending; MAS can only return a typed blocker until the study user or human gate owner produces a receipt"
+      }
+    ],
+    "success_claimed": false,
+    "human_gate_approval_claimed": false,
+    "domain_ready_claimed": false,
+    "production_ready_claimed": false,
+    "publication_ready_claimed": false,
+    "current_package_update_claimed": false,
+    "authority_boundary": {
+      "refs_only": true,
+      "can_requery_human": false,
+      "can_write_owner_receipt": false,
+      "can_write_domain_truth": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_write_current_package": false,
+      "can_mutate_artifact_body": false,
+      "can_write_memory_body": false,
+      "can_authorize_quality_or_export": false,
+      "can_close_replay_success_path": false
+    }
+  },
   "domain_acceptance_receipt": {
     "receipt_id": "mas-production-acceptance-2026-05-19",
     "receipt_class": "owner_receipt",

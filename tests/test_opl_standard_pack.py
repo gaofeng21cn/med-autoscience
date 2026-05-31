@@ -61,6 +61,23 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert foundry_series["product_layer"] == "foundry_agent"
     assert foundry_series["domain_id"] == "medautoscience"
     assert foundry_series["stage_control_plane_target_domain_id"] == "med-autoscience"
+    assert foundry_series["contract_version_policy"] == {
+        "current_version": "foundry-agent-series.v1",
+        "domain_contract_ref": "contracts/foundry_agent_series.json",
+        "exact_version_pin_required": True,
+        "compatible_version_range": ["foundry-agent-series.v1"],
+        "breaking_change_requires_new_version": True,
+        "domain_descriptor_must_reference_domain_contract": True,
+    }
+    assert foundry_series["shared_release_pin_strategy"] == {
+        "owner_release_contract_ref": "contracts/family-release/shared-owner-release.json",
+        "owner_commit_pin_required": True,
+        "owner_commit_pin": "c5d4a93bd4bb64adf1228ecf7f2a9038c7dce278",
+        "domain_dependency_pin_required": True,
+        "supported_pin_sources": ["pyproject.toml", "uv.lock"],
+        "consumer_alignment_check": "family:shared-release",
+        "domain_contract_version_pin_does_not_authorize_domain_truth": True,
+    }
     assert foundry_series["domain_progress_aliases"]["deliverable"] == [
         "paper_progress_delta",
         "paper_work_progress",

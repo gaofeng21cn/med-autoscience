@@ -212,6 +212,11 @@ def route_and_decorate_actions(
         actions=normalized_actions,
         trace_projection=owner_route,
     )
+    owner_route = _attach_consumed_failed_path_refs_from_filtered_actions(
+        owner_route=owner_route,
+        original_actions=normalized_actions,
+        filtered_actions=actions,
+    )
     return owner_route, decorate_actions(actions=actions, owner_route=owner_route)
 
 
@@ -303,6 +308,86 @@ def _attach_decision_trace_source_refs(route: dict[str, Any]) -> None:
     if route.get("consumed_failed_path_refs"):
         source_refs["consumed_failed_path_refs"] = list(route.get("consumed_failed_path_refs") or [])
     route["source_refs"] = source_refs
+
+
+def _attach_consumed_failed_path_refs_from_filtered_actions(
+    *,
+    owner_route: Mapping[str, Any],
+    original_actions: list[Mapping[str, Any]],
+    filtered_actions: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    if len(filtered_actions) == len(original_actions):
+        return dict(owner_route)
+    recorded_refs = set(_text_items(owner_route.get("failed_path_refs")))
+    recorded_refs.update(_text_items(owner_route.get("consumed_failed_path_refs")))
+    if not recorded_refs:
+        return dict(owner_route)
+    filtered_ids = {_action_identity(action) for action in filtered_actions}
+    consumed_refs: list[str] = []
+    for action in original_actions:
+        if _action_identity(action) in filtered_ids:
+            continue
+        consumed_refs.extend(ref for ref in _action_failed_path_refs(action) if ref in recorded_refs)
+    consumed_refs = _unique_texts(
+        [
+            *_text_items(owner_route.get("consumed_failed_path_refs")),
+            *consumed_refs,
+        ]
+    )
+    if not consumed_refs:
+        return dict(owner_route)
+    route = dict(owner_route)
+    route["consumed_failed_path_refs"] = consumed_refs
+    route["repeated_failed_path_suppressed"] = True
+    failed_path_ledger = dict(_mapping(route.get("failed_path_ledger")))
+    if failed_path_ledger:
+        failed_path_ledger["consumed_refs"] = consumed_refs
+        failed_path_ledger["body_included"] = False
+        failed_path_ledger["route_authority"] = False
+        route["failed_path_ledger"] = failed_path_ledger
+    _attach_decision_trace_source_refs(route)
+    return route
+
+
+def _action_identity(action: Mapping[str, Any]) -> tuple[str | None, str | None, str | None]:
+    return (
+        _text(action.get("action_id")),
+        _text(action.get("action_type")),
+        _text(action.get("work_unit_fingerprint")),
+    )
+
+
+def _action_failed_path_refs(action: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for key in (
+        "consumes_failed_path_refs",
+        "consumed_failed_path_refs",
+        "failed_path_refs",
+    ):
+        refs.extend(_text_items(action.get(key)))
+    return _unique_texts(refs)
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if isinstance(value, Mapping | bytes):
+        return []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return _unique_texts(item for item in value if _text(item) is not None)
+
+
+def _unique_texts(values: Iterable[object]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = _text(value)
+        if text and text not in seen:
+            seen.add(text)
+            result.append(text)
+    return result
 
 
 def _owner_from_actions(actions: list[Mapping[str, Any]]) -> str | None:

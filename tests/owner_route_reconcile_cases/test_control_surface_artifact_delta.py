@@ -174,6 +174,94 @@ def test_repeat_suppression_ignores_last_meaningful_progress_without_artifact_de
     ) is False
 
 
+def test_repeat_suppression_consumes_recorded_failed_path_refs_without_authority() -> None:
+    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+
+    guard = module.scan_repeat_suppression(
+        previous_payload=None,
+        study_id="002-dm-china-us-mortality-attribution",
+        owner_route={
+            "work_unit_fingerprint": "negative-result-stoploss::primary-analysis",
+            "next_owner": "analysis_harmonization_owner",
+            "owner_reason": "negative_result_cannot_support_original_claim",
+            "allowed_actions": ["methodology_reframe_route_decision"],
+            "failed_path_ledger": {
+                "surface_kind": "mas_failed_path_refs_projection",
+                "refs": [
+                    "studies/002-dm-china-us-mortality-attribution/artifacts/research/negative_failed_path_ledger/latest.json",
+                ],
+                "consumed_refs": [
+                    "studies/002-dm-china-us-mortality-attribution/artifacts/research/negative_failed_path_ledger/latest.json",
+                ],
+                "body_included": False,
+                "route_authority": False,
+            },
+            "repeated_failed_path_suppressed": True,
+        },
+        current_meaningful_artifact_delta=False,
+    )
+
+    assert guard["repeat_suppressed"] is True
+    assert guard["why_not_applied"] == "repeat_suppressed"
+    assert guard["suppression_source"] == "owner_route_recorded_failed_path_refs"
+    assert guard["failed_path_consumption"] == {
+        "status": "recorded_failed_path_consumed",
+        "refs": [
+            "studies/002-dm-china-us-mortality-attribution/artifacts/research/negative_failed_path_ledger/latest.json",
+        ],
+        "route_authority": False,
+    }
+
+
+def test_owner_route_consumes_negative_result_refs_before_repeat_guard() -> None:
+    module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    negative_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/research/"
+        "negative_failed_path_ledger/latest.json"
+    )
+
+    owner_route, actions = module.route_and_decorate_actions(
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        status={
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-negative",
+                "source_signature": "truth-source-negative",
+            },
+            "negative_result_ledger": {
+                "summary": "Primary analysis cannot support the original route.",
+                "negative_result_refs": [negative_ref],
+                "body": "private negative-result body must not be consumed",
+            },
+        },
+        progress={},
+        actions=[
+            {
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "action_type": "methodology_reframe_route_decision",
+                "owner": "analysis_harmonization_owner",
+                "consumes_failed_path_refs": [negative_ref],
+                "work_unit_fingerprint": "negative-result-stoploss::primary-analysis",
+            }
+        ],
+        blocked_reason="negative_result_cannot_support_original_claim",
+        next_owner="analysis_harmonization_owner",
+        active_run_id=None,
+    )
+
+    assert actions == []
+    assert owner_route["repeated_failed_path_suppressed"] is True
+    assert owner_route["failed_path_ledger"] == {
+        "surface_kind": "mas_failed_path_refs_projection",
+        "summary": "Primary analysis cannot support the original route.",
+        "refs": [negative_ref],
+        "consumed_refs": [negative_ref],
+        "body_included": False,
+        "route_authority": False,
+    }
+    assert "private negative-result body" not in str(owner_route)
+
+
 def test_scan_domain_routes_observes_only_fresh_artifact_delta_as_meaningful() -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile_parts.artifact_freshness")
 

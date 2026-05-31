@@ -92,6 +92,86 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     assert {item["removal_marker"] for item in projection_operations} == {"regenerate-before-remove"}
 
 
+def test_lifecycle_operations_report_projects_artifact_receipt_ref_families(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    _write(study_root / "paper" / "source" / "manuscript_source.md", "source\n")
+    _write(study_root / "manuscript" / "current_package" / "manuscript.docx", "docx\n")
+    _write(study_root / "paper" / "submission_minimal" / "paper.pdf", "pdf\n")
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+
+    assert report["mutation_policy"]["physical_cleanup_performed"] is False
+    top_plan = report["retention_plan"]
+    workspace_plan = report["workspaces"][0]["retention_plan"]
+    for plan in (top_plan, workspace_plan):
+        assert plan["artifact_lifecycle_receipt_refs"]
+        assert plan["artifact_authority_receipt_refs"]
+        assert plan["retention_receipt_refs"]
+        assert all(
+            ref.startswith("artifact-lifecycle:")
+            for ref in plan["artifact_lifecycle_receipt_refs"]
+        )
+    assert set(workspace_plan["artifact_lifecycle_receipt_refs"]).issubset(
+        set(top_plan["artifact_lifecycle_receipt_refs"])
+    )
+    assert workspace_plan["cleanup_receipt_refs"] == []
+    assert workspace_plan["restore_proof_refs"] == []
+
+
+def test_lifecycle_operations_report_bounds_artifact_receipt_ref_families(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    retention_module = importlib.import_module("med_autoscience.controllers.artifact_retention_operations_plan")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    for index in range(60):
+        _write(study_root / "paper" / "source" / f"manuscript-{index}.md", "source\n")
+        _write(
+            study_root / "manuscript" / "current_package" / f"projection-{index}.pdf",
+            "pdf\n",
+        )
+        _write(
+            workspace_root
+            / "ops"
+            / "med-deepscientist"
+            / "runtime"
+            / "quests"
+            / f"quest-{index}"
+            / ".ds"
+            / "cold_archive"
+            / "payload.tar.gz",
+            "archive\n",
+        )
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root], deep=True)
+    top_plan = report["retention_plan"]
+    workspace_plan = report["workspaces"][0]["retention_plan"]
+
+    for plan in (top_plan, workspace_plan):
+        assert len(plan["artifact_lifecycle_receipt_refs"]) == retention_module.RECEIPT_REF_SAMPLE_LIMIT
+        assert plan["artifact_lifecycle_receipt_ref_count"] == plan["summary"]["operation_count"]
+        assert plan["artifact_lifecycle_receipt_refs_truncated"] is True
+        assert len(plan["artifact_authority_receipt_refs"]) == retention_module.RECEIPT_REF_SAMPLE_LIMIT
+        assert plan["artifact_authority_receipt_ref_count"] == plan["summary"]["operation_count"]
+        assert plan["artifact_authority_receipt_refs_truncated"] is True
+        assert plan["cleanup_receipt_refs"] == []
+        assert plan["cleanup_receipt_ref_count"] == 0
+        assert plan["cleanup_receipt_refs_truncated"] is False
+        assert plan["restore_proof_refs"] == []
+        assert plan["restore_proof_ref_count"] == 0
+        assert plan["restore_proof_refs_truncated"] is False
+        assert len(plan["retention_receipt_refs"]) == retention_module.RECEIPT_REF_SAMPLE_LIMIT
+        assert plan["retention_receipt_ref_count"] == plan["summary"]["action_counts"]["keep_online"]
+        assert plan["retention_receipt_refs_truncated"] is True
+    assert workspace_plan["summary"]["operation_count"] == 121
+    assert report["mutation_policy"]["physical_cleanup_performed"] is False
+
+
 def test_lifecycle_operations_report_projects_terminal_stop_loss_file_lifecycle_plan(
     tmp_path: Path,
 ) -> None:

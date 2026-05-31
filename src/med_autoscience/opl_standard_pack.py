@@ -294,6 +294,23 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
             "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_"
             "and_app_projection_packets"
         ),
+        "contract_version_policy": {
+            "current_version": "foundry-agent-series.v1",
+            "domain_contract_ref": "contracts/foundry_agent_series.json",
+            "exact_version_pin_required": True,
+            "compatible_version_range": ["foundry-agent-series.v1"],
+            "breaking_change_requires_new_version": True,
+            "domain_descriptor_must_reference_domain_contract": True,
+        },
+        "shared_release_pin_strategy": {
+            "owner_release_contract_ref": "contracts/family-release/shared-owner-release.json",
+            "owner_commit_pin_required": True,
+            "owner_commit_pin": "c5d4a93bd4bb64adf1228ecf7f2a9038c7dce278",
+            "domain_dependency_pin_required": True,
+            "supported_pin_sources": ["pyproject.toml", "uv.lock"],
+            "consumer_alignment_check": "family:shared-release",
+            "domain_contract_version_pin_does_not_authorize_domain_truth": True,
+        },
         "domain_id": "medautoscience",
         "foundry_agent_id": "medautoscience",
         "domain_label": "Research Foundry",

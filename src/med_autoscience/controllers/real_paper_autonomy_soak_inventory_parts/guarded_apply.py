@@ -100,6 +100,10 @@ def _guarded_apply_receipt(packet: Mapping[str, Any]) -> dict[str, Any]:
             "apply_result": "typed_blocker",
             "domain_ready_verdict": verdict,
             "mas_owner_apply_receipt_refs": owner_refs,
+            "publication_route_memory_writeback_receipt_refs": _dedupe_text(
+                packet.get("writeback_receipt_refs", [])
+            ),
+            "artifact_lifecycle_receipt_refs": [],
             "typed_blocker": {
                 "blocker_id": f"mas_owner_apply_receipt_missing:{_typed_blocker_study_key(study_id)}",
                 "study_id": study_id,
@@ -124,6 +128,12 @@ def _guarded_apply_receipt(packet: Mapping[str, Any]) -> dict[str, Any]:
         "domain_ready_verdict": verdict,
         "mas_owner_apply_receipt_refs": owner_refs,
         "mas_owner_apply_evidence": dict(_mapping(packet.get("mas_owner_apply_evidence"))),
+        "publication_route_memory_writeback_receipt_refs": _dedupe_text(
+            packet.get("writeback_receipt_refs", [])
+        ),
+        "artifact_lifecycle_receipt_refs": _dedupe_text(
+            _mapping(packet.get("mas_owner_apply_evidence")).get("artifact_lifecycle_receipt_refs", [])
+        ),
         "typed_blocker": None,
         "workspace_mutation": _workspace_mutation_summary(
             allowed=_verdict_observes_workspace_mutation(verdict),
