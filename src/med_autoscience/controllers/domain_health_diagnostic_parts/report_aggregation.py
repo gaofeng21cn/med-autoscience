@@ -5,6 +5,7 @@ from typing import Any, Callable
 from collections.abc import Mapping
 
 from med_autoscience.controllers import current_execution_envelope
+from med_autoscience.controllers import runtime_dispatch_cost
 from med_autoscience.controllers.domain_health_diagnostic_parts.reporting import _attach_family_companion_to_runtime_report
 from med_autoscience.runtime_protocol import quest_state
 
@@ -109,13 +110,7 @@ def _dispatch_counters(*, dispatches: list[dict[str, Any]], suppressions: list[d
     return {
         "codex_dispatch_count": codex_dispatch_count,
         "suppressed_dispatch_count": len(suppressions),
-        "dispatch_budget_window": {
-            "scope": "owner_route_action_fingerprint",
-            "max_codex_dispatches": 1,
-            "duplicate_policy": "suppress_same_action_fingerprint",
-            "dry_run_starts_llm": False,
-            "observe_only_starts_llm": False,
-        },
+        "dispatch_budget_window": runtime_dispatch_cost.dispatch_budget_window(),
         "action_fingerprints": list(dict.fromkeys(fingerprints)),
     }
 

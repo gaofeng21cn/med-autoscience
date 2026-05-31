@@ -850,6 +850,34 @@ def _persist_study_executions(
     return [str(latest_path), str(history_path)]
 
 
+def _execution_summary(*, study_id: str, study_executions: list[dict[str, Any]]) -> dict[str, Any]:
+    selected_dispatch_count = len(study_executions)
+    executed_count = sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in study_executions)
+    blocked_count = sum(item.get("execution_status") == "blocked" for item in study_executions)
+    repeat_suppressed_count = sum(item.get("execution_status") == "repeat_suppressed" for item in study_executions)
+    dry_run_count = sum(item.get("execution_status") == "dry_run" for item in study_executions)
+    codex_dispatch_count = sum(item.get("will_start_llm") is True for item in study_executions)
+    return {
+        "study_id": study_id,
+        "selected_dispatch_count": selected_dispatch_count,
+        "executed_count": executed_count,
+        "blocked_count": blocked_count,
+        "repeat_suppressed_count": repeat_suppressed_count,
+        "dry_run_count": dry_run_count,
+        "codex_dispatch_count": codex_dispatch_count,
+        "suppressed_dispatch_count": sum(
+            item.get("execution_status") in {"repeat_suppressed", "blocked"} for item in study_executions
+        ),
+        "zero_dispatch_reason": "no_selected_dispatch_for_requested_action_types"
+        if selected_dispatch_count == 0
+        else None,
+        "action_fingerprints": list(
+            dict.fromkeys(item.get("action_fingerprint") for item in study_executions if item.get("action_fingerprint"))
+        ),
+        "execution_statuses": [item.get("execution_status") for item in study_executions],
+    }
+
+
 def dispatch_domain_owner_actions(
     *,
     profile: WorkspaceProfile,
@@ -870,6 +898,7 @@ def dispatch_domain_owner_actions(
     resolved_study_ids = _resolve_study_ids(profile, study_ids, consumer_payload=consumer_payload)
     resolved_action_types = tuple(action_type for item in action_types if (action_type := _text(item)) is not None)
     executions: list[dict[str, Any]] = []
+    per_study_execution_summary: list[dict[str, Any]] = []
     written_files: list[str] = []
     for study_id in resolved_study_ids:
         for dispatch in _dispatches(
@@ -887,6 +916,9 @@ def dispatch_domain_owner_actions(
             )
             executions.append(execution)
         study_executions = [execution for execution in executions if execution["study_id"] == study_id]
+        per_study_execution_summary.append(
+            _execution_summary(study_id=study_id, study_executions=study_executions)
+        )
         if apply and study_executions:
             written_files.extend(
                 _persist_study_executions(
@@ -917,6 +949,7 @@ def dispatch_domain_owner_actions(
             item.get("execution_status") in {"repeat_suppressed", "blocked"} for item in executions
         ),
         "dispatch_budget_window": runtime_dispatch_cost.dispatch_budget_window(),
+        "per_study_execution_summary": per_study_execution_summary,
         "action_fingerprints": list(
             dict.fromkeys(item.get("action_fingerprint") for item in executions if item.get("action_fingerprint"))
         ),

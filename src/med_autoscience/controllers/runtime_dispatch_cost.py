@@ -106,12 +106,14 @@ def compact_action_cost(value: object) -> dict[str, Any] | None:
 
 def dispatch_budget_window(
     *,
-    scope: str = "owner_route_action_fingerprint",
-    max_codex_dispatches: int = 1,
+    scope: str = "per_study_owner_route_action_fingerprint",
+    max_codex_dispatches_per_scope: int = 1,
+    workspace_global_max_codex_dispatches: int | None = None,
 ) -> dict[str, Any]:
     return {
         "scope": scope,
-        "max_codex_dispatches": int(max_codex_dispatches),
+        "max_codex_dispatches_per_scope": int(max_codex_dispatches_per_scope),
+        "workspace_global_max_codex_dispatches": workspace_global_max_codex_dispatches,
         "duplicate_policy": "suppress_same_action_fingerprint",
         "dry_run_starts_llm": False,
         "observe_only_starts_llm": False,
