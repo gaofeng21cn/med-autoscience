@@ -646,6 +646,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "contracts/action_catalog.json",
             "contracts/functional_privatization_audit.json",
             "contracts/generated_surface_handoff.json",
+            "contracts/foundry_agent_series.json",
             "contracts/pack_compiler_input.json",
             "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",

@@ -142,7 +142,10 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     for workflow in (ci_workflow, advisory_workflow):
         assert "uv.lock" in workflow
         assert "pyproject.toml" in workflow
-    assert 'scripts/verify.sh ci-preflight "${{ github.event.before }}"' in ci_workflow
+    assert "pull_request:" in ci_workflow
+    assert "github.event.pull_request.base.sha" in ci_workflow
+    assert "github.event.before" in ci_workflow
+    assert "scripts/verify.sh ci-preflight" in ci_workflow
     assert "scripts/verify.sh meta" not in ci_workflow
     assert re.search(r"run: scripts/verify\.sh\s*$", ci_workflow, flags=re.MULTILINE) is None
     assert "scripts/verify.sh regression" in advisory_workflow
@@ -366,7 +369,9 @@ def test_ci_and_advisory_workflows_split_stable_push_and_advisory_jobs() -> None
 
     assert "quick-checks:" in ci_workflow
     assert "Run change-aware CI preflight and build" in ci_workflow
-    assert 'scripts/verify.sh ci-preflight "${{ github.event.before }}"' in ci_workflow
+    assert "github.event.pull_request.base.sha" in ci_workflow
+    assert "github.event.before" in ci_workflow
+    assert "scripts/verify.sh ci-preflight" in ci_workflow
     assert "Run stable core tests and build" not in ci_workflow
     assert "display-surface:" not in ci_workflow
     assert "submission-surface:" not in ci_workflow
@@ -397,10 +402,10 @@ def test_workflow_dev_group_matches_uv_sync_contract() -> None:
     assert {"pytest", "build", "python-docx"}.issubset(dev_names)
 
 
-def test_ci_workflow_only_triggers_on_push_main_and_development() -> None:
+def test_ci_workflow_triggers_on_pull_request_and_push_main_and_development() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
 
-    assert "pull_request:" not in ci_workflow
+    assert "pull_request:" in ci_workflow
     assert "push:" in ci_workflow
     assert "- main" in ci_workflow
     assert "- development" in ci_workflow
