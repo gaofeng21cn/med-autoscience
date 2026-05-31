@@ -364,6 +364,10 @@ def _why_not_progressing(
         return _DOWNSTREAM_ONLY
     if state == "opl_stage_attempt_admission_required":
         return _RUNTIME_RETRY_EXHAUSTED
+    if not meaningful_artifact_delta:
+        stage_closeout = _stage_closeout_progress(payload, handoff_action=current_owner_handoff_action(payload))
+        if stage_closeout["runtime_closeout_only"]:
+            return "paper_facing_progress_delta_or_typed_blocker_missing"
     if not meaningful_artifact_delta and _paper_delta_changed_refs(payload):
         return "paper_facing_progress_delta_or_typed_blocker_missing"
     interaction = _mapping(payload.get("interaction_arbitration"))

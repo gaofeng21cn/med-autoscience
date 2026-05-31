@@ -1,4 +1,4 @@
-.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-full test-family test-structure test-control-plane test-medical-paper-ops
+.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-full test-family test-structure test-control-plane test-medical-paper-ops test-medical-quality-regression
 
 MAS_PYTEST_WORKERS ?= auto
 MAS_PYTEST_DIST ?= loadscope
@@ -72,6 +72,9 @@ test-control-plane:
 
 test-medical-paper-ops:
 	scripts/run-pytest-clean.sh -q tests/test_medical_paper_ops_health.py tests/study_progress_cases/medical_paper_ops_health_projection.py tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_ops_health.py
+
+test-medical-quality-regression:
+	scripts/run-pytest-clean.sh -q tests/test_medical_quality_regression_lane.py tests/test_agent_lab_medical_manuscript_quality.py tests/test_agent_lab_medical_manuscript_quality_cases/owner_chain_regression_family.py tests/test_paper_progress_state.py tests/test_paper_progress_reconciler.py tests/test_progress_first_global_contract.py
 
 test-structure:
 	scripts/run-python-clean.sh scripts/line_budget.py
