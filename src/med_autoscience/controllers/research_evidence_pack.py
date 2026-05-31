@@ -235,6 +235,15 @@ def failed_path_consumption_summary(
     decision_refs = _unique_refs(decision_trace_refs)
     switch_refs = _unique_refs(route_switch_refs)
     result_refs = _unique_refs([*owner_receipt_refs, *typed_blocker_refs])
+    consumption_evidence_refs = _unique_refs([*decision_refs, *switch_refs, *result_refs])
+    consumed = bool(failed_refs and consumption_evidence_refs)
+    status = (
+        "consumed"
+        if consumed
+        else "recorded_not_consumed"
+        if failed_refs
+        else "no_failed_path_refs"
+    )
     consumption_key = ":".join(
         [
             "mas-failed-path-consumption",
@@ -247,19 +256,24 @@ def failed_path_consumption_summary(
     return {
         "surface_kind": "mas_failed_path_consumption_summary",
         "version": "mas-failed-path-consumption-summary.v1",
-        "status": "consumed" if failed_refs else "no_failed_path_refs",
+        "status": status,
         "consumption_key": consumption_key,
         "negative_failed_path_refs": failed_refs,
         "decision_trace_refs": decision_refs,
         "route_switch_refs": switch_refs,
         "owner_result_refs": result_refs,
+        "consumption_evidence_refs": consumption_evidence_refs,
         "duplicate_invalid_attempt_suppression": {
-            "enabled": bool(failed_refs),
+            "enabled": consumed,
             "suppression_basis": "negative_failed_path_refs",
-            "same_failed_path_refs_should_not_spawn_same_work_unit": bool(failed_refs),
-            "requires_new_decision_trace_or_route_switch_ref_for_redrive": bool(failed_refs),
+            "same_failed_path_refs_should_not_spawn_same_work_unit": consumed,
+            "requires_consumption_evidence": True,
+            "requires_new_decision_trace_or_route_switch_ref_for_redrive": consumed,
             "new_attempt_allowed_when_new_decision_trace_or_route_switch_ref": bool(
                 failed_refs and (decision_refs or switch_refs)
+            ),
+            "negative_refs_without_consumption_evidence_are_audit_only": bool(
+                failed_refs and not consumed
             ),
         },
         "authority_boundary": {

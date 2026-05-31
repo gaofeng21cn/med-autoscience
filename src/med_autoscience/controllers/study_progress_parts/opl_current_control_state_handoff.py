@@ -43,6 +43,13 @@ PAPER_STAGE_LOG_KEYS = (
     "research_pack_progress_summary",
     "research_evidence_pack_summary",
 )
+REQUIRED_USER_PROGRESS_FIELDS = (
+    "stage_work_done",
+    "paper_work_done",
+    "changed_stage_surfaces",
+    "changed_paper_surfaces",
+    "progress_delta_classification",
+)
 STAGE_PROGRESS_LOG_KEYS = (
     "surface_kind",
     "projection_scope",
@@ -439,23 +446,26 @@ def _terminal_stage_log_from_execution_record(
     )
     if not paper_stage_log:
         return None
-    return {
-        "surface_kind": "mas_latest_terminal_stage_log_projection",
-        "read_model": "study_latest_terminal_stage_log_projection",
-        "authority": "observability_only",
-        "source_path": str(source_path),
-        "record_path": record_path,
-        "generated_at": _non_empty_text(execution.get("generated_at")),
-        "study_id": study_id,
-        "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
-        "stage_id": _non_empty_text(execution.get("stage_id")) or "domain_owner/default-executor-dispatch",
-        "action_type": _non_empty_text(execution.get("action_type")),
-        "status": _non_empty_text(execution.get("execution_status")) or _non_empty_text(execution.get("status")),
-        "paper_stage_log": paper_stage_log,
-        **_terminal_stage_log_observability(execution),
-        "closeout_refs": _string_list(execution.get("closeout_refs")),
-        "authority_boundary": _terminal_stage_log_authority_boundary(),
-    }
+    return _normalize_terminal_stage_log_progress_fields(
+        {
+            "surface_kind": "mas_latest_terminal_stage_log_projection",
+            "read_model": "study_latest_terminal_stage_log_projection",
+            "authority": "observability_only",
+            "source_path": str(source_path),
+            "record_path": record_path,
+            "generated_at": _non_empty_text(execution.get("generated_at")),
+            "study_id": study_id,
+            "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
+            "stage_id": _non_empty_text(execution.get("stage_id")) or "domain_owner/default-executor-dispatch",
+            "action_type": _non_empty_text(execution.get("action_type")),
+            "status": _non_empty_text(execution.get("execution_status"))
+            or _non_empty_text(execution.get("status")),
+            "paper_stage_log": paper_stage_log,
+            **_terminal_stage_log_observability(execution),
+            "closeout_refs": _string_list(execution.get("closeout_refs")),
+            "authority_boundary": _terminal_stage_log_authority_boundary(),
+        }
+    )
 
 
 def _terminal_stage_log_from_closeout(
@@ -477,22 +487,52 @@ def _terminal_stage_log_from_closeout(
     )
     if not paper_stage_log:
         return None
-    return {
-        "surface_kind": "mas_latest_terminal_stage_log_projection",
-        "read_model": "study_latest_terminal_stage_log_projection",
-        "authority": "observability_only",
-        "source_path": str(closeout_path),
-        "generated_at": _non_empty_text(closeout.get("generated_at")),
-        "study_id": study_id,
-        "stage_attempt_id": _non_empty_text(closeout.get("stage_attempt_id")),
-        "stage_id": _non_empty_text(closeout.get("stage_id")),
-        "action_type": _non_empty_text(closeout.get("action_type")),
-        "status": _non_empty_text(closeout.get("status")),
-        "paper_stage_log": paper_stage_log,
-        **_terminal_stage_log_observability(closeout),
-        "closeout_refs": _string_list(closeout.get("closeout_refs")),
-        "authority_boundary": _terminal_stage_log_authority_boundary(),
-    }
+    return _normalize_terminal_stage_log_progress_fields(
+        {
+            "surface_kind": "mas_latest_terminal_stage_log_projection",
+            "read_model": "study_latest_terminal_stage_log_projection",
+            "authority": "observability_only",
+            "source_path": str(closeout_path),
+            "generated_at": _non_empty_text(closeout.get("generated_at")),
+            "study_id": study_id,
+            "stage_attempt_id": _non_empty_text(closeout.get("stage_attempt_id")),
+            "stage_id": _non_empty_text(closeout.get("stage_id")),
+            "action_type": _non_empty_text(closeout.get("action_type")),
+            "status": _non_empty_text(closeout.get("status")),
+            "paper_stage_log": paper_stage_log,
+            **_terminal_stage_log_observability(closeout),
+            "closeout_refs": _string_list(closeout.get("closeout_refs")),
+            "authority_boundary": _terminal_stage_log_authority_boundary(),
+        }
+    )
+
+
+def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) -> dict[str, Any]:
+    paper_stage_log = _mapping_copy(projection.get("paper_stage_log"))
+    missing = [
+        field
+        for field in REQUIRED_USER_PROGRESS_FIELDS
+        if _paper_stage_log_field_missing(field, paper_stage_log)
+    ]
+    if not missing:
+        return projection
+    normalized_log = dict(paper_stage_log)
+    normalized_log["outcome"] = "typed_blocker"
+    normalized_log["remaining_blockers"] = ["typed_closeout_packet_required"]
+    projection = dict(projection)
+    projection["status"] = "typed_blocker"
+    projection["typed_blocker_reason"] = "typed_closeout_packet_required"
+    projection["diagnostic"] = "user_stage_log_missing_required_progress_fields"
+    projection["missing_user_stage_log_fields"] = missing
+    projection["paper_stage_log"] = normalized_log
+    return projection
+
+
+def _paper_stage_log_field_missing(field: str, paper_stage_log: Mapping[str, Any]) -> bool:
+    if field not in paper_stage_log:
+        return True
+    value = paper_stage_log.get(field)
+    return value in (None, "", [], {})
 
 
 def _terminal_stage_log_authority_boundary() -> dict[str, bool]:
@@ -561,15 +601,32 @@ def opl_current_control_state_study_handoff_projection(
 ) -> dict[str, Any] | None:
     handoff_path = opl_current_control_state_handoff_path(profile=profile)
     payload = _read_json_object(handoff_path)
+    latest_terminal_stage_log = _latest_terminal_stage_log_projection(
+        profile=profile,
+        study_id=study_id,
+    )
     if payload is None:
-        return None
+        if latest_terminal_stage_log is None:
+            return None
+        return _closeout_only_study_handoff_projection(
+            handoff_path=handoff_path,
+            latest_terminal_stage_log=latest_terminal_stage_log,
+            study_id=study_id,
+        )
     matching = None
     for item in payload.get("studies") or []:
         if isinstance(item, Mapping) and _non_empty_text(item.get("study_id")) == study_id:
             matching = dict(item)
             break
     if matching is None:
-        return None
+        if latest_terminal_stage_log is None:
+            return None
+        return _closeout_only_study_handoff_projection(
+            handoff_path=handoff_path,
+            latest_terminal_stage_log=latest_terminal_stage_log,
+            study_id=study_id,
+            payload=payload,
+        )
     action_queue = [
         _copy_mapping_keys(
             item,
@@ -597,10 +654,6 @@ def opl_current_control_state_study_handoff_projection(
         if isinstance(item, Mapping)
     ]
     why_not_applied = _string_list(matching.get("why_not_applied"))
-    latest_terminal_stage_log = _latest_terminal_stage_log_projection(
-        profile=profile,
-        study_id=study_id,
-    )
     matching_terminal_stage_log = _observability_mapping(matching.get("latest_terminal_stage_log"))
     projection = {
         "surface_kind": "opl_current_control_state_study_handoff",
@@ -659,6 +712,47 @@ def opl_current_control_state_study_handoff_projection(
     elif matching_terminal_stage_log:
         projection["latest_terminal_stage_log"] = matching_terminal_stage_log
     projection.update(_opl_current_control_state_mode_fields(payload))
+    return projection
+
+
+def _closeout_only_study_handoff_projection(
+    *,
+    handoff_path: Path,
+    latest_terminal_stage_log: Mapping[str, Any],
+    study_id: str,
+    payload: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    source_payload = _mapping_copy(payload)
+    projection = {
+        "surface_kind": "opl_current_control_state_study_handoff",
+        "read_model": "study_opl_current_control_state_handoff_projection",
+        "authority": "observability_only",
+        "source_path": str(handoff_path),
+        "generated_at": _non_empty_text(source_payload.get("generated_at"))
+        or _non_empty_text(latest_terminal_stage_log.get("generated_at")),
+        "study_id": study_id,
+        "quest_status": None,
+        "active_run_id": None,
+        "active_stage_attempt_id": _non_empty_text(latest_terminal_stage_log.get("stage_attempt_id")),
+        "active_workflow_id": None,
+        "running_provider_attempt": False,
+        "runtime_health": {},
+        "artifact_delta": {},
+        "gate_specificity": {},
+        "ai_reviewer_status": {},
+        "stage_progress_log": {},
+        "owner_route": {},
+        "queue_slo": {},
+        "owner_pickup_overdue": False,
+        "developer_supervisor_attention_required": False,
+        "action_queue": [],
+        "why_not_applied": [],
+        "next_owner": None,
+        "external_supervisor_required": False,
+        "blocked_reason": _non_empty_text(latest_terminal_stage_log.get("typed_blocker_reason")),
+        "latest_terminal_stage_log": dict(latest_terminal_stage_log),
+    }
+    projection.update(_opl_current_control_state_mode_fields(source_payload))
     return projection
 
 

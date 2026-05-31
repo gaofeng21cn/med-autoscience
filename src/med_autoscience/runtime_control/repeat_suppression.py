@@ -259,9 +259,24 @@ def _recorded_failed_path_guard_or_none(
     route = _mapping(owner_route)
     if route.get("repeated_failed_path_suppressed") is not True:
         return None
-    refs = _failed_path_consumption_refs(route)
+    refs = _failed_path_recorded_refs(route)
     if not refs:
         return None
+    consumption_refs = _failed_path_consumption_refs(route)
+    consumption_evidence_refs = _failed_path_consumption_evidence_refs(route)
+    if not consumption_refs or not consumption_evidence_refs:
+        return {
+            "repeat_suppressed": False,
+            "why_not_applied": None,
+            "work_unit_fingerprint": key,
+            "repeat_suppression_key": key,
+            "suppression_source": "owner_route_recorded_failed_path_refs",
+            "failed_path_consumption": {
+                "status": "recorded_not_consumed",
+                "refs": refs,
+                "route_authority": False,
+            },
+        }
     return {
         "repeat_suppressed": True,
         "why_not_applied": REPEAT_SUPPRESSED_REASON,
@@ -270,10 +285,26 @@ def _recorded_failed_path_guard_or_none(
         "suppression_source": "owner_route_recorded_failed_path_refs",
         "failed_path_consumption": {
             "status": "recorded_failed_path_consumed",
-            "refs": refs,
+            "refs": consumption_refs,
             "route_authority": False,
+            "consumption_evidence_refs": consumption_evidence_refs,
+            "duplicate_invalid_attempt_suppression": {
+                "enabled": True,
+                "suppression_basis": "consumed_failed_path_refs",
+            },
         },
     }
+
+
+def _failed_path_recorded_refs(owner_route: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    refs.extend(_string_items(owner_route.get("failed_path_refs")))
+    ledger = _mapping(owner_route.get("failed_path_ledger"))
+    refs.extend(_string_items(ledger.get("refs")))
+    refs.extend(_failed_path_consumption_refs(owner_route))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    refs.extend(_string_items(source_refs.get("failed_path_refs")))
+    return list(dict.fromkeys(refs))
 
 
 def _failed_path_consumption_refs(owner_route: Mapping[str, Any]) -> list[str]:
@@ -282,6 +313,20 @@ def _failed_path_consumption_refs(owner_route: Mapping[str, Any]) -> list[str]:
     refs.extend(_string_items(_mapping(owner_route.get("failed_path_ledger")).get("consumed_refs")))
     source_refs = _mapping(owner_route.get("source_refs"))
     refs.extend(_string_items(source_refs.get("consumed_failed_path_refs")))
+    return list(dict.fromkeys(refs))
+
+
+def _failed_path_consumption_evidence_refs(owner_route: Mapping[str, Any]) -> list[str]:
+    source_refs = _mapping(owner_route.get("source_refs"))
+    refs: list[str] = []
+    for key in (
+        "decision_trace_refs",
+        "route_switch_refs",
+        "owner_result_refs",
+        "owner_receipt_refs",
+        "typed_blocker_refs",
+    ):
+        refs.extend(_string_items(source_refs.get(key)))
     return list(dict.fromkeys(refs))
 
 

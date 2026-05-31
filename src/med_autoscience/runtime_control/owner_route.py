@@ -71,6 +71,15 @@ def build_owner_route(
     )
     source_eval_id = _source_eval_id(status=status, progress=progress, actions=normalized_actions)
     work_unit_id = _work_unit_id(status=status, progress=progress, actions=normalized_actions)
+    currentness_digest_basis = _currentness_digest_basis(
+        status=status,
+        progress=progress,
+        actions=normalized_actions,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+        route_epoch=route_epoch,
+        source_fingerprint=source_fingerprint,
+    )
     current_owner = _current_owner(status=status, progress=progress, active_run_id=active_run_id)
     trace_projection = decision_trace_ledger.decision_trace_projection(
         status,
@@ -121,7 +130,9 @@ def build_owner_route(
             ),
             "quest_root": _text(status.get("quest_root")) or _text(progress.get("quest_root")),
             "study_macro_state": _macro_state_source_ref(status, progress),
+            "currentness_digest_basis": currentness_digest_basis,
         },
+        "currentness_digest_basis": currentness_digest_basis,
     }
     route.update(trace_projection)
     _attach_decision_trace_source_refs(route)
@@ -307,6 +318,9 @@ def _attach_decision_trace_source_refs(route: dict[str, Any]) -> None:
         source_refs["failed_path_refs"] = list(route.get("failed_path_refs") or [])
     if route.get("consumed_failed_path_refs"):
         source_refs["consumed_failed_path_refs"] = list(route.get("consumed_failed_path_refs") or [])
+    currentness_digest_basis = route.get("currentness_digest_basis")
+    if isinstance(currentness_digest_basis, Mapping):
+        source_refs["currentness_digest_basis"] = dict(currentness_digest_basis)
     route["source_refs"] = source_refs
 
 
@@ -517,7 +531,6 @@ def _source_fingerprint(
         "status": {
             "quest_status": _text(status.get("quest_status")),
             "reason": _text(status.get("reason")),
-            "active_run_id": _text(status.get("active_run_id")),
         },
         "progress": {
             "current_stage": _text(progress.get("current_stage")),
@@ -530,6 +543,58 @@ def _source_fingerprint(
     }
     digest = hashlib.sha256(_stable_json(payload).encode("utf-8")).hexdigest()[:24]
     return f"owner-route-source::{digest}"
+
+
+def _currentness_digest_basis(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    actions: list[Mapping[str, Any]],
+    work_unit_id: str | None,
+    work_unit_fingerprint: str,
+    route_epoch: str,
+    source_fingerprint: str,
+) -> dict[str, str]:
+    stable_truth_payload = {
+        "truth_epoch": route_epoch,
+        "source_fingerprint": source_fingerprint,
+        "quest_status": _text(status.get("quest_status")),
+        "status_reason": _text(status.get("reason")),
+        "current_stage": _text(progress.get("current_stage")),
+        "paper_stage": _text(progress.get("paper_stage")),
+    }
+    work_unit_payload = {
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "allowed_action_types": [
+            text
+            for action in actions
+            if (text := _text(action.get("action_type"))) is not None
+        ],
+    }
+    volatile_projection_payload = {
+        "status_active_run_id": _text(status.get("active_run_id")),
+        "progress_projection_counter": _text(progress.get("projection_counter")),
+        "actions": [
+            {
+                "action_type": _text(action.get("action_type")),
+                "projection_counter": _text(action.get("projection_counter")),
+                "read_model_revision": _text(action.get("read_model_revision")),
+                "generated_at": _text(action.get("generated_at")),
+            }
+            for action in actions
+        ],
+    }
+    runtime_payload = {
+        "active_run_id": _text(status.get("active_run_id")),
+        "runtime_health_epoch": _runtime_health_epoch(status, progress),
+    }
+    return {
+        "stable_truth_digest": _digest_payload(stable_truth_payload),
+        "work_unit_digest": _digest_payload(work_unit_payload),
+        "volatile_projection_digest": _digest_payload(volatile_projection_payload),
+        "runtime_digest": _digest_payload(runtime_payload),
+    }
 
 
 def _runtime_health_epoch(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str | None:
@@ -690,8 +755,11 @@ def _idempotency_key(
 def _fingerprint_action(action: Mapping[str, Any]) -> dict[str, Any]:
     ignored_keys = {
         "action_id",
+        "generated_at",
         "handoff_packet",
         "owner_route",
+        "projection_counter",
+        "read_model_revision",
         "status",
     }
     return {
@@ -699,6 +767,10 @@ def _fingerprint_action(action: Mapping[str, Any]) -> dict[str, Any]:
         for key, value in sorted(action.items())
         if key not in ignored_keys and value not in (None, "", [], {})
     }
+
+
+def _digest_payload(value: object) -> str:
+    return hashlib.sha256(_stable_json(value).encode("utf-8")).hexdigest()[:24]
 
 
 def _stable_json(value: object) -> str:

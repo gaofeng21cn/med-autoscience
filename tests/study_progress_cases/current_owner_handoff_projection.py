@@ -62,6 +62,74 @@ def test_current_owner_handoff_action_ignores_structured_remaining_blocker_paylo
     assert action["blocked_reason"] is None
 
 
+def test_terminal_stage_log_missing_user_progress_fields_projects_typed_blocker(tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+    )
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
+    closeout_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat-001.closeout.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "stage_attempt_id": "sat-001",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "action_type": "run_quality_repair_batch",
+            "status": "completed",
+            "generated_at": "2026-05-31T01:00:00+00:00",
+            "closeout_refs": ["artifacts/supervision/consumer/default_executor_execution/sat-001.json"],
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "stage_name": "current_story_surface_repair",
+                "problem_summary": "Story-surface repair attempt reached provider completion.",
+                "stage_goal": "Produce a user-readable repair delta or stable blocker.",
+                "outcome": "completed",
+                "remaining_blockers": [],
+                "duration": {"seconds": 42},
+                "token_usage": {"total_tokens": 1200},
+                "cost": {"usd": 0.04},
+                "usage_refs": ["usage://sat-001"],
+                "cost_refs": ["cost://sat-001"],
+                "evidence_refs": [
+                    "artifacts/supervision/consumer/default_executor_execution/sat-001.json"
+                ],
+            },
+        },
+    )
+
+    handoff = module.opl_current_control_state_study_handoff_projection(
+        profile=profile,
+        study_id="001-risk",
+    )
+
+    assert handoff is not None
+    terminal_log = handoff["latest_terminal_stage_log"]
+    assert terminal_log["status"] == "typed_blocker"
+    assert terminal_log["typed_blocker_reason"] == "typed_closeout_packet_required"
+    assert terminal_log["diagnostic"] == "user_stage_log_missing_required_progress_fields"
+    assert terminal_log["missing_user_stage_log_fields"] == [
+        "stage_work_done",
+        "paper_work_done",
+        "changed_stage_surfaces",
+        "changed_paper_surfaces",
+        "progress_delta_classification",
+    ]
+    assert terminal_log["paper_stage_log"]["outcome"] == "typed_blocker"
+    assert terminal_log["paper_stage_log"]["remaining_blockers"] == [
+        "typed_closeout_packet_required"
+    ]
+
+
 def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     mcp_adapter = importlib.import_module("med_autoscience.mcp_server_parts.projection_adapters")

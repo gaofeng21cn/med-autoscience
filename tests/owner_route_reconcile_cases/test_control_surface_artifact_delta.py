@@ -174,7 +174,43 @@ def test_repeat_suppression_ignores_last_meaningful_progress_without_artifact_de
     ) is False
 
 
-def test_repeat_suppression_consumes_recorded_failed_path_refs_without_authority() -> None:
+def test_repeat_suppression_records_negative_only_failed_path_without_suppressing() -> None:
+    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+
+    guard = module.scan_repeat_suppression(
+        previous_payload=None,
+        study_id="002-dm-china-us-mortality-attribution",
+        owner_route={
+            "work_unit_fingerprint": "negative-result-stoploss::primary-analysis",
+            "next_owner": "analysis_harmonization_owner",
+            "owner_reason": "negative_result_cannot_support_original_claim",
+            "allowed_actions": ["methodology_reframe_route_decision"],
+            "failed_path_ledger": {
+                "surface_kind": "mas_failed_path_refs_projection",
+                "refs": [
+                    "studies/002-dm-china-us-mortality-attribution/artifacts/research/negative_failed_path_ledger/latest.json",
+                ],
+                "body_included": False,
+                "route_authority": False,
+            },
+            "repeated_failed_path_suppressed": True,
+        },
+        current_meaningful_artifact_delta=False,
+    )
+
+    assert guard["repeat_suppressed"] is False
+    assert guard["why_not_applied"] is None
+    assert guard["suppression_source"] == "owner_route_recorded_failed_path_refs"
+    assert guard["failed_path_consumption"] == {
+        "status": "recorded_not_consumed",
+        "refs": [
+            "studies/002-dm-china-us-mortality-attribution/artifacts/research/negative_failed_path_ledger/latest.json",
+        ],
+        "route_authority": False,
+    }
+
+
+def test_repeat_suppression_consumes_recorded_failed_path_refs_with_decision_and_owner_result() -> None:
     module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
 
     guard = module.scan_repeat_suppression(
@@ -196,6 +232,14 @@ def test_repeat_suppression_consumes_recorded_failed_path_refs_without_authority
                 "body_included": False,
                 "route_authority": False,
             },
+            "source_refs": {
+                "decision_trace_refs": [
+                    "studies/002-dm-china-us-mortality-attribution/artifacts/research/decision_trace/latest.json",
+                ],
+                "owner_result_refs": [
+                    "studies/002-dm-china-us-mortality-attribution/artifacts/owner_results/latest.json",
+                ],
+            },
             "repeated_failed_path_suppressed": True,
         },
         current_meaningful_artifact_delta=False,
@@ -210,6 +254,14 @@ def test_repeat_suppression_consumes_recorded_failed_path_refs_without_authority
             "studies/002-dm-china-us-mortality-attribution/artifacts/research/negative_failed_path_ledger/latest.json",
         ],
         "route_authority": False,
+        "consumption_evidence_refs": [
+            "studies/002-dm-china-us-mortality-attribution/artifacts/research/decision_trace/latest.json",
+            "studies/002-dm-china-us-mortality-attribution/artifacts/owner_results/latest.json",
+        ],
+        "duplicate_invalid_attempt_suppression": {
+            "enabled": True,
+            "suppression_basis": "consumed_failed_path_refs",
+        },
     }
 
 
@@ -231,8 +283,12 @@ def test_owner_route_consumes_negative_result_refs_before_repeat_guard() -> None
             "negative_result_ledger": {
                 "summary": "Primary analysis cannot support the original route.",
                 "negative_result_refs": [negative_ref],
+                "consumed_refs": [negative_ref],
                 "body": "private negative-result body must not be consumed",
             },
+            "decision_trace_refs": [
+                "studies/002-dm-china-us-mortality-attribution/artifacts/research/decision_trace/latest.json",
+            ],
         },
         progress={},
         actions=[

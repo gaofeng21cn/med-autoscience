@@ -801,12 +801,18 @@ def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_pa
     assert failed_path_consumption["decision_trace_refs"] == [
         "studies/DM002/artifacts/research/decision_trace/latest.json",
     ]
+    assert failed_path_consumption["consumption_evidence_refs"] == [
+        "studies/DM002/artifacts/research/decision_trace/latest.json",
+        "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
+    ]
     assert failed_path_consumption["duplicate_invalid_attempt_suppression"] == {
         "enabled": True,
         "suppression_basis": "negative_failed_path_refs",
         "same_failed_path_refs_should_not_spawn_same_work_unit": True,
+        "requires_consumption_evidence": True,
         "requires_new_decision_trace_or_route_switch_ref_for_redrive": True,
         "new_attempt_allowed_when_new_decision_trace_or_route_switch_ref": True,
+        "negative_refs_without_consumption_evidence_are_audit_only": False,
     }
     assert failed_path_consumption["authority_boundary"] == {
         "summary_only": True,
@@ -835,3 +841,33 @@ def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_pa
     rendered = json.dumps(payload, ensure_ascii=False)
     assert "current_package_body" in payload["forbidden_payload_fields"]
     assert "MEMORY_BODY_SHOULD_NOT_APPEAR" not in rendered
+
+
+def test_research_evidence_pack_negative_only_records_failed_path_without_consuming() -> None:
+    module = importlib.import_module("med_autoscience.controllers.research_evidence_pack")
+
+    summary = module.failed_path_consumption_summary(
+        domain_id="medautoscience",
+        task_kind="paper_autonomy/guarded-apply",
+        study_id="DM002",
+        negative_failed_path_refs=[
+            "studies/DM002/artifacts/research/negative_failed_path_ledger/latest.json",
+        ],
+    )
+
+    assert summary["status"] == "recorded_not_consumed"
+    assert summary["negative_failed_path_refs"] == [
+        "studies/DM002/artifacts/research/negative_failed_path_ledger/latest.json",
+    ]
+    assert summary["decision_trace_refs"] == []
+    assert summary["route_switch_refs"] == []
+    assert summary["owner_result_refs"] == []
+    assert summary["duplicate_invalid_attempt_suppression"] == {
+        "enabled": False,
+        "suppression_basis": "negative_failed_path_refs",
+        "same_failed_path_refs_should_not_spawn_same_work_unit": False,
+        "requires_consumption_evidence": True,
+        "requires_new_decision_trace_or_route_switch_ref_for_redrive": False,
+        "new_attempt_allowed_when_new_decision_trace_or_route_switch_ref": False,
+        "negative_refs_without_consumption_evidence_are_audit_only": True,
+    }

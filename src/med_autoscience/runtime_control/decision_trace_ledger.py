@@ -120,8 +120,7 @@ def repeated_failed_path_suppressed(
     actions: Iterable[Mapping[str, Any]],
     trace_projection: Mapping[str, Any],
 ) -> bool:
-    recorded_refs = set(_text_items(trace_projection.get("failed_path_refs")))
-    recorded_refs.update(_text_items(trace_projection.get("consumed_failed_path_refs")))
+    recorded_refs = set(_text_items(trace_projection.get("consumed_failed_path_refs")))
     if not recorded_refs:
         return False
     return any(
@@ -136,8 +135,7 @@ def filter_actions_consuming_recorded_failed_paths(
     actions: Iterable[Mapping[str, Any]],
     trace_projection: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    recorded_refs = set(_text_items(trace_projection.get("failed_path_refs")))
-    recorded_refs.update(_text_items(trace_projection.get("consumed_failed_path_refs")))
+    recorded_refs = set(_text_items(trace_projection.get("consumed_failed_path_refs")))
     filtered: list[dict[str, Any]] = []
     for action in actions:
         payload = dict(action)

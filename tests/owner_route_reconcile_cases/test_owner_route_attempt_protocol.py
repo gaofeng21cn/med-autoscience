@@ -52,6 +52,78 @@ def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() 
     assert "owner_route_currentness_basis" in route["source_refs"]
 
 
+def test_owner_route_executable_identity_ignores_projection_counter_churn() -> None:
+    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+
+    status = {
+        "study_truth_snapshot": {"truth_epoch": "truth-epoch-dm002"},
+        "runtime_health_snapshot": {"runtime_health_epoch": "runtime-health-1"},
+        "quest_status": "running",
+        "active_run_id": "run-volatile-1",
+    }
+    action = {
+        "action_type": "run_quality_repair_batch",
+        "owner": "write",
+        "reason": "manuscript_story_surface_delta_missing",
+        "work_unit_id": "dm002_current_story_surface_repair",
+        "work_unit_fingerprint": "work-unit::dm002-story-surface",
+        "projection_counter": 1,
+        "read_model_revision": 41,
+        "generated_at": "2026-05-31T01:00:00+00:00",
+    }
+
+    first = owner_route_module.build_owner_route(
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        status=status,
+        progress={"current_stage": "publication_revision", "paper_stage": "draft"},
+        actions=[action],
+        blocked_reason="manuscript_story_surface_delta_missing",
+        next_owner="write",
+        active_run_id="run-volatile-1",
+    )
+    second = owner_route_module.build_owner_route(
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        status={**status, "active_run_id": "run-volatile-2"},
+        progress={
+            "current_stage": "publication_revision",
+            "paper_stage": "draft",
+            "projection_counter": 2,
+        },
+        actions=[
+            {
+                **action,
+                "projection_counter": 2,
+                "read_model_revision": 42,
+                "generated_at": "2026-05-31T01:02:00+00:00",
+            }
+        ],
+        blocked_reason="manuscript_story_surface_delta_missing",
+        next_owner="write",
+        active_run_id="run-volatile-2",
+    )
+
+    assert first["source_fingerprint"] == second["source_fingerprint"]
+    assert first["trace_id"] == second["trace_id"]
+    assert first["idempotency_key"] == second["idempotency_key"]
+    assert first["source_refs"]["owner_route_currentness_basis"]["work_unit_fingerprint"] == (
+        "work-unit::dm002-story-surface"
+    )
+    assert first["source_refs"]["currentness_digest_basis"]["stable_truth_digest"] == (
+        second["source_refs"]["currentness_digest_basis"]["stable_truth_digest"]
+    )
+    assert first["source_refs"]["currentness_digest_basis"]["work_unit_digest"] == (
+        second["source_refs"]["currentness_digest_basis"]["work_unit_digest"]
+    )
+    assert first["source_refs"]["currentness_digest_basis"]["volatile_projection_digest"] != (
+        second["source_refs"]["currentness_digest_basis"]["volatile_projection_digest"]
+    )
+    assert first["source_refs"]["currentness_digest_basis"]["runtime_digest"] != (
+        second["source_refs"]["currentness_digest_basis"]["runtime_digest"]
+    )
+
+
 def test_owner_route_protocol_projects_decision_trace_and_failed_path_refs_without_body() -> None:
     owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
 
