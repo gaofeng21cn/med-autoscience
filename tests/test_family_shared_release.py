@@ -110,6 +110,18 @@ def test_foundry_agent_series_contract_pins_opl_owner_release_contract() -> None
     assert release_pin["domain_dependency_pin_required"] is True
     assert release_pin["consumer_alignment_check"] == "family:shared-release"
     assert release_pin["domain_contract_version_pin_does_not_authorize_domain_truth"] is True
+    assert contract["shared_policy_release"] == {
+        "policy_release_contract_ref": (
+            "contracts/opl-framework/foundry-agent-series-policy-release.json"
+        ),
+        "policy_bundle_fingerprint": (
+            "sha256:5d77102e99e6e49acd88714cd94dcafe0969b8f2a5529928d753002ac3d4619d"
+        ),
+        "fingerprint_algorithm": "sha256:stable-json",
+        "domain_contract_policy_release_pin_required": True,
+        "domain_adapter_must_not_copy_policy_body_as_authority": True,
+        "consumer_alignment_check": "foundry:policy-release",
+    }
 
 
 def test_family_shared_alignment_uses_repo_root_by_default(monkeypatch, tmp_path: Path) -> None:
