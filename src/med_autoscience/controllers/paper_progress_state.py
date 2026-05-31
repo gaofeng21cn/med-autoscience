@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection import (
     current_owner_handoff_action,
+    current_owner_route_back_checklist,
 )
 
 
@@ -63,6 +64,8 @@ def build_paper_progress_state(payload: Mapping[str, Any]) -> dict[str, Any]:
         next_owner=next_owner,
         blocking_reasons=blocking_reasons,
     )
+    handoff_action = current_owner_handoff_action(payload)
+    stage_closeout_progress = _stage_closeout_progress(payload, handoff_action=handoff_action)
     return {
         "surface": PAPER_PROGRESS_STATE_SURFACE,
         "read_model": PAPER_PROGRESS_STATE_READ_MODEL,
@@ -77,6 +80,8 @@ def build_paper_progress_state(payload: Mapping[str, Any]) -> dict[str, Any]:
         "next_owner": next_owner,
         "requires_user_input": requires_user_input,
         "why_not_progressing": why_not_progressing,
+        "stage_closeout_progress": stage_closeout_progress,
+        "route_back_checklist": current_owner_route_back_checklist(payload, handoff_action=handoff_action),
         "safe_reconcile_command": _safe_reconcile_command(payload),
     }
 
@@ -95,8 +100,6 @@ def _paper_state(
         return "awaiting_human"
     if _live_provider_attempt(payload) and actual_write_active and meaningful_artifact_delta:
         return "progressing"
-    if _is_downstream_only(payload, blocking_reasons):
-        return "downstream_only"
     same_line_reactivation = _same_line_reactivation_active(payload)
     if _opl_stage_attempt_admission_owner(payload, next_owner) and not _route_authorization_blocked(payload):
         return "opl_stage_attempt_admission_required"
@@ -110,6 +113,8 @@ def _paper_state(
         return "blocked_controller_route"
     if _owner_callable_surface_missing(payload, next_owner):
         return "awaiting_callable_owner"
+    if _is_downstream_only(payload, blocking_reasons):
+        return "downstream_only"
     if package_delivered and not same_line_reactivation:
         return "terminal_delivered"
     if actual_write_active and meaningful_artifact_delta:
@@ -155,6 +160,46 @@ def _paper_delta_changed_refs(payload: Mapping[str, Any]) -> list[str]:
     refs.extend(_string_items(scan_delta.get("changed_refs")))
     refs.extend(_string_items(scan_delta.get("evidence_refs")))
     return _dedupe(refs)
+
+
+def _stage_closeout_progress(
+    payload: Mapping[str, Any],
+    *,
+    handoff_action: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    action = _mapping(handoff_action)
+    deliverable_delta = _mapping(action.get("deliverable_progress_delta"))
+    paper_delta = _mapping(action.get("paper_progress_delta"))
+    platform_delta = _mapping(action.get("platform_repair_delta"))
+    classification = _text(action.get("progress_delta_classification"))
+    changed_paper_surfaces = _string_items(action.get("changed_paper_surfaces"))
+    changed_stage_surfaces = _string_items(action.get("changed_stage_surfaces"))
+    paper_refs = _paper_delta_changed_refs(payload)
+    return {
+        "surface_kind": "paper_progress_stage_closeout_projection",
+        "classification": classification,
+        "paper_facing_delta_present": _delta_count(deliverable_delta) > 0
+        or _delta_count(paper_delta) > 0
+        or bool(changed_paper_surfaces)
+        or bool(paper_refs),
+        "runtime_closeout_only": classification == "platform_repair"
+        or (_delta_count(platform_delta) > 0 and _delta_count(deliverable_delta) == 0 and not changed_paper_surfaces),
+        "deliverable_progress_delta": deliverable_delta,
+        "paper_progress_delta": paper_delta,
+        "platform_repair_delta": platform_delta,
+        "changed_paper_surfaces": changed_paper_surfaces,
+        "changed_stage_surfaces": changed_stage_surfaces,
+        "paper_delta_refs": paper_refs,
+    }
+
+
+def _delta_count(value: Mapping[str, Any]) -> int:
+    count = value.get("count")
+    if isinstance(count, bool):
+        return 0
+    if isinstance(count, int):
+        return count
+    return 0
 
 
 def _actual_write_active(payload: Mapping[str, Any], *, visible_progress: bool) -> bool:

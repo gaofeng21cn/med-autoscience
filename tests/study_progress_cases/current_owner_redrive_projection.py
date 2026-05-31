@@ -105,6 +105,110 @@ def test_redrive_projection_prefers_current_opl_owner_handoff_over_stale_transit
     assert result["autonomy_contract"]["next_signal"] == result["next_system_action"]
 
 
+def test_redrive_projection_uses_structured_typed_blocker_route_back_owner() -> None:
+    handoff_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+    )
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "domain_transition": {
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "owner": "write",
+            "next_work_unit": {
+                "unit_id": "medical_prose_currentness_recheck",
+                "summary": "Repair stale medical prose against the current manuscript.",
+                "required_output_surface": "paper/build/review_manuscript.md",
+            },
+            "evidence_refs": {
+                "publication_eval": "artifacts/publication_eval/latest.json",
+                "reviewer_record": "artifacts/publication_eval/ai_reviewer_responses/current_record.json",
+            },
+            "expected_repair_result": (
+                "current manuscript story-surface delta plus AI reviewer recheck request, "
+                "or a stable typed blocker"
+            ),
+        },
+        "study_macro_state": {
+            "surface": "study_macro_state",
+            "schema_version": 1,
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "writer_state": "queued",
+            "user_next": "repair",
+            "reason": "quality",
+            "details": {
+                "route_owner": "write",
+                "route_target": "write",
+                "next_work_unit": "medical_prose_currentness_recheck",
+            },
+        },
+        "opl_current_control_state_handoff": {
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "generated_at": "2026-05-30T10:00:00+00:00",
+            "latest_terminal_stage_log": {
+                "status": "handoff_ready",
+                "action_type": "run_quality_repair_batch",
+                "paper_stage_log": {
+                    "current_owner": "write",
+                    "progress_delta_classification": "platform_repair",
+                    "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
+                    "paper_progress_delta": {"count": 0, "token_usage_total": 0},
+                    "platform_repair_delta": {"count": 1, "token_usage_total": 2400},
+                    "changed_paper_surfaces": [],
+                    "changed_stage_surfaces": ["runtime/typed_closeout.json"],
+                    "evidence_refs": ["artifacts/controller/quality_repair_batch/latest.json"],
+                    "remaining_blockers": {
+                        "reason": "manuscript_story_surface_delta_missing",
+                        "typed_blocker": "manuscript_story_surface_delta_missing",
+                    },
+                },
+            },
+        },
+        "intervention_lane": {
+            "lane_id": "quality_floor_blocker",
+            "route_target": "review",
+            "route_key_question": "stale_review_route",
+            "summary": "旧审阅 route。",
+        },
+    }
+    payload["user_visible_projection"] = module.build_user_visible_projection(payload)
+
+    result = handoff_projection.apply_current_owner_handoff_user_visible_status(payload)
+
+    assert "write owner" in result["next_system_action"]
+    assert "run_quality_repair_batch" in result["next_system_action"]
+    assert "manuscript_story_surface_delta_missing" in result["next_system_action"]
+    assert result["user_visible_projection"]["next_owner"] == "write"
+    assert result["intervention_lane"]["route_target"] == "write"
+    assert result["intervention_lane"]["route_key_question"] == "manuscript_story_surface_delta_missing"
+    checklist = result["route_back_checklist"]
+    assert checklist["blockers"] == ["manuscript_story_surface_delta_missing"]
+    assert checklist["route_target"] == "write"
+    assert checklist["owner"] == "write"
+    assert checklist["next_work_units"] == [
+        {
+            "unit_id": "medical_prose_currentness_recheck",
+            "summary": "Repair stale medical prose against the current manuscript.",
+            "required_output_surface": "paper/build/review_manuscript.md",
+        }
+    ]
+    assert checklist["evidence_refs"] == [
+        "artifacts/controller/quality_repair_batch/latest.json",
+        "artifacts/publication_eval/latest.json",
+        "artifacts/publication_eval/ai_reviewer_responses/current_record.json",
+    ]
+    assert checklist["expected_repair_result"].startswith("current manuscript story-surface delta")
+    assert checklist["progress_delta_classification"] == "platform_repair"
+    assert checklist["deliverable_progress_delta"] == {"count": 0, "token_usage_total": 0}
+    assert checklist["platform_repair_delta"] == {"count": 1, "token_usage_total": 2400}
+    assert checklist["changed_paper_surfaces"] == []
+    assert checklist["changed_stage_surfaces"] == ["runtime/typed_closeout.json"]
+    assert result["user_visible_projection"]["route_back_checklist"] == checklist
+    assert result["intervention_lane"]["route_back_checklist"] == checklist
+
+
 def test_user_visible_projection_uses_current_domain_transition_owner_when_handoff_shell_is_stale() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     payload = {
