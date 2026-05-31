@@ -53,16 +53,19 @@ def handle_study_action_command(
     study_root = Path(args.study_root) if args.study_root else None
 
     if args.command == "launch-study":
-        result = study_domain_handlers.launch_study(
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=args.study_id,
-            study_root=study_root,
-            entry_mode=args.entry_mode,
-            allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
-            explicit_user_wakeup=bool(args.explicit_user_wakeup),
-            force=bool(args.force),
-        )
+        try:
+            result = study_domain_handlers.launch_study(
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=args.study_id,
+                study_root=study_root,
+                entry_mode=args.entry_mode,
+                allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
+                explicit_user_wakeup=bool(args.explicit_user_wakeup),
+                force=bool(args.force),
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
         return _emit_result(
             result,
             args=args,
@@ -106,4 +109,3 @@ def _emit_result(
     else:
         print(markdown_renderer(result), end="")
     return 0
-

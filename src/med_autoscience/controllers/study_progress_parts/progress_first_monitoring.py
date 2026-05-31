@@ -6,6 +6,7 @@ from typing import Any
 
 def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     handoff = _mapping(payload.get("opl_current_control_state_handoff"))
+    launch_policy = _mapping(payload.get("product_entry_launch_policy"))
     execution = _mapping(payload.get("current_execution_envelope"))
     domain_transition = _mapping(payload.get("domain_transition"))
     supervision = _mapping(payload.get("supervision"))
@@ -20,8 +21,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _text(payload.get("active_run_id"))
         or _text(handoff.get("active_run_id"))
     )
+    hydration_work_unit = _explicit_wakeup_hydration_work_unit(launch_policy)
     next_work_unit = (
-        _work_unit_projection(execution.get("next_work_unit"))
+        hydration_work_unit
+        or _work_unit_projection(execution.get("next_work_unit"))
         or _work_unit_projection(domain_transition.get("next_work_unit"))
         or _work_unit_from_action_queue(handoff.get("action_queue"))
         or _work_unit_projection(next_forced_delta.get("work_unit_id"))
@@ -53,9 +56,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             "worker_liveness_state": _text(runtime_health.get("worker_liveness_state")),
             "supervisor_tick_status": _text(supervision.get("supervisor_tick_status")),
         },
-        "execution_state_kind": state_kind,
+        "execution_state_kind": "owner_handoff_hydration" if hydration_work_unit is not None else state_kind,
         "next_owner": (
-            _text(execution.get("owner"))
+            _explicit_wakeup_hydration_owner(launch_policy)
+            or _text(execution.get("owner"))
             or _text(domain_transition.get("owner"))
             or _text(handoff.get("next_owner"))
             or _text(progress_state.get("next_owner"))
@@ -63,6 +67,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "route_target": _text(domain_transition.get("route_target")),
         "controller_action": _text(domain_transition.get("controller_action")) or _text(payload.get("runtime_decision")),
         "next_work_unit": next_work_unit,
+        "owner_handoff_hydration": _owner_handoff_hydration_projection(launch_policy),
         "typed_blocker": typed_blocker or None,
         "current_blockers": current_blockers,
         "progress_delta_classification": _text(payload.get("progress_delta_classification"))
@@ -194,6 +199,33 @@ def _work_unit_projection(value: object) -> dict[str, Any] | str | None:
         ) or dict(value)
     text = _text(value)
     return text
+
+
+def _explicit_wakeup_hydration_work_unit(launch_policy: Mapping[str, Any]) -> str | None:
+    if launch_policy.get("explicit_user_wakeup_recorded") is not True:
+        return None
+    if launch_policy.get("owner_handoff_hydration_required") is not True:
+        return None
+    return _text(launch_policy.get("owner_handoff_hydration_action")) or "hydrate_opl_owner_route_from_explicit_resume"
+
+
+def _explicit_wakeup_hydration_owner(launch_policy: Mapping[str, Any]) -> str | None:
+    if _explicit_wakeup_hydration_work_unit(launch_policy) is None:
+        return None
+    return _text(launch_policy.get("owner_handoff_hydration_owner")) or "one-person-lab"
+
+
+def _owner_handoff_hydration_projection(launch_policy: Mapping[str, Any]) -> dict[str, Any] | None:
+    work_unit = _explicit_wakeup_hydration_work_unit(launch_policy)
+    if work_unit is None:
+        return None
+    return {
+        "required": True,
+        "owner": _explicit_wakeup_hydration_owner(launch_policy),
+        "action": work_unit,
+        "explicit_user_wakeup_ref": _text(launch_policy.get("explicit_user_wakeup_ref")),
+        "study_truth_snapshot_ref": _text(launch_policy.get("study_truth_snapshot_ref")),
+    }
 
 
 def _source_refs(

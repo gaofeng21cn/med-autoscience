@@ -172,6 +172,13 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 - `study_id` 或 `study_root` 之一
 - 可选 `entry_mode`
 
+`launch-study` 的 `--entry-mode` 属于 product-entry adapter mode，当前只支持 `direct` 与
+`opl-handoff`。它不能被当成底层 research runtime entry mode 透传；不支持的值（例如
+`managed`）必须在 product-entry launch surface fail-fast，并报告 supported entry modes，
+不得静默退成 `entry_mode_not_managed` / parked no-op。`opl-handoff` 入口会读取当前默认
+managed research runtime status，同时把 OPL admission / owner-route handoff 作为返回 payload
+中的显式 policy，而不是让 runtime projection 误判入口不受管。
+
 stage-attempt request port 接受：
 
 - `ports: RuntimeControlPorts`

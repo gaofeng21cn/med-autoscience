@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.controllers import study_truth_kernel
 from med_autoscience.controllers.product_entry_parts.shared import (
     SCHEMA_VERSION,
+    SUPPORTED_DIRECT_ENTRY_MODES,
     WorkspaceProfile,
     _append_human_status_lines,
     _command,
@@ -40,12 +41,13 @@ def launch_study(
         study_id=study_id,
         study_root=study_root,
     )
+    selected_entry_mode = _require_launch_entry_mode(entry_mode)
     runtime_status = _serialize_runtime_status(
         domain_status_projection.progress_projection(
             profile=profile,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
-            entry_mode=entry_mode,
+            entry_mode=None,
         )
     )
     explicit_wakeup_receipt = _record_explicit_user_wakeup(
@@ -59,6 +61,8 @@ def launch_study(
         runtime_status["study_truth_snapshot"] = explicit_wakeup_receipt["snapshot"]
     runtime_status["product_entry_launch_policy"] = {
         "status": "opl_attempt_admission_required",
+        "entry_mode": selected_entry_mode,
+        "supported_entry_modes": list(SUPPORTED_DIRECT_ENTRY_MODES),
         "runtime_owner": "one-person-lab",
         "domain_owner": "med-autoscience",
         "mas_executes_runtime_attempt": False,
@@ -67,6 +71,11 @@ def launch_study(
         "explicit_user_wakeup_recorded": explicit_wakeup_receipt is not None,
         "explicit_user_wakeup_ref": (explicit_wakeup_receipt or {}).get("event_id"),
         "study_truth_snapshot_ref": (explicit_wakeup_receipt or {}).get("snapshot_path"),
+        "owner_handoff_hydration_required": explicit_wakeup_receipt is not None,
+        "owner_handoff_hydration_action": (
+            "hydrate_opl_owner_route_from_explicit_resume" if explicit_wakeup_receipt is not None else None
+        ),
+        "owner_handoff_hydration_owner": "one-person-lab" if explicit_wakeup_receipt is not None else None,
         "force_requested": bool(force),
     }
     progress_payload = study_progress.build_study_progress_projection(
@@ -75,7 +84,7 @@ def launch_study(
         study_id=resolved_study_id,
         study_root=resolved_study_root,
         status_payload=runtime_status,
-        entry_mode=entry_mode,
+        entry_mode=selected_entry_mode,
     )
     resolved_study_id = (
         _non_empty_text(progress_payload.get("study_id"))
@@ -110,6 +119,14 @@ def launch_study(
         "progress": progress_payload,
         "commands": commands,
     }
+
+
+def _require_launch_entry_mode(value: str | None) -> str:
+    mode = _non_empty_text(value) or "opl-handoff"
+    if mode not in SUPPORTED_DIRECT_ENTRY_MODES:
+        supported = ", ".join(SUPPORTED_DIRECT_ENTRY_MODES)
+        raise ValueError(f"study launch entry mode 不支持: {mode}; supported_entry_modes={supported}")
+    return mode
 
 
 def _record_explicit_user_wakeup(
