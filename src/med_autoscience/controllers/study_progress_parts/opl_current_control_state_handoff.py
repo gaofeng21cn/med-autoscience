@@ -516,14 +516,16 @@ def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) ->
     ]
     if not missing:
         return projection
-    normalized_log = dict(paper_stage_log)
-    normalized_log["outcome"] = "typed_blocker"
-    normalized_log["remaining_blockers"] = ["typed_closeout_packet_required"]
     projection = dict(projection)
-    projection["status"] = "typed_blocker"
     projection["typed_blocker_reason"] = "typed_closeout_packet_required"
     projection["diagnostic"] = "user_stage_log_missing_required_progress_fields"
     projection["missing_user_stage_log_fields"] = missing
+    if missing == ["progress_delta_classification"]:
+        return projection
+    normalized_log = dict(paper_stage_log)
+    normalized_log["outcome"] = "typed_blocker"
+    normalized_log["remaining_blockers"] = ["typed_closeout_packet_required"]
+    projection["status"] = "typed_blocker"
     projection["paper_stage_log"] = normalized_log
     return projection
 
@@ -531,6 +533,8 @@ def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) ->
 def _paper_stage_log_field_missing(field: str, paper_stage_log: Mapping[str, Any]) -> bool:
     if field not in paper_stage_log:
         return True
+    if field in {"changed_stage_surfaces", "changed_paper_surfaces"}:
+        return False
     value = paper_stage_log.get(field)
     return value in (None, "", [], {})
 
