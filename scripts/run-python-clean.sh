@@ -150,7 +150,12 @@ if [[ "${analysis_extra_enabled}" == "1" ]]; then
 else
   sync_marker="${tmp_root}/uv-sync.done"
 fi
-if [[ "${MAS_CLEAN_RUNNER_SKIP_SYNC:-0}" != "1" && ! -f "${sync_marker}" ]]; then
+venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"
+sync_required=1
+if [[ "${MAS_CLEAN_RUNNER_SKIP_SYNC:-0}" == "1" && -f "${sync_marker}" && -x "${venv_python}" ]]; then
+  sync_required=0
+fi
+if [[ "${sync_required}" == "1" ]]; then
   uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)
   if [[ "${analysis_extra_enabled}" == "1" ]]; then
     uv_sync_args+=(--extra analysis)
@@ -163,7 +168,6 @@ if [[ "${MAS_CLEAN_RUNNER_SKIP_SYNC:-0}" != "1" && ! -f "${sync_marker}" ]]; the
 fi
 export MAS_CLEAN_RUNNER_SKIP_SYNC=1
 
-venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"
 if [[ ! -x "${venv_python}" ]]; then
   echo "run-python-clean.sh: missing venv Python after dependency sync: ${venv_python}" >&2
   exit 1

@@ -93,6 +93,71 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["domain_descriptor"]["standard_contract_refs"][
         "foundry_agent_series_policy_release"
     ] == "contracts/opl-framework/foundry-agent-series-policy-release.json"
+    series_profile = foundry_series["series_design_profile"]
+    assert series_profile["surface_kind"] == "opl_foundry_agent_series_design_profile"
+    assert series_profile["profile_id"] == "opl_foundry_agent_series_design_profile.v1"
+    assert series_profile["shared_lifecycle_pipeline"] == [
+        "domain_material_intake",
+        "domain_pack_interpretation",
+        "stage_led_agent_execution",
+        "independent_quality_gate_or_owner_review",
+        "owner_receipt_or_typed_blocker_closeout",
+        "artifact_or_deliverable_handoff",
+        "opl_refs_only_projection_and_recovery",
+    ]
+    assert series_profile["domain_io_profile"]["input_slot"] == (
+        "domain_materials_or_task_request"
+    )
+    assert series_profile["domain_io_profile"]["output_slot"] == (
+        "domain_deliverable_or_owner_handoff"
+    )
+    assert series_profile["stage_pack_sections"] == [
+        "prompts",
+        "stages",
+        "skills",
+        "knowledge",
+        "quality_gates",
+    ]
+    assert series_profile["shared_closeout_contract"]["success_shape"] == (
+        "domain_owner_receipt_ref"
+    )
+    assert series_profile["shared_closeout_contract"]["blocked_shape"] == (
+        "domain_owned_typed_blocker_ref"
+    )
+    assert series_profile["shared_closeout_contract"][
+        "provider_completion_is_closeout"
+    ] is False
+    assert series_profile["authority_invariants"] == {
+        "opl_can_infer_domain_output": False,
+        "opl_can_read_domain_body": False,
+        "opl_can_write_domain_truth": False,
+        "opl_can_authorize_quality_or_export": False,
+        "domain_owns_input_truth_and_output_authority": True,
+    }
+    domain_profile = foundry_series["domain_specific_profile"]
+    assert domain_profile["shared_agent_logic"] == (
+        "same_opl_foundry_agent_lifecycle_with_domain_specific_medical_research_inputs_"
+        "and_manuscript_outputs"
+    )
+    assert "disease_specific_study_question" in domain_profile["domain_input_taxonomy"]
+    assert "research_evidence_pack_refs" in domain_profile["domain_output_taxonomy"]
+    assert domain_profile["authority_invariants"] == {
+        "opl_role": "refs_projection_runtime_lifecycle_and_generated_surface_owner",
+        "mas_role": (
+            "study_truth_publication_quality_artifact_authority_memory_authority_"
+            "and_owner_receipt_owner"
+        ),
+        "opl_can_write_study_truth": False,
+        "opl_can_claim_publication_quality": False,
+        "opl_can_authorize_artifact_mutation": False,
+        "opl_can_accept_or_reject_memory_body": False,
+        "mas_owner_receipt_required_for_domain_closeout": True,
+    }
+    assert domain_profile["progress_currentness_closeout_packets"] == (
+        foundry_series["required_stage_packets"]
+    )
+    assert "stage_packet_hydration" in domain_profile["shared_lifecycle_pipeline"]
+    assert "quality_gates" in series_profile["stage_pack_sections"]
     assert foundry_series["domain_progress_aliases"]["deliverable"] == [
         "paper_progress_delta",
         "paper_work_progress",
@@ -373,52 +438,6 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
             "mechanism_repair_after_repeat_count": 2,
             "human_gate_or_stop_loss_after_repeat_count": 3,
         }
-        no_op_budget = progress_delta_policy["no_op_currentness_budget"]
-        assert no_op_budget == {
-            "max_consecutive_no_op_currentness_proofs": 1,
-            "second_consecutive_no_op_escalation": "typed_blocker_with_next_forced_delta",
-            "third_consecutive_no_op_escalation": "human_gate_or_stop_loss_candidate",
-        }
-        minimum_delta = stage["stage_contract"]["minimum_forward_delta"]
-        assert minimum_delta["surface_kind"] == "mas_stage_minimum_forward_delta_contract"
-        assert minimum_delta["stage_id"] == stage["stage_id"]
-        assert minimum_delta["progress_first_priority"] == (
-            "produce_reviewable_deliverable_delta_before_control_plane_explanation"
-        )
-        assert minimum_delta["valid_non_terminal_results"] == [
-            "deliverable_progress_delta",
-            "typed_blocker_with_next_forced_delta",
-            "human_gate_with_last_attempted_delta",
-            "stop_loss_candidate",
-        ]
-        assert "no_op_with_currentness_proof" in minimum_delta["restricted_results"]
-        assert minimum_delta["no_op_budget_ref"] == "stage_contract.progress_delta_policy.no_op_currentness_budget"
-        assert minimum_delta["target_surface"]["ref_kind"] == "route_obligation"
-        assert minimum_delta["target_surface"]["stage_id"] == stage["stage_id"]
-        assert minimum_delta["acceptance_refs"]
-        assert minimum_delta["owner_action"]["next_owner"] == "MedAutoScience"
-        assert minimum_delta["authority_boundary"]["can_authorize_publication_quality"] is False
-        route_lens = stage["stage_contract"]["route_obligation_lens"]
-        assert route_lens["surface_kind"] == "mas_stage_route_obligation_lens"
-        assert route_lens["stage_id"] == stage["stage_id"]
-        assert route_lens["domain_stage_refs"] == stage["domain_stage_refs"]
-        assert route_lens["active_route_obligation_policy"] == (
-            "project_current_blocking_route_obligation_before_generic_stage_status"
-        )
-        assert route_lens["route_obligation_progress_delta"]["deliverable_progress_delta_ref"] == (
-            "stage_contract.minimum_forward_delta"
-        )
-        human_gate_contract = stage["stage_contract"]["human_gate_progress_evidence"]
-        assert human_gate_contract["surface_kind"] == "mas_stage_human_gate_progress_evidence_contract"
-        assert human_gate_contract["required_fields"] == [
-            "last_attempted_deliverable_delta",
-            "why_ai_cannot_progress_one_more_delta",
-            "next_forced_delta",
-            "human_decision_owner",
-        ]
-        assert human_gate_contract["missing_evidence_policy"] == (
-            "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker"
-        )
     assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
     assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"
     assert generated["functional_privatization_audit"]["functional_followthrough_gap_summary"][

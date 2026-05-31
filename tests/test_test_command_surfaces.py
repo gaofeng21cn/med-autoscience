@@ -441,6 +441,9 @@ def test_clean_python_runner_resolves_repo_from_script_path_outside_git(tmp_path
     fake_bin.mkdir(parents=True)
     fake_python = fake_bin / "python"
     fake_python.symlink_to(sys.executable)
+    runner_tmp = tmp_path / "runner-tmp"
+    runner_tmp.mkdir()
+    (runner_tmp / "uv-sync.done").write_text("synced\n", encoding="utf-8")
 
     outside_git = tmp_path / "not-a-git-workspace"
     outside_git.mkdir()
@@ -455,7 +458,7 @@ def test_clean_python_runner_resolves_repo_from_script_path_outside_git(tmp_path
         env={
             **os.environ,
             "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
-            "MAS_CLEAN_RUNNER_TMP_ROOT": str(tmp_path / "runner-tmp"),
+            "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
             "UV_PROJECT_ENVIRONMENT": str(fake_venv),
         },
         check=False,
@@ -474,6 +477,7 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
     fake_bin.mkdir(parents=True)
     fake_python = fake_bin / "python"
     fake_python.symlink_to(sys.executable)
+    (runner_tmp / "uv-sync.done").write_text("synced\n", encoding="utf-8")
     checkout_local_venv = REPO_ROOT / ".mas-clean-runner-sentinel-venv"
     checkout_local_pycache = REPO_ROOT / ".mas-clean-runner-sentinel-pycache"
 
@@ -510,6 +514,51 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
     ]
     assert not checkout_local_venv.exists()
     assert not checkout_local_pycache.exists()
+
+
+def test_clean_python_runner_ignores_inherited_skip_sync_without_marker(tmp_path: Path) -> None:
+    runner_tmp = tmp_path / "runner-tmp"
+    fake_venv = runner_tmp / "venv"
+    fake_bin = fake_venv / "bin"
+    fake_bin.mkdir(parents=True)
+    fake_python = fake_bin / "python"
+    fake_python.symlink_to(sys.executable)
+    sync_log = tmp_path / "uv-sync.log"
+    fake_uv = tmp_path / "uv"
+    fake_uv.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$*\" >> \"${MAS_TEST_SYNC_LOG}\"\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+
+    result = subprocess.run(
+        [
+            str(REPO_ROOT / "scripts/run-python-clean.sh"),
+            "-c",
+            "print('runner-ok')",
+        ],
+        cwd=REPO_ROOT,
+        env={
+            **os.environ,
+            "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
+            "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
+            "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
+            "MAS_TEST_SYNC_LOG": str(sync_log),
+            "UV_PROJECT_ENVIRONMENT": str(fake_venv),
+        },
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "runner-ok"
+    assert sync_log.read_text(encoding="utf-8").strip() == (
+        "sync --frozen --group dev --no-install-project --inexact"
+    )
+    assert (runner_tmp / "uv-sync.done").is_file()
 
 
 def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
