@@ -98,7 +98,7 @@ def input_contract_with_normalized_refs(
         if not _ref_has_target(ref) or ref.get("present") is False or ref.get("valid") is False
     ]
     contract["required_refs"] = refs
-    contract["required_surfaces"] = list(AI_REVIEWER_REQUIRED_INPUT_SURFACES)
+    contract["required_surfaces"] = list(dict.fromkeys([*AI_REVIEWER_REQUIRED_INPUT_SURFACES, *refs.keys()]))
     contract["all_required_refs_present"] = not missing
     contract["missing_or_invalid_refs"] = missing
     return contract
@@ -156,6 +156,9 @@ def normalized_required_inputs(
             if any(path.exists() for path in _candidate_ref_paths(study_root=study_root, ref=default_ref)):
                 ref = default_ref
         normalized[surface] = ref
+    for surface, ref in refs.items():
+        if surface not in normalized:
+            normalized[surface] = dict(_mapping(ref))
     return normalized
 
 

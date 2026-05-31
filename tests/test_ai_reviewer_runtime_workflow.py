@@ -75,6 +75,15 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
                 "manuscript_ref": refs["manuscript"],
                 "manuscript_digest": manuscript_digest,
             },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": refs["manuscript"],
+                "manuscript_digest": manuscript_digest,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
+            },
             "current_package_freshness": {
                 "status": "fresh",
                 "source_eval_id": eval_id,

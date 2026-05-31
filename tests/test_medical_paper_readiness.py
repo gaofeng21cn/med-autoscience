@@ -4,6 +4,11 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.reviewer_os_fixture_helpers import (
+    claim_evidence_alignment_digest,
+    ready_claim_evidence_alignment_gate,
+)
+
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -93,6 +98,14 @@ def _complete_soak_stage_evidence() -> dict[str, list[str]]:
 
 
 def _reviewer_operating_system() -> dict[str, object]:
+    source_eval_id = "publication-eval::001-risk::quest-001::2026-05-04T00:00:00+00:00"
+    manuscript_ref = "paper/manuscript.md"
+    manuscript_digest = "sha256:" + "c" * 64
+    request_digest = "sha256:" + "a" * 64
+    claim_alignment = ready_claim_evidence_alignment_gate(
+        claim_evidence_map_ref="paper/claim_evidence_map.json",
+        evidence_ledger_ref="paper/evidence_ledger.json",
+    )
     dimensions = (
         "clinical_significance",
         "evidence_strength",
@@ -131,37 +144,32 @@ def _reviewer_operating_system() -> dict[str, object]:
         "currentness_checks": {
             "medical_prose_review": {
                 "status": "current",
-                "request_digest": "sha256:" + "a" * 64,
-                "manuscript_ref": "paper/manuscript.md",
-                "manuscript_digest": "sha256:" + "c" * 64,
+                "request_digest": request_digest,
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+            },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": source_eval_id,
             },
             "current_package_freshness": {
                 "status": "fresh",
-                "source_eval_id": "publication-eval::001-risk::quest-001::2026-05-04T00:00:00+00:00",
+                "source_eval_id": source_eval_id,
             },
         },
-        "claim_evidence_alignment": {
-            "surface_kind": "claim_evidence_alignment_gate_v1",
-            "source_project": "academic-research-skills",
-            "absorbed_as": "mas_native_claim_evidence_alignment_gate",
-            "status": "ready",
-            "fail_closed_when_missing": True,
-            "body_included": False,
-            "may_authorize_publication_readiness": False,
-            "may_authorize_quality_verdict": False,
-            "can_write_domain_truth": False,
-            "missing_required_fields": [],
-            "blockers": [],
-            "claim_count": 1,
-            "aligned_claim_count": 1,
-        },
+        "claim_evidence_alignment": claim_alignment,
         "publication_quality_readiness": {
             "surface_kind": "publication_quality_authority_kernel_v1",
             "status": "ready",
-            "current_manuscript_digest": "sha256:" + "c" * 64,
-            "review_request_digest": "sha256:" + "a" * 64,
+            "current_manuscript_digest": manuscript_digest,
+            "review_request_digest": request_digest,
             "evidence_ledger_digest": "sha256:" + "e" * 64,
-            "claim_evidence_alignment_digest": "sha256:" + "d" * 64,
+            "claim_evidence_alignment_digest": claim_evidence_alignment_digest(claim_alignment),
             "rubric_version": "medical_publication_critique_v1",
             "owner_attempt_id": "ai-reviewer-attempt-001",
             "fail_closed_when_missing": True,

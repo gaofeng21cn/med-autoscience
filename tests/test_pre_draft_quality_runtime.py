@@ -150,8 +150,12 @@ def _target_journal_writing_layer() -> dict[str, Any]:
 
 
 def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
+    eval_id = "publication-eval::001-risk::quest-001::2026-05-01T00:00:00+00:00"
+    request_digest = "sha256:test-medical-prose-review-request"
+    manuscript_ref = str(study_root / "paper" / "manuscript.md")
+    manuscript_digest = "sha256:test-manuscript"
     input_bundle = {
-        "manuscript": str(study_root / "paper" / "manuscript.md"),
+        "manuscript": manuscript_ref,
         "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
         "evidence_ledger": str(study_root / "paper" / "evidence_ledger.json"),
         "review_ledger": str(study_root / "paper" / "review_ledger.json"),
@@ -197,28 +201,34 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
                 "request_ref": str(
                     study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
                 ),
-                "request_digest": "sha256:test-medical-prose-review-request",
-                "manuscript_ref": str(study_root / "paper" / "manuscript.md"),
-                "manuscript_digest": "sha256:test-manuscript",
+                "request_digest": request_digest,
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+            },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
             },
             "current_package_freshness": {
                 "status": "fresh",
-                "source_eval_id": "publication-eval::001-risk::quest-001::2026-05-01T00:00:00+00:00",
+                "source_eval_id": eval_id,
             },
         },
         "claim_evidence_alignment": claim_alignment,
         "publication_quality_readiness": {
             "surface_kind": "publication_quality_authority_kernel_v1",
             "status": "ready",
-            "current_manuscript_digest": "sha256:test-manuscript",
-            "review_request_digest": "sha256:test-medical-prose-review-request",
+            "current_manuscript_digest": manuscript_digest,
+            "review_request_digest": request_digest,
             "evidence_ledger_digest": "sha256:" + "d" * 64,
             "claim_evidence_alignment_digest": claim_evidence_alignment_digest(claim_alignment),
             "rubric_version": "medical_publication_critique_v1",
-            "owner_attempt_id": (
-                "ai-reviewer-publication-eval::"
-                "publication-eval::001-risk::quest-001::2026-05-01T00:00:00+00:00"
-            ),
+            "owner_attempt_id": f"ai-reviewer-publication-eval::{eval_id}",
             "fail_closed_when_missing": True,
             "missing_required_fields": [],
         },

@@ -99,8 +99,9 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
         study_root
         / "artifacts"
         / "supervision"
-        / "consumer"
-        / "canonical_paper_inputs_rehydrate_required.json"
+        / "requests"
+        / "canonical_paper_inputs_rehydrate"
+        / "latest.json"
     )
     dispatch_path = (
         study_root
@@ -192,8 +193,9 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
         study_root
         / "artifacts"
         / "supervision"
-        / "consumer"
-        / "unit_harmonized_external_validation_rerun.json"
+        / "requests"
+        / "analysis_harmonization"
+        / "latest.json"
     )
     dispatch_path = (
         study_root
@@ -285,8 +287,9 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
         study_root
         / "artifacts"
         / "supervision"
-        / "consumer"
-        / "recover_transport_model_provenance.json"
+        / "requests"
+        / "source_provenance"
+        / "latest.json"
     )
     dispatch_path = (
         study_root
@@ -382,8 +385,9 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
         study_root
         / "artifacts"
         / "supervision"
-        / "consumer"
-        / "methodology_reframe_route_decision.json"
+        / "requests"
+        / "decision"
+        / "latest.json"
     )
     dispatch_path = (
         study_root

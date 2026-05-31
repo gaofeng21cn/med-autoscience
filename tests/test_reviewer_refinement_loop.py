@@ -120,6 +120,7 @@ def _quality_assessment(study_root: Path) -> dict[str, Any]:
 
 def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
     quest_root = study_root.parents[1] / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    eval_id = "publication-eval::001-risk::quest-001::2026-04-05T06:00:00+00:00"
     request_digest = "sha256:" + "a" * 64
     manuscript_digest = "sha256:" + "c" * 64
     input_bundle = {
@@ -172,9 +173,18 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
                 "manuscript_ref": input_bundle["manuscript"],
                 "manuscript_digest": manuscript_digest,
             },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": input_bundle["manuscript"],
+                "manuscript_digest": manuscript_digest,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
+            },
             "current_package_freshness": {
                 "status": "fresh",
-                "source_eval_id": "publication-eval::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+                "source_eval_id": eval_id,
             },
         },
         "claim_evidence_alignment": claim_alignment,
@@ -186,7 +196,7 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
             "evidence_ledger_digest": "sha256:" + "d" * 64,
             "claim_evidence_alignment_digest": claim_evidence_alignment_digest(claim_alignment),
             "rubric_version": "medical_publication_critique_v1",
-            "owner_attempt_id": "ai-reviewer-publication-eval::publication-eval::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+            "owner_attempt_id": f"ai-reviewer-publication-eval::{eval_id}",
             "fail_closed_when_missing": True,
             "missing_required_fields": [],
         },

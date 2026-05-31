@@ -4,6 +4,11 @@ from dataclasses import dataclass
 
 import pytest
 
+from tests.reviewer_os_fixture_helpers import (
+    claim_evidence_alignment_digest,
+    ready_claim_evidence_alignment_gate,
+)
+
 from . import shared as _shared
 
 globals().update({
@@ -119,8 +124,12 @@ class OuterLoopTransitionCase:
 
 def _ready_reviewer_operating_system(study_root: Path) -> dict[str, object]:
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    eval_id = "publication-eval::001-risk::quest-001::transition-matrix"
+    request_digest = "sha256:transition-matrix-medical-prose-review-request"
+    manuscript_ref = str(study_root / "paper" / "manuscript.md")
+    manuscript_digest = "sha256:transition-matrix-manuscript"
     refs = {
-        "manuscript": str(study_root / "paper" / "manuscript.md"),
+        "manuscript": manuscript_ref,
         "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
         "evidence_ledger": str(study_root / "paper" / "evidence_ledger.json"),
         "review_ledger": str(study_root / "paper" / "review" / "review_ledger.json"),
@@ -135,6 +144,10 @@ def _ready_reviewer_operating_system(study_root: Path) -> dict[str, object]:
         "novelty_positioning",
         "medical_journal_prose_quality",
         "human_review_readiness",
+    )
+    claim_alignment = ready_claim_evidence_alignment_gate(
+        claim_evidence_map_ref=refs["claim_evidence_map"],
+        evidence_ledger_ref=refs["evidence_ledger"],
     )
     return {
         "contract_id": "medical_publication_ai_reviewer_os_v1",
@@ -158,37 +171,32 @@ def _ready_reviewer_operating_system(study_root: Path) -> dict[str, object]:
         "currentness_checks": {
             "medical_prose_review": {
                 "status": "current",
-                "request_digest": "sha256:transition-matrix-medical-prose-review-request",
-                "manuscript_ref": refs["manuscript"],
-                "manuscript_digest": "sha256:transition-matrix-manuscript",
+                "request_digest": request_digest,
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+            },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+            },
+            "source_eval": {
+                "status": "current",
+                "eval_id": eval_id,
             },
             "current_package_freshness": {
                 "status": "fresh",
-                "source_eval_id": "publication-eval::001-risk::quest-001::transition-matrix",
+                "source_eval_id": eval_id,
             },
         },
-        "claim_evidence_alignment": {
-            "surface_kind": "claim_evidence_alignment_gate_v1",
-            "source_project": "academic-research-skills",
-            "absorbed_as": "mas_native_claim_evidence_alignment_gate",
-            "status": "ready",
-            "fail_closed_when_missing": True,
-            "body_included": False,
-            "may_authorize_publication_readiness": False,
-            "may_authorize_quality_verdict": False,
-            "can_write_domain_truth": False,
-            "missing_required_fields": [],
-            "blockers": [],
-            "claim_count": 1,
-            "aligned_claim_count": 1,
-        },
+        "claim_evidence_alignment": claim_alignment,
         "publication_quality_readiness": {
             "surface_kind": "publication_quality_authority_kernel_v1",
             "status": "ready",
-            "current_manuscript_digest": "sha256:transition-matrix-manuscript",
-            "review_request_digest": "sha256:transition-matrix-medical-prose-review-request",
+            "current_manuscript_digest": manuscript_digest,
+            "review_request_digest": request_digest,
             "evidence_ledger_digest": "sha256:transition-matrix-evidence-ledger",
-            "claim_evidence_alignment_digest": "sha256:transition-matrix-claim-evidence-alignment",
+            "claim_evidence_alignment_digest": claim_evidence_alignment_digest(claim_alignment),
             "rubric_version": "medical_publication_critique_v1",
             "owner_attempt_id": "ai-reviewer-publication-eval::transition-matrix",
             "fail_closed_when_missing": True,
