@@ -154,6 +154,141 @@ def test_materialize_domain_action_requests_preserves_current_quality_repair_wri
     assert immutable_dispatch["prompt_contract"]["search_boundaries"] == dispatch["prompt_contract"]["search_boundaries"]
 
 
+def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    dispatch_contract = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.dispatch_contract"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    source_eval_id = "publication-eval::003::current-analysis-harmonization"
+    route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "truth_epoch": source_eval_id,
+        "runtime_health_epoch": "runtime-health::003::write-current",
+        "work_unit_fingerprint": "sha256:medical-prose-currentness-recheck",
+        "failure_signature": "quest_waiting_opl_runtime_owner_route",
+        "route_epoch": source_eval_id,
+        "source_fingerprint": "truth-source::003::medical-prose-currentness-recheck",
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": None,
+        "allowed_actions": ["run_quality_repair_batch"],
+        "blocked_actions": ["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
+        "idempotency_key": "owner-route::003::medical-prose-currentness-recheck",
+        "source_refs": {
+            "source_eval_id": source_eval_id,
+            "work_unit_id": "medical_prose_currentness_recheck",
+            "work_unit_fingerprint": "sha256:medical-prose-currentness-recheck",
+            "runtime_health_epoch": "runtime-health::003::write-current",
+            "study_truth_epoch": source_eval_id,
+            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+        },
+    }
+    required_output_surface = (
+        "canonical manuscript story-surface delta or "
+        "typed blocker:manuscript_story_surface_delta_missing"
+    )
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "run_quality_repair_batch",
+        "authority": "observability_only",
+        "owner": "write",
+        "request_owner": "write",
+        "recommended_owner": "write",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "required_output_surface": required_output_surface,
+        "owner_route": route,
+        "next_work_unit": "medical_prose_currentness_recheck",
+        "controller_work_unit_id": "medical_prose_currentness_recheck",
+        "executable_work_unit": "medical_prose_currentness_recheck",
+        "work_unit_fingerprint": "sha256:medical-prose-currentness-recheck",
+        "source_eval_id": source_eval_id,
+        "handoff_packet": {
+            "request_kind": "run_quality_repair_batch",
+            "authority": "observability_only",
+            "request_owner": "write",
+            "owner_route": route,
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {"status": "blocked", "blockers": ["manuscript_story_surface_delta_missing"]},
+    )
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "action_queue": [action],
+                }
+            ],
+            "action_queue": [action],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    dispatch = result["default_executor_dispatches"][0]
+    prompt_contract = dispatch["prompt_contract"]
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    written_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
+    assert dispatch["medical_claim_authoring_allowed"] is True
+    assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == "medical_prose_currentness_recheck"
+    assert dispatch["owner_route"]["source_refs"]["bridged_from_owner_reason"] == (
+        "quest_waiting_opl_runtime_owner_route"
+    )
+    assert prompt_contract["medical_claim_authoring_allowed"] is True
+    assert prompt_contract["allowed_write_surfaces"] == [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/**",
+    ]
+    assert "paper/**" not in prompt_contract["forbidden_surfaces"]
+    assert "artifacts/publication_eval/latest.json" in prompt_contract["forbidden_surfaces"]
+    assert "artifacts/controller_decisions/latest.json" in prompt_contract["forbidden_surfaces"]
+    assert dispatch_contract.prompt_contract_error(
+        prompt_contract,
+        forbidden_surfaces=module.FORBIDDEN_SURFACES,
+    ) is None
+    assert written_dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
+    assert written_dispatch["prompt_contract"]["allowed_write_surfaces"] == prompt_contract["allowed_write_surfaces"]
+
+
 def _writer_handoff(*, study_id: str, dispatch_path: Path, route: dict[str, object]) -> dict[str, object]:
     required_output = (
         "canonical manuscript story-surface delta or "

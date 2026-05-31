@@ -342,8 +342,9 @@ def _current_route_can_bridge_to_story_surface_handoff(
 ) -> bool:
     if route_reason != RUNTIME_OWNER_ROUTE_REASON or blocked_repair_reason != BLOCKED_REASON:
         return False
-    if not is_story_surface_delta_write_work_unit(
-        _controller_work_unit_id(authority_route_context=authority_route_context, route=route)
+    if not _controller_context_requires_story_surface_delta(
+        authority_route_context=authority_route_context,
+        route=route,
     ):
         return False
     return all(
@@ -354,6 +355,25 @@ def _current_route_can_bridge_to_story_surface_handoff(
             "work_unit_fingerprint",
             "source_fingerprint",
         )
+    )
+
+
+def _controller_context_requires_story_surface_delta(
+    *,
+    authority_route_context: Mapping[str, Any],
+    route: Mapping[str, Any],
+) -> bool:
+    controller_context = _mapping(authority_route_context.get("controller_route_context"))
+    return is_story_surface_delta_write_work_unit(
+        _controller_work_unit_id(authority_route_context=authority_route_context, route=route)
+    ) or _requires_manuscript_story_surface_delta(controller_context.get("required_output_surface"))
+
+
+def _requires_manuscript_story_surface_delta(value: object) -> bool:
+    text = str(value or "").strip().lower()
+    return (
+        "canonical manuscript story-surface delta" in text
+        and "typed blocker:manuscript_story_surface_delta_missing" in text
     )
 
 

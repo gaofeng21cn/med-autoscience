@@ -216,7 +216,7 @@ def _optional_currentness_value_matches(
 ) -> bool:
     left_value = _text(left.get(key))
     right_value = _text(right.get(key))
-    if left_value is None and right_value is None:
+    if right_value is None:
         return True
     return left_value is not None and right_value is not None and left_value == right_value
 

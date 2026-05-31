@@ -474,6 +474,90 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
     assert execution["paper_progress_stall_handoff_allowed"] is True
 
 
+def test_writer_handoff_currentness_accepts_optional_dispatch_source_eval_when_current_route_omits_it(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.writer_handoff_currentness"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
+    work_unit_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    runtime_route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    runtime_route.update(
+        {
+            "truth_epoch": "truth-event-000022",
+            "route_epoch": "truth-event-000022",
+            "runtime_health_epoch": "runtime-health-event-006239",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "source_fingerprint": "truth-snapshot::dm002-current",
+            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "idempotency_key": "owner-route::dm002::runtime-handoff",
+            "source_refs": {
+                "study_truth_epoch": "truth-event-000022",
+                "runtime_health_epoch": "runtime-health-event-006239",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            },
+        }
+    )
+    bridged_route = dict(runtime_route)
+    bridged_route.update(
+        {
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "idempotency_key": "owner-route::dm002::story-surface-delta",
+            "source_refs": {
+                **runtime_route["source_refs"],
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "bridge_authority": "domain_action_request_materializer_story_surface_bridge",
+                "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "bridged_from_idempotency_key": runtime_route["idempotency_key"],
+                "source_eval_id": "publication-eval::dm002::current",
+            },
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=bridged_route,
+    )
+    dispatch_payload.update(
+        {
+            "dispatch_authority": "quality_repair_batch_writer_handoff",
+            "source_action": {
+                "surface": "quality_repair_batch",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+            },
+        }
+    )
+
+    result = module.bridged_quality_repair_writer_handoff_route_from_scan_payload(
+        scan_payload={
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": runtime_route}],
+        },
+        study_id=study_id,
+        dispatch=dispatch_payload,
+    )
+
+    assert result is not None
+    assert result["source_refs"]["source_eval_id"] == "publication-eval::dm002::current"
+
+
 def test_execute_dispatch_uses_bridged_writer_route_for_terminal_stall_handoff(
     monkeypatch,
     tmp_path: Path,

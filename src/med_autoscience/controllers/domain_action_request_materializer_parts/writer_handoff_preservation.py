@@ -62,10 +62,17 @@ def preserved_quality_repair_writer_handoff_dispatch(
     if not owner_route_part.owner_route_matches(dispatch=payload, current_route=owner_route):
         request = persisted_dispatches.owner_request_payload(profile, study_id, action_type)
         request_route = owner_route_part.ensure_owner_route_v2(_mapping(request.get("owner_route")) if request else {})
-        if not _writer_handoff_request_bridges_current_route(
-            handoff_route=_mapping(payload.get("owner_route")),
-            request_route=request_route,
-            current_route=owner_route,
+        handoff_route = _mapping(payload.get("owner_route"))
+        if not (
+            _writer_handoff_request_bridges_current_route(
+                handoff_route=handoff_route,
+                request_route=request_route,
+                current_route=owner_route,
+            )
+            or _writer_handoff_route_bridges_current_route(
+                handoff_route=handoff_route,
+                current_route=owner_route,
+            )
         ):
             return None
     if not owner_route_part.route_allows_action(action=payload, owner_route=owner_route):
@@ -156,12 +163,20 @@ def _writer_handoff_dispatch_from_current_action(
     if not route:
         return None
     route_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
-    if route_reason != "manuscript_story_surface_delta_missing":
-        return None
     if _text(route.get("next_owner")) != "write":
         return None
     action_reason = _text(action.get("reason")) or _text(_mapping(action.get("handoff_packet")).get("reason"))
-    if action_reason != "manuscript_story_surface_delta_missing":
+    required_output_surface = _required_output_surface(action)
+    story_surface_route = (
+        route_reason == "manuscript_story_surface_delta_missing"
+        and action_reason == "manuscript_story_surface_delta_missing"
+    )
+    runtime_owner_story_surface_route = (
+        route_reason == "quest_waiting_opl_runtime_owner_route"
+        and action_reason == "quest_waiting_opl_runtime_owner_route"
+        and _requires_manuscript_story_surface_delta(required_output_surface)
+    )
+    if not (story_surface_route or runtime_owner_story_surface_route):
         return None
     if not owner_route_part.route_allows_action(
         action={**dict(action), "action_type": action_type, "next_executable_owner": "write"},
@@ -199,6 +214,7 @@ def _writer_handoff_dispatch_from_current_action(
                 "work_unit_id": _current_work_unit_id(action=action, owner_route=route),
                 "work_unit_fingerprint": _current_work_unit_fingerprint(action=action, owner_route=route),
                 "source_eval_id": source_eval_id,
+                "required_output_surface": required_output_surface,
                 "requires_human_confirmation": False,
             },
         },
@@ -312,6 +328,44 @@ def _writer_handoff_request_bridges_current_route(
     )
 
 
+def _writer_handoff_route_bridges_current_route(
+    *,
+    handoff_route: Mapping[str, Any],
+    current_route: Mapping[str, Any],
+) -> bool:
+    normalized_handoff = owner_route_part.ensure_owner_route_v2(_mapping(handoff_route))
+    normalized_current = owner_route_part.ensure_owner_route_v2(_mapping(current_route))
+    if not normalized_handoff or not normalized_current:
+        return False
+    if _text(normalized_handoff.get("owner_reason")) != "manuscript_story_surface_delta_missing":
+        return False
+    current_reason = _text(normalized_current.get("owner_reason"))
+    if current_reason not in {"quest_waiting_opl_runtime_owner_route", "manuscript_story_surface_delta_missing"}:
+        return False
+    if _text(normalized_handoff.get("next_owner")) != _text(normalized_current.get("next_owner")):
+        return False
+    for key in (
+        "study_id",
+        "quest_id",
+        "truth_epoch",
+        "runtime_health_epoch",
+        "work_unit_fingerprint",
+        "source_fingerprint",
+    ):
+        if not _same_required_currentness_value(normalized_handoff, normalized_current, key):
+            return False
+    handoff_refs = _mapping(normalized_handoff.get("source_refs"))
+    current_refs = _mapping(normalized_current.get("source_refs"))
+    for key in ("source_eval_id", "work_unit_id"):
+        if not _same_required_currentness_value(handoff_refs, current_refs, key):
+            return False
+    if current_reason == "manuscript_story_surface_delta_missing":
+        return True
+    return _text(handoff_refs.get("bridged_from_idempotency_key")) == _text(
+        normalized_current.get("idempotency_key")
+    )
+
+
 def _current_action_matches_writer_handoff(
     *,
     action: Mapping[str, Any],
@@ -321,7 +375,14 @@ def _current_action_matches_writer_handoff(
 ) -> bool:
     if action_type != "run_quality_repair_batch":
         return False
-    if _text(action.get("reason")) != "manuscript_story_surface_delta_missing":
+    action_reason = _text(action.get("reason"))
+    if not (
+        action_reason == "manuscript_story_surface_delta_missing"
+        or (
+            action_reason == "quest_waiting_opl_runtime_owner_route"
+            and _requires_manuscript_story_surface_delta(_required_output_surface(action))
+        )
+    ):
         return False
     if _text(payload.get("dispatch_authority")) != "quality_repair_batch_writer_handoff":
         return False
@@ -334,9 +395,15 @@ def _current_action_matches_writer_handoff(
         return False
     route = owner_route_part.ensure_owner_route_v2(_mapping(owner_route))
     payload_route = owner_route_part.ensure_owner_route_v2(_mapping(payload.get("owner_route")))
-    if not owner_route_part.owner_route_matches(
-        dispatch={"owner_route": payload_route},
-        current_route=route,
+    if not (
+        owner_route_part.owner_route_matches(
+            dispatch={"owner_route": payload_route},
+            current_route=route,
+        )
+        or _writer_handoff_route_bridges_current_route(
+            handoff_route=payload_route,
+            current_route=route,
+        )
     ):
         return False
     if not owner_route_part.route_allows_action(
@@ -413,6 +480,19 @@ def _source_eval_id(
         or _text(refs.get("source_eval_id"))
         or _text(basis.get("source_eval_id"))
         or _text(_mapping(_read_json_object(source_eval_path)).get("eval_id"))
+    )
+
+
+def _required_output_surface(action: Mapping[str, Any]) -> str | None:
+    handoff_packet = _mapping(action.get("handoff_packet"))
+    return _text(action.get("required_output_surface")) or _text(handoff_packet.get("required_output_surface"))
+
+
+def _requires_manuscript_story_surface_delta(value: object) -> bool:
+    text = str(value or "").strip().lower()
+    return (
+        "canonical manuscript story-surface delta" in text
+        and "typed blocker:manuscript_story_surface_delta_missing" in text
     )
 
 

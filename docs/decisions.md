@@ -12,6 +12,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出当前 `write/run_quality_repair_batch` 已 materialize 且 blocking 旧 `return_to_ai_reviewer_workflow`，但 legacy write dispatch 缺 `generated_at`，export 只按时间戳选择，导致旧 AI reviewer handoff 成为唯一 pending family task，OPL 看不到当前 Progress-first write owner action。
 - 影响：这是 MAS owner-route handoff/export currentness 修复，不写 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须由 MAS materialize/export、OPL provider attempt、typed closeout、AI reviewer eval 与 publication gate 共同判定。
 
+## 2026-05-31：story-surface 输出契约必须覆盖 runtime-owner write route
+
+- 决策：当当前 owner route 是 `write/run_quality_repair_batch`，且 required output 明确为 `canonical manuscript story-surface delta or typed blocker:manuscript_story_surface_delta_missing` 时，materializer 必须生成 `quality_repair_batch_writer_handoff`，即使当前 owner reason 仍是 `quest_waiting_opl_runtime_owner_route`，也要桥接到 `manuscript_story_surface_delta_missing` 的 canonical writer handoff。
+- 决策：该 writer handoff 必须允许写 canonical story surfaces：`paper/draft.md`、`paper/build/review_manuscript.md`、`paper/claim_evidence_map.json`、`paper/evidence_ledger.json` 与 `paper/review/**`；同时继续禁止 `manuscript/**`、`current_package/**`、`paper/current_package/**`、`manuscript/current_package/**`、`artifacts/publication_eval/latest.json`、`artifacts/controller_decisions/latest.json` 和 platform source。`paper/**` 不能出现在这一特定 story-surface handoff 的 forbidden surfaces 中。
+- 理由：DM003 暴露出当前 `run_quality_repair_batch` 要求 canonical manuscript story-surface delta，但普通 default-executor dispatch 仍继承全局 `paper/**` forbidden policy，导致 owner action 的成功条件和写权限互相冲突，OPL attempt 只能返回 `manuscript_story_surface_delta_missing` typed blocker，无法推进论文正文质量。
+- 影响：这是 MAS dispatch/materializer contract 修复，不手工改 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文仍必须经 MAS materialize/export、OPL default-executor stage attempt、typed closeout、AI reviewer recheck 和 publication gate replay 判定。
+
 ## 2026-05-31：Progress-first dispatch 预算按 study/action fingerprint single-flight，对账按 workspace tick 暴露
 
 - 决策：`runtime_dispatch_cost.dispatch_budget_window` 的默认 scope 固定为 `per_study_owner_route_action_fingerprint`，每个 study/action fingerprint 只允许一个 active Codex worker handoff；不再用全局 `max_codex_dispatches=1` 表述整个 workspace tick 的容量。不同 study 的不同 owner-route/action fingerprint 可以在同一 tick 同时进入 `handoff_ready` / Codex worker dispatch。

@@ -179,7 +179,7 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 1, result
     assert result["blocked_count"] == 0
     assert result["codex_dispatch_count"] == 1
     execution = result["executions"][0]
@@ -430,22 +430,42 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
     quest_root = profile.runtime_root / f"quest-{study_id}"
     original_work_unit_id = "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
     materialized_work_unit_id = "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
-    route = _owner_route(
+    runtime_route = _owner_route(
         study_id=study_id,
         action_type="run_quality_repair_batch",
         owner="write",
     )
+    runtime_route.update(
+        {
+            "truth_epoch": "truth-event-000022",
+            "route_epoch": "truth-event-000022",
+            "runtime_health_epoch": "runtime-health-event-006239",
+            "source_fingerprint": "truth-snapshot::dm002-current",
+            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "work_unit_fingerprint": f"domain-transition::route_back_same_line::{original_work_unit_id}",
+            "idempotency_key": "owner-route::dm002::runtime-handoff",
+            "source_refs": {
+                "study_truth_epoch": "truth-event-000022",
+                "runtime_health_epoch": "runtime-health-event-006239",
+                "work_unit_id": original_work_unit_id,
+                "work_unit_fingerprint": f"domain-transition::route_back_same_line::{original_work_unit_id}",
+                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            },
+        }
+    )
+    route = dict(runtime_route)
     route.update(
         {
             "failure_signature": "manuscript_story_surface_delta_missing",
             "owner_reason": "manuscript_story_surface_delta_missing",
-            "work_unit_fingerprint": f"domain-transition::route_back_same_line::{original_work_unit_id}",
             "idempotency_key": "owner-route::dm002::story-surface-materialized",
             "source_refs": {
-                "work_unit_id": original_work_unit_id,
+                **runtime_route["source_refs"],
                 "materialized_work_unit_id": materialized_work_unit_id,
                 "bridge_authority": "domain_action_request_materializer_story_surface_bridge",
                 "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "bridged_from_idempotency_key": runtime_route["idempotency_key"],
                 "blocked_reason": "manuscript_story_surface_delta_missing",
                 "source_eval_id": "publication-eval::dm002::current",
             },
@@ -470,6 +490,28 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
             study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
         ),
     }
+    dispatch_payload["medical_claim_authoring_allowed"] = True
+    dispatch_payload["prompt_contract"].update(
+        {
+            "medical_claim_authoring_allowed": True,
+            "allowed_write_surfaces": [
+                "paper/draft.md",
+                "paper/build/review_manuscript.md",
+                "paper/claim_evidence_map.json",
+                "paper/evidence_ledger.json",
+                "paper/review/**",
+            ],
+            "forbidden_surfaces": [
+                "manuscript/**",
+                "current_package/**",
+                "paper/current_package/**",
+                "manuscript/current_package/**",
+                "src/med_autoscience/platform/**",
+                "artifacts/publication_eval/latest.json",
+                "artifacts/controller_decisions/latest.json",
+            ],
+        }
+    )
     dispatch_path = (
         study_root
         / "artifacts"
@@ -478,7 +520,42 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
         / "default_executor_dispatches"
         / "run_quality_repair_batch.json"
     )
-    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": f"quest-{study_id}",
+                    "owner_route": runtime_route,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": f"quest-{study_id}",
+                            "action_type": "run_quality_repair_batch",
+                            "owner": "write",
+                            "request_owner": "write",
+                            "reason": "quest_waiting_opl_runtime_owner_route",
+                            "next_work_unit": original_work_unit_id,
+                            "controller_work_unit_id": original_work_unit_id,
+                            "owner_route": runtime_route,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+        },
+    )
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
@@ -512,7 +589,7 @@ def test_execute_dispatch_wraps_materialized_story_surface_bridge_as_controller_
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 1, result
     assert result["blocked_count"] == 0
     execution = result["executions"][0]
     assert execution["execution_status"] == "handoff_ready"
@@ -861,7 +938,7 @@ def test_quality_repair_writer_handoff_rejects_package_write_surface(
     assert result["blocked_count"] == 1
     execution = result["executions"][0]
     assert execution["dispatch_contract_valid"] is False
-    assert execution["dispatch_contract_blocked_reason"] == "medical_claim_authoring_allowed_guard_missing"
+    assert execution["dispatch_contract_blocked_reason"] == "allowed_write_surfaces_incomplete"
 
 
 def test_quality_repair_writer_handoff_retries_after_guard_block(

@@ -4,13 +4,21 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 
-def prompt_contract_error(prompt_contract: Mapping[str, Any], *, forbidden_surfaces: Iterable[str]) -> str | None:
+def prompt_contract_error(
+    prompt_contract: Mapping[str, Any],
+    *,
+    forbidden_surfaces: Iterable[str],
+    dispatch_authority: str | None = None,
+) -> str | None:
     for key in ("prompt_budget", "compact_evidence_packet_ref", "do_not_repeat", "repeat_suppression_key"):
         if key not in prompt_contract:
             return f"{key}_missing"
     if prompt_contract.get("do_not_repeat") is not True:
         return "do_not_repeat_guard_missing"
-    story_surface_write_handoff = _story_surface_write_handoff_prompt_contract(prompt_contract)
+    story_surface_write_handoff = _story_surface_write_handoff_prompt_contract(
+        prompt_contract,
+        dispatch_authority=dispatch_authority,
+    )
     for key in (
         "paper_package_mutation_allowed",
         "quality_gate_relaxation_allowed",
@@ -37,6 +45,8 @@ def prompt_contract_error(prompt_contract: Mapping[str, Any], *, forbidden_surfa
             return "forbidden_surfaces_incomplete"
         return None
     if story_surface_write_handoff:
+        if not _story_surface_write_handoff_allowed_surfaces(prompt_contract):
+            return "allowed_write_surfaces_incomplete"
         if not _story_surface_write_handoff_forbidden_surfaces(forbidden):
             return "forbidden_surfaces_incomplete"
         return None
@@ -45,7 +55,15 @@ def prompt_contract_error(prompt_contract: Mapping[str, Any], *, forbidden_surfa
     return None
 
 
-def _story_surface_write_handoff_prompt_contract(prompt_contract: Mapping[str, Any]) -> bool:
+def _story_surface_write_handoff_prompt_contract(
+    prompt_contract: Mapping[str, Any],
+    *,
+    dispatch_authority: str | None,
+) -> bool:
+    if dispatch_authority is not None and dispatch_authority != "quality_repair_batch_writer_handoff":
+        return False
+    if dispatch_authority is None and prompt_contract.get("medical_claim_authoring_allowed") is not True:
+        return False
     if _text(prompt_contract.get("action_type")) != "run_quality_repair_batch":
         return False
     if _text(prompt_contract.get("next_executable_owner")) != "write":
@@ -60,20 +78,28 @@ def _story_surface_write_handoff_prompt_contract(prompt_contract: Mapping[str, A
         text for value in route.get("allowed_actions") or [] if (text := _text(value)) is not None
     }:
         return False
+    required_output = _text(prompt_contract.get("required_output_surface"))
+    if required_output != (
+        "canonical manuscript story-surface delta or "
+        "typed blocker:manuscript_story_surface_delta_missing"
+    ):
+        return False
+    return True
+
+
+def _story_surface_write_handoff_allowed_surfaces(prompt_contract: Mapping[str, Any]) -> bool:
     allowed = {
         text
         for item in prompt_contract.get("allowed_write_surfaces") or []
         if (text := _text(item)) is not None
     }
-    return allowed.issubset(
-        {
-            "paper/draft.md",
-            "paper/build/review_manuscript.md",
-            "paper/claim_evidence_map.json",
-            "paper/evidence_ledger.json",
-            "paper/review/**",
-        }
-    )
+    return allowed == {
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/**",
+    }
 
 
 def _story_surface_write_handoff_forbidden_surfaces(forbidden: set[str]) -> bool:

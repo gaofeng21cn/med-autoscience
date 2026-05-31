@@ -201,7 +201,10 @@ def _contract_guard(dispatch: Mapping[str, Any]) -> tuple[bool, str | None]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     if not prompt_contract:
         return False, "prompt_contract_missing"
-    prompt_contract_error = _prompt_contract_error(prompt_contract)
+    prompt_contract_error = _prompt_contract_error(
+        prompt_contract,
+        dispatch_authority=_text(dispatch.get("dispatch_authority")),
+    )
     if prompt_contract_error is not None:
         return False, prompt_contract_error
     return True, None
@@ -238,10 +241,11 @@ def _executor_boundary(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _prompt_contract_error(prompt_contract: Mapping[str, Any]) -> str | None:
+def _prompt_contract_error(prompt_contract: Mapping[str, Any], *, dispatch_authority: str | None) -> str | None:
     return dispatch_contract.prompt_contract_error(
         prompt_contract,
         forbidden_surfaces=FORBIDDEN_SURFACES,
+        dispatch_authority=dispatch_authority,
     )
 
 
