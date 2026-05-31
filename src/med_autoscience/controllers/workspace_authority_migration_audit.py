@@ -299,16 +299,27 @@ def build_delivery_manifest_historical_backfill_plan(
     }
 
 
-def _study_id_from_manifest(path: Path, payload: Mapping[str, Any]) -> str | None:
-    return _text(payload.get("study_id")) or _text(payload.get("study")) or _infer_study_id(path)
-
-
-def _infer_study_id(path: Path) -> str | None:
-    for parent in path.parents:
+def _infer_study_id_within_workspace(*, workspace_root: Path, manifest_path: Path) -> str | None:
+    for parent in manifest_path.parents:
+        if parent == workspace_root:
+            break
         name = parent.name
         if name[:3].isdigit() and len(name) > 4:
             return name
     return None
+
+
+def _study_id_from_manifest(
+    *,
+    workspace_root: Path,
+    manifest_path: Path,
+    payload: Mapping[str, Any],
+) -> str | None:
+    return (
+        _text(payload.get("study_id"))
+        or _text(payload.get("study"))
+        or _infer_study_id_within_workspace(workspace_root=workspace_root, manifest_path=manifest_path)
+    )
 
 
 def _authority_owner(payload: Mapping[str, Any]) -> str | None:
@@ -349,7 +360,11 @@ def _study_roots_from_manifests(workspace_root: Path, manifests: list[Path]) -> 
     roots: dict[str, Path] = {}
     for manifest_path in manifests:
         payload = _read_json(manifest_path)
-        study_id = _study_id_from_manifest(manifest_path, payload)
+        study_id = _study_id_from_manifest(
+            workspace_root=workspace_root,
+            manifest_path=manifest_path,
+            payload=payload,
+        )
         if study_id is None:
             continue
         candidate = _study_root_from_manifest(workspace_root=workspace_root, manifest_path=manifest_path, study_id=study_id)
@@ -519,7 +534,16 @@ def _study_reports(workspace_root: Path, manifests: list[Path]) -> list[dict[str
     submission_minimals = _submission_minimal_paths(workspace_root)
     reports: list[dict[str, Any]] = []
     for study_id, study_root in sorted(_study_roots_from_manifests(workspace_root, manifests).items()):
-        study_manifests = [path for path in manifests if _study_id_from_manifest(path, _read_json(path)) == study_id]
+        study_manifests = [
+            path
+            for path in manifests
+            if _study_id_from_manifest(
+                workspace_root=workspace_root,
+                manifest_path=path,
+                payload=_read_json(path),
+            )
+            == study_id
+        ]
         unclassified = sum(
             1
             for path in study_manifests
@@ -584,7 +608,11 @@ def _workspace_report(workspace_root: Path) -> tuple[dict[str, Any], list[dict[s
         manifest_reports.append(
             {
                 "path": _rel(manifest_path, workspace_root),
-                "study_id": _study_id_from_manifest(manifest_path, payload),
+                "study_id": _study_id_from_manifest(
+                    workspace_root=workspace_root,
+                    manifest_path=manifest_path,
+                    payload=payload,
+                ),
                 "surface": _text(payload.get("surface")) or manifest_path.stem,
                 "authority_status": authority_status,
             }

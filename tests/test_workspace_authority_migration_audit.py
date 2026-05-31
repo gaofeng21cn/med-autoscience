@@ -43,6 +43,30 @@ def test_migration_audit_dry_run_covers_dm_cvd_and_nf_pitnet_layouts(tmp_path: P
     assert all(study["historical_backfill_plan"] is None for study in report["studies"])
 
 
+def test_migration_audit_does_not_infer_study_id_from_numeric_workspace_parent(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_authority_migration_audit")
+    numeric_parent = tmp_path / "778wjbv96mq1760tv6gk374m0000gn"
+    workspace_roots = [
+        fixtures.build_dm_cvd_migration_audit_fixture(numeric_parent),
+        fixtures.build_nf_pitnet_migration_audit_fixture(numeric_parent),
+    ]
+
+    report = module.run_migration_audit(workspace_roots=workspace_roots, dry_run=True)
+
+    assert report["study_count"] == 4
+    assert {study["study_id"] for study in report["studies"]} == {
+        "001-dm-cvd-mortality-risk",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        "003-endocrine-burden-followup",
+        "004-invasive-architecture",
+    }
+    assert all(study["study_id"] != numeric_parent.name for study in report["studies"])
+    assert all(
+        study["delivery_projection_completeness_reason"] == "current_package_and_submission_minimal_present"
+        for study in report["studies"]
+    )
+
+
 def test_migration_audit_projects_stable_ids_timestamps_and_fingerprints(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_authority_migration_audit")
     workspace_roots = [
