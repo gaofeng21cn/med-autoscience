@@ -1,0 +1,255 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
+
+def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    handoff = _mapping(payload.get("opl_current_control_state_handoff"))
+    execution = _mapping(payload.get("current_execution_envelope"))
+    domain_transition = _mapping(payload.get("domain_transition"))
+    supervision = _mapping(payload.get("supervision"))
+    runtime_health = _mapping(payload.get("runtime_health_snapshot"))
+    next_forced_delta = _mapping(payload.get("next_forced_delta"))
+    progress_state = _mapping(payload.get("progress_first_sprint_state"))
+    latest_terminal_stage_log = _mapping(handoff.get("latest_terminal_stage_log"))
+    paper_stage_log = _mapping(latest_terminal_stage_log.get("paper_stage_log"))
+    stage_progress_log = _mapping(handoff.get("stage_progress_log"))
+    active_run_id = (
+        _text(supervision.get("active_run_id"))
+        or _text(payload.get("active_run_id"))
+        or _text(handoff.get("active_run_id"))
+    )
+    next_work_unit = (
+        _work_unit_projection(execution.get("next_work_unit"))
+        or _work_unit_projection(domain_transition.get("next_work_unit"))
+        or _work_unit_from_action_queue(handoff.get("action_queue"))
+        or _work_unit_projection(next_forced_delta.get("work_unit_id"))
+    )
+    typed_blocker = _mapping(execution.get("typed_blocker")) or _mapping(domain_transition.get("typed_blocker"))
+    current_blockers = _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
+    running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
+    state_kind = _text(execution.get("state_kind"))
+    if state_kind is None:
+        state_kind = "running_provider_attempt" if running_provider_attempt else "observability_only"
+    return {
+        "surface": "progress_first_monitoring_summary",
+        "schema_version": 1,
+        "authority": "refs_only_observability",
+        "study_id": _text(payload.get("study_id")),
+        "generated_at": _text(payload.get("generated_at")),
+        "current_stage": _text(payload.get("current_stage")),
+        "paper_stage": _text(payload.get("paper_stage")),
+        "active_run_id": active_run_id,
+        "active_stage_attempt_id": _text(handoff.get("active_stage_attempt_id")),
+        "active_workflow_id": _text(handoff.get("active_workflow_id")),
+        "running_provider_attempt": running_provider_attempt,
+        "worker_liveness": {
+            "health_status": _text(supervision.get("health_status"))
+            or _text(_mapping(handoff.get("runtime_health")).get("health_status"))
+            or _text(runtime_health.get("attempt_state"))
+            or _text(runtime_health.get("worker_liveness_state")),
+            "runtime_liveness_status": _text(_mapping(handoff.get("runtime_health")).get("runtime_liveness_status")),
+            "worker_liveness_state": _text(runtime_health.get("worker_liveness_state")),
+            "supervisor_tick_status": _text(supervision.get("supervisor_tick_status")),
+        },
+        "execution_state_kind": state_kind,
+        "next_owner": (
+            _text(execution.get("owner"))
+            or _text(domain_transition.get("owner"))
+            or _text(handoff.get("next_owner"))
+            or _text(progress_state.get("next_owner"))
+        ),
+        "route_target": _text(domain_transition.get("route_target")),
+        "controller_action": _text(domain_transition.get("controller_action")) or _text(payload.get("runtime_decision")),
+        "next_work_unit": next_work_unit,
+        "typed_blocker": typed_blocker or None,
+        "current_blockers": current_blockers,
+        "progress_delta_classification": _text(payload.get("progress_delta_classification"))
+        or _text(progress_state.get("classification")),
+        "paper_progress_delta_counted": bool(progress_state.get("paper_progress_delta_counted")),
+        "platform_repair_delta_counted": bool(progress_state.get("platform_repair_delta_counted")),
+        "next_forced_delta": _compact_mapping(
+            next_forced_delta,
+            (
+                "required_delta_kind",
+                "reason",
+                "work_unit_id",
+                "eval_id",
+                "next_owner",
+                "allowed_outcomes",
+            ),
+        ),
+        "stage_progress_log": _compact_mapping(
+            stage_progress_log,
+            (
+                "attempt_count",
+                "completed_attempt_count",
+                "blocked_attempt_count",
+                "activity_event_count",
+                "runner_progress_event_count",
+                "missing_usage_telemetry_attempt_count",
+                "temporal_attempt_count",
+                "temporal_webui_ref_count",
+                "attempt_refs",
+            ),
+        ),
+        "latest_terminal_stage": _latest_terminal_stage_summary(
+            latest_terminal_stage_log=latest_terminal_stage_log,
+            paper_stage_log=paper_stage_log,
+        ),
+        "foreground_write_policy": _foreground_write_policy(payload.get("execution_owner_guard")),
+        "source_refs": _source_refs(payload.get("refs"), handoff=handoff, latest_terminal_stage_log=latest_terminal_stage_log),
+        "authority_boundary": {
+            "refs_only": True,
+            "can_write_runtime_owned_surfaces": False,
+            "can_write_paper_or_package": False,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_publication_ready": False,
+        },
+    }
+
+
+def _latest_terminal_stage_summary(
+    *,
+    latest_terminal_stage_log: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not latest_terminal_stage_log:
+        return None
+    return {
+        "stage_attempt_id": _text(latest_terminal_stage_log.get("stage_attempt_id")),
+        "stage_id": _text(latest_terminal_stage_log.get("stage_id")),
+        "action_type": _text(latest_terminal_stage_log.get("action_type")),
+        "status": _text(latest_terminal_stage_log.get("status")),
+        "outcome": _text(paper_stage_log.get("outcome")),
+        "paper_work_done": _text_list(paper_stage_log.get("paper_work_done")),
+        "changed_paper_surfaces": _text_list(paper_stage_log.get("changed_paper_surfaces")),
+        "remaining_blockers": _text_list(paper_stage_log.get("remaining_blockers")),
+        "evidence_refs": _text_list(paper_stage_log.get("evidence_refs")),
+        "duration": _mapping(latest_terminal_stage_log.get("duration")) or None,
+        "token_usage": _mapping(latest_terminal_stage_log.get("token_usage")) or None,
+        "cost": _mapping(latest_terminal_stage_log.get("cost")) or None,
+        "source_path": _text(latest_terminal_stage_log.get("source_path")),
+    }
+
+
+def _foreground_write_policy(value: object) -> dict[str, Any]:
+    guard = _mapping(value)
+    supervisor_only = bool(guard.get("supervisor_only"))
+    return {
+        "supervisor_only": supervisor_only,
+        "foreground_can_write_runtime_owned_surfaces": False if supervisor_only else None,
+        "rule": (
+            "supervisor_only_no_runtime_owned_writes"
+            if supervisor_only
+            else "follow_mas_owner_controller_runtime_path"
+        ),
+    }
+
+
+def _current_blockers(
+    *,
+    payload: Mapping[str, Any],
+    typed_blocker: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+) -> list[str]:
+    values: list[object] = []
+    values.extend(payload.get("current_blockers") or [])
+    values.extend(paper_stage_log.get("remaining_blockers") or [])
+    for key in ("blocker_id", "blocker_type", "summary"):
+        if key in typed_blocker:
+            values.append(typed_blocker[key])
+    return _dedupe_text(values)[:12]
+
+
+def _work_unit_from_action_queue(value: object) -> dict[str, Any] | str | None:
+    if not isinstance(value, list):
+        return None
+    for item in value:
+        if not isinstance(item, Mapping):
+            continue
+        unit = _work_unit_projection(item.get("next_work_unit"))
+        if unit is not None:
+            return unit
+        for key in ("controller_work_unit_id", "work_unit_id", "action_type"):
+            text = _text(item.get(key))
+            if text is not None:
+                return text
+    return None
+
+
+def _work_unit_projection(value: object) -> dict[str, Any] | str | None:
+    if isinstance(value, Mapping):
+        return _compact_mapping(
+            value,
+            (
+                "unit_id",
+                "lane",
+                "summary",
+                "owner",
+                "route_target",
+                "action_type",
+            ),
+        ) or dict(value)
+    text = _text(value)
+    return text
+
+
+def _source_refs(
+    value: object,
+    *,
+    handoff: Mapping[str, Any],
+    latest_terminal_stage_log: Mapping[str, Any],
+) -> list[str]:
+    refs: list[object] = []
+    if isinstance(value, Mapping):
+        refs.extend(value.values())
+    refs.append(handoff.get("source_path"))
+    refs.append(latest_terminal_stage_log.get("source_path"))
+    refs.extend(latest_terminal_stage_log.get("closeout_refs") or [])
+    return _dedupe_text(refs)[:20]
+
+
+def _compact_mapping(value: object, keys: tuple[str, ...]) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    return {key: value[key] for key in keys if key in value}
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return _dedupe_text(value)
+
+
+def _dedupe_text(values: list[object] | tuple[object, ...] | set[object]) -> list[str]:
+    result: list[str] = []
+    for item in values:
+        text = _text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _bool_or_none(value: object) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return None
+    return bool(value)
+
+
+__all__ = ["build_progress_first_monitoring_summary"]

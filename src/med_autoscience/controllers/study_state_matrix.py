@@ -70,6 +70,11 @@ def build_study_state_matrix(
             active_run_id=active_run_id,
             delivered_package=delivered_package,
         )
+        monitoring = _progress_first_monitoring_summary(
+            status=status,
+            transition=transition,
+            active_run_id=active_run_id,
+        )
         transitions.append(transition)
         studies.append(
             {
@@ -77,6 +82,8 @@ def build_study_state_matrix(
                 "quest_id": _text(status.get("quest_id")),
                 "quest_status": _text(status.get("quest_status")),
                 "active_run_id": active_run_id,
+                "monitoring": monitoring,
+                "progress_first_monitoring_summary": monitoring,
                 "delivered_package": delivered_package or None,
                 "study_macro_state": macro,
                 "domain_transition": transition,
@@ -261,11 +268,76 @@ def _resolved_active_run_id(*, status: Mapping[str, Any], macro_state: Mapping[s
     if _text(macro_state.get("writer_state")) == "parked":
         return _text(_dict(macro_state.get("details")).get("active_run_id"))
     return (
-        _text(status.get("active_run_id"))
+        _text(_dict(status.get("supervision")).get("active_run_id"))
+        or _text(_dict(status.get("progress_first_monitoring_summary")).get("active_run_id"))
+        or _text(_dict(status.get("opl_current_control_state_handoff")).get("active_run_id"))
+        or _text(status.get("active_run_id"))
         or _text(_dict(status.get("study_truth_snapshot")).get("active_run_id"))
         or _text(_dict(_dict(status.get("study_truth_snapshot")).get("execution_owner")).get("active_run_id"))
         or _text(_dict(macro_state.get("details")).get("active_run_id"))
     )
+
+
+def _progress_first_monitoring_summary(
+    *,
+    status: Mapping[str, Any],
+    transition: Mapping[str, Any],
+    active_run_id: str | None,
+) -> dict[str, Any]:
+    existing = _dict(status.get("progress_first_monitoring_summary"))
+    next_work_unit = _dict(existing.get("next_work_unit")) or _dict(transition.get("next_work_unit"))
+    typed_blocker = _dict(existing.get("typed_blocker")) or _dict(transition.get("typed_blocker"))
+    current_blockers = _string_list(existing.get("current_blockers"))
+    if not current_blockers and typed_blocker:
+        current_blockers = [
+            text
+            for item in (
+                typed_blocker.get("blocker_id"),
+                typed_blocker.get("blocker_type"),
+                typed_blocker.get("summary"),
+            )
+            if (text := _text(item)) is not None
+        ]
+    return {
+        "surface": existing.get("surface") or "study_state_matrix_progress_first_monitoring_summary",
+        "schema_version": existing.get("schema_version") or 1,
+        "authority": existing.get("authority") or "refs_only_observability",
+        "active_run_id": _text(existing.get("active_run_id")) or active_run_id,
+        "active_stage_attempt_id": _text(existing.get("active_stage_attempt_id")),
+        "active_workflow_id": _text(existing.get("active_workflow_id")),
+        "running_provider_attempt": existing.get("running_provider_attempt"),
+        "worker_liveness": _dict(existing.get("worker_liveness")),
+        "execution_state_kind": _text(existing.get("execution_state_kind")),
+        "next_owner": _text(existing.get("next_owner")) or _text(transition.get("owner")),
+        "route_target": _text(existing.get("route_target")) or _text(transition.get("route_target")),
+        "controller_action": _text(existing.get("controller_action")) or _text(transition.get("controller_action")),
+        "next_work_unit": next_work_unit or _text(existing.get("next_work_unit")),
+        "typed_blocker": typed_blocker or None,
+        "current_blockers": current_blockers[:12],
+        "progress_delta_classification": _text(existing.get("progress_delta_classification"))
+        or _text(status.get("progress_delta_classification")),
+        "paper_progress_delta_counted": existing.get("paper_progress_delta_counted"),
+        "platform_repair_delta_counted": existing.get("platform_repair_delta_counted"),
+        "next_forced_delta": _dict(existing.get("next_forced_delta")),
+        "stage_progress_log": _dict(existing.get("stage_progress_log")),
+        "latest_terminal_stage": _dict(existing.get("latest_terminal_stage")) or None,
+        "foreground_write_policy": _dict(existing.get("foreground_write_policy")),
+        "source": "progress_projection",
+    }
+
+
+def _string_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
 
 
 def _text(value: object) -> str | None:

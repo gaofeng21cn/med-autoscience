@@ -330,6 +330,54 @@ def _compact_runtime_medical_publication_surface(value: Any) -> dict[str, Any] |
     return compact
 
 
+def _compact_progress_first_monitoring_summary(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact = _compact_record(
+        value,
+        (
+            "surface",
+            "schema_version",
+            "authority",
+            "study_id",
+            "generated_at",
+            "current_stage",
+            "paper_stage",
+            "active_run_id",
+            "active_stage_attempt_id",
+            "active_workflow_id",
+            "running_provider_attempt",
+            "worker_liveness",
+            "execution_state_kind",
+            "next_owner",
+            "route_target",
+            "controller_action",
+            "next_work_unit",
+            "typed_blocker",
+            "progress_delta_classification",
+            "paper_progress_delta_counted",
+            "platform_repair_delta_counted",
+            "next_forced_delta",
+            "stage_progress_log",
+            "latest_terminal_stage",
+            "foreground_write_policy",
+            "authority_boundary",
+        ),
+    )
+    if compact is None:
+        return None
+    compact["current_blockers"] = _compact_string_list(value.get("current_blockers"), limit=12)
+    compact["source_refs"] = _compact_string_list(value.get("source_refs"), limit=10)
+    stage_progress_log = compact.get("stage_progress_log")
+    if isinstance(stage_progress_log, dict):
+        stage_progress_log["attempt_refs"] = _compact_string_list(stage_progress_log.get("attempt_refs"), limit=6)
+    latest_terminal_stage = compact.get("latest_terminal_stage")
+    if isinstance(latest_terminal_stage, dict):
+        for key in ("paper_work_done", "changed_paper_surfaces", "remaining_blockers", "evidence_refs"):
+            latest_terminal_stage[key] = _compact_string_list(latest_terminal_stage.get(key), limit=6)
+    return compact
+
+
 def _compact_readiness_missing_surface(item: dict[str, Any]) -> dict[str, Any] | None:
     return compact_missing_surface_with_action_truth(item)
 
@@ -618,6 +666,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "delivery_inspection": compact_delivery_inspection_projection,
         "open_auto_research_projection": compact_open_auto_research_projection,
         "opl_current_control_state_handoff": compact_opl_current_control_state_handoff,
+        "progress_first_monitoring_summary": _compact_progress_first_monitoring_summary,
         "study_truth_snapshot": _compact_study_truth_snapshot,
         "runtime_health_snapshot": _compact_runtime_health_snapshot,
         "authority_snapshot": _compact_authority_snapshot,
@@ -748,6 +797,7 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
     lines: list[str] = []
     lines.extend(_render_mcp_progress_identity(compact))
     lines.extend(render_mcp_progress_stage(compact))
+    lines.extend(_render_progress_first_monitoring_summary(compact))
     lines.extend(_render_mcp_progress_supervision(compact))
     lines.extend(_render_mcp_progress_runtime_state(compact))
     lines.extend(_render_mcp_progress_operator_and_action(compact))
@@ -763,3 +813,61 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
     lines.extend(render_mcp_progress_opl_current_control_state_handoff(compact))
     lines.extend(_render_mcp_progress_refs(compact))
     return "\n".join(lines) + "\n"
+
+
+def _render_progress_first_monitoring_summary(compact: dict[str, Any]) -> list[str]:
+    summary = compact.get("progress_first_monitoring_summary")
+    if not isinstance(summary, dict):
+        return []
+    worker_liveness = summary.get("worker_liveness") if isinstance(summary.get("worker_liveness"), dict) else {}
+    next_work_unit = summary.get("next_work_unit")
+    if isinstance(next_work_unit, dict):
+        next_work_unit_label = next_work_unit.get("unit_id") or next_work_unit.get("action_type") or "object"
+    else:
+        next_work_unit_label = next_work_unit or "none"
+    lines = [
+        "",
+        "## Progress-First Monitoring",
+        (
+            f"- active_run_id: `{summary.get('active_run_id') or 'none'}`；"
+            f"stage_attempt: `{summary.get('active_stage_attempt_id') or 'none'}`；"
+            f"workflow: `{summary.get('active_workflow_id') or 'none'}`"
+        ),
+        (
+            f"- worker: `{worker_liveness.get('health_status') or 'unknown'}`；"
+            f"running_provider_attempt: `{summary.get('running_provider_attempt')}`；"
+            f"execution_state: `{summary.get('execution_state_kind') or 'unknown'}`"
+        ),
+        (
+            f"- next_owner: `{summary.get('next_owner') or 'unknown'}`；"
+            f"controller_action: `{summary.get('controller_action') or 'none'}`；"
+            f"next_work_unit: `{next_work_unit_label}`"
+        ),
+        (
+            f"- progress_delta_classification: `{summary.get('progress_delta_classification') or 'unknown'}`；"
+            f"paper_delta_counted: `{summary.get('paper_progress_delta_counted')}`；"
+            f"platform_delta_counted: `{summary.get('platform_repair_delta_counted')}`"
+        ),
+    ]
+    blockers = _compact_string_list(summary.get("current_blockers"), limit=6)
+    if blockers:
+        lines.append("- current_blockers: " + "；".join(f"`{item}`" for item in blockers))
+    stage_progress_log = summary.get("stage_progress_log")
+    if isinstance(stage_progress_log, dict):
+        lines.append(
+            f"- stage_progress_log: attempts `{stage_progress_log.get('attempt_count') or 0}`；"
+            f"completed `{stage_progress_log.get('completed_attempt_count') or 0}`；"
+            f"blocked `{stage_progress_log.get('blocked_attempt_count') or 0}`；"
+            f"runner_events `{stage_progress_log.get('runner_progress_event_count') or 0}`"
+        )
+    latest_terminal_stage = summary.get("latest_terminal_stage")
+    if isinstance(latest_terminal_stage, dict):
+        lines.append(
+            f"- latest_terminal_stage: action `{latest_terminal_stage.get('action_type') or 'unknown'}`；"
+            f"status `{latest_terminal_stage.get('status') or 'unknown'}`；"
+            f"outcome `{latest_terminal_stage.get('outcome') or 'unknown'}`"
+        )
+    write_policy = summary.get("foreground_write_policy")
+    if isinstance(write_policy, dict):
+        lines.append(f"- foreground_write_policy: `{write_policy.get('rule') or 'unknown'}`")
+    return lines

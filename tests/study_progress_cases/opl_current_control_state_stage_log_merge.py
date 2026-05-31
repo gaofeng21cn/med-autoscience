@@ -121,4 +121,10 @@ def test_study_progress_merges_live_stage_log_when_handoff_study_entry_lacks_it(
         is False
     )
     assert compact["opl_current_control_state_handoff"]["stage_progress_log"]["attempt_count"] == 1
+    assert result["progress_first_monitoring_summary"]["active_stage_attempt_id"] == "sat-live-queue"
+    assert result["progress_first_monitoring_summary"]["active_workflow_id"] == "wf-live-queue"
+    assert result["progress_first_monitoring_summary"]["running_provider_attempt"] is True
+    assert result["progress_first_monitoring_summary"]["stage_progress_log"]["attempt_count"] == 1
+    assert result["progress_first_monitoring_summary"]["stage_progress_log"]["runner_progress_event_count"] == 2
+    assert result["progress_first_monitoring_summary"]["authority_boundary"]["can_write_runtime_owned_surfaces"] is False
     assert "stage_progress_log: attempts `1`" in markdown

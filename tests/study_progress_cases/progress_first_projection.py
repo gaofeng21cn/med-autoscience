@@ -17,6 +17,7 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
+    mcp_projection = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
@@ -61,6 +62,7 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
             "quest_status": "running",
             "decision": "blocked",
             "reason": "runtime_recovery_retry_budget_exhausted",
+            "execution_owner_guard": {"supervisor_only": True},
             "runtime_health_snapshot": {"attempt_state": "escalated"},
             "authority_snapshot": {"control_state": "blocked_runtime_escalation"},
         },
@@ -79,3 +81,27 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     assert result["progress_first_sprint_state"]["paper_progress_delta_counted"] is False
     assert result["next_forced_delta"]["required_delta_kind"] == "paper_progress_delta_or_typed_blocker"
     assert result["next_forced_delta"]["work_unit_id"] == "publishability_repair_sprint"
+    monitoring = result["progress_first_monitoring_summary"]
+    assert monitoring["authority"] == "refs_only_observability"
+    assert monitoring["active_run_id"] == "run-001"
+    assert monitoring["worker_liveness"]["health_status"] == "escalated"
+    assert monitoring["execution_state_kind"] == "typed_blocker"
+    assert monitoring["next_owner"] == "runtime_mechanism_repair"
+    assert monitoring["next_work_unit"] == "publishability_repair_sprint"
+    assert monitoring["typed_blocker"]["blocker_type"] == "runtime_recovery_retry_budget_exhausted"
+    assert monitoring["progress_delta_classification"] == "platform_repair"
+    assert monitoring["paper_progress_delta_counted"] is False
+    assert monitoring["platform_repair_delta_counted"] is True
+    assert monitoring["foreground_write_policy"] == {
+        "supervisor_only": True,
+        "foreground_can_write_runtime_owned_surfaces": False,
+        "rule": "supervisor_only_no_runtime_owned_writes",
+    }
+    assert monitoring["authority_boundary"]["can_write_paper_or_package"] is False
+    assert monitoring["authority_boundary"]["can_authorize_quality_verdict"] is False
+    compact = mcp_projection.compact_study_progress_projection(result)
+    markdown = mcp_projection.render_mcp_study_progress_markdown(result)
+    assert compact["progress_first_monitoring_summary"]["active_run_id"] == "run-001"
+    assert compact["progress_first_monitoring_summary"]["next_work_unit"] == "publishability_repair_sprint"
+    assert "## Progress-First Monitoring" in markdown
+    assert "platform_delta_counted: `True`" in markdown

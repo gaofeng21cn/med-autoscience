@@ -21,6 +21,7 @@ from .current_owner_handoff_projection import (
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .parked_projection import parked_progress_fields
 from .progress_first_projection import build_progress_first_projection
+from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .research_pack_progress_projection import build_research_pack_progress_summary_projection
 from .shared import SCHEMA_VERSION, _mapping_copy, _non_empty_text
 from .user_visible_projection import build_user_visible_projection
@@ -657,6 +658,9 @@ def assemble_study_progress_payload(
     payload = apply_current_owner_handoff_user_visible_status(payload)
     payload = _apply_runtime_medical_publication_surface_user_visible_status(payload)
     payload = _apply_terminal_delivery_user_visible_status(payload)
+    payload["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(
+        {**payload, "execution_owner_guard": execution_owner_guard}
+    )
     return attach_ai_first_runtime_projection(
         payload,
         study_root=study_root,
