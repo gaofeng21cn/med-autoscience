@@ -12,6 +12,7 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     project_ai_reviewer_request_lifecycle,
     read_ai_reviewer_request,
 )
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 
 
 def _sha256_text(text: str) -> str:
@@ -364,6 +365,84 @@ def test_current_input_record_only_request_is_written_when_lifecycle_blocker_was
         ],
         "next_action": "honor_ai_reviewer_publication_eval_authority",
     }
+
+
+def test_request_refresh_accepts_current_record_when_source_refs_cover_required_input_refs(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
+    manuscript_path = study_root / "paper" / "draft.md"
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260528T100000Z_publication_eval_record.json"
+    )
+    manuscript_text = "# Draft\n\nCurrent manuscript reviewed by AI reviewer.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    _write_json(
+        evidence_path,
+        {
+            "updated_at": "2026-05-28T09:00:00+00:00",
+            "claims": [{"claim_id": "claim-primary"}],
+        },
+    )
+    _write_json(
+        claim_map_path,
+        {
+            "updated_at": "2026-05-28T09:00:00+00:00",
+            "claims": [{"claim_id": "claim-primary"}],
+        },
+    )
+    current_record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        eval_id="publication-eval::003-dpcc::current-inputs::2026-05-28T10:00:00+00:00::ai-reviewer",
+        emitted_at="2026-05-28T10:00:00+00:00",
+    )
+    current_record["assessment_provenance"]["source_refs"] = [
+        str(manuscript_path.resolve()),
+        str(evidence_path.resolve()),
+        str(claim_map_path.resolve()),
+    ]
+    _write_json(record_path, current_record)
+    packet = build_ai_reviewer_publication_eval_request(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        source_surface="runtime_supervisor_scan",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+        },
+        input_refs={
+            "evidence_ledger": {"path": str(evidence_path.resolve()), "present": True, "valid": True},
+            "claim_evidence_map": {"path": str(claim_map_path.resolve()), "present": True, "valid": True},
+        },
+    )
+    packet["request_lifecycle"]["blocked_reason"] = "ai_reviewer_record_stale_after_current_inputs"
+    packet["request_lifecycle"]["required_currentness_refs"] = [
+        str(evidence_path.resolve()),
+        str(claim_map_path.resolve()),
+    ]
+
+    materialized = materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    persisted = read_ai_reviewer_request(study_root=study_root)
+
+    assert persisted is not None
+    assert materialized["publication_eval_record_ref"] == str(record_path.resolve())
+    assert materialized["ai_reviewer_record"]["eval_id"] == current_record["eval_id"]
+    assert materialized["request_lifecycle"]["blocked_reason"] is None
+    assert "required_currentness_refs" not in materialized["request_lifecycle"]
+    assert "missing_currentness_refs" not in materialized["request_lifecycle"]
+    assert persisted["publication_eval_record_ref"] == str(record_path.resolve())
+    assert persisted["request_lifecycle"]["blocked_reason"] is None
 
 
 def test_ai_reviewer_request_materialization_rejects_record_stale_after_current_manuscript(

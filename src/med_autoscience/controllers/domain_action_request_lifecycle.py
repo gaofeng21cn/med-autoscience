@@ -39,6 +39,11 @@ from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_review
     request_currentness_refs_for_blocked_reason,
     request_packet_record_production_blocker_reason,
 )
+from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_record_currentness import (
+    record_currentness_covers_ref,
+    record_currentness_mentions_ref,
+    record_source_ref_is_current,
+)
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
@@ -260,41 +265,41 @@ def _record_missing_currentness_refs(
     record_timestamp = _reviewer_assessment_timestamp(record)
     missing_or_stale: list[str] = []
     for ref in required_refs:
-        if not _record_currentness_covers_ref(study_root=study_root, record=record, required_ref=ref):
+        if record_currentness_covers_ref(
+            study_root=study_root,
+            record=record,
+            required_ref=ref,
+            mapping=_mapping,
+            text=_text,
+            sha256_file=_sha256_file,
+            resolved_text_ref=_resolved_text_ref,
+            currentness_check_mappings=currentness_check_mappings,
+            currentness_check_matches_live_ref=currentness_check_matches_live_ref,
+        ):
+            continue
+        if record_currentness_mentions_ref(
+            study_root=study_root,
+            record=record,
+            required_ref=ref,
+            mapping=_mapping,
+            resolved_text_ref=_resolved_text_ref,
+            currentness_check_mappings=currentness_check_mappings,
+        ):
             missing_or_stale.append(ref)
             continue
-        ref_timestamp = _ref_timestamp(Path(ref))
-        if ref_timestamp is not None and (
-            record_timestamp is None or record_timestamp < ref_timestamp
+        if not record_source_ref_is_current(
+            study_root=study_root,
+            record=record,
+            required_ref=ref,
+            source_refs=source_refs,
+            record_timestamp=record_timestamp,
+            resolved_text_ref=_resolved_text_ref,
+            record_source_refs=_record_source_refs,
+            reviewer_assessment_timestamp=_reviewer_assessment_timestamp,
+            ref_timestamp=_ref_timestamp,
         ):
             missing_or_stale.append(ref)
     return missing_or_stale
-
-
-def _record_currentness_covers_ref(
-    *,
-    study_root: Path,
-    record: Mapping[str, Any],
-    required_ref: str,
-) -> bool:
-    reviewer_os = _mapping(record.get("reviewer_operating_system"))
-    currentness_checks = _mapping(reviewer_os.get("currentness_checks"))
-    if not currentness_checks:
-        return False
-    live_digest = _sha256_file(Path(required_ref))
-    if live_digest is None:
-        return False
-    return any(
-        currentness_check_matches_live_ref(
-            study_root=study_root,
-            check=check,
-            required_ref=required_ref,
-            live_digest=live_digest,
-            text=_text,
-            resolved_text_ref=_resolved_text_ref,
-        )
-        for check in currentness_check_mappings(currentness_checks)
-    )
 
 
 def _record_currentness_blocked_reason(
@@ -304,6 +309,13 @@ def _record_currentness_blocked_reason(
     missing_currentness_refs: list[str],
     request_packet: Mapping[str, Any] | None = None,
 ) -> str:
+    lifecycle_blocked_reason = _request_packet_record_blocker_reason(request_packet or {})
+    if lifecycle_blocked_reason in {
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
+        AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+    }:
+        return lifecycle_blocked_reason
     current_manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
     if current_manuscript_ref and current_manuscript_ref in set(missing_currentness_refs):
         return AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
