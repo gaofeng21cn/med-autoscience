@@ -424,7 +424,8 @@
           "paper/evidence_ledger.json",
           "paper/review/review_ledger.json",
           "artifacts/controller/task_intake/latest.json",
-          "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json"
+          "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
+          "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json#/tasks/0/mechanism_evolution_inputs/first_draft_quality_route_back_checklist"
         ],
         "can_authorize_quality_verdict": false,
         "can_write_study_truth": false

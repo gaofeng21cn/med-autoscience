@@ -16,8 +16,12 @@ from .agent_lab_medical_manuscript_quality_parts.quality_boundary import (
     SURFACE_KIND,
 )
 from .agent_lab_medical_manuscript_quality_parts.developer_work_order import (
+    attach_first_draft_quality_route_back_checklist as _attach_first_draft_quality_route_back_checklist,
     developer_patch_work_order as _developer_patch_work_order,
     target_editable_surface_refs as _target_editable_surface_refs,
+)
+from .agent_lab_medical_manuscript_quality_parts.first_draft_route_back import (
+    first_draft_quality_route_back_checklist as _first_draft_quality_route_back_checklist,
 )
 from .agent_lab_medical_manuscript_quality_parts.route_refs import (
     failure_delta_refs as _failure_delta_refs,
@@ -88,9 +92,18 @@ def build_medical_manuscript_quality_agent_lab_suite(
         blocker_refs=blocker_refs,
         feedback_ref=feedback_ref,
     )
-    developer_work_order = _developer_patch_work_order(
+    first_draft_route_back_checklist = _first_draft_quality_route_back_checklist(
         study_id=study_id,
-        evidence_refs=blocker_refs or evidence_refs,
+        evidence_refs=evidence_refs,
+        blocker_refs=blocker_refs,
+        feedback_ref=feedback_ref,
+    )
+    developer_work_order = _attach_first_draft_quality_route_back_checklist(
+        _developer_patch_work_order(
+            study_id=study_id,
+            evidence_refs=blocker_refs or evidence_refs,
+        ),
+        checklist=first_draft_route_back_checklist,
     )
     task = {
         "task_id": task_id,
@@ -324,6 +337,21 @@ def _mechanism_evolution_inputs(
         authority_boundary=AUTHORITY_BOUNDARY,
     )
     publication_aftercare_plan = build_publication_aftercare_plan(study_root=root)
+    first_draft_route_back_checklist = _first_draft_quality_route_back_checklist(
+        study_id=study_id,
+        evidence_refs=evidence_refs,
+        blocker_refs=blocker_refs,
+        feedback_ref=feedback_ref,
+    )
+    developer_patch_work_order = _attach_first_draft_quality_route_back_checklist(
+        _developer_patch_work_order(
+            study_id=study_id,
+            evidence_refs=_unique_refs(
+                [*(blocker_refs or evidence_refs), *controller_read_model_feedback_refs]
+            ),
+        ),
+        checklist=first_draft_route_back_checklist,
+    )
     return {
         "surface_kind": "mas_agent_lab_mechanism_evolution_inputs",
         "target_opl_surface": "opl_agent_lab_evolution_result",
@@ -339,6 +367,7 @@ def _mechanism_evolution_inputs(
         "provider_switch_hygiene": provider_switch_hygiene,
         "claim_assurance_map": claim_assurance_map,
         "owner_chain_regression_family": dict(OWNER_CHAIN_REGRESSION_FAMILY),
+        "first_draft_quality_route_back_checklist": first_draft_route_back_checklist,
         "assurance_contract_refs": followup_surfaces["assurance_contract"]["raw_evidence_refs"]
         + followup_surfaces["assurance_contract"]["evidence_ledger_refs"]
         + followup_surfaces["assurance_contract"]["review_ledger_refs"]
@@ -368,12 +397,7 @@ def _mechanism_evolution_inputs(
         "effort_assurance_axes": submission_assurance_surfaces["effort_assurance_axes"],
         "controller_read_model_feedback_refs": controller_read_model_feedback_refs,
         "target_editable_surface_refs": _target_editable_surface_refs(study_id=study_id),
-        "developer_patch_work_order": _developer_patch_work_order(
-            study_id=study_id,
-            evidence_refs=_unique_refs(
-                [*(blocker_refs or evidence_refs), *controller_read_model_feedback_refs]
-            ),
-        ),
+        "developer_patch_work_order": developer_patch_work_order,
         "evidence_delta_refs": _unique_refs(
             [
                 *evidence_refs,

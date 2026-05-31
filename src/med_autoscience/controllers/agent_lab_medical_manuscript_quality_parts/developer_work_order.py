@@ -82,3 +82,17 @@ def developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> di
         "can_authorize_quality_verdict": False,
         "can_mutate_paper_package": False,
     }
+
+
+def attach_first_draft_quality_route_back_checklist(
+    work_order: dict[str, Any],
+    *,
+    checklist: dict[str, Any],
+) -> dict[str, Any]:
+    result = dict(work_order)
+    patch_scopes = list(result.get("required_patch_scopes") or [])
+    if "first_draft_quality_route_back_regression" not in patch_scopes:
+        patch_scopes.append("first_draft_quality_route_back_regression")
+    result["required_patch_scopes"] = patch_scopes
+    result["first_draft_quality_route_back_checklist"] = dict(checklist)
+    return result

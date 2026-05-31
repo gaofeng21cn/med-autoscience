@@ -110,3 +110,75 @@ def test_agent_lab_quality_suite_projects_owner_chain_regression_family(
     }.issubset(failure_refs)
     assert inputs["owner_chain_regression_family"]["can_authorize_quality_verdict"] is False
     assert inputs["owner_chain_regression_family"]["can_write_study_truth"] is False
+
+
+def test_agent_lab_quality_suite_projects_first_draft_quality_route_back_checklist(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.agent_lab_medical_manuscript_quality")
+    study_root = tmp_path / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "blocked",
+                    "summary": (
+                        "Draft lacks reproducible Methods, numeric Results with uncertainty, "
+                        "formal displays, claim-evidence alignment, and runtime-language purge."
+                    ),
+                }
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "task_intent": "reviewer_revision",
+            "summary": "Treat manuscript quality feedback as executable route-back, not report-only blocker.",
+        },
+    )
+
+    suite = module.build_medical_manuscript_quality_agent_lab_suite(study_root=study_root)
+    task = suite["tasks"][0]
+    checklist = task["mechanism_evolution_inputs"]["first_draft_quality_route_back_checklist"]
+    work_order = task["improvement_candidate"]["developer_patch_work_order"]
+
+    assert checklist["surface_kind"] == "first_draft_quality_route_back_checklist"
+    assert checklist["status"] == "blocked"
+    assert checklist["can_authorize_quality_verdict"] is False
+    assert checklist["can_write_study_truth"] is False
+    assert checklist["quality_gate_relaxation_allowed"] is False
+
+    required_blockers = {
+        "methods_reproducibility_floor_missing",
+        "results_numeric_uncertainty_floor_missing",
+        "formal_figure_table_quality_floor_missing",
+        "abstract_hard_metrics_uncertainty_missing",
+        "discussion_result_driven_non_defensive_floor_missing",
+        "runtime_language_purge_required",
+        "claim_evidence_alignment_required",
+    }
+    items_by_blocker = {item["blocker"]: item for item in checklist["items"]}
+    assert required_blockers.issubset(items_by_blocker)
+    for blocker in required_blockers:
+        item = items_by_blocker[blocker]
+        assert item["route_target"]
+        assert item["owner"]
+        assert item["next_work_units"]
+        assert item["evidence_refs"]
+        assert item["expected_repair_result"]
+
+    runtime_item = items_by_blocker["runtime_language_purge_required"]
+    assert runtime_item["owner"] == "write"
+    assert "MAS" in runtime_item["forbidden_terms"]
+    assert "AI reviewer" in runtime_item["forbidden_terms"]
+    assert "submission readiness" in runtime_item["forbidden_terms"]
+    assert "source gaps" in runtime_item["forbidden_terms"]
+    assert runtime_item["expected_repair_result"] == (
+        "canonical manuscript body contains no runtime/control-plane or internal QA terminology"
+    )
+
+    assert work_order["first_draft_quality_route_back_checklist"] == checklist
+    assert "first_draft_quality_route_back_regression" in work_order["required_patch_scopes"]
