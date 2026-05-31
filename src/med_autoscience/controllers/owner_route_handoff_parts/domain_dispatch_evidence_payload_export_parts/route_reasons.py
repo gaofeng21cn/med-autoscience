@@ -198,6 +198,22 @@ def current_ai_reviewer_stage_attempt_admission_observed(study_scan: Mapping[str
     attempt_protocol = mapping(owner_route.get("owner_route_attempt_protocol"))
     owner_reason_contract = mapping(owner_route.get("owner_reason_contract"))
     blocked_reason = text(study_scan.get("blocked_reason")) or text(owner_route.get("owner_reason"))
+    explicit_opl_admission = (
+        text(owner_route.get("next_owner")) == "one-person-lab"
+        and blocked_reason in _opl_stage_admission_reasons()
+        and text(owner_reason_contract.get("owner")) == "one-person-lab"
+        and sequence(owner_reason_contract.get("allowed_actions")) == []
+    )
+    managed_stage_admission = (
+        text(study_scan.get("active_stage_attempt_id")) is not None
+        and study_scan.get("running_provider_attempt") is True
+        and text(owner_route.get("current_owner")) == "managed_runtime"
+        and text(owner_route.get("active_run_id")) is not None
+        and text(owner_route.get("next_owner")) is None
+        and text(owner_route.get("owner_reason")) is None
+        and owner_reason_contract.get("registered") is False
+        and sequence(owner_reason_contract.get("allowed_actions")) == []
+    )
     return (
         text(completion.get("status")) == "consumed"
         and text(completion.get("receipt_kind")) == "ai_reviewer_publication_eval"
@@ -205,10 +221,7 @@ def current_ai_reviewer_stage_attempt_admission_observed(study_scan: Mapping[str
         and text(domain_transition.get("route_target")) == "review"
         and text(domain_transition.get("owner")) == "ai_reviewer"
         and text(domain_transition.get("controller_action")) == SUPPORTED_SUPERSEDED_ACTION_TYPE
-        and text(owner_route.get("next_owner")) == "one-person-lab"
-        and blocked_reason in _opl_stage_admission_reasons()
-        and text(owner_reason_contract.get("owner")) == "one-person-lab"
-        and sequence(owner_reason_contract.get("allowed_actions")) == []
+        and (explicit_opl_admission or managed_stage_admission)
         and currentness_contract.get("missing_required_fields") == []
         and attempt_protocol.get("dispatchable") is False
     )
