@@ -67,8 +67,12 @@ REQUIRED_SPRINT_CONTRACT_LIST_FIELDS = (
     "attempt_scope",
     "control_plane_outputs",
     "forbidden_control_plane_outputs",
+    "admission_order",
     "quality_gate_policy",
     "authority_boundary",
+)
+REQUIRED_SPRINT_CONTRACT_STRING_POLICY_FIELDS = (
+    "gate_before_delta_policy",
 )
 REQUIRED_CANONICAL_ROUTE_IDS = (
     "scout",
@@ -249,6 +253,10 @@ def _validate_late_stage_progress_sprint_contract(
     if not isinstance(value, dict):
         raise ValueError(f"{field} must be a mapping")
     for string_field in REQUIRED_SPRINT_CONTRACT_STRING_FIELDS:
+        if string_field not in value:
+            raise ValueError(f"{field} missing required field: {string_field}")
+        _non_empty_string_value(value, string_field, field)
+    for string_field in REQUIRED_SPRINT_CONTRACT_STRING_POLICY_FIELDS:
         if string_field not in value:
             raise ValueError(f"{field} missing required field: {string_field}")
         _non_empty_string_value(value, string_field, field)

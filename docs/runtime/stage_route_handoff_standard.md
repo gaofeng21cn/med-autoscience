@@ -141,6 +141,8 @@ MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v
 
 Late-stage paper flow 的默认顺序是 progress-first：在 `review_and_quality_gate` / `finalize_and_publication_handoff` 一类 late-stage route 中，MAS owner chain 必须先看到 sprint delta、candidate package/display freshness proof 或同等 paper-facing progress ref，再把 AI reviewer / publication gate replay 作为后续质量复核。quality gate 可以把 delta 转成 route-back、single next owner blocker、human gate 或 stable typed blocker；它不能替代 sprint delta，也不能把 controller/read-model/currentness/provider 修复包装成 paper progress。DM002 `20260529T095414Z` effective-eval sprint repo canary 用 refs-only fixture 固化这一顺序：progress proof 与 gate replay request 可同时进入 handoff refs，但 stage success refs 仍不声明 domain ready、publication ready 或 `current_package` 更新。下一层目标是让 research evidence pack ref family 同时出现在 read-model、schema validation 和 DM002 canary evidence 中：read-model 给出 availability，schema validation 对缺失或越权 fail closed，canary 返回 evidence available 或 stable typed blocker；这只是 owner-chain audit evidence，不是 publication-ready。
 
+Progress-First throughput closeout 的最小口径是：每次 terminal stage 必须给出 minimum forward delta、changed surface、next forced target surface；no-op 只能在消费重复、失败路径或时效证据后，以 typed blocker、human gate、stop-loss 或 route-back 形式关闭。`study_progress.next_forced_delta` 必须保留 target surface、acceptance refs 和 owner action，方便 operator / OPL consumer 直接看到下一次必须产出什么 delta 或 blocker；该投影仍是 refs-only 监督面，不能写 paper/package truth，也不能授权 publication / submission ready。
+
 ## 落地状态与证据门
 
 下面只记录当前标准的落地状态与仍需补证的门槛，不作为新的并行任务板。后续如果按这些方向实施，仍必须独立 worktree、独立验证，完成后吸收回 main 并清理本次 worktree/branch。

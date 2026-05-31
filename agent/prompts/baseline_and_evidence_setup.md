@@ -55,6 +55,8 @@ This stage may create baseline evidence refs and source-readiness proposals. It 
 
 Return an execution receipt with baseline artifact refs, source readiness refs or blockers, run context, unresolved evidence gaps, claim-boundary impact, and next owner. Valid outcomes are:
 
+The receipt must state the minimum forward delta and the next forced target surface. If no domain delta was possible, it must cite the consumed currentness, duplicate, failed-path, or forbidden-surface refs and close as typed blocker, human gate, stop-loss, or route-back. Human gate requests must include the decision question, evidence refs, allowed choices or decision boundary, blocking reason, and the target surface that resumes after the human receipt.
+
 - `baseline_evidence_ready` with current source/evidence refs.
 - `source_readiness_blocker` with route back to source intake or study design.
 - route-back to `direction_and_route_selection` when the route itself must change.

@@ -39,6 +39,17 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
                     "next_owner": "runtime_mechanism_repair",
                     "owner_route": {
                         "next_owner": "runtime_mechanism_repair",
+                        "route_target": "write",
+                        "allowed_actions": ["paper_autonomy/repair-recheck"],
+                        "target_surface": {
+                            "ref_kind": "route_obligation",
+                            "route_target": "write",
+                            "surface_ref": "canonical_manuscript",
+                        },
+                        "acceptance_refs": [
+                            "canonical_manuscript_delta",
+                            "ai_reviewer_gate_replay_request",
+                        ],
                         "source_refs": {
                             "work_unit_id": "publishability_repair_sprint",
                             "source_eval_id": "eval-current",
@@ -81,6 +92,21 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     assert result["progress_first_sprint_state"]["paper_progress_delta_counted"] is False
     assert result["next_forced_delta"]["required_delta_kind"] == "paper_progress_delta_or_typed_blocker"
     assert result["next_forced_delta"]["work_unit_id"] == "publishability_repair_sprint"
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "write",
+        "surface_ref": "canonical_manuscript",
+    }
+    assert result["next_forced_delta"]["acceptance_refs"] == [
+        "canonical_manuscript_delta",
+        "ai_reviewer_gate_replay_request",
+    ]
+    assert result["next_forced_delta"]["owner_action"] == {
+        "next_owner": "runtime_mechanism_repair",
+        "work_unit_id": "publishability_repair_sprint",
+        "allowed_actions": ["paper_autonomy/repair-recheck"],
+        "owner_receipt_required": True,
+    }
     monitoring = result["progress_first_monitoring_summary"]
     assert monitoring["authority"] == "refs_only_observability"
     assert monitoring["active_run_id"] == "run-001"
@@ -92,6 +118,12 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     assert monitoring["progress_delta_classification"] == "platform_repair"
     assert monitoring["paper_progress_delta_counted"] is False
     assert monitoring["platform_repair_delta_counted"] is True
+    assert monitoring["next_forced_delta"]["target_surface"]["surface_ref"] == "canonical_manuscript"
+    assert monitoring["next_forced_delta"]["acceptance_refs"] == [
+        "canonical_manuscript_delta",
+        "ai_reviewer_gate_replay_request",
+    ]
+    assert monitoring["next_forced_delta"]["owner_action"]["next_owner"] == "runtime_mechanism_repair"
     assert monitoring["foreground_write_policy"] == {
         "supervisor_only": True,
         "foreground_can_write_runtime_owned_surfaces": False,
@@ -101,7 +133,13 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     assert monitoring["authority_boundary"]["can_authorize_quality_verdict"] is False
     compact = mcp_projection.compact_study_progress_projection(result)
     markdown = mcp_projection.render_mcp_study_progress_markdown(result)
+    assert compact["next_forced_delta"]["target_surface"]["surface_ref"] == "canonical_manuscript"
+    assert compact["next_forced_delta"]["owner_action"]["work_unit_id"] == "publishability_repair_sprint"
     assert compact["progress_first_monitoring_summary"]["active_run_id"] == "run-001"
     assert compact["progress_first_monitoring_summary"]["next_work_unit"] == "publishability_repair_sprint"
+    assert compact["progress_first_monitoring_summary"]["next_forced_delta"]["acceptance_refs"] == [
+        "canonical_manuscript_delta",
+        "ai_reviewer_gate_replay_request",
+    ]
     assert "## Progress-First Monitoring" in markdown
     assert "platform_delta_counted: `True`" in markdown

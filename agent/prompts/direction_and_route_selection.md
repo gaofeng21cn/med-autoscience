@@ -55,6 +55,8 @@ This stage produces execution reasoning and an owner route recommendation. It do
 
 Return a stage execution receipt containing candidate routes, rejected alternatives, selected route, source refs, literature refs, publication-route memory refs used, decision-trace refs, failed-path refs, blockers, and next-owner recommendation. The receipt must make the owner route explicit:
 
+The receipt must state the minimum forward delta and the next forced target surface. If no domain delta was possible, it must cite the consumed currentness, duplicate, failed-path, or forbidden-surface refs and close as typed blocker, human gate, stop-loss, or route-back. Human gate requests must include the decision question, evidence refs, allowed choices or decision boundary, blocking reason, and the target surface that resumes after the human receipt.
+
 - `direction_route_selected` with refs and rationale.
 - `decision_trace_refs` / `failed_path_refs` for rejected routes, claim narrowing, methodology route-back, stop-loss pressure, or prior invalid route consumption.
 - typed blocker when the source, study boundary, or memory currentness is insufficient.

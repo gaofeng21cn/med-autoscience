@@ -22,6 +22,11 @@ late_stage_progress_sprint_contract:
     - single_next_owner_blocker
     - human_gate
     - stop_loss
+  admission_order:
+    - minimum_forward_delta_or_candidate_package_display_freshness
+    - quality_gate_replay
+    - single_next_owner_or_terminal_closeout
+  gate_before_delta_policy: gate_may_return_next_forced_delta_but_must_not_start_new_reviewer_loop
   forbidden_control_plane_outputs:
     - record_only_reviewer_loop
     - stale_fingerprint_execution_block
@@ -488,6 +493,8 @@ evidence_review_contract:
   structured_medical_handoff:
     - every route-to-route or agent-to-agent transfer must carry `from_route`, `to_route`, `study_id`, `quest_id`, `active_claim_boundary`, `changed_artifact_refs`, `evidence_refs`, `review_refs`, `acceptance_criteria`, `next_owner`, and `human_gate_reason`
     - the handoff must state the active claim boundary, changed artifacts, durable evidence/review surfaces, acceptance criteria, next owner, and human gate reason before another route can treat the work as closed
+    - every terminal handoff must name the minimum forward delta, changed stage/paper/artifact surface, next owner, next work unit, and next forced target surface; a bare next owner is not a complete Progress-First closeout
+    - a no-op closeout is valid only when it consumes a duplicate, failed-path, stale-currentness, or forbidden-surface ref and emits a typed blocker, human gate, stop-loss, or forced next target surface; repeated no-op for the same work unit without new consumed evidence is an anti-stall violation
   durable_evidence_refs:
     - "`evidence_refs` must point to durable MAS surfaces such as `evidence_ledger`, `review_ledger`, `publication_eval/latest.json`, `controller_decisions/latest.json`, and manuscript/package refs"
     - chat summaries, memory, terminal prose, or screenshot-style QA cannot stand in for evidence authority

@@ -81,6 +81,14 @@ OWNER_ROUTE_PROJECTION_KEYS = (
     "source_fingerprint",
     "source_refs",
     "allowed_actions",
+    "allowed_action_refs",
+    "route_target",
+    "next_route",
+    "target_surface",
+    "next_forced_target_surface",
+    "acceptance_refs",
+    "acceptance_criteria",
+    "owner_action",
     "idempotency_key",
 )
 

@@ -34,6 +34,11 @@ PROGRESS_DELTA_POLICY: dict[str, Any] = {
     },
     "platform_only_is_not_deliverable_progress": True,
     "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+    "no_op_currentness_budget": {
+        "max_consecutive_no_op_currentness_proofs": 1,
+        "second_consecutive_no_op_escalation": "typed_blocker_with_next_forced_delta",
+        "third_consecutive_no_op_escalation": "human_gate_or_stop_loss_candidate",
+    },
     "authority_boundary": {
         "opl_can_infer_domain_work": False,
         "opl_can_read_artifact_body": False,

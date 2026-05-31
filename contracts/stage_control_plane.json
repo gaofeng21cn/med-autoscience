@@ -513,6 +513,78 @@
         "ensures": [
           "direction_route_selected"
         ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "scout",
+            "idea",
+            "decision"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "study_progress",
+              "study_state_matrix",
+              "authority_operations"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "direction_and_route_selection",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "scout",
+              "idea",
+              "decision"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "direction_and_route_selection"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
+        },
         "monitor_refs": [
           {
             "ref": "/progress_projection",
@@ -546,6 +618,11 @@
             "paper_work_progress": "deliverable_progress_delta"
           },
           "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "no_op_currentness_budget": {
+            "max_consecutive_no_op_currentness_proofs": 1,
+            "second_consecutive_no_op_escalation": "typed_blocker_with_next_forced_delta",
+            "third_consecutive_no_op_escalation": "human_gate_or_stop_loss_candidate"
+          },
           "owner": "one-person-lab",
           "platform_delta_aliases": {
             "platform_repair_delta": "platform_repair_delta"
@@ -565,6 +642,23 @@
         "requires": [
           "study_direction_request_received"
         ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "scout",
+            "idea",
+            "decision"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "direction_and_route_selection",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
         "runtime_event_refs": [
           "runtime_event:domain_route_owner_route.direction_route_selected",
           "runtime_event:controller_decisions.direction_route_selected"
@@ -1172,6 +1266,76 @@
         "ensures": [
           "baseline_evidence_ready"
         ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "baseline",
+            "experiment"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "submit_study_task",
+              "launch_study",
+              "study_progress"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "baseline_and_evidence_setup",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "baseline",
+              "experiment"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "baseline_and_evidence_setup"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
+        },
         "monitor_refs": [
           {
             "ref": "/progress_projection",
@@ -1205,6 +1369,11 @@
             "paper_work_progress": "deliverable_progress_delta"
           },
           "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "no_op_currentness_budget": {
+            "max_consecutive_no_op_currentness_proofs": 1,
+            "second_consecutive_no_op_escalation": "typed_blocker_with_next_forced_delta",
+            "third_consecutive_no_op_escalation": "human_gate_or_stop_loss_candidate"
+          },
           "owner": "one-person-lab",
           "platform_delta_aliases": {
             "platform_repair_delta": "platform_repair_delta"
@@ -1224,6 +1393,22 @@
         "requires": [
           "direction_route_selected"
         ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "baseline",
+            "experiment"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "baseline_and_evidence_setup",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
         "runtime_event_refs": [
           "runtime_event:controller_decisions.baseline_evidence_ready",
           "runtime_event:evidence_ledger.baseline_evidence_ready"
@@ -1850,6 +2035,74 @@
         "ensures": [
           "bounded_analysis_evidence_ready"
         ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "analysis-campaign"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "launch_study",
+              "study_progress",
+              "study_state_matrix"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "bounded_analysis_campaign",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "analysis-campaign"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "bounded_analysis_campaign"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
+        },
         "monitor_refs": [
           {
             "ref": "/progress_projection",
@@ -1883,6 +2136,11 @@
             "paper_work_progress": "deliverable_progress_delta"
           },
           "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "no_op_currentness_budget": {
+            "max_consecutive_no_op_currentness_proofs": 1,
+            "second_consecutive_no_op_escalation": "typed_blocker_with_next_forced_delta",
+            "third_consecutive_no_op_escalation": "human_gate_or_stop_loss_candidate"
+          },
           "owner": "one-person-lab",
           "platform_delta_aliases": {
             "platform_repair_delta": "platform_repair_delta"
@@ -1902,6 +2160,21 @@
         "requires": [
           "baseline_evidence_ready"
         ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "analysis-campaign"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "bounded_analysis_campaign",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
         "runtime_event_refs": [
           "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
           "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
@@ -2523,7 +2796,28 @@
         "ensures": [
           "manuscript_draft_reviewable"
         ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
         "late_stage_progress_sprint_contract": {
+          "admission_order": [
+            "minimum_forward_delta_or_candidate_package_display_freshness",
+            "quality_gate_replay",
+            "single_next_owner_or_terminal_closeout"
+          ],
           "authority_boundary": [
             "no direct paper body, memory body, artifact body, publication_eval/latest.json, controller_decisions/latest.json, or current_package write outside MAS owner callable",
             "OPL/provider completion is not paper closure without owner receipt, typed blocker, human gate, stop-loss, or progress_delta refs"
@@ -2544,7 +2838,60 @@
             "provider_completed_without_typed_closeout",
             "platform_repair_counted_as_paper_progress"
           ],
+          "gate_before_delta_policy": "gate_may_return_next_forced_delta_but_must_not_start_new_reviewer_loop",
           "sprint_id": "publishability_repair_sprint"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "write"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "launch_study",
+              "submit_study_task",
+              "study_progress"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "manuscript_authoring",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "write"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "manuscript_authoring"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
         },
         "monitor_refs": [
           {
@@ -2579,6 +2926,11 @@
             "paper_work_progress": "deliverable_progress_delta"
           },
           "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "no_op_currentness_budget": {
+            "max_consecutive_no_op_currentness_proofs": 1,
+            "second_consecutive_no_op_escalation": "typed_blocker_with_next_forced_delta",
+            "third_consecutive_no_op_escalation": "human_gate_or_stop_loss_candidate"
+          },
           "owner": "one-person-lab",
           "platform_delta_aliases": {
             "platform_repair_delta": "platform_repair_delta"
@@ -2598,6 +2950,21 @@
         "requires": [
           "bounded_analysis_evidence_ready"
         ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "write"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "manuscript_authoring",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
         "runtime_event_refs": [
           "runtime_event:controller_decisions.manuscript_draft_reviewable",
           "runtime_event:canonical_manuscript.manuscript_draft_reviewable"
@@ -3243,7 +3610,28 @@
         "ensures": [
           "ai_reviewer_gate_receipt_recorded"
         ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
         "late_stage_progress_sprint_contract": {
+          "admission_order": [
+            "minimum_forward_delta_or_candidate_package_display_freshness",
+            "quality_gate_replay",
+            "single_next_owner_or_terminal_closeout"
+          ],
           "authority_boundary": [
             "no direct paper body, memory body, artifact body, publication_eval/latest.json, controller_decisions/latest.json, or current_package write outside MAS owner callable",
             "OPL/provider completion is not paper closure without owner receipt, typed blocker, human gate, stop-loss, or progress_delta refs"
@@ -3264,7 +3652,62 @@
             "provider_completed_without_typed_closeout",
             "platform_repair_counted_as_paper_progress"
           ],
+          "gate_before_delta_policy": "gate_may_return_next_forced_delta_but_must_not_start_new_reviewer_loop",
           "sprint_id": "publishability_repair_sprint"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "review",
+            "decision"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "study_progress",
+              "authority_operations",
+              "export_inspection_package"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "review_and_quality_gate",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "review",
+              "decision"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "review_and_quality_gate"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
         },
         "monitor_refs": [
           {
@@ -3299,6 +3742,11 @@
             "paper_work_progress": "deliverable_progress_delta"
           },
           "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "no_op_currentness_budget": {
+            "max_consecutive_no_op_currentness_proofs": 1,
+            "second_consecutive_no_op_escalation": "typed_blocker_with_next_forced_delta",
+            "third_consecutive_no_op_escalation": "human_gate_or_stop_loss_candidate"
+          },
           "owner": "one-person-lab",
           "platform_delta_aliases": {
             "platform_repair_delta": "platform_repair_delta"
@@ -3318,6 +3766,22 @@
         "requires": [
           "manuscript_draft_reviewable"
         ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "review",
+            "decision"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "review_and_quality_gate",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
         "runtime_event_refs": [
           "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
           "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded"
@@ -3964,7 +4428,28 @@
         "ensures": [
           "publication_handoff_ready_or_route_back_recorded"
         ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "missing_evidence_policy": "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
         "late_stage_progress_sprint_contract": {
+          "admission_order": [
+            "minimum_forward_delta_or_candidate_package_display_freshness",
+            "quality_gate_replay",
+            "single_next_owner_or_terminal_closeout"
+          ],
           "authority_boundary": [
             "no direct paper body, memory body, artifact body, publication_eval/latest.json, controller_decisions/latest.json, or current_package write outside MAS owner callable",
             "OPL/provider completion is not paper closure without owner receipt, typed blocker, human gate, stop-loss, or progress_delta refs"
@@ -3985,7 +4470,64 @@
             "provider_completed_without_typed_closeout",
             "platform_repair_counted_as_paper_progress"
           ],
+          "gate_before_delta_policy": "gate_may_return_next_forced_delta_but_must_not_start_new_reviewer_loop",
           "sprint_id": "publishability_repair_sprint"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "finalize",
+            "journal-resolution",
+            "decision"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "study_progress",
+              "authority_operations",
+              "publication_aftercare_plan"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "finalize_and_publication_handoff",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "finalize",
+              "journal-resolution",
+              "decision"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "finalize_and_publication_handoff"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
         },
         "monitor_refs": [
           {
@@ -4020,6 +4562,11 @@
             "paper_work_progress": "deliverable_progress_delta"
           },
           "missing_delta_policy": "emit_zero_deliverable_delta_and_next_forced_delta_without_inventing_paper_work",
+          "no_op_currentness_budget": {
+            "max_consecutive_no_op_currentness_proofs": 1,
+            "second_consecutive_no_op_escalation": "typed_blocker_with_next_forced_delta",
+            "third_consecutive_no_op_escalation": "human_gate_or_stop_loss_candidate"
+          },
           "owner": "one-person-lab",
           "platform_delta_aliases": {
             "platform_repair_delta": "platform_repair_delta"
@@ -4039,6 +4586,23 @@
         "requires": [
           "ai_reviewer_gate_receipt_recorded"
         ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "finalize",
+            "journal-resolution",
+            "decision"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "finalize_and_publication_handoff",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
         "runtime_event_refs": [
           "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
           "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded"

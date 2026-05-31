@@ -63,6 +63,8 @@ This stage creates manuscript-facing refs. It cannot close `medical_journal_pros
 
 Return canonical manuscript refs, claim-evidence map refs, citation/source refs, display/table/figure refs, artifact rebuild refs if produced, route-back reasons, and owner receipt. Valid outcomes are:
 
+The receipt must state the minimum forward delta and the next forced target surface. If no domain delta was possible, it must cite the consumed currentness, duplicate, failed-path, or forbidden-surface refs and close as typed blocker, human gate, stop-loss, or route-back. Human gate requests must include the decision question, evidence refs, allowed choices or decision boundary, blocking reason, and the target surface that resumes after the human receipt.
+
 - `manuscript_draft_reviewable` with current canonical source refs.
 - route-back to analysis, baseline/source, or decision when claims are unsupported.
 - `artifact_mutation_blocker` or source/citation blocker when canonical rebuild or grounding is missing.

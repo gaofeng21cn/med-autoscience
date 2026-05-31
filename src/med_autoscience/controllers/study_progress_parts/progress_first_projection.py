@@ -49,6 +49,7 @@ def build_progress_first_projection(payload: Mapping[str, Any]) -> dict[str, dic
         "next_forced_delta": _next_forced_delta(
             state=state,
             current_blockers=payload.get("current_blockers"),
+            owner_route=owner_route,
         ),
     }
 
@@ -57,13 +58,20 @@ def _next_forced_delta(
     *,
     state: Mapping[str, Any],
     current_blockers: object,
+    owner_route: Mapping[str, Any],
 ) -> dict[str, Any]:
+    target_surface = _target_surface(owner_route=owner_route)
+    acceptance_refs = _acceptance_refs(owner_route=owner_route)
+    owner_action = _owner_action(owner_route=owner_route, state=state)
     if state.get("paper_progress_delta_counted") is True:
         return {
             "required_delta_kind": "review_current_paper_delta",
             "reason": "paper_progress_delta_observed",
             "work_unit_id": _text(state.get("work_unit_id")),
             "eval_id": _text(state.get("eval_id")),
+            "target_surface": target_surface,
+            "acceptance_refs": acceptance_refs,
+            "owner_action": owner_action,
         }
     return {
         "required_delta_kind": "paper_progress_delta_or_typed_blocker",
@@ -75,6 +83,9 @@ def _next_forced_delta(
         "eval_id": _text(state.get("eval_id")),
         "next_owner": _text(state.get("next_owner")),
         "allowed_outcomes": list(PROGRESS_FIRST_OUTCOME_CLASSES),
+        "target_surface": target_surface,
+        "acceptance_refs": acceptance_refs,
+        "owner_action": owner_action,
     }
 
 
@@ -106,6 +117,46 @@ def _current_owner_route(payload: Mapping[str, Any]) -> dict[str, Any]:
         return route
     status = _mapping(payload.get("status"))
     return _mapping(status.get("owner_route"))
+
+
+def _target_surface(*, owner_route: Mapping[str, Any]) -> dict[str, Any]:
+    explicit = _mapping(owner_route.get("target_surface")) or _mapping(owner_route.get("next_forced_target_surface"))
+    if explicit:
+        return explicit
+    route_target = _text(owner_route.get("route_target")) or _text(owner_route.get("next_route"))
+    return {
+        "ref_kind": "route_obligation",
+        "route_target": route_target,
+        "surface_ref": "study_progress.next_forced_delta",
+    }
+
+
+def _acceptance_refs(*, owner_route: Mapping[str, Any]) -> list[Any]:
+    explicit = owner_route.get("acceptance_refs")
+    if isinstance(explicit, list):
+        return list(explicit)
+    explicit_criteria = owner_route.get("acceptance_criteria")
+    if isinstance(explicit_criteria, list):
+        return list(explicit_criteria)
+    return [
+        "progress_first_sprint_state.deliverable_progress_delta",
+        "progress_first_sprint_state.platform_repair_delta",
+        "stage_contract.minimum_forward_delta",
+        "stage_contract.human_gate_progress_evidence",
+    ]
+
+
+def _owner_action(*, owner_route: Mapping[str, Any], state: Mapping[str, Any]) -> dict[str, Any]:
+    explicit = _mapping(owner_route.get("owner_action"))
+    if explicit:
+        return explicit
+    allowed_actions = owner_route.get("allowed_actions") or owner_route.get("allowed_action_refs")
+    return {
+        "next_owner": _text(owner_route.get("next_owner")) or _text(state.get("next_owner")),
+        "work_unit_id": _text(state.get("work_unit_id")),
+        "allowed_actions": list(allowed_actions) if isinstance(allowed_actions, list) else [],
+        "owner_receipt_required": True,
+    }
 
 
 def _delta_count(payload: Mapping[str, Any]) -> int:

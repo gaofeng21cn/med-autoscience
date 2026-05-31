@@ -65,6 +65,8 @@ This stage is the independent reviewer/auditor stage. It must record its indepen
 
 Return independent AI reviewer/auditor record refs, review ledger refs, publication eval refs or update proposal refs, route-back owner/work unit, typed blocker, memory writeback accept/reject receipt refs, and owner receipt. Valid outcomes include:
 
+The receipt must state the minimum forward delta and the next forced target surface. If no domain delta was possible, it must cite the consumed currentness, duplicate, failed-path, or forbidden-surface refs and close as typed blocker, human gate, stop-loss, or route-back. Record-only reviewer loops, currentness-only replay, and provider-completed-only closeout cannot satisfy this stage. Human gate requests must include the decision question, evidence refs, allowed choices or decision boundary, blocking reason, and the target surface that resumes after the human receipt.
+
 - reviewer/auditor quality record with current provenance.
 - `publication_quality_blocker` route back to review or revision.
 - `ai_reviewer_quality_blocker` route back to AI reviewer repair.

@@ -83,6 +83,9 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
                 "eval_id",
                 "next_owner",
                 "allowed_outcomes",
+                "target_surface",
+                "acceptance_refs",
+                "owner_action",
             ),
         ),
         "stage_progress_log": _compact_mapping(

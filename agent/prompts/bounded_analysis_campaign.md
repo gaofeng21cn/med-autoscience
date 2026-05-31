@@ -56,6 +56,8 @@ This stage produces analysis evidence and claim-impact recommendations. It does 
 
 Return analysis result refs, evidence ledger refs, runtime event refs, decision-trace refs, failed-path refs, consumed failed-path refs, unresolved blockers, failed-path lessons, claim impact, and next owner. Valid outcomes are:
 
+The receipt must state the minimum forward delta and the next forced target surface. If no domain delta was possible, it must cite the consumed currentness, duplicate, failed-path, or forbidden-surface refs and close as typed blocker, human gate, stop-loss, or route-back. Human gate requests must include the decision question, evidence refs, allowed choices or decision boundary, blocking reason, and the target surface that resumes after the human receipt.
+
 - `bounded_analysis_evidence_ready` with claim-impact refs.
 - route-back to decision for stop, pivot, claim downgrade, or methodology reframe.
 - typed blocker such as methodology/source/evidence blocker with required owner.

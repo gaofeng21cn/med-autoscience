@@ -30,6 +30,11 @@ from .agent_pack_refs import (
 )
 from .adoption_ref_payload import empty_payload, payload_from_authority_refs
 from .progress_first_policies import PROGRESS_DELTA_POLICY, TYPED_BLOCKER_LINEAGE_POLICY
+from .stage_throughput_contracts import (
+    human_gate_progress_evidence_contract,
+    minimum_forward_delta_contract,
+    route_obligation_lens,
+)
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 from med_autoscience.runtime_protocol.domain_authority_refs_index import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
@@ -616,6 +621,9 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         "user_stage_log_contract": USER_STAGE_LOG_CONTRACT,
         "progress_delta_policy": PROGRESS_DELTA_POLICY,
         "typed_blocker_lineage_policy": TYPED_BLOCKER_LINEAGE_POLICY,
+        "minimum_forward_delta": minimum_forward_delta_contract(stage),
+        "route_obligation_lens": route_obligation_lens(stage),
+        "human_gate_progress_evidence": human_gate_progress_evidence_contract(),
     }
     progress_sprint_contract = _stage_progress_sprint_contract(stage, descriptor=descriptor)
     if progress_sprint_contract is not None:
@@ -741,6 +749,8 @@ def _stage_progress_sprint_contract(
         "covered_work_units": list(sprint_contract["covered_work_units"]),
         "control_plane_outputs": list(sprint_contract["control_plane_outputs"]),
         "forbidden_control_plane_outputs": list(sprint_contract["forbidden_control_plane_outputs"]),
+        "admission_order": list(sprint_contract["admission_order"]),
+        "gate_before_delta_policy": sprint_contract["gate_before_delta_policy"],
         "authority_boundary": list(sprint_contract["authority_boundary"]),
     }
 

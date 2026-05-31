@@ -373,6 +373,52 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
             "mechanism_repair_after_repeat_count": 2,
             "human_gate_or_stop_loss_after_repeat_count": 3,
         }
+        no_op_budget = progress_delta_policy["no_op_currentness_budget"]
+        assert no_op_budget == {
+            "max_consecutive_no_op_currentness_proofs": 1,
+            "second_consecutive_no_op_escalation": "typed_blocker_with_next_forced_delta",
+            "third_consecutive_no_op_escalation": "human_gate_or_stop_loss_candidate",
+        }
+        minimum_delta = stage["stage_contract"]["minimum_forward_delta"]
+        assert minimum_delta["surface_kind"] == "mas_stage_minimum_forward_delta_contract"
+        assert minimum_delta["stage_id"] == stage["stage_id"]
+        assert minimum_delta["progress_first_priority"] == (
+            "produce_reviewable_deliverable_delta_before_control_plane_explanation"
+        )
+        assert minimum_delta["valid_non_terminal_results"] == [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate",
+        ]
+        assert "no_op_with_currentness_proof" in minimum_delta["restricted_results"]
+        assert minimum_delta["no_op_budget_ref"] == "stage_contract.progress_delta_policy.no_op_currentness_budget"
+        assert minimum_delta["target_surface"]["ref_kind"] == "route_obligation"
+        assert minimum_delta["target_surface"]["stage_id"] == stage["stage_id"]
+        assert minimum_delta["acceptance_refs"]
+        assert minimum_delta["owner_action"]["next_owner"] == "MedAutoScience"
+        assert minimum_delta["authority_boundary"]["can_authorize_publication_quality"] is False
+        route_lens = stage["stage_contract"]["route_obligation_lens"]
+        assert route_lens["surface_kind"] == "mas_stage_route_obligation_lens"
+        assert route_lens["stage_id"] == stage["stage_id"]
+        assert route_lens["domain_stage_refs"] == stage["domain_stage_refs"]
+        assert route_lens["active_route_obligation_policy"] == (
+            "project_current_blocking_route_obligation_before_generic_stage_status"
+        )
+        assert route_lens["route_obligation_progress_delta"]["deliverable_progress_delta_ref"] == (
+            "stage_contract.minimum_forward_delta"
+        )
+        human_gate_contract = stage["stage_contract"]["human_gate_progress_evidence"]
+        assert human_gate_contract["surface_kind"] == "mas_stage_human_gate_progress_evidence_contract"
+        assert human_gate_contract["required_fields"] == [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner",
+        ]
+        assert human_gate_contract["missing_evidence_policy"] == (
+            "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker"
+        )
     assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
     assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"
     assert generated["functional_privatization_audit"]["functional_followthrough_gap_summary"][

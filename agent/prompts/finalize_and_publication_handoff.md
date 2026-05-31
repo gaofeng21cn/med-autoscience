@@ -63,6 +63,8 @@ This stage can prepare and validate handoff refs, but it cannot replace the inde
 
 Return publication handoff receipt, artifact authority refs, package freshness proof, journal requirement refs, human gate state, route memory receipt refs, and next owner. Valid outcomes are:
 
+The receipt must state the minimum forward delta and the next forced target surface. If no domain delta was possible, it must cite the consumed currentness, duplicate, failed-path, or forbidden-surface refs and close as typed blocker, human gate, stop-loss, or route-back. Record-only reviewer loops, currentness-only replay, and provider-completed-only closeout cannot satisfy this stage. Human gate requests must include the decision question, evidence refs, allowed choices or decision boundary, blocking reason, and the target surface that resumes after the human receipt.
+
 - publication handoff receipt with current quality and artifact authority refs.
 - `artifact_mutation_blocker` route back to artifact rebuild or source revision.
 - `publication_quality_blocker` or reviewer route-back when quality evidence is stale.

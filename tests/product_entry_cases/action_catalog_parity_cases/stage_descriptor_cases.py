@@ -407,6 +407,22 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["stage_contract"]["trigger_refs"]
         assert stage["stage_contract"]["monitor_refs"]
         assert stage["stage_contract"]["dashboard_metric_refs"]
+        minimum_delta = stage["stage_contract"]["minimum_forward_delta"]
+        assert minimum_delta["stage_id"] == stage["stage_id"]
+        assert minimum_delta["domain_stage_refs"] == stage["domain_stage_refs"]
+        assert minimum_delta["target_surface"]["stage_id"] == stage["stage_id"]
+        assert minimum_delta["target_surface"]["domain_stage_refs"] == stage["domain_stage_refs"]
+        assert minimum_delta["acceptance_refs"]
+        assert minimum_delta["owner_action"]["allowed_action_refs"] == stage["allowed_action_refs"]
+        assert "no_op_with_currentness_proof" in minimum_delta["restricted_results"]
+        assert minimum_delta["no_op_budget_ref"] == "stage_contract.progress_delta_policy.no_op_currentness_budget"
+        assert stage["stage_contract"]["route_obligation_lens"]["stage_id"] == stage["stage_id"]
+        assert stage["stage_contract"]["route_obligation_lens"]["target_surface_ref"] == (
+            "stage_contract.minimum_forward_delta.target_surface"
+        )
+        assert stage["stage_contract"]["human_gate_progress_evidence"][
+            "missing_evidence_policy"
+        ] == "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker"
         if set(stage["domain_stage_refs"]) & {"write", "review", "finalize"}:
             sprint_contract = stage["stage_contract"]["late_stage_progress_sprint_contract"]
             assert sprint_contract["sprint_id"] == "publishability_repair_sprint"
@@ -420,6 +436,14 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
                 "stop_loss",
             ]
             assert "record_only_reviewer_loop" in sprint_contract["forbidden_control_plane_outputs"]
+            assert sprint_contract["admission_order"] == [
+                "minimum_forward_delta_or_candidate_package_display_freshness",
+                "quality_gate_replay",
+                "single_next_owner_or_terminal_closeout",
+            ]
+            assert sprint_contract["gate_before_delta_policy"] == (
+                "gate_may_return_next_forced_delta_but_must_not_start_new_reviewer_loop"
+            )
         else:
             assert "late_stage_progress_sprint_contract" not in stage["stage_contract"]
         assert any(
