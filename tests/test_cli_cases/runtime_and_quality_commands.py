@@ -910,6 +910,8 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
     assert called["explicit_user_wakeup"] is True
     assert called["force"] is True
     assert json.loads(captured.out)["runtime_status"]["decision"] == "resume"
+
+
 def test_submit_study_task_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

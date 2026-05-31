@@ -106,7 +106,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
         profile=profile,
         profile_ref=profile_ref,
         study_id="001-risk",
-        entry_mode="full_research",
+        entry_mode="opl-handoff",
     )
 
     assert payload["study_id"] == "001-risk"
