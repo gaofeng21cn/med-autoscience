@@ -31,6 +31,7 @@ def build_study_state_matrix(
     resolved_study_ids = tuple(study_ids or ()) or resolve_study_ids(profile)
     studies: list[dict[str, Any]] = []
     transitions: list[dict[str, Any]] = []
+    monitoring_summaries: list[dict[str, Any]] = []
     counts: dict[str, int] = {}
     for study_id in resolved_study_ids:
         try:
@@ -75,6 +76,7 @@ def build_study_state_matrix(
             transition=transition,
             active_run_id=active_run_id,
         )
+        monitoring_summaries.append(monitoring)
         transitions.append(transition)
         studies.append(
             {
@@ -95,6 +97,7 @@ def build_study_state_matrix(
         "workspace_root": str(Path(profile.workspace_root).expanduser().resolve()),
         "study_count": len(studies),
         "counts": counts,
+        "progress_first_tick_accounting": _progress_first_tick_accounting(monitoring_summaries),
         "studies": studies,
         "domain_transition_table": study_domain_transition_table.build_domain_transition_table(transitions),
     }
@@ -302,6 +305,7 @@ def _progress_first_monitoring_summary(
         "surface": existing.get("surface") or "study_state_matrix_progress_first_monitoring_summary",
         "schema_version": existing.get("schema_version") or 1,
         "authority": existing.get("authority") or "refs_only_observability",
+        "study_id": _text(existing.get("study_id")) or _text(status.get("study_id")),
         "active_run_id": _text(existing.get("active_run_id")) or active_run_id,
         "active_stage_attempt_id": _text(existing.get("active_stage_attempt_id")),
         "active_workflow_id": _text(existing.get("active_workflow_id")),
@@ -321,9 +325,96 @@ def _progress_first_monitoring_summary(
         "next_forced_delta": _dict(existing.get("next_forced_delta")),
         "stage_progress_log": _dict(existing.get("stage_progress_log")),
         "latest_terminal_stage": _dict(existing.get("latest_terminal_stage")) or None,
+        "dispatch_consumption": _dict(existing.get("dispatch_consumption")),
         "foreground_write_policy": _dict(existing.get("foreground_write_policy")),
         "source": "progress_projection",
     }
+
+
+def _progress_first_tick_accounting(monitoring_summaries: list[dict[str, Any]]) -> dict[str, Any]:
+    study_items = [_progress_first_tick_study_item(summary) for summary in monitoring_summaries]
+    return {
+        "surface": "progress_first_tick_accounting",
+        "schema_version": 1,
+        "authority": "refs_only_observability",
+        "expected_owner_action_count": sum(
+            item["monitoring_status"] in {"running", "ready_for_dispatch", "stalled_unconsumed_action"}
+            for item in study_items
+        ),
+        "ready_for_owner_action_count": sum(
+            item["monitoring_status"] in {"ready_for_dispatch", "stalled_unconsumed_action"}
+            for item in study_items
+        ),
+        "running_provider_attempt_count": sum(item["monitoring_status"] == "running" for item in study_items),
+        "typed_blocker_count": sum(item["monitoring_status"] == "blocked_typed_owner" for item in study_items),
+        "human_gate_count": sum(item["monitoring_status"] == "human_gate" for item in study_items),
+        "unconsumed_owner_action_count": sum(
+            item["monitoring_status"] == "stalled_unconsumed_action" for item in study_items
+        ),
+        "overdue_owner_pickup_count": sum(item["owner_pickup_overdue"] is True for item in study_items),
+        "studies": study_items,
+        "authority_boundary": {
+            "refs_only": True,
+            "can_write_runtime_owned_surfaces": False,
+            "can_write_paper_or_package": False,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_publication_ready": False,
+        },
+    }
+
+
+def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any]:
+    dispatch_consumption = _dict(summary.get("dispatch_consumption"))
+    monitoring_status = _progress_first_monitoring_status(summary=summary, dispatch_consumption=dispatch_consumption)
+    return {
+        "study_id": _text(summary.get("study_id")),
+        "monitoring_status": monitoring_status,
+        "active_run_id": _text(summary.get("active_run_id")),
+        "running_provider_attempt": summary.get("running_provider_attempt") is True,
+        "next_owner": _text(summary.get("next_owner")),
+        "controller_action": _text(summary.get("controller_action")),
+        "next_work_unit": _dict(summary.get("next_work_unit")) or _text(summary.get("next_work_unit")),
+        "typed_blocker": _dict(summary.get("typed_blocker")) or None,
+        "dispatch_consumption": dispatch_consumption or None,
+        "owner_pickup_overdue": _owner_pickup_overdue(dispatch_consumption),
+    }
+
+
+def _progress_first_monitoring_status(
+    *,
+    summary: Mapping[str, Any],
+    dispatch_consumption: Mapping[str, Any],
+) -> str:
+    if summary.get("running_provider_attempt") is True or _text(summary.get("active_run_id")) is not None:
+        return "running"
+    if _is_human_gate(summary):
+        return "human_gate"
+    consumption_status = _text(dispatch_consumption.get("consumption_status"))
+    if consumption_status in {"consumed", "receipt_consumed", "completed"}:
+        return "receipt_consumed"
+    if _text(summary.get("next_owner")) is not None or _text(summary.get("controller_action")) is not None:
+        if consumption_status in {"unconsumed", "stale", "overdue"} or _owner_pickup_overdue(dispatch_consumption):
+            return "stalled_unconsumed_action"
+        return "ready_for_dispatch"
+    if _dict(summary.get("typed_blocker")):
+        return "blocked_typed_owner"
+    return "observability_only"
+
+
+def _is_human_gate(summary: Mapping[str, Any]) -> bool:
+    if _text(summary.get("progress_delta_classification")) == "human_gate":
+        return True
+    typed_blocker = _dict(summary.get("typed_blocker"))
+    return _text(typed_blocker.get("owner")) in {"user", "physician", "pi"} or _text(
+        typed_blocker.get("blocker_id")
+    ) in {"human_gate", "study_user_decision_gate"}
+
+
+def _owner_pickup_overdue(dispatch_consumption: Mapping[str, Any]) -> bool:
+    if dispatch_consumption.get("owner_pickup_overdue") is True:
+        return True
+    hours = dispatch_consumption.get("unconsumed_duration_hours")
+    return isinstance(hours, int | float) and not isinstance(hours, bool) and hours > 0
 
 
 def _string_list(value: object) -> list[str]:

@@ -103,6 +103,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             latest_terminal_stage_log=latest_terminal_stage_log,
             paper_stage_log=paper_stage_log,
         ),
+        "dispatch_consumption": _dispatch_consumption_summary(
+            handoff=handoff,
+            execution=execution,
+            domain_transition=domain_transition,
+        ),
         "foreground_write_policy": _foreground_write_policy(payload.get("execution_owner_guard")),
         "source_refs": _source_refs(payload.get("refs"), handoff=handoff, latest_terminal_stage_log=latest_terminal_stage_log),
         "authority_boundary": {
@@ -113,6 +118,54 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             "can_authorize_publication_ready": False,
         },
     }
+
+
+def _dispatch_consumption_summary(
+    *,
+    handoff: Mapping[str, Any],
+    execution: Mapping[str, Any],
+    domain_transition: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    explicit = _mapping(handoff.get("dispatch_consumption")) or _mapping(execution.get("dispatch_consumption"))
+    if explicit:
+        return explicit
+    completion_receipt = _mapping(domain_transition.get("completion_receipt_consumption"))
+    execution_receipt = _mapping(domain_transition.get("default_executor_execution_receipt_consumption"))
+    if completion_receipt or execution_receipt:
+        status = (
+            _text(completion_receipt.get("consumption_status"))
+            or _text(execution_receipt.get("consumption_status"))
+            or "receipt_consumed"
+        )
+        return {
+            "consumption_status": status,
+            "receipt_ref": _text(completion_receipt.get("receipt_ref")) or _text(execution_receipt.get("receipt_ref")),
+            "execution_status": _text(execution_receipt.get("execution_status")),
+            "action_fingerprint": _text(completion_receipt.get("action_fingerprint"))
+            or _text(execution_receipt.get("action_fingerprint")),
+        }
+    queue_item = _first_action_queue_item(handoff.get("action_queue"))
+    if queue_item is None:
+        return None
+    return {
+        "consumption_status": _text(queue_item.get("consumption_status")) or "unconsumed",
+        "action_fingerprint": _text(queue_item.get("action_fingerprint"))
+        or _text(queue_item.get("work_unit_fingerprint"))
+        or _text(queue_item.get("source_fingerprint")),
+        "receipt_ref": _text(queue_item.get("receipt_ref")),
+        "execution_status": _text(queue_item.get("execution_status")),
+        "unconsumed_duration_hours": _numeric(queue_item.get("queue_age_hours"))
+        or _numeric(queue_item.get("unconsumed_duration_hours")),
+    }
+
+
+def _first_action_queue_item(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, list):
+        return None
+    for item in value:
+        if isinstance(item, Mapping):
+            return dict(item)
+    return None
 
 
 def _latest_terminal_stage_summary(
@@ -251,6 +304,14 @@ def _compact_mapping(value: object, keys: tuple[str, ...]) -> dict[str, Any]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _numeric(value: object) -> int | float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return value
+    return None
 
 
 def _text_list(value: object) -> list[str]:

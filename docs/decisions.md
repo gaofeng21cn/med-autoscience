@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-31：Progress-first dispatch 预算按 study/action fingerprint single-flight，对账按 workspace tick 暴露
+
+- 决策：`runtime_dispatch_cost.dispatch_budget_window` 的默认 scope 固定为 `per_study_owner_route_action_fingerprint`，每个 study/action fingerprint 只允许一个 active Codex worker handoff；不再用全局 `max_codex_dispatches=1` 表述整个 workspace tick 的容量。不同 study 的不同 owner-route/action fingerprint 可以在同一 tick 同时进入 `handoff_ready` / Codex worker dispatch。
+- 决策：`domain-owner-action-dispatch` 顶层 receipt 必须输出 `per_study_execution_summary`，逐 study 给出 selected / executed / blocked / repeat_suppressed / dry_run / codex dispatch 计数、action fingerprints 和 zero-dispatch reason。`execution_count=0` 不能再让 operator 猜测是“无可执行 action”还是“dispatch 没被选中”。
+- 决策：`study-state-matrix` 输出 workspace 级 `progress_first_tick_accounting`，按 tick 汇总 expected owner actions、ready actions、running provider attempts、typed blockers、human gates、unconsumed actions 和 overdue owner pickup，并保留 per-study monitoring status。该 surface 只做 refs-only 监督和对账，不写 runtime、paper、publication gate、controller decision 或 package。
+- 理由：DM002/DM003 同时推进时，旧读模型能看到每篇 study 的 owner / work unit / blocker，但缺少 workspace/tick 级对账；`max_codex_dispatches=1` 又容易被误读成“一个 tick 只该派发一篇”。这会让系统看起来在持续监控，实际可能只反复投影 ready action 或只消费其中一篇。
+- 影响：这是 MAS controller/read-model 修复，不写 DM002/DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须由 OPL stage attempt、MAS owner receipt、typed blocker、AI reviewer eval、publication gate 和 package freshness proof 判定。
+
 ## 2026-05-29：current AI reviewer write route-back 可从 blocking work units 恢复
 
 - 决策：`owner-route-reconcile` 读取当前 AI reviewer-backed `route_back_same_line` / `route_target=write` 推荐动作时，write work unit 可来自 `recommended_actions[].next_work_unit`，也可来自同一动作的 `recommended_actions[].blocking_work_units[]` 中第一个已注册 write/story-surface work unit。

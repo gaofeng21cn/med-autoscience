@@ -360,6 +360,161 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
     assert latest["ledger_execution_count"] == 2
 
 
+def test_execute_dispatch_reports_per_study_progress_first_dispatch_accounting(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_ids = (
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+    )
+    dispatches: list[dict[str, object]] = []
+    scan_studies: list[dict[str, object]] = []
+    for index, study_id in enumerate(study_ids, start=2):
+        study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+        quest_root = profile.runtime_root / f"quest-{study_id}"
+        quest_root.mkdir(parents=True, exist_ok=True)
+        route = _owner_route(
+            study_id=study_id,
+            action_type="run_quality_repair_batch",
+            owner="write",
+        )
+        route.update(
+            {
+                "work_unit_fingerprint": f"domain-transition::{study_id}::medical-prose-write-repair",
+                "source_fingerprint": f"truth-source::{study_id}::medical-prose",
+                "idempotency_key": f"owner-route::{study_id}::medical-prose",
+            }
+        )
+        dispatch_payload = _dispatch(
+            study_id=study_id,
+            action_type="run_quality_repair_batch",
+            owner="write",
+            required_output_surface=(
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            owner_route=route,
+        )
+        dispatch_path = (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_dispatches"
+            / "run_quality_repair_batch.json"
+        )
+        dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
+        dispatch_payload["source_action"] = {
+            "action_type": "run_quality_repair_batch",
+            "route_target": "write",
+            "work_unit_fingerprint": route["work_unit_fingerprint"],
+            "next_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+            },
+            "source_eval_id": f"publication-eval::dm00{index}",
+        }
+        _write_json(dispatch_path, dispatch_payload)
+        _write_json(
+            study_root / "artifacts" / "supervision" / "requests" / "quality_repair_batch" / "latest.json",
+            {
+                "surface": "domain_action_request",
+                "request_kind": "run_quality_repair_batch",
+                "status": "requested",
+                "study_id": study_id,
+                "request_owner": "write",
+                "expected_owner": "write",
+                "next_executable_owner": "write",
+                "owner_route": route,
+            },
+        )
+        dispatches.append(dispatch_payload)
+        scan_studies.append({"study_id": study_id, "owner_route": route})
+
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": scan_studies,
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatch_count": len(dispatches),
+            "default_executor_dispatches": dispatches,
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda *, study_id, **_: {
+            "study_id": study_id,
+            "quest_id": f"quest-{study_id}",
+            "quest_root": str(profile.runtime_root / f"quest-{study_id}"),
+        },
+    )
+    called: list[str] = []
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        called.append(str(kwargs["study_id"]))
+        return {
+            "ok": True,
+            "status": "handoff_ready",
+            "blocked_reason": None,
+            "writer_worker_handoff": {
+                "surface": "default_executor_dispatch_request",
+                "dispatch_status": "ready",
+                "next_executable_owner": "write",
+                "required_output_surface": (
+                    "canonical manuscript story-surface delta or "
+                    "typed blocker:manuscript_story_surface_delta_missing"
+                ),
+            },
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fake_run_quality_repair_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=study_ids,
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 2
+    assert result["executed_count"] == 2
+    assert result["codex_dispatch_count"] == 2
+    assert result["dispatch_budget_window"] == {
+        "scope": "per_study_owner_route_action_fingerprint",
+        "max_codex_dispatches_per_scope": 1,
+        "workspace_global_max_codex_dispatches": None,
+        "duplicate_policy": "suppress_same_action_fingerprint",
+        "dry_run_starts_llm": False,
+        "observe_only_starts_llm": False,
+    }
+    assert called == list(study_ids)
+    summaries = {item["study_id"]: item for item in result["per_study_execution_summary"]}
+    assert set(summaries) == set(study_ids)
+    for study_id in study_ids:
+        assert summaries[study_id]["selected_dispatch_count"] == 1
+        assert summaries[study_id]["executed_count"] == 1
+        assert summaries[study_id]["codex_dispatch_count"] == 1
+        assert summaries[study_id]["zero_dispatch_reason"] is None
+
+
 def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_stale_consumer_inline(
     monkeypatch,
     tmp_path: Path,
