@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from .shared import *  # noqa: F403,F401
 
 
@@ -237,6 +239,89 @@ def test_domain_handler_export_suppresses_stale_dispatch_blocked_by_current_rout
     assert tasks[0]["payload"]["work_unit_id"] == (
         "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
     )
+
+
+def test_domain_handler_export_uses_mtime_for_legacy_dispatch_without_generated_at(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    dispatch_dir = (
+        workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+    )
+    ai_reviewer_dispatch = dispatch_dir / "return_to_ai_reviewer_workflow.json"
+    write_dispatch = dispatch_dir / "run_quality_repair_batch.json"
+
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename=ai_reviewer_dispatch.name,
+        action_type="return_to_ai_reviewer_workflow",
+        next_owner="ai_reviewer",
+        dispatch_authority="ai_reviewer_record_production_handoff",
+        generated_at="2026-05-31T15:54:37+00:00",
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="ai_reviewer",
+            owner_reason="ai_reviewer_record_stale_after_current_manuscript",
+            action_type="return_to_ai_reviewer_workflow",
+            work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            work_unit_fingerprint="dm003::ai-reviewer::older",
+            runtime_health_epoch="runtime-health-event-006227-ai",
+            blocked_actions=["run_quality_repair_batch"],
+        ),
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename=write_dispatch.name,
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="consumer_default_executor_dispatch",
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="write",
+            owner_reason="quest_waiting_opl_runtime_owner_route",
+            action_type="run_quality_repair_batch",
+            work_unit_id="medical_prose_currentness_recheck",
+            work_unit_fingerprint="dm003::write::current",
+            runtime_health_epoch="runtime-health-event-006237-write",
+            blocked_actions=[
+                "publication_gate_specificity_required",
+                "current_package_freshness_required",
+                "return_to_ai_reviewer_workflow",
+                "run_gate_clearing_batch",
+            ],
+        ),
+    )
+    write_payload = json.loads(write_dispatch.read_text(encoding="utf-8"))
+    write_payload.pop("generated_at", None)
+    _write_json(write_dispatch, write_payload)
+    os.utime(ai_reviewer_dispatch, (1_780_000_000, 1_780_000_000))
+    os.utime(write_dispatch, (1_780_000_600, 1_780_000_600))
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["run_quality_repair_batch"]
+    assert tasks[0]["payload"]["work_unit_id"] == "medical_prose_currentness_recheck"
+    assert tasks[0]["payload"]["next_executable_owner"] == "write"
 
 
 def test_domain_handler_export_keeps_new_ai_reviewer_handoff_when_older_write_route_has_later_runtime_epoch(

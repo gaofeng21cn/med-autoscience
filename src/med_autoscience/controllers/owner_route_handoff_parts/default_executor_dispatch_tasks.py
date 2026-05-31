@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -140,7 +141,13 @@ def _current_dispatch_candidates(dispatch_root: Path) -> list[dict[str, Any]]:
         dispatch = _read_json_object(dispatch_path)
         if not _dispatch_ready_for_opl_attempt(dispatch):
             continue
-        candidates.append({"path": dispatch_path, "dispatch": dispatch})
+        candidates.append(
+            {
+                "path": dispatch_path,
+                "dispatch": dispatch,
+                "mtime_key": _dispatch_mtime_key(dispatch_path),
+            }
+        )
     unresolved = [
         candidate
         for candidate in candidates
@@ -148,7 +155,7 @@ def _current_dispatch_candidates(dispatch_root: Path) -> list[dict[str, Any]]:
     ]
     if len(unresolved) <= 1:
         return unresolved
-    return [max(unresolved, key=_candidate_currentness_key)]
+    return [_newest_candidate(unresolved)]
 
 
 def _dispatch_blocked_by_newer_candidate(
@@ -167,14 +174,39 @@ def _dispatch_blocked_by_newer_candidate(
         other_route = _dispatch_owner_route(other)
         if action_type not in set(_string_list(other_route.get("blocked_actions"))):
             continue
-        if _dispatch_currentness_key(other) <= _dispatch_currentness_key(dispatch):
+        if not _candidate_newer_than(other_candidate, candidate):
             continue
         return True
     return False
 
 
-def _candidate_currentness_key(candidate: Mapping[str, Any]) -> tuple[str, str, str]:
-    return _dispatch_currentness_key(_mapping(candidate.get("dispatch")))
+def _newest_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    selected = candidates[0]
+    for candidate in candidates[1:]:
+        if _candidate_newer_than(candidate, selected):
+            selected = candidate
+    return selected
+
+
+def _candidate_newer_than(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    left_dispatch = _mapping(left.get("dispatch"))
+    right_dispatch = _mapping(right.get("dispatch"))
+    left_time = _dispatch_generated_time_key(left_dispatch)
+    right_time = _dispatch_generated_time_key(right_dispatch)
+    if left_time is not None and right_time is not None:
+        return _dispatch_currentness_key(left_dispatch, time_key=left_time) > _dispatch_currentness_key(
+            right_dispatch,
+            time_key=right_time,
+        )
+    left_route_key = _dispatch_route_currentness_key(
+        left_dispatch,
+        mtime_key=_text(left.get("mtime_key")) or "",
+    )
+    right_route_key = _dispatch_route_currentness_key(
+        right_dispatch,
+        mtime_key=_text(right.get("mtime_key")) or "",
+    )
+    return left_route_key > right_route_key
 
 
 def _dispatch_ready_for_opl_attempt(dispatch: Mapping[str, Any] | None) -> bool:
@@ -260,12 +292,12 @@ def _owner_route_work_unit_id(owner_route: Mapping[str, Any]) -> str | None:
     )
 
 
-def _dispatch_currentness_key(dispatch: Mapping[str, Any]) -> tuple[str, str, str]:
+def _dispatch_currentness_key(dispatch: Mapping[str, Any], *, time_key: str) -> tuple[str, str, str]:
     owner_route = _dispatch_owner_route(dispatch)
     source_refs = _mapping(owner_route.get("source_refs"))
     basis = _mapping(source_refs.get("owner_route_currentness_basis"))
     return (
-        _text(dispatch.get("generated_at")) or "",
+        time_key,
         _text(owner_route.get("runtime_health_epoch"))
         or _text(source_refs.get("runtime_health_epoch"))
         or _text(basis.get("runtime_health_epoch"))
@@ -275,6 +307,44 @@ def _dispatch_currentness_key(dispatch: Mapping[str, Any]) -> tuple[str, str, st
         or _text(basis.get("work_unit_fingerprint"))
         or "",
     )
+
+
+def _dispatch_route_currentness_key(dispatch: Mapping[str, Any], *, mtime_key: str) -> tuple[str, str, str]:
+    owner_route = _dispatch_owner_route(dispatch)
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return (
+        _text(owner_route.get("runtime_health_epoch"))
+        or _text(source_refs.get("runtime_health_epoch"))
+        or _text(basis.get("runtime_health_epoch"))
+        or "",
+        _text(owner_route.get("work_unit_fingerprint"))
+        or _text(source_refs.get("work_unit_fingerprint"))
+        or _text(basis.get("work_unit_fingerprint"))
+        or "",
+        _dispatch_generated_time_key(dispatch) or mtime_key,
+    )
+
+
+def _dispatch_generated_time_key(dispatch: Mapping[str, Any]) -> str | None:
+    generated_at = _text(dispatch.get("generated_at"))
+    if generated_at is None:
+        return None
+    normalized = generated_at.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return generated_at
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return f"{int(parsed.timestamp() * 1_000_000_000):020d}"
+
+
+def _dispatch_mtime_key(path: Path) -> str:
+    try:
+        return f"{path.stat().st_mtime_ns:020d}"
+    except OSError:
+        return ""
 
 
 def _source_refs(

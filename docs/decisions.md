@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-31：default-executor export currentness 不能让旧 generated_at handoff 压住当前 legacy dispatch
+
+- 决策：`default_executor_dispatch_request` materializer 必须为新生成的 dispatch payload 写入 `generated_at`，使后续 `domain-handler export` 能按明确物化时间比较同类候选。
+- 决策：当候选 dispatch 都有 `generated_at` 时，`domain-handler export` 继续按物化时间优先；当任一候选缺少 `generated_at` 时，必须先比较 owner-route currentness basis，包括 `runtime_health_epoch` 与 `work_unit_fingerprint`，mtime 只能作为最后 tie-breaker。旧 AI reviewer handoff 的较新 `generated_at` 不得压住当前 write owner-route legacy dispatch。
+- 理由：DM003 暴露出当前 `write/run_quality_repair_batch` 已 materialize 且 blocking 旧 `return_to_ai_reviewer_workflow`，但 legacy write dispatch 缺 `generated_at`，export 只按时间戳选择，导致旧 AI reviewer handoff 成为唯一 pending family task，OPL 看不到当前 Progress-first write owner action。
+- 影响：这是 MAS owner-route handoff/export currentness 修复，不写 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须由 MAS materialize/export、OPL provider attempt、typed closeout、AI reviewer eval 与 publication gate 共同判定。
+
 ## 2026-05-31：Progress-first dispatch 预算按 study/action fingerprint single-flight，对账按 workspace tick 暴露
 
 - 决策：`runtime_dispatch_cost.dispatch_budget_window` 的默认 scope 固定为 `per_study_owner_route_action_fingerprint`，每个 study/action fingerprint 只允许一个 active Codex worker handoff；不再用全局 `max_codex_dispatches=1` 表述整个 workspace tick 的容量。不同 study 的不同 owner-route/action fingerprint 可以在同一 tick 同时进入 `handoff_ready` / Codex worker dispatch。

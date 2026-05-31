@@ -283,6 +283,7 @@ def _default_executor_dispatch(
     apply: bool,
     developer_mode_payload: Mapping[str, Any],
     scan_payload: Mapping[str, Any],
+    generated_at: str,
 ) -> dict[str, Any]:
     study_id = _text(action.get("study_id")) or "unknown-study"
     dispatch_path = _default_executor_dispatch_path(profile, study_id, action_type)
@@ -415,6 +416,7 @@ def _default_executor_dispatch(
         owner_route_attempt_envelope=owner_route_attempt_envelope,
         prompt_contract=prompt_contract,
         progress_first_closeout_admission=closeout_admission,
+        generated_at=generated_at,
     )
 
 
@@ -438,6 +440,7 @@ def _default_executor_dispatch_payload(
     owner_route_attempt_envelope: Mapping[str, Any],
     prompt_contract: Mapping[str, Any],
     progress_first_closeout_admission: Mapping[str, Any],
+    generated_at: str,
 ) -> dict[str, Any]:
     return {
         "surface": "default_executor_dispatch_request",
@@ -445,6 +448,7 @@ def _default_executor_dispatch_payload(
         **dict(executor_policy),
         "study_id": study_id,
         "quest_id": prompt_contract["quest_id"],
+        "generated_at": generated_at,
         "action_type": action_type,
         "action_id": _text(action.get("action_id")),
         "next_executable_owner": next_executable_owner,
@@ -862,6 +866,7 @@ def materialize_domain_action_requests(
             apply=apply,
             developer_mode_payload=developer_mode_payload,
             scan_payload=scan_payload,
+            generated_at=generated_at,
         )
         for action in selected_request_actions
     ]
