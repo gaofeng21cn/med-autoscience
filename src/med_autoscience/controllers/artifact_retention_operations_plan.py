@@ -22,6 +22,21 @@ _RECEIPT_REF_FAMILY_KEYS = (
     "restore_proof_refs",
     "retention_receipt_refs",
 )
+_APPLY_BLOCKER_REF_KEY = "artifact_lifecycle_apply_blocker_refs"
+_APPLY_BLOCKER_COUNT_KEY = "artifact_lifecycle_apply_blocker_ref_count"
+_APPLY_BLOCKER_TRUNCATED_KEY = "artifact_lifecycle_apply_blocker_refs_truncated"
+_APPLY_BLOCKER_REASON_COUNTS_KEY = "artifact_lifecycle_apply_blocker_reason_counts"
+_APPLY_BLOCKER_AUTHORITY_BOUNDARY_KEY = "artifact_lifecycle_apply_blocker_authority_boundary"
+_PHYSICAL_THINNING_HANDOFF_KEY = "physical_thinning_handoff"
+_PHYSICAL_THINNING_CANDIDATE_ACTIONS = frozenset(
+    {
+        "delete_safe_cache",
+        "regenerate_projection_then_remove_stale",
+        "restore_contract_required",
+        "archive_compress_candidate_blocked",
+        "terminal_archive_compact_after_manifest",
+    }
+)
 _KEEP_ONLINE_ROLES = frozenset(
     {
         "canonical_source",
@@ -53,6 +68,10 @@ def build_artifact_retention_operations_plan(
     if terminal_study_compaction_eligible:
         operations = [_terminal_retention_operation(operation) for operation in operations]
     receipt_ref_families = _artifact_lifecycle_receipt_ref_families(operations)
+    apply_blocker_refs = _artifact_lifecycle_apply_blockers_from_operations(
+        operations,
+        sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
@@ -61,6 +80,11 @@ def build_artifact_retention_operations_plan(
         "retention_policy_catalog": retention_policy_catalog(),
         "summary": _summary(operations),
         **receipt_ref_families,
+        **apply_blocker_refs,
+        _PHYSICAL_THINNING_HANDOFF_KEY: _physical_thinning_handoff(
+            operations,
+            apply_blocker_refs=apply_blocker_refs,
+        ),
         "operations": operations,
     }
 
@@ -71,6 +95,7 @@ def aggregate_artifact_retention_operations_plans(
     action_counts: dict[str, int] = {}
     applyable_action_counts: dict[str, int] = {}
     receipt_ref_families = _empty_artifact_lifecycle_receipt_ref_families()
+    apply_blocker_refs = _empty_artifact_lifecycle_apply_blockers()
     operation_count = 0
     for plan in plans:
         summary = _mapping(plan.get("summary"))
@@ -84,8 +109,19 @@ def aggregate_artifact_retention_operations_plans(
                 sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
             ),
         )
+        _merge_artifact_lifecycle_apply_blockers(
+            apply_blocker_refs,
+            _artifact_lifecycle_apply_blockers_from_plan(
+                plan,
+                sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
+            ),
+        )
     receipt_ref_families = _bounded_artifact_lifecycle_receipt_ref_families(
         receipt_ref_families,
+        sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
+    )
+    apply_blocker_refs = _bounded_artifact_lifecycle_apply_blockers(
+        apply_blocker_refs,
         sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
     )
     return {
@@ -98,6 +134,15 @@ def aggregate_artifact_retention_operations_plans(
         "mutation_policy": _mutation_policy(),
         "retention_policy_catalog": retention_policy_catalog(),
         **receipt_ref_families,
+        **apply_blocker_refs,
+        _PHYSICAL_THINNING_HANDOFF_KEY: _physical_thinning_handoff_from_summary(
+            summary={
+                "operation_count": operation_count,
+                "action_counts": action_counts,
+                "applyable_action_counts": applyable_action_counts,
+            },
+            apply_blocker_refs=apply_blocker_refs,
+        ),
     }
 
 
@@ -112,6 +157,10 @@ def compact_artifact_retention_operations_plan(
         plan,
         sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
     )
+    apply_blocker_refs = _artifact_lifecycle_apply_blockers_from_plan(
+        plan,
+        sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
+    )
     return {
         "schema_version": int(plan.get("schema_version") or SCHEMA_VERSION),
         "surface_kind": _text(plan.get("surface_kind")) or SURFACE_KIND,
@@ -121,6 +170,11 @@ def compact_artifact_retention_operations_plan(
         or retention_policy_catalog(),
         "summary": dict(_mapping(plan.get("summary"))),
         **receipt_ref_families,
+        **apply_blocker_refs,
+        _PHYSICAL_THINNING_HANDOFF_KEY: _physical_thinning_handoff_from_plan(
+            plan,
+            apply_blocker_refs=apply_blocker_refs,
+        ),
         "operation_listing": "bounded",
         "operation_sample": [dict(item) for item in sample if isinstance(item, Mapping)],
         "operation_sample_limit": operation_sample_limit,
@@ -302,6 +356,17 @@ def _with_artifact_lifecycle_packet(*, workspace_root: Path, operation: Mapping[
         workspace_root=workspace_root,
         operation=payload,
     )
+    apply_blocker_reasons = _artifact_lifecycle_apply_blocker_reasons(payload)
+    if apply_blocker_reasons:
+        payload["artifact_lifecycle_apply_blocker_reasons"] = apply_blocker_reasons
+        payload["artifact_lifecycle_apply_blocker_refs"] = [
+            _artifact_lifecycle_apply_blocker_ref(
+                workspace_root=workspace_root,
+                operation=payload,
+                reason=reason,
+            )
+            for reason in apply_blocker_reasons
+        ]
     return payload
 
 
@@ -391,6 +456,271 @@ def _artifact_lifecycle_receipt_ref_families_from_plan(
         _artifact_lifecycle_receipt_ref_families(operations),
         sample_limit=sample_limit,
     )
+
+
+def _artifact_lifecycle_apply_blockers_from_plan(
+    plan: Mapping[str, Any],
+    *,
+    sample_limit: int | None = None,
+) -> dict[str, Any]:
+    existing = _empty_artifact_lifecycle_apply_blockers()
+    refs = _string_list(plan.get(_APPLY_BLOCKER_REF_KEY))
+    reason_counts = _mapping(plan.get(_APPLY_BLOCKER_REASON_COUNTS_KEY))
+    if refs or _int(plan.get(_APPLY_BLOCKER_COUNT_KEY)) or reason_counts:
+        existing[_APPLY_BLOCKER_REF_KEY] = refs
+        existing[_APPLY_BLOCKER_COUNT_KEY] = _int(plan.get(_APPLY_BLOCKER_COUNT_KEY)) or len(refs)
+        existing[_APPLY_BLOCKER_TRUNCATED_KEY] = bool(plan.get(_APPLY_BLOCKER_TRUNCATED_KEY))
+        existing[_APPLY_BLOCKER_REASON_COUNTS_KEY] = {
+            str(reason): _int(count)
+            for reason, count in reason_counts.items()
+            if str(reason) and _int(count)
+        }
+        return _bounded_artifact_lifecycle_apply_blockers(existing, sample_limit=sample_limit)
+    operations = [
+        operation
+        for operation in [*_list(plan.get("operations")), *_list(plan.get("operation_sample"))]
+        if isinstance(operation, Mapping)
+    ]
+    return _artifact_lifecycle_apply_blockers_from_operations(operations, sample_limit=sample_limit)
+
+
+def _artifact_lifecycle_apply_blockers_from_operations(
+    operations: Iterable[Mapping[str, Any]],
+    *,
+    sample_limit: int | None = None,
+) -> dict[str, Any]:
+    blocker_refs = _empty_artifact_lifecycle_apply_blockers()
+    seen: set[str] = set()
+    for operation in operations:
+        for reason in _artifact_lifecycle_apply_blocker_reasons(operation):
+            ref = _artifact_lifecycle_apply_blocker_ref(
+                workspace_root=Path(_text(operation.get("path")) or ".").resolve(),
+                operation=operation,
+                reason=reason,
+            )
+            if ref in seen:
+                continue
+            seen.add(ref)
+            blocker_refs[_APPLY_BLOCKER_REF_KEY].append(ref)
+            reason_counts = blocker_refs[_APPLY_BLOCKER_REASON_COUNTS_KEY]
+            reason_counts[reason] = _int(reason_counts.get(reason)) + 1
+    blocker_refs[_APPLY_BLOCKER_COUNT_KEY] = len(blocker_refs[_APPLY_BLOCKER_REF_KEY])
+    return _bounded_artifact_lifecycle_apply_blockers(blocker_refs, sample_limit=sample_limit)
+
+
+def _artifact_lifecycle_apply_blocker_reasons(operation: Mapping[str, Any]) -> list[str]:
+    blockers = _string_list(operation.get("blockers"))
+    if blockers:
+        return blockers
+    action = _text(operation.get("retention_action"))
+    if action == "delete_safe_cache":
+        return ["cleanup_apply_authority_required_before_safe_cache_delete"]
+    if action == "restore_contract_required" or bool(_mapping(operation.get("restore_contract_gate")).get("required")):
+        return ["restore_contract_required_before_cleanup"]
+    return []
+
+
+def _artifact_lifecycle_apply_blocker_ref(
+    *,
+    workspace_root: Path,
+    operation: Mapping[str, Any],
+    reason: str,
+) -> str:
+    relative_ref = _text(operation.get("workspace_relative_path")) or _workspace_relative_path(
+        operation,
+        workspace_root,
+    )
+    digest = _fingerprint_text(f"{reason}\0{relative_ref or _text(operation.get('path'))}")
+    return f"mas-artifact-lifecycle-typed-blocker:medautoscience:{_slug(reason)}:{digest}"
+
+
+def _empty_artifact_lifecycle_apply_blockers() -> dict[str, Any]:
+    return {
+        _APPLY_BLOCKER_REF_KEY: [],
+        _APPLY_BLOCKER_COUNT_KEY: 0,
+        _APPLY_BLOCKER_TRUNCATED_KEY: False,
+        _APPLY_BLOCKER_REASON_COUNTS_KEY: {},
+        _APPLY_BLOCKER_AUTHORITY_BOUNDARY_KEY: _artifact_lifecycle_apply_blocker_authority_boundary(),
+    }
+
+
+def _bounded_artifact_lifecycle_apply_blockers(
+    blocker_refs: Mapping[str, Any],
+    *,
+    sample_limit: int | None = None,
+) -> dict[str, Any]:
+    refs = _dedupe(_string_list(blocker_refs.get(_APPLY_BLOCKER_REF_KEY)))
+    count = _int(blocker_refs.get(_APPLY_BLOCKER_COUNT_KEY)) or len(refs)
+    limit = sample_limit if sample_limit is not None else len(refs)
+    bounded_refs = refs[:limit]
+    reason_counts = {
+        str(reason): _int(value)
+        for reason, value in _mapping(blocker_refs.get(_APPLY_BLOCKER_REASON_COUNTS_KEY)).items()
+        if str(reason) and _int(value)
+    }
+    return {
+        _APPLY_BLOCKER_REF_KEY: bounded_refs,
+        _APPLY_BLOCKER_COUNT_KEY: max(count, len(refs)),
+        _APPLY_BLOCKER_TRUNCATED_KEY: bool(blocker_refs.get(_APPLY_BLOCKER_TRUNCATED_KEY))
+        or len(refs) > len(bounded_refs),
+        _APPLY_BLOCKER_REASON_COUNTS_KEY: dict(sorted(reason_counts.items())),
+        _APPLY_BLOCKER_AUTHORITY_BOUNDARY_KEY: _artifact_lifecycle_apply_blocker_authority_boundary(),
+    }
+
+
+def _merge_artifact_lifecycle_apply_blockers(
+    target: dict[str, Any],
+    source: Mapping[str, Any],
+) -> None:
+    target[_APPLY_BLOCKER_REF_KEY] = _dedupe(
+        [
+            *_string_list(target.get(_APPLY_BLOCKER_REF_KEY)),
+            *_string_list(source.get(_APPLY_BLOCKER_REF_KEY)),
+        ]
+    )
+    target[_APPLY_BLOCKER_COUNT_KEY] = _int(target.get(_APPLY_BLOCKER_COUNT_KEY)) + (
+        _int(source.get(_APPLY_BLOCKER_COUNT_KEY))
+        or len(_string_list(source.get(_APPLY_BLOCKER_REF_KEY)))
+    )
+    target[_APPLY_BLOCKER_TRUNCATED_KEY] = bool(target.get(_APPLY_BLOCKER_TRUNCATED_KEY)) or bool(
+        source.get(_APPLY_BLOCKER_TRUNCATED_KEY)
+    )
+    reason_counts = dict(_mapping(target.get(_APPLY_BLOCKER_REASON_COUNTS_KEY)))
+    for reason, value in _mapping(source.get(_APPLY_BLOCKER_REASON_COUNTS_KEY)).items():
+        reason_counts[str(reason)] = _int(reason_counts.get(str(reason))) + _int(value)
+    target[_APPLY_BLOCKER_REASON_COUNTS_KEY] = reason_counts
+
+
+def _physical_thinning_handoff_from_plan(
+    plan: Mapping[str, Any],
+    *,
+    apply_blocker_refs: Mapping[str, Any],
+) -> dict[str, Any]:
+    existing = _mapping(plan.get(_PHYSICAL_THINNING_HANDOFF_KEY))
+    if existing:
+        return _normalize_physical_thinning_handoff(existing, apply_blocker_refs=apply_blocker_refs)
+    operations = [
+        operation
+        for operation in [*_list(plan.get("operations")), *_list(plan.get("operation_sample"))]
+        if isinstance(operation, Mapping)
+    ]
+    if operations:
+        return _physical_thinning_handoff(operations, apply_blocker_refs=apply_blocker_refs)
+    return _physical_thinning_handoff_from_summary(
+        summary=_mapping(plan.get("summary")),
+        apply_blocker_refs=apply_blocker_refs,
+    )
+
+
+def _physical_thinning_handoff(
+    operations: Iterable[Mapping[str, Any]],
+    *,
+    apply_blocker_refs: Mapping[str, Any],
+) -> dict[str, Any]:
+    candidate_counts: Counter[str] = Counter()
+    for operation in operations:
+        action = _text(operation.get("retention_action"))
+        if action in _PHYSICAL_THINNING_CANDIDATE_ACTIONS:
+            candidate_counts[action] += 1
+    return _physical_thinning_handoff_from_counts(
+        candidate_counts=candidate_counts,
+        apply_blocker_refs=apply_blocker_refs,
+    )
+
+
+def _physical_thinning_handoff_from_summary(
+    *,
+    summary: Mapping[str, Any],
+    apply_blocker_refs: Mapping[str, Any],
+) -> dict[str, Any]:
+    action_counts = _mapping(summary.get("action_counts"))
+    candidate_counts = Counter(
+        {
+            action: _int(count)
+            for action, count in action_counts.items()
+            if str(action) in _PHYSICAL_THINNING_CANDIDATE_ACTIONS and _int(count)
+        }
+    )
+    return _physical_thinning_handoff_from_counts(
+        candidate_counts=candidate_counts,
+        apply_blocker_refs=apply_blocker_refs,
+    )
+
+
+def _physical_thinning_handoff_from_counts(
+    *,
+    candidate_counts: Counter[str],
+    apply_blocker_refs: Mapping[str, Any],
+) -> dict[str, Any]:
+    typed_blocker_refs = _string_list(apply_blocker_refs.get(_APPLY_BLOCKER_REF_KEY))
+    candidate_count = sum(candidate_counts.values())
+    selected_payload_path = "typed_blocker_path" if typed_blocker_refs else "success_refs_path"
+    return {
+        "surface_kind": "artifact_lifecycle_physical_thinning_handoff",
+        "domain_owner": "MedAutoScience",
+        "apply_owner": "one-person-lab",
+        "candidate_count": candidate_count,
+        "candidate_counts_by_action": dict(sorted(candidate_counts.items())),
+        "selected_payload_path": selected_payload_path,
+        "receipt_refs": [] if typed_blocker_refs else _string_list(apply_blocker_refs.get("cleanup_receipt_refs")),
+        "typed_blocker_refs": typed_blocker_refs,
+        "typed_blocker_ref_count": _int(apply_blocker_refs.get(_APPLY_BLOCKER_COUNT_KEY)),
+        "typed_blocker_reason_counts": dict(
+            _mapping(apply_blocker_refs.get(_APPLY_BLOCKER_REASON_COUNTS_KEY))
+        ),
+        "authority_boundary": _physical_thinning_handoff_authority_boundary(),
+    }
+
+
+def _normalize_physical_thinning_handoff(
+    handoff: Mapping[str, Any],
+    *,
+    apply_blocker_refs: Mapping[str, Any],
+) -> dict[str, Any]:
+    candidate_counts = Counter(
+        {
+            str(action): _int(count)
+            for action, count in _mapping(handoff.get("candidate_counts_by_action")).items()
+            if str(action) and _int(count)
+        }
+    )
+    if not candidate_counts and _int(handoff.get("candidate_count")):
+        candidate_counts["unknown"] = _int(handoff.get("candidate_count"))
+    normalized = _physical_thinning_handoff_from_counts(
+        candidate_counts=candidate_counts,
+        apply_blocker_refs=apply_blocker_refs,
+    )
+    receipt_refs = _string_list(handoff.get("receipt_refs"))
+    if receipt_refs:
+        normalized["receipt_refs"] = receipt_refs
+        normalized["selected_payload_path"] = "success_refs_path"
+    return normalized
+
+
+def _physical_thinning_handoff_authority_boundary() -> dict[str, Any]:
+    return {
+        "mas_authorizes_candidate_identity": True,
+        "mas_executes_physical_cleanup": False,
+        "opl_executes_generic_lifecycle_apply": True,
+        "requires_restore_or_regeneration_receipt_before_cleanup": True,
+        "can_authorize_artifact_mutation": False,
+        "can_claim_domain_ready": False,
+        "can_claim_production_ready": False,
+    }
+
+
+def _artifact_lifecycle_apply_blocker_authority_boundary() -> dict[str, Any]:
+    return {
+        "owner": "MedAutoScience",
+        "stable_typed_blocker_refs_only": True,
+        "read_only": True,
+        "writes_workspace": False,
+        "physical_cleanup_performed": False,
+        "can_authorize_cleanup_apply": False,
+        "can_authorize_artifact_mutation": False,
+        "can_claim_domain_ready": False,
+        "can_claim_production_ready": False,
+    }
 
 
 def _empty_artifact_lifecycle_receipt_ref_families() -> dict[str, Any]:
@@ -535,6 +865,11 @@ def _target_sha256(path_text: str) -> str | None:
 
 def _fingerprint_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
+
+
+def _slug(value: str) -> str:
+    text = value.lower().replace("_", "-")
+    return "".join(character if character.isalnum() or character == "-" else "-" for character in text).strip("-")
 
 
 def _workspace_relative_path(artifact: Mapping[str, Any], workspace_root: Path) -> str:

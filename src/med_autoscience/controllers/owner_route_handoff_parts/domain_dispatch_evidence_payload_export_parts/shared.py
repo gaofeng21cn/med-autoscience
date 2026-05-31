@@ -19,6 +19,9 @@ PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_CURRENTNESS = (
 PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK = (
     "stale_run_quality_repair_dispatch_superseded_by_consumed_ai_reviewer_routeback"
 )
+PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_PRODUCTION_HANDOFF = (
+    "stale_run_quality_repair_dispatch_superseded_by_consumed_ai_reviewer_production_handoff"
+)
 PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_STAGE_ADMISSION = (
     "stale_run_quality_repair_dispatch_superseded_by_current_ai_reviewer_stage_admission"
 )

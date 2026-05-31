@@ -97,6 +97,17 @@ def test_dm_cvd_and_nf_pitnet_storage_governance_soak_is_read_only(tmp_path: Pat
     assert retention_plan["mutation_policy"]["physical_cleanup_performed"] is False
     assert retention_plan["mutation_policy"]["writes_workspace"] is False
     assert "delete-safe-cache" in retention_plan["mutation_policy"]["allowed_physical_actions"]
+    assert retention_plan["artifact_lifecycle_receipt_ref_count"] == retention_plan["summary"]["operation_count"]
+    assert retention_plan["artifact_authority_receipt_ref_count"] == retention_plan["summary"]["operation_count"]
+    assert retention_plan["cleanup_receipt_ref_count"] == 0
+    assert retention_plan["restore_proof_ref_count"] == 0
+    assert retention_plan["retention_receipt_ref_count"] == retention_plan["summary"]["action_counts"]["keep_online"]
+    assert retention_plan["artifact_lifecycle_apply_blocker_ref_count"] >= 1
+    assert retention_plan["artifact_lifecycle_apply_blocker_refs"]
+    assert all(
+        ref.startswith("mas-artifact-lifecycle-typed-blocker:medautoscience:")
+        for ref in retention_plan["artifact_lifecycle_apply_blocker_refs"]
+    )
     assert governance_report["storage_governance_policy"]["mutation_policy"] == {
         "read_only": True,
         "writes_workspace": False,
@@ -107,6 +118,42 @@ def test_dm_cvd_and_nf_pitnet_storage_governance_soak_is_read_only(tmp_path: Pat
     assert soak_summary["mutating_actions"] == 0
     assert soak_summary["unclassified_authority_surface"] == 0
     assert soak_summary["writes_workspace"] is False
+    assert soak_summary["artifact_lifecycle_receipt_ref_count"] == retention_plan["summary"]["operation_count"]
+    assert soak_summary["artifact_authority_receipt_ref_count"] == retention_plan["summary"]["operation_count"]
+    assert soak_summary["cleanup_receipt_ref_count"] == 0
+    assert soak_summary["restore_proof_ref_count"] == 0
+    assert soak_summary["retention_receipt_ref_count"] == retention_plan["summary"]["action_counts"]["keep_online"]
+    assert soak_summary["artifact_lifecycle_apply_blocker_ref_count"] == (
+        retention_plan["artifact_lifecycle_apply_blocker_ref_count"]
+    )
+    assert soak_summary["artifact_lifecycle_apply_blocker_refs"] == (
+        retention_plan["artifact_lifecycle_apply_blocker_refs"]
+    )
+    assert soak_summary["artifact_lifecycle_apply_blocker_reason_counts"] == (
+        retention_plan["artifact_lifecycle_apply_blocker_reason_counts"]
+    )
+    assert soak_summary["artifact_lifecycle_apply_blocker_authority_boundary"] == (
+        retention_plan["artifact_lifecycle_apply_blocker_authority_boundary"]
+    )
+    assert soak_summary["physical_thinning_handoff"] == retention_plan["physical_thinning_handoff"]
+    assert soak_summary["physical_thinning_handoff"]["domain_owner"] == "MedAutoScience"
+    assert soak_summary["physical_thinning_handoff"]["apply_owner"] == "one-person-lab"
+    assert soak_summary["physical_thinning_handoff"]["selected_payload_path"] == "typed_blocker_path"
+    assert soak_summary["artifact_lifecycle_receipt_refs"] == retention_plan["artifact_lifecycle_receipt_refs"]
+    assert soak_summary["artifact_lifecycle_receipt_refs_truncated"] is (
+        retention_plan["artifact_lifecycle_receipt_refs_truncated"]
+    )
+    assert soak_summary["artifact_authority_boundary"] == {
+        "summary_only": True,
+        "body_free": True,
+        "read_only": True,
+        "writes_workspace": False,
+        "physical_cleanup_performed": False,
+        "can_authorize_artifact_mutation": False,
+        "can_authorize_cleanup_apply": False,
+        "can_claim_domain_ready": False,
+        "can_claim_production_ready": False,
+    }
     assert 1 <= len(soak_summary["top_growth_buckets"]) <= 5
     assert [item["bytes"] for item in soak_summary["top_growth_buckets"]] == sorted(
         [item["bytes"] for item in soak_summary["top_growth_buckets"]],

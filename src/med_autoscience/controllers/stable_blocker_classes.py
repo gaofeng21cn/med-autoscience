@@ -17,6 +17,7 @@ _DISPATCH_SUPERSEDED_REASONS = {
     "stale_return_to_ai_reviewer_dispatch_superseded_by_current_ai_reviewer_stage_admission",
     "stale_return_to_ai_reviewer_dispatch_superseded_by_ai_reviewer_currentness_route",
     "stale_run_quality_repair_dispatch_superseded_by_consumed_ai_reviewer_routeback",
+    "stale_run_quality_repair_dispatch_superseded_by_consumed_ai_reviewer_production_handoff",
     "stale_run_quality_repair_dispatch_superseded_by_current_ai_reviewer_stage_admission",
     "stale_run_quality_repair_dispatch_superseded_by_ai_reviewer_currentness_route",
 }

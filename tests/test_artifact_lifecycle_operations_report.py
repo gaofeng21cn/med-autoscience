@@ -111,6 +111,23 @@ def test_lifecycle_operations_report_projects_artifact_receipt_ref_families(
         assert plan["artifact_lifecycle_receipt_refs"]
         assert plan["artifact_authority_receipt_refs"]
         assert plan["retention_receipt_refs"]
+        assert plan["artifact_lifecycle_apply_blocker_refs"]
+        assert plan["artifact_lifecycle_apply_blocker_ref_count"] >= 1
+        assert all(
+            ref.startswith("mas-artifact-lifecycle-typed-blocker:medautoscience:")
+            for ref in plan["artifact_lifecycle_apply_blocker_refs"]
+        )
+        assert plan["artifact_lifecycle_apply_blocker_authority_boundary"] == {
+            "owner": "MedAutoScience",
+            "stable_typed_blocker_refs_only": True,
+            "read_only": True,
+            "writes_workspace": False,
+            "physical_cleanup_performed": False,
+            "can_authorize_cleanup_apply": False,
+            "can_authorize_artifact_mutation": False,
+            "can_claim_domain_ready": False,
+            "can_claim_production_ready": False,
+        }
         assert all(
             ref.startswith("artifact-lifecycle:")
             for ref in plan["artifact_lifecycle_receipt_refs"]
@@ -120,6 +137,38 @@ def test_lifecycle_operations_report_projects_artifact_receipt_ref_families(
     )
     assert workspace_plan["cleanup_receipt_refs"] == []
     assert workspace_plan["restore_proof_refs"] == []
+
+
+def test_lifecycle_operations_report_projects_physical_thinning_handoff(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    _write(study_root / "paper" / "source" / "manuscript_source.md", "source\n")
+    _write(study_root / "manuscript" / "current_package" / "manuscript.docx", "docx\n")
+    _write(study_root / "paper" / "submission_minimal" / "paper.pdf", "pdf\n")
+
+    report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
+
+    for plan in (report["retention_plan"], report["workspaces"][0]["retention_plan"]):
+        handoff = plan["physical_thinning_handoff"]
+        assert handoff["surface_kind"] == "artifact_lifecycle_physical_thinning_handoff"
+        assert handoff["domain_owner"] == "MedAutoScience"
+        assert handoff["apply_owner"] == "one-person-lab"
+        assert handoff["candidate_count"] >= 1
+        assert handoff["candidate_counts_by_action"]["regenerate_projection_then_remove_stale"] >= 1
+        assert handoff["selected_payload_path"] == "typed_blocker_path"
+        assert handoff["typed_blocker_refs"] == plan["artifact_lifecycle_apply_blocker_refs"]
+        assert handoff["authority_boundary"] == {
+            "mas_authorizes_candidate_identity": True,
+            "mas_executes_physical_cleanup": False,
+            "opl_executes_generic_lifecycle_apply": True,
+            "requires_restore_or_regeneration_receipt_before_cleanup": True,
+            "can_authorize_artifact_mutation": False,
+            "can_claim_domain_ready": False,
+            "can_claim_production_ready": False,
+        }
 
 
 def test_lifecycle_operations_report_bounds_artifact_receipt_ref_families(
@@ -165,6 +214,12 @@ def test_lifecycle_operations_report_bounds_artifact_receipt_ref_families(
         assert plan["restore_proof_refs"] == []
         assert plan["restore_proof_ref_count"] == 0
         assert plan["restore_proof_refs_truncated"] is False
+        assert len(plan["artifact_lifecycle_apply_blocker_refs"]) == retention_module.RECEIPT_REF_SAMPLE_LIMIT
+        assert plan["artifact_lifecycle_apply_blocker_ref_count"] >= 60
+        assert plan["artifact_lifecycle_apply_blocker_refs_truncated"] is True
+        assert plan["artifact_lifecycle_apply_blocker_reason_counts"][
+            "canonical_regeneration_required_before_projection_removal"
+        ] >= 60
         assert len(plan["retention_receipt_refs"]) == retention_module.RECEIPT_REF_SAMPLE_LIMIT
         assert plan["retention_receipt_ref_count"] == plan["summary"]["action_counts"]["keep_online"]
         assert plan["retention_receipt_refs_truncated"] is True

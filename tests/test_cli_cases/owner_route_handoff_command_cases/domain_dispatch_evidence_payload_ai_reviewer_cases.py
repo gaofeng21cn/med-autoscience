@@ -388,6 +388,157 @@ def test_domain_handler_dispatch_evidence_payload_projects_consumed_ai_reviewer_
     assert payload["domain_dispatch_evidence_record_payload"]["publication_ready_claimed"] is False
 
 
+def test_domain_handler_dispatch_evidence_payload_projects_writer_superseded_by_ai_reviewer_reeval_route(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    stage_attempt_source = "mas_default_executor_source_d8a82701a84a075d9e7fb6c7"
+    domain_source = "b3283ba21ff688bb"
+    dispatch_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+        "default_executor_dispatches/immutable/run_quality_repair_batch/"
+        "eca6535ba2d82134e41dadb7.json"
+    )
+    publication_eval_ref = (
+        "/workspace/studies/002-dm-china-us-mortality-attribution/artifacts/"
+        "publication_eval/ai_reviewer_responses/20260529T223018Z_publication_eval_record.json"
+    )
+    workorder_path = tmp_path / "opl-workorder.json"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    _write_json(
+        workorder_path,
+        {
+            "action_id": "domain_dispatch:medautoscience:sat_151c53c938213e6418722c81:record",
+            "target_identity": {
+                "domain_id": "medautoscience",
+                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_attempt_id": "sat_151c53c938213e6418722c81",
+                "task_kind": "domain_owner/default-executor-dispatch",
+                "study_id": study_id,
+                "source_fingerprint": stage_attempt_source,
+                "domain_source_fingerprint": domain_source,
+                "profile_name": "dm-cvd-mortality-risk",
+            },
+            "dispatch_identity_fields": {
+                "action_type": "run_quality_repair_batch",
+                "dispatch_authority": "consumer_default_executor_dispatch",
+                "dispatch_ref": dispatch_ref,
+            },
+        },
+    )
+
+    def fake_scan_domain_routes(*, profile, study_ids, apply_safe_actions, developer_supervisor_mode):
+        assert study_ids == (study_id,)
+        return {
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "blocked_reason": None,
+                    "active_stage_attempt_id": None,
+                    "running_provider_attempt": False,
+                    "domain_transition": {
+                        "decision_type": "ai_reviewer_re_eval",
+                        "route_target": "review",
+                        "owner": "ai_reviewer",
+                        "controller_action": "return_to_ai_reviewer_workflow",
+                        "source_refs": [
+                            publication_eval_ref,
+                            "artifacts/controller_decisions/latest.json",
+                            "artifacts/controller/repair_execution_evidence/latest.json",
+                        ],
+                        "completion_receipt_consumption": {
+                            "status": "consumed",
+                            "receipt_kind": "ai_reviewer_publication_eval",
+                            "receipt_ref": publication_eval_ref,
+                            "reviewer_trace_ref": (
+                                f"{publication_eval_ref}#reviewer_operating_system"
+                            ),
+                            "next_action": "honor_ai_reviewer_publication_eval_authority",
+                        },
+                    },
+                    "owner_route": {
+                        "current_owner": "mas_controller",
+                        "next_owner": None,
+                        "owner_reason": None,
+                        "allowed_actions": [],
+                        "blocked_actions": [
+                            "return_to_ai_reviewer_workflow",
+                            "run_quality_repair_batch",
+                        ],
+                        "source_refs": {
+                            "work_unit_id": (
+                                "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                            ),
+                            "work_unit_fingerprint": "truth-snapshot::37ea1c27411039ef74b7e24e",
+                            "truth_epoch": "truth-event-000035-d649b1535a6bc2aa",
+                            "runtime_health_epoch": "runtime-health-event-006449-bcaab031d38f102c",
+                        },
+                        "owner_reason_contract": {
+                            "registered": False,
+                            "reason": None,
+                            "owner": None,
+                            "allowed_actions": [],
+                        },
+                        "currentness_contract": {
+                            "status": "currentness_basis_required",
+                            "missing_required_fields": [],
+                        },
+                        "owner_route_attempt_protocol": {
+                            "version": "mas-owner-route-attempt-protocol.v1",
+                            "dispatchable": False,
+                        },
+                    },
+                }
+            ]
+        }
+
+    monkeypatch.setattr(cli.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+
+    exit_code = cli.main(
+        [
+            "domain-handler",
+            "dispatch-evidence-payload",
+            "--profile",
+            str(profile_path),
+            "--workorder",
+            str(workorder_path),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "typed_blocker_payload_ready"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="dispatch_superseded_by_current_owner_route",
+        detail_reason="stale_run_quality_repair_dispatch_superseded_by_consumed_ai_reviewer_production_handoff",
+    )
+    assert payload["owner_route_next_owner"] is None
+    assert payload["owner_route_owner_reason"] is None
+    record_payload = payload["opl_runtime_action_execute_payload"]
+    assert record_payload["source_fingerprint"] == stage_attempt_source
+    assert record_payload["domain_source_fingerprint"] == domain_source
+    assert record_payload["typed_blocker_refs"]
+    assert dispatch_ref in record_payload["evidence_refs"]
+    assert publication_eval_ref in record_payload["evidence_refs"]
+    assert f"{publication_eval_ref}#reviewer_operating_system" in record_payload["evidence_refs"]
+    assert "owner-route-reconcile:completion_receipt_consumption=consumed" in record_payload[
+        "evidence_refs"
+    ]
+    assert "owner-route-reconcile:route_target=review" in record_payload["evidence_refs"]
+    assert "owner-route-reconcile:controller_action=return_to_ai_reviewer_workflow" in record_payload[
+        "evidence_refs"
+    ]
+    assert payload["domain_dispatch_evidence_record_payload"]["domain_ready_claimed"] is False
+    assert payload["domain_dispatch_evidence_record_payload"]["publication_ready_claimed"] is False
+
+
 def test_domain_handler_dispatch_evidence_payload_projects_reviewer_currentness_supervisor_only_route(
     monkeypatch,
     tmp_path: Path,

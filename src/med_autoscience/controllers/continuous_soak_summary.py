@@ -35,6 +35,7 @@ def build_continuous_soak_summary(
     governance = _mapping(lifecycle_report.get("storage_governance_policy"))
     mutation_policy = _mapping(lifecycle_report.get("mutation_policy"))
     cleanup_plan = _mapping(lifecycle_report.get("cleanup_plan"))
+    retention_plan = _mapping(lifecycle_report.get("retention_plan"))
     backfill_blockers = _backfill_blockers(migration_report)
     return {
         "surface": SURFACE,
@@ -44,19 +45,72 @@ def build_continuous_soak_summary(
         "mutating_actions": _int(_mapping(migration_report.get("action_counts")).get("mutating")),
         "unclassified_authority_surface": _int(migration_report.get("unclassified_authority_surface")),
         "writes_workspace": bool(mutation_policy.get("writes_workspace")) or bool(cleanup_plan.get("writes_workspace")),
+        **_receipt_ref_family_summary(retention_plan),
         "top_growth_buckets": _sequence(governance.get("top_growth_buckets")),
         "backfill_blockers": backfill_blockers,
         "next_safe_action": _mapping(governance.get("next_safe_action")),
+        "artifact_authority_boundary": {
+            "summary_only": True,
+            "body_free": True,
+            "read_only": True,
+            "writes_workspace": False,
+            "physical_cleanup_performed": False,
+            "can_authorize_artifact_mutation": False,
+            "can_authorize_cleanup_apply": False,
+            "can_claim_domain_ready": False,
+            "can_claim_production_ready": False,
+        },
         "source_surfaces": {
             "migration_audit": migration_report.get("surface"),
             "lifecycle_report": lifecycle_report.get("surface"),
             "storage_governance_policy": governance.get("surface_kind"),
+            "artifact_retention_plan": retention_plan.get("surface_kind"),
         },
         "read_only_contract": {
             "dry_run": True,
             "physical_cleanup_owned_by": "one-person-lab",
             "writes_workspace": False,
         },
+    }
+
+
+def _receipt_ref_family_summary(retention_plan: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "artifact_lifecycle_receipt_refs": _sequence(retention_plan.get("artifact_lifecycle_receipt_refs")),
+        "artifact_lifecycle_receipt_ref_count": _int(retention_plan.get("artifact_lifecycle_receipt_ref_count")),
+        "artifact_lifecycle_receipt_refs_truncated": bool(
+            retention_plan.get("artifact_lifecycle_receipt_refs_truncated")
+        ),
+        "artifact_authority_receipt_refs": _sequence(retention_plan.get("artifact_authority_receipt_refs")),
+        "artifact_authority_receipt_ref_count": _int(retention_plan.get("artifact_authority_receipt_ref_count")),
+        "artifact_authority_receipt_refs_truncated": bool(
+            retention_plan.get("artifact_authority_receipt_refs_truncated")
+        ),
+        "cleanup_receipt_refs": _sequence(retention_plan.get("cleanup_receipt_refs")),
+        "cleanup_receipt_ref_count": _int(retention_plan.get("cleanup_receipt_ref_count")),
+        "cleanup_receipt_refs_truncated": bool(retention_plan.get("cleanup_receipt_refs_truncated")),
+        "restore_proof_refs": _sequence(retention_plan.get("restore_proof_refs")),
+        "restore_proof_ref_count": _int(retention_plan.get("restore_proof_ref_count")),
+        "restore_proof_refs_truncated": bool(retention_plan.get("restore_proof_refs_truncated")),
+        "retention_receipt_refs": _sequence(retention_plan.get("retention_receipt_refs")),
+        "retention_receipt_ref_count": _int(retention_plan.get("retention_receipt_ref_count")),
+        "retention_receipt_refs_truncated": bool(retention_plan.get("retention_receipt_refs_truncated")),
+        "artifact_lifecycle_apply_blocker_refs": _sequence(
+            retention_plan.get("artifact_lifecycle_apply_blocker_refs")
+        ),
+        "artifact_lifecycle_apply_blocker_ref_count": _int(
+            retention_plan.get("artifact_lifecycle_apply_blocker_ref_count")
+        ),
+        "artifact_lifecycle_apply_blocker_refs_truncated": bool(
+            retention_plan.get("artifact_lifecycle_apply_blocker_refs_truncated")
+        ),
+        "artifact_lifecycle_apply_blocker_reason_counts": dict(
+            _mapping(retention_plan.get("artifact_lifecycle_apply_blocker_reason_counts"))
+        ),
+        "artifact_lifecycle_apply_blocker_authority_boundary": dict(
+            _mapping(retention_plan.get("artifact_lifecycle_apply_blocker_authority_boundary"))
+        ),
+        "physical_thinning_handoff": dict(_mapping(retention_plan.get("physical_thinning_handoff"))),
     }
 
 

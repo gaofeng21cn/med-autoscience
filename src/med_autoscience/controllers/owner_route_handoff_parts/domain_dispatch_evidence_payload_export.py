@@ -78,10 +78,6 @@ def build_dispatch_evidence_payload_export(
             workorder=workorder,
             blocked_reason="owner_route_scan_study_missing",
         )
-    payload_detail_reason = payload_reason_for_superseded_dispatch(
-        action_type=action_type,
-        study_scan=study_scan,
-    )
     closeout_evidence = stage_attempt_closeout_typed_blocker_evidence(
         profile=profile,
         study_id=study_id,
@@ -96,10 +92,16 @@ def build_dispatch_evidence_payload_export(
         dispatch_identity=dispatch_identity,
         action_type=action_type,
     )
-    if payload_detail_reason is None and owner_receipt_closeout is not None:
+    payload_detail_reason = None
+    if owner_receipt_closeout is not None:
         payload_detail_reason = PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
     if payload_detail_reason is None and closeout_evidence is not None:
         payload_detail_reason = PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER
+    if payload_detail_reason is None:
+        payload_detail_reason = payload_reason_for_superseded_dispatch(
+            action_type=action_type,
+            study_scan=study_scan,
+        )
     if payload_detail_reason is None:
         return _blocked(
             profile=profile,
