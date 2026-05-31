@@ -268,11 +268,13 @@ def _projection_error_macro_state(*, study_id: str, status: Mapping[str, Any]) -
 
 
 def _resolved_active_run_id(*, status: Mapping[str, Any], macro_state: Mapping[str, Any]) -> str | None:
+    nested_progress = _dict(status.get("progress_projection"))
     if _text(macro_state.get("writer_state")) == "parked":
         return _text(_dict(macro_state.get("details")).get("active_run_id"))
     return (
         _text(_dict(status.get("supervision")).get("active_run_id"))
         or _text(_dict(status.get("progress_first_monitoring_summary")).get("active_run_id"))
+        or _text(_dict(nested_progress.get("progress_first_monitoring_summary")).get("active_run_id"))
         or _text(_dict(status.get("opl_current_control_state_handoff")).get("active_run_id"))
         or _text(status.get("active_run_id"))
         or _text(_dict(status.get("study_truth_snapshot")).get("active_run_id"))
@@ -287,7 +289,10 @@ def _progress_first_monitoring_summary(
     transition: Mapping[str, Any],
     active_run_id: str | None,
 ) -> dict[str, Any]:
-    existing = _dict(status.get("progress_first_monitoring_summary"))
+    projection = _dict(status.get("progress_projection"))
+    existing = _dict(status.get("progress_first_monitoring_summary")) or _dict(
+        projection.get("progress_first_monitoring_summary")
+    )
     next_work_unit = _dict(existing.get("next_work_unit")) or _dict(transition.get("next_work_unit"))
     typed_blocker = _dict(existing.get("typed_blocker")) or _dict(transition.get("typed_blocker"))
     current_blockers = _string_list(existing.get("current_blockers"))
