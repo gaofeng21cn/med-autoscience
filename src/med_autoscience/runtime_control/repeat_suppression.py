@@ -85,7 +85,6 @@ def scan_repeat_suppression(
         or hard_methodology_harmonization_route(owner_route)
         or source_provenance_recovery_route(owner_route)
         or provenance_limited_harmonization_route(owner_route)
-        or progress_first_owner_action_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)
@@ -189,7 +188,6 @@ def dispatch_repeat_suppression(
         or hard_methodology_harmonization_route(owner_route)
         or source_provenance_recovery_route(owner_route)
         or provenance_limited_harmonization_route(owner_route)
-        or progress_first_owner_action_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)

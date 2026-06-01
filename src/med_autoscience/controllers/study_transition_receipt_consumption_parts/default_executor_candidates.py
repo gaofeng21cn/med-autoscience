@@ -136,7 +136,11 @@ def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path
         }
     if any(_text(basis.get(key)) for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason")):
         action_type = _text(closeout.get("action_type"))
-        owner = _text(closeout.get("owner")) or _text(_mapping(closeout.get("domain_execution")).get("domain_owner"))
+        owner = (
+            _text(closeout.get("owner"))
+            or _text(_mapping(closeout.get("domain_execution")).get("domain_owner"))
+            or _stage_closeout_default_owner(action_type)
+        )
         return {
             "truth_epoch": _text(basis.get("truth_epoch")),
             "route_epoch": _text(basis.get("truth_epoch")),
@@ -164,6 +168,18 @@ def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path
     if stage_packet_route:
         return stage_packet_route, "stage_packet_ref_recovered"
     return {}, "missing"
+
+
+def _stage_closeout_default_owner(action_type: str | None) -> str | None:
+    if action_type == "run_quality_repair_batch":
+        return "write"
+    if action_type == "return_to_ai_reviewer_workflow":
+        return "ai_reviewer"
+    if action_type == "publication_gate_specificity_required":
+        return "publication_gate"
+    if action_type == "current_package_freshness_required":
+        return "artifact_os"
+    return None
 
 
 def _stage_closeout_stage_packet_owner_route(*, closeout: Mapping[str, Any], study_root: Path) -> dict[str, Any]:

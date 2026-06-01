@@ -27,6 +27,7 @@ MAS 当前真正的 runtime-guard Stage 是 6 个，定义源是 `contracts/stag
 - 禁止把 `no_op_with_currentness_proof`、`record_only_reviewer_loop`、`provider_completed_without_typed_closeout`、`platform_repair_counted_as_deliverable_progress` 当成 Stage 推进完成。
 - `progress_delta_policy` 必须输出 `progress_delta_classification`、`deliverable_progress_delta`、`platform_repair_delta`、`next_forced_delta`。平台修复不计为论文/交付物推进。
 - no-op currentness budget：最多 1 次连续 no-op；第 2 次必须升级为带 `next_forced_delta` 的 typed blocker；第 3 次进入 human gate 或 stop-loss candidate。
+- same work-unit receipt / reconcile budget：同一 `study_id`、owner、action、`work_unit_fingerprint` 的 non-consumable closeout 最多触发 1 次 automatic redrive；之后必须收敛为 `progress_first_owner_redrive_budget_exhausted` typed blocker、机制修复、human gate 或 stop-loss candidate，不能继续 mint 新 default-executor task / dedupe key。
 - `user_stage_log_contract` 必须给出 `stage_name`、`problem_summary`、`stage_goal`、`stage_work_done`、`changed_stage_surfaces`、`outcome`、`remaining_blockers`、`evidence_refs`，并显式记录或显式缺失 `duration`、`token_usage`、`cost`。
 - human gate 必须带 `last_attempted_deliverable_delta`、`why_ai_cannot_progress_one_more_delta`、`next_forced_delta`、`human_decision_owner`。缺这些字段时应回到 AI executor 产出最小 delta 或 typed blocker。
 - typed blocker 必须带 `blocker_family`、`study_id_or_domain_identity`、`work_unit_id`、`eval_id_or_review_ref`、`source_fingerprint`、`repeat_count`、`first_seen`、`last_seen`、`last_deliverable_delta`、`next_forced_delta`、`escalation_owner`、`terminal`。
@@ -72,6 +73,7 @@ Route 是 MAS domain transition obligation，不拥有 OPL runtime attempt lifec
 | `study_state_matrix.progress_first_tick_accounting` | 已按 workspace tick 汇总 ready/running/blocker/human gate/unconsumed/overdue，并输出 `priority_rank`、`throughput_bottleneck`、`throughput_bottleneck_counts`、closeout semantic 与 telemetry 缺口 | 可以把多 study 从状态解释推进到可排序的 pickup / running / blocker / closeout 清障入口 |
 | route obligations descriptor | 已由 `stage_route_contract.route_obligations_descriptor` 投影 10 个 route 的 knowledge/memory obligations，并嵌入 product-entry descriptor | OPL/operator 可在 Stage handoff 前读取缺哪些 knowledge input 或 memory closeout，减少后续 Stage 重搜、重读、重评审 |
 | closeout-first admission | `progress_first_closeout` 会在存在 immutable dispatch 和 running attempt 且未消费 closeout 时阻止新 default-executor task | 防止同一 work unit 被重复派发，要求先消费 owner receipt、stage closeout 或 stable typed blocker |
+| same work-unit redrive budget | `default_executor_execution_receipt_consumption` 会把第二次同义 non-consumable default-executor closeout 消费为 `progress_first_owner_redrive_budget_exhausted` typed blocker；`dispatch_repeat_suppression` 不再对 Progress-first owner action 特殊放行 | 防止流程把时间耗在重复 receipt / read-model reconcile / new dedupe key 上，失败后直接暴露机制修复、human gate 或 stop-loss 入口 |
 | typed blocker repeat budget | `progress_first_blocker_budget` 会补 `repeat_count`、delta classification、next escalation | 同一 blocker 反复出现时能进入机制修复、human gate 或 stop-loss，不应无限重试 |
 | late-stage sprint contract | `stage_route_contract.yaml` 固定先产出 reviewable paper/package delta，再 replay quality gate | 防止 review/currentness loop 抢在实际稿件/包 delta 前无限循环 |
 

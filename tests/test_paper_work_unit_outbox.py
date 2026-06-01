@@ -222,3 +222,37 @@ def test_repeat_suppression_does_not_block_owner_handoff_dispatch_or_execution()
     assert dispatch_guard["work_unit_fingerprint"] == "publication-blockers::same-source"
     assert execution_guard["repeat_suppressed"] is False
     assert execution_guard["work_unit_fingerprint"] == "publication-blockers::same-source"
+
+
+def test_dispatch_repeat_suppression_blocks_repeated_progress_first_owner_action_without_delta() -> None:
+    repeat_suppression = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    route = {
+        "next_owner": "write",
+        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "work_unit_fingerprint": "publication-blockers::same-source",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "source_refs": {"work_unit_id": "same-source-work-unit"},
+    }
+    dispatch = {
+        "dispatch_status": "ready",
+        "owner_route": route,
+        "prompt_contract": {
+            "do_not_repeat": True,
+            "repeat_suppression_key": "publication-blockers::same-source",
+            "owner_route": route,
+        },
+    }
+
+    guard = repeat_suppression.dispatch_repeat_suppression(
+        dispatch=dispatch,
+        current_study={"study_id": "001-risk", "meaningful_artifact_delta": False},
+        existing_dispatch={
+            **dispatch,
+            "dispatch_status": "repeat_suppressed",
+            "repeat_suppression_key": "publication-blockers::same-source",
+        },
+    )
+
+    assert guard["repeat_suppressed"] is True
+    assert guard["why_not_applied"] == "repeat_suppressed"
+    assert guard["suppression_source"] == "existing_dispatch_same_work_unit_without_artifact_delta"

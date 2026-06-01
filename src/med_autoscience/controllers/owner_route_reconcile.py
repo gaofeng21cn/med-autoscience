@@ -651,9 +651,12 @@ def _study_projection(
     if default_executor_execution_receipt_consumption:
         receipt_blocked_reason = _text(default_executor_execution_receipt_consumption.get("blocked_reason"))
         if _text(default_executor_execution_receipt_consumption.get("execution_status")) == "blocked" and receipt_blocked_reason:
+            receipt_typed_blocker = _mapping(default_executor_execution_receipt_consumption.get("typed_blocker"))
             why_not_applied = receipt_blocked_reason
             blocked_reason = receipt_blocked_reason
-            next_owner = block_state_part.next_owner_for_blocked_reason(receipt_blocked_reason)
+            next_owner = _text(receipt_typed_blocker.get("next_owner")) or block_state_part.next_owner_for_blocked_reason(
+                receipt_blocked_reason
+            )
         else:
             why_not_applied = None
             blocked_reason = None

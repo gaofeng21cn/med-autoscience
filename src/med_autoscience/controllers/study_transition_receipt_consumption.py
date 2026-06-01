@@ -9,7 +9,10 @@ from med_autoscience.controllers.body_free_evidence_packets import build_body_fr
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
     default_executor_execution_candidates,
 )
-from med_autoscience.controllers.study_transition_receipt_consumption_parts import missing_refs_typed_closeout
+from med_autoscience.controllers.study_transition_receipt_consumption_parts import (
+    missing_refs_typed_closeout,
+    nonconsumable_redrive_budget,
+)
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_followthrough import (
     default_executor_execution_followthrough_receipt_consumption,
 )
@@ -41,6 +44,8 @@ _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
         "applied",
     }
 )
+
+
 def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
     supersession = _mapping(status.get("blocked_turn_closeout_supersession"))
     if not supersession:
@@ -66,6 +71,7 @@ def default_executor_execution_receipt_consumption(
     current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
     if not current_action_types:
         return {}
+    nonconsumable_matches: list[dict[str, Any]] = []
     for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
         action_type = _text(execution.get("action_type"))
         if action_type not in current_action_types:
@@ -90,7 +96,23 @@ def default_executor_execution_receipt_consumption(
             continue
         if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
-        if _default_executor_dispatch_zero_execution_blocker(owner_result):
+        dispatch_zero_execution_blocker = _default_executor_dispatch_zero_execution_blocker(owner_result)
+        if dispatch_zero_execution_blocker:
+            nonconsumable_matches.append(
+                nonconsumable_redrive_budget.match(
+                    execution=execution,
+                    receipt_ref=receipt_ref,
+                    action_type=action_type,
+                    owner_result=owner_result,
+                    repair_evidence=repair_evidence,
+                    reason=nonconsumable_redrive_budget.reason(
+                        action_type=action_type,
+                        owner_result=owner_result,
+                        repair_evidence=repair_evidence,
+                        dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
+                    ),
+                )
+            )
             continue
         if missing_refs_typed_closeout_packet:
             return missing_refs_typed_closeout.consumption(
@@ -104,6 +126,21 @@ def default_executor_execution_receipt_consumption(
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         ):
+            nonconsumable_matches.append(
+                nonconsumable_redrive_budget.match(
+                    execution=execution,
+                    receipt_ref=receipt_ref,
+                    action_type=action_type,
+                    owner_result=owner_result,
+                    repair_evidence=repair_evidence,
+                    reason=nonconsumable_redrive_budget.reason(
+                        action_type=action_type,
+                        owner_result=owner_result,
+                        repair_evidence=repair_evidence,
+                        dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
+                    ),
+                )
+            )
             continue
         blocked_reason = _default_executor_consumed_blocked_reason(
             action_type=action_type,
@@ -129,6 +166,13 @@ def default_executor_execution_receipt_consumption(
             "current_package_write_authorized": False,
             "next_action": "do_not_redrive_consumed_owner_route",
         }
+    if nonconsumable_redrive_budget.budget_exhausted(nonconsumable_matches):
+        latest = nonconsumable_matches[0]
+        return nonconsumable_redrive_budget.consumption(
+            latest=latest,
+            owner_route=owner_route,
+            repeat_count=len(nonconsumable_matches),
+        )
     return {}
 
 
@@ -166,6 +210,7 @@ def default_executor_execution_nonconsumable_closeout(
         )
         owner_result = _mapping(execution.get("owner_result"))
         repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
+        dispatch_zero_execution_blocker = _default_executor_dispatch_zero_execution_blocker(owner_result)
         if missing_refs_typed_closeout_packet:
             continue
         if not recovered_stage_packet_currentness and _default_executor_owner_result_consumable(
@@ -183,10 +228,11 @@ def default_executor_execution_nonconsumable_closeout(
             "execution_status": _text(execution.get("execution_status")),
             "owner_result_status": _text(owner_result.get("status")),
             "repair_execution_evidence_status": _text(repair_evidence.get("status")),
-            "reason": _default_executor_nonconsumable_reason(
+            "reason": nonconsumable_redrive_budget.reason(
                 action_type=action_type,
                 owner_result=owner_result,
                 repair_evidence=repair_evidence,
+                dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
             ),
             "changed_artifact_ref_count": len(_mapping_list(repair_evidence.get("changed_artifact_refs"))),
             "quality_authorized": False,
@@ -863,34 +909,6 @@ def _quality_repair_batch_owner_result_satisfies_route_output(
     return bool(_story_surface_changed_refs(repair_evidence.get("changed_artifact_refs")))
 
 
-def _default_executor_nonconsumable_reason(
-    *,
-    action_type: str | None,
-    owner_result: Mapping[str, Any],
-    repair_evidence: Mapping[str, Any],
-) -> str:
-    if action_type == "run_quality_repair_batch":
-        if _default_executor_dispatch_zero_execution_blocker(owner_result):
-            return "domain_owner_action_dispatch_execution_count_zero"
-        hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
-        if (
-            hygiene.get("story_surface_delta_required") is True
-            and hygiene.get("story_surface_delta_present") is not True
-        ):
-            return "manuscript_story_surface_delta_missing"
-        if blocked_reason := _text(owner_result.get("blocked_reason")):
-            return blocked_reason
-        if _text(repair_evidence.get("status")) == "progress_delta_candidate":
-            return "required_story_surface_delta_or_typed_blocker_missing"
-    return (
-        _text(owner_result.get("blocked_reason"))
-        or _text(repair_evidence.get("blocked_reason"))
-        or _text(owner_result.get("status"))
-        or _text(repair_evidence.get("status"))
-        or "default_executor_closeout_not_consumable"
-    )
-
-
 def _default_executor_consumed_blocked_reason(
     *,
     action_type: str | None,
@@ -916,19 +934,9 @@ def _story_surface_changed_refs(value: object) -> list[Mapping[str, Any]]:
     return [
         ref
         for ref in _mapping_list(value)
-        if _is_story_surface_path(_text(ref.get("path")))
+        if (parts := Path(_text(ref.get("path"))).expanduser().parts)
+        and (parts[-2:] == ("paper", "draft.md") or parts[-3:] == ("paper", "build", "review_manuscript.md"))
     ]
-
-
-def _is_story_surface_path(path_text: str) -> bool:
-    path = Path(path_text).expanduser()
-    parts = path.parts
-    return (
-        len(parts) >= 2
-        and parts[-2:] == ("paper", "draft.md")
-        or len(parts) >= 3
-        and parts[-3:] == ("paper", "build", "review_manuscript.md")
-    )
 
 
 def _is_publication_eval_latest_path(path_text: str) -> bool:
