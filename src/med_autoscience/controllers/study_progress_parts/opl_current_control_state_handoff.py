@@ -74,6 +74,23 @@ LIVE_ATTEMPT_HANDOFF_KEYS = (
     "active_workflow_id",
     "running_provider_attempt",
 )
+LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
+    {
+        "live_worker_requires_worker_running",
+        "managed_runtime_audit_unhealthy",
+        "opl_current_control_state.handoff_required",
+        "opl_stage_attempt_admission_required",
+        "quest_waiting_opl_runtime_owner_route",
+        "runtime_recovery_not_authorized",
+        "runtime_recovery_retry_budget_exhausted",
+    }
+)
+LIVE_ATTEMPT_SUPERSEDED_NEXT_OWNERS = frozenset(
+    {
+        "external_supervisor",
+        "one-person-lab",
+    }
+)
 OWNER_ROUTE_PROJECTION_KEYS = (
     "next_owner",
     "owner_reason",
@@ -828,6 +845,17 @@ def merge_live_attempt_observability_into_handoff(
     if active_run_id and live_active_run_id and active_run_id != live_active_run_id:
         return handoff
     merged = dict(handoff)
+    live_attempt_running = live_attempt_handoff.get("running_provider_attempt") is True
+    if live_attempt_running and _live_attempt_supersedes_handoff_blocker(merged):
+        merged["external_supervisor_required"] = False
+        merged["blocked_reason"] = None
+        merged["why_not_applied"] = [
+            reason
+            for reason in _string_list(merged.get("why_not_applied"))
+            if reason not in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS
+        ]
+        if _non_empty_text(merged.get("next_owner")) in LIVE_ATTEMPT_SUPERSEDED_NEXT_OWNERS:
+            merged["next_owner"] = _non_empty_text(live_attempt_handoff.get("next_owner"))
     for key in LIVE_ATTEMPT_HANDOFF_KEYS:
         if key not in merged or merged.get(key) in {None, "", False}:
             if key in live_attempt_handoff:
@@ -836,11 +864,25 @@ def merge_live_attempt_observability_into_handoff(
         stage_progress_log = _stage_progress_log_mapping(live_attempt_handoff.get("stage_progress_log"))
         if stage_progress_log:
             merged["stage_progress_log"] = stage_progress_log
-    if not _copy_mapping_keys(merged.get("runtime_health"), ("health_status", "runtime_liveness_status")):
-        runtime_health = _copy_mapping_keys(
-            live_attempt_handoff.get("runtime_health"),
-            ("health_status", "runtime_liveness_status", "summary", "blocked_reason"),
-        )
-        if runtime_health:
-            merged["runtime_health"] = runtime_health
+    live_runtime_health = _copy_mapping_keys(
+        live_attempt_handoff.get("runtime_health"),
+        ("health_status", "runtime_liveness_status", "summary", "blocked_reason"),
+    )
+    if live_runtime_health and (
+        live_attempt_running
+        or not _copy_mapping_keys(merged.get("runtime_health"), ("health_status", "runtime_liveness_status"))
+    ):
+        merged["runtime_health"] = live_runtime_health
     return merged
+
+
+def _live_attempt_supersedes_handoff_blocker(handoff: Mapping[str, Any]) -> bool:
+    blocked_reason = _non_empty_text(handoff.get("blocked_reason"))
+    if blocked_reason in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS:
+        return True
+    why_not_applied = set(_string_list(handoff.get("why_not_applied")))
+    if why_not_applied.intersection(LIVE_ATTEMPT_SUPERSEDED_BLOCKERS):
+        return True
+    runtime_health = _mapping_copy(handoff.get("runtime_health"))
+    runtime_blockers = set(_string_list(runtime_health.get("blocking_reasons")))
+    return bool(runtime_blockers.intersection(LIVE_ATTEMPT_SUPERSEDED_BLOCKERS))

@@ -367,6 +367,12 @@ def _strict_live(runtime_payload: Mapping[str, Any]) -> tuple[bool, str, bool | 
         worker_running = _bool(runtime_audit.get("worker_running"))
     if worker_running is None:
         worker_running = _bool(_mapping(liveness_audit.get("runtime_audit")).get("worker_running"))
+    if (
+        worker_running is None
+        and _text(liveness_audit.get("source")) == "opl_current_control_state_provider_attempt"
+        and liveness_audit.get("running_provider_attempt") is True
+    ):
+        worker_running = True
     active_run_id = _active_run_from_payload(runtime_payload)
     return runtime_liveness_status == "live" and worker_running is True and active_run_id is not None, runtime_liveness_status, worker_running, active_run_id
 

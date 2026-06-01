@@ -196,6 +196,12 @@ def resolve_opl_runtime_refs(
     worker_running = _bool(status_payload.get("worker_running"))
     if worker_running is None:
         worker_running = _bool(runtime_audit.get("worker_running"))
+    if (
+        worker_running is None
+        and _text(runtime_liveness_audit.get("source")) == "opl_current_control_state_provider_attempt"
+        and runtime_liveness_audit.get("running_provider_attempt") is True
+    ):
+        worker_running = True
     worker_pending = _bool(runtime_audit.get("worker_pending"))
     stop_requested = _bool(runtime_audit.get("stop_requested"))
     quest_status = _text(status_payload.get("quest_status")) or _text(continuation_state.get("quest_status"))

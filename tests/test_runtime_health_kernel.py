@@ -47,6 +47,33 @@ def test_runtime_health_strict_live_requires_worker_and_active_run_id(tmp_path: 
     assert "live_worker_requires_active_run_id" in snapshot["blocking_reasons"]
 
 
+def test_runtime_health_treats_opl_provider_attempt_as_live_worker_signal(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "001-risk"
+
+    snapshot = module.derive_runtime_health_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="001-risk",
+        quest_id="quest-001",
+        recorded_at="2026-06-01T08:30:00+00:00",
+        status_payload={
+            "quest_status": "active",
+            "runtime_liveness_audit": {
+                "status": "live",
+                "source": "opl_current_control_state_provider_attempt",
+                "active_run_id": "opl-stage-attempt://sat-live",
+                "running_provider_attempt": True,
+            },
+        },
+    )
+
+    assert snapshot["worker_liveness_state"]["state"] == "live"
+    assert snapshot["worker_liveness_state"]["worker_running"] is True
+    assert snapshot["active_run_id"] == "opl-stage-attempt://sat-live"
+    assert snapshot["blocking_reasons"] == []
+    assert snapshot["canonical_runtime_action"] == "continue_supervising_runtime"
+
+
 def test_runtime_health_missing_live_session_recovers_with_stale_run_as_last_known(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "003-dm-cvd"
