@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-01：same-tick owner request 必须能授权 gate-clearing dispatch
+
+- 决策：`run_gate_clearing_batch` 与其他 default executor action 一样，必须拥有 canonical request surface：`artifacts/supervision/requests/gate_clearing_batch/latest.json`。`domain-owner-action-dispatch` 在显式 action-type 或默认 tick 下，都必须允许通过该 owner request 选择同 tick persisted dispatch，即便 `consumer/latest.json` 为空或 `opl_current_control_state` scan 尚未投影到新的 gate-clearing route。
+- 决策：带 `domain_action_request_materializer_publication_owner_bridge` 的 dispatch 仍优先走 strict bridge-currentness；bridge scan-currentness 未匹配时，若同一 canonical owner request 的 owner route 与 dispatch route 精确匹配、action/owner 允许且 Owner-Route Attempt Protocol 可 dispatch，则可按 `owner_route_basis=owner_request` 执行。缺 request、request/dispatch route 不匹配、owner/action 不匹配或 currentness basis 不完整时继续 fail closed 为 stale/bridge currentness failure。
+- 理由：DM003 暴露出 materializer 已正确写出 `run_gate_clearing_batch` persisted dispatch 与 `requests/gate_clearing_batch/latest.json`，但 dispatcher 的 request-path allowlist 漏掉该 action，且 bridge failure 在 execution route 中早于 owner request，导致 `selected_dispatch_count=0`。流程因此继续把时间耗在 receipt / read-model reconcile，而不是同 tick 进入 gate-clearing owner action，违反 Progress-first。
+- 影响：这是 MAS dispatch selector / owner-request currentness 修复，不写 DM002/DM003 study truth、runtime-owned surface、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍必须由 MAS owner action 执行 gate-clearing batch，并由 owner receipt、typed blocker、AI reviewer、publication gate 和 package freshness proof 判定下一步。
+
 ## 2026-06-01：Progress-First writer idempotent closeout 必须作为可消费 owner receipt
 
 - 决策：default-executor receipt consumption 必须扫描 `paper/review/` 下的 domain-stage closeout packet，并在 `run_quality_repair_batch` closeout 明确 `manuscript_surface_hygiene.story_surface_delta_required=true` 且 `story_surface_delta_present=true` 时，把该 idempotent story-surface closeout 视为已消费 writer owner 输出。该 receipt 只证明当前 work unit 已有可接力 story-surface delta，不授权质量、投稿或 package 写入。

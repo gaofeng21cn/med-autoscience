@@ -23,6 +23,7 @@ OWNER_REQUEST_RELATIVE_PATHS = {
         "artifacts/supervision/requests/artifact_display_materialization/latest.json"
     ),
     "return_to_ai_reviewer_workflow": Path("artifacts/supervision/requests/ai_reviewer/latest.json"),
+    "run_gate_clearing_batch": Path("artifacts/supervision/requests/gate_clearing_batch/latest.json"),
     "canonical_paper_inputs_rehydrate_required": Path(
         "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
     ),

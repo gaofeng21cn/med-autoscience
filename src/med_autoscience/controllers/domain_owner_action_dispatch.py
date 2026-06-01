@@ -313,6 +313,14 @@ def _execution_owner_route(
         and _owner_route_block_reason(dispatch=dispatch, current_route=publication_owner_bridge_route) is None
     ):
         return publication_owner_bridge_route, "bridged_publication_owner_materialization"
+    request_route = persisted_dispatches.owner_request_route(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+    )
+    if request_route is not None:
+        return request_route, "owner_request"
     if _dispatch_uses_bridge_authority(dispatch):
         return None, "bridge_currentness_failed"
     scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
@@ -328,14 +336,6 @@ def _execution_owner_route(
         and _owner_route_block_reason(dispatch=dispatch, current_route=live_attempt_route) is None
     ):
         return live_attempt_route, "live_provider_attempt_dispatch"
-    request_route = persisted_dispatches.owner_request_route(
-        profile=profile,
-        study_id=study_id,
-        action_type=action_type,
-        dispatch=dispatch,
-    )
-    if request_route is not None:
-        return request_route, "owner_request"
     return scan_route, scan_route_basis or "scan_latest"
 
 
