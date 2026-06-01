@@ -39,6 +39,7 @@ from med_autoscience.controllers.paper_repair_executor_parts.owner_callable_resu
     owner_result_handoff_ready,
     writer_worker_handoff,
 )
+from med_autoscience.controllers.paper_repair_executor_parts import unsupported_callable
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
@@ -46,23 +47,11 @@ from med_autoscience.runtime_control import repeat_suppression
 
 SURFACE = "paper_repair_executor"
 SCHEMA_VERSION = 1
-SUPPORTED_AUTO_WORK_UNITS = {
-    "analysis_repair",
-    "text_repair",
-    "evidence_ledger_repair",
-    "review_ledger_repair",
-    "claim_downgrade",
-    "route_decision",
-}
-TYPED_BLOCKER_BY_WORK_UNIT = {
-    "display_rebuild": "owner_callable_surface_missing",
-    "package_refresh": "owner_callable_surface_missing",
-}
+SUPPORTED_AUTO_WORK_UNITS = {"analysis_repair", "text_repair", "evidence_ledger_repair", "review_ledger_repair", "claim_downgrade", "route_decision"}
+TYPED_BLOCKER_BY_WORK_UNIT = {"display_rebuild": "owner_callable_surface_missing", "package_refresh": "owner_callable_surface_missing"}
 STRUCTURED_PATCH_BLOCKER = "owner_callable_surface_missing"
-QUALITY_REPAIR_BATCH_CALLABLE = "quality_repair_batch.run_quality_repair_batch"
-AI_REVIEWER_PUBLICATION_EVAL_CALLABLE = (
-    "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-)
+QUALITY_REPAIR_BATCH_CALLABLE = unsupported_callable.QUALITY_REPAIR_BATCH_CALLABLE
+AI_REVIEWER_PUBLICATION_EVAL_CALLABLE = unsupported_callable.AI_REVIEWER_PUBLICATION_EVAL_CALLABLE
 
 
 def dispatch_repair_work_unit(
@@ -117,6 +106,17 @@ def dispatch_repair_work_unit(
             generated_at=generated_at,
             control_plane_route_context=authority_route_context,
             route_context=route_context,
+        )
+    if not unsupported_callable.is_supported(callable_surface):
+        return _blocked_result(
+            generated_at=generated_at,
+            study_id=study_id,
+            quest_id=quest_id,
+            study_root=resolved_study_root,
+            work_unit=work_unit,
+            review_finding=unsupported_callable.review_finding(callable_surface),
+            typed_blocker=unsupported_callable.BLOCKER,
+            retryable=False,
         )
 
     preflight_blocker = _preflight_blocker(work_unit=work_unit, work_unit_type=work_unit_type)
@@ -636,6 +636,7 @@ def _blocked_result(
     work_unit: Mapping[str, Any],
     review_finding: Mapping[str, Any] | None,
     typed_blocker: str,
+    retryable: bool = True,
 ) -> dict[str, Any]:
     evidence = paper_repair_execution_evidence.build_repair_execution_evidence(
         study_id=study_id,
@@ -646,6 +647,7 @@ def _blocked_result(
         source_refs=work_unit.get("source_refs") or [],
         changed_artifact_refs=[],
     )
+    evidence["retryable"] = retryable
     evidence_path = paper_repair_execution_evidence.write_repair_execution_evidence(
         study_root=study_root,
         evidence=evidence,
@@ -664,6 +666,7 @@ def _blocked_result(
         gate_replay_ref=None,
         ai_reviewer_request=None,
     )
+    receipt["retryable"] = retryable
     receipt_path = _write_owner_receipt(study_root=study_root, receipt=receipt)
     return {
         "surface": SURFACE,
@@ -678,6 +681,7 @@ def _blocked_result(
         "owner_receipt_ref": str(receipt_path),
         "repair_execution_evidence": evidence,
         "repair_execution_evidence_ref": str(evidence_path),
+        "retryable": retryable,
         "authority_boundary": _authority_boundary(),
     }
 

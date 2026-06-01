@@ -477,44 +477,62 @@ def test_reviewer_refinement_loop_generates_executable_repair_work_units_for_blo
         ],
     }
 
-    by_key = {(unit["source_comment_id"], unit["work_unit_type"]): unit for unit in units}
-    assert ("quality_dimension:evidence_strength", "analysis_repair") in by_key
-    assert ("quality_dimension:medical_journal_prose_quality", "text_repair") in by_key
-    assert ("publication_gap:claim-strength", "analysis_repair") in by_key
-    assert ("publication_gap:claim-strength", "ai_reviewer_recheck") in by_key
+    by_surface = {unit["callable_surface"]: unit for unit in units}
+    assert set(by_surface) == {
+        "quality_repair_batch.run_quality_repair_batch",
+        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+    }
+    assert set(by_surface["quality_repair_batch.run_quality_repair_batch"]["source_comment_ids"]) == {
+        "quality_dimension:evidence_strength",
+        "publication_gap:claim-strength",
+        "quality_dimension:medical_journal_prose_quality",
+    }
+    assert set(by_surface[
+        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+    ]["source_comment_ids"]) == {
+        "quality_dimension:evidence_strength",
+        "publication_gap:claim-strength",
+        "quality_dimension:medical_journal_prose_quality",
+    }
 
-    analysis_unit = by_key[("publication_gap:claim-strength", "analysis_repair")]
+    analysis_unit = by_surface["quality_repair_batch.run_quality_repair_batch"]
     assert analysis_unit["owner"] == "quality_repair_batch"
     assert analysis_unit["callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
     assert analysis_unit["required_inputs"] == [
         "publication_eval/latest.json",
         payload["runtime_context_refs"]["main_result_ref"],
         str(study_root / "paper" / "review" / "review_ledger.json"),
+        str(study_root / "paper" / "manuscript.md"),
     ]
-    assert analysis_unit["required_outputs"] == [
+    assert set(analysis_unit["required_outputs"]) == {
         "artifacts/results/main_result.json",
         "paper/evidence_ledger.json",
+        "paper/manuscript.md",
+        "paper/review/review_ledger.json",
         "artifacts/controller/quality_repair_batch/latest.json",
-    ]
+    }
     assert analysis_unit["artifact_delta_predicate"] == (
         "analysis_result_or_evidence_ledger_delta_without_package_mutation"
     )
     assert analysis_unit["gate_replay_target"] == "publication_eval/latest.json"
-    assert analysis_unit["unit_id"].endswith("publication_gap_claim-strength::analysis_repair")
+    assert analysis_unit["unit_id"].endswith("quality_repair_batch_run_quality_repair_batch::batch")
     assert analysis_unit["idempotency_key"].startswith("reviewer_refinement_loop:")
     assert analysis_unit["source_fingerprint"].startswith("sha256:")
     assert analysis_unit["source_refs"] == [
         str(study_root / "artifacts" / "publication_eval" / "latest.json"),
         payload["runtime_context_refs"]["main_result_ref"],
         str(study_root / "paper" / "review" / "review_ledger.json"),
+        str(study_root / "paper" / "manuscript.md"),
     ]
     assert analysis_unit["retry_budget"] == {
-        "max_attempts": 2,
-        "remaining_attempts": 2,
-        "retry_policy": "idempotent_owner_replay_only",
+        "max_attempts": 1,
+        "remaining_attempts": 1,
+        "retry_policy": "single_batch_owner_replay_only",
     }
 
-    recheck_unit = by_key[("publication_gap:claim-strength", "ai_reviewer_recheck")]
+    recheck_unit = by_surface[
+        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+    ]
     assert recheck_unit["owner"] == "ai_reviewer"
     assert recheck_unit["callable_surface"] == (
         "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
@@ -522,6 +540,69 @@ def test_reviewer_refinement_loop_generates_executable_repair_work_units_for_blo
     assert recheck_unit["required_outputs"] == ["artifacts/publication_eval/latest.json"]
     assert recheck_unit["artifact_delta_predicate"] == "ai_reviewer_judgement_updated"
     assert recheck_unit["gate_replay_target"] == "controller_decisions/latest.json"
+
+
+def test_reviewer_refinement_loop_batches_multiple_gaps_per_callable_surface(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _blocking_payload(study_root)
+    payload["quality_assessment"]["clinical_significance"] = {
+        "status": "partial",
+        "summary": "Clinical framing needs one restrained limitation sentence.",
+        "evidence_refs": [str(study_root / "paper" / "manuscript.md")],
+        "reviewer_revision_advice": "Add a bounded limitation sentence.",
+    }
+    payload["gaps"].append(
+        {
+            "gap_id": "claim-map-overreach",
+            "gap_type": "claim",
+            "severity": "must_fix",
+            "summary": "Claim map still overstates causal interpretation.",
+            "evidence_refs": [str(study_root / "paper" / "claim_evidence_map.json")],
+        }
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+
+    read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
+
+    units = read_model["repair_work_units"]
+    assert [unit["callable_surface"] for unit in units] == [
+        "quality_repair_batch.run_quality_repair_batch",
+        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+    ]
+    assert [unit["work_unit_type"] for unit in units] == [
+        "quality_repair_batch",
+        "ai_reviewer_recheck",
+    ]
+    quality_unit = units[0]
+    assert quality_unit["owner"] == "quality_repair_batch"
+    assert quality_unit["source_comment_id"] == "batch:quality_repair_batch.run_quality_repair_batch"
+    assert quality_unit["unit_id"].endswith("quality_repair_batch_run_quality_repair_batch::batch")
+    assert len(quality_unit["source_comment_ids"]) == 5
+    assert {
+        item["source_comment_id"]
+        for item in quality_unit["batched_work_units"]
+    } == {
+        "quality_dimension:clinical_significance",
+        "quality_dimension:evidence_strength",
+        "quality_dimension:medical_journal_prose_quality",
+        "publication_gap:claim-strength",
+        "publication_gap:claim-map-overreach",
+    }
+    assert quality_unit["retry_budget"] == {
+        "max_attempts": 1,
+        "remaining_attempts": 1,
+        "retry_policy": "single_batch_owner_replay_only",
+    }
+    assert set(units[1]["source_comment_ids"]) == {
+        "quality_dimension:clinical_significance",
+        "quality_dimension:evidence_strength",
+        "quality_dimension:medical_journal_prose_quality",
+        "publication_gap:claim-strength",
+        "publication_gap:claim-map-overreach",
+    }
 
 
 def test_reviewer_refinement_loop_work_units_do_not_authorize_package_or_quality_override(

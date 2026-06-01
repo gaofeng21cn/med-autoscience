@@ -368,6 +368,51 @@ def test_domain_handler_dispatch_prefers_runtime_binding_quest_id_for_quality_re
     assert calls[0]["quest_id"] == "003-dpcc-primary-care-phenotype-treatment-gap"
 
 
+def test_domain_handler_dispatch_fail_fast_blocks_unsupported_embedded_callable(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "paper-task-unsupported-callable",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/repair-recheck",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "repair_work_unit": {
+                    "unit_id": "unit-unsupported-callable",
+                    "work_unit_type": "text_repair",
+                    "owner": "quality_repair_batch",
+                    "callable_surface": "quality_repair_batch.unknown_callable",
+                    "source_fingerprint": "sha256:unit-unsupported-callable",
+                    "source_refs": ["artifacts/publication_eval/latest.json"],
+                    "gate_replay_target": "publication_eval/latest.json",
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert payload["stable_typed_blocker"] == "unsupported_owner_callable_surface"
+    assert payload["dispatch"]["result"]["execution_status"] == "blocked"
+    assert payload["dispatch"]["result"]["typed_blocker"] == "unsupported_owner_callable_surface"
+    assert payload["dispatch"]["result"]["retryable"] is False
+    assert payload["dispatch"]["result"]["owner_receipt"]["blocked_reason"] == "unsupported_owner_callable_surface"
+    assert payload["dispatch"]["result"]["repair_execution_evidence"]["retryable"] is False
+
+
 def test_domain_handler_dispatch_replays_paper_repair_when_owner_capability_changes(
     monkeypatch,
     tmp_path: Path,

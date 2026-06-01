@@ -31,6 +31,7 @@ from .task_kinds import ALLOWED_TASK_KINDS, FORBIDDEN_PAYLOAD_FLAGS
 STABLE_PAPER_REPAIR_TYPED_BLOCKERS = frozenset(
     {
         "authority_route_blocked",
+        "unsupported_owner_callable_surface",
         AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
         AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
         AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,

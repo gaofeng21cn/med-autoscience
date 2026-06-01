@@ -68,14 +68,7 @@ def build_repair_work_units(
                     unit_source=unit_source,
                 )
             )
-    return sorted(
-        _dedupe_units(units),
-        key=lambda item: (
-            str(item["source_comment_id"]),
-            _UNIT_ORDER.get(str(item["work_unit_type"]), 99),
-            str(item["unit_id"]),
-        ),
-    )
+    return _batch_units_by_callable_surface(publication_eval=publication_eval, units=_dedupe_units(units))
 
 
 def _is_executable_finding(worklog_item: Mapping[str, Any]) -> bool:
@@ -309,6 +302,137 @@ def _dedupe_units(units: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return deduped
 
 
+def _batch_units_by_callable_surface(
+    *,
+    publication_eval: Mapping[str, Any],
+    units: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for unit in units:
+        callable_surface = _text(unit.get("callable_surface"))
+        if not callable_surface:
+            continue
+        grouped.setdefault(callable_surface, []).append(unit)
+    batches = [
+        _batch_unit_for_callable_surface(
+            publication_eval=publication_eval,
+            callable_surface=callable_surface,
+            units=group,
+        )
+        for callable_surface, group in grouped.items()
+    ]
+    return sorted(
+        batches,
+        key=lambda item: (
+            0 if item.get("owner") == "quality_repair_batch" else 1,
+            str(item["callable_surface"]),
+        ),
+    )
+
+
+def _batch_unit_for_callable_surface(
+    *,
+    publication_eval: Mapping[str, Any],
+    callable_surface: str,
+    units: list[dict[str, Any]],
+) -> dict[str, Any]:
+    ordered_units = sorted(
+        units,
+        key=lambda item: (
+            _UNIT_ORDER.get(str(item["work_unit_type"]), 99),
+            str(item["source_comment_id"]),
+            str(item["unit_id"]),
+        ),
+    )
+    first = dict(ordered_units[0])
+    source_comment_ids = _dedupe_text([_text(unit.get("source_comment_id")) for unit in units])
+    source_refs: list[str] = []
+    required_inputs: list[str] = []
+    required_outputs: list[str] = []
+    work_unit_types: list[str] = []
+    for unit in ordered_units:
+        source_refs.extend(_text_list(unit.get("source_refs")))
+        required_inputs.extend(_text_list(unit.get("required_inputs")))
+        required_outputs.extend(_text_list(unit.get("required_outputs")))
+        work_unit_types.append(_text(unit.get("work_unit_type")))
+    source_refs = _dedupe_text(source_refs)
+    required_inputs = _dedupe_text(required_inputs)
+    required_outputs = _dedupe_text(required_outputs)
+    unit_id = _batch_unit_id(publication_eval=publication_eval, callable_surface=callable_surface)
+    source_fingerprint = _batch_source_fingerprint(
+        publication_eval=publication_eval,
+        callable_surface=callable_surface,
+        source_comment_ids=source_comment_ids,
+        source_refs=source_refs,
+        units=ordered_units,
+    )
+    first.update(
+        {
+            "unit_id": unit_id,
+            "work_unit_type": "ai_reviewer_recheck"
+            if first.get("owner") == "ai_reviewer"
+            else "quality_repair_batch",
+            "required_inputs": required_inputs,
+            "required_outputs": required_outputs,
+            "idempotency_key": f"reviewer_refinement_loop:{unit_id}:{source_fingerprint}",
+            "source_fingerprint": source_fingerprint,
+            "source_refs": source_refs,
+            "retry_budget": {
+                "max_attempts": 1,
+                "remaining_attempts": 1,
+                "retry_policy": "single_batch_owner_replay_only",
+            },
+            "source_comment_id": f"batch:{callable_surface}",
+            "source_comment_ids": source_comment_ids,
+            "batch_scope": "study_callable_surface",
+            "batched_work_unit_count": len(ordered_units),
+            "batched_work_unit_types": _dedupe_text(work_unit_types),
+            "batched_work_units": [
+                {
+                    "unit_id": _text(unit.get("unit_id")),
+                    "work_unit_type": _text(unit.get("work_unit_type")),
+                    "source_comment_id": _text(unit.get("source_comment_id")),
+                    "target_section": _text(unit.get("target_section")),
+                    "target_claim": _text(unit.get("target_claim")) or None,
+                    "source_fingerprint": _text(unit.get("source_fingerprint")),
+                    "source_refs": _text_list(unit.get("source_refs")),
+                    "required_outputs": _text_list(unit.get("required_outputs")),
+                }
+                for unit in ordered_units
+            ],
+        }
+    )
+    return first
+
+
+def _batch_unit_id(*, publication_eval: Mapping[str, Any], callable_surface: str) -> str:
+    study_id = _slug(_text(publication_eval.get("study_id")) or "unknown-study")
+    quest_id = _slug(_text(publication_eval.get("quest_id")) or "unknown-quest")
+    surface = _slug(callable_surface)
+    return f"{study_id}::{quest_id}::{surface}::batch"
+
+
+def _batch_source_fingerprint(
+    *,
+    publication_eval: Mapping[str, Any],
+    callable_surface: str,
+    source_comment_ids: list[str],
+    source_refs: list[str],
+    units: list[dict[str, Any]],
+) -> str:
+    payload = {
+        "source_eval_id": _text(publication_eval.get("eval_id")),
+        "study_id": _text(publication_eval.get("study_id")),
+        "quest_id": _text(publication_eval.get("quest_id")),
+        "callable_surface": callable_surface,
+        "source_comment_ids": source_comment_ids,
+        "source_refs": source_refs,
+        "unit_fingerprints": [_text(unit.get("source_fingerprint")) for unit in units],
+    }
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+    return f"sha256:{digest}"
+
+
 def _dedupe_text(values: list[str]) -> list[str]:
     deduped: list[str] = []
     for value in values:
@@ -319,6 +443,7 @@ def _dedupe_text(values: list[str]) -> list[str]:
 
 def _slug(value: str) -> str:
     normalized = re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip())
+    normalized = normalized.replace(".", "_")
     return normalized.strip("_") or "unknown"
 
 

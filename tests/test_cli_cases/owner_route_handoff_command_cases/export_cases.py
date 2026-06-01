@@ -634,7 +634,14 @@ def test_domain_handler_export_projects_ai_reviewer_repair_recheck_tasks(tmp_pat
         task for task in payload["pending_family_tasks"]
         if task["task_kind"] == "paper_autonomy/repair-recheck"
     ]
-    assert repair_tasks
+    assert len(repair_tasks) == 2
+    assert {
+        task["payload"]["repair_work_unit"]["callable_surface"]
+        for task in repair_tasks
+    } == {
+        "quality_repair_batch.run_quality_repair_batch",
+        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+    }
     first_task = repair_tasks[0]
     assert first_task["payload"]["profile"] == str(profile_path)
     assert first_task["payload"]["study_id"] == "001-risk"
@@ -651,6 +658,8 @@ def test_domain_handler_export_projects_ai_reviewer_repair_recheck_tasks(tmp_pat
     assert unit["current_package_mutation_allowed"] is False
     assert unit["quality_authorization_allowed"] is False
     assert unit["submission_authorization_allowed"] is False
+    assert unit["batch_scope"] == "study_callable_surface"
+    assert unit["batched_work_units"]
     assert unit["prohibited_outputs"] == [
         "paper/current_package",
         "manuscript/current_package",

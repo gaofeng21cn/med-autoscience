@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-02：AI reviewer repair-recheck 必须按 callable surface 批处理并 fail-fast unsupported callable
+
+- 决策：`reviewer_refinement_loop` 从 AI reviewer `publication_eval/latest.json` 生成 repair/recheck work units 时，必须按每个 study、每个 callable surface 聚合为少量批处理 owner work unit。多个 quality dimension、publication gap 或同类 comment 不能逐 item 导出为独立 `paper_autonomy/repair-recheck` OPL task；`quality_repair_batch.run_quality_repair_batch` 与 `ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow` 各自最多形成一个 batch work unit，batch 内保留 `source_comment_ids`、`batched_work_units`、source refs、required inputs/outputs 和单次 owner replay 预算。
+- 决策：`paper_autonomy/repair-recheck` dispatch 只能消费 MAS 明确支持的 embedded owner callable。`quality_repair_batch.run_quality_repair_batch` 由 MAS quality repair owner 执行或返回 typed blocker；`ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow` 由 MAS AI reviewer owner route 执行或返回 typed blocker。未知 callable surface 必须在 MAS dispatch 层返回 stable typed blocker `unsupported_owner_callable_surface`，标记 `retryable=false`，不得进入 OPL 三次 retry 后 dead-letter。
+- 理由：DM002/DM003 暴露出 AI reviewer 的每个 dimension/gap 被拆成大量 `paper_autonomy/repair-recheck` checkpoint；部分 payload 明确声明 `repair_work_unit.owner=quality_repair_batch` 与 `callable_surface=quality_repair_batch.run_quality_repair_batch`，但 runtime 仍收到 `controller_route_work_unit_unsupported` 并进入 retry/dead-letter。Progress-first 的论文修复闭环应先形成少量 owner batch 或稳定 typed blocker，再由 owner receipt、AI reviewer recheck 和 publication gate 继续推进，而不是用 OPL retry 消耗表达 MAS 层不可消费的 callable。
+- 影响：这是 MAS reviewer refinement / paper repair executor / owner-route handoff dispatch 修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。OPL 继续持有 queue、retry/dead-letter 和 provider lifecycle，但 MAS 必须先把可执行 owner callable 或稳定 typed blocker 表达清楚。
+
 ## 2026-06-01：developer supervisor same-tick 必须追到 provider handoff、typed blocker 或 owner-delta 诊断
 
 - 决策：`domain-health-diagnostic --apply --request-opl-owner-route-reconcile` 不能只执行一轮 `owner-route-reconcile -> domain-action-request-materialize -> domain-owner-action-dispatch` 后停在 receipt/read-model follow-through。developer supervisor same-tick 必须在同一 tick 内最多连续推进 3 轮，直到出现 provider handoff、typed blocker/dispatch blocker、没有 owner action，或明确的 owner-delta-required 诊断。
