@@ -303,6 +303,12 @@ def _owner_route_currentness_applies_to_generated(
             or _work_unit_id(action.get("next_work_unit"))
         )
         action_work_unit_fingerprint = _text(action.get("work_unit_fingerprint"))
+        if (
+            route_work_unit_fingerprint is not None
+            and action_work_unit_fingerprint is not None
+            and route_work_unit_fingerprint != action_work_unit_fingerprint
+        ):
+            continue
         if route_work_unit_id is not None and route_work_unit_id == action_work_unit_id:
             return True
         if (

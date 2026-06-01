@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.progress_first_receipt_identity import (
+    consumed_ai_reviewer_receipt_matches_transition_work_unit,
+)
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers import study_macro_state
 from med_autoscience.study_manual_finish import _delivered_package_ready
@@ -522,14 +525,10 @@ def _consumed_receipt_matches_transition_work_unit(
     transition: Mapping[str, Any],
     completion: Mapping[str, Any],
 ) -> bool:
-    if _text(completion.get("receipt_kind")) != "ai_reviewer_publication_eval":
-        return False
-    if _text(transition.get("decision_type")) != "ai_reviewer_re_eval":
-        return False
-    if _text(transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
-        return False
-    work_unit_id = _work_unit_id(transition.get("next_work_unit"))
-    return bool(work_unit_id and work_unit_id.startswith("produce_ai_reviewer_publication_eval_record"))
+    return consumed_ai_reviewer_receipt_matches_transition_work_unit(
+        transition=transition,
+        completion=completion,
+    )
 
 
 def _work_unit_id(value: object) -> str | None:

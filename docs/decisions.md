@@ -35,6 +35,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002/DM003 暴露出 read model 已有完整 `runtime_health_epoch`、`truth_epoch`、`work_unit_id` 和 `work_unit_fingerprint`，但 materializer 在 consumed transition / action materialization 时重新构造 fallback route，导致 dispatch 在同一 tick 变成 `owner_route_currentness_basis_missing`。流程随即把时间耗在重复 receipt、request materialization 和 read-model reconcile 上，违反 Progress-first。
 - 影响：这是 MAS materializer/currentness propagation 修复，不写 DM002/DM003 workspace truth、runtime-owned surface、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍必须通过 MAS materialize、OPL provider attempt、typed closeout、owner receipt、AI reviewer 和 publication gate 判定。
 
+## 2026-06-01：study-state-matrix 必须复用 Progress-First receipt identity 判断
+
+- 决策：`study-state-matrix.progress_first_tick_accounting` 判断 consumed `ai_reviewer_publication_eval` 是否关闭当前 reviewer-record work unit 时，必须和 `progress_first_monitoring_summary` 使用同一套 identity-aware 比较：优先比较 `work_unit_fingerprint`，其次比较 `work_unit_id`；只有 receipt 和 transition 都缺显式 identity 时，才允许 legacy reviewer-record work-unit 前缀兼容。
+- 理由：DM002/DM003 论文线已经证明 workspace-level matrix 是 operator 判断“是否还在跑、下一 owner 是否该 pickup”的主入口。若 matrix 仍按 receipt kind 或 work-unit 前缀判断，会把不同 identity 的新 AI reviewer record work unit 误投影成已消费 observability，导致 tick 时间继续耗在 receipt/read-model reconcile，而不是进入下一 owner action。
+- 影响：这是 refs-only read-model 修复，不改变 MAS study truth、runtime-owned surfaces、paper/package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。同一 reviewer receipt 仍被抑制为 `receipt_consumed`，不同 identity 的 reviewer record 必须计入 `ready_for_owner_action_count` / owner pickup 节奏。
+
 ## 2026-06-01：current AI reviewer archive projection ref 可关闭 record-production consumption ledger
 
 - 决策：当 owner-route/read-model 已选择 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 中的 current AI reviewer record 作为 effective publication eval，且 record-production completion receipt 已 consumed 时，owner-output consumption ledger 可以使用该 record 的 projection source ref 作为 `record_ref`。旧 `artifacts/supervision/requests/ai_reviewer/latest.json` 缺 `publication_eval_record_ref` 不再使 consumption ledger 丢失。
