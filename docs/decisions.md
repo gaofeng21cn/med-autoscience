@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-01：Progress-First ready owner action 必须先满足 explicit target 与 closeout semantics
+
+- 决策：`study-state-matrix.progress_first_tick_accounting` 在把 study 计入 `ready_for_dispatch` / `ready_for_owner_action_count` 前，必须先检查 owner-route contract。若 `next_forced_delta.target_surface_specificity=generic_route_obligation_fallback`、`missing_explicit_target_surface=true`，或 latest terminal stage 的 `semantic_completeness.status` 缺 required closeout semantics，则 read-model 必须投影为 `blocked_owner_route_contract`。
+- 决策：contract blocker 的 operator bottleneck 必须具体归因：缺 explicit owner-route target surface 投影为 `generic_target_surface` / `owner_route_target_surface_required`；缺 typed closeout semantics 投影为 `missing_closeout_semantics` / `typed_closeout_semantics_required`。这些状态不得计入 `expected_owner_action_count`、`ready_for_owner_action_count` 或 `ready_owner_action`。
+- 理由：DM002/DM003 暴露出矩阵显示 `ready_for_dispatch`，但同一行又显示 `missing_explicit_target_surface=true`、`target_surface_specificity=generic_route_obligation_fallback` 和 DM002 的 closeout semantic 缺口。旧 read-model 把不满足 owner-route contract 的状态计成 ready，使 operator 继续把时间耗在 dispatch/receipt/read-model reconcile 上，而不是先修 contract 缺口，违反 Progress-first。
+- 影响：这是 refs-only read-model / operator readiness 修复，不写 DM002/DM003 study truth、runtime-owned surface、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须由 MAS/OPL owner path、typed closeout、owner receipt、AI reviewer 和 publication gate 判定。
+
 ## 2026-06-01：same-tick owner request 必须能授权 gate-clearing dispatch
 
 - 决策：`run_gate_clearing_batch` 与其他 default executor action 一样，必须拥有 canonical request surface：`artifacts/supervision/requests/gate_clearing_batch/latest.json`。`domain-owner-action-dispatch` 在显式 action-type 或默认 tick 下，都必须允许通过该 owner request 选择同 tick persisted dispatch，即便 `consumer/latest.json` 为空或 `opl_current_control_state` scan 尚未投影到新的 gate-clearing route。

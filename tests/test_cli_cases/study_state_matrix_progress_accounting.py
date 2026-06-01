@@ -171,3 +171,65 @@ def test_study_state_matrix_does_not_count_stale_active_run_id_as_running(
     assert study["priority_rank"] == 1
     assert study["throughput_bottleneck"] == "ready_owner_action"
     assert study["target_surface_specificity"] is None
+
+
+def test_study_state_matrix_fail_closes_generic_target_surface_owner_action(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-generic-target-surface"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    def fake_progress_projection(*, study_id: str, **_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": study_id,
+                "running_provider_attempt": False,
+                "execution_state_kind": "executable_owner_action",
+                "owner_action_current": True,
+                "next_owner": "ai_reviewer",
+                "route_target": "review",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "next_work_unit": {
+                    "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "lane": "review",
+                },
+                "next_forced_delta": {
+                    "target_surface_specificity": "generic_route_obligation_fallback",
+                    "missing_explicit_target_surface": True,
+                    "target_surface_fallback_reason": "owner_route_missing_explicit_target_surface",
+                },
+                "dispatch_consumption": {},
+            },
+        }
+
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_progress_projection)
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+    accounting = payload["progress_first_tick_accounting"]
+    study = accounting["studies"][0]
+
+    assert exit_code == 0
+    assert accounting["expected_owner_action_count"] == 0
+    assert accounting["ready_for_owner_action_count"] == 0
+    assert accounting["owner_route_contract_blocker_count"] == 1
+    assert accounting["generic_target_surface_count"] == 1
+    assert accounting["throughput_bottleneck_counts"] == {"generic_target_surface": 1}
+    assert study["monitoring_status"] == "blocked_owner_route_contract"
+    assert study["owner_route_contract_blocker"] == "owner_route_target_surface_required"
+    assert study["throughput_bottleneck"] == "generic_target_surface"
+    assert study["missing_explicit_target_surface"] is True

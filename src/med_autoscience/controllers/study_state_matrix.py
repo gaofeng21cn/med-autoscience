@@ -626,6 +626,9 @@ def _progress_first_tick_accounting(monitoring_summaries: list[dict[str, Any]]) 
         "running_provider_attempt_count": sum(item["running_provider_attempt"] is True for item in study_items),
         "typed_blocker_count": sum(item["monitoring_status"] == "blocked_typed_owner" for item in study_items),
         "human_gate_count": sum(item["monitoring_status"] == "human_gate" for item in study_items),
+        "owner_route_contract_blocker_count": sum(
+            item["monitoring_status"] == "blocked_owner_route_contract" for item in study_items
+        ),
         "unconsumed_owner_action_count": sum(
             item["monitoring_status"] == "stalled_unconsumed_action" for item in study_items
         ),
@@ -649,7 +652,6 @@ def _progress_first_tick_accounting(monitoring_summaries: list[dict[str, Any]]) 
 
 def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any]:
     dispatch_consumption = _dict(summary.get("dispatch_consumption"))
-    monitoring_status = _progress_first_monitoring_status(summary=summary, dispatch_consumption=dispatch_consumption)
     latest_terminal_stage = _dict(summary.get("latest_terminal_stage"))
     semantic = _dict(latest_terminal_stage.get("semantic_completeness"))
     telemetry = _dict(latest_terminal_stage.get("telemetry_completeness"))
@@ -661,6 +663,17 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
     }
     telemetry_status = _text(telemetry.get("status")) if telemetry else None
     missing_stage_telemetry = bool(latest_terminal_stage) and telemetry_status not in {None, "complete"}
+    owner_route_contract_blocker = _owner_route_contract_blocker(
+        latest_terminal_stage=latest_terminal_stage,
+        missing_closeout_semantics=missing_closeout_semantics,
+        next_forced_delta=next_forced_delta,
+        target_surface_specificity=target_surface_specificity,
+    )
+    monitoring_status = _progress_first_monitoring_status(
+        summary=summary,
+        dispatch_consumption=dispatch_consumption,
+        owner_route_contract_blocker=owner_route_contract_blocker,
+    )
     return {
         "study_id": _text(summary.get("study_id")),
         "monitoring_status": monitoring_status,
@@ -674,6 +687,7 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
         "owner_pickup_overdue": _owner_pickup_overdue(dispatch_consumption),
         "target_surface_specificity": target_surface_specificity,
         "missing_explicit_target_surface": next_forced_delta.get("missing_explicit_target_surface") is True,
+        "owner_route_contract_blocker": owner_route_contract_blocker,
         "missing_closeout_semantics": missing_closeout_semantics,
         "missing_closeout_semantic_fields": _string_list(semantic.get("missing_fields")),
         "telemetry_completeness": telemetry_status,
@@ -721,6 +735,8 @@ def _throughput_priority_key(item: Mapping[str, Any]) -> tuple[int, str]:
     status = _text(item.get("monitoring_status"))
     if item.get("owner_pickup_overdue") is True:
         rank = 10
+    elif status == "blocked_owner_route_contract":
+        rank = 15
     elif status == "stalled_unconsumed_action":
         rank = 20
     elif status == "ready_for_dispatch":
@@ -752,6 +768,12 @@ def _throughput_bottleneck(
 ) -> str:
     if owner_pickup_overdue:
         return "owner_pickup_overdue"
+    if monitoring_status == "blocked_owner_route_contract":
+        if target_surface_specificity == "generic_route_obligation_fallback":
+            return "generic_target_surface"
+        if missing_closeout_semantics:
+            return "missing_closeout_semantics"
+        return "owner_route_contract_blocker"
     if monitoring_status == "stalled_unconsumed_action":
         return "ready_owner_action_unconsumed"
     if monitoring_status == "ready_for_dispatch":
@@ -775,6 +797,7 @@ def _progress_first_monitoring_status(
     *,
     summary: Mapping[str, Any],
     dispatch_consumption: Mapping[str, Any],
+    owner_route_contract_blocker: str | None,
 ) -> str:
     if summary.get("running_provider_attempt") is True:
         return "running"
@@ -788,6 +811,8 @@ def _progress_first_monitoring_status(
         owner_action_current is None
         and (_text(summary.get("next_owner")) is not None or _text(summary.get("controller_action")) is not None)
     ):
+        if owner_route_contract_blocker is not None:
+            return "blocked_owner_route_contract"
         if consumption_status in {"unconsumed", "stale", "overdue"} or _owner_pickup_overdue(dispatch_consumption):
             return "stalled_unconsumed_action"
         return "ready_for_dispatch"
@@ -796,6 +821,22 @@ def _progress_first_monitoring_status(
     if consumption_status in {"consumed", "receipt_consumed", "completed"}:
         return "receipt_consumed"
     return "observability_only"
+
+
+def _owner_route_contract_blocker(
+    *,
+    latest_terminal_stage: Mapping[str, Any],
+    missing_closeout_semantics: bool,
+    next_forced_delta: Mapping[str, Any],
+    target_surface_specificity: str | None,
+) -> str | None:
+    if target_surface_specificity == "generic_route_obligation_fallback":
+        return "owner_route_target_surface_required"
+    if next_forced_delta.get("missing_explicit_target_surface") is True:
+        return "owner_route_target_surface_required"
+    if missing_closeout_semantics and latest_terminal_stage:
+        return "typed_closeout_semantics_required"
+    return None
 
 
 def _is_typed_owner_blocker(summary: Mapping[str, Any]) -> bool:
