@@ -37,7 +37,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-06-01：study-state-matrix 必须复用 Progress-First receipt identity 判断
 
-- 决策：`study-state-matrix.progress_first_tick_accounting` 判断 consumed `ai_reviewer_publication_eval` 是否关闭当前 reviewer-record work unit 时，必须和 `progress_first_monitoring_summary` 使用同一套 identity-aware 比较：优先比较 `work_unit_fingerprint`，其次比较 `work_unit_id`；只有 receipt 和 transition 都缺显式 identity 时，才允许 legacy reviewer-record work-unit 前缀兼容。
+- 决策：`study-state-matrix.progress_first_tick_accounting` 判断 consumed `ai_reviewer_publication_eval` 是否关闭当前 reviewer-record work unit 时，必须和 `progress_first_monitoring_summary` 使用同一套 identity-aware 比较：优先比较 `work_unit_fingerprint`，其次比较 `work_unit_id`；只有 receipt、transition 与 matrix 复用的 existing summary 都缺显式 identity 时，才允许 legacy reviewer-record work-unit 前缀兼容。
 - 理由：DM002/DM003 论文线已经证明 workspace-level matrix 是 operator 判断“是否还在跑、下一 owner 是否该 pickup”的主入口。若 matrix 仍按 receipt kind 或 work-unit 前缀判断，会把不同 identity 的新 AI reviewer record work unit 误投影成已消费 observability，导致 tick 时间继续耗在 receipt/read-model reconcile，而不是进入下一 owner action。
 - 影响：这是 refs-only read-model 修复，不改变 MAS study truth、runtime-owned surfaces、paper/package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。同一 reviewer receipt 仍被抑制为 `receipt_consumed`，不同 identity 的 reviewer record 必须计入 `ready_for_owner_action_count` / owner pickup 节奏。
 

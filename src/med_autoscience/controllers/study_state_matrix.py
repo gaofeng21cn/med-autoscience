@@ -516,8 +516,19 @@ def _existing_consumed_ai_reviewer_record(
         return False
     if _text(existing.get("controller_action")) != "return_to_ai_reviewer_workflow":
         return False
-    work_unit_id = _work_unit_id(existing.get("next_work_unit"))
-    return bool(work_unit_id and work_unit_id.startswith("produce_ai_reviewer_publication_eval_record"))
+    completion = {
+        **dict(dispatch_consumption),
+        "status": _text(dispatch_consumption.get("consumption_status")) or _text(dispatch_consumption.get("status")),
+        "receipt_kind": _text(dispatch_consumption.get("receipt_kind")) or "ai_reviewer_publication_eval",
+    }
+    transition = {
+        "decision_type": "ai_reviewer_re_eval",
+        "controller_action": existing.get("controller_action"),
+        "next_work_unit": existing.get("next_work_unit"),
+        "source_refs": existing.get("source_refs"),
+        "work_unit_fingerprint": existing.get("work_unit_fingerprint"),
+    }
+    return _consumed_receipt_matches_transition_work_unit(transition=transition, completion=completion)
 
 
 def _consumed_receipt_matches_transition_work_unit(
