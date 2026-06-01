@@ -1,0 +1,115 @@
+{
+  "active_truth_owner": "docs/active/mas-ideal-state-gap-plan.md",
+  "canonical_docs": [
+    {
+      "path": "README.md",
+      "role": "root_entry"
+    },
+    {
+      "path": "AGENTS.md",
+      "role": "repo_agent_working_rules"
+    },
+    {
+      "path": "TASTE.md",
+      "role": "maintenance_preferences"
+    },
+    {
+      "path": "docs/README.md",
+      "role": "docs_entry"
+    },
+    {
+      "path": "docs/project.md",
+      "role": "project_positioning"
+    },
+    {
+      "path": "docs/status.md",
+      "role": "current_status"
+    },
+    {
+      "path": "docs/architecture.md",
+      "role": "architecture_boundary"
+    },
+    {
+      "path": "docs/invariants.md",
+      "role": "hard_constraints"
+    },
+    {
+      "path": "docs/decisions.md",
+      "role": "active_decision_record"
+    }
+  ],
+  "doc_profile": "foundry_agent",
+  "flow_profile": "foundry_agent",
+  "machine_truth_surfaces": [
+    "contracts",
+    "src",
+    "tests",
+    "pyproject.toml"
+  ],
+  "managed_by_plugins": {
+    "opl-doc": {
+      "does_not_own": [
+        "domain_truth",
+        "runtime_truth",
+        "artifact_authority",
+        "owner_receipts",
+        "quality_verdicts"
+      ],
+      "managed_surfaces": [
+        "contracts/opl-native-profile.json"
+      ],
+      "management": "profile_check_and_sync"
+    },
+    "opl-flow": {
+      "does_not_own": [
+        "repo_specific_guidance",
+        "contracts",
+        "source",
+        "tests",
+        "runtime_outputs",
+        "project_truth"
+      ],
+      "managed_surfaces": [
+        {
+          "kind": "repo_agent_instructions",
+          "management": "managed_block",
+          "path": "AGENTS.md"
+        },
+        {
+          "kind": "maintenance_preferences",
+          "management": "managed_block",
+          "path": "TASTE.md"
+        }
+      ],
+      "management": "workflow_profile_pointer",
+      "version": "0.1.0"
+    }
+  },
+  "owned_by_repo": [
+    "contracts/**",
+    "src/**",
+    "tests/**",
+    "docs/status.md",
+    "docs/active/mas-ideal-state-gap-plan.md"
+  ],
+  "plugin_native_status": "profile_declared",
+  "repo_id": "med-autoscience",
+  "repo_profile": "foundry_agent",
+  "schema": "opl_native_profile.v1",
+  "taxonomy_dirs": [
+    "docs/active",
+    "docs/public",
+    "docs/product",
+    "docs/runtime",
+    "docs/delivery",
+    "docs/source",
+    "docs/policies",
+    "docs/specs",
+    "docs/references",
+    "docs/history"
+  ],
+  "verification_commands": [
+    "scripts/verify.sh",
+    "python -m pytest"
+  ]
+}

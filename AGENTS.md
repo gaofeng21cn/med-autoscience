@@ -83,3 +83,12 @@
 - 修改 machine-readable contract surface、测试入口或运行语义时，至少补跑 `make test-meta`；纯叙述性 docs-only 变更按 `documentation_review_only` 处理。
 - 叙述性 `README*`、`docs/**` 和参考文档不作为脚本/测试的断言对象；可以测试 machine-readable contract、schema、CLI/API 行为、生成产物结构与路径，但不要用测试固定文档措辞、章节或状态文案。
 - 默认 Python / pytest 验证必须经由 `scripts/run-python-clean.sh` 或 `scripts/run-pytest-clean.sh`，把 bytecode、pytest cache、`uv sync` project venv 和安装/同步副产物导向仓库外部；禁止把 `.venv`、`__pycache__`、`.pytest_cache` 或 `*.egg-info` 写回开发 checkout 后再靠清理兜底。
+
+<!-- OPL_FLOW_MANAGED_START -->
+OPL Flow managed surface: repo_agent_instructions
+Plugin: opl-flow
+Plugin version: 0.1.0
+Profile pointer: contracts/opl-native-profile.json
+本块只声明 OPL Flow 工作流 profile 指针；repo-specific 规则、项目事实、contracts、source、tests 和 runtime 输出继续归本仓既有 owner。
+请只通过 OPL Flow repo_profile sync 更新本块；本块外内容由目标 repo 自己维护。
+<!-- OPL_FLOW_MANAGED_END -->

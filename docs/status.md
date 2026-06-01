@@ -7,6 +7,8 @@ Purpose: `current_truth_summary`
 State: `active_current_truth`
 Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `agent/` pack、`contracts/`、CLI/MCP/API 行为、product-entry manifest、domain-handler receipt、runtime/controller durable surfaces、真实 workspace artifact、owner receipt 和 generated artifact proof。
 
+Plugin native profile pointer: `contracts/opl-native-profile.json` 只声明 OPL Flow / OPL Doc 插件同步与 drift 检查所需的 repo-native profile；它不是 MAS medical truth、runtime truth、publication verdict、artifact authority、owner receipt 或 production-ready 证据。
+
 ## 当前角色
 
 `Med Auto Science` 是医学研究 domain agent，也是 OPL-compatible package。单一 MAS app skill 是 direct path 的稳定入口；经 OPL 托管时，OPL/Temporal 是默认 hosted autonomous runtime，承载 stage attempt、queue、wakeup、retry/dead-letter、resume、human gate transport、generated surface、projection 和 App/workbench shell。Codex App 只承担 direct entry / 人机操作面，不作为任务启动后的外围持续 driver。

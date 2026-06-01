@@ -68,3 +68,12 @@ OPL 持有通用 lifecycle substrate：stage attempt、queue、retry/dead-letter
 ## 迁移
 
 复制到相关项目时，通常只调整 `Owner`、项目名和少量本地例子。原则数量按实际需要确定。项目如需局部差异，应在本仓 `docs/decisions.md`、`docs/invariants.md`、contract 或更深层 `AGENTS.md` 写清适用范围。
+
+<!-- OPL_FLOW_MANAGED_START -->
+OPL Flow managed surface: maintenance_preferences
+Plugin: opl-flow
+Plugin version: 0.1.0
+Profile pointer: contracts/opl-native-profile.json
+本块只声明 OPL Flow 工作流 profile 指针；repo-specific 规则、项目事实、contracts、source、tests 和 runtime 输出继续归本仓既有 owner。
+请只通过 OPL Flow repo_profile sync 更新本块；本块外内容由目标 repo 自己维护。
+<!-- OPL_FLOW_MANAGED_END -->
