@@ -127,11 +127,16 @@ def _flapping_circuit_breaker_report(*, study_root: Path) -> dict[str, Any] | No
     if not latest:
         return None
     typed_blocker = latest.get("typed_blocker") if isinstance(latest.get("typed_blocker"), dict) else {}
-    if latest.get("flapping_circuit_breaker") is not True and typed_blocker.get("blocker_type") != "opl_runtime_owner_handoff_required":
+    if (
+        latest.get("flapping_circuit_breaker") is not True
+        and _non_empty_text(latest.get("runtime_stability_status")) != "flapping"
+    ):
+        return None
+    if typed_blocker.get("blocker_type") != "opl_runtime_owner_handoff_required":
         return None
     if (
         _non_empty_text(latest.get("runtime_stability_status")) != "flapping"
-        and _non_empty_text(latest.get("status")) != "handoff_required"
+        and latest.get("flapping_circuit_breaker") is not True
     ):
         return None
     return latest

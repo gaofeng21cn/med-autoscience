@@ -15,6 +15,7 @@ from med_autoscience.stage_route_contract import (
     STAGE_ROUTE_CONTRACT_REF,
     late_stage_progress_sprint_contract_from_payload,
     load_stage_route_contract_payload,
+    route_obligations_descriptor_from_payload,
 )
 from med_autoscience.stage_surface_contract import build_stage_surface_contract
 
@@ -60,6 +61,9 @@ STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
 STAGE_QUALITY_PACK_CONTRACT_REF = stage_quality_contract.CONTRACT_REF
 STAGE_SKILL_SURFACE_PROJECTION_REF = stage_skill_surface_projection.CONTRACT_REF
 STAGE_DELIVERABLE_INDEX_CONTRACT_REF = "med_autoscience.stage_surface_contract.build_stage_surface_contract"
+STAGE_ROUTE_OBLIGATIONS_DESCRIPTOR_REF = (
+    "med_autoscience.stage_route_contract.route_obligations_descriptor"
+)
 
 FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "publication_eval/latest.json",
@@ -215,6 +219,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     route_contracts = _mapping(route_contract_payload.get("route_contracts"))
     route_ids = list(route_contracts)
     late_stage_progress_sprint_contract = late_stage_progress_sprint_contract_from_payload(route_contract_payload)
+    route_obligations_descriptor = route_obligations_descriptor_from_payload(route_contract_payload)
     knowledge_contract = stage_knowledge_contract.stage_knowledge_plane_contract()
     packet_contracts = _mapping(knowledge_contract.get("packet_contracts"))
     packet_surfaces = list(packet_contracts)
@@ -237,6 +242,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "late_stage_progress_sprint_contract_source": (
                 f"{STAGE_ROUTE_CONTRACT_REF}#/{PROGRESS_FIRST_SPRINT_CONTRACT_FIELD}"
             ),
+            "stage_route_obligations_descriptor_source": STAGE_ROUTE_OBLIGATIONS_DESCRIPTOR_REF,
             "canonical_agent_pack_root": "agent/",
             "agent_prompt_sources": AGENT_PROMPT_REFS,
             "agent_stage_policy_sources": AGENT_STAGE_POLICY_REFS,
@@ -275,6 +281,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             ),
         },
         "late_stage_progress_sprint_contract": late_stage_progress_sprint_contract,
+        "route_obligations_descriptor": route_obligations_descriptor,
         "stage_knowledge_plane": {
             "contract_ref": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "contract_surface": knowledge_contract.get("surface"),

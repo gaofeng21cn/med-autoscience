@@ -10,10 +10,12 @@ from med_autoscience.stage_route_contract import (
     PROGRESS_FIRST_SPRINT_CONTRACT_FIELD,
     PROGRESS_FIRST_SPRINT_ID,
     PROGRESS_FIRST_SPRINT_WORK_UNIT,
+    ROUTE_OBLIGATION_FIELDS,
     STAGE_ROUTE_CONTRACT_REF,
     late_stage_progress_sprint_contract_from_payload,
     load_stage_route_contract,
     load_stage_route_contract_payload,
+    route_obligations_descriptor_from_payload,
     stage_entry_modes_from_payload,
 )
 
@@ -30,6 +32,67 @@ def test_stage_route_contract_source_uses_standard_agent_stage_slot() -> None:
         "evidence_review_contract",
     }
     assert load_stage_route_contract() == stage_entry_modes_from_payload(payload)
+
+
+def test_route_obligations_descriptor_projects_all_canonical_routes_for_handoff() -> None:
+    payload = load_stage_route_contract_payload()
+
+    descriptor = route_obligations_descriptor_from_payload(payload)
+
+    assert descriptor["surface_kind"] == "stage_route_obligations_descriptor"
+    assert descriptor["contract_ref"] == STAGE_ROUTE_CONTRACT_REF
+    assert descriptor["route_count"] == len(payload["route_contracts"])
+    assert descriptor["status"] == "present"
+    assert descriptor["missing_route_fields"] == {}
+    assert descriptor["blockers"] == []
+    assert list(descriptor["routes"]) == list(payload["route_contracts"])
+    assert descriptor["authority_boundary"]["descriptor_only"] is True
+    assert descriptor["authority_boundary"]["can_write_domain_truth"] is False
+    for route_id, route_payload in payload["route_contracts"].items():
+        route_descriptor = descriptor["routes"][route_id]
+        assert route_descriptor["route_id"] == route_id
+        assert route_descriptor["status"] == "present"
+        assert route_descriptor["source_ref"] == f"{STAGE_ROUTE_CONTRACT_REF}#/route_contracts/{route_id}"
+        assert route_descriptor["handoff_readiness"] == {
+            "status": "present",
+            "missing_fields": [],
+            "blocker": None,
+        }
+        for field in ROUTE_OBLIGATION_FIELDS:
+            obligation_projection = route_descriptor[field]
+            assert obligation_projection["status"] == "present"
+            assert obligation_projection["items"] == route_payload[field]
+            assert obligation_projection["source_ref"] == (
+                f"{STAGE_ROUTE_CONTRACT_REF}#/route_contracts/{route_id}/{field}"
+            )
+            assert all(item["status"] == "present" for item in obligation_projection["item_descriptors"])
+
+
+def test_route_obligations_descriptor_reports_missing_handoff_obligations() -> None:
+    payload = load_stage_route_contract_payload()
+    del payload["route_contracts"]["baseline"]["knowledge_input_obligations"]
+    del payload["route_contracts"]["decision"]["memory_closeout_obligations"]
+
+    descriptor = route_obligations_descriptor_from_payload(payload)
+
+    assert descriptor["status"] == "missing"
+    assert descriptor["missing_route_fields"] == {
+        "baseline": ["knowledge_input_obligations"],
+        "decision": ["memory_closeout_obligations"],
+    }
+    assert descriptor["routes"]["baseline"]["status"] == "missing"
+    assert descriptor["routes"]["baseline"]["knowledge_input_obligations"] == {
+        "status": "missing",
+        "items": [],
+        "item_descriptors": [],
+        "source_ref": f"{STAGE_ROUTE_CONTRACT_REF}#/route_contracts/baseline/knowledge_input_obligations",
+        "blocker": None,
+    }
+    assert descriptor["routes"]["decision"]["handoff_readiness"] == {
+        "status": "missing",
+        "missing_fields": ["memory_closeout_obligations"],
+        "blocker": None,
+    }
 
 
 def test_stage_route_contract_loader_falls_back_to_packaged_resource(

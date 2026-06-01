@@ -119,6 +119,14 @@ def test_study_state_matrix_reads_nested_progress_projection_monitoring_summary(
                     "latest_terminal_stage": {
                         "stage_id": "domain_owner/default-executor-dispatch",
                         "status": "handoff_ready",
+                        "semantic_completeness": {
+                            "status": "missing_required_fields",
+                            "missing_fields": ["stage_goal", "evidence_refs"],
+                        },
+                        "telemetry_completeness": {
+                            "status": "missing_required_fields",
+                            "missing_fields": ["duration", "token_usage", "cost"],
+                        },
                     },
                     "progress_delta_classification": "mixed",
                 },
@@ -138,7 +146,71 @@ def test_study_state_matrix_reads_nested_progress_projection_monitoring_summary(
     assert study["monitoring"]["latest_terminal_stage"]["status"] == "handoff_ready"
     assert study["monitoring"]["dispatch_consumption"]["consumption_status"] == "receipt_consumed"
     assert accounting_study["monitoring_status"] == "running"
+    assert accounting_study["missing_closeout_semantics"] is True
+    assert accounting_study["missing_closeout_semantic_fields"] == ["stage_goal", "evidence_refs"]
+    assert accounting_study["telemetry_completeness"] == "missing_required_fields"
+    assert accounting_study["missing_telemetry_fields"] == ["duration", "token_usage", "cost"]
     assert payload["progress_first_tick_accounting"]["running_provider_attempt_count"] == 1
+    assert payload["progress_first_tick_accounting"]["missing_closeout_semantics_count"] == 1
+
+
+def test_study_state_matrix_prioritizes_terminal_closeout_telemetry_gap(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_ids = ("001-telemetry-gap", "002-clean-receipt")
+    for study_id in study_ids:
+        study_root = workspace_root / "studies" / study_id
+        study_root.mkdir(parents=True)
+        (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    def fake_progress_projection(*, study_id: str, **_: object) -> dict[str, object]:
+        latest_terminal_stage = {
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "status": "handoff_ready",
+            "semantic_completeness": {"status": "complete", "missing_fields": []},
+            "telemetry_completeness": {"status": "complete", "missing_fields": []},
+        }
+        if study_id == "001-telemetry-gap":
+            latest_terminal_stage["telemetry_completeness"] = {
+                "status": "missing_required_fields",
+                "missing_fields": ["token_usage", "cost"],
+            }
+        return {
+            "study_id": study_id,
+            "study_root": str(workspace_root / "studies" / study_id),
+            "quest_status": "active",
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": study_id,
+                "running_provider_attempt": False,
+                "dispatch_consumption": {"consumption_status": "receipt_consumed"},
+                "latest_terminal_stage": latest_terminal_stage,
+            },
+        }
+
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_progress_projection)
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+    studies = payload["progress_first_tick_accounting"]["studies"]
+
+    assert exit_code == 0
+    assert [study["study_id"] for study in studies] == ["001-telemetry-gap", "002-clean-receipt"]
+    assert studies[0]["priority_rank"] == 1
+    assert studies[0]["monitoring_status"] == "receipt_consumed"
+    assert studies[0]["throughput_bottleneck"] == "missing_stage_telemetry"
+    assert studies[0]["missing_stage_telemetry"] is True
+    assert studies[0]["missing_telemetry_fields"] == ["token_usage", "cost"]
+    assert studies[1]["priority_rank"] == 2
+    assert studies[1]["throughput_bottleneck"] == "observability_only"
 
 
 def test_study_state_matrix_exposes_supervisor_monitoring_bundle_without_writes(

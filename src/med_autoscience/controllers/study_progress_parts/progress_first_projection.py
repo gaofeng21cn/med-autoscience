@@ -61,6 +61,7 @@ def _next_forced_delta(
     owner_route: Mapping[str, Any],
 ) -> dict[str, Any]:
     target_surface = _target_surface(owner_route=owner_route)
+    specificity = _target_surface_specificity(owner_route=owner_route)
     acceptance_refs = _acceptance_refs(owner_route=owner_route)
     owner_action = _owner_action(owner_route=owner_route, state=state)
     if state.get("paper_progress_delta_counted") is True:
@@ -70,6 +71,7 @@ def _next_forced_delta(
             "work_unit_id": _text(state.get("work_unit_id")),
             "eval_id": _text(state.get("eval_id")),
             "target_surface": target_surface,
+            **specificity,
             "acceptance_refs": acceptance_refs,
             "owner_action": owner_action,
         }
@@ -84,6 +86,7 @@ def _next_forced_delta(
         "next_owner": _text(state.get("next_owner")),
         "allowed_outcomes": list(PROGRESS_FIRST_OUTCOME_CLASSES),
         "target_surface": target_surface,
+        **specificity,
         "acceptance_refs": acceptance_refs,
         "owner_action": owner_action,
     }
@@ -128,6 +131,41 @@ def _target_surface(*, owner_route: Mapping[str, Any]) -> dict[str, Any]:
         "ref_kind": "route_obligation",
         "route_target": route_target,
         "surface_ref": "study_progress.next_forced_delta",
+    }
+
+
+def _target_surface_specificity(*, owner_route: Mapping[str, Any]) -> dict[str, Any]:
+    if _mapping(owner_route.get("target_surface")):
+        return {
+            "target_surface_specificity": "explicit_owner_route_target",
+            "missing_explicit_target_surface": False,
+            "target_surface_diagnostic": {
+                "specificity": "precise",
+                "source": "owner_route.target_surface",
+                "missing_explicit_target_surface": False,
+            },
+        }
+    if _mapping(owner_route.get("next_forced_target_surface")):
+        return {
+            "target_surface_specificity": "explicit_owner_route_target",
+            "missing_explicit_target_surface": False,
+            "target_surface_diagnostic": {
+                "specificity": "precise",
+                "source": "owner_route.next_forced_target_surface",
+                "missing_explicit_target_surface": False,
+            },
+        }
+    fallback_reason = "owner_route_missing_explicit_target_surface"
+    return {
+        "target_surface_specificity": "generic_route_obligation_fallback",
+        "missing_explicit_target_surface": True,
+        "target_surface_fallback_reason": fallback_reason,
+        "target_surface_diagnostic": {
+            "specificity": "generic_fallback",
+            "source": "study_progress.next_forced_delta",
+            "missing_explicit_target_surface": True,
+            "fallback_reason": fallback_reason,
+        },
     }
 
 

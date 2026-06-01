@@ -97,6 +97,13 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
         "route_target": "write",
         "surface_ref": "canonical_manuscript",
     }
+    assert result["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
+    assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
+    assert result["next_forced_delta"]["target_surface_diagnostic"] == {
+        "specificity": "precise",
+        "source": "owner_route.target_surface",
+        "missing_explicit_target_surface": False,
+    }
     assert result["next_forced_delta"]["acceptance_refs"] == [
         "canonical_manuscript_delta",
         "ai_reviewer_gate_replay_request",
@@ -119,6 +126,8 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     assert monitoring["paper_progress_delta_counted"] is False
     assert monitoring["platform_repair_delta_counted"] is True
     assert monitoring["next_forced_delta"]["target_surface"]["surface_ref"] == "canonical_manuscript"
+    assert monitoring["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
+    assert monitoring["next_forced_delta"]["target_surface_diagnostic"]["source"] == "owner_route.target_surface"
     assert monitoring["next_forced_delta"]["acceptance_refs"] == [
         "canonical_manuscript_delta",
         "ai_reviewer_gate_replay_request",
@@ -134,6 +143,7 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     compact = mcp_projection.compact_study_progress_projection(result)
     markdown = mcp_projection.render_mcp_study_progress_markdown(result)
     assert compact["next_forced_delta"]["target_surface"]["surface_ref"] == "canonical_manuscript"
+    assert compact["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
     assert compact["next_forced_delta"]["owner_action"]["work_unit_id"] == "publishability_repair_sprint"
     assert compact["progress_first_monitoring_summary"]["active_run_id"] == "run-001"
     assert compact["progress_first_monitoring_summary"]["next_work_unit"] == "publishability_repair_sprint"
@@ -143,3 +153,78 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     ]
     assert "## Progress-First Monitoring" in markdown
     assert "platform_delta_counted: `True`" in markdown
+
+
+def test_next_forced_delta_marks_next_forced_target_surface_as_precise() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 1},
+            "current_execution_envelope": {
+                "owner_route": {
+                    "next_owner": "paper_author",
+                    "route_target": "write",
+                    "next_forced_target_surface": {
+                        "ref_kind": "route_obligation",
+                        "route_target": "write",
+                        "surface_ref": "canonical_manuscript#discussion",
+                    },
+                    "source_refs": {"work_unit_id": "publishability_repair_sprint"},
+                }
+            },
+        }
+    )
+
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "write",
+        "surface_ref": "canonical_manuscript#discussion",
+    }
+    assert result["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
+    assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
+    assert result["next_forced_delta"]["target_surface_diagnostic"] == {
+        "specificity": "precise",
+        "source": "owner_route.next_forced_target_surface",
+        "missing_explicit_target_surface": False,
+    }
+
+
+def test_next_forced_delta_reports_generic_target_surface_fallback_when_owner_route_lacks_precise_surface() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 1},
+            "current_execution_envelope": {
+                "owner_route": {
+                    "next_owner": "paper_author",
+                    "route_target": "write",
+                    "source_refs": {"work_unit_id": "publishability_repair_sprint"},
+                }
+            },
+        }
+    )
+
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "write",
+        "surface_ref": "study_progress.next_forced_delta",
+    }
+    assert result["next_forced_delta"]["target_surface_specificity"] == "generic_route_obligation_fallback"
+    assert result["next_forced_delta"]["missing_explicit_target_surface"] is True
+    assert result["next_forced_delta"]["target_surface_fallback_reason"] == (
+        "owner_route_missing_explicit_target_surface"
+    )
+    assert result["next_forced_delta"]["target_surface_diagnostic"] == {
+        "specificity": "generic_fallback",
+        "source": "study_progress.next_forced_delta",
+        "missing_explicit_target_surface": True,
+        "fallback_reason": "owner_route_missing_explicit_target_surface",
+    }

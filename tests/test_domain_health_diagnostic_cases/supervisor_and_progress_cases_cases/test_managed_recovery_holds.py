@@ -213,6 +213,99 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
     ]
     assert not (study_root / "artifacts" / "runtime" / "recovery_probe" / "latest.json").exists()
 
+def test_watch_runtime_does_not_hold_recovery_for_plain_opl_runtime_handoff(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
+    quest_root = profile.runtime_root / "001-risk"
+    dump_json(
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json",
+        {
+            "surface_kind": "mas_opl_runtime_owner_handoff",
+            "schema_version": 1,
+            "recorded_at": "2026-06-01T00:00:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "001-risk",
+            "status": "handoff_required",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "mas_runtime_read_model_retired": True,
+            "mas_materializes_runtime_supervision": False,
+            "typed_blocker": {
+                "blocker_type": "opl_runtime_owner_handoff_required",
+                "owner": "one-person-lab",
+                "domain_owner": "med-autoscience",
+                "reason": "mas_runtime_supervision_retired",
+            },
+        },
+    )
+    no_live_status = {
+        **make_progress_projection_payload(
+            study_id="001-risk",
+            decision="resume",
+            reason="quest_marked_running_but_no_live_session",
+        ),
+        "study_root": str(study_root),
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+        "runtime_liveness_audit": {
+            "status": "none",
+            "active_run_id": None,
+            "runtime_audit": {
+                "status": "none",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    }
+    calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda *, profile, study_root: no_live_status,
+    )
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "request_opl_stage_attempt",
+        lambda **kwargs: calls.append(kwargs)
+        or {
+            **no_live_status,
+            "status": "opl_stage_attempt_requested",
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+        },
+        raising=False,
+    )
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        request_opl_stage_attempts=True,
+    )
+
+    assert result["managed_study_recovery_holds"] == []
+    assert result["managed_study_auto_recoveries"] == []
+    action = result["managed_study_actions"][0]
+    assert action["study_id"] == "001-risk"
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
+    assert action["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
+    assert not (study_root / "artifacts" / "runtime" / "recovery_probe" / "latest.json").exists()
+
 def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     tmp_path: Path,
     monkeypatch,

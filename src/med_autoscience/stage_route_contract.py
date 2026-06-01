@@ -51,6 +51,7 @@ OPTIONAL_ROUTE_CONTRACT_LIST_FIELDS = (
     "knowledge_input_obligations",
     "memory_closeout_obligations",
 )
+ROUTE_OBLIGATION_FIELDS = OPTIONAL_ROUTE_CONTRACT_LIST_FIELDS
 REQUIRED_EVIDENCE_REVIEW_LIST_FIELDS = (
     "minimum_proof_package",
     "reviewer_first_checks",
@@ -130,6 +131,59 @@ def late_stage_progress_sprint_contract_from_payload(payload: dict[str, object])
     return dict(contract)
 
 
+def route_obligations_descriptor(path: Path | None = None) -> dict[str, Any]:
+    return route_obligations_descriptor_from_payload(load_stage_route_contract_payload(path=path))
+
+
+def route_obligations_descriptor_from_payload(payload: dict[str, object]) -> dict[str, Any]:
+    _validate_payload_contract(payload)
+    route_contracts = _route_contract_payload_map(payload.get("route_contracts"))
+    routes: dict[str, dict[str, Any]] = {}
+    missing_route_fields: dict[str, list[str]] = {}
+
+    for route_id, route_payload in route_contracts.items():
+        route_missing_fields: list[str] = []
+        route_descriptor: dict[str, Any] = {
+            "route_id": route_id,
+            "source_ref": f"{STAGE_ROUTE_CONTRACT_REF}#/route_contracts/{route_id}",
+        }
+        for field in ROUTE_OBLIGATION_FIELDS:
+            obligation_descriptor = _route_obligation_field_descriptor(
+                route_id=route_id,
+                field=field,
+                route_payload=route_payload,
+            )
+            route_descriptor[field] = obligation_descriptor
+            if obligation_descriptor["status"] == "missing":
+                route_missing_fields.append(field)
+        route_descriptor["status"] = "missing" if route_missing_fields else "present"
+        route_descriptor["handoff_readiness"] = {
+            "status": route_descriptor["status"],
+            "missing_fields": route_missing_fields,
+            "blocker": None,
+        }
+        route_descriptor["authority_boundary"] = _route_obligation_authority_boundary()
+        if route_missing_fields:
+            missing_route_fields[route_id] = route_missing_fields
+        routes[route_id] = route_descriptor
+
+    return {
+        "surface_kind": "stage_route_obligations_descriptor",
+        "schema_version": 1,
+        "contract_ref": STAGE_ROUTE_CONTRACT_REF,
+        "route_count": len(routes),
+        "status": "missing" if missing_route_fields else "present",
+        "missing_route_fields": missing_route_fields,
+        "blockers": [],
+        "routes": routes,
+        "authority_boundary": _route_obligation_authority_boundary(),
+    }
+
+
+def route_obligation_descriptors_from_payload(payload: dict[str, object]) -> dict[str, Any]:
+    return route_obligations_descriptor_from_payload(payload)
+
+
 def stage_entry_modes_from_payload(payload: dict[str, object]) -> tuple[StageEntryMode, ...]:
     _validate_payload_contract(payload)
     compatible_agents = _string_tuple(payload["compatible_agents"], "compatible_agents")
@@ -162,6 +216,48 @@ def stage_entry_modes_from_payload(payload: dict[str, object]) -> tuple[StageEnt
             )
         )
     return tuple(modes)
+
+
+def _route_obligation_field_descriptor(
+    *,
+    route_id: str,
+    field: str,
+    route_payload: dict[str, Any],
+) -> dict[str, Any]:
+    source_ref = f"{STAGE_ROUTE_CONTRACT_REF}#/route_contracts/{route_id}/{field}"
+    if field not in route_payload:
+        return {
+            "status": "missing",
+            "items": [],
+            "item_descriptors": [],
+            "source_ref": source_ref,
+            "blocker": None,
+        }
+    items = _string_tuple(route_payload[field], field)
+    return {
+        "status": "present",
+        "items": list(items),
+        "item_descriptors": [
+            {
+                "id": item,
+                "status": "present",
+                "source_ref": f"{source_ref}/{index}",
+                "blocker": None,
+            }
+            for index, item in enumerate(items)
+        ],
+        "source_ref": source_ref,
+        "blocker": None,
+    }
+
+
+def _route_obligation_authority_boundary() -> dict[str, bool]:
+    return {
+        "descriptor_only": True,
+        "can_write_domain_truth": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+    }
 
 
 def _read_canonical_stage_route_contract_text() -> str:

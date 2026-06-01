@@ -8,6 +8,7 @@ import pytest
 
 from med_autoscience.controllers import stage_knowledge_plane
 from med_autoscience.controllers import portfolio_memory
+from med_autoscience.stage_route_contract import route_obligations_descriptor
 from med_autoscience.stage_knowledge_contract import STAGE_OBLIGATIONS
 
 
@@ -182,6 +183,22 @@ def test_stage_knowledge_contract_covers_stage_surface_program_obligation_gaps()
         for field, expected_items in expected_by_field.items():
             assert expected_items.issubset(set(stage_obligations[field]))
             assert set(stage_obligations[field]) == set(STAGE_OBLIGATIONS[stage][field])
+
+
+def test_stage_knowledge_obligations_match_route_obligations_descriptor() -> None:
+    descriptor = route_obligations_descriptor()
+    contract = stage_knowledge_plane.stage_knowledge_plane_contract()
+
+    assert descriptor["status"] == "present"
+    assert set(contract["stage_obligations"]) == set(descriptor["routes"])
+    for stage, obligations in contract["stage_obligations"].items():
+        route_descriptor = descriptor["routes"][stage]
+        assert obligations["knowledge_input_obligations"] == route_descriptor[
+            "knowledge_input_obligations"
+        ]["items"]
+        assert obligations["memory_closeout_obligations"] == route_descriptor[
+            "memory_closeout_obligations"
+        ]["items"]
 
 
 def test_stage_knowledge_packet_reports_stage_specific_missing_reasons(tmp_path) -> None:

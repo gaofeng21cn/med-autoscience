@@ -59,6 +59,8 @@ MAS repo 内不再扩展私有 queue、scheduler、checkpoint、resume、retry/d
 
 当前 live 证据已经证明 sidecar owner-route handoff 和 default executor attempt protocol 可读、body-free 且 fail closed：`src/med_autoscience/controllers/owner_route_handoff_parts/owner_route_handoff_tasks.py` 产出 `route_transition_contract` / `stage_graph_handoff`，focused tests 证明它不写 runtime state、queue、publication eval、controller decisions 或 `current_package`；`tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py` 证明 `mas-owner-route-attempt-protocol.v1`、diagnostic reason contract、currentness basis、provider/domain completion boundary 和缺字段 fail-closed 规则。真实 paper-line provider apply、MAS owner-chain closeout、long-soak、artifact movement 和 human gate receipt 仍是独立证据尾项。
 
+2026-06-01 更新：`med_autoscience.stage_route_contract.route_obligations_descriptor` 现在从 `agent/stages/stage_route_contract.yaml` 直接投影 10 个 route 的 `knowledge_input_obligations` 与 `memory_closeout_obligations`，并以 `present` / `missing` / `blocker` 形态给出每个 route 的 `handoff_readiness`。同一投影已嵌入 product-entry `family_stage_control_plane_descriptor.route_obligations_descriptor`，供 OPL/operator 在 stage handoff 前读取需要携带的知识输入、memory closeout 输出和缺失字段；它仍是 body-free read-only descriptor，不能替代 MAS owner receipt、memory router receipt、quality verdict、publication readiness 或 artifact authority。
+
 ## OPL 承载方式
 
 MAS 在 OPL 中应按下面链路运行：
@@ -99,6 +101,7 @@ route 之间的调度由 OPL 负责：
 
 - `domain_route_ref`
 - `owner_route_ref`
+- `route_obligations_descriptor_ref`
 - `owner_route_attempt_envelope`
 - `owner_reason_contract`
 - `owner_route_currentness_basis`

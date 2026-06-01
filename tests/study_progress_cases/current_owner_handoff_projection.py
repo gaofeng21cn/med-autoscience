@@ -130,6 +130,145 @@ def test_terminal_stage_log_missing_user_progress_fields_projects_typed_blocker(
     ]
 
 
+def test_progress_first_monitoring_projects_terminal_closeout_semantic_completeness() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "001-risk",
+            "progress_delta_classification": "platform_repair",
+            "next_forced_delta": {
+                "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                "work_unit_id": "publishability_repair_sprint",
+                "target_surface": {"surface_ref": "canonical_manuscript"},
+                "owner_action": {
+                    "next_owner": "runtime_mechanism_repair",
+                    "work_unit_id": "publishability_repair_sprint",
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "latest_terminal_stage_log": {
+                    "stage_attempt_id": "sat-001",
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "action_type": "run_quality_repair_batch",
+                    "status": "typed_blocker",
+                    "typed_blocker_reason": "typed_closeout_packet_required",
+                    "diagnostic": "user_stage_log_missing_required_progress_fields",
+                    "missing_user_stage_log_fields": [
+                        "paper_work_done",
+                        "progress_delta_classification",
+                    ],
+                    "observability_status": "missing",
+                    "missing_observability_fields": ["token_usage", "cost"],
+                    "duration": {"seconds": 42},
+                    "token_usage": {},
+                    "cost": {},
+                    "closeout_refs": [
+                        "artifacts/supervision/consumer/default_executor_execution/sat-001.json"
+                    ],
+                    "paper_stage_log": {
+                        "outcome": "typed_blocker",
+                        "stage_work_done": ["Checked the provider closeout."],
+                        "changed_stage_surfaces": ["artifacts/supervision/current_control_state/latest.json"],
+                        "changed_paper_surfaces": [],
+                        "remaining_blockers": ["typed_closeout_packet_required"],
+                        "evidence_refs": [
+                            "artifacts/supervision/consumer/default_executor_execution/sat-001.json"
+                        ],
+                    },
+                },
+            },
+        }
+    )
+
+    terminal = monitoring["latest_terminal_stage"]
+    assert terminal["changed_stage_surfaces"] == [
+        "artifacts/supervision/current_control_state/latest.json"
+    ]
+    assert terminal["progress_delta_classification"] is None
+    assert terminal["missing_user_stage_log_fields"] == [
+        "paper_work_done",
+        "progress_delta_classification",
+    ]
+    assert terminal["missing_observability_fields"] == ["token_usage", "cost"]
+    completeness = terminal["terminal_closeout_semantic_completeness"]
+    assert completeness == {
+        "status": "typed_blocker",
+        "required_user_stage_log_fields": "missing",
+        "missing_user_stage_log_fields": [
+            "paper_work_done",
+            "progress_delta_classification",
+        ],
+        "changed_surfaces": "present",
+        "changed_stage_surfaces": "present",
+        "changed_paper_surfaces": "present_empty",
+        "progress_delta_classification": "missing",
+        "telemetry": "missing",
+        "missing_telemetry_fields": ["token_usage", "cost"],
+        "typed_blocker": "typed_closeout_packet_required",
+        "typed_blocker_diagnostic": "user_stage_log_missing_required_progress_fields",
+        "next_forced_delta": {
+            "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+            "work_unit_id": "publishability_repair_sprint",
+            "target_surface": {"surface_ref": "canonical_manuscript"},
+            "owner_action": {
+                "next_owner": "runtime_mechanism_repair",
+                "work_unit_id": "publishability_repair_sprint",
+            },
+        },
+    }
+
+
+def test_progress_first_monitoring_marks_complete_terminal_closeout_semantics() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "001-risk",
+            "opl_current_control_state_handoff": {
+                "latest_terminal_stage_log": {
+                    "stage_attempt_id": "sat-002",
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "action_type": "run_quality_repair_batch",
+                    "status": "executed",
+                    "observability_status": "observed",
+                    "missing_observability_fields": [],
+                    "duration": {"seconds": 0},
+                    "token_usage": {"total_tokens": 0},
+                    "cost": {"usd": 0},
+                    "paper_stage_log": {
+                        "outcome": "executed",
+                        "stage_work_done": ["Recorded a no-op owner receipt."],
+                        "paper_work_done": ["Recorded a no-op owner receipt."],
+                        "changed_stage_surfaces": [],
+                        "changed_paper_surfaces": [],
+                        "progress_delta_classification": "typed_blocker",
+                        "remaining_blockers": [],
+                        "evidence_refs": ["artifacts/controller/quality_repair_batch/latest.json"],
+                    },
+                },
+            },
+        }
+    )
+
+    completeness = monitoring["latest_terminal_stage"]["terminal_closeout_semantic_completeness"]
+    assert completeness["status"] == "complete"
+    assert completeness["required_user_stage_log_fields"] == "complete"
+    assert completeness["missing_user_stage_log_fields"] == []
+    assert completeness["changed_surfaces"] == "present"
+    assert completeness["changed_stage_surfaces"] == "present_empty"
+    assert completeness["changed_paper_surfaces"] == "present_empty"
+    assert completeness["progress_delta_classification"] == "typed_blocker"
+    assert completeness["telemetry"] == "complete"
+    assert completeness["missing_telemetry_fields"] == []
+    assert completeness["typed_blocker"] is None
+    assert completeness["next_forced_delta"] is None
+
+
 def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     mcp_adapter = importlib.import_module("med_autoscience.mcp_server_parts.projection_adapters")

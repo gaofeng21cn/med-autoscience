@@ -37,6 +37,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["source_refs"]["late_stage_progress_sprint_contract_source"] == (
         "agent/stages/stage_route_contract.yaml#/late_stage_progress_sprint_contract"
     )
+    assert descriptor["source_refs"]["stage_route_obligations_descriptor_source"] == (
+        "med_autoscience.stage_route_contract.route_obligations_descriptor"
+    )
     assert descriptor["source_refs"]["knowledge_plane_contract_source"] == (
         "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
     )
@@ -74,6 +77,27 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["late_stage_progress_sprint_contract"] == route_payload[
         "late_stage_progress_sprint_contract"
     ]
+    route_obligations = descriptor["route_obligations_descriptor"]
+    assert route_obligations["surface_kind"] == "stage_route_obligations_descriptor"
+    assert route_obligations["contract_ref"] == "agent/stages/stage_route_contract.yaml"
+    assert route_obligations["status"] == "present"
+    assert route_obligations["route_count"] == len(route_payload["route_contracts"])
+    assert route_obligations["missing_route_fields"] == {}
+    assert route_obligations["blockers"] == []
+    assert list(route_obligations["routes"]) == list(route_payload["route_contracts"])
+    for route_id, route_contract in route_payload["route_contracts"].items():
+        route_descriptor = route_obligations["routes"][route_id]
+        assert route_descriptor["handoff_readiness"] == {
+            "status": "present",
+            "missing_fields": [],
+            "blocker": None,
+        }
+        assert route_descriptor["knowledge_input_obligations"]["items"] == route_contract[
+            "knowledge_input_obligations"
+        ]
+        assert route_descriptor["memory_closeout_obligations"]["items"] == route_contract[
+            "memory_closeout_obligations"
+        ]
 
     assert descriptor["stage_knowledge_plane"]["exploratory_stages"] == stage_contract["exploratory_stages"]
     assert descriptor["stage_knowledge_plane"]["packet_surfaces"] == list(stage_contract["packet_contracts"])
