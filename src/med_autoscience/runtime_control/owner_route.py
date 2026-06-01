@@ -760,6 +760,7 @@ def _fingerprint_action(action: Mapping[str, Any]) -> dict[str, Any]:
         "owner_route",
         "projection_counter",
         "read_model_revision",
+        "source_eval_id",
         "status",
     }
     return {

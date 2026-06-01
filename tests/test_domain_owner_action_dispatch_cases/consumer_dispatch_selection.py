@@ -240,6 +240,90 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
     assert called == [str(study_root)]
 
 
+def test_execute_dispatch_defaults_to_current_persisted_dispatch_when_consumer_latest_is_empty(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "publication_gate_specificity_required.json"
+    )
+    route = _owner_route(
+        study_id=study_id,
+        action_type="publication_gate_specificity_required",
+        owner="publication_gate",
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="publication_gate_specificity_required",
+        owner="publication_gate",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=route,
+    )
+    dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch_payload)
+    _write_scan_latest(profile, study_id, route)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "publication_gate_specificity" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "request_kind": "publication_gate_specificity_required",
+            "status": "requested",
+            "study_id": study_id,
+            "request_owner": "publication_gate",
+            "owner_route": route,
+        },
+    )
+
+    called: list[str] = []
+
+    def fake_publication_gate_specificity(**kwargs) -> dict[str, object]:
+        called.append(str(kwargs["study_id"]))
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "publication_gate.write_gate_files+_materialize_publication_eval_latest",
+        }
+
+    monkeypatch.setattr(module, "_execute_publication_gate_specificity", fake_publication_gate_specificity)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert called == [study_id]
+    summary = result["per_study_execution_summary"][0]
+    assert summary["selected_dispatch_count"] == 1
+    assert summary["zero_dispatch_reason"] is None
+    latest = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_execution"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert [item["action_type"] for item in latest["executions"]] == ["publication_gate_specificity_required"]
+
+
 def test_execute_dispatch_ignores_stale_consumer_dispatch_after_consumed_transition(
     monkeypatch,
     tmp_path: Path,

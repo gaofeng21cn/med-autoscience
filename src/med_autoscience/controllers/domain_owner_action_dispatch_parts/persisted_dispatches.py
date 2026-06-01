@@ -126,7 +126,38 @@ def selected_dispatches(
         if not requested or _text(payload.get("action_type")) in requested
     ]
     if not action_types:
-        return selected
+        selected_by_key = {
+            (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type"))): index
+            for index, payload in enumerate(selected)
+        }
+        for payload in explicit_action_dispatches(
+            profile=profile,
+            study_id=study_id,
+            action_types=tuple(sorted(supported_action_types)),
+            supported_action_types=supported_action_types,
+            dispatch_relative_root=dispatch_relative_root,
+        ):
+            if _dispatch_currentness_score(payload, current_study) <= (0, 0):
+                continue
+            key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
+            if key in selected_by_key:
+                index = selected_by_key[key]
+                selected[index] = _prefer_current_dispatch(
+                    profile=profile,
+                    consumer_dispatch=selected[index],
+                    persisted_dispatch=payload,
+                    scan_payload=scan_payload,
+                    study_id=study_id,
+                )
+                continue
+            selected_by_key[key] = len(selected)
+            selected.append(payload)
+        return _selected_dispatches_only(
+            profile=profile,
+            study_id=study_id,
+            dispatches=selected,
+            current_study=current_study,
+        )
     selected_keys = {
         (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         for payload in selected

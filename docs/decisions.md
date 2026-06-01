@@ -69,6 +69,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002/DM003 同时推进时，旧读模型能看到每篇 study 的 owner / work unit / blocker，但缺少 workspace/tick 级对账；`max_codex_dispatches=1` 又容易被误读成“一个 tick 只该派发一篇”。这会让系统看起来在持续监控，实际可能只反复投影 ready action 或只消费其中一篇。
 - 影响：这是 MAS controller/read-model 修复，不写 DM002/DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须由 OPL stage attempt、MAS owner receipt、typed blocker、AI reviewer eval、publication gate 和 package freshness proof 判定。
 
+## 2026-06-01：默认 owner dispatch 必须消费 current persisted dispatch，显式 action type 不能成为 Progress-First 必需条件
+
+- 决策：`domain-owner-action-dispatch` 在未传 `--action-types` 时，必须同时检查 `consumer/latest.json` inline dispatch 和 study-local `artifacts/supervision/consumer/default_executor_dispatches/*.json` persisted dispatch；只要 persisted dispatch 通过 current owner route / owner request / currentness score 校验，就应在同一 tick 被选中执行。
+- 决策：显式 `--action-types <action>` 只作为诊断、人工限流或特定 owner action 指定工具；正常 Progress-First owner tick 不应要求 operator 预先猜出 action type。stale consumed transition、缺 owner request、non-dispatchable route 或不匹配 currentness basis 的 persisted dispatch 继续 fail closed。
+- 理由：DM002 暴露出 materializer 已写出 current `return_to_ai_reviewer_workflow` dispatch，但 operator 按文档运行默认 `domain-owner-action-dispatch --apply` 时 selected 0；加上显式 `--action-types return_to_ai_reviewer_workflow` 才推进。这违反了 Progress-First same-tick 消费模型，把时间浪费在重复 materialize / read-model reconcile 和人工猜 action type 上。
+- 影响：这是 MAS dispatch selector 与 operator runbook 修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或投稿包。
+
 ## 2026-05-29：current AI reviewer write route-back 可从 blocking work units 恢复
 
 - 决策：`owner-route-reconcile` 读取当前 AI reviewer-backed `route_back_same_line` / `route_target=write` 推荐动作时，write work unit 可来自 `recommended_actions[].next_work_unit`，也可来自同一动作的 `recommended_actions[].blocking_work_units[]` 中第一个已注册 write/story-surface work unit。

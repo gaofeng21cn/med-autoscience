@@ -175,7 +175,7 @@ def _domain_transition_owner_route(
         and _text(transition.get("controller_action")) is not None
         and _mapping(transition.get("next_work_unit"))
     ):
-        current_study = _study_with_owner_route_currentness(study)
+        current_study = _study_with_owner_route_currentness(study, generated=generated)
         return owner_route_part.build_owner_route(
             study_id=study_id,
             quest_id=quest_id,
@@ -228,10 +228,14 @@ def _current_execution_is_authoritative(study: Mapping[str, Any]) -> bool:
     return state_kind in {"typed_blocker", "blocked_typed_owner", "parked"}
 
 
-def _study_with_owner_route_currentness(study: Mapping[str, Any]) -> dict[str, Any]:
+def _study_with_owner_route_currentness(
+    study: Mapping[str, Any],
+    *,
+    generated: list[dict[str, Any]],
+) -> dict[str, Any]:
     payload = dict(study)
     owner_route = owner_route_part.ensure_owner_route_v2(_mapping(payload.get("owner_route")))
-    if not owner_route:
+    if not owner_route or not any(_action_allowed_by_owner_route(action, owner_route) for action in generated):
         return payload
     source_refs = _mapping(owner_route.get("source_refs"))
     basis = _mapping(_mapping(owner_route.get("currentness_contract")).get("basis")) or _mapping(

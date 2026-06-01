@@ -104,6 +104,8 @@ def actions(
         action["executable_work_unit"] = work_unit_id
         action["controller_action"] = "run_gate_clearing_batch"
         action["domain_transition_decision_type"] = decision_type
+        if source_eval_id := _source_eval_id(status=status, publication_eval_payload=publication_eval_payload):
+            action["source_eval_id"] = source_eval_id
         if decision_type and work_unit_id:
             action["work_unit_fingerprint"] = f"domain-transition::{decision_type}::{work_unit_id}"
         if route_target:
@@ -222,7 +224,16 @@ def _source_eval_id(
     publication_eval_payload: Mapping[str, Any] | None,
 ) -> str | None:
     publication_eval = _mapping(publication_eval_payload) or _mapping(status.get("publication_eval"))
-    return _text(publication_eval.get("eval_id")) or _text(publication_eval.get("source_eval_id"))
+    transition = _mapping(status.get("domain_transition"))
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    return (
+        _text(completion.get("eval_id"))
+        or _text(transition.get("source_eval_id"))
+        or _text(transition.get("publication_eval_id"))
+        or _text(_mapping(transition.get("publication_eval_ref")).get("eval_id"))
+        or _text(publication_eval.get("eval_id"))
+        or _text(publication_eval.get("source_eval_id"))
+    )
 
 
 __all__ = ["actions"]
