@@ -468,6 +468,120 @@ def test_domain_handler_export_hydrates_only_one_current_default_executor_action
     )
 
 
+def test_domain_handler_export_falls_through_consumed_newer_dispatch_to_pending_owner_action(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    ai_route = _owner_route(
+        study_id=study_id,
+        next_owner="ai_reviewer",
+        owner_reason="ai_reviewer_assessment_required",
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        work_unit_fingerprint="truth-snapshot::current-ai-reviewer-record",
+        runtime_health_epoch="runtime-health-event-006265-ai",
+        blocked_actions=["run_quality_repair_batch", "run_gate_clearing_batch"],
+    )
+    write_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason="manuscript_story_surface_delta_missing",
+        action_type="run_quality_repair_batch",
+        work_unit_id="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        work_unit_fingerprint=(
+            "domain-transition::route_back_same_line::"
+            "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+        ),
+        runtime_health_epoch="runtime-health-event-006251-write",
+        blocked_actions=["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-05-31T23:02:05+00:00",
+        owner_route=write_route,
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="return_to_ai_reviewer_workflow.json",
+        action_type="return_to_ai_reviewer_workflow",
+        next_owner="ai_reviewer",
+        dispatch_authority="ai_reviewer_record_production_handoff",
+        generated_at="2026-06-01T01:53:26+00:00",
+        allowed_write_surfaces=[
+            "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        ],
+        owner_route=ai_route,
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_id,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "executed",
+                    "execution_id": f"execution::{study_id}::return_to_ai_reviewer_workflow::current",
+                    "idempotency_key": ai_route["idempotency_key"],
+                    "current_owner_route": ai_route,
+                    "prompt_contract": {"owner_route": ai_route},
+                    "owner_result": {
+                        "status": "materialized",
+                        "eval_id": f"publication-eval::{study_id}::current-ai-reviewer",
+                        "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                        "publication_eval_surface": "artifacts/publication_eval/latest.json",
+                        "reviewer_operating_system": {
+                            "contract_id": "medical_publication_ai_reviewer_os_v1",
+                        },
+                        "controller_decision_refresh": {
+                            "refresh_status": "materialized",
+                        },
+                    },
+                }
+            ],
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["run_quality_repair_batch"]
+    assert tasks[0]["payload"]["work_unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+    assert tasks[0]["payload"]["next_executable_owner"] == "write"
+
+
 def test_domain_handler_export_uses_immutable_packet_ref_when_latest_slot_is_overwritten(
     tmp_path: Path,
     capsys,

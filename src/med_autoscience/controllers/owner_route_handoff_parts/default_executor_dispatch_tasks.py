@@ -35,20 +35,18 @@ def default_executor_dispatch_tasks(
     if not dispatch_root.is_dir():
         return []
     tasks: list[dict[str, Any]] = []
-    for candidate in _current_dispatch_candidates(dispatch_root):
+    candidates = _current_dispatch_candidates(
+        dispatch_root,
+        profile=profile,
+        study_id=study_id,
+    )
+    for candidate in candidates:
         dispatch_path = candidate["path"]
         dispatch = candidate["dispatch"]
         if not isinstance(dispatch_path, Path) or not isinstance(dispatch, Mapping):
             continue
         action_type = _text(dispatch.get("action_type"))
         if action_type is None:
-            continue
-        if _dispatch_execution_receipt_consumed(
-            profile=profile,
-            study_id=study_id,
-            dispatch=dispatch,
-            action_type=action_type,
-        ):
             continue
         redrive_context = _dispatch_execution_redrive_context(
             profile=profile,
@@ -135,11 +133,26 @@ def default_executor_dispatch_tasks(
     return tasks
 
 
-def _current_dispatch_candidates(dispatch_root: Path) -> list[dict[str, Any]]:
+def _current_dispatch_candidates(
+    dispatch_root: Path,
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     for dispatch_path in sorted(dispatch_root.glob("*.json")):
         dispatch = _read_json_object(dispatch_path)
         if not _dispatch_ready_for_opl_attempt(dispatch):
+            continue
+        action_type = _text(dispatch.get("action_type"))
+        if action_type is None:
+            continue
+        if _dispatch_execution_receipt_consumed(
+            profile=profile,
+            study_id=study_id,
+            dispatch=dispatch,
+            action_type=action_type,
+        ):
             continue
         candidates.append(
             {

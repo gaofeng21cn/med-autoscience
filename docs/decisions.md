@@ -1670,6 +1670,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出 current AI reviewer record 已经 materialized 并被 MAS owner 接收后，旧 stale reviewer lifecycle 仍在 read-model 中残留，controller next work unit 回到 `produce_ai_reviewer_publication_eval_record_against_current_manuscript`，造成巡检层重复等待 reviewer 而没有推进论文修复。根因是 MAS lifecycle/currentness closure 未在 receipt consumed 后关闭 reviewer route，不是 OPL queue 或论文正文可手工修改的问题。
 - 影响：该修复只改变 MAS owner-route/read-model 和默认执行器 handoff contract。后续论文质量仍由 write owner、claim-evidence/display 修复、AI reviewer-backed publication eval 与 publication gate 判断；不得手工写 DM003 `paper/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json` 绕过 owner。
 
+## 2026-06-01：default-executor export 先消费 receipt 再选择下一 owner action
+
+- 决策：`domain-handler export` 在同一 study 的多个 `default_executor_dispatches/*.json` 中选择 `domain_owner/default-executor-dispatch` 前，必须先读取 MAS default-executor receipt consumption，剔除已经被当前 owner receipt 消费的 dispatch，再在剩余候选上执行 blocked-action、currentness 和 newest 选择。已消费的较新 `return_to_ai_reviewer_workflow` 不得遮蔽仍未消费的 `run_quality_repair_batch` 或后续 gate/delivery work unit。
+- 理由：DM003 暴露出当前 AI reviewer dispatch 已有 current receipt，write dispatch 仍未消费，但旧 export 先选择较新的 AI reviewer 候选，再因 receipt consumed 跳过，最终只导出 refs-only reconcile task，OPL scheduler tick 全部 idempotent-noop。根因是候选选择顺序错误，不是论文 truth、OPL provider liveness 或手工 queue 状态问题。
+- 影响：Progress-First 的正确节奏是 consumed owner step 立刻让位给下一未消费 owner work unit；MAS 仍不写 OPL runtime state、不直接 resume provider、不放宽 publication gate 或 submission/package authority。新增 `test_domain_handler_export_falls_through_consumed_newer_dispatch_to_pending_owner_action` 锁定该回归。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。
