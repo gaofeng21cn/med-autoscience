@@ -8,6 +8,9 @@ from med_autoscience.controllers.study_transition_receipt_consumption import (
     default_executor_execution_nonconsumable_closeout,
     default_executor_execution_receipt_consumption,
 )
+from med_autoscience.controllers.owner_route_reconcile_parts.controller_followthrough_actions import (
+    action_from_controller_route,
+)
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -46,6 +49,23 @@ def _quality_repair_owner_route(study_id: str = "002-dm-china-us-mortality-attri
         },
         "idempotency_key": f"owner-route::{study_id}::current-write-repair",
     }
+
+
+def test_controller_followthrough_action_mapper_accepts_structured_controller_actions() -> None:
+    action = action_from_controller_route(
+        {
+            "controller_actions": [{"action_type": "return_to_ai_reviewer_workflow"}],
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "route_target": "review",
+            "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::current",
+        }
+    )
+
+    assert action is not None
+    assert action["action_type"] == "return_to_ai_reviewer_workflow"
+    assert action["owner"] == "ai_reviewer"
+    assert action["publication_eval_latest_write_allowed"] is False
+    assert action["paper_package_mutation_allowed"] is False
 
 
 def _nonconsumable_execution(*, study_root: Path, owner_route: dict, execution_id: str) -> dict:
@@ -343,6 +363,166 @@ def test_consumed_write_closeout_projects_current_ai_reviewer_controller_followt
     assert action["controller_work_unit_id"] == ai_work_unit
     assert action["request_owner"] == "ai_reviewer"
     assert action["reason"] == "domain_transition_ai_reviewer_re_eval"
+
+
+def test_scan_consumed_write_closeout_projects_current_ai_reviewer_followthrough(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    source_eval_id = "publication-eval::dm002::current-inputs::20260601"
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": source_eval_id,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::current-write-repair",
+                "next_work_unit": {
+                    "unit_id": "current-write-repair",
+                    "lane": "write",
+                    "summary": "Repair the current manuscript story surface.",
+                },
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    ai_work_unit = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    status = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": None,
+        "publication_eval": publication_eval,
+        "domain_transition": {
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "controller_action": "request_opl_stage_attempt",
+            "owner": "write",
+            "next_work_unit": {"unit_id": "current-write-repair", "lane": "write"},
+            "typed_blocker": None,
+        },
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-event-dm002-followthrough",
+            "canonical_runtime_action": "request_opl_stage_attempt",
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-dm002-followthrough",
+            "source_signature": "truth-source-dm002-followthrough",
+        },
+    }
+    progress = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_opl_runtime_owner_handoff_gap",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "study_truth_snapshot": status["study_truth_snapshot"],
+    }
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status, progress, study_id, publication_eval),
+    )
+
+    before_receipt = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+    )
+    owner_route = before_receipt["studies"][0]["action_queue"][0]["owner_route"]
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "dm002-current-ai-reviewer-route",
+            "decision_type": "continue_same_line",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "return_to_ai_reviewer_workflow"}],
+            "route_target": "review",
+            "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{ai_work_unit}",
+            "next_work_unit": {
+                "unit_id": ai_work_unit,
+                "lane": "review",
+                "summary": "Produce a current AI reviewer publication-eval record.",
+            },
+        },
+    )
+    _write_repeated_nonconsumable_execution(study_root, owner_route)
+    _write_json(
+        study_root / "paper" / "review" / "domain_stage_closeout_sat_story_20260601T015622Z.json",
+        {
+            "surface_kind": "domain_stage_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": "sat_story",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "owner": "write",
+            "status": "completed_for_write_owner_idempotent",
+            "required_output_surface": "canonical manuscript story-surface delta",
+            "owner_route_basis": owner_route["source_refs"]["owner_route_currentness_basis"],
+            "artifact_delta": {
+                "status": "already_materialized_for_stage_packet",
+                "story_surface_delta_present": True,
+                "changed_artifact_refs": [
+                    {
+                        "path": (
+                            "studies/002-dm-china-us-mortality-attribution/paper/review/"
+                            "manuscript_story_repair_story_surface_sat_story.json"
+                        )
+                    }
+                ],
+                "manuscript_surface_hygiene": {
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": True,
+                    "blockers": [],
+                },
+            },
+        },
+    )
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    receipt = study["default_executor_execution_receipt_consumption"]
+    assert receipt["status"] == "consumed"
+    assert receipt["consumption_mode"] == "current_controller_followthrough"
+    assert receipt["followthrough_to_action_type"] == "return_to_ai_reviewer_workflow"
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "ai_reviewer"
+    assert action["next_work_unit"] == ai_work_unit
+    assert action["controller_work_unit_id"] == ai_work_unit
+    assert study["owner_route"]["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
 
 
 def test_default_executor_missing_closeout_refs_consumes_typed_blocker_without_redrive(

@@ -14,6 +14,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import analysis_har
 from med_autoscience.controllers.owner_route_reconcile_parts import artifact_freshness
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import completion_evidence
+from med_autoscience.controllers.owner_route_reconcile_parts import controller_followthrough_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import current_ai_reviewer_record_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import currentness_preemption_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
@@ -556,22 +557,9 @@ def _current_controller_ai_reviewer_action(
     )
     if controller_route is None:
         return None
-    if "return_to_ai_reviewer_workflow" not in set(_string_items(controller_route.get("controller_actions"))):
+    action = controller_followthrough_actions.action_from_controller_route(controller_route)
+    if _text(_mapping(action).get("action_type")) != "return_to_ai_reviewer_workflow":
         return None
-    work_unit_id = _text(controller_route.get("work_unit_id"))
-    if work_unit_id is None:
-        return None
-    action = ai_reviewer_actions.ai_reviewer_required_action(reason="domain_transition_ai_reviewer_re_eval")
-    action["summary"] = "The current controller decision routes this study back to the AI reviewer workflow."
-    action["next_work_unit"] = work_unit_id
-    action["executable_work_unit"] = work_unit_id
-    action["controller_work_unit_id"] = work_unit_id
-    action["route_target"] = _text(controller_route.get("route_target")) or "review"
-    action["domain_transition_decision_type"] = "ai_reviewer_re_eval"
-    action["controller_route"] = dict(controller_route)
-    action["work_unit_fingerprint"] = _text(controller_route.get("work_unit_fingerprint"))
-    action["publication_eval_latest_write_allowed"] = False
-    action["controller_decision_write_allowed"] = False
     return action
 
 

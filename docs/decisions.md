@@ -15,7 +15,10 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 - 决策：`default_executor_execution_receipt_consumption` 成功消费上一 owner 的 executed receipt 后，owner-route read model 不得把 `actions=[]` 当成最终状态；必须重新读取当前 `controller_decisions/latest.json`，把仍然有效的 controller next work unit 投影为下一步 `executable_owner_action`，或保留具体 typed blocker。
 - 决策：当前 controller route 指向 `return_to_ai_reviewer_workflow` 时，follow-through owner 是 `ai_reviewer`；指向 publication-gate replay family 的 `run_gate_clearing_batch` 时，follow-through owner 是 `gate_clearing_batch`。若 consumed receipt 已经覆盖同一 action/work-unit，不重驱同一 owner route。
+- 决策：当当前 controller decision 已经抢先投影下一 owner action 时，receipt consumer 仍必须用 `domain_transition` 中的上一 `request_opl_stage_attempt` / `run_quality_repair_batch` work unit 扫描并消费上一 writer owner receipt；消费成功后再统一通过 controller follow-through action mapper 投影下一 owner。不得因为当前 action queue 已切到 AI reviewer 或 gate-clearing 而跳过上一 owner receipt。
+- 决策：controller route 到 follow-through action 的机器映射统一由 `controller_followthrough_actions` 提供，`current_controller_followthrough` 与普通 action projection 复用同一路径，避免 receipt-consumption、scan read-model 与 materializer/dispatcher 对同一 controller work unit 分叉解释。
 - 理由：DM002/DM003 暴露出上一 owner receipt 已被正确消费后，顶层 envelope 被清成 `current_execution_unresolved`，导致后续 tick 继续 materialize/receipt/reconcile，而不是按 controller truth 进入 AI reviewer、gate-clearing 或明确 blocker。这违反 Progress-first：receipt consumption 是交接点，不是流程终点。
+- 理由：新增 scan-level 回归覆盖了当前 controller decision 已存在、action queue 已可投影 AI reviewer 时，`scan_domain_routes` 仍先消费同 work unit 的 writer idempotent closeout，再把 `return_to_ai_reviewer_workflow` 投影为当前 executable owner action。
 - 影响：该修复只改变 MAS owner-route read-model/current-control projection，不写 study truth、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 canonical paper。后续论文推进仍由 MAS/OPL owner path materialize、dispatch、owner receipt、AI reviewer 和 publication gate 判定。
 
 ## 2026-06-01：consumed-transition gate replay selector 必须复用 materializer owner-route currentness
