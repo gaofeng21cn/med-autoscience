@@ -85,6 +85,78 @@
       "typed_blocker"
     ]
   },
+  "purpose_first_owner_delta_gate": {
+    "surface_kind": "mas_purpose_first_owner_delta_gate",
+    "version": "mas-purpose-first-owner-delta-gate.v1",
+    "owner": "MedAutoScience",
+    "state": "active_gate",
+    "goal": "prevent read-model, dispatcher, lifecycle, provider, or refs-only accounting work from being counted as MAS paper-line progress unless it produces domain owner delta or a stable typed blocker",
+    "allowed_domain_delta_outputs": [
+      "paper_or_manuscript_delta_ref",
+      "artifact_or_package_delta_ref",
+      "independent_reviewer_or_auditor_record_ref",
+      "memory_writeback_receipt_ref",
+      "artifact_lifecycle_receipt_ref",
+      "human_gate_or_resume_receipt_ref",
+      "mas_owner_receipt_ref",
+      "no_forbidden_write_proof_ref",
+      "stable_typed_blocker_ref"
+    ],
+    "platform_repair_only_outputs": [
+      "read_model_currentness_reconcile",
+      "dispatcher_hydration_or_identity_match",
+      "lifecycle_accounting_or_handoff_shape",
+      "opl_refs_only_ledger_record_verify",
+      "provider_completion_without_domain_delta",
+      "projection_hygiene",
+      "worklist_count_zero"
+    ],
+    "classification_policy": {
+      "domain_delta_requires_one_of_allowed_outputs": true,
+      "stable_typed_blocker_can_close_current_attempt": true,
+      "platform_repair_must_not_close_paper_line": true,
+      "platform_repair_must_emit_next_owner_and_next_required_delta": true,
+      "not_triggered_is_success": false,
+      "zero_open_worklist_is_domain_ready": false
+    },
+    "owner_boundary": {
+      "mas_owns": [
+        "study_truth",
+        "publication_quality",
+        "paper_or_artifact_delta",
+        "memory_accept_reject_blocker_decision",
+        "artifact_mutation_authority",
+        "owner_receipt",
+        "stable_typed_blocker"
+      ],
+      "opl_owns": [
+        "generic_currentness_transport",
+        "dispatcher_hydration",
+        "attempt_ledger",
+        "queue_retry_dead_letter_resume",
+        "generic_lifecycle_apply",
+        "app_workbench_projection"
+      ],
+      "opl_may_claim_mas_owner_delta": false
+    },
+    "human_doc_refs": [
+      {
+        "ref": "docs/status.md#当前机器事实",
+        "role": "current_truth_foldback",
+        "body_included": false
+      },
+      {
+        "ref": "docs/active/mas-ideal-state-gap-plan.md#当前测试证据差距",
+        "role": "active_gap_plan_gate",
+        "body_included": false
+      },
+      {
+        "ref": "/Users/gaofeng/workspace/one-person-lab/docs/active/opl-family-purpose-first-design-audit.md#med-autoscience",
+        "role": "purpose_first_design_audit_input",
+        "body_included": false
+      }
+    ]
+  },
   "paper_line_guarded_apply_evidence": {
     "surface_kind": "mas_paper_line_guarded_apply_evidence_scaleout",
     "version": "mas-paper-line-guarded-apply-evidence-scaleout.v1",
