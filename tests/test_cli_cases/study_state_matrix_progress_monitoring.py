@@ -213,7 +213,7 @@ def test_study_state_matrix_prioritizes_terminal_closeout_telemetry_gap(
     assert studies[1]["throughput_bottleneck"] == "observability_only"
 
 
-def test_study_state_matrix_treats_closeout_semantic_gap_as_observability_when_owner_action_ready(
+def test_study_state_matrix_fail_closes_closeout_semantic_gap_when_owner_action_ready(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -262,9 +262,10 @@ def test_study_state_matrix_treats_closeout_semantic_gap_as_observability_when_o
     study = json.loads(capsys.readouterr().out)["progress_first_tick_accounting"]["studies"][0]
 
     assert exit_code == 0
-    assert study["monitoring_status"] == "ready_for_dispatch"
+    assert study["monitoring_status"] == "blocked_owner_route_contract"
     assert study["missing_closeout_semantics"] is True
-    assert study["throughput_bottleneck"] == "ready_owner_action"
+    assert study["owner_route_contract_blocker"] == "typed_closeout_semantics_required"
+    assert study["throughput_bottleneck"] == "missing_closeout_semantics"
 
 
 def test_study_state_matrix_treats_new_owner_action_as_ready_after_prior_receipt_consumed(
