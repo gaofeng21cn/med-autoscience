@@ -54,7 +54,14 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _work_unit_from_action_queue(handoff.get("action_queue"))
         or _work_unit_projection(next_forced_delta.get("work_unit_id"))
     )
-    typed_blocker = _mapping(execution.get("typed_blocker")) or _mapping(domain_transition.get("typed_blocker"))
+    typed_blocker = (
+        _mapping(execution.get("typed_blocker"))
+        or _mapping(domain_transition.get("typed_blocker"))
+        or _terminal_closeout_typed_blocker_projection(
+            latest_terminal_stage_log=latest_terminal_stage_log,
+            paper_stage_log=paper_stage_log,
+        )
+    )
     current_blockers = _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
     running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
     state_kind = _text(execution.get("state_kind"))
@@ -303,6 +310,42 @@ def _terminal_closeout_typed_blocker(
     ):
         return "typed_closeout_packet_required"
     return None
+
+
+def _terminal_closeout_typed_blocker_projection(
+    *,
+    latest_terminal_stage_log: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not latest_terminal_stage_log:
+        return {}
+    missing_user_fields = _missing_user_stage_log_fields(
+        latest_terminal_stage_log=latest_terminal_stage_log,
+        paper_stage_log=paper_stage_log,
+    )
+    missing_telemetry_fields = _missing_telemetry_fields(latest_terminal_stage_log)
+    changed_stage_status = _field_presence_status(paper_stage_log, "changed_stage_surfaces")
+    changed_paper_status = _field_presence_status(paper_stage_log, "changed_paper_surfaces")
+    changed_surfaces_status = (
+        "missing"
+        if changed_stage_status == "missing" and changed_paper_status == "missing"
+        else "present"
+    )
+    blocker_id = _terminal_closeout_typed_blocker(
+        latest_terminal_stage_log=latest_terminal_stage_log,
+        missing_user_fields=missing_user_fields,
+        missing_telemetry_fields=missing_telemetry_fields,
+        changed_surfaces_status=changed_surfaces_status,
+        progress_delta_classification=_text(paper_stage_log.get("progress_delta_classification")),
+    )
+    if blocker_id is None:
+        return {}
+    return {
+        "blocker_id": blocker_id,
+        "blocker_type": "provider_completed_without_typed_closeout",
+        "owner": "one-person-lab",
+        "summary": "Provider completion needs a typed closeout packet.",
+    }
 
 
 def _missing_user_stage_log_fields(

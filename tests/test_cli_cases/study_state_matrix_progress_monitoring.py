@@ -213,6 +213,117 @@ def test_study_state_matrix_prioritizes_terminal_closeout_telemetry_gap(
     assert studies[1]["throughput_bottleneck"] == "observability_only"
 
 
+def test_study_state_matrix_treats_closeout_semantic_gap_as_observability_when_owner_action_ready(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "001-ready-with-semantic-gap"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        cli.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": study_id,
+                "running_provider_attempt": False,
+                "execution_state_kind": "executable_owner_action",
+                "next_owner": "write",
+                "controller_action": "run_quality_repair_batch",
+                "next_work_unit": {"unit_id": "medical_prose_write_repair", "lane": "write"},
+                "dispatch_consumption": {},
+                "latest_terminal_stage": {
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "status": "handoff_ready",
+                    "semantic_completeness": {
+                        "status": "missing_required_fields",
+                        "missing_fields": ["stage_goal"],
+                    },
+                    "telemetry_completeness": {"status": "complete", "missing_fields": []},
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    study = json.loads(capsys.readouterr().out)["progress_first_tick_accounting"]["studies"][0]
+
+    assert exit_code == 0
+    assert study["monitoring_status"] == "ready_for_dispatch"
+    assert study["missing_closeout_semantics"] is True
+    assert study["throughput_bottleneck"] == "ready_owner_action"
+
+
+def test_study_state_matrix_treats_new_owner_action_as_ready_after_prior_receipt_consumed(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "003-prior-receipt-new-owner-action"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        cli.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": study_id,
+                "running_provider_attempt": False,
+                "next_owner": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "publication_gate",
+                },
+                "typed_blocker": {
+                    "blocker_type": "ai_reviewer_assessment_required",
+                    "owner": "ai_reviewer",
+                },
+                "dispatch_consumption": {
+                    "consumption_status": "receipt_consumed",
+                    "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    accounting = json.loads(capsys.readouterr().out)["progress_first_tick_accounting"]
+    study = accounting["studies"][0]
+
+    assert exit_code == 0
+    assert accounting["expected_owner_action_count"] == 1
+    assert accounting["ready_for_owner_action_count"] == 1
+    assert study["monitoring_status"] == "ready_for_dispatch"
+    assert study["throughput_bottleneck"] == "ready_owner_action"
+    assert study["dispatch_consumption"]["consumption_status"] == "receipt_consumed"
+
+
 def test_study_state_matrix_exposes_supervisor_monitoring_bundle_without_writes(
     monkeypatch,
     tmp_path: Path,
@@ -342,3 +453,69 @@ def test_study_state_matrix_exposes_supervisor_monitoring_bundle_without_writes(
     assert bundle["next_work_unit"]["unit_id"] == "typed_closeout_packet_required"
     assert bundle["authority_boundary"]["can_write_study_truth"] is False
     assert bundle["authority_boundary"]["can_authorize_quality_verdict"] is False
+
+
+def test_study_state_matrix_keeps_typed_closeout_packet_as_typed_blocker(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-typed-closeout"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        cli.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": study_id,
+                "running_provider_attempt": False,
+                "execution_state_kind": "blocked_typed_owner",
+                "typed_blocker": {
+                    "blocker_id": "typed_closeout_packet_required",
+                    "blocker_type": "provider_completed_without_typed_closeout",
+                    "summary": "Provider completion needs a typed closeout packet.",
+                },
+                "current_blockers": ["typed_closeout_packet_required"],
+                "latest_terminal_stage": {
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "status": "completed_without_typed_closeout",
+                    "terminal_closeout_semantic_completeness": {
+                        "status": "typed_blocker",
+                        "typed_blocker": "typed_closeout_packet_required",
+                    },
+                    "semantic_completeness": {
+                        "status": "missing_required_fields",
+                        "missing_fields": ["stage_goal"],
+                    },
+                    "telemetry_completeness": {
+                        "status": "missing_required_fields",
+                        "missing_fields": ["duration", "token_usage", "cost"],
+                    },
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    accounting = json.loads(capsys.readouterr().out)["progress_first_tick_accounting"]
+    study = accounting["studies"][0]
+
+    assert exit_code == 0
+    assert accounting["typed_blocker_count"] == 1
+    assert study["monitoring_status"] == "blocked_typed_owner"
+    assert study["throughput_bottleneck"] == "typed_blocker"
+    assert study["typed_blocker"]["blocker_id"] == "typed_closeout_packet_required"
+    assert study["missing_closeout_semantics"] is True

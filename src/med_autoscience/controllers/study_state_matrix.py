@@ -308,7 +308,20 @@ def _progress_first_monitoring_summary(
         projection.get("progress_first_monitoring_summary")
     )
     next_work_unit = _dict(existing.get("next_work_unit")) or _dict(transition.get("next_work_unit"))
-    typed_blocker = _dict(existing.get("typed_blocker")) or _dict(transition.get("typed_blocker"))
+    existing_owner_action = (
+        _text(existing.get("next_owner")) is not None
+        or _text(existing.get("controller_action")) is not None
+        or bool(_dict(existing.get("next_work_unit")))
+    )
+    existing_dispatch_consumption = _dict(existing.get("dispatch_consumption"))
+    existing_receipt_consumed = _text(existing_dispatch_consumption.get("consumption_status")) in {
+        "consumed",
+        "receipt_consumed",
+        "completed",
+    }
+    typed_blocker = _dict(existing.get("typed_blocker")) or (
+        {} if existing_owner_action or existing_receipt_consumed else _dict(transition.get("typed_blocker"))
+    )
     current_blockers = _string_list(existing.get("current_blockers"))
     if not current_blockers and typed_blocker:
         current_blockers = [
@@ -333,6 +346,7 @@ def _progress_first_monitoring_summary(
         "running_provider_attempt": existing.get("running_provider_attempt"),
         "worker_liveness": _dict(existing.get("worker_liveness")),
         "execution_state_kind": _text(existing.get("execution_state_kind")),
+        "owner_action_current": existing_owner_action,
         "next_owner": _text(existing.get("next_owner")) or _text(transition.get("owner")),
         "route_target": _text(existing.get("route_target")) or _text(transition.get("route_target")),
         "controller_action": _text(existing.get("controller_action")) or _text(transition.get("controller_action")),
@@ -346,7 +360,7 @@ def _progress_first_monitoring_summary(
         "next_forced_delta": _dict(existing.get("next_forced_delta")),
         "stage_progress_log": _dict(existing.get("stage_progress_log")),
         "latest_terminal_stage": _dict(existing.get("latest_terminal_stage")) or None,
-        "dispatch_consumption": _dict(existing.get("dispatch_consumption")),
+        "dispatch_consumption": existing_dispatch_consumption,
         "foreground_write_policy": _dict(existing.get("foreground_write_policy")),
         "source_refs": _string_list(existing.get("source_refs")),
         "publication_eval": _publication_eval_monitoring_summary(study_root=study_root),
@@ -587,18 +601,18 @@ def _throughput_priority_key(item: Mapping[str, Any]) -> tuple[int, str]:
         rank = 10
     elif status == "stalled_unconsumed_action":
         rank = 20
-    elif item.get("missing_closeout_semantics") is True:
-        rank = 30
-    elif item.get("missing_stage_telemetry") is True:
-        rank = 35
     elif status == "ready_for_dispatch":
-        rank = 40
+        rank = 30
     elif status == "running":
-        rank = 50
+        rank = 40
     elif status == "blocked_typed_owner":
-        rank = 60
+        rank = 50
     elif status == "human_gate":
+        rank = 60
+    elif item.get("missing_closeout_semantics") is True:
         rank = 70
+    elif item.get("missing_stage_telemetry") is True:
+        rank = 75
     elif status == "receipt_consumed":
         rank = 80
     else:
@@ -618,10 +632,6 @@ def _throughput_bottleneck(
         return "owner_pickup_overdue"
     if monitoring_status == "stalled_unconsumed_action":
         return "ready_owner_action_unconsumed"
-    if missing_closeout_semantics:
-        return "missing_closeout_semantics"
-    if target_surface_specificity == "generic_route_obligation_fallback":
-        return "generic_target_surface"
     if monitoring_status == "ready_for_dispatch":
         return "ready_owner_action"
     if monitoring_status == "running":
@@ -630,6 +640,10 @@ def _throughput_bottleneck(
         return "typed_blocker"
     if monitoring_status == "human_gate":
         return "human_gate"
+    if target_surface_specificity == "generic_route_obligation_fallback":
+        return "generic_target_surface"
+    if missing_closeout_semantics:
+        return "missing_closeout_semantics"
     if missing_stage_telemetry:
         return "missing_stage_telemetry"
     return "observability_only"
@@ -645,14 +659,18 @@ def _progress_first_monitoring_status(
     if _is_human_gate(summary):
         return "human_gate"
     consumption_status = _text(dispatch_consumption.get("consumption_status"))
-    if consumption_status in {"consumed", "receipt_consumed", "completed"}:
-        return "receipt_consumed"
-    if _text(summary.get("next_owner")) is not None or _text(summary.get("controller_action")) is not None:
+    owner_action_current = summary.get("owner_action_current")
+    if owner_action_current is True or (
+        owner_action_current is None
+        and (_text(summary.get("next_owner")) is not None or _text(summary.get("controller_action")) is not None)
+    ):
         if consumption_status in {"unconsumed", "stale", "overdue"} or _owner_pickup_overdue(dispatch_consumption):
             return "stalled_unconsumed_action"
         return "ready_for_dispatch"
     if _dict(summary.get("typed_blocker")):
         return "blocked_typed_owner"
+    if consumption_status in {"consumed", "receipt_consumed", "completed"}:
+        return "receipt_consumed"
     return "observability_only"
 
 

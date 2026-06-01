@@ -236,6 +236,9 @@ def current_owner_route_from_scan_payload(
     action_route = _current_action_queue_owner_route(current_study, dispatch=dispatch)
     if action_route is not None:
         return action_route, "scan_action_queue"
+    dispatch_route = _dispatch_current_owner_route(dispatch)
+    if dispatch_route is not None:
+        return dispatch_route, "dispatch_owner_route"
     return None, None
 
 
@@ -330,6 +333,17 @@ def _current_action_queue_owner_route(
             continue
         return route
     return None
+
+
+def _dispatch_current_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
+    route = _dispatch_owner_route(dispatch)
+    if not route:
+        return None
+    if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=route):
+        return None
+    if not owner_route_part.route_allows_action(action=dispatch, owner_route=route):
+        return None
+    return route
 
 
 def _dispatch_stall_matches_scan(*, dispatch: Mapping[str, Any], current_study: Mapping[str, Any]) -> bool:
