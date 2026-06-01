@@ -70,6 +70,7 @@ REQUIRED_SPRINT_CONTRACT_LIST_FIELDS = (
     "forbidden_control_plane_outputs",
     "admission_order",
     "quality_gate_policy",
+    "currentness_followthrough_policy",
     "authority_boundary",
 )
 REQUIRED_SPRINT_CONTRACT_STRING_POLICY_FIELDS = (

@@ -274,6 +274,43 @@ def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id()
     assert route["currentness_contract"]["missing_required_fields"] == []
 
 
+def test_owner_route_protocol_normalizes_publication_eval_ref_as_source_eval_currentness() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    route = protocol.decorate_owner_route(
+        {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "truth_epoch": "truth-event-dm002-current-eval",
+            "route_epoch": "truth-event-dm002-current-eval",
+            "source_fingerprint": "truth-source-dm002-current-eval",
+            "work_unit_fingerprint": "work-unit::dm002-current-ai-reviewer",
+            "current_owner": "mas_controller",
+            "next_owner": "ai_reviewer",
+            "owner_reason": "domain_transition_ai_reviewer_re_eval",
+            "failure_signature": "domain_transition_ai_reviewer_re_eval",
+            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            "idempotency_key": "owner-route::dm002::current-ai-reviewer",
+            "source_refs": {
+                "publication_eval_ref": {
+                    "eval_id": "publication-eval::dm002::current-ai-reviewer",
+                    "artifact_path": "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                },
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": "work-unit::dm002-current-ai-reviewer",
+                "study_truth_epoch": "truth-event-dm002-current-eval",
+            },
+        }
+    )
+
+    basis = route["source_refs"]["owner_route_currentness_basis"]
+    assert basis["source_eval_id"] == "publication-eval::dm002::current-ai-reviewer"
+    assert route["currentness_contract"]["missing_required_fields"] == []
+    assert route["owner_route_attempt_protocol"]["dispatchable"] is True
+
+
 def test_owner_route_protocol_treats_unregistered_reason_as_diagnostic_when_route_is_complete() -> None:
     owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
 

@@ -110,10 +110,14 @@ def currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     route = _mapping(owner_route)
     source_refs = _mapping(route.get("source_refs"))
     embedded_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    publication_eval_ref = _mapping(source_refs.get("publication_eval_ref")) or _mapping(route.get("publication_eval_ref"))
     return _compact_mapping(
         {
             "source_eval_id": source_refs.get("source_eval_id")
+            or source_refs.get("publication_eval_id")
+            or publication_eval_ref.get("eval_id")
             or route.get("source_eval_id")
+            or route.get("publication_eval_id")
             or embedded_basis.get("source_eval_id"),
             "work_unit_id": source_refs.get("work_unit_id")
             or route.get("work_unit_id")

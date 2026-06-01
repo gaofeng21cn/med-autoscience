@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.runtime_control import paper_work_unit_lifecycle_for_action
 from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import domain_authority_refs_index
@@ -277,6 +278,11 @@ def _owner_route_block_reason(*, dispatch: Mapping[str, Any], current_route: Map
         return "owner_route_stale"
     if not owner_route_part.route_allows_action(action=dispatch, owner_route=current_route):
         return "owner_route_next_owner_mismatch"
+    if not owner_route_attempt_protocol.route_protocol_dispatchable(
+        current_route,
+        action_type=_text(dispatch.get("action_type")),
+    ):
+        return "owner_route_currentness_basis_missing"
     return None
 
 

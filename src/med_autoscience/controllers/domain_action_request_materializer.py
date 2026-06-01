@@ -343,11 +343,25 @@ def _default_executor_dispatch(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+    dispatch_shell = {
+        "action_type": action_type,
+        "next_executable_owner": next_executable_owner,
+        "owner_route": owner_route or None,
+        "prompt_contract": prompt_contract,
+        "required_closeout_packet": typed_closeout_contract,
+        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
+        "forbidden_surfaces": list(forbidden_surfaces),
+        "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
+    }
+    owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
+        dispatch=dispatch_shell
+    )
     dispatch_status = (
         "ready"
         if apply
         and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
         and developer_mode_payload.get("safe_actions_enabled") is True
+        and owner_route_attempt_envelope.get("dispatchable") is True
         and owner_route_part.route_allows_action(
             action={
                 **dict(action),
@@ -365,6 +379,7 @@ def _default_executor_dispatch(
         action_type=action_type,
         next_executable_owner=next_executable_owner,
         owner_route=owner_route,
+        owner_route_attempt_envelope=owner_route_attempt_envelope,
     )
     current_study = _current_scan_study(scan_payload, study_id)
     repeat_guard = repeat_suppression.dispatch_repeat_suppression(
@@ -384,19 +399,6 @@ def _default_executor_dispatch(
     if dispatch_status == "ready" and closeout_admission.get("admission_status") == "blocked":
         dispatch_status = "blocked"
         blocked_reason = _text(closeout_admission.get("blocked_reason"))
-    dispatch_shell = {
-        "action_type": action_type,
-        "next_executable_owner": next_executable_owner,
-        "owner_route": owner_route or None,
-        "prompt_contract": prompt_contract,
-        "required_closeout_packet": typed_closeout_contract,
-        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
-        "forbidden_surfaces": list(forbidden_surfaces),
-        "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
-    }
-    owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
-        dispatch=dispatch_shell
-    )
     return _default_executor_dispatch_payload(
         profile=profile,
         action=action,
@@ -500,11 +502,14 @@ def _default_executor_dispatch_blocked_reason(
     action_type: str,
     next_executable_owner: str,
     owner_route: Mapping[str, Any],
+    owner_route_attempt_envelope: Mapping[str, Any],
 ) -> str | None:
     if dispatch_status != "blocked":
         return None
     if reason := _github_block_reason(developer_mode_payload):
         return reason
+    if owner_route_attempt_envelope.get("dispatchable") is not True:
+        return "owner_route_currentness_basis_missing"
     if owner_route_part.route_allows_action(
         action={
             **dict(action),

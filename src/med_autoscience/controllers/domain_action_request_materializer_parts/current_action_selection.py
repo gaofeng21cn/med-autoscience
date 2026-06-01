@@ -52,7 +52,11 @@ def _current_study_actions(
     study: Mapping[str, Any],
     top_level_actions: Iterable[Mapping[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    queue_actions = _study_queue_actions(study=study, top_level_actions=top_level_actions)
+    top_level_study_actions = _top_level_study_actions(study=study, top_level_actions=top_level_actions)
+    queue_actions, queue_source = _study_queue_actions(
+        study=study,
+        top_level_study_actions=top_level_study_actions,
+    )
     current_queue_actions = [
         action for action in queue_actions if _queue_action_allowed_by_current_study_route(action, study)
     ]
@@ -60,38 +64,66 @@ def _current_study_actions(
         return current_queue_actions, []
     transition_actions = _domain_transition_current_actions(study)
     if not transition_actions:
+        if queue_source == "per_study_empty":
+            return [], [
+                _ignored_action(action, "superseded_by_current_study_empty_action_queue")
+                for action in top_level_study_actions
+            ]
+        if _current_execution_is_authoritative(study):
+            return [], [
+                _ignored_action(action, "superseded_by_current_execution_envelope")
+                for action in top_level_study_actions
+            ]
         return queue_actions, []
     ignored = [_ignored_action(action, "superseded_by_current_domain_transition") for action in queue_actions]
+    if queue_source == "per_study_empty":
+        ignored.extend(
+            _ignored_action(action, "superseded_by_current_domain_transition")
+            for action in top_level_study_actions
+        )
     return transition_actions, ignored
 
 
 def _study_queue_actions(
     *,
     study: Mapping[str, Any],
-    top_level_actions: Iterable[Mapping[str, Any]],
-) -> list[dict[str, Any]]:
+    top_level_study_actions: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], str]:
     study_id = _text(study.get("study_id"))
     quest_id = _text(study.get("quest_id"))
     actions: list[dict[str, Any]] = []
-    for action in study.get("action_queue") or []:
-        if not isinstance(action, Mapping):
-            continue
+    if "action_queue" in study:
+        for action in study.get("action_queue") or []:
+            if not isinstance(action, Mapping):
+                continue
+            payload = dict(action)
+            if study_id is not None:
+                payload["study_id"] = _text(payload.get("study_id")) or study_id
+            if quest_id is not None:
+                payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
+            actions.append(payload)
+        return actions, "per_study" if actions else "per_study_empty"
+    if _current_execution_is_authoritative(study):
+        return [], "current_execution_envelope"
+    for action in top_level_study_actions:
         payload = dict(action)
-        if study_id is not None:
-            payload["study_id"] = _text(payload.get("study_id")) or study_id
         if quest_id is not None:
             payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
         actions.append(payload)
-    if actions:
-        return actions
-    for action in top_level_actions:
-        if _text(action.get("study_id")) != study_id:
-            continue
-        payload = dict(action)
-        if quest_id is not None:
-            payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
-        actions.append(payload)
-    return actions
+    return actions, "top_level"
+
+
+def _top_level_study_actions(
+    *,
+    study: Mapping[str, Any],
+    top_level_actions: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    study_id = _text(study.get("study_id"))
+    return [
+        dict(action)
+        for action in top_level_actions
+        if isinstance(action, Mapping) and _text(action.get("study_id")) == study_id
+    ]
 
 
 def _domain_transition_current_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -143,15 +175,16 @@ def _domain_transition_owner_route(
         and _text(transition.get("controller_action")) is not None
         and _mapping(transition.get("next_work_unit"))
     ):
+        current_study = _study_with_owner_route_currentness(study)
         return owner_route_part.build_owner_route(
             study_id=study_id,
             quest_id=quest_id,
-            status=study,
+            status=current_study,
             progress={},
             actions=generated,
             blocked_reason=_text(generated[0].get("reason")),
             next_owner=_text(generated[0].get("owner")) or _text(generated[0].get("request_owner")),
-            active_run_id=_text(study.get("active_run_id")),
+            active_run_id=_text(current_study.get("active_run_id")),
         )
     return owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
 
@@ -187,6 +220,40 @@ def _action_allowed_by_owner_route(action: Mapping[str, Any], owner_route: Mappi
         },
         owner_route=owner_route,
     )
+
+
+def _current_execution_is_authoritative(study: Mapping[str, Any]) -> bool:
+    envelope = _mapping(study.get("current_execution_envelope"))
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    return state_kind in {"typed_blocker", "blocked_typed_owner", "parked"}
+
+
+def _study_with_owner_route_currentness(study: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(study)
+    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(payload.get("owner_route")))
+    if not owner_route:
+        return payload
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(_mapping(owner_route.get("currentness_contract")).get("basis")) or _mapping(
+        source_refs.get("owner_route_currentness_basis")
+    )
+    if "runtime_health_snapshot" not in payload and (runtime_epoch := _text(basis.get("runtime_health_epoch"))):
+        payload["runtime_health_snapshot"] = {"runtime_health_epoch": runtime_epoch}
+    if "study_truth_snapshot" not in payload:
+        truth_epoch = _text(basis.get("truth_epoch")) or _text(owner_route.get("truth_epoch"))
+        source_signature = _text(owner_route.get("source_fingerprint"))
+        if truth_epoch or source_signature:
+            payload["study_truth_snapshot"] = {
+                key: value
+                for key, value in {
+                    "truth_epoch": truth_epoch,
+                    "source_signature": source_signature,
+                }.items()
+                if value is not None
+            }
+    if "publication_eval" not in payload and (source_eval_id := _text(basis.get("source_eval_id"))):
+        payload["publication_eval"] = {"eval_id": source_eval_id}
+    return payload
 
 
 def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:

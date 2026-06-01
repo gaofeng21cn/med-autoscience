@@ -42,6 +42,12 @@ def _owner_route(
         "allowed_actions": allowed_actions,
         "blocked_actions": [],
         "idempotency_key": f"owner-route::{study_id}::{owner_reason}",
+        "runtime_health_epoch": f"runtime-health::{study_id}::{owner_reason}",
+        "source_refs": {
+            "runtime_health_epoch": f"runtime-health::{study_id}::{owner_reason}",
+            "work_unit_id": owner_reason,
+            "work_unit_fingerprint": f"truth-source::{study_id}::{owner_reason}",
+        },
     }
 
 

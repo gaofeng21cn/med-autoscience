@@ -43,6 +43,13 @@ late_stage_progress_sprint_contract:
   - candidate package/display freshness proof must not claim submission readiness
   - publication_eval/latest.json materialization lag cannot alone force a new reviewer-record
     route when an effective current archive is available
+  currentness_followthrough_policy:
+  - consumed AI reviewer record production must advance to the current controller
+    write/gate owner with owner_output_consumption preserved
+  - stale manuscript-digest write dispatch must route to AI reviewer current-manuscript
+    record production, not repeat the same write dispatch
+  - receipt/read-model reconcile is a platform step and cannot consume the sprint
+    budget unless it yields a concrete next owner, typed blocker, human gate, or stop-loss
   authority_boundary:
   - no direct paper body, memory body, artifact body, publication_eval/latest.json,
     controller_decisions/latest.json, or current_package write outside MAS owner callable

@@ -418,6 +418,7 @@ def _render_late_stage_progress_sprint_contract(contract: dict[str, Any]) -> lis
         _render_list_line("control_plane_outputs", contract["control_plane_outputs"]),
         _render_list_line("forbidden_control_plane_outputs", contract["forbidden_control_plane_outputs"]),
         _render_list_line("quality_gate_policy", contract["quality_gate_policy"]),
+        _render_optional_list_line("currentness_followthrough_policy", contract),
         _render_list_line("authority_boundary", contract["authority_boundary"]),
     ]
 

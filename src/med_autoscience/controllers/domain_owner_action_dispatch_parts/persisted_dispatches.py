@@ -236,7 +236,13 @@ def _consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[s
     source_fingerprint = _text(truth.get("source_signature")) or (
         f"domain-transition::{_text(transition.get('decision_type')) or 'current'}::{work_unit_id or action_type}"
     )
-    runtime_health_epoch = _text(_mapping(current_study.get("runtime_health_snapshot")).get("runtime_health_epoch"))
+    current_route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
+    current_basis = _mapping(_mapping(current_route.get("currentness_contract")).get("basis")) or _mapping(
+        _mapping(current_route.get("source_refs")).get("owner_route_currentness_basis")
+    )
+    runtime_health_epoch = _text(_mapping(current_study.get("runtime_health_snapshot")).get("runtime_health_epoch")) or _text(
+        current_basis.get("runtime_health_epoch")
+    )
     owner_reason = work_unit_id or _text(transition.get("decision_type")) or action_type
     work_unit_fingerprint = (
         _text(transition.get("work_unit_fingerprint"))
@@ -265,9 +271,15 @@ def _consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[s
         ],
         "idempotency_key": f"owner-route::{study_id}::{route_epoch}::{owner}::{owner_reason}",
         "source_refs": {
-            "source_eval_id": _text(completion.get("eval_id")),
+            "source_eval_id": _text(completion.get("eval_id"))
+            or _text(transition.get("source_eval_id"))
+            or _text(transition.get("publication_eval_id"))
+            or _text(_mapping(transition.get("publication_eval_ref")).get("eval_id"))
+            or _text(_mapping(current_study.get("publication_eval")).get("eval_id"))
+            or _text(current_basis.get("source_eval_id")),
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
+            "runtime_health_epoch": runtime_health_epoch,
             "blocked_reason": owner_reason,
             "receipt_ref": _text(completion.get("receipt_ref")),
         },

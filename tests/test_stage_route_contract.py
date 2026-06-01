@@ -186,6 +186,20 @@ def test_late_stage_progress_sprint_contract_covers_dm002_gate_replay_work_unit(
     ]
     assert "record_only_reviewer_loop" in contract["forbidden_control_plane_outputs"]
     assert "provider_completed_without_typed_closeout" in contract["forbidden_control_plane_outputs"]
+    assert contract["currentness_followthrough_policy"] == [
+        (
+            "consumed AI reviewer record production must advance to the current controller write/gate owner "
+            "with owner_output_consumption preserved"
+        ),
+        (
+            "stale manuscript-digest write dispatch must route to AI reviewer current-manuscript record production, "
+            "not repeat the same write dispatch"
+        ),
+        (
+            "receipt/read-model reconcile is a platform step and cannot consume the sprint budget unless it yields "
+            "a concrete next owner, typed blocker, human gate, or stop-loss"
+        ),
+    ]
 
 
 def test_stage_entry_modes_from_payload_preserves_mode_level_managed_entry_actions() -> None:
