@@ -383,32 +383,253 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     assert dispatch_calls[0]["action_types"] == ()
     assert dispatch_calls[0]["mode"] == "developer_apply_safe"
     assert dispatch_calls[0]["apply"] is True
-    assert result["developer_supervisor_same_tick"] == {
-        "surface": "developer_supervisor_same_tick",
-        "schema_version": 1,
-        "mode": "developer_apply_safe",
-        "study_ids": ["001-risk", "002-risk"],
-        "actions": [
-            "domain-action-request-materialize",
-            "domain-owner-action-dispatch",
-        ],
-        "materialize": {
-            "surface": "domain_action_request_materializer",
-            "materialized_count": 1,
-        },
-        "dispatch": {
-            "surface": "domain_owner_action_dispatch",
-            "executed_count": 1,
-            "codex_dispatch_count": 1,
-        },
-        "owner_boundaries": {
-            "runtime_owner": "one-person-lab",
-            "domain_owner": "med-autoscience",
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "manual_study_patch_allowed": False,
-        },
+    supervisor_tick = result["developer_supervisor_same_tick"]
+    assert supervisor_tick["surface"] == "developer_supervisor_same_tick"
+    assert supervisor_tick["schema_version"] == 1
+    assert supervisor_tick["mode"] == "developer_apply_safe"
+    assert supervisor_tick["study_ids"] == ["001-risk", "002-risk"]
+    assert supervisor_tick["pass_count"] == 1
+    assert supervisor_tick["stop_reason"] == "provider_handoff_started"
+    assert supervisor_tick["actions"] == [
+        "owner-route-reconcile",
+        "domain-action-request-materialize",
+        "domain-owner-action-dispatch",
+    ]
+    assert supervisor_tick["owner_route_reconcile"] == result["opl_owner_route_reconcile_request"]
+    assert supervisor_tick["materialize"] == {
+        "surface": "domain_action_request_materializer",
+        "materialized_count": 1,
     }
+    assert supervisor_tick["dispatch"] == {
+        "surface": "domain_owner_action_dispatch",
+        "executed_count": 1,
+        "codex_dispatch_count": 1,
+    }
+    assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 1
+    assert supervisor_tick["owner_boundaries"] == {
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+    }
+
+
+def test_domain_health_diagnostic_same_tick_pumps_receipt_followthrough_before_next_heartbeat(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "001-risk"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    scan_calls: list[dict[str, object]] = []
+    materialize_calls: list[dict[str, object]] = []
+    dispatch_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
+        scan_calls.append(kwargs)
+        pass_index = len(scan_calls)
+        action_type = "run_gate_clearing_batch" if pass_index == 1 else "run_quality_repair_batch"
+        return {
+            "surface": "portable_owner_route_reconcile",
+            "apply_safe_actions": kwargs["apply_safe_actions"],
+            "study_count": len(kwargs["study_ids"]),
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "action_type": action_type,
+                    "action_id": f"action-{pass_index}",
+                }
+            ],
+        }
+
+    def fake_materialize(**kwargs) -> dict[str, object]:
+        materialize_calls.append(kwargs)
+        return {
+            "surface": "domain_action_request_materializer",
+            "request_task_count": 1,
+            "default_executor_dispatch_count": 1,
+        }
+
+    def fake_dispatch(**kwargs) -> dict[str, object]:
+        dispatch_calls.append(kwargs)
+        if len(dispatch_calls) == 1:
+            return {
+                "surface": "domain_owner_action_dispatch",
+                "execution_count": 1,
+                "executed_count": 1,
+                "blocked_count": 0,
+                "codex_dispatch_count": 0,
+                "executions": [{"execution_status": "executed"}],
+            }
+        return {
+            "surface": "domain_owner_action_dispatch",
+            "execution_count": 1,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "codex_dispatch_count": 1,
+            "executions": [{"execution_status": "handoff_ready", "will_start_llm": True}],
+        }
+
+    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        fake_materialize,
+    )
+    monkeypatch.setattr(
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        fake_dispatch,
+    )
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        request_opl_stage_attempts=True,
+        request_opl_owner_route_reconcile=True,
+    )
+
+    supervisor_tick = result["developer_supervisor_same_tick"]
+    assert len(scan_calls) == 2
+    assert len(materialize_calls) == 2
+    assert len(dispatch_calls) == 2
+    assert supervisor_tick["pass_count"] == 2
+    assert supervisor_tick["stop_reason"] == "provider_handoff_started"
+    assert supervisor_tick["iterations"][0]["progress_first_delta"]["dispatch_executed_count"] == 1
+    assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 0
+    assert supervisor_tick["iterations"][1]["progress_first_delta"]["codex_dispatch_count"] == 1
+    assert supervisor_tick["owner_route_reconcile"]["action_queue"][0]["action_type"] == "run_quality_repair_batch"
+
+
+def test_domain_health_diagnostic_same_tick_stops_on_repeat_suppression(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "001-risk"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    monkeypatch.setattr(
+        module.owner_route_reconcile,
+        "scan_domain_routes",
+        lambda **kwargs: {
+            "surface": "portable_owner_route_reconcile",
+            "action_queue": [{"study_id": study_id, "action_type": "run_quality_repair_batch"}],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **kwargs: {
+            "surface": "domain_action_request_materializer",
+            "request_task_count": 1,
+            "default_executor_dispatch_count": 1,
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        lambda **kwargs: {
+            "surface": "domain_owner_action_dispatch",
+            "execution_count": 1,
+            "executed_count": 0,
+            "blocked_count": 0,
+            "repeat_suppressed_count": 1,
+            "codex_dispatch_count": 0,
+            "executions": [
+                {
+                    "execution_status": "repeat_suppressed",
+                    "blocked_reason": "progress_first_owner_redrive_budget_exhausted",
+                    "repeat_suppressed": True,
+                }
+            ],
+        },
+    )
+
+    supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=3)
+
+    assert supervisor_tick["pass_count"] == 1
+    assert supervisor_tick["stop_reason"] == "repeat_suppressed_owner_delta_required"
+    diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
+    assert diagnostic["requires_next_owner_delta"] is True
+    assert diagnostic["next_forced_delta"]["reason"] == "repeat_suppressed_owner_delta_required"
+    assert diagnostic["next_forced_delta"]["required_delta_kind"] == (
+        "deliverable_progress_delta_or_domain_owner_receipt_or_typed_blocker"
+    )
+    assert diagnostic["forbidden_next_actions"] == [
+        "repeat_receipt_reconcile_without_owner_delta",
+        "repeat_read_model_reconcile_without_owner_delta",
+        "start_new_provider_attempt_for_same_source_without_owner_delta",
+    ]
+
+
+def test_domain_health_diagnostic_same_tick_reports_max_pass_exhaustion_as_owner_delta_required(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "001-risk"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    monkeypatch.setattr(
+        module.owner_route_reconcile,
+        "scan_domain_routes",
+        lambda **kwargs: {
+            "surface": "portable_owner_route_reconcile",
+            "action_queue": [{"study_id": study_id, "action_type": "run_gate_clearing_batch"}],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **kwargs: {
+            "surface": "domain_action_request_materializer",
+            "request_task_count": 1,
+            "default_executor_dispatch_count": 1,
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        lambda **kwargs: {
+            "surface": "domain_owner_action_dispatch",
+            "execution_count": 1,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "repeat_suppressed_count": 0,
+            "codex_dispatch_count": 0,
+            "executions": [{"execution_status": "executed"}],
+        },
+    )
+
+    supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=2)
+
+    assert supervisor_tick["pass_count"] == 2
+    assert supervisor_tick["stop_reason"] == "max_passes_exhausted_owner_delta_required"
+    diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
+    assert diagnostic["requires_next_owner_delta"] is True
+    assert diagnostic["next_forced_delta"]["reason"] == "max_passes_exhausted_owner_delta_required"
+    assert diagnostic["last_iteration_delta"]["dispatch_executed_count"] == 1
+
 
 def test_domain_health_diagnostic_does_not_request_opl_owner_route_reconcile_by_default(
     tmp_path: Path,

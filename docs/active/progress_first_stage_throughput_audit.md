@@ -1,6 +1,6 @@
 # Progress-first Stage 推进吞吐审计
 
-Status: `read_model_landed_real_delta_tail_pending`
+Status: `read_model_landed_same_tick_pump_and_delta_tail_pending`
 Date: `2026-06-01`
 Owner: `MedAutoScience`
 Purpose: `progress_first_stage_throughput_audit`
@@ -11,13 +11,14 @@ Machine boundary: 本文是人读系统排查记录。机器真相继续归 `con
 
 MAS 当前真正的 runtime-guard Stage 是 6 个，定义源是 `contracts/stage_control_plane.json`；domain route 是 10 个，定义源是 `agent/stages/stage_route_contract.yaml`。Progress-first 设计已经进入 stage contract、owner-route handoff、`study_progress.next_forced_delta`、`progress_first_monitoring_summary`、`study_state_matrix.progress_first_tick_accounting`、Portal / MCP / focused tests。
 
-这轮已把最影响速度、最大产出和 Stage 推进的 P0/P1 读模型尾项落到可用 surface：target surface 精确性、workspace throughput 排序、terminal closeout 语义完整性、route knowledge/memory obligation descriptor。仍未关闭的是 production 证据尾项：真实 paper-line owner receipt、stable blocker、no-forbidden-write proof、artifact/memory lifecycle receipt 和 human gate receipt 的持续 scaleout。
+这轮已把最影响速度、最大产出和 Stage 推进的 P0/P1 读模型与 supervisor cadence 尾项落到可用 surface：target surface 精确性、workspace throughput 排序、terminal closeout 语义完整性、route knowledge/memory obligation descriptor、developer supervisor same-tick pump。仍未关闭的是 production 证据尾项：真实 paper-line owner receipt、stable blocker、no-forbidden-write proof、artifact/memory lifecycle receipt 和 human gate receipt 的持续 scaleout。
 
 1. `ready owner action -> OPL stage attempt -> MAS owner receipt/blocker` 的 pickup latency 现在进入 `study_state_matrix.progress_first_tick_accounting` 排序与 `throughput_bottleneck_counts`。
 2. `next_forced_delta.target_surface` 现在带 `target_surface_specificity`、`missing_explicit_target_surface`、`target_surface_fallback_reason` 和 `target_surface_diagnostic`；缺显式 owner-route target 时仍 fail closed 到 generic route obligation，但 operator 能看到这是 fallback。
 3. terminal closeout 现在在 `progress_first_monitoring_summary.latest_terminal_stage` 同时投影 `semantic_completeness`、`telemetry_completeness` 与 `terminal_closeout_semantic_completeness`，缺 user stage log / duration / token / cost 时给出 typed blocker diagnostic 和 next forced delta。
 4. 10 个 route 的 `knowledge_input_obligations` 与 `memory_closeout_obligations` 现在由 `route_obligations_descriptor` 从 canonical route contract 投影，并嵌入 product-entry `family_stage_control_plane_descriptor`。
 5. late-stage 已规定先产出 paper/package delta 再 gate replay；真实 paper-line success receipt / stable blocker scaleout 仍是主要 evidence tail。
+6. `domain-health-diagnostic` developer supervisor safe-apply 不再把一次 heartbeat 停在 receipt/read-model follow-through；同 tick 最多追 3 轮，直到 provider handoff、typed blocker、no owner action、repeat-suppressed owner-delta-required 或 max-pass owner-delta-required。
 
 ## Stage 清单与推进要求
 
@@ -74,6 +75,7 @@ Route 是 MAS domain transition obligation，不拥有 OPL runtime attempt lifec
 | route obligations descriptor | 已由 `stage_route_contract.route_obligations_descriptor` 投影 10 个 route 的 knowledge/memory obligations，并嵌入 product-entry descriptor | OPL/operator 可在 Stage handoff 前读取缺哪些 knowledge input 或 memory closeout，减少后续 Stage 重搜、重读、重评审 |
 | closeout-first admission | `progress_first_closeout` 会在存在 immutable dispatch 和 running attempt 且未消费 closeout 时阻止新 default-executor task | 防止同一 work unit 被重复派发，要求先消费 owner receipt、stage closeout 或 stable typed blocker |
 | same work-unit redrive budget | `default_executor_execution_receipt_consumption` 会把第二次同义 non-consumable default-executor closeout 消费为 `progress_first_owner_redrive_budget_exhausted` typed blocker；`dispatch_repeat_suppression` 不再对 Progress-first owner action 特殊放行 | 防止流程把时间耗在重复 receipt / read-model reconcile / new dedupe key 上，失败后直接暴露机制修复、human gate 或 stop-loss 入口 |
+| developer supervisor same-tick pump | `domain-health-diagnostic --apply --request-opl-owner-route-reconcile` 会同 tick 连续执行 owner-route reconcile、action materialize 与 owner-action dispatch，直到 provider handoff、typed blocker、no owner action 或 owner-delta-required diagnostic | 防止每 30 分钟只推进一个 receipt/reconcile 步骤；若只剩重复 receipt/read-model reconcile，直接暴露 `repeat_suppressed_owner_delta_required` 或 `max_passes_exhausted_owner_delta_required` |
 | typed blocker repeat budget | `progress_first_blocker_budget` 会补 `repeat_count`、delta classification、next escalation | 同一 blocker 反复出现时能进入机制修复、human gate 或 stop-loss，不应无限重试 |
 | late-stage sprint contract | `stage_route_contract.yaml` 固定先产出 reviewable paper/package delta，再 replay quality gate | 防止 review/currentness loop 抢在实际稿件/包 delta 前无限循环 |
 
@@ -96,6 +98,8 @@ Stage 推进最快的路径是 terminal closeout 直接携带 user-readable stag
 ### P1：no-op 与 platform repair 的预算化
 
 合同已经规定连续 no-op budget，typed blocker 也能携带 repeat lineage。仍需持续审计所有 no-op currentness proof 是否都消费了 duplicate / failed-path / stale-currentness / forbidden-surface refs，并把第二次、第三次升级路径写入 read-model。否则平台修复会占用 Stage attempt，却不产生 deliverable delta。
+
+developer supervisor same-tick pump 已把 `repeat_suppressed_count>0` 和 pass budget exhausted 从普通 diagnostic 升级为 owner-delta-required terminal diagnostic。后续 operator 不应继续安排“再跑一次 reconcile”作为下一步；正确下一步是 domain owner receipt、typed blocker、deliverable delta、human gate、stop-loss 或机制修复。
 
 ### P1：route knowledge / memory closeout 防返工
 

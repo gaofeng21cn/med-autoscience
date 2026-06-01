@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-01：developer supervisor same-tick 必须追到 provider handoff、typed blocker 或 owner-delta 诊断
+
+- 决策：`domain-health-diagnostic --apply --request-opl-owner-route-reconcile` 不能只执行一轮 `owner-route-reconcile -> domain-action-request-materialize -> domain-owner-action-dispatch` 后停在 receipt/read-model follow-through。developer supervisor same-tick 必须在同一 tick 内最多连续推进 3 轮，直到出现 provider handoff、typed blocker/dispatch blocker、没有 owner action，或明确的 owner-delta-required 诊断。
+- 决策：若 dispatch 返回 `repeat_suppressed_count>0`，same-tick 必须停止为 `repeat_suppressed_owner_delta_required`，并输出 `progress_first_terminal_diagnostic.next_forced_delta`。若连续轮次只得到 sync owner delta、没有 provider handoff 或 typed blocker，达到 pass budget 后必须停止为 `max_passes_exhausted_owner_delta_required`，要求下一步必须是 deliverable delta、domain owner receipt、typed blocker、human gate 或 stop-loss，而不是下个 heartbeat 继续 receipt / read-model reconcile。
+- 决策：该 diagnostic 是 MAS controller refs-only 监督面；它不写 study truth、不改 canonical paper、不刷新 `publication_eval/latest.json`、不改 `controller_decisions/latest.json`、不写 submission/current package，也不替代 AI reviewer 或 publication gate verdict。
+- 理由：DM002/DM003 暴露出同一个 heartbeat 经常只完成 receipt currentness、read-model reconcile 或 dispatch receipt projection，随后下一轮继续做同类 platform repair，导致“小论文收尾”耗费数小时。Progress-First 的正确节奏是同 tick 追到真实 provider handoff / typed blocker / owner-delta-required，而不是把每个中间 receipt 当成一次人工可接受的阶段推进。
+- 影响：这是 MAS controller/supervisor cadence 修复。OPL 仍持有 queue/provider attempt lifecycle，MAS 只把 owner-route/materialize/dispatch 串成同一 domain owner tick，并把无法推进的原因暴露为可消费诊断。
+
 ## 2026-06-01：默认 Progress-First dispatch 必须消费 owner-request-current writer handoff
 
 - 决策：`domain-owner-action-dispatch` 在未传 `--action-types` 的默认 tick 中扫描 persisted `default_executor_dispatches/*.json` 时，必须把 canonical owner request currentness 纳入预筛条件。若 persisted dispatch 与同 study/action 的 owner request route 精确匹配，且后续 contract guard、owner-route guard、repeat suppression 均通过，默认 tick 必须选中执行；不得要求 operator 额外猜 `--action-types run_quality_repair_batch` 才推进。

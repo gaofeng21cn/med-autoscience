@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from med_autoscience.controllers import (
     autonomy_ai_doctor,
@@ -103,6 +103,9 @@ from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import domain_health_diagnostic as domain_health_diagnostic_protocol
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
 from med_autoscience.runtime_control.ports import RuntimeControlPorts
+
+
+PROGRESS_FIRST_SAME_TICK_MAX_PASSES = 3
 
 
 def _materialize_managed_study_autonomy_slo(
@@ -391,42 +394,82 @@ def run_domain_health_diagnostic_for_runtime(
         request_opl_stage_attempts=request_opl_stage_attempts,
     )
     if apply and request_opl_stage_attempts and request_opl_owner_route_reconcile and profile is not None:
-        report["opl_owner_route_reconcile_request"] = owner_route_reconcile.scan_domain_routes(
-            profile=profile,
-            study_ids=owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile),
-            apply_safe_actions=True,
-            developer_supervisor_mode="developer_apply_safe",
+        supervisor_tick = _run_developer_supervisor_same_tick(profile=profile)
+        first_iteration = (supervisor_tick.get("iterations") or [{}])[0]
+        report["opl_owner_route_reconcile_request"] = (
+            _mapping(first_iteration).get("owner_route_reconcile") or {}
         )
-        report["developer_supervisor_same_tick"] = _run_developer_supervisor_same_tick(profile=profile)
+        report["developer_supervisor_same_tick"] = supervisor_tick
     return report
 
 
-def _run_developer_supervisor_same_tick(*, profile: WorkspaceProfile) -> dict[str, Any]:
+def _run_developer_supervisor_same_tick(
+    *,
+    profile: WorkspaceProfile,
+    max_passes: int = PROGRESS_FIRST_SAME_TICK_MAX_PASSES,
+) -> dict[str, Any]:
     study_ids = owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
-    materialize_result = domain_action_request_materializer.materialize_domain_action_requests(
-        profile=profile,
-        study_ids=study_ids,
-        mode="developer_apply_safe",
-        apply=True,
-    )
-    dispatch_result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=study_ids,
-        action_types=(),
-        mode="developer_apply_safe",
-        apply=True,
+    iterations: list[dict[str, Any]] = []
+    stop_reason = "max_passes_exhausted"
+    for pass_index in range(1, max(1, max_passes) + 1):
+        scan_result = owner_route_reconcile.scan_domain_routes(
+            profile=profile,
+            study_ids=study_ids,
+            apply_safe_actions=True,
+            developer_supervisor_mode="developer_apply_safe",
+        )
+        materialize_result = domain_action_request_materializer.materialize_domain_action_requests(
+            profile=profile,
+            study_ids=study_ids,
+            mode="developer_apply_safe",
+            apply=True,
+        )
+        dispatch_result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
+            profile=profile,
+            study_ids=study_ids,
+            action_types=(),
+            mode="developer_apply_safe",
+            apply=True,
+        )
+        iteration = {
+            "pass_index": pass_index,
+            "owner_route_reconcile": scan_result,
+            "materialize": materialize_result,
+            "dispatch": dispatch_result,
+            "progress_first_delta": _same_tick_delta(
+                scan_result=scan_result,
+                materialize_result=materialize_result,
+                dispatch_result=dispatch_result,
+            ),
+        }
+        iterations.append(iteration)
+        stop_reason = _same_tick_stop_reason(iteration)
+        if stop_reason != "continue_same_tick_after_sync_owner_delta":
+            break
+    if stop_reason == "continue_same_tick_after_sync_owner_delta":
+        stop_reason = "max_passes_exhausted_owner_delta_required"
+    terminal_diagnostic = _same_tick_terminal_diagnostic(
+        stop_reason=stop_reason,
+        iterations=iterations,
     )
     return {
         "surface": "developer_supervisor_same_tick",
         "schema_version": 1,
         "mode": "developer_apply_safe",
         "study_ids": list(study_ids),
+        "max_passes": max(1, max_passes),
+        "pass_count": len(iterations),
+        "stop_reason": stop_reason,
         "actions": [
+            "owner-route-reconcile",
             "domain-action-request-materialize",
             "domain-owner-action-dispatch",
         ],
-        "materialize": materialize_result,
-        "dispatch": dispatch_result,
+        "iterations": iterations,
+        "owner_route_reconcile": _mapping(iterations[-1].get("owner_route_reconcile")) if iterations else {},
+        "materialize": _mapping(iterations[-1].get("materialize")) if iterations else {},
+        "dispatch": _mapping(iterations[-1].get("dispatch")) if iterations else {},
+        "progress_first_terminal_diagnostic": terminal_diagnostic,
         "owner_boundaries": {
             "runtime_owner": "one-person-lab",
             "domain_owner": "med-autoscience",
@@ -435,6 +478,117 @@ def _run_developer_supervisor_same_tick(*, profile: WorkspaceProfile) -> dict[st
             "manual_study_patch_allowed": False,
         },
     }
+
+
+def _same_tick_delta(
+    *,
+    scan_result: Mapping[str, Any],
+    materialize_result: Mapping[str, Any],
+    dispatch_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "scan_action_count": _count(scan_result, "action_queue"),
+        "materialized_request_count": _int_value(materialize_result.get("request_task_count")),
+        "default_executor_dispatch_count": _int_value(materialize_result.get("default_executor_dispatch_count")),
+        "dispatch_execution_count": _int_value(dispatch_result.get("execution_count")),
+        "dispatch_executed_count": _int_value(dispatch_result.get("executed_count")),
+        "dispatch_blocked_count": _int_value(dispatch_result.get("blocked_count")),
+        "dispatch_repeat_suppressed_count": _int_value(dispatch_result.get("repeat_suppressed_count")),
+        "codex_dispatch_count": _int_value(dispatch_result.get("codex_dispatch_count")),
+        "handoff_ready_count": _execution_status_count(dispatch_result, "handoff_ready"),
+    }
+
+
+def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
+    delta = _mapping(iteration.get("progress_first_delta"))
+    if _int_value(delta.get("codex_dispatch_count")) > 0 or _int_value(delta.get("handoff_ready_count")) > 0:
+        return "provider_handoff_started"
+    if _int_value(delta.get("dispatch_blocked_count")) > 0:
+        return "typed_blocker_or_dispatch_blocker_observed"
+    if _int_value(delta.get("dispatch_repeat_suppressed_count")) > 0:
+        return "repeat_suppressed_owner_delta_required"
+    if _int_value(delta.get("dispatch_executed_count")) > 0:
+        return "continue_same_tick_after_sync_owner_delta"
+    if _int_value(delta.get("default_executor_dispatch_count")) > 0:
+        return "dispatch_materialized_but_not_selected"
+    if _int_value(delta.get("scan_action_count")) > 0:
+        return "owner_action_projected_but_not_materialized"
+    return "no_owner_action_remaining"
+
+
+def _same_tick_terminal_diagnostic(
+    *,
+    stop_reason: str,
+    iterations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    last_iteration = iterations[-1] if iterations else {}
+    last_delta = _mapping(last_iteration.get("progress_first_delta"))
+    requires_next_owner_delta = stop_reason in {
+        "repeat_suppressed_owner_delta_required",
+        "max_passes_exhausted_owner_delta_required",
+    }
+    return {
+        "surface": "progress_first_developer_supervisor_terminal_diagnostic",
+        "schema_version": 1,
+        "stop_reason": stop_reason,
+        "requires_next_owner_delta": requires_next_owner_delta,
+        "last_iteration_delta": dict(last_delta),
+        "next_forced_delta": (
+            {
+                "required_delta_kind": (
+                    "deliverable_progress_delta_or_domain_owner_receipt_or_typed_blocker"
+                ),
+                "reason": stop_reason,
+                "target_surface": {
+                    "surface_ref": "MAS owner receipt, domain typed blocker, or paper-facing deliverable delta",
+                    "owner": "med-autoscience",
+                },
+                "acceptance_refs": [
+                    "deliverable_progress_delta",
+                    "domain_owner_receipt_ref",
+                    "domain_typed_blocker_ref",
+                    "human_gate_or_stop_loss_ref",
+                ],
+            }
+            if requires_next_owner_delta
+            else None
+        ),
+        "forbidden_next_actions": (
+            [
+                "repeat_receipt_reconcile_without_owner_delta",
+                "repeat_read_model_reconcile_without_owner_delta",
+                "start_new_provider_attempt_for_same_source_without_owner_delta",
+            ]
+            if requires_next_owner_delta
+            else []
+        ),
+    }
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _count(payload: Mapping[str, Any], key: str) -> int:
+    value = payload.get(key)
+    if isinstance(value, list):
+        return len(value)
+    return _int_value(value)
+
+
+def _execution_status_count(payload: Mapping[str, Any], status: str) -> int:
+    return sum(
+        1
+        for item in payload.get("executions") or []
+        if isinstance(item, Mapping) and _non_empty_text(item.get("execution_status")) == status
+    )
+
+
+def _int_value(value: object) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 def parse_args() -> argparse.Namespace:
