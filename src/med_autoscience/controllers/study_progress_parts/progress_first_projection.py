@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.default_executor_action_policy import request_output_surface_for_action_type
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.stage_route_contract import PROGRESS_FIRST_SPRINT_ID
 
 
@@ -112,14 +114,109 @@ def _forced_delta_reason(*, classification: str | None, current_blockers: object
 
 
 def _current_owner_route(payload: Mapping[str, Any]) -> dict[str, Any]:
+    transition_route = _owner_route_from_domain_transition(payload)
     handoff = _mapping(payload.get("opl_current_control_state_handoff"))
     if route := _mapping(handoff.get("owner_route")):
+        if transition_route and not _route_has_explicit_target_surface(route):
+            return transition_route
         return route
+    if transition_route:
+        return transition_route
     envelope = _mapping(payload.get("current_execution_envelope"))
     if route := _mapping(envelope.get("owner_route")):
+        if transition_route and not _route_has_explicit_target_surface(route):
+            return transition_route
         return route
     status = _mapping(payload.get("status"))
-    return _mapping(status.get("owner_route"))
+    route = _mapping(status.get("owner_route"))
+    if transition_route and not _route_has_explicit_target_surface(route):
+        return transition_route
+    return route
+
+
+def _route_has_explicit_target_surface(route: Mapping[str, Any]) -> bool:
+    return bool(_mapping(route.get("target_surface")) or _mapping(route.get("next_forced_target_surface")))
+
+
+def _owner_route_from_domain_transition(payload: Mapping[str, Any]) -> dict[str, Any]:
+    transition = _mapping(payload.get("domain_transition"))
+    if not transition:
+        return {}
+    next_owner = _text(transition.get("owner"))
+    route_target = _text(transition.get("route_target"))
+    work_unit = _mapping(transition.get("next_work_unit"))
+    work_unit_id = _text(work_unit.get("unit_id"))
+    action_type = _domain_transition_action_type(
+        controller_action=_text(transition.get("controller_action")),
+        work_unit_id=work_unit_id,
+    )
+    if next_owner is None and route_target is None and work_unit_id is None and action_type is None:
+        return {}
+    guard = _mapping(transition.get("guard_boundary"))
+    target_surface_ref = _domain_transition_target_surface_ref(
+        guard=guard,
+        action_type=action_type,
+    )
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    route: dict[str, Any] = {
+        "next_owner": next_owner,
+        "route_target": route_target,
+        "source_refs": {
+            key: value
+            for key, value in {
+                "work_unit_id": work_unit_id,
+                "source_eval_id": _text(completion.get("eval_id")),
+                "source_fingerprint": _text(completion.get("action_fingerprint")),
+            }.items()
+            if value is not None
+        },
+        "owner_action": {
+            "next_owner": next_owner,
+            "work_unit_id": work_unit_id,
+            "allowed_actions": [action_type] if action_type is not None else [],
+            "owner_receipt_required": True,
+        },
+    }
+    if action_type is not None:
+        route["allowed_actions"] = [action_type]
+    if target_surface_ref is not None:
+        route["target_surface"] = {
+            "ref_kind": "route_obligation",
+            "route_target": route_target,
+            "surface_ref": target_surface_ref,
+        }
+        route["target_surface_source"] = (
+            "default_executor_action_policy.request_output_surface_for_action_type"
+            if _publication_gate_replay_work_unit(work_unit_id)
+            else "domain_transition.guard_boundary.required_owner_surface"
+            if _text(guard.get("required_owner_surface")) is not None
+            else "default_executor_action_policy.request_output_surface_for_action_type"
+        )
+    return route
+
+
+def _domain_transition_action_type(*, controller_action: str | None, work_unit_id: str | None) -> str | None:
+    if _publication_gate_replay_work_unit(work_unit_id):
+        return "run_gate_clearing_batch"
+    if controller_action == "request_opl_stage_attempt":
+        return None
+    return controller_action
+
+
+def _domain_transition_target_surface_ref(*, guard: Mapping[str, Any], action_type: str | None) -> str | None:
+    if action_type is not None and _publication_gate_replay_action(action_type):
+        return request_output_surface_for_action_type(action_type)
+    return _text(guard.get("required_owner_surface")) or (
+        request_output_surface_for_action_type(action_type) if action_type is not None else None
+    )
+
+
+def _publication_gate_replay_work_unit(work_unit_id: str | None) -> bool:
+    return work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+
+
+def _publication_gate_replay_action(action_type: str) -> bool:
+    return action_type == "run_gate_clearing_batch"
 
 
 def _target_surface(*, owner_route: Mapping[str, Any]) -> dict[str, Any]:
@@ -141,7 +238,7 @@ def _target_surface_specificity(*, owner_route: Mapping[str, Any]) -> dict[str, 
             "missing_explicit_target_surface": False,
             "target_surface_diagnostic": {
                 "specificity": "precise",
-                "source": "owner_route.target_surface",
+                "source": _text(owner_route.get("target_surface_source")) or "owner_route.target_surface",
                 "missing_explicit_target_surface": False,
             },
         }

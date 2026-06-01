@@ -555,6 +555,8 @@ def _stage_telemetry_completeness(latest_terminal_stage_log: Mapping[str, Any]) 
 
 def _has_stage_semantic_field(payload: Mapping[str, Any], keys: tuple[str, ...]) -> bool:
     for key in keys:
+        if key in {"changed_stage_surfaces", "changed_paper_surfaces", "remaining_blockers"} and key in payload:
+            return True
         value = payload.get(key)
         if _text(value) is not None:
             return True

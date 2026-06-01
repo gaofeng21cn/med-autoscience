@@ -193,6 +193,147 @@ def test_next_forced_delta_marks_next_forced_target_surface_as_precise() -> None
     }
 
 
+def test_next_forced_delta_uses_domain_transition_required_owner_surface() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 0},
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "next_work_unit": {
+                    "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "lane": "review",
+                },
+                "guard_boundary": {
+                    "required_owner_surface": "artifacts/publication_eval/latest.json",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "eval_id": "eval-current",
+                    "action_fingerprint": "domain-transition::ai_reviewer_re_eval",
+                },
+            },
+        }
+    )
+
+    assert result["next_forced_delta"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "review",
+        "surface_ref": "artifacts/publication_eval/latest.json",
+    }
+    assert result["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
+    assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
+    assert result["next_forced_delta"]["target_surface_diagnostic"] == {
+        "specificity": "precise",
+        "source": "domain_transition.guard_boundary.required_owner_surface",
+        "missing_explicit_target_surface": False,
+    }
+    assert result["next_forced_delta"]["owner_action"] == {
+        "next_owner": "ai_reviewer",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "owner_receipt_required": True,
+    }
+
+
+def test_next_forced_delta_prefers_domain_transition_when_handoff_route_lacks_target_surface() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 0},
+            "opl_current_control_state_handoff": {
+                "owner_route": {
+                    "next_owner": "ai_reviewer",
+                    "route_target": "review",
+                    "source_refs": {
+                        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                    },
+                },
+            },
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "route_target": "review",
+                "owner": "ai_reviewer",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "next_work_unit": {
+                    "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "lane": "review",
+                },
+                "guard_boundary": {
+                    "required_owner_surface": "artifacts/publication_eval/latest.json",
+                },
+            },
+        }
+    )
+
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "review",
+        "surface_ref": "artifacts/publication_eval/latest.json",
+    }
+    assert result["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
+    assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
+
+
+def test_next_forced_delta_maps_publication_gate_replay_family_to_gate_clearing_surface() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 0},
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "finalize",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "publication_gate",
+                },
+                "guard_boundary": {
+                    "required_owner_surface": "artifacts/publication_eval/latest.json",
+                },
+            },
+        }
+    )
+
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "write",
+        "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+    }
+    assert result["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
+    assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
+    assert result["next_forced_delta"]["target_surface_diagnostic"] == {
+        "specificity": "precise",
+        "source": "default_executor_action_policy.request_output_surface_for_action_type",
+        "missing_explicit_target_surface": False,
+    }
+    assert result["next_forced_delta"]["owner_action"] == {
+        "next_owner": "finalize",
+        "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        "allowed_actions": ["run_gate_clearing_batch"],
+        "owner_receipt_required": True,
+    }
+
+
 def test_next_forced_delta_reports_generic_target_surface_fallback_when_owner_route_lacks_precise_surface() -> None:
     projection = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_projection"

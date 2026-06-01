@@ -377,6 +377,9 @@ def test_progress_first_monitoring_marks_complete_terminal_closeout_semantics() 
                     "token_usage": {"total_tokens": 0},
                     "cost": {"usd": 0},
                     "paper_stage_log": {
+                        "stage_name": "run_quality_repair_batch",
+                        "problem_summary": "Recorded a no-op owner receipt.",
+                        "stage_goal": "Record a typed closeout packet for the owner action.",
                         "outcome": "executed",
                         "stage_work_done": ["Recorded a no-op owner receipt."],
                         "paper_work_done": ["Recorded a no-op owner receipt."],
@@ -392,6 +395,20 @@ def test_progress_first_monitoring_marks_complete_terminal_closeout_semantics() 
     )
 
     completeness = monitoring["latest_terminal_stage"]["terminal_closeout_semantic_completeness"]
+    assert monitoring["latest_terminal_stage"]["semantic_completeness"] == {
+        "status": "complete",
+        "required_fields": [
+            "stage_name",
+            "problem_summary",
+            "stage_goal",
+            "stage_work_done",
+            "changed_stage_surfaces",
+            "outcome",
+            "remaining_blockers",
+            "evidence_refs",
+        ],
+        "missing_fields": [],
+    }
     assert completeness["status"] == "complete"
     assert completeness["required_user_stage_log_fields"] == "complete"
     assert completeness["missing_user_stage_log_fields"] == []

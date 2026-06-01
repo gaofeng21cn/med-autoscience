@@ -233,3 +233,165 @@ def test_study_state_matrix_fail_closes_generic_target_surface_owner_action(
     assert study["owner_route_contract_blocker"] == "owner_route_target_surface_required"
     assert study["throughput_bottleneck"] == "generic_target_surface"
     assert study["missing_explicit_target_surface"] is True
+
+
+def test_study_state_matrix_counts_domain_transition_explicit_target_surface_owner_action(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    progress_first = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 0},
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "finalize",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "publication_gate",
+                },
+                "guard_boundary": {
+                    "required_owner_surface": "artifacts/publication_eval/latest.json",
+                },
+            },
+        }
+    )
+
+    def fake_progress_projection(*, study_id: str, **_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": study_id,
+                "running_provider_attempt": False,
+                "execution_state_kind": "executable_owner_action",
+                "owner_action_current": True,
+                "next_owner": "finalize",
+                "route_target": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "publication_gate",
+                },
+                "next_forced_delta": progress_first["next_forced_delta"],
+                "dispatch_consumption": {},
+            },
+        }
+
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_progress_projection)
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+    accounting = payload["progress_first_tick_accounting"]
+    study = accounting["studies"][0]
+
+    assert exit_code == 0
+    assert accounting["expected_owner_action_count"] == 1
+    assert accounting["ready_for_owner_action_count"] == 1
+    assert accounting["owner_route_contract_blocker_count"] == 0
+    assert accounting["generic_target_surface_count"] == 0
+    assert accounting["throughput_bottleneck_counts"] == {"ready_owner_action": 1}
+    assert study["monitoring_status"] == "ready_for_dispatch"
+    assert study["throughput_bottleneck"] == "ready_owner_action"
+    assert study["target_surface_specificity"] == "explicit_owner_route_target"
+    assert study["missing_explicit_target_surface"] is False
+
+
+def test_study_state_matrix_does_not_block_on_explicit_empty_closeout_arrays(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "003-empty-closeout-arrays"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    def fake_progress_projection(*, study_id: str, **_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": study_id,
+                "running_provider_attempt": False,
+                "execution_state_kind": "executable_owner_action",
+                "owner_action_current": True,
+                "next_owner": "finalize",
+                "route_target": "finalize",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "publication_gate",
+                },
+                "next_forced_delta": {
+                    "target_surface_specificity": "explicit_owner_route_target",
+                    "missing_explicit_target_surface": False,
+                },
+                "latest_terminal_stage": {
+                    "semantic_completeness": {
+                        "status": "complete",
+                        "required_fields": [
+                            "stage_name",
+                            "problem_summary",
+                            "stage_goal",
+                            "stage_work_done",
+                            "changed_stage_surfaces",
+                            "outcome",
+                            "remaining_blockers",
+                            "evidence_refs",
+                        ],
+                        "missing_fields": [],
+                    },
+                    "changed_stage_surfaces": [],
+                    "changed_paper_surfaces": [],
+                    "remaining_blockers": [],
+                    "telemetry_completeness": {
+                        "status": "missing_required_fields",
+                        "missing_fields": ["duration", "token_usage", "cost"],
+                    },
+                },
+                "dispatch_consumption": {},
+            },
+        }
+
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_progress_projection)
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+    accounting = payload["progress_first_tick_accounting"]
+    study = accounting["studies"][0]
+
+    assert exit_code == 0
+    assert accounting["ready_for_owner_action_count"] == 1
+    assert accounting["owner_route_contract_blocker_count"] == 0
+    assert accounting["missing_closeout_semantics_count"] == 0
+    assert study["monitoring_status"] == "ready_for_dispatch"
+    assert study["missing_closeout_semantics"] is False
+    assert study["missing_closeout_semantic_fields"] == []
