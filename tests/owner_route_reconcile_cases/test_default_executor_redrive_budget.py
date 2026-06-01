@@ -18,6 +18,7 @@ def _write_json(path: Path, payload: dict) -> None:
 
 
 def _quality_repair_owner_route(study_id: str = "002-dm-china-us-mortality-attribution") -> dict:
+    source_eval_id = "publication-eval::dm002::current-inputs::20260531T192047Z"
     return {
         "route_epoch": "truth-event-000024-daa5883571a64a07",
         "truth_epoch": "truth-event-000024-daa5883571a64a07",
@@ -27,15 +28,18 @@ def _quality_repair_owner_route(study_id: str = "002-dm-china-us-mortality-attri
         "owner_reason": "quest_waiting_opl_runtime_owner_route",
         "allowed_actions": ["run_quality_repair_batch"],
         "source_refs": {
+            "source_eval_id": source_eval_id,
             "owner_route_currentness_basis": {
                 "truth_epoch": "truth-event-000024-daa5883571a64a07",
                 "runtime_health_epoch": "runtime-health-event-006285-1c4dfb5879325bcc",
+                "source_eval_id": source_eval_id,
                 "work_unit_fingerprint": "domain-transition::route_back_same_line::current-write-repair",
                 "work_unit_id": f"{study_id}::current-write-repair",
                 "owner_reason": "quest_waiting_opl_runtime_owner_route",
             },
             "study_truth_epoch": "truth-event-000024-daa5883571a64a07",
             "runtime_health_epoch": "runtime-health-event-006285-1c4dfb5879325bcc",
+            "source_eval_id": source_eval_id,
             "work_unit_fingerprint": "domain-transition::route_back_same_line::current-write-repair",
             "work_unit_id": f"{study_id}::current-write-repair",
             "blocked_reason": "quest_waiting_opl_runtime_owner_route",
@@ -118,6 +122,99 @@ def test_default_executor_repeated_nonconsumable_closeout_consumes_typed_stop_lo
     assert receipt["typed_blocker"]["next_escalation"] == "mechanism_repair_owner"
     assert receipt["typed_blocker"]["next_owner"] == "med-autoscience"
     assert receipt["next_action"] == "honor_typed_blocker_without_redrive"
+
+
+def test_default_executor_paper_review_story_surface_closeout_preempts_redrive_budget(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    owner_route = _quality_repair_owner_route()
+    _write_repeated_nonconsumable_execution(study_root, owner_route)
+    stage_packet_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+        "default_executor_dispatches/immutable/run_quality_repair_batch/stage-packet.json"
+    )
+    _write_json(
+        study_root / "paper" / "review" / "domain_stage_closeout_sat_story_20260601T015622Z.json",
+        {
+            "surface_kind": "domain_stage_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": "sat_story",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_packet_ref": stage_packet_ref,
+            "study_id": study_root.name,
+            "quest_id": study_root.name,
+            "action_type": "run_quality_repair_batch",
+            "action_id": "quality-repair-writer-handoff::dm002::current-inputs",
+            "owner": "write",
+            "status": "completed_for_write_owner_idempotent",
+            "required_output_surface": "canonical manuscript story-surface delta",
+            "owner_route_basis": owner_route["source_refs"]["owner_route_currentness_basis"],
+            "domain_completion_claimed": False,
+            "provider_completion_is_domain_completion": False,
+            "provider_completion_is_domain_ready": False,
+            "artifact_delta": {
+                "status": "already_materialized_for_stage_packet",
+                "story_surface_delta_present": True,
+                "meaningful_artifact_delta_this_attempt": False,
+                "changed_artifact_refs": [
+                    {
+                        "path": (
+                            "studies/002-dm-china-us-mortality-attribution/paper/review/"
+                            "manuscript_story_repair_story_surface_sat_story.json"
+                        ),
+                        "artifact_role": "write_owner_story_surface_delta_idempotency_receipt",
+                    },
+                    {
+                        "path": (
+                            "studies/002-dm-china-us-mortality-attribution/paper/review/"
+                            "domain_stage_closeout_sat_story_20260601T015622Z.json"
+                        ),
+                        "artifact_role": "domain_stage_closeout_packet",
+                    },
+                ],
+                "current_story_surface_refs": [
+                    {"path": "studies/002-dm-china-us-mortality-attribution/paper/draft.md"},
+                    {"path": "studies/002-dm-china-us-mortality-attribution/paper/build/review_manuscript.md"},
+                ],
+                "manuscript_surface_hygiene": {
+                    "status": "clear_for_current_story_surface_delta",
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": True,
+                    "blockers": [],
+                },
+            },
+            "domain_owner_evidence": {
+                "this_attempt_resolution": "idempotent_closeout_over_current_story_surface_delta",
+                "manuscript_surface_hygiene_status": "clear",
+                "story_surface_delta_present": True,
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_required": True,
+                "ai_reviewer_recheck_done": True,
+            },
+            "closeout_refs": [
+                "studies/002-dm-china-us-mortality-attribution/paper/review/"
+                "domain_stage_closeout_sat_story_20260601T015622Z.json",
+                "studies/002-dm-china-us-mortality-attribution/paper/review/"
+                "manuscript_story_repair_story_surface_sat_story.json",
+            ],
+        },
+    )
+
+    receipt = default_executor_execution_receipt_consumption(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+
+    assert receipt["status"] == "consumed"
+    assert receipt["action_type"] == "run_quality_repair_batch"
+    assert receipt["execution_status"] == "executed"
+    assert receipt["owner_result_status"] == "completed_for_write_owner_idempotent"
+    assert receipt["repair_execution_evidence_status"] == "already_materialized_for_stage_packet"
+    assert receipt["changed_artifact_ref_count"] == 2
+    assert receipt["next_action"] == "do_not_redrive_consumed_owner_route"
+    assert "blocked_reason" not in receipt
 
 
 def test_default_executor_missing_closeout_refs_consumes_typed_blocker_without_redrive(

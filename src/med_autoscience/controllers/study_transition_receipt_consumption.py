@@ -901,11 +901,8 @@ def _quality_repair_batch_owner_result_satisfies_route_output(
     hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
     if "manuscript_story_surface_delta_missing" in _string_set(hygiene.get("blockers")):
         return True
-    if (
-        hygiene.get("story_surface_delta_required") is True
-        and hygiene.get("story_surface_delta_present") is not True
-    ):
-        return False
+    if hygiene.get("story_surface_delta_required") is True:
+        return hygiene.get("story_surface_delta_present") is True
     return bool(_story_surface_changed_refs(repair_evidence.get("changed_artifact_refs")))
 
 

@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-01：Progress-First writer idempotent closeout 必须作为可消费 owner receipt
+
+- 决策：default-executor receipt consumption 必须扫描 `paper/review/` 下的 domain-stage closeout packet，并在 `run_quality_repair_batch` closeout 明确 `manuscript_surface_hygiene.story_surface_delta_required=true` 且 `story_surface_delta_present=true` 时，把该 idempotent story-surface closeout 视为已消费 writer owner 输出。该 receipt 只证明当前 work unit 已有可接力 story-surface delta，不授权质量、投稿或 package 写入。
+- 理由：DM002 暴露出 write owner 已产出 `completed_for_write_owner_idempotent` 的 story-surface closeout，但 read-model 只扫描 `artifacts/supervision/consumer/default_executor_execution` 和 `stage_attempt_closeouts`，且只承认 draft/review-manuscript changed refs。结果同一 `consume_current_ai_reviewer_record_then_prose_gate_package_replay` 被重复重驱 15 次，最后变成 `progress_first_owner_redrive_budget_exhausted`，把时间耗在 receipt/reconcile 上。
+- 影响：Progress-first redrive budget 继续保留；真正缺少 story-surface delta 或 typed blocker 的 closeout 仍会 fail closed。已存在的 idempotent story-surface closeout 会推动下一 owner/gate/package follow-through，而不是重复 writer handoff。
+
 ## 2026-06-01：current AI reviewer archive projection ref 可关闭 record-production consumption ledger
 
 - 决策：当 owner-route/read-model 已选择 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 中的 current AI reviewer record 作为 effective publication eval，且 record-production completion receipt 已 consumed 时，owner-output consumption ledger 可以使用该 record 的 projection source ref 作为 `record_ref`。旧 `artifacts/supervision/requests/ai_reviewer/latest.json` 缺 `publication_eval_record_ref` 不再使 consumption ledger 丢失。

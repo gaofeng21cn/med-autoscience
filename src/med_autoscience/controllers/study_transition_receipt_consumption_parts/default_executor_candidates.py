@@ -11,6 +11,8 @@ EXECUTION_REF = Path("artifacts/supervision/consumer/default_executor_execution/
 CLOSEOUT_ROOT_REFS = (
     Path("artifacts/supervision/consumer/default_executor_execution"),
     Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
+    Path("paper/review"),
+    Path("paper/review/default_executor_closeouts"),
 )
 CLOSEOUT_SURFACES = frozenset(
     {
@@ -130,6 +132,7 @@ def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path
     if not basis:
         basis = {
             "truth_epoch": _text(closeout.get("truth_epoch")),
+            "source_eval_id": _text(closeout.get("source_eval_id")),
             "work_unit_fingerprint": _text(closeout.get("work_unit_fingerprint")),
             "work_unit_id": _text(closeout.get("work_unit_id")),
             "owner_reason": _text(closeout.get("owner_reason")),
@@ -145,6 +148,7 @@ def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path
             "truth_epoch": _text(basis.get("truth_epoch")),
             "route_epoch": _text(basis.get("truth_epoch")),
             "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
+            "source_eval_id": _text(basis.get("source_eval_id")),
             "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint")),
             "next_owner": "write" if owner in {"quality_repair_batch", "write"} else owner,
             "owner_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
@@ -153,12 +157,14 @@ def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path
                 "owner_route_currentness_basis": {
                     "truth_epoch": _text(basis.get("truth_epoch")),
                     "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
+                    "source_eval_id": _text(basis.get("source_eval_id")),
                     "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint")),
                     "work_unit_id": _text(basis.get("work_unit_id")),
                     "owner_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
                 },
                 "study_truth_epoch": _text(basis.get("truth_epoch")),
                 "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
+                "source_eval_id": _text(basis.get("source_eval_id")),
                 "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint")),
                 "work_unit_id": _text(basis.get("work_unit_id")),
                 "blocked_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
