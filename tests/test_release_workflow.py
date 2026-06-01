@@ -304,7 +304,7 @@ def test_advisory_workflow_uploads_non_blocking_lane_summaries() -> None:
     assert "display-surface" in history_workflow
     assert "if: always()" in history_workflow
     assert "continue-on-error: true" in history_workflow
-    assert "actions/download-artifact@v7" in history_workflow
+    assert "actions/download-artifact@v8" in history_workflow
     assert "pattern: mas-test-lane-summary-*" in history_workflow
     assert "path: artifacts/mas-test-lane-summary-history" in history_workflow
     assert "merge-multiple: true" in history_workflow
