@@ -265,6 +265,41 @@ def test_user_visible_projection_uses_current_domain_transition_owner_when_hando
     assert projection["paper_progress_state"]["next_owner"] == "ai_reviewer"
 
 
+def test_progress_first_monitoring_does_not_redrive_same_consumed_ai_reviewer_record() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "domain_transition": {
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "owner": "ai_reviewer",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "next_work_unit": {
+                "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "lane": "review",
+            },
+            "completion_receipt_consumption": {
+                "status": "consumed",
+                "receipt_kind": "ai_reviewer_publication_eval",
+                "receipt_ref": "artifacts/publication_eval/latest.json",
+                "eval_id": "publication-eval::003-dpcc::current",
+                "next_action": "honor_ai_reviewer_publication_eval_authority",
+            },
+        },
+    }
+
+    projection = module.build_progress_first_monitoring_summary(payload)
+
+    assert projection["execution_state_kind"] == "receipt_consumed"
+    assert projection["next_owner"] == "ai_reviewer"
+    assert projection["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert projection["next_work_unit"]["unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+    assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
+
+
 def test_redrive_projection_prefers_explicit_handoff_owner_over_stale_terminal_log() -> None:
     handoff_projection = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"

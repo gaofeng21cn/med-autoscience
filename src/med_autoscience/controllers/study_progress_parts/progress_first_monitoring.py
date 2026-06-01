@@ -48,6 +48,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     hydration_work_unit = _explicit_wakeup_hydration_work_unit(launch_policy)
     transition_consumed_owner_action = _transition_consumed_owner_action(domain_transition)
+    receipt_consumed = _transition_receipt_consumed(domain_transition)
     next_work_unit = (
         hydration_work_unit
         or (
@@ -78,7 +79,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
     state_kind = "executable_owner_action" if transition_consumed_owner_action else _text(execution.get("state_kind"))
     if state_kind is None:
-        state_kind = "running_provider_attempt" if running_provider_attempt else "observability_only"
+        if receipt_consumed:
+            state_kind = "receipt_consumed"
+        else:
+            state_kind = "running_provider_attempt" if running_provider_attempt else "observability_only"
     return {
         "surface": "progress_first_monitoring_summary",
         "schema_version": 1,
@@ -206,11 +210,41 @@ def _transition_consumed_owner_action(domain_transition: Mapping[str, Any]) -> b
     completion = _mapping(domain_transition.get("completion_receipt_consumption"))
     if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
         return False
+    if _consumed_receipt_matches_transition_work_unit(domain_transition=domain_transition, completion=completion):
+        return False
     return (
         _text(domain_transition.get("owner")) is not None
         or _text(domain_transition.get("controller_action")) is not None
         or _work_unit_projection(domain_transition.get("next_work_unit")) is not None
     )
+
+
+def _transition_receipt_consumed(domain_transition: Mapping[str, Any]) -> bool:
+    completion = _mapping(domain_transition.get("completion_receipt_consumption"))
+    execution = _mapping(domain_transition.get("default_executor_execution_receipt_consumption"))
+    status = (
+        _text(completion.get("consumption_status"))
+        or _text(completion.get("status"))
+        or _text(execution.get("consumption_status"))
+        or _text(execution.get("status"))
+    )
+    return status in {"consumed", "receipt_consumed", "completed"}
+
+
+def _consumed_receipt_matches_transition_work_unit(
+    *,
+    domain_transition: Mapping[str, Any],
+    completion: Mapping[str, Any],
+) -> bool:
+    if _text(completion.get("receipt_kind")) != "ai_reviewer_publication_eval":
+        return False
+    if _text(domain_transition.get("decision_type")) != "ai_reviewer_re_eval":
+        return False
+    if _text(domain_transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
+        return False
+    work_unit = _work_unit_projection(domain_transition.get("next_work_unit"))
+    work_unit_id = _text(_mapping(work_unit).get("unit_id"))
+    return bool(work_unit_id and work_unit_id.startswith("produce_ai_reviewer_publication_eval_record"))
 
 
 def _first_action_queue_item(value: object) -> dict[str, Any] | None:

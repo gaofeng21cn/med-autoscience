@@ -444,6 +444,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 OPL worker、Temporal provider 和 scheduler 均在线，但 Codex App heartbeat 与 workspace wrapper 默认只跑 observe-only diagnostic；当前 owner route 需要经过 materialize/dispatch 才会形成 OPL provider attempt，结果表现为 `quest_status=active`、worker 在线却 `active_run_id=null`、`wait_for_user_or_resume` 或 stale owner request 需要人工连敲三条命令。根因是 MAS developer-supervisor one-shot 入口没有落地完整 same-tick action chain，不是 OPL provider 离线，也不是论文 package 可以手工修补。
 - 影响：这是 MAS command surface / generated workspace wrapper / developer-supervisor policy 修复。它让 hourly Codex App heartbeat 和人工巡检使用同一个安全入口持续推进 owner action，同时保留显式 dry-run 诊断能力。
 
+## 2026-06-01：已消费 AI reviewer receipt 不能重复计作 ready dispatch
+
+- 决策：`progress_first_monitoring_summary` 与 `study-state-matrix.progress_first_tick_accounting` 读取 `completion_receipt_consumption.status=consumed|receipt_consumed|completed` 时，必须区分“receipt 后出现新的不同 owner work unit”和“仍停留在同一个 AI reviewer record production work unit”。若 receipt_kind 是 `ai_reviewer_publication_eval`，且当前 transition 仍是 `return_to_ai_reviewer_workflow` / `produce_ai_reviewer_publication_eval_record*`，则只能投影为 `receipt_consumed` observability，不得计入 `expected_owner_action_count` / `ready_for_owner_action_count`。
+- 理由：DM002/DM003 现场显示 OPL provider/worker ready 且无 live provider attempt，但矩阵把已消费的 AI reviewer record receipt 继续显示为 `ready_for_dispatch`，operator 随后反复 materialize/dispatch/reconcile 同一 receipt/read-model，耗时而没有论文产物 delta。这违反 Progress-first，因为 receipt reconciliation 不是 paper-facing stage 进展，也不是下一 owner work unit。
+- 影响：这是 MAS read-model/currentness 修复，不写 DM002/DM003 study truth、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文继续推进必须由后续 current owner route 或 typed blocker 触发。
+
 ## 2026-05-26：DM002 默认执行器 live attempt currentness 与 wrapper dry-run 入口
 
 - 决策：`default_executor_execution_receipt_consumption` 消费已执行的 `domain_owner/default-executor-dispatch` receipt 时，currentness 绑定当前 domain work unit、truth epoch、owner reason、owner/action 集合；`runtime_health_epoch`、route `idempotency_key` 和派生 `source_fingerprint` 可以因 OPL/MAS 心跳刷新而变化，不能单独让同一 work unit 的 accepted typed closeout 失效。若 work unit id/fingerprint、truth epoch、owner reason 或 allowed action 不一致，仍 fail closed。

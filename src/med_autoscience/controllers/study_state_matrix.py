@@ -316,13 +316,26 @@ def _progress_first_monitoring_summary(
         or _text(existing.get("controller_action")) is not None
         or bool(_dict(existing.get("next_work_unit")))
     )
-    owner_action_current = existing_owner_action or transition_consumed_owner_action
     existing_dispatch_consumption = _dict(existing.get("dispatch_consumption"))
+    transition_dispatch_consumption = _transition_dispatch_consumption(transition)
+    dispatch_consumption = existing_dispatch_consumption or transition_dispatch_consumption
     existing_receipt_consumed = _text(existing_dispatch_consumption.get("consumption_status")) in {
         "consumed",
         "receipt_consumed",
         "completed",
     }
+    transition_receipt_consumed = _text(transition_dispatch_consumption.get("consumption_status")) in {
+        "consumed",
+        "receipt_consumed",
+        "completed",
+    }
+    existing_consumed_same_ai_reviewer_record = _existing_consumed_ai_reviewer_record(
+        existing=existing,
+        dispatch_consumption=existing_dispatch_consumption,
+    )
+    owner_action_current = (existing_owner_action and not existing_consumed_same_ai_reviewer_record) or (
+        transition_consumed_owner_action
+    )
     typed_blocker = ({} if transition_consumed_owner_action else _dict(existing.get("typed_blocker"))) or (
         {} if existing_owner_action or existing_receipt_consumed else _dict(transition.get("typed_blocker"))
     )
@@ -350,8 +363,11 @@ def _progress_first_monitoring_summary(
         "running_provider_attempt": existing.get("running_provider_attempt"),
         "worker_liveness": _dict(existing.get("worker_liveness")),
         "execution_state_kind": (
-            "executable_owner_action" if transition_consumed_owner_action else _text(existing.get("execution_state_kind"))
-        ),
+            "executable_owner_action"
+            if transition_consumed_owner_action
+            else ("receipt_consumed" if existing_consumed_same_ai_reviewer_record else _text(existing.get("execution_state_kind")))
+        )
+        or ("receipt_consumed" if transition_receipt_consumed else None),
         "owner_action_current": owner_action_current,
         "next_owner": (
             _text(transition.get("owner")) if transition_consumed_owner_action else _text(existing.get("next_owner"))
@@ -379,7 +395,7 @@ def _progress_first_monitoring_summary(
         "next_forced_delta": _dict(existing.get("next_forced_delta")),
         "stage_progress_log": _dict(existing.get("stage_progress_log")),
         "latest_terminal_stage": _dict(existing.get("latest_terminal_stage")) or None,
-        "dispatch_consumption": existing_dispatch_consumption,
+        "dispatch_consumption": dispatch_consumption,
         "foreground_write_policy": _dict(existing.get("foreground_write_policy")),
         "source_refs": _string_list(existing.get("source_refs")),
         "publication_eval": _publication_eval_monitoring_summary(study_root=study_root),
@@ -451,11 +467,61 @@ def _transition_consumed_owner_action(transition: Mapping[str, Any]) -> bool:
     completion = _dict(transition.get("completion_receipt_consumption"))
     if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
         return False
+    if _consumed_receipt_matches_transition_work_unit(transition=transition, completion=completion):
+        return False
     return (
         _text(transition.get("owner")) is not None
         or _text(transition.get("controller_action")) is not None
         or bool(_dict(transition.get("next_work_unit")))
     )
+
+
+def _transition_dispatch_consumption(transition: Mapping[str, Any]) -> dict[str, Any]:
+    completion = _dict(transition.get("completion_receipt_consumption"))
+    execution = _dict(transition.get("default_executor_execution_receipt_consumption"))
+    if not completion and not execution:
+        return {}
+    return {
+        "consumption_status": _text(completion.get("consumption_status"))
+        or _text(completion.get("status"))
+        or _text(execution.get("consumption_status"))
+        or _text(execution.get("status"))
+        or "receipt_consumed",
+        "receipt_ref": _text(completion.get("receipt_ref")) or _text(execution.get("receipt_ref")),
+        "execution_status": _text(execution.get("execution_status")),
+        "action_fingerprint": _text(completion.get("action_fingerprint"))
+        or _text(execution.get("action_fingerprint")),
+    }
+
+
+def _existing_consumed_ai_reviewer_record(
+    *,
+    existing: Mapping[str, Any],
+    dispatch_consumption: Mapping[str, Any],
+) -> bool:
+    if _text(dispatch_consumption.get("consumption_status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    if _text(existing.get("next_owner")) != "ai_reviewer":
+        return False
+    if _text(existing.get("controller_action")) != "return_to_ai_reviewer_workflow":
+        return False
+    work_unit_id = _text(_dict(existing.get("next_work_unit")).get("unit_id"))
+    return bool(work_unit_id and work_unit_id.startswith("produce_ai_reviewer_publication_eval_record"))
+
+
+def _consumed_receipt_matches_transition_work_unit(
+    *,
+    transition: Mapping[str, Any],
+    completion: Mapping[str, Any],
+) -> bool:
+    if _text(completion.get("receipt_kind")) != "ai_reviewer_publication_eval":
+        return False
+    if _text(transition.get("decision_type")) != "ai_reviewer_re_eval":
+        return False
+    if _text(transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
+        return False
+    work_unit_id = _text(_dict(transition.get("next_work_unit")).get("unit_id"))
+    return bool(work_unit_id and work_unit_id.startswith("produce_ai_reviewer_publication_eval_record"))
 
 
 def _latest_24h_timeline_refs(monitoring: Mapping[str, Any]) -> dict[str, Any]:
