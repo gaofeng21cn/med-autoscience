@@ -324,6 +324,98 @@ def test_study_state_matrix_treats_new_owner_action_as_ready_after_prior_receipt
     assert study["dispatch_consumption"]["consumption_status"] == "receipt_consumed"
 
 
+def test_study_state_matrix_prefers_consumed_transition_owner_action_over_stale_typed_blocker(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    state_matrix = importlib.import_module("med_autoscience.controllers.study_state_matrix")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    domain_transition = {
+        "decision_type": "route_back_same_line",
+        "route_target": "write",
+        "owner": "write",
+        "controller_action": "request_opl_stage_attempt",
+        "next_work_unit": {
+            "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "lane": "publication_gate",
+            "summary": "MAS publication-gate/currentness replay after current AI reviewer archive.",
+        },
+        "typed_blocker": None,
+        "completion_receipt_consumption": {
+            "status": "consumed",
+            "receipt_kind": "ai_reviewer_publication_eval",
+            "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
+            "next_action": "honor_ai_reviewer_publication_eval_authority",
+        },
+    }
+
+    monkeypatch.setattr(
+        cli.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": study_id,
+                "running_provider_attempt": False,
+                "execution_state_kind": "typed_blocker",
+                "next_owner": "ai_reviewer",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "publication_gate",
+                },
+                "typed_blocker": {
+                    "blocker_type": "ai_reviewer_assessment_required",
+                    "owner": "ai_reviewer",
+                },
+                "current_blockers": ["ai_reviewer_assessment_required"],
+                "dispatch_consumption": {
+                    "consumption_status": "receipt_consumed",
+                    "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                },
+            },
+        },
+    )
+    monkeypatch.setattr(
+        state_matrix.study_domain_transition_table,
+        "project_domain_transition",
+        lambda **_: dict(domain_transition),
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+    accounting = payload["progress_first_tick_accounting"]
+    study = accounting["studies"][0]
+    monitoring = payload["studies"][0]["monitoring"]
+
+    assert exit_code == 0
+    assert accounting["expected_owner_action_count"] == 1
+    assert accounting["ready_for_owner_action_count"] == 1
+    assert accounting["typed_blocker_count"] == 0
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["owner_action_current"] is True
+    assert monitoring["next_owner"] == "write"
+    assert monitoring["route_target"] == "write"
+    assert monitoring["typed_blocker"] is None
+    assert monitoring["current_blockers"] == []
+    assert study["monitoring_status"] == "ready_for_dispatch"
+    assert study["throughput_bottleneck"] == "ready_owner_action"
+
+
 def test_study_state_matrix_exposes_supervisor_monitoring_bundle_without_writes(
     monkeypatch,
     tmp_path: Path,

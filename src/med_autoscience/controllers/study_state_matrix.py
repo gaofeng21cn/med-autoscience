@@ -307,22 +307,26 @@ def _progress_first_monitoring_summary(
     existing = _dict(status.get("progress_first_monitoring_summary")) or _dict(
         projection.get("progress_first_monitoring_summary")
     )
+    transition_consumed_owner_action = _transition_consumed_owner_action(transition)
     next_work_unit = _dict(existing.get("next_work_unit")) or _dict(transition.get("next_work_unit"))
+    if transition_consumed_owner_action:
+        next_work_unit = _dict(transition.get("next_work_unit")) or next_work_unit
     existing_owner_action = (
         _text(existing.get("next_owner")) is not None
         or _text(existing.get("controller_action")) is not None
         or bool(_dict(existing.get("next_work_unit")))
     )
+    owner_action_current = existing_owner_action or transition_consumed_owner_action
     existing_dispatch_consumption = _dict(existing.get("dispatch_consumption"))
     existing_receipt_consumed = _text(existing_dispatch_consumption.get("consumption_status")) in {
         "consumed",
         "receipt_consumed",
         "completed",
     }
-    typed_blocker = _dict(existing.get("typed_blocker")) or (
+    typed_blocker = ({} if transition_consumed_owner_action else _dict(existing.get("typed_blocker"))) or (
         {} if existing_owner_action or existing_receipt_consumed else _dict(transition.get("typed_blocker"))
     )
-    current_blockers = _string_list(existing.get("current_blockers"))
+    current_blockers = [] if transition_consumed_owner_action else _string_list(existing.get("current_blockers"))
     if not current_blockers and typed_blocker:
         current_blockers = [
             text
@@ -345,11 +349,26 @@ def _progress_first_monitoring_summary(
         "active_workflow_id": _text(existing.get("active_workflow_id")),
         "running_provider_attempt": existing.get("running_provider_attempt"),
         "worker_liveness": _dict(existing.get("worker_liveness")),
-        "execution_state_kind": _text(existing.get("execution_state_kind")),
-        "owner_action_current": existing_owner_action,
-        "next_owner": _text(existing.get("next_owner")) or _text(transition.get("owner")),
-        "route_target": _text(existing.get("route_target")) or _text(transition.get("route_target")),
-        "controller_action": _text(existing.get("controller_action")) or _text(transition.get("controller_action")),
+        "execution_state_kind": (
+            "executable_owner_action" if transition_consumed_owner_action else _text(existing.get("execution_state_kind"))
+        ),
+        "owner_action_current": owner_action_current,
+        "next_owner": (
+            _text(transition.get("owner")) if transition_consumed_owner_action else _text(existing.get("next_owner"))
+        )
+        or _text(transition.get("owner")),
+        "route_target": (
+            _text(transition.get("route_target"))
+            if transition_consumed_owner_action
+            else _text(existing.get("route_target"))
+        )
+        or _text(transition.get("route_target")),
+        "controller_action": (
+            _text(transition.get("controller_action"))
+            if transition_consumed_owner_action
+            else _text(existing.get("controller_action"))
+        )
+        or _text(transition.get("controller_action")),
         "next_work_unit": next_work_unit or _text(existing.get("next_work_unit")),
         "typed_blocker": typed_blocker or None,
         "current_blockers": current_blockers[:12],
@@ -424,6 +443,19 @@ def _provider_status(monitoring: Mapping[str, Any]) -> dict[str, Any]:
         "active_workflow_id": _text(monitoring.get("active_workflow_id")),
         "execution_state_kind": _text(monitoring.get("execution_state_kind")),
     }
+
+
+def _transition_consumed_owner_action(transition: Mapping[str, Any]) -> bool:
+    if _dict(transition.get("typed_blocker")):
+        return False
+    completion = _dict(transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    return (
+        _text(transition.get("owner")) is not None
+        or _text(transition.get("controller_action")) is not None
+        or bool(_dict(transition.get("next_work_unit")))
+    )
 
 
 def _latest_24h_timeline_refs(monitoring: Mapping[str, Any]) -> dict[str, Any]:

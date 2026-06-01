@@ -269,6 +269,56 @@ def test_progress_first_monitoring_marks_complete_terminal_closeout_semantics() 
     assert completeness["next_forced_delta"] is None
 
 
+def test_progress_first_monitoring_prefers_consumed_transition_owner_action_over_stale_execution_blocker() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "ai_reviewer",
+                "typed_blocker": {
+                    "blocker_type": "ai_reviewer_assessment_required",
+                    "owner": "ai_reviewer",
+                },
+            },
+            "current_blockers": ["ai_reviewer_assessment_required"],
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "publication_gate",
+                    "summary": "MAS publication-gate/currentness replay after current AI reviewer archive.",
+                },
+                "typed_blocker": None,
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                    "next_action": "honor_ai_reviewer_publication_eval_authority",
+                },
+            },
+        }
+    )
+
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["next_owner"] == "write"
+    assert monitoring["route_target"] == "write"
+    assert monitoring["controller_action"] == "request_opl_stage_attempt"
+    assert monitoring["next_work_unit"]["unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+    assert monitoring["typed_blocker"] is None
+    assert monitoring["current_blockers"] == []
+    assert monitoring["dispatch_consumption"]["consumption_status"] == "consumed"
+
+
 def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     mcp_adapter = importlib.import_module("med_autoscience.mcp_server_parts.projection_adapters")

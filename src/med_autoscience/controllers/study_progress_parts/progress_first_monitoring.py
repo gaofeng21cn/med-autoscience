@@ -47,24 +47,36 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _text(handoff.get("active_run_id"))
     )
     hydration_work_unit = _explicit_wakeup_hydration_work_unit(launch_policy)
+    transition_consumed_owner_action = _transition_consumed_owner_action(domain_transition)
     next_work_unit = (
         hydration_work_unit
+        or (
+            _work_unit_projection(domain_transition.get("next_work_unit"))
+            if transition_consumed_owner_action
+            else None
+        )
         or _work_unit_projection(execution.get("next_work_unit"))
         or _work_unit_projection(domain_transition.get("next_work_unit"))
         or _work_unit_from_action_queue(handoff.get("action_queue"))
         or _work_unit_projection(next_forced_delta.get("work_unit_id"))
     )
     typed_blocker = (
-        _mapping(execution.get("typed_blocker"))
+        {}
+        if transition_consumed_owner_action
+        else _mapping(execution.get("typed_blocker"))
         or _mapping(domain_transition.get("typed_blocker"))
         or _terminal_closeout_typed_blocker_projection(
             latest_terminal_stage_log=latest_terminal_stage_log,
             paper_stage_log=paper_stage_log,
         )
     )
-    current_blockers = _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
+    current_blockers = (
+        []
+        if transition_consumed_owner_action
+        else _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
+    )
     running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
-    state_kind = _text(execution.get("state_kind"))
+    state_kind = "executable_owner_action" if transition_consumed_owner_action else _text(execution.get("state_kind"))
     if state_kind is None:
         state_kind = "running_provider_attempt" if running_provider_attempt else "observability_only"
     return {
@@ -91,6 +103,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "execution_state_kind": "owner_handoff_hydration" if hydration_work_unit is not None else state_kind,
         "next_owner": (
             _explicit_wakeup_hydration_owner(launch_policy)
+            or (_text(domain_transition.get("owner")) if transition_consumed_owner_action else None)
             or _text(execution.get("owner"))
             or _text(domain_transition.get("owner"))
             or _text(handoff.get("next_owner"))
@@ -160,7 +173,9 @@ def _dispatch_consumption_summary(
     if completion_receipt or execution_receipt:
         status = (
             _text(completion_receipt.get("consumption_status"))
+            or _text(completion_receipt.get("status"))
             or _text(execution_receipt.get("consumption_status"))
+            or _text(execution_receipt.get("status"))
             or "receipt_consumed"
         )
         return {
@@ -183,6 +198,19 @@ def _dispatch_consumption_summary(
         "unconsumed_duration_hours": _numeric(queue_item.get("queue_age_hours"))
         or _numeric(queue_item.get("unconsumed_duration_hours")),
     }
+
+
+def _transition_consumed_owner_action(domain_transition: Mapping[str, Any]) -> bool:
+    if _mapping(domain_transition.get("typed_blocker")):
+        return False
+    completion = _mapping(domain_transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    return (
+        _text(domain_transition.get("owner")) is not None
+        or _text(domain_transition.get("controller_action")) is not None
+        or _work_unit_projection(domain_transition.get("next_work_unit")) is not None
+    )
 
 
 def _first_action_queue_item(value: object) -> dict[str, Any] | None:
