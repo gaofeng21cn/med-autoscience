@@ -658,6 +658,8 @@ def _progress_first_monitoring_status(
         return "running"
     if _is_human_gate(summary):
         return "human_gate"
+    if _is_typed_owner_blocker(summary):
+        return "blocked_typed_owner"
     consumption_status = _text(dispatch_consumption.get("consumption_status"))
     owner_action_current = summary.get("owner_action_current")
     if owner_action_current is True or (
@@ -672,6 +674,12 @@ def _progress_first_monitoring_status(
     if consumption_status in {"consumed", "receipt_consumed", "completed"}:
         return "receipt_consumed"
     return "observability_only"
+
+
+def _is_typed_owner_blocker(summary: Mapping[str, Any]) -> bool:
+    if not _dict(summary.get("typed_blocker")):
+        return False
+    return _text(summary.get("execution_state_kind")) in {"typed_blocker", "blocked_typed_owner"}
 
 
 def _is_human_gate(summary: Mapping[str, Any]) -> bool:
