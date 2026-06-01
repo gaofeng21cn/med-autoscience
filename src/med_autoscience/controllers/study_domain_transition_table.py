@@ -40,6 +40,7 @@ def project_domain_transition(
     status: Mapping[str, Any],
     macro_state: Mapping[str, Any],
     active_run_id: str | None,
+    running_provider_attempt: bool | None = None,
     delivered_package: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = Path(study_root).expanduser().resolve()
@@ -211,9 +212,11 @@ def project_domain_transition(
             completion_receipt_consumption=stop_loss_receipt_consumption,
         )
 
+    active_runtime_present = active_run_id is not None and running_provider_attempt is not False
     delivered_package_observed = bool(delivered_package and delivered_package.get("observed") is True)
     if delivered_package_observed and (
-        delivered_package_handoff_allowed(publication_eval) or (active_run_id and live_delivered_package_handoff_allowed(publication_eval))
+        delivered_package_handoff_allowed(publication_eval)
+        or (active_runtime_present and live_delivered_package_handoff_allowed(publication_eval))
     ):
         return _delivered_package_handoff_transition(
             study_id=study_id,
@@ -248,7 +251,7 @@ def project_domain_transition(
         study_id=study_id,
         study_root=root,
         publication_eval=publication_eval,
-        active_run_id=active_run_id,
+        active_run_id=active_run_id if active_runtime_present else None,
         publication_eval_relative_path=PUBLICATION_EVAL_RELATIVE_PATH,
         source_refs=source_refs,
         completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
@@ -360,7 +363,7 @@ def project_domain_transition(
             completion_receipt_consumption=owner_apply_receipt_consumption or execution_receipt_consumption,
         )
 
-    if active_run_id:
+    if active_runtime_present:
         return _transition(
             study_id=study_id,
             decision_type="active_domain_health_diagnostic",

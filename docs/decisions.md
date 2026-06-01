@@ -5,6 +5,20 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-01：current AI reviewer record 消费 stale request 后必须同 tick 进入 route-back owner
+
+- 决策：`study_domain_transition_table` 选择到 current AI reviewer archive record 后，必须用同一个 selected record 重新投影 `project_ai_reviewer_request_lifecycle`。若 lifecycle 已是 `assessment_written=true` 且 `blocked_reason` 为空，旧 `artifacts/supervision/requests/ai_reviewer/latest.json` 的 stale-record blocker 已关闭，domain transition 不得继续生成 `ai_reviewer_re_eval` / reviewer record-production work unit。
+- 决策：旧 request 的 `ai_reviewer_record_stale_after_current_inputs`、`ai_reviewer_record_stale_after_current_manuscript` 或 unit-harmonized stale blocker 在这种状态下只作为 receipt/currentness lineage；当前 owner truth 来自 AI reviewer record 的 `recommended_actions[]`、`route_target` 和 `next_work_unit`。后续应进入 write、gate-clearing、package follow-through、human gate 或 typed blocker，而不是重复 reviewer/read-model reconcile。
+- 理由：DM002 暴露出 current-inputs AI reviewer record 已覆盖 evidence / claim-map currentness refs，并明确推荐 `route_back_same_line -> write`，但 stable request 仍残留 `ai_reviewer_record_stale_after_current_inputs`。旧 transition 先读 stale request 并回到 reviewer，导致流程把时间耗在 receipt / read-model reconcile，而不是执行已经存在的 write/gate follow-through。根因是 transition table 没有让 selected current record 消费 stale request lifecycle。
+- 影响：这是 MAS domain transition / read-model currentness 修复，不写 DM002/DM003 study truth、runtime-owned surface、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量、publishability 和 package freshness 仍由后续 owner path、AI reviewer-backed eval、publication gate 与 typed closeout 判定。
+
+## 2026-06-01：stale active_run_id 不得抢占当前 Progress-First owner action
+
+- 决策：`study_domain_transition_table` 的 active-run dominance 必须由 `running_provider_attempt=true` 或等价 live provider liveness 支撑。若 `progress_first_monitoring_summary`、runtime liveness 或 OPL current-control 明确 `running_provider_attempt=false`，即使仍有旧 `active_run_id`，domain transition 也不得进入 `active_domain_health_diagnostic` 或 live delivered-package shortcut。
+- 决策：stale `active_run_id` 可继续出现在 operator observability、lineage 与 portal 里，但不能把 current AI reviewer、write、gate-clearing、package follow-through、human gate 或 typed blocker 改写成 diagnostic。Progress-First 判断实际运行必须共同依赖 active attempt、provider/worker liveness、stage log/closeout refs 和 artifact delta。
+- 理由：DM002 live dry-run 显示 `running_provider_attempt=false`、OPL active stage/workflow 为空，但旧 `active_run_id` 仍使 domain transition 回到 `domain_health_diagnostic_active_run`，压住了当前 AI reviewer record 推荐的 write/gate follow-through。这会把推进时间继续耗在 diagnostic/read-model reconcile 上，不符合 Progress-first。
+- 影响：这是 MAS transition/read-model liveness 修复，不写 study truth、runtime-owned surface、paper/package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。真正 live attempt 仍会保持 supervisor-only diagnostic dominance；没有 live provider 时必须继续解析唯一 owner action或 stable blocker。
+
 ## 2026-06-01：Progress-First ready owner action 必须先满足 explicit target 与 closeout semantics
 
 - 决策：`study-state-matrix.progress_first_tick_accounting` 在把 study 计入 `ready_for_dispatch` / `ready_for_owner_action_count` 前，必须先检查 owner-route contract。若 `next_forced_delta.target_surface_specificity=generic_route_obligation_fallback`、`missing_explicit_target_surface=true`，或 latest terminal stage 的 `semantic_completeness.status` 缺 required closeout semantics，则 read-model 必须投影为 `blocked_owner_route_contract`。

@@ -64,6 +64,7 @@ def build_study_state_matrix(
             progress={},
         )
         active_run_id = _resolved_active_run_id(status=status, macro_state=macro)
+        running_provider_attempt = _resolved_running_provider_attempt(status)
         writer_state = str(macro["writer_state"])
         counts[writer_state] = counts.get(writer_state, 0) + 1
         transition = study_domain_transition_table.project_domain_transition(
@@ -72,6 +73,7 @@ def build_study_state_matrix(
             status=status,
             macro_state=macro,
             active_run_id=active_run_id,
+            running_provider_attempt=running_provider_attempt,
             delivered_package=delivered_package,
         )
         monitoring = _progress_first_monitoring_summary(
@@ -297,6 +299,24 @@ def _resolved_active_run_id(*, status: Mapping[str, Any], macro_state: Mapping[s
         or _text(_dict(_dict(status.get("study_truth_snapshot")).get("execution_owner")).get("active_run_id"))
         or _text(_dict(macro_state.get("details")).get("active_run_id"))
     )
+
+
+def _resolved_running_provider_attempt(status: Mapping[str, Any]) -> bool | None:
+    projection = _dict(status.get("progress_projection"))
+    monitoring = _dict(status.get("progress_first_monitoring_summary")) or _dict(
+        projection.get("progress_first_monitoring_summary")
+    )
+    if isinstance(monitoring.get("running_provider_attempt"), bool):
+        return monitoring.get("running_provider_attempt")
+    runtime_liveness = _dict(status.get("runtime_liveness_audit"))
+    if isinstance(runtime_liveness.get("running_provider_attempt"), bool):
+        return runtime_liveness.get("running_provider_attempt")
+    opl_control = _dict(status.get("opl_current_control_state_handoff")) or _dict(
+        status.get("opl_current_control_state")
+    )
+    if isinstance(opl_control.get("running_provider_attempt"), bool):
+        return opl_control.get("running_provider_attempt")
+    return None
 
 
 def _progress_first_monitoring_summary(

@@ -9,7 +9,10 @@ from med_autoscience.controllers.owner_route_reconcile_parts import current_trut
 from med_autoscience.controllers.study_outer_loop_parts.domain_transition_actions import (
     domain_transition_recommended_action,
 )
-from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
+from tests.reviewer_os_fixture_helpers import (
+    current_manuscript_routeback_record,
+    current_manuscript_routeback_reviewer_os,
+)
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -222,6 +225,116 @@ def test_stale_current_manuscript_ai_reviewer_request_preempts_old_write_routeba
     assert str(stale_record_path) in transition["source_refs"]
 
 
+def test_current_ai_reviewer_record_consumes_stale_input_request_before_write_routeback(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    manuscript_path = study_root / "paper" / "draft.md"
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    manuscript_text = "# Draft\n\nCurrent manuscript with updated input ledgers.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    _write_json(evidence_path, {"updated": "current"})
+    _write_json(claim_map_path, {"updated": "current"})
+    old_eval = _current_ai_reviewer_route_back_eval(study_root)
+    old_eval["eval_id"] = "publication-eval::dm002::old-inputs::2026-05-31T10:00:00+00:00"
+    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, old_eval)
+    current_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260601T131804Z_publication_eval_record.json"
+    )
+    current_record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id="dm002",
+        quest_id="dm002",
+        eval_id="publication-eval::dm002::ai-reviewer-current-inputs::20260601T130009Z",
+        emitted_at="2026-06-01T13:18:04+00:00",
+    )
+    current_record["assessment_provenance"].update(
+        {
+            "source_kind": "publication_eval_ai_reviewer",
+            "source_refs": [
+                str(manuscript_path.resolve()),
+                str(evidence_path.resolve()),
+                str(claim_map_path.resolve()),
+            ],
+        }
+    )
+    current_record["reviewer_operating_system"]["currentness_checks"]["evidence_ledger"] = {
+        "status": "current",
+        "ref": str(evidence_path.resolve()),
+        "digest": _sha256_text(evidence_path.read_text(encoding="utf-8")),
+    }
+    current_record["reviewer_operating_system"]["currentness_checks"]["claim_evidence_map"] = {
+        "status": "current",
+        "ref": str(claim_map_path.resolve()),
+        "digest": _sha256_text(claim_map_path.read_text(encoding="utf-8")),
+    }
+    current_record["recommended_actions"] = [
+        {
+            "action_id": "A1_consume_current_ai_reviewer_record_then_gate_replay",
+            "action_type": "route_back_same_line",
+            "priority": "now",
+            "reason": "Consume this current AI reviewer record and route the manuscript back to write.",
+            "requires_controller_decision": True,
+            "route_target": "write",
+            "next_work_unit": {
+                "unit_id": "consume_current_ai_reviewer_record_then_prose_gate_package_replay",
+                "lane": "write",
+                "summary": "Consume the current AI reviewer record, refresh durable medical-prose currentness, replay publication gate logic, and only then evaluate package/readiness surfaces.",
+            },
+        }
+    ]
+    _write_json(current_record_path, current_record)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "state": "requested",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+                "stale_record_ref": str(
+                    study_root
+                    / "artifacts"
+                    / "publication_eval"
+                    / "ai_reviewer_responses"
+                    / "20260601T121132Z_publication_eval_record.json"
+                ),
+                "required_currentness_refs": [
+                    str(evidence_path.resolve()),
+                    str(claim_map_path.resolve()),
+                ],
+            },
+        },
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "route_back_same_line"
+    assert transition["route_target"] == "write"
+    assert transition["owner"] == "write"
+    assert transition["controller_action"] == "request_opl_stage_attempt"
+    assert transition["next_work_unit"]["unit_id"] == (
+        "consume_current_ai_reviewer_record_then_prose_gate_package_replay"
+    )
+    assert transition["completion_receipt_consumption"]["receipt_ref"] == str(current_record_path.resolve())
+    assert str(current_record_path.resolve()) in transition["source_refs"]
+
+
 def test_current_ai_reviewer_write_action_preempts_stale_prose_review_route_target_when_not_live(
     tmp_path: Path,
 ) -> None:
@@ -413,7 +526,7 @@ def test_current_ai_reviewer_record_transition_refs_are_json_serializable(tmp_pa
     json.dumps(transition, ensure_ascii=False, sort_keys=True)
     assert str(current_record_path.resolve()) in transition["source_refs"]
     assert all(isinstance(ref, str) for ref in transition["source_refs"])
-    assert transition["completion_receipt_consumption"] == {
+    expected_consumption = {
         "status": "consumed",
         "receipt_kind": "ai_reviewer_publication_eval",
         "receipt_ref": str(current_record_path.resolve()),
@@ -421,6 +534,11 @@ def test_current_ai_reviewer_record_transition_refs_are_json_serializable(tmp_pa
         "reviewer_trace_ref": f"{current_record_path.resolve()}#reviewer_operating_system",
         "next_action": "honor_ai_reviewer_publication_eval_authority",
     }
+    for key, value in expected_consumption.items():
+        assert transition["completion_receipt_consumption"][key] == value
+    assert transition["completion_receipt_consumption"]["owner_route_currentness_basis"][
+        "work_unit_fingerprint"
+    ] == "dm002_current_ai_reviewer_publication_eval_live_draft_2dcd51592c6a_20260524T175827Z"
 
 
 def test_current_ai_reviewer_routeback_materializes_outer_loop_controller_action(

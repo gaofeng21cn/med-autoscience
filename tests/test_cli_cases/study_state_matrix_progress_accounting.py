@@ -7,6 +7,11 @@ from pathlib import Path
 from .shared import write_profile
 
 
+def _write_json(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def test_study_state_matrix_reports_progress_first_tick_accounting(
     monkeypatch,
     tmp_path: Path,
@@ -119,6 +124,18 @@ def test_study_state_matrix_does_not_count_stale_active_run_id_as_running(
     study_root = workspace_root / "studies" / study_id
     study_root.mkdir(parents=True)
     (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "blocked",
+                    "summary": "Current manuscript still needs reviewer workflow.",
+                }
+            },
+        },
+    )
 
     def fake_progress_projection(*, study_id: str, **_: object) -> dict[str, object]:
         return {
@@ -171,6 +188,11 @@ def test_study_state_matrix_does_not_count_stale_active_run_id_as_running(
     assert study["priority_rank"] == 1
     assert study["throughput_bottleneck"] == "ready_owner_action"
     assert study["target_surface_specificity"] is None
+    transition = payload["studies"][0]["domain_transition"]
+    assert transition["decision_type"] == "ai_reviewer_re_eval"
+    assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert transition["owner"] == "ai_reviewer"
+    assert transition["next_work_unit"]["lane"] == "review"
 
 
 def test_study_state_matrix_fail_closes_generic_target_surface_owner_action(
