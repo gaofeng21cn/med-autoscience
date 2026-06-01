@@ -314,7 +314,7 @@ def _progress_first_monitoring_summary(
     existing_owner_action = (
         _text(existing.get("next_owner")) is not None
         or _text(existing.get("controller_action")) is not None
-        or bool(_dict(existing.get("next_work_unit")))
+        or _work_unit_id(existing.get("next_work_unit")) is not None
     )
     existing_dispatch_consumption = _dict(existing.get("dispatch_consumption"))
     transition_dispatch_consumption = _transition_dispatch_consumption(transition)
@@ -513,7 +513,7 @@ def _existing_consumed_ai_reviewer_record(
         return False
     if _text(existing.get("controller_action")) != "return_to_ai_reviewer_workflow":
         return False
-    work_unit_id = _text(_dict(existing.get("next_work_unit")).get("unit_id"))
+    work_unit_id = _work_unit_id(existing.get("next_work_unit"))
     return bool(work_unit_id and work_unit_id.startswith("produce_ai_reviewer_publication_eval_record"))
 
 
@@ -528,8 +528,14 @@ def _consumed_receipt_matches_transition_work_unit(
         return False
     if _text(transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
         return False
-    work_unit_id = _text(_dict(transition.get("next_work_unit")).get("unit_id"))
+    work_unit_id = _work_unit_id(transition.get("next_work_unit"))
     return bool(work_unit_id and work_unit_id.startswith("produce_ai_reviewer_publication_eval_record"))
+
+
+def _work_unit_id(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id"))
+    return _text(value)
 
 
 def _latest_24h_timeline_refs(monitoring: Mapping[str, Any]) -> dict[str, Any]:

@@ -591,10 +591,7 @@ def test_study_state_matrix_keeps_consumed_ai_reviewer_closeout_blocker_out_of_r
                 "owner_action_current": True,
                 "next_owner": "ai_reviewer",
                 "controller_action": "return_to_ai_reviewer_workflow",
-                "next_work_unit": {
-                    "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
-                    "lane": "review",
-                },
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
                 "typed_blocker": {
                     "blocker_id": "typed_closeout_packet_required",
                     "blocker_type": "provider_completed_without_typed_closeout",
