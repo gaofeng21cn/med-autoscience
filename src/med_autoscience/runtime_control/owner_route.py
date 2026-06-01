@@ -170,8 +170,35 @@ def ensure_owner_route_v2(route: Mapping[str, Any]) -> dict[str, Any]:
     owner_reason = _text(payload.get("failure_signature")) or _text(payload.get("owner_reason"))
     next_owner = _text(payload.get("next_owner"))
     source_refs = _mapping(payload.get("source_refs"))
+    embedded_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
     runtime_health_epoch = _text(payload.get("runtime_health_epoch")) or _text(source_refs.get("runtime_health_epoch"))
     work_unit_fingerprint = _text(payload.get("work_unit_fingerprint")) or source_fingerprint
+    source_eval_id = (
+        _text(payload.get("source_eval_id"))
+        or _text(source_refs.get("source_eval_id"))
+        or _text(embedded_basis.get("source_eval_id"))
+    )
+    if (
+        source_eval_id is None
+        and runtime_health_epoch is None
+        and "source_eval_id" not in source_refs
+        and "source_eval_id" not in embedded_basis
+    ):
+        source_eval_id = source_fingerprint
+    work_unit_id = (
+        _text(payload.get("work_unit_id"))
+        or _text(source_refs.get("work_unit_id"))
+        or _text(embedded_basis.get("work_unit_id"))
+        or work_unit_fingerprint
+    )
+    source_refs = _legacy_currentness_source_refs(
+        source_refs=source_refs,
+        truth_epoch=route_epoch,
+        source_eval_id=source_eval_id,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+        runtime_health_epoch=runtime_health_epoch,
+    )
     payload.update(
         {
             "schema_version": 2,
@@ -189,12 +216,56 @@ def ensure_owner_route_v2(route: Mapping[str, Any]) -> dict[str, Any]:
             ),
             "route_epoch": route_epoch,
             "source_fingerprint": source_fingerprint,
+            "source_refs": source_refs,
         }
     )
     trace_projection = decision_trace_ledger.decision_trace_projection(payload, source_refs)
     payload.update({key: value for key, value in trace_projection.items() if key not in payload})
     _attach_decision_trace_source_refs(payload)
     return owner_route_attempt_protocol.decorate_owner_route(payload)
+
+
+def _legacy_currentness_source_refs(
+    *,
+    source_refs: Mapping[str, Any],
+    truth_epoch: str,
+    source_eval_id: str | None,
+    work_unit_id: str,
+    work_unit_fingerprint: str,
+    runtime_health_epoch: str | None,
+) -> dict[str, Any]:
+    allowed_basis_fields = {
+        "source_eval_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "truth_epoch",
+        "runtime_health_epoch",
+    }
+    refs = dict(source_refs)
+    basis = {
+        key: value
+        for key, value in _mapping(refs.get("owner_route_currentness_basis")).items()
+        if key in allowed_basis_fields
+    }
+    if _text(basis.get("truth_epoch")) is None:
+        basis["truth_epoch"] = truth_epoch
+    if _text(basis.get("source_eval_id")) is None and source_eval_id is not None:
+        basis["source_eval_id"] = source_eval_id
+    if _text(basis.get("work_unit_id")) is None:
+        basis["work_unit_id"] = work_unit_id
+    if _text(basis.get("work_unit_fingerprint")) is None:
+        basis["work_unit_fingerprint"] = work_unit_fingerprint
+    if _text(basis.get("runtime_health_epoch")) is None and runtime_health_epoch is not None:
+        basis["runtime_health_epoch"] = runtime_health_epoch
+    refs["owner_route_currentness_basis"] = basis
+    refs.setdefault("study_truth_epoch", truth_epoch)
+    if source_eval_id is not None:
+        refs.setdefault("source_eval_id", source_eval_id)
+    refs.setdefault("work_unit_id", work_unit_id)
+    refs.setdefault("work_unit_fingerprint", work_unit_fingerprint)
+    if runtime_health_epoch is not None:
+        refs.setdefault("runtime_health_epoch", runtime_health_epoch)
+    return refs
 
 
 def route_and_decorate_actions(

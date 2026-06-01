@@ -79,6 +79,8 @@ def scan_repeat_suppression(
         return materialization_guard
     if _current_ai_reviewer_materialization_identity(study_id=study_id, owner_route=owner_route) is not None:
         return _not_suppressed(key)
+    if _progress_first_owner_action(owner_route):
+        return _not_suppressed(key)
     if (
         _owner_handoff_route(owner_route)
         or publication_gate_specificity_route(owner_route)
@@ -108,6 +110,19 @@ def scan_repeat_suppression(
     if action_suppression is not None:
         return action_suppression
     return _not_suppressed(key)
+
+
+def _progress_first_owner_action(owner_route: Mapping[str, Any]) -> bool:
+    route = _mapping(owner_route)
+    owner = _text(route.get("next_owner"))
+    if owner is None:
+        return False
+    progress_first_actions = PROGRESS_FIRST_OWNER_ACTIONS.get(owner)
+    if not progress_first_actions:
+        return False
+    allowed_actions = {_text(item) for item in route.get("allowed_actions") or []}
+    allowed_actions.discard(None)
+    return bool(allowed_actions & progress_first_actions)
 
 
 def _previous_scan_study_suppression(

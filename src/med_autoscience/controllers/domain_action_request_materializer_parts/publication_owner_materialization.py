@@ -87,12 +87,6 @@ def materialization_action(
     source_refs = _mapping(owner_route.get("source_refs"))
     source_eval_id = _text(source_refs.get("source_eval_id"))
     study_root = _study_root(profile, study_id)
-    if _publication_gate_replay_work_unit(action):
-        return _publication_gate_replay_action(
-            action=action,
-            owner_route=owner_route,
-            source_eval_id=source_eval_id,
-        )
     current_record = ai_reviewer_publication_eval_records.latest_current_ai_reviewer_publication_eval_record(
         study_root=study_root,
         current_publication_eval=None,
@@ -104,6 +98,13 @@ def materialization_action(
         record=current_record[0],
     ):
         current_record = None
+    if _publication_gate_replay_work_unit(action):
+        record_eval_id = _text(current_record[0].get("eval_id")) if current_record is not None else None
+        return _publication_gate_replay_action(
+            action=action,
+            owner_route=owner_route,
+            source_eval_id=record_eval_id or source_eval_id,
+        )
     if current_record is None:
         if record_production_work_unit:
             return None

@@ -107,7 +107,7 @@ def dispatch_repair_work_unit(
             control_plane_route_context=authority_route_context,
             route_context=route_context,
         )
-    if not unsupported_callable.is_supported(callable_surface):
+    if callable_surface is not None and not unsupported_callable.is_supported(callable_surface):
         return _blocked_result(
             generated_at=generated_at,
             study_id=study_id,

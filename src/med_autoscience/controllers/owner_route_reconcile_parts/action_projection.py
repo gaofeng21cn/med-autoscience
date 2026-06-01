@@ -217,6 +217,61 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    if _explicit_ai_reviewer_record_current_manuscript_request_pending(ai_reviewer_assessment):
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=ai_reviewer_owner_output_consumption.current_manuscript_record_action(
+                    ai_reviewer_assessment
+                ),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    if (
+        _explicit_ai_reviewer_request_pending(ai_reviewer_assessment)
+        and not _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(
+            status=status,
+            progress=progress,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+            gate_specificity=gate_specificity,
+        )
+    ):
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=ai_reviewer_actions.ai_reviewer_required_action(
+                    reason=_text(ai_reviewer_assessment.get("blocked_reason")) or "ai_reviewer_assessment_required"
+                ),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    writer_handoff_action = story_surface_delta_actions.quality_repair_writer_handoff_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if writer_handoff_action is not None:
+        writer_handoff_action = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
+            payload=writer_handoff_action,
+            publication_eval_payload=publication_eval_payload,
+            lifecycle=request_lifecycle,
+        )
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=writer_handoff_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     gate_replay_write_action = story_surface_delta_actions.gate_replay_write_owner_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -270,19 +325,6 @@ def action_queue(
             )
             for action in consumed_ai_reviewer_route_back
         ]
-    if _explicit_ai_reviewer_record_current_manuscript_request_pending(ai_reviewer_assessment):
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=ai_reviewer_owner_output_consumption.current_manuscript_record_action(
-                    ai_reviewer_assessment
-                ),
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
     ai_reviewer_freshness_action = artifact_freshness.blocked_action_from_ai_reviewer_freshness_mismatch(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -293,48 +335,6 @@ def action_queue(
                 study_id=study_id,
                 quest_id=quest_id,
                 action=ai_reviewer_freshness_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    writer_handoff_action = story_surface_delta_actions.quality_repair_writer_handoff_action(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if writer_handoff_action is not None:
-        writer_handoff_action = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
-            payload=writer_handoff_action,
-            publication_eval_payload=publication_eval_payload,
-            lifecycle=request_lifecycle,
-        )
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=writer_handoff_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    if (
-        _explicit_ai_reviewer_request_pending(ai_reviewer_assessment)
-        and not _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(
-            status=status,
-            progress=progress,
-            study_root=study_root,
-            publication_eval_payload=publication_eval_payload,
-            gate_specificity=gate_specificity,
-        )
-    ):
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=ai_reviewer_actions.ai_reviewer_required_action(
-                    reason=_text(ai_reviewer_assessment.get("blocked_reason")) or "ai_reviewer_assessment_required"
-                ),
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,
@@ -548,10 +548,12 @@ def _consumed_ai_reviewer_route_back_actions(
     ]
 
 def _explicit_ai_reviewer_request_pending(ai_reviewer_assessment: Mapping[str, Any]) -> bool:
-    return (
-        ai_reviewer_assessment.get("missing") is True
-        and _text(ai_reviewer_assessment.get("request_state")) in {"requested", "assigned"}
-    )
+    if ai_reviewer_assessment.get("missing") is not True:
+        return False
+    request_state = _text(ai_reviewer_assessment.get("request_state"))
+    if request_state in {"requested", "assigned"}:
+        return True
+    return request_state is None and ai_reviewer_assessment.get("required") is True
 
 
 def _explicit_ai_reviewer_record_current_manuscript_request_pending(
@@ -596,45 +598,38 @@ def _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(
     publication_eval_payload: Mapping[str, Any],
     gate_specificity: Mapping[str, Any],
 ) -> bool:
-    if completion_evidence.completed_current_truth(status, progress):
-        return True
-    if parked_truth.current_truth(
-        status,
-        progress,
+    if _consumed_ai_reviewer_routeback_domain_transition(status) and not _pending_ai_reviewer_recheck_consumes_current_write_routeback(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     ):
         return True
-    if gate_specificity.get("required") is True:
-        return True
-    if _publication_gate_blocker_domain_transition(status):
-        return True
-    if current_truth_owner.current_story_surface_delta_blocker_route(
+    return _higher_priority_owner_truth_blocks_shared(
+        status=status,
+        progress=progress,
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
-    ) and not _pending_ai_reviewer_recheck_consumes_current_write_routeback(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    ):
-        return True
-    if current_truth_owner.current_ai_reviewer_write_routeback_route(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    ) and not _pending_ai_reviewer_recheck_consumes_current_write_routeback(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    ):
-        return True
-    if analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root):
-        return True
-    if provenance_limited_harmonization_owner_result.typed_blocker_state(study_root=study_root):
-        return True
-    if source_provenance_owner_result.typed_blocker_state(study_root=study_root):
-        return True
-    return False
+        gate_specificity=gate_specificity,
+    )
 
 
 def _higher_priority_owner_truth_blocks_generic_ai_reviewer(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    gate_specificity: Mapping[str, Any],
+) -> bool:
+    return _higher_priority_owner_truth_blocks_shared(
+        status=status,
+        progress=progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        gate_specificity=gate_specificity,
+    )
+
+
+def _higher_priority_owner_truth_blocks_shared(
     *,
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
@@ -686,6 +681,17 @@ def _publication_gate_blocker_domain_transition(status: Mapping[str, Any]) -> bo
         _text(transition.get("decision_type")) == "publication_gate_blocker"
         and _text(transition.get("controller_action")) == "run_gate_clearing_batch"
         and _text(_mapping(transition.get("next_work_unit")).get("unit_id")) is not None
+    )
+
+
+def _consumed_ai_reviewer_routeback_domain_transition(status: Mapping[str, Any]) -> bool:
+    transition = _mapping(status.get("domain_transition"))
+    receipt_consumption = _mapping(transition.get("completion_receipt_consumption"))
+    return (
+        _text(receipt_consumption.get("status")) == "consumed"
+        and _text(receipt_consumption.get("receipt_kind")) == "ai_reviewer_publication_eval"
+        and _text(transition.get("decision_type")) == "route_back_same_line"
+        and _text(transition.get("controller_action")) == "request_opl_stage_attempt"
     )
 
 

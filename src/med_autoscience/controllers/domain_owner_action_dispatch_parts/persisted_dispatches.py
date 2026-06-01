@@ -12,6 +12,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import domain_route
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 from . import owner_request_currentness
+from . import consumed_transition_currentness
 from . import publication_owner_materialization_currentness
 from . import writer_handoff_currentness
 
@@ -109,14 +110,9 @@ def explicit_action_dispatches(
 
 
 def selected_dispatches(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    action_types: tuple[str, ...],
-    consumer_payload: Mapping[str, Any] | None,
-    consumer_latest_path: Path,
-    scan_payload: Mapping[str, Any] | None,
-    supported_action_types: frozenset[str],
+    *, profile: WorkspaceProfile, study_id: str, action_types: tuple[str, ...],
+    consumer_payload: Mapping[str, Any] | None, consumer_latest_path: Path,
+    scan_payload: Mapping[str, Any] | None, supported_action_types: frozenset[str],
     dispatch_relative_root: Path,
 ) -> list[dict[str, Any]]:
     current_study = _scan_study(scan_payload, study_id)
@@ -170,12 +166,22 @@ def selected_dispatches(
                 continue
             selected_by_key[key] = len(selected)
             selected.append(payload)
-        return _selected_dispatches_only(
+        current_selected = _selected_dispatches_only(
             profile=profile,
             study_id=study_id,
             dispatches=selected,
             current_study=current_study,
         )
+        if current_selected:
+            return current_selected
+        if _consumed_transition_owner_route(current_study):
+            return []
+        return [
+            payload
+            for payload in consumer_dispatches
+            if _text(payload.get("action_type")) in supported_action_types
+            if not _current_route_allows_dispatch_action(current_study=current_study, dispatch=payload)
+        ]
     selected = [
         payload
         for payload in consumer_dispatches
@@ -385,11 +391,7 @@ def _owner_for_consumed_transition(*, action_type: str, transition: Mapping[str,
     return _text(transition.get("owner")) or "med-autoscience"
 
 
-def _current_dispatches_only(
-    *,
-    dispatches: list[dict[str, Any]],
-    current_study: Mapping[str, Any],
-) -> list[dict[str, Any]]:
+def _current_dispatches_only(*, dispatches: list[dict[str, Any]], current_study: Mapping[str, Any]) -> list[dict[str, Any]]:
     if not current_study:
         return dispatches
     return [
@@ -397,6 +399,11 @@ def _current_dispatches_only(
         for dispatch in dispatches
         if _dispatch_currentness_score(dispatch, current_study) > (0, 0)
     ]
+
+
+def _current_route_allows_dispatch_action(*, current_study: Mapping[str, Any], dispatch: Mapping[str, Any]) -> bool:
+    current_route = _current_owner_route_from_scan(current_study, dispatch=dispatch)
+    return bool(current_route and owner_route_part.route_allows_action(action=dispatch, owner_route=current_route))
 
 
 def _prefer_current_dispatch(
@@ -479,10 +486,7 @@ def _current_owner_route_from_scan(
 
 
 def current_owner_route_from_scan_payload(
-    *,
-    scan_payload: Mapping[str, Any] | None,
-    study_id: str,
-    dispatch: Mapping[str, Any] | None,
+    *, scan_payload: Mapping[str, Any] | None, study_id: str, dispatch: Mapping[str, Any] | None
 ) -> tuple[dict[str, Any] | None, str | None]:
     current_study = _scan_study(scan_payload, study_id)
     if dispatch is not None:
@@ -503,15 +507,11 @@ def current_owner_route_from_scan_payload(
     return None, None
 
 
-def _matching_consumed_transition_gate_replay_route(
-    *,
-    current_study: Mapping[str, Any],
-    dispatch: Mapping[str, Any],
-) -> dict[str, Any] | None:
+def _matching_consumed_transition_gate_replay_route(*, current_study: Mapping[str, Any], dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
     route = _consumed_transition_owner_route(current_study)
     if not _gate_replay_route(route):
         return None
-    if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=route):
+    if not consumed_transition_currentness.gate_replay_matches_dispatch(dispatch=dispatch, route=route):
         return None
     if not owner_route_part.route_allows_action(action=dispatch, owner_route=route):
         return None
