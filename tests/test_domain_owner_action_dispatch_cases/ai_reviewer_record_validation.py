@@ -248,14 +248,16 @@ def test_execute_dispatch_rejects_request_record_with_item_only_future_facing_li
         apply=True,
     )
 
-    assert result["blocked_count"] == 1
+    assert result["blocked_count"] == 0
     execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "ai_reviewer_record_invalid"
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
+    assert execution["source_record_blocker_reason"] == "ai_reviewer_record_invalid"
     assert execution["invalid_record_fields"] == ["future_facing_limitations_plan"]
     assert "future_facing_limitations_plan[0].limitation" in "\n".join(
         execution["future_facing_limitations_plan_errors"]
     )
+    assert execution["ai_reviewer_record_worker_handoff"]["dispatch_authority"] == "ai_reviewer_record_production_handoff"
 
 
 def test_execute_dispatch_rejects_request_record_with_invalid_evaluation_scope(
@@ -310,10 +312,11 @@ def test_execute_dispatch_rejects_request_record_with_invalid_evaluation_scope(
         apply=True,
     )
 
-    assert result["blocked_count"] == 1
+    assert result["blocked_count"] == 0
     execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "ai_reviewer_record_invalid"
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
+    assert execution["source_record_blocker_reason"] == "ai_reviewer_record_invalid"
     assert execution["invalid_record_fields"] == ["evaluation_scope"]
     production_request = execution["ai_reviewer_record_production_request"]
     assert production_request["request_kind"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
@@ -323,6 +326,7 @@ def test_execute_dispatch_rejects_request_record_with_invalid_evaluation_scope(
         "rematerialize_ai_reviewer_request",
         "return_to_ai_reviewer_workflow",
     ]
+    assert execution["ai_reviewer_record_worker_handoff"]["dispatch_authority"] == "ai_reviewer_record_production_handoff"
 
 
 def test_execute_dispatch_materializes_handoff_for_incomplete_current_ai_reviewer_record(
@@ -402,7 +406,10 @@ def test_execute_dispatch_materializes_handoff_for_incomplete_current_ai_reviewe
     payload = json.loads(payload_ref.read_text(encoding="utf-8"))
     assert payload["surface"] == "ai_reviewer_record_payload_authoring_target"
     assert payload["record_payload"] is None
-    assert payload["owner_callable_command"].startswith("medautosci publication materialize-ai-reviewer-record ")
+    assert payload["owner_callable_command"].startswith(
+        f"{Path(__file__).resolve().parents[2]}/scripts/run-python-clean.sh "
+        "-m med_autoscience.cli publication materialize-ai-reviewer-record "
+    )
     assert Path(execution["ai_reviewer_record_worker_handoff_path"]).is_file()
 
 
@@ -536,12 +543,15 @@ def test_execute_dispatch_rejects_request_record_with_invalid_reviewer_operating
         apply=True,
     )
 
-    assert result["blocked_count"] == 1
+    assert result["blocked_count"] == 0
     execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "ai_reviewer_record_invalid"
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
+    assert execution["source_record_blocker_reason"] == "ai_reviewer_record_invalid"
     assert execution["invalid_record_fields"] == ["reviewer_operating_system"]
     assert "reviewer_operating_system.contract_id" in "\n".join(execution["reviewer_operating_system_errors"])
     production_request = execution["ai_reviewer_record_production_request"]
     assert production_request["request_kind"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     assert production_request["record_must_consume_refs"] == [str(manuscript_path)]
+    assert execution["ai_reviewer_record_worker_handoff"]["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert Path(execution["ai_reviewer_record_worker_handoff_path"]).is_file()

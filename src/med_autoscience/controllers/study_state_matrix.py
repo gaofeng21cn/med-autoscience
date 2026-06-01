@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.progress_first_receipt_identity import (
+    canonical_work_unit_identity_from_completion,
     consumed_ai_reviewer_receipt_matches_transition_work_unit,
 )
 from med_autoscience.controllers import study_domain_transition_table
@@ -512,6 +513,7 @@ def _transition_dispatch_consumption(transition: Mapping[str, Any]) -> dict[str,
     execution = _dict(transition.get("default_executor_execution_receipt_consumption"))
     if not completion and not execution:
         return {}
+    identity = canonical_work_unit_identity_from_completion(completion or execution)
     return {
         "consumption_status": _text(completion.get("consumption_status"))
         or _text(completion.get("status"))
@@ -519,9 +521,13 @@ def _transition_dispatch_consumption(transition: Mapping[str, Any]) -> dict[str,
         or _text(execution.get("status"))
         or "receipt_consumed",
         "receipt_ref": _text(completion.get("receipt_ref")) or _text(execution.get("receipt_ref")),
+        "receipt_kind": _text(completion.get("receipt_kind")) or _text(execution.get("receipt_kind")),
         "execution_status": _text(execution.get("execution_status")),
         "action_fingerprint": _text(completion.get("action_fingerprint"))
         or _text(execution.get("action_fingerprint")),
+        "work_unit_id": _text(identity.get("work_unit_id")),
+        "work_unit_fingerprint": _text(identity.get("work_unit_fingerprint")),
+        "canonical_work_unit_identity": identity or None,
     }
 
 

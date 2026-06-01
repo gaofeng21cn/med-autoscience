@@ -209,7 +209,7 @@ def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_block
     assert execution["blocked_reason"] == "owner_callable_surface_missing"
 
 
-def test_execute_dispatch_uses_dispatch_owner_route_when_scan_lacks_study_route(
+def test_execute_dispatch_rejects_dispatch_owner_route_when_scan_lacks_study_route(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -274,10 +274,10 @@ def test_execute_dispatch_uses_dispatch_owner_route_when_scan_lacks_study_route(
     )
 
     execution = result["executions"][0]
-    assert execution["owner_route_current"] is True
-    assert execution["owner_route_basis"] == "dispatch_owner_route"
-    assert execution["current_owner_route"]["idempotency_key"] == route["idempotency_key"]
-    assert execution["blocked_reason"] == "owner_callable_surface_missing"
+    assert execution["owner_route_current"] is False
+    assert execution["owner_route_basis"] == "scan_latest"
+    assert execution["current_owner_route"] is None
+    assert execution["blocked_reason"] == "current_owner_route_missing"
 
 
 def test_execute_dispatch_authorization_ignores_diagnostic_owner_reason_drift(

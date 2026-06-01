@@ -136,6 +136,11 @@ def payload_reason_for_superseded_dispatch(
         return PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER
     if (
         action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
+        and consumed_ai_reviewer_finalize_gate_replay_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION
+    if (
+        action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
         and publication_gate_route_supersession_observed(study_scan)
     ):
         return PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION
@@ -347,6 +352,29 @@ def owner_authorized_publication_gate_replay_stage_attempt_blocker_observed(
         and text(domain_authority_handoff.get("status")) == "typed_blocker"
         and _typed_blocker_matches_reason(typed_blocker, blocked_reason)
         and text(typed_blocker.get("next_owner")) == "external_supervisor"
+    )
+
+
+def consumed_ai_reviewer_finalize_gate_replay_observed(study_scan: Mapping[str, Any]) -> bool:
+    domain_transition = mapping(study_scan.get("domain_transition"))
+    completion = mapping(domain_transition.get("completion_receipt_consumption"))
+    next_work_unit = mapping(domain_transition.get("next_work_unit"))
+    owner_route = mapping(study_scan.get("owner_route"))
+    currentness_contract = mapping(owner_route.get("currentness_contract"))
+    attempt_protocol = mapping(owner_route.get("owner_route_attempt_protocol"))
+    return (
+        text(completion.get("status")) == "consumed"
+        and text(completion.get("receipt_kind")) == "ai_reviewer_publication_eval"
+        and text(domain_transition.get("decision_type")) == "route_back_same_line"
+        and text(domain_transition.get("route_target")) == "finalize"
+        and text(domain_transition.get("owner")) == "finalize"
+        and text(domain_transition.get("controller_action")) == "request_opl_stage_attempt"
+        and text(next_work_unit.get("unit_id"))
+        == DPCC_PUBLICATION_GATE_REPLAY_AFTER_CURRENT_AI_REVIEWER_RECORD_REASON
+        and text(owner_route.get("next_owner")) is None
+        and text(owner_route.get("owner_reason")) is None
+        and currentness_contract.get("missing_required_fields") == []
+        and attempt_protocol.get("dispatchable") is False
     )
 
 

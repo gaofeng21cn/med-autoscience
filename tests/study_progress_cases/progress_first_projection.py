@@ -369,3 +369,58 @@ def test_next_forced_delta_reports_generic_target_surface_fallback_when_owner_ro
         "missing_explicit_target_surface": True,
         "fallback_reason": "owner_route_missing_explicit_target_surface",
     }
+
+
+def test_terminal_stage_paper_delta_counts_in_top_level_progress_first_projection() -> None:
+    assembly = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+    )
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+    handoff = {
+        "latest_terminal_stage_log": {
+            "stage_attempt_id": "sat-003",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "action_type": "run_quality_repair_batch",
+            "status": "executed",
+            "missing_user_stage_log_fields": ["progress_delta_classification"],
+            "missing_observability_fields": ["duration", "token_usage", "cost"],
+            "paper_stage_log": {
+                "stage_work_done": ["Recorded paper-facing artifact changes."],
+                "paper_work_done": ["Recorded paper-facing artifact changes."],
+                "changed_stage_surfaces": [
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/draft.md",
+                ],
+                "changed_paper_surfaces": [
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/draft.md",
+                ],
+                "remaining_blockers": [],
+            },
+        },
+    }
+
+    progress_delta = assembly._progress_delta_metrics(
+        quality_repair_batch_followthrough={},
+        gate_clearing_batch_followthrough={},
+        opl_current_control_state_handoff=handoff,
+        runtime_efficiency={"token_usage": {"total_tokens": 1200}},
+    )
+    result = projection.build_progress_first_projection(
+        {
+            **progress_delta,
+            "opl_current_control_state_handoff": handoff,
+        }
+    )
+
+    assert progress_delta["deliverable_progress_delta"] == {
+        "count": 1,
+        "token_usage_total": 1200,
+        "sources": ["opl_current_control_state.latest_terminal_stage_log.paper_stage_log"],
+    }
+    assert progress_delta["paper_progress_delta"] == progress_delta["deliverable_progress_delta"]
+    assert progress_delta["platform_repair_delta"]["count"] == 0
+    assert progress_delta["progress_delta_classification"] == "deliverable_progress"
+    assert result["progress_first_sprint_state"]["classification"] == "deliverable_progress"
+    assert result["progress_first_sprint_state"]["paper_progress_delta_counted"] is True
+    assert result["next_forced_delta"]["required_delta_kind"] == "review_current_paper_delta"

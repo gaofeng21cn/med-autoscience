@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -48,6 +49,7 @@ STALENESS_HANDOFF_REASONS = {
 }
 RECORD_PRODUCTION_HANDOFF_REASONS = {
     *STALENESS_HANDOFF_REASONS,
+    "ai_reviewer_record_invalid",
     "ai_reviewer_record_incomplete",
 }
 
@@ -82,13 +84,20 @@ def _profile_ref(profile: WorkspaceProfile) -> str | None:
     return str(Path(ref).expanduser().resolve()) if ref is not None else None
 
 
+def _repo_local_cli_prefix() -> str:
+    repo_root = Path(__file__).resolve().parents[5]
+    runner = repo_root / "scripts" / "run-python-clean.sh"
+    return f"{shlex.quote(str(runner))} -m med_autoscience.cli"
+
+
 def _command_for_payload_ref(*, profile: WorkspaceProfile, study_id: str, payload_ref: str) -> str:
-    profile_arg = f"--profile {_profile_ref(profile)} " if _profile_ref(profile) is not None else "--profile <profile.toml> "
+    profile_ref = _profile_ref(profile)
+    profile_arg = f"--profile {shlex.quote(profile_ref)} " if profile_ref is not None else "--profile <profile.toml> "
     return (
-        "medautosci publication materialize-ai-reviewer-record "
+        f"{_repo_local_cli_prefix()} publication materialize-ai-reviewer-record "
         f"{profile_arg}"
-        f"--study-id {study_id} "
-        f"--payload-file {payload_ref} "
+        f"--study-id {shlex.quote(study_id)} "
+        f"--payload-file {shlex.quote(payload_ref)} "
         "--build-production-trace"
     )
 
@@ -182,10 +191,11 @@ def build_ai_reviewer_record_production_request(
         "required_output_surface": RECORD_OUTPUT_SURFACE,
         "owner_callable_surface": "publication materialize-ai-reviewer-record",
         "owner_callable_command": (
-            "medautosci publication materialize-ai-reviewer-record --profile <profile.toml> "
+            f"{_repo_local_cli_prefix()} publication materialize-ai-reviewer-record --profile <profile.toml> "
             "--study-id <study-id> --payload-file <ai_reviewer_record_payload.json> "
             "--build-production-trace"
         ),
+        "owner_callable_runtime": "repo_local_run_python_clean",
         "owner_callable_profile_required": True,
         "reviewer_operating_system_contract": {
             "contract_id": "medical_publication_ai_reviewer_os_v1",
@@ -409,6 +419,7 @@ def record_production_handoff_execution(
     result = {
         "execution_status": "handoff_ready" if apply else "dry_run",
         "blocked_reason": None,
+        "source_record_blocker_reason": _text(record_blocker.get("reason")),
         "owner_callable_surface": "publication materialize-ai-reviewer-record",
         "next_owner": "ai_reviewer",
         **payload,

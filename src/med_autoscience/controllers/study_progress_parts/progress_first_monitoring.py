@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.progress_first_receipt_identity import (
+    canonical_work_unit_identity_from_completion,
     consumed_ai_reviewer_receipt_matches_transition_work_unit,
 )
 
@@ -191,12 +192,17 @@ def _dispatch_consumption_summary(
             or _text(execution_receipt.get("status"))
             or "receipt_consumed"
         )
+        identity = canonical_work_unit_identity_from_completion(completion_receipt or execution_receipt)
         return {
             "consumption_status": status,
             "receipt_ref": _text(completion_receipt.get("receipt_ref")) or _text(execution_receipt.get("receipt_ref")),
+            "receipt_kind": _text(completion_receipt.get("receipt_kind")) or _text(execution_receipt.get("receipt_kind")),
             "execution_status": _text(execution_receipt.get("execution_status")),
             "action_fingerprint": _text(completion_receipt.get("action_fingerprint"))
             or _text(execution_receipt.get("action_fingerprint")),
+            "work_unit_id": _text(identity.get("work_unit_id")),
+            "work_unit_fingerprint": _text(identity.get("work_unit_fingerprint")),
+            "canonical_work_unit_identity": identity or None,
         }
     queue_item = _first_action_queue_item(handoff.get("action_queue"))
     if queue_item is None:

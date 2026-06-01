@@ -12,6 +12,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 materializer 已写出 current `write/run_quality_repair_batch` writer handoff 和 `requests/quality_repair_batch/latest.json`，显式 `--action-types run_quality_repair_batch` 可以选中，但默认 Progress-First tick selected=0。根因是默认 persisted-dispatch 预筛只看 scan/bridge currentness，尚未承认 canonical owner request currentness，导致流程继续把时间耗在重复 materialize/read-model reconcile 上。
 - 影响：这是 MAS dispatch selector / Progress-First operator cadence 修复，不写 DM002/DM003 study truth、runtime-owned surface、paper/package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍由 selected owner action、OPL provider attempt、typed closeout、AI reviewer、publication gate 与 package freshness proof 判定。
 
+## 2026-06-01：owner request lifecycle 与当前 transition 共同限定默认 dispatch
+
+- 决策：`domain-owner-action-dispatch` 使用 owner request 授权 persisted dispatch 时，只接受仍待 owner 处理的 request lifecycle：`requested`、`pending`、`assigned` 或缺省状态；`applied`、`consumed`、`completed`、`blocked`、`stale` 等非活跃状态不得让 default tick 重新选择历史 dispatch。
+- 决策：活跃 owner request 还必须与当前 scan/domain_transition 的 currentness basis 对齐。若当前 transition 已有 consumed reviewer record、明确 `next_work_unit`、source eval 或 live provider attempt，默认 tick 只能消费与该当前 owner route/work unit 相符的 dispatch；旧 methodology/provenance/write/package request 不得和当前 gate/reviewer/write work unit 并列重驱。
+- 决策：`dispatch.owner_route` 只能作为 dispatch payload 的声明和诊断上下文，不能在 scan、action queue、live provider attempt 或 active owner request 均不能证明当前性时自授权执行。
+- 理由：DM002/DM003 fresh dry-run 暴露出默认 tick 在没有当前 consumer queue 时，会一次选中历史 dispatch。根因是 persisted dispatch 侧把非活跃 request、与当前 transition 不对齐的 request，或 dispatch 自带 owner route 当作 currentness 授权，导致流程继续把时间耗在重复 receipt/read-model reconcile 和历史 request 重驱上。
+- 影响：这是 Progress-first default dispatch 仲裁边界修复，不清理历史 request 文件、不写 DM workspace truth、paper、runtime 或 OPL state；same-tick `requested/pending/assigned` request 仍可在 scan lag 时推进，但必须与当前 owner route/work unit 相符。
+
 ## 2026-06-01：current AI reviewer record 消费 stale request 后必须同 tick 进入 route-back owner
 
 - 决策：`study_domain_transition_table` 选择到 current AI reviewer archive record 后，必须用同一个 selected record 重新投影 `project_ai_reviewer_request_lifecycle`。若 lifecycle 已是 `assessment_written=true` 且 `blocked_reason` 为空，旧 `artifacts/supervision/requests/ai_reviewer/latest.json` 的 stale-record blocker 已关闭，domain transition 不得继续生成 `ai_reviewer_re_eval` / reviewer record-production work unit。
@@ -98,6 +106,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 2026-06-01 追加理由：DM003 gate-clearing batch 已被正确分派和执行后，`create_submission_minimal_package` 与 `sync_submission_minimal_delivery` 又因 authority-route gate 只认旧 `publication_gate_replay` id 而回到 `authority_route_blocked`。根因是 work-unit family 没有贯穿到 authority gate，导致系统虽然走到下一 owner，却仍在 replay/receipt/reconcile 周期里空转。
 - 2026-06-01 追加理由：live delivery sync route context 已携带 `work_unit_id=dpcc_publication_gate_replay_after_current_ai_reviewer_record`、`controller_action_type=run_gate_clearing_batch` 与 `control_surface=gate_clearing_batch`，但字段位于 context 顶层。旧 authority gate 只读取嵌套 `controller_route_context` / `explicit_controller_route_context`，delivery write-route resolver 也因此追加 `authority_snapshot_missing`，把合法 Progress-first replay family 误判为无 controller authorization。
 - 影响：这是 MAS controller/read-model/materializer/dispatcher 修复，不写 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续 DM003 仍必须通过 MAS owner/controller/runtime path 重新 materialize、dispatch、执行 gate-clearing batch，并由 gate replay 输出决定下一步 write repair、AI reviewer recheck、package freshness 或 typed blocker。
+
+## 2026-06-01：已消费 AI reviewer finalize gate replay 必须关闭 stale writer evidence payload
+
+- 决策：`dispatch-evidence-payload` 处理旧 `run_quality_repair_batch` workorder 时，若当前 `domain_transition.completion_receipt_consumption.status=consumed`、`receipt_kind=ai_reviewer_publication_eval`，且 transition 为 `route_back_same_line -> finalize`、`controller_action=request_opl_stage_attempt`、`next_work_unit.unit_id=dpcc_publication_gate_replay_after_current_ai_reviewer_record`，同时 `owner_route.next_owner=null`、`owner_route.owner_reason=null`、currentness missing fields 为空且 attempt protocol `dispatchable=false`，则必须输出 `stale_run_quality_repair_dispatch_superseded_by_publication_gate_route` 的 refs-only typed-blocker payload。
+- 决策：该 matcher 不要求 `domain_authority_handoff.status=typed_blocker`；此状态表示 AI reviewer owner receipt 已消费，旧 writer dispatch 被当前 finalize gate replay supersede。它只能关闭旧 dispatch 的 OPL refs-only evidence workorder，不生成 MAS owner receipt，也不能声明 gate replay、publication quality、artifact/package 或 domain readiness。
+- 理由：DPCC `sat_905e4f39202687eb5402610c` 暴露出 live owner-route scan 已消费当前 AI reviewer record，并把下一 work unit 指到 finalize gate replay；但 payload exporter 缺少该 consumed-finalize shape，只返回 `ai_reviewer_currentness_supersession_not_observed`，导致 OPL payload-required tail 继续打开。
+- 影响：这是 MAS domain-dispatch evidence payload / refs-only ledger currentness 修复，不写真实 study workspace artifact、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、memory body 或 artifact body。后续 gate-clearing、package freshness、publication verdict 和 paper closure 仍由 MAS owner path、owner receipt、AI reviewer、publication gate 与 artifact authority 判定。
 
 ## 2026-05-31：default-executor export currentness 不能让旧 generated_at handoff 压住当前 legacy dispatch
 

@@ -786,6 +786,15 @@ def test_study_state_matrix_consumes_ai_reviewer_publication_eval_receipt(
         "receipt_ref": "artifacts/publication_eval/latest.json",
         "eval_id": "publication-eval::002-review::ai-reviewer::2026-05-15T08:20:00+00:00",
         "reviewer_trace_ref": "artifacts/publication_eval/latest.json#reviewer_operating_system",
+        "work_unit_id": "submission_authority_sync_closure",
+        "work_unit_fingerprint": "",
+        "owner_route_currentness_basis": {
+            "truth_epoch": "",
+            "runtime_health_epoch": "",
+            "work_unit_id": "submission_authority_sync_closure",
+            "work_unit_fingerprint": "",
+            "source_eval_id": "publication-eval::002-review::ai-reviewer::2026-05-15T08:20:00+00:00",
+        },
         "next_action": "honor_ai_reviewer_publication_eval_authority",
     }
     assert transition["guard_boundary"]["can_write_domain_truth"] is False

@@ -23,6 +23,7 @@ from .domain_owner_action_dispatch_parts import dispatch_contract
 from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import paper_progress_stall_diagnostic
 from .domain_owner_action_dispatch_parts import persisted_dispatches
+from .domain_owner_action_dispatch_parts import record_only_handoff
 from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
@@ -315,7 +316,10 @@ def _execution_owner_route(
         return publication_owner_bridge_route, "bridged_publication_owner_materialization"
     if not _dispatch_uses_bridge_authority(dispatch):
         scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
-        if _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None:
+        if (
+            scan_route_basis != "dispatch_owner_route"
+            and _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None
+        ):
             return scan_route, scan_route_basis or "scan_latest"
         live_attempt_route = persisted_dispatches.live_provider_attempt_owner_route_from_scan_payload(
             scan_payload=persisted_dispatches.scan_latest_payload(profile),
@@ -550,6 +554,11 @@ def _execute_dispatch(
             "execution_status": "blocked",
             "blocked_reason": "dispatch_payload_missing_or_invalid",
         }
+    dispatch = record_only_handoff.canonical_record_only_handoff_dispatch(
+        profile=profile,
+        study_id=study_id,
+        dispatch=dispatch,
+    )
     action_type = _text(dispatch.get("action_type")) or "unknown_action"
     action_fingerprint = runtime_dispatch_cost.dispatch_action_fingerprint(
         dispatch=dispatch,
@@ -632,7 +641,6 @@ def _execute_dispatch(
         developer_mode_payload=developer_mode_payload,
         execution=execution,
     )
-
 
 def _dispatch_pre_execution_block(
     *,

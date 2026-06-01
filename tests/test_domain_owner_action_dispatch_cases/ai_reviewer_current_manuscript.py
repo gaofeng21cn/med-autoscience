@@ -18,6 +18,9 @@ from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execu
     build_ai_reviewer_record_worker_handoff,
 )
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_LOCAL_CLI = f"{REPO_ROOT}/scripts/run-python-clean.sh -m med_autoscience.cli"
+
 
 def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_record_stale_after_current_manuscript(
     monkeypatch,
@@ -135,7 +138,7 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         "return_to_ai_reviewer_workflow_payload.json"
     )
     assert production_request["owner_callable_command"] == (
-        "medautosci publication materialize-ai-reviewer-record --profile <profile.toml> "
+        f"{REPO_LOCAL_CLI} publication materialize-ai-reviewer-record --profile <profile.toml> "
         f"--study-id {study_id} --payload-file {payload_ref} --build-production-trace"
     )
     assert production_request["followup_actions"] == [
@@ -249,7 +252,7 @@ def test_ai_reviewer_record_handoff_renders_executable_owner_callable_with_profi
 
     payload_ref = handoff["refs"]["owner_callable_payload_ref"]
     expected_command = (
-        "medautosci publication materialize-ai-reviewer-record "
+        f"{REPO_LOCAL_CLI} publication materialize-ai-reviewer-record "
         f"--profile {profile_path.resolve()} "
         f"--study-id {study_id} "
         f"--payload-file {payload_ref} "
@@ -400,6 +403,259 @@ def test_execute_dispatch_accepts_record_only_handoff_contract_when_selected_fro
     assert enriched_request["required_currentness_refs"] == production_request["required_currentness_refs"]
     assert "owner_callable_payload_ref" in enriched_request
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_execute_dispatch_canonicalizes_legacy_record_only_handoff_before_contract_guard(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    request_payload = {
+        "surface": "supervisor_action_request",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "request_kind": "return_to_ai_reviewer_workflow",
+        "request_owner": "ai_reviewer",
+        "request_lifecycle": {
+            "state": "requested",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+            "stale_record_ref": "publication-eval::stale-record",
+            "required_currentness_refs": [str(manuscript_path)],
+        },
+        "input_contract": {
+            "required_refs": {
+                "manuscript": {"path": str(manuscript_path), "present": True, "valid": True},
+                "evidence_ledger": {
+                    "path": str(study_root / "paper" / "evidence_ledger.json"),
+                    "present": True,
+                    "valid": True,
+                },
+                "review_ledger": {
+                    "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                    "present": True,
+                    "valid": True,
+                },
+                "study_charter": {
+                    "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                    "present": True,
+                    "valid": True,
+                },
+            },
+            "all_required_refs_present": True,
+            "missing_or_invalid_refs": [],
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        request_payload,
+    )
+    route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    route.update(
+        {
+            "failure_signature": "ai_reviewer_record_stale_after_current_manuscript",
+            "owner_reason": "ai_reviewer_record_stale_after_current_manuscript",
+            "source_refs": {
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+            },
+        }
+    )
+    production_request = build_ai_reviewer_record_production_request(
+        request=request_payload,
+        required_refs={
+            "manuscript": str(manuscript_path),
+            "evidence_ledger": str(study_root / "paper" / "evidence_ledger.json"),
+            "review_ledger": str(study_root / "paper" / "review" / "review_ledger.json"),
+            "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+        },
+        stale_record_ref="publication-eval::stale-record",
+        required_currentness_refs=[str(manuscript_path)],
+        request_kind="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+    )
+    legacy_handoff = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        owner_route=route,
+    )
+    legacy_handoff.update(
+        {
+            "dispatch_authority": "ai_reviewer_record_production_handoff",
+            "ai_reviewer_record_production_request": production_request,
+            "forbidden_surfaces": [
+                "paper/**",
+                "manuscript/**",
+                "paper/submission_minimal/**",
+                "manuscript/current_package/**",
+                "artifacts/publication_eval/latest.json",
+                "artifacts/controller_decisions/latest.json",
+                ".ds/**",
+            ],
+            "allowed_write_surfaces": [
+                "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+            ],
+        }
+    )
+    legacy_prompt = dict(legacy_handoff["prompt_contract"])
+    legacy_prompt.update(
+        {
+            "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+            "forbidden_surfaces": list(legacy_handoff["forbidden_surfaces"]),
+            "allowed_write_surfaces": [
+                "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+            ],
+            "ai_reviewer_record_production_request": production_request,
+        }
+    )
+    legacy_handoff["prompt_contract"] = legacy_prompt
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, legacy_handoff)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["dispatch_contract_valid"] is True
+    assert execution["dispatch_contract_blocked_reason"] is None
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
+    canonical_prompt = execution["prompt_contract"]
+    assert canonical_prompt["owner_callable_payload_ref"].endswith(
+        "record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
+    )
+    assert canonical_prompt["owner_callable_command"].startswith(REPO_LOCAL_CLI)
+    assert canonical_prompt["allowed_write_surfaces"] == [
+        "artifacts/supervision/requests/ai_reviewer/record_production_payloads/*_payload.json",
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+    ]
+
+
+def test_execute_dispatch_canonicalizes_record_only_handoff_with_stale_medautosci_command(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    request_payload = {
+        "surface": "supervisor_action_request",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "request_kind": "return_to_ai_reviewer_workflow",
+        "request_owner": "ai_reviewer",
+        "request_lifecycle": {
+            "state": "requested",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+            "stale_record_ref": "publication-eval::stale-record",
+            "required_currentness_refs": [str(manuscript_path)],
+        },
+        "input_contract": {
+            "required_refs": {
+                "manuscript": {"path": str(manuscript_path), "present": True, "valid": True},
+                "evidence_ledger": {
+                    "path": str(study_root / "paper" / "evidence_ledger.json"),
+                    "present": True,
+                    "valid": True,
+                },
+                "review_ledger": {
+                    "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                    "present": True,
+                    "valid": True,
+                },
+                "study_charter": {
+                    "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                    "present": True,
+                    "valid": True,
+                },
+            },
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        request_payload,
+    )
+    route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    production_request = build_ai_reviewer_record_production_request(
+        request=request_payload,
+        required_refs={"manuscript": str(manuscript_path)},
+        stale_record_ref="publication-eval::stale-record",
+        required_currentness_refs=[str(manuscript_path)],
+        request_kind="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+    )
+    handoff = build_ai_reviewer_record_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        request=request_payload,
+        dispatch={
+            "owner_route": route,
+            "prompt_contract": {"owner_route": route},
+        },
+        production_request=production_request,
+    )
+    stale_prompt = dict(handoff["prompt_contract"])
+    stale_prompt["owner_callable_command"] = (
+        "medautosci publication materialize-ai-reviewer-record --profile /stale/profile.toml "
+        f"--study-id {study_id} --payload-file {stale_prompt['owner_callable_payload_ref']} "
+        "--build-production-trace"
+    )
+    handoff["prompt_contract"] = stale_prompt
+    handoff["ai_reviewer_record_production_request"] = {
+        **handoff["ai_reviewer_record_production_request"],
+        "owner_callable_command": stale_prompt["owner_callable_command"],
+    }
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, handoff)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert execution["dispatch_contract_valid"] is True
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["prompt_contract"]["owner_callable_command"].startswith(REPO_LOCAL_CLI)
+    assert execution["ai_reviewer_record_production_request"]["owner_callable_command"].startswith(REPO_LOCAL_CLI)
 
 
 def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_record_stale_after_current_inputs(

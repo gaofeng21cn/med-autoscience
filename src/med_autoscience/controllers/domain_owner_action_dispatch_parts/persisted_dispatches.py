@@ -11,6 +11,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
+from . import owner_request_currentness
 from . import publication_owner_materialization_currentness
 from . import writer_handoff_currentness
 
@@ -60,6 +61,7 @@ def explicit_action_dispatches(
     action_types: tuple[str, ...],
     supported_action_types: frozenset[str],
     dispatch_relative_root: Path,
+    require_current_authority: bool = True,
 ) -> list[dict[str, Any]]:
     dispatches: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
@@ -78,7 +80,7 @@ def explicit_action_dispatches(
             continue
         refs = _mapping(payload.get("refs"))
         payload["refs"] = {**refs, "dispatch_path": str(path)}
-        if (
+        if require_current_authority and (
             not owner_request_matches_dispatch(
                 profile=profile,
                 study_id=study_id,
@@ -129,12 +131,12 @@ def selected_dispatches(
         current_study=current_study,
     )
     requested = set(action_types)
-    selected = [
-        payload
-        for payload in current_dispatches
-        if not requested or _text(payload.get("action_type")) in requested
-    ]
     if not action_types:
+        selected = [
+            payload
+            for payload in current_dispatches
+            if _text(payload.get("action_type")) in supported_action_types
+        ]
         selected_by_key = {
             (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type"))): index
             for index, payload in enumerate(selected)
@@ -145,6 +147,7 @@ def selected_dispatches(
             action_types=tuple(sorted(supported_action_types)),
             supported_action_types=supported_action_types,
             dispatch_relative_root=dispatch_relative_root,
+            require_current_authority=True,
         ):
             action_type = _text(payload.get("action_type")) or ""
             if _dispatch_currentness_score(payload, current_study) <= (0, 0) and not owner_request_matches_dispatch(
@@ -173,6 +176,11 @@ def selected_dispatches(
             dispatches=selected,
             current_study=current_study,
         )
+    selected = [
+        payload
+        for payload in consumer_dispatches
+        if _text(payload.get("action_type")) in requested
+    ]
     selected_keys = {
         (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         for payload in selected
@@ -182,8 +190,6 @@ def selected_dispatches(
         for index, payload in enumerate(selected)
     }
     for payload in consumer_dispatches:
-        if _dispatch_owner_route(payload):
-            continue
         if _text(payload.get("action_type")) not in requested:
             continue
         key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
@@ -198,6 +204,7 @@ def selected_dispatches(
         action_types=action_types,
         supported_action_types=supported_action_types,
         dispatch_relative_root=dispatch_relative_root,
+        require_current_authority=True,
     ):
         key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         if key in selected_by_key:
@@ -214,12 +221,7 @@ def selected_dispatches(
             selected.append(payload)
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
-    return _selected_dispatches_only(
-        profile=profile,
-        study_id=study_id,
-        dispatches=selected,
-        current_study=current_study,
-    )
+    return selected
 
 
 def _selected_dispatches_only(
@@ -498,9 +500,6 @@ def current_owner_route_from_scan_payload(
     action_route = _current_action_queue_owner_route(current_study, dispatch=dispatch)
     if action_route is not None:
         return action_route, "scan_action_queue"
-    dispatch_route = _dispatch_current_owner_route(dispatch)
-    if dispatch_route is not None:
-        return dispatch_route, "dispatch_owner_route"
     return None, None
 
 
@@ -767,20 +766,43 @@ def _owner_request_effective_route(
     action_type: str,
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    request = owner_request_payload(profile, study_id, action_type)
+    return _owner_request_effective_route_for_scan(
+        request=owner_request_payload(profile, study_id, action_type),
+        scan_payload=scan_latest_payload(profile),
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+    )
+
+
+def _owner_request_effective_route_for_scan(
+    *,
+    request: Mapping[str, Any] | None,
+    scan_payload: Mapping[str, Any] | None,
+    study_id: str,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
     if not _owner_request_basics_match_dispatch(
         request=request,
         action_type=action_type,
         dispatch=dispatch,
     ):
         return None
-    request_route = _request_owner_route(request=request, action_type=action_type, dispatch=dispatch)
-    if owner_route_part.owner_route_matches(dispatch=dispatch, current_route=request_route) and owner_route_part.route_allows_action(
-        action=dispatch,
-        owner_route=request_route,
+    request_route = _request_owner_route(request=request or {}, action_type=action_type, dispatch=dispatch)
+    if not (
+        owner_route_part.owner_route_matches(dispatch=dispatch, current_route=request_route)
+        and owner_route_part.route_allows_action(action=dispatch, owner_route=request_route)
     ):
-        return owner_route_part.ensure_owner_route_v2(request_route)
-    return None
+        return None
+    current_study = _scan_study(scan_payload, study_id)
+    if not _owner_request_current_against_scan(
+        request_route=request_route,
+        current_study=current_study,
+        dispatch=dispatch,
+    ):
+        return None
+    return owner_route_part.ensure_owner_route_v2(request_route)
 
 
 def _owner_request_basics_match_dispatch(
@@ -789,23 +811,44 @@ def _owner_request_basics_match_dispatch(
     action_type: str,
     dispatch: Mapping[str, Any],
 ) -> bool:
-    if not request:
-        return False
-    request_kind = _text(request.get("request_kind")) or _text(request.get("action_type"))
-    if request_kind != action_type:
-        return False
-    if _text(request.get("status")) not in {None, "requested", "applied", "pending"}:
-        return False
-    request_owner = (
-        _text(request.get("request_owner"))
-        or _text(request.get("expected_owner"))
-        or _text(request.get("next_executable_owner"))
-        or _text(request.get("assigned_to"))
-    )
     dispatch_owner = _text(dispatch.get("next_executable_owner")) or _text(_dispatch_owner_route(dispatch).get("next_owner"))
-    if request_owner is not None and dispatch_owner is not None and request_owner != dispatch_owner:
-        return False
-    return True
+    return owner_request_currentness.request_basics_match_dispatch(
+        request=request,
+        action_type=action_type,
+        dispatch_owner=dispatch_owner,
+    )
+
+
+def _owner_request_current_against_scan(
+    *,
+    request_route: Mapping[str, Any],
+    current_study: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if not current_study:
+        return True
+    if live_provider_attempt_owner_route_from_scan_payload(
+        scan_payload={"studies": [dict(current_study)]},
+        study_id=_text(current_study.get("study_id")) or _text(request_route.get("study_id")) or "",
+        dispatch=dispatch,
+    ) is not None:
+        return True
+    consumed_transition_route = _matching_consumed_transition_gate_replay_route(
+        current_study=current_study,
+        dispatch=dispatch,
+    )
+    if consumed_transition_route is not None:
+        return True
+    scan_route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
+    if _dispatch_matches_current_route(dispatch=dispatch, current_route=scan_route):
+        return True
+    if _current_action_queue_owner_route(current_study, dispatch=dispatch) is not None:
+        return True
+    return owner_request_currentness.route_basis_matches_current_study(
+        request_route=request_route,
+        current_study=current_study,
+        consumed_transition_route=_consumed_transition_owner_route(current_study),
+    )
 
 
 def _request_owner_route(

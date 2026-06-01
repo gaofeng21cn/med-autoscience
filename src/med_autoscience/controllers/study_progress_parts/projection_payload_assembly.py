@@ -51,6 +51,10 @@ def _progress_delta_metrics(
         quality_repair_batch_followthrough=quality_followthrough,
         gate_clearing_batch_followthrough=gate_followthrough,
     )
+    terminal_paper_triggered = _terminal_stage_paper_progress_triggered(
+        opl_current_control_state_handoff=opl_current_control_state_handoff,
+    )
+    paper_triggered = paper_triggered or terminal_paper_triggered
     platform_triggered = _platform_repair_triggered(opl_current_control_state_handoff=opl_current_control_state_handoff)
     paper_tokens = total_tokens if paper_triggered and not platform_triggered else 0
     platform_tokens = total_tokens if platform_triggered else 0
@@ -60,6 +64,7 @@ def _progress_delta_metrics(
         "sources": _paper_progress_sources(
             quality_repair_batch_followthrough=quality_followthrough,
             gate_clearing_batch_followthrough=gate_followthrough,
+            terminal_paper_triggered=terminal_paper_triggered,
         ),
     }
     platform_delta = {
@@ -134,6 +139,7 @@ def _paper_progress_sources(
     *,
     quality_repair_batch_followthrough: dict[str, Any],
     gate_clearing_batch_followthrough: dict[str, Any],
+    terminal_paper_triggered: bool = False,
 ) -> list[str]:
     result: list[str] = []
     if _non_empty_text(quality_repair_batch_followthrough.get("status")) is not None:
@@ -144,7 +150,37 @@ def _paper_progress_sources(
         result.append("quality_repair_gate_replay")
     if _non_empty_text(gate_clearing_batch_followthrough.get("gate_replay_status")) is not None:
         result.append("gate_clearing_gate_replay")
+    if terminal_paper_triggered:
+        result.append("opl_current_control_state.latest_terminal_stage_log.paper_stage_log")
     return result
+
+
+def _terminal_stage_paper_progress_triggered(
+    *,
+    opl_current_control_state_handoff: dict[str, Any] | None,
+) -> bool:
+    handoff = _mapping_copy(opl_current_control_state_handoff)
+    terminal = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+    if not terminal or not paper_stage_log:
+        return False
+    if _non_empty_text(terminal.get("typed_blocker_reason")) is not None:
+        return False
+    if _non_empty_text(terminal.get("status")) == "typed_blocker":
+        return False
+    if _non_empty_text(paper_stage_log.get("outcome")) == "typed_blocker":
+        return False
+    classification = _non_empty_text(paper_stage_log.get("progress_delta_classification"))
+    if classification is not None and classification not in {"deliverable_progress", "mixed"}:
+        return False
+    blocking_missing_fields = [
+        field
+        for field in _text_list(terminal.get("missing_user_stage_log_fields"))
+        if field != "progress_delta_classification"
+    ]
+    if blocking_missing_fields:
+        return False
+    return bool(_text_list(paper_stage_log.get("changed_paper_surfaces")))
 
 
 def _platform_repair_sources(*, opl_current_control_state_handoff: dict[str, Any] | None) -> list[str]:
@@ -214,6 +250,15 @@ def _sum_numbers(*values: object) -> int | None:
     if not numbers:
         return None
     return sum(numbers)
+
+
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _non_empty_text(item)) is not None]
 
 
 def _progress_payload_identity_fields(

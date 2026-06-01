@@ -7,6 +7,13 @@ from typing import Any
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
     default_executor_execution_candidates,
 )
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_route_currentness import (
+    execution_matches_owner_route,
+    owner_route_currentness_basis,
+    owner_route_work_unit_currentness_matches,
+    same_non_empty_text,
+    source_eval_id,
+)
 
 
 _DEFAULT_EXECUTOR_EXECUTED_STATUSES = frozenset({"executed"})
@@ -136,7 +143,7 @@ def _direct_execution_consumes_current_owner_route(
         return False
     if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered":
         return False
-    if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
+    if not execution_matches_owner_route(execution=execution, owner_route=owner_route):
         return False
     if _default_executor_dispatch_zero_execution_blocker(owner_result):
         return False
@@ -144,76 +151,6 @@ def _direct_execution_consumes_current_owner_route(
         owner_result=owner_result,
         repair_evidence=repair_evidence,
     )
-
-
-def _execution_matches_owner_route(
-    *,
-    execution: Mapping[str, Any],
-    owner_route: Mapping[str, Any],
-) -> bool:
-    prompt_contract = _mapping(execution.get("prompt_contract"))
-    for execution_route in (
-        _mapping(execution.get("current_owner_route")),
-        _mapping(execution.get("owner_route")),
-        _mapping(prompt_contract.get("owner_route")),
-    ):
-        if _owner_route_currentness_matches(execution_route=execution_route, owner_route=owner_route):
-            return True
-    return False
-
-
-def _owner_route_currentness_matches(
-    *,
-    execution_route: Mapping[str, Any],
-    owner_route: Mapping[str, Any],
-) -> bool:
-    if not execution_route:
-        return False
-    comparisons = ("route_epoch", "next_owner")
-    for key in comparisons:
-        current_value = _text(owner_route.get(key))
-        execution_value = _text(execution_route.get(key))
-        if current_value and execution_value and current_value != execution_value:
-            return False
-        if current_value and not execution_value:
-            return False
-    if not _owner_route_work_unit_currentness_matches(execution_route=execution_route, owner_route=owner_route):
-        return False
-    current_allowed = {_text(item) for item in owner_route.get("allowed_actions") or []}
-    execution_allowed = {_text(item) for item in execution_route.get("allowed_actions") or []}
-    current_allowed.discard("")
-    execution_allowed.discard("")
-    return bool(current_allowed) and current_allowed == execution_allowed
-
-
-def _owner_route_work_unit_currentness_matches(
-    *,
-    execution_route: Mapping[str, Any],
-    owner_route: Mapping[str, Any],
-) -> bool:
-    current_basis = _owner_route_currentness_basis(owner_route)
-    execution_basis = _owner_route_currentness_basis(execution_route)
-    for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id"):
-        current_value = _text(current_basis.get(key))
-        execution_value = _text(execution_basis.get(key))
-        if current_value and not execution_value:
-            return False
-        if current_value and execution_value and current_value != execution_value:
-            return False
-    current_source_eval_id = _text(current_basis.get("source_eval_id"))
-    execution_source_eval_id = _text(execution_basis.get("source_eval_id"))
-    if current_source_eval_id and execution_source_eval_id and current_source_eval_id != execution_source_eval_id:
-        return False
-    if (
-        current_source_eval_id
-        and not execution_source_eval_id
-        and not all(
-            _text(current_basis.get(key)) == _text(execution_basis.get(key)) and _text(current_basis.get(key))
-            for key in ("truth_epoch", "runtime_health_epoch", "work_unit_fingerprint", "work_unit_id")
-        )
-    ):
-        return False
-    return bool(_text(current_basis.get("work_unit_fingerprint")) or _text(current_basis.get("work_unit_id")))
 
 
 def _to_package_freshness_currentness_matches(
@@ -234,8 +171,8 @@ def _to_package_freshness_currentness_matches(
         return False
     if current_allowed != {"current_package_freshness_required"}:
         return False
-    execution_basis = _owner_route_currentness_basis(execution_route)
-    current_basis = _owner_route_currentness_basis(owner_route)
+    execution_basis = owner_route_currentness_basis(execution_route)
+    current_basis = owner_route_currentness_basis(owner_route)
     if from_action_type == "run_gate_clearing_batch":
         return _gate_replay_to_package_freshness_currentness_matches(
             execution_route=execution_route,
@@ -243,7 +180,7 @@ def _to_package_freshness_currentness_matches(
             execution_basis=execution_basis,
             current_basis=current_basis,
         )
-    if not _owner_route_work_unit_currentness_matches(execution_route=execution_route, owner_route=owner_route):
+    if not owner_route_work_unit_currentness_matches(execution_route=execution_route, owner_route=owner_route):
         return False
     return bool(_text(current_basis.get("work_unit_fingerprint")) and _text(current_basis.get("work_unit_id")))
 
@@ -259,58 +196,17 @@ def _gate_replay_to_package_freshness_currentness_matches(
         return False
     if _text(current_basis.get("work_unit_id")) != "submission_minimal_refresh":
         return False
-    if not _same_non_empty_text(
+    if not same_non_empty_text(
         _text(execution_basis.get("truth_epoch")),
         _text(current_basis.get("truth_epoch")),
     ):
         return False
-    if not _same_non_empty_text(
-        _source_eval_id(execution_route),
-        _source_eval_id(owner_route),
+    if not same_non_empty_text(
+        source_eval_id(execution_route),
+        source_eval_id(owner_route),
     ):
         return False
     return _text(current_basis.get("work_unit_fingerprint")) is not None
-
-
-def _owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:
-    source_refs = _mapping(route.get("source_refs"))
-    nested_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    return {
-        "truth_epoch": (
-            _text(nested_basis.get("truth_epoch"))
-            or _text(source_refs.get("study_truth_epoch"))
-            or _text(route.get("truth_epoch"))
-            or _text(route.get("route_epoch"))
-        ),
-        "runtime_health_epoch": (
-            _text(nested_basis.get("runtime_health_epoch"))
-            or _text(source_refs.get("runtime_health_epoch"))
-            or _text(route.get("runtime_health_epoch"))
-        ),
-        "work_unit_fingerprint": (
-            _text(nested_basis.get("work_unit_fingerprint"))
-            or _text(source_refs.get("work_unit_fingerprint"))
-            or _text(route.get("work_unit_fingerprint"))
-        ),
-        "work_unit_id": _text(nested_basis.get("work_unit_id")) or _text(source_refs.get("work_unit_id")),
-        "source_eval_id": (
-            _text(nested_basis.get("source_eval_id"))
-            or _text(source_refs.get("source_eval_id"))
-            or _text(route.get("source_eval_id"))
-        ),
-    }
-
-
-def _source_eval_id(route: Mapping[str, Any]) -> str:
-    source_refs = _mapping(route.get("source_refs"))
-    nested_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    return _text(nested_basis.get("source_eval_id")) or _text(source_refs.get("source_eval_id")) or _text(
-        route.get("source_eval_id")
-    )
-
-
-def _same_non_empty_text(left: str, right: str) -> bool:
-    return bool(left and right and left == right)
 
 
 def _publication_gate_specificity_owner_result_satisfies_route_output(*, owner_result: Mapping[str, Any]) -> bool:
