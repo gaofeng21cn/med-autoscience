@@ -162,6 +162,89 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
     assert result["repeat_suppressed_count"] == 0
 
 
+def test_materialize_domain_action_requests_honors_consumed_transition_owner_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="ai_reviewer_assessment_required",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": stale_route,
+                    "action_queue": [],
+                    "domain_transition": {
+                        "decision_type": "route_back_same_line",
+                        "route_target": "write",
+                        "owner": "write",
+                        "controller_action": "request_opl_stage_attempt",
+                        "next_work_unit": {
+                            "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                            "lane": "write",
+                            "summary": "Continue the paper-line gate replay after the current AI reviewer record.",
+                        },
+                        "completion_receipt_consumption": {
+                            "status": "consumed",
+                            "receipt_kind": "ai_reviewer_publication_eval",
+                            "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                        },
+                    },
+                    "runtime_health_snapshot": {
+                        "runtime_health_epoch": "runtime-health-current-write-route",
+                    },
+                    "study_truth_snapshot": {
+                        "truth_epoch": "truth-epoch-current-write-route",
+                        "source_signature": "truth-source-current-write-route",
+                    },
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["ignored_actions"] == []
+    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["action_type"] == "run_quality_repair_batch"
+    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["source_action"]["controller_work_unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+    route = dispatch["owner_route"]
+    assert route["next_owner"] == "write"
+    assert route["allowed_actions"] == ["run_quality_repair_batch"]
+    assert route["source_refs"]["work_unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+    assert dispatch["prompt_contract"]["owner_route"]["source_refs"]["work_unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+
+
 def test_materialize_ai_reviewer_dispatch_inherits_owner_reason_forbidden_surfaces(
     monkeypatch,
     tmp_path: Path,

@@ -95,9 +95,6 @@ def _study_queue_actions(
 
 
 def _domain_transition_current_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
-    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
-    if not owner_route:
-        return []
     study_id = _text(study.get("study_id"))
     if study_id is None:
         return []
@@ -105,6 +102,9 @@ def _domain_transition_current_actions(study: Mapping[str, Any]) -> list[dict[st
     if not generated:
         return []
     quest_id = _text(study.get("quest_id"))
+    owner_route = _domain_transition_owner_route(study=study, generated=generated, study_id=study_id, quest_id=quest_id)
+    if not owner_route:
+        return []
     decorated_actions: list[dict[str, Any]] = []
     for action in generated:
         if not isinstance(action, Mapping):
@@ -127,6 +127,33 @@ def _domain_transition_current_actions(study: Mapping[str, Any]) -> list[dict[st
         if _action_allowed_by_owner_route(routed, owner_route):
             decorated_actions.append(routed)
     return decorated_actions
+
+
+def _domain_transition_owner_route(
+    *,
+    study: Mapping[str, Any],
+    generated: list[dict[str, Any]],
+    study_id: str,
+    quest_id: str | None,
+) -> dict[str, Any]:
+    transition = _mapping(study.get("domain_transition"))
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    if (
+        _text(completion.get("status")) in {"consumed", "receipt_consumed", "completed"}
+        and _text(transition.get("controller_action")) is not None
+        and _mapping(transition.get("next_work_unit"))
+    ):
+        return owner_route_part.build_owner_route(
+            study_id=study_id,
+            quest_id=quest_id,
+            status=study,
+            progress={},
+            actions=generated,
+            blocked_reason=_text(generated[0].get("reason")),
+            next_owner=_text(generated[0].get("owner")) or _text(generated[0].get("request_owner")),
+            active_run_id=_text(study.get("active_run_id")),
+        )
+    return owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
 
 
 def _queue_action_allowed_by_current_study_route(action: Mapping[str, Any], study: Mapping[str, Any]) -> bool:

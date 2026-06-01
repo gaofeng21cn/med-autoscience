@@ -106,15 +106,25 @@ def selected_dispatches(
     supported_action_types: frozenset[str],
     dispatch_relative_root: Path,
 ) -> list[dict[str, Any]]:
+    current_study = _scan_study(scan_payload, study_id)
+    current_study = _with_consumed_transition_owner_route(current_study)
     current_dispatches = current_consumer_dispatches(
         study_id=study_id,
         consumer_payload=consumer_payload,
         consumer_latest_path=consumer_latest_path,
     )
-    if not action_types:
-        return current_dispatches
+    current_dispatches = _current_dispatches_only(
+        dispatches=current_dispatches,
+        current_study=current_study,
+    )
     requested = set(action_types)
-    selected = [payload for payload in current_dispatches if _text(payload.get("action_type")) in requested]
+    selected = [
+        payload
+        for payload in current_dispatches
+        if not requested or _text(payload.get("action_type")) in requested
+    ]
+    if not action_types:
+        return selected
     selected_keys = {
         (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         for payload in selected
@@ -145,7 +155,121 @@ def selected_dispatches(
             selected.append(payload)
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
-    return selected
+    return _current_dispatches_only(dispatches=selected, current_study=current_study)
+
+
+def _with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
+    study = dict(current_study)
+    transition_route = _consumed_transition_owner_route(study)
+    if transition_route:
+        study["owner_route"] = transition_route
+    return study
+
+
+def _consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
+    transition = _mapping(current_study.get("domain_transition"))
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return {}
+    if _text(transition.get("controller_action")) is None:
+        return {}
+    next_work_unit = _mapping(transition.get("next_work_unit"))
+    if not next_work_unit:
+        return {}
+    action_type = _action_type_for_consumed_transition(transition=transition, next_work_unit=next_work_unit)
+    if action_type is None:
+        return {}
+    study_id = _text(current_study.get("study_id"))
+    if study_id is None:
+        return {}
+    owner = _owner_for_consumed_transition(action_type=action_type, transition=transition)
+    work_unit_id = _text(next_work_unit.get("unit_id")) or _text(next_work_unit.get("work_unit_id"))
+    truth = _mapping(current_study.get("study_truth_snapshot"))
+    route_epoch = _text(truth.get("truth_epoch")) or _text(truth.get("authority_epoch")) or study_id
+    source_fingerprint = _text(truth.get("source_signature")) or (
+        f"domain-transition::{_text(transition.get('decision_type')) or 'current'}::{work_unit_id or action_type}"
+    )
+    runtime_health_epoch = _text(_mapping(current_study.get("runtime_health_snapshot")).get("runtime_health_epoch"))
+    owner_reason = work_unit_id or _text(transition.get("decision_type")) or action_type
+    work_unit_fingerprint = (
+        _text(transition.get("work_unit_fingerprint"))
+        or _text(next_work_unit.get("fingerprint"))
+        or f"domain-transition::{_text(transition.get('decision_type')) or 'current'}::{work_unit_id or action_type}"
+    )
+    route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": _text(current_study.get("quest_id")),
+        "truth_epoch": route_epoch,
+        "runtime_health_epoch": runtime_health_epoch,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "failure_signature": owner_reason,
+        "trace_id": f"owner-route-trace::{study_id}::consumed-transition::{action_type}",
+        "route_epoch": route_epoch,
+        "source_fingerprint": source_fingerprint,
+        "current_owner": _text(current_study.get("current_owner")) or "mas_controller",
+        "next_owner": owner,
+        "owner_reason": owner_reason,
+        "active_run_id": _text(current_study.get("active_run_id")),
+        "allowed_actions": [action_type],
+        "blocked_actions": [
+            item for item in OWNER_REQUEST_RELATIVE_PATHS if item != action_type
+        ],
+        "idempotency_key": f"owner-route::{study_id}::{route_epoch}::{owner}::{owner_reason}",
+        "source_refs": {
+            "source_eval_id": _text(completion.get("eval_id")),
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "blocked_reason": owner_reason,
+            "receipt_ref": _text(completion.get("receipt_ref")),
+        },
+    }
+    return owner_route_part.ensure_owner_route_v2(route)
+
+
+def _action_type_for_consumed_transition(
+    *,
+    transition: Mapping[str, Any],
+    next_work_unit: Mapping[str, Any],
+) -> str | None:
+    decision_type = _text(transition.get("decision_type"))
+    route_target = _text(transition.get("route_target"))
+    controller_action = _text(transition.get("controller_action"))
+    work_unit_id = _text(next_work_unit.get("unit_id")) or _text(next_work_unit.get("work_unit_id"))
+    if decision_type == "route_back_same_line" and route_target == "write":
+        return "run_quality_repair_batch"
+    if controller_action == "run_gate_clearing_batch":
+        return "run_gate_clearing_batch"
+    if controller_action == "return_to_ai_reviewer_workflow":
+        return "return_to_ai_reviewer_workflow"
+    if controller_action == "request_opl_stage_attempt" and work_unit_id:
+        return "run_quality_repair_batch"
+    return None
+
+
+def _owner_for_consumed_transition(*, action_type: str, transition: Mapping[str, Any]) -> str:
+    if action_type == "run_quality_repair_batch":
+        return "write"
+    if action_type == "run_gate_clearing_batch":
+        return "gate_clearing_batch"
+    if action_type == "return_to_ai_reviewer_workflow":
+        return "ai_reviewer"
+    return _text(transition.get("owner")) or "med-autoscience"
+
+
+def _current_dispatches_only(
+    *,
+    dispatches: list[dict[str, Any]],
+    current_study: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    if not current_study:
+        return dispatches
+    return [
+        dispatch
+        for dispatch in dispatches
+        if _dispatch_currentness_score(dispatch, current_study) > (0, 0)
+    ]
 
 
 def _prefer_current_dispatch(
