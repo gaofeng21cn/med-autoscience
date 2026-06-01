@@ -7,6 +7,12 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.body_free_evidence_packets import build_body_free_evidence_packet
+from med_autoscience.controllers.artifact_retention_operations_plan_parts.physical_thinning_handoff import (
+    PHYSICAL_THINNING_HANDOFF_SAMPLE_LIMIT,
+    normalize_physical_thinning_handoff,
+    physical_thinning_handoff,
+    physical_thinning_handoff_from_summary,
+)
 
 
 SCHEMA_VERSION = 1
@@ -28,15 +34,6 @@ _APPLY_BLOCKER_TRUNCATED_KEY = "artifact_lifecycle_apply_blocker_refs_truncated"
 _APPLY_BLOCKER_REASON_COUNTS_KEY = "artifact_lifecycle_apply_blocker_reason_counts"
 _APPLY_BLOCKER_AUTHORITY_BOUNDARY_KEY = "artifact_lifecycle_apply_blocker_authority_boundary"
 _PHYSICAL_THINNING_HANDOFF_KEY = "physical_thinning_handoff"
-_PHYSICAL_THINNING_CANDIDATE_ACTIONS = frozenset(
-    {
-        "delete_safe_cache",
-        "regenerate_projection_then_remove_stale",
-        "restore_contract_required",
-        "archive_compress_candidate_blocked",
-        "terminal_archive_compact_after_manifest",
-    }
-)
 _KEEP_ONLINE_ROLES = frozenset(
     {
         "canonical_source",
@@ -81,9 +78,12 @@ def build_artifact_retention_operations_plan(
         "summary": _summary(operations),
         **receipt_ref_families,
         **apply_blocker_refs,
-        _PHYSICAL_THINNING_HANDOFF_KEY: _physical_thinning_handoff(
+        _PHYSICAL_THINNING_HANDOFF_KEY: physical_thinning_handoff(
             operations,
             apply_blocker_refs=apply_blocker_refs,
+            apply_blocker_ref_key=_APPLY_BLOCKER_REF_KEY,
+            apply_blocker_count_key=_APPLY_BLOCKER_COUNT_KEY,
+            apply_blocker_reason_counts_key=_APPLY_BLOCKER_REASON_COUNTS_KEY,
         ),
         "operations": operations,
     }
@@ -96,6 +96,8 @@ def aggregate_artifact_retention_operations_plans(
     applyable_action_counts: dict[str, int] = {}
     receipt_ref_families = _empty_artifact_lifecycle_receipt_ref_families()
     apply_blocker_refs = _empty_artifact_lifecycle_apply_blockers()
+    physical_thinning_candidate_refs: list[str] = []
+    physical_thinning_candidate_samples: list[Mapping[str, Any]] = []
     operation_count = 0
     for plan in plans:
         summary = _mapping(plan.get("summary"))
@@ -108,6 +110,11 @@ def aggregate_artifact_retention_operations_plans(
                 plan,
                 sample_limit=RECEIPT_REF_SAMPLE_LIMIT,
             ),
+        )
+        handoff = _mapping(plan.get(_PHYSICAL_THINNING_HANDOFF_KEY))
+        physical_thinning_candidate_refs.extend(_string_list(handoff.get("candidate_refs")))
+        physical_thinning_candidate_samples.extend(
+            item for item in _list(handoff.get("candidate_sample")) if isinstance(item, Mapping)
         )
         _merge_artifact_lifecycle_apply_blockers(
             apply_blocker_refs,
@@ -135,13 +142,18 @@ def aggregate_artifact_retention_operations_plans(
         "retention_policy_catalog": retention_policy_catalog(),
         **receipt_ref_families,
         **apply_blocker_refs,
-        _PHYSICAL_THINNING_HANDOFF_KEY: _physical_thinning_handoff_from_summary(
+        _PHYSICAL_THINNING_HANDOFF_KEY: physical_thinning_handoff_from_summary(
             summary={
                 "operation_count": operation_count,
                 "action_counts": action_counts,
                 "applyable_action_counts": applyable_action_counts,
             },
             apply_blocker_refs=apply_blocker_refs,
+            apply_blocker_ref_key=_APPLY_BLOCKER_REF_KEY,
+            apply_blocker_count_key=_APPLY_BLOCKER_COUNT_KEY,
+            apply_blocker_reason_counts_key=_APPLY_BLOCKER_REASON_COUNTS_KEY,
+            candidate_refs=physical_thinning_candidate_refs,
+            candidate_samples=physical_thinning_candidate_samples,
         ),
     }
 
@@ -598,115 +610,33 @@ def _physical_thinning_handoff_from_plan(
 ) -> dict[str, Any]:
     existing = _mapping(plan.get(_PHYSICAL_THINNING_HANDOFF_KEY))
     if existing:
-        return _normalize_physical_thinning_handoff(existing, apply_blocker_refs=apply_blocker_refs)
+        return normalize_physical_thinning_handoff(
+            existing,
+            apply_blocker_refs=apply_blocker_refs,
+            apply_blocker_ref_key=_APPLY_BLOCKER_REF_KEY,
+            apply_blocker_count_key=_APPLY_BLOCKER_COUNT_KEY,
+            apply_blocker_reason_counts_key=_APPLY_BLOCKER_REASON_COUNTS_KEY,
+        )
     operations = [
         operation
         for operation in [*_list(plan.get("operations")), *_list(plan.get("operation_sample"))]
         if isinstance(operation, Mapping)
     ]
     if operations:
-        return _physical_thinning_handoff(operations, apply_blocker_refs=apply_blocker_refs)
-    return _physical_thinning_handoff_from_summary(
+        return physical_thinning_handoff(
+            operations,
+            apply_blocker_refs=apply_blocker_refs,
+            apply_blocker_ref_key=_APPLY_BLOCKER_REF_KEY,
+            apply_blocker_count_key=_APPLY_BLOCKER_COUNT_KEY,
+            apply_blocker_reason_counts_key=_APPLY_BLOCKER_REASON_COUNTS_KEY,
+        )
+    return physical_thinning_handoff_from_summary(
         summary=_mapping(plan.get("summary")),
         apply_blocker_refs=apply_blocker_refs,
+        apply_blocker_ref_key=_APPLY_BLOCKER_REF_KEY,
+        apply_blocker_count_key=_APPLY_BLOCKER_COUNT_KEY,
+        apply_blocker_reason_counts_key=_APPLY_BLOCKER_REASON_COUNTS_KEY,
     )
-
-
-def _physical_thinning_handoff(
-    operations: Iterable[Mapping[str, Any]],
-    *,
-    apply_blocker_refs: Mapping[str, Any],
-) -> dict[str, Any]:
-    candidate_counts: Counter[str] = Counter()
-    for operation in operations:
-        action = _text(operation.get("retention_action"))
-        if action in _PHYSICAL_THINNING_CANDIDATE_ACTIONS:
-            candidate_counts[action] += 1
-    return _physical_thinning_handoff_from_counts(
-        candidate_counts=candidate_counts,
-        apply_blocker_refs=apply_blocker_refs,
-    )
-
-
-def _physical_thinning_handoff_from_summary(
-    *,
-    summary: Mapping[str, Any],
-    apply_blocker_refs: Mapping[str, Any],
-) -> dict[str, Any]:
-    action_counts = _mapping(summary.get("action_counts"))
-    candidate_counts = Counter(
-        {
-            action: _int(count)
-            for action, count in action_counts.items()
-            if str(action) in _PHYSICAL_THINNING_CANDIDATE_ACTIONS and _int(count)
-        }
-    )
-    return _physical_thinning_handoff_from_counts(
-        candidate_counts=candidate_counts,
-        apply_blocker_refs=apply_blocker_refs,
-    )
-
-
-def _physical_thinning_handoff_from_counts(
-    *,
-    candidate_counts: Counter[str],
-    apply_blocker_refs: Mapping[str, Any],
-) -> dict[str, Any]:
-    typed_blocker_refs = _string_list(apply_blocker_refs.get(_APPLY_BLOCKER_REF_KEY))
-    candidate_count = sum(candidate_counts.values())
-    selected_payload_path = "typed_blocker_path" if typed_blocker_refs else "success_refs_path"
-    return {
-        "surface_kind": "artifact_lifecycle_physical_thinning_handoff",
-        "domain_owner": "MedAutoScience",
-        "apply_owner": "one-person-lab",
-        "candidate_count": candidate_count,
-        "candidate_counts_by_action": dict(sorted(candidate_counts.items())),
-        "selected_payload_path": selected_payload_path,
-        "receipt_refs": [] if typed_blocker_refs else _string_list(apply_blocker_refs.get("cleanup_receipt_refs")),
-        "typed_blocker_refs": typed_blocker_refs,
-        "typed_blocker_ref_count": _int(apply_blocker_refs.get(_APPLY_BLOCKER_COUNT_KEY)),
-        "typed_blocker_reason_counts": dict(
-            _mapping(apply_blocker_refs.get(_APPLY_BLOCKER_REASON_COUNTS_KEY))
-        ),
-        "authority_boundary": _physical_thinning_handoff_authority_boundary(),
-    }
-
-
-def _normalize_physical_thinning_handoff(
-    handoff: Mapping[str, Any],
-    *,
-    apply_blocker_refs: Mapping[str, Any],
-) -> dict[str, Any]:
-    candidate_counts = Counter(
-        {
-            str(action): _int(count)
-            for action, count in _mapping(handoff.get("candidate_counts_by_action")).items()
-            if str(action) and _int(count)
-        }
-    )
-    if not candidate_counts and _int(handoff.get("candidate_count")):
-        candidate_counts["unknown"] = _int(handoff.get("candidate_count"))
-    normalized = _physical_thinning_handoff_from_counts(
-        candidate_counts=candidate_counts,
-        apply_blocker_refs=apply_blocker_refs,
-    )
-    receipt_refs = _string_list(handoff.get("receipt_refs"))
-    if receipt_refs:
-        normalized["receipt_refs"] = receipt_refs
-        normalized["selected_payload_path"] = "success_refs_path"
-    return normalized
-
-
-def _physical_thinning_handoff_authority_boundary() -> dict[str, Any]:
-    return {
-        "mas_authorizes_candidate_identity": True,
-        "mas_executes_physical_cleanup": False,
-        "opl_executes_generic_lifecycle_apply": True,
-        "requires_restore_or_regeneration_receipt_before_cleanup": True,
-        "can_authorize_artifact_mutation": False,
-        "can_claim_domain_ready": False,
-        "can_claim_production_ready": False,
-    }
 
 
 def _artifact_lifecycle_apply_blocker_authority_boundary() -> dict[str, Any]:

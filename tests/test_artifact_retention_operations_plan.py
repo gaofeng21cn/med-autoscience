@@ -104,6 +104,30 @@ def test_retention_plan_projects_generated_surfaces_without_physical_delete(tmp_
         assert "canonical_regeneration_required_before_projection_removal" in item["blockers"]
         assert item["physical_delete_allowed"] is False
     assert plan["retention_policy_catalog"]["derived_projection_removal_marker"] == "regenerate-before-remove"
+    handoff = plan["physical_thinning_handoff"]
+    assert handoff["surface_kind"] == "artifact_lifecycle_physical_thinning_handoff"
+    assert handoff["body_free"] is True
+    assert handoff["domain_owner"] == "MedAutoScience"
+    assert handoff["apply_owner"] == "one-person-lab"
+    assert handoff["candidate_count"] == 3
+    assert handoff["candidate_counts_by_action"] == {"regenerate_projection_then_remove_stale": 3}
+    assert handoff["candidate_ref_count"] == 3
+    assert len(handoff["candidate_refs"]) == 3
+    assert len(handoff["candidate_sample"]) == 3
+    assert handoff["candidate_refs_truncated"] is False
+    assert handoff["candidate_sample_truncated"] is False
+    assert handoff["selected_payload_path"] == "typed_blocker_path"
+    assert handoff["receipt_refs"] == []
+    assert handoff["typed_blocker_ref_count"] == 3
+    assert handoff["next_owner_action"] == {
+        "owner": "one-person-lab",
+        "action": "generic_lifecycle_apply",
+        "requires_restore_or_regeneration_receipt_before_cleanup": True,
+        "accepts_handoff_ref": handoff["handoff_ref"],
+        "selected_payload_path": "typed_blocker_path",
+    }
+    assert handoff["authority_boundary"]["mas_executes_physical_cleanup"] is False
+    assert handoff["authority_boundary"]["can_authorize_artifact_mutation"] is False
 
 
 def test_retention_plan_blocks_runtime_archive_compress_and_keeps_live_runtime_audit_only(
@@ -237,6 +261,16 @@ def test_retention_plan_preserves_artifact_lifecycle_receipt_ref_families(
         assert set(result["retention_receipt_refs"]).issubset(
             set(result["artifact_lifecycle_receipt_refs"])
         )
+        handoff = result["physical_thinning_handoff"]
+        assert handoff["handoff_ref"].startswith(
+            "mas-artifact-lifecycle-handoff:medautoscience:physical-thinning:"
+        )
+        assert handoff["candidate_refs"]
+        assert handoff["candidate_ref_count"] == 3
+        assert handoff["candidate_sample"]
+        assert handoff["next_owner_action"]["owner"] == "one-person-lab"
+        assert handoff["next_owner_action"]["action"] == "generic_lifecycle_apply"
+        assert handoff["authority_boundary"]["mas_executes_physical_cleanup"] is False
     assert plan["mutation_policy"]["physical_cleanup_performed"] is False
 
 
@@ -293,6 +327,12 @@ def test_retention_plan_bounds_artifact_receipt_ref_families_and_preserves_count
         assert len(result["retention_receipt_refs"]) == module.RECEIPT_REF_SAMPLE_LIMIT
         assert result["retention_receipt_ref_count"] == 60
         assert result["retention_receipt_refs_truncated"] is True
+        handoff = result["physical_thinning_handoff"]
+        assert len(handoff["candidate_refs"]) == module.PHYSICAL_THINNING_HANDOFF_SAMPLE_LIMIT
+        assert handoff["candidate_ref_count"] == 120
+        assert handoff["candidate_refs_truncated"] is True
+        assert len(handoff["candidate_sample"]) == module.PHYSICAL_THINNING_HANDOFF_SAMPLE_LIMIT
+        assert handoff["candidate_sample_truncated"] is True
     assert plan["summary"]["operation_count"] == 180
 
 
