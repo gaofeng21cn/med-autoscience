@@ -10,6 +10,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_re
 from med_autoscience.controllers import study_progress, domain_status_projection
 from med_autoscience.controllers import current_execution_envelope
 from med_autoscience.controllers.owner_route_reconcile_parts import canonical_inputs
+from med_autoscience.controllers.owner_route_reconcile_parts import current_controller_followthrough
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 from med_autoscience.controllers.owner_route_reconcile_parts import default_executor_receipts
 from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
@@ -696,6 +697,42 @@ def _study_projection(
                     next_owner=next_owner,
                     active_run_id=_active_run_id(status_payload, progress_payload),
                 )
+            else:
+                followthrough_action = current_controller_followthrough.action_after_consumed_receipt(
+                    study_id=study_id,
+                    quest_id=resolved_quest_id,
+                    study_root=study_root,
+                    publication_eval_payload=publication_eval_payload,
+                    consumed_receipt=default_executor_execution_receipt_consumption,
+                )
+                if followthrough_action is not None:
+                    default_executor_execution_receipt_consumption = {
+                        **default_executor_execution_receipt_consumption,
+                        "consumption_mode": "current_controller_followthrough",
+                        "followthrough_from_action_type": _text(
+                            default_executor_execution_receipt_consumption.get("action_type")
+                        ),
+                        "followthrough_to_action_type": _text(followthrough_action.get("action_type")),
+                        "next_action": "honor_current_controller_owner_route",
+                    }
+                    actions = [followthrough_action]
+                    blocked_reason = _text(followthrough_action.get("reason")) or _text(
+                        followthrough_action.get("action_type")
+                    )
+                    why_not_applied = blocked_reason
+                    next_owner = _text(followthrough_action.get("owner")) or block_state_part.next_owner_for_blocked_reason(
+                        blocked_reason
+                    )
+                    owner_route, actions = owner_route_part.route_and_decorate_actions(
+                        study_id=study_id,
+                        quest_id=resolved_quest_id,
+                        status=status_payload,
+                        progress=progress_payload,
+                        actions=actions,
+                        blocked_reason=blocked_reason,
+                        next_owner=next_owner,
+                        active_run_id=_active_run_id(status_payload, progress_payload),
+                    )
     actions = repo_write_policy.attach_repo_write_policy(actions, developer_mode=developer_mode)
     paper_progress_stall_payload, actions = paper_progress_stall_projection.build_and_attach(
         status=status_payload,

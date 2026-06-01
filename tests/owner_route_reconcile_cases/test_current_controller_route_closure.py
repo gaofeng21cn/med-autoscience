@@ -364,6 +364,53 @@ def test_current_controller_route_accepts_bundle_stage_domain_transition_without
     assert route["work_unit_fingerprint"] == work_unit_fingerprint
 
 
+def test_current_controller_route_canonicalizes_publication_gate_replay_action(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.current_truth_owner"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    work_unit_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    study_root = write_study(tmp_path, study_id, quest_id=quest_id)
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": f"publication-eval::{study_id}::current",
+        "recommended_actions": [],
+    }
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "dm003-stale-writer-action-gate-replay",
+            "decision_type": "route_back_same_line",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "run_quality_repair_batch"}],
+            "route_target": "write",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": {
+                "unit_id": work_unit_id,
+                "lane": "publication_gate",
+                "summary": "Replay the publication gate after the current AI reviewer record.",
+            },
+        },
+    )
+
+    route = module.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval,
+    )
+
+    assert route is not None
+    assert route["work_unit_id"] == work_unit_id
+    assert route["work_unit_fingerprint"] == work_unit_fingerprint
+    assert route["controller_actions"] == ["run_gate_clearing_batch"]
+
+
 def test_current_controller_route_ignores_successfully_closed_publication_work_unit(tmp_path: Path) -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_reconcile_parts.current_truth_owner"

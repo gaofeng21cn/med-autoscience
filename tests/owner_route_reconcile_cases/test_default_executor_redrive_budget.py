@@ -217,6 +217,134 @@ def test_default_executor_paper_review_story_surface_closeout_preempts_redrive_b
     assert "blocked_reason" not in receipt
 
 
+def test_consumed_write_closeout_projects_current_ai_reviewer_controller_followthrough(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    followthrough = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.current_controller_followthrough"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    source_eval_id = "publication-eval::dm002::current-inputs::20260601"
+    writer_publication_eval = {
+        "schema_version": 1,
+        "eval_id": source_eval_id,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::current-write-repair",
+                "next_work_unit": {
+                    "unit_id": "current-write-repair",
+                    "lane": "write",
+                    "summary": "Repair the current manuscript story surface.",
+                },
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", writer_publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "blocked",
+            "source_eval_id": source_eval_id,
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": ["manuscript_story_surface_delta_missing"],
+            },
+        },
+    )
+    status = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": None,
+        "publication_eval": writer_publication_eval,
+        "domain_transition": {
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "controller_action": "request_opl_stage_attempt",
+            "owner": "write",
+            "next_work_unit": {"unit_id": "current-write-repair", "lane": "write"},
+            "typed_blocker": None,
+        },
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-event-dm002-followthrough",
+            "canonical_runtime_action": "request_opl_stage_attempt",
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-dm002-followthrough",
+            "source_signature": "truth-source-dm002-followthrough",
+        },
+    }
+    progress = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_opl_runtime_owner_handoff_gap",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "study_truth_snapshot": status["study_truth_snapshot"],
+    }
+    ai_work_unit = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "dm002-current-ai-reviewer-route",
+            "decision_type": "continue_same_line",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "return_to_ai_reviewer_workflow"}],
+            "route_target": "review",
+            "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{ai_work_unit}",
+            "next_work_unit": {
+                "unit_id": ai_work_unit,
+                "lane": "review",
+                "summary": "Produce a current AI reviewer publication-eval record.",
+            },
+        },
+    )
+
+    action = followthrough.action_after_consumed_receipt(
+        study_id=study_id,
+        quest_id=study_id,
+        study_root=study_root,
+        publication_eval_payload=writer_publication_eval,
+        consumed_receipt={
+            "status": "consumed",
+            "receipt_kind": "default_executor_execution",
+            "action_type": "run_quality_repair_batch",
+            "execution_status": "executed",
+            "next_action": "do_not_redrive_consumed_owner_route",
+        },
+    )
+
+    assert action is not None
+    assert action["action_type"] == "return_to_ai_reviewer_workflow"
+    assert action["owner"] == "ai_reviewer"
+    assert action["next_work_unit"] == ai_work_unit
+    assert action["controller_work_unit_id"] == ai_work_unit
+    assert action["request_owner"] == "ai_reviewer"
+    assert action["reason"] == "domain_transition_ai_reviewer_re_eval"
+
+
 def test_default_executor_missing_closeout_refs_consumes_typed_blocker_without_redrive(
     tmp_path: Path,
 ) -> None:

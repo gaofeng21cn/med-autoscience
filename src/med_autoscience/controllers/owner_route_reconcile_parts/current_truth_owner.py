@@ -20,6 +20,7 @@ from med_autoscience.controllers.story_surface_work_units import (
 )
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.controllers.current_truth_owner_parts import writer_handoff
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
@@ -66,11 +67,11 @@ def current_controller_runtime_route(
     decision = _read_json_object(decision_path)
     if decision is None or decision.get("requires_human_confirmation") is True:
         return None
-    action_types = _controller_action_types(decision)
     work_unit = _mapping(decision.get("next_work_unit"))
     work_unit_id = _text(work_unit.get("unit_id"))
     if work_unit_id is None:
         return None
+    action_types = _canonical_controller_action_types(decision=decision, work_unit=work_unit)
     decision_fingerprint = _text(decision.get("work_unit_fingerprint")) or _text(work_unit.get("fingerprint"))
     if decision_fingerprint is None:
         return None
@@ -680,6 +681,8 @@ def domain_transition_runtime_route_allowed(
         return False
     if fingerprint_work_unit_id != work_unit_id:
         return False
+    if work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS and "run_gate_clearing_batch" in action_types:
+        return True
     allowed_actions = DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE.get(decision_type, set())
     return bool(action_types & allowed_actions)
 
@@ -875,6 +878,20 @@ def _controller_action_types(payload: Mapping[str, Any]) -> set[str]:
             text = _text(action)
         if text is not None:
             action_types.add(text)
+    return action_types
+
+
+def _canonical_controller_action_types(*, decision: Mapping[str, Any], work_unit: Mapping[str, Any]) -> set[str]:
+    action_types = _controller_action_types(decision)
+    if _text(decision.get("decision_type")) != "route_back_same_line":
+        return action_types
+    work_unit_id = _text(work_unit.get("unit_id"))
+    if work_unit_id not in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return action_types
+    route_target = _text(decision.get("route_target"))
+    work_unit_lane = _text(work_unit.get("lane"))
+    if route_target in {"finalize", "publication_gate", "write"} or work_unit_lane in {"finalize", "publication_gate"}:
+        return {"run_gate_clearing_batch"}
     return action_types
 
 

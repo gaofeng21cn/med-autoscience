@@ -216,3 +216,49 @@ def test_study_progress_envelope_treats_opl_queue_as_evidence_under_explicit_res
     assert envelope["typed_blocker"] is None
     assert "runtime_health:await_explicit_resume" in envelope["conflict_suppression_refs"]
     assert result["current_execution_evidence"]["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
+
+
+def test_envelope_prefers_executable_action_over_reason_only_blocker() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        actions=[
+            {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            }
+        ],
+        blocked_reason="domain_transition_ai_reviewer_re_eval",
+        next_owner="ai_reviewer",
+    )
+
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "ai_reviewer"
+    assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert envelope["typed_blocker"] is None
+
+
+def test_envelope_preserves_explicit_typed_blocker_over_action_queue() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        actions=[
+            {
+                "action_type": "run_quality_repair_batch",
+                "owner": "write",
+                "next_work_unit": "manuscript_story_repair",
+            }
+        ],
+        blocked_reason="typed_closeout_packet_required",
+        next_owner="one-person-lab",
+        typed_blocker={
+            "blocker_type": "typed_closeout_packet_required",
+            "owner": "one-person-lab",
+        },
+    )
+
+    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["owner"] == "one-person-lab"
+    assert envelope["next_work_unit"] is None
+    assert envelope["typed_blocker"]["blocker_type"] == "typed_closeout_packet_required"

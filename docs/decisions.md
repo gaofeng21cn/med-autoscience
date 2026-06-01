@@ -11,6 +11,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 write owner 已产出 `completed_for_write_owner_idempotent` 的 story-surface closeout，但 read-model 只扫描 `artifacts/supervision/consumer/default_executor_execution` 和 `stage_attempt_closeouts`，且只承认 draft/review-manuscript changed refs。结果同一 `consume_current_ai_reviewer_record_then_prose_gate_package_replay` 被重复重驱 15 次，最后变成 `progress_first_owner_redrive_budget_exhausted`，把时间耗在 receipt/reconcile 上。
 - 影响：Progress-first redrive budget 继续保留；真正缺少 story-surface delta 或 typed blocker 的 closeout 仍会 fail closed。已存在的 idempotent story-surface closeout 会推动下一 owner/gate/package follow-through，而不是重复 writer handoff。
 
+## 2026-06-01：Consumed owner receipt 必须立即投影当前 controller follow-through
+
+- 决策：`default_executor_execution_receipt_consumption` 成功消费上一 owner 的 executed receipt 后，owner-route read model 不得把 `actions=[]` 当成最终状态；必须重新读取当前 `controller_decisions/latest.json`，把仍然有效的 controller next work unit 投影为下一步 `executable_owner_action`，或保留具体 typed blocker。
+- 决策：当前 controller route 指向 `return_to_ai_reviewer_workflow` 时，follow-through owner 是 `ai_reviewer`；指向 publication-gate replay family 的 `run_gate_clearing_batch` 时，follow-through owner 是 `gate_clearing_batch`。若 consumed receipt 已经覆盖同一 action/work-unit，不重驱同一 owner route。
+- 理由：DM002/DM003 暴露出上一 owner receipt 已被正确消费后，顶层 envelope 被清成 `current_execution_unresolved`，导致后续 tick 继续 materialize/receipt/reconcile，而不是按 controller truth 进入 AI reviewer、gate-clearing 或明确 blocker。这违反 Progress-first：receipt consumption 是交接点，不是流程终点。
+- 影响：该修复只改变 MAS owner-route read-model/current-control projection，不写 study truth、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 canonical paper。后续论文推进仍由 MAS/OPL owner path materialize、dispatch、owner receipt、AI reviewer 和 publication gate 判定。
+
 ## 2026-06-01：current AI reviewer archive projection ref 可关闭 record-production consumption ledger
 
 - 决策：当 owner-route/read-model 已选择 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 中的 current AI reviewer record 作为 effective publication eval，且 record-production completion receipt 已 consumed 时，owner-output consumption ledger 可以使用该 record 的 projection source ref 作为 `record_ref`。旧 `artifacts/supervision/requests/ai_reviewer/latest.json` 缺 `publication_eval_record_ref` 不再使 consumption ledger 丢失。

@@ -58,6 +58,17 @@ def build_current_execution_envelope(
             source_refs=resolved_source_refs,
             conflict_suppression_refs=resolved_suppression_refs,
         )
+    action = _first_action(action_items)
+    if action is not None and not _mapping(typed_blocker):
+        return _envelope(
+            state_kind="executable_owner_action",
+            owner=_text(action.get("owner")) or _text(action.get("recommended_owner")) or _text(next_owner) or "med-autoscience",
+            next_work_unit=_next_work_unit(action),
+            typed_blocker=None,
+            parked_state=None,
+            source_refs=resolved_source_refs,
+            conflict_suppression_refs=resolved_suppression_refs,
+        )
     resolved_typed_blocker = _typed_blocker(typed_blocker, blocked_reason=blocked_reason, owner=next_owner)
     if resolved_typed_blocker is not None:
         return _envelope(
@@ -65,17 +76,6 @@ def build_current_execution_envelope(
             owner=_text(resolved_typed_blocker.get("owner")) or _text(next_owner) or "med-autoscience",
             next_work_unit=None,
             typed_blocker=resolved_typed_blocker,
-            parked_state=None,
-            source_refs=resolved_source_refs,
-            conflict_suppression_refs=resolved_suppression_refs,
-        )
-    action = _first_action(action_items)
-    if action is not None:
-        return _envelope(
-            state_kind="executable_owner_action",
-            owner=_text(action.get("owner")) or _text(action.get("recommended_owner")) or _text(next_owner) or "med-autoscience",
-            next_work_unit=_next_work_unit(action),
-            typed_blocker=None,
             parked_state=None,
             source_refs=resolved_source_refs,
             conflict_suppression_refs=resolved_suppression_refs,
