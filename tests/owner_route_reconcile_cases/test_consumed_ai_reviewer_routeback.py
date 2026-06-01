@@ -179,6 +179,14 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
         "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
         "quality_review_loop": {"closure_state": "review_required"},
         "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_reviewer_request_lifecycle": {
+            "surface": "ai_reviewer_request_lifecycle",
+            "schema_version": 1,
+            "state": "requested",
+            "request_owner": "ai_reviewer",
+            "request_id": "stale-ai-reviewer-request-before-consumed-routeback",
+            "blocked_reason": "ai_reviewer_assessment_required",
+        },
         "ai_repair_lifecycle": {
             "surface": "ai_repair_lifecycle",
             "schema_version": 1,
@@ -214,7 +222,8 @@ def test_consumed_ai_reviewer_receipt_routes_owner_route_to_write(
 
     study = result["studies"][0]
     assert study["domain_transition"]["completion_receipt_consumption"] == completion_receipt_consumption
-    assert study["ai_reviewer_status"]["status"] == "present"
+    assert study["ai_reviewer_status"]["status"] == "trace_missing"
+    assert study["ai_reviewer_assessment"]["request_state"] == "requested"
     assert study["ai_repair_lifecycle"] is None
     assert [action["action_type"] for action in study["action_queue"]] == ["run_quality_repair_batch"]
     assert study["action_queue"][0]["owner"] == "write"

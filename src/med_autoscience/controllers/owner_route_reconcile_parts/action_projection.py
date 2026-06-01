@@ -255,6 +255,23 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    consumed_ai_reviewer_route_back = _consumed_ai_reviewer_route_back_actions(
+        status,
+        publication_eval_payload=publication_eval_payload,
+        request_lifecycle=request_lifecycle,
+    )
+    if consumed_ai_reviewer_route_back is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+            for action in consumed_ai_reviewer_route_back
+        ]
     if _explicit_ai_reviewer_record_current_manuscript_request_pending(ai_reviewer_assessment):
         return [
             decorate_action(
@@ -324,23 +341,6 @@ def action_queue(
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,
             )
-        ]
-    consumed_ai_reviewer_route_back = _consumed_ai_reviewer_route_back_actions(
-        status,
-        publication_eval_payload=publication_eval_payload,
-        request_lifecycle=request_lifecycle,
-    )
-    if consumed_ai_reviewer_route_back is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-            for action in consumed_ai_reviewer_route_back
         ]
     record_consumption_actions = ai_reviewer_owner_output_consumption.record_consumption_domain_transition_actions(
         status=status,

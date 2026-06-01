@@ -31,7 +31,6 @@ def ai_reviewer_lifecycle_resolved(
     if blocked_reason == opl_owner_route_handoff.OPL_RUNTIME_OWNER_ROUTE_REASON:
         return (
             _consumed_ai_reviewer_route_back(status)
-            and _current_ai_reviewer_present(ai_reviewer_assessment)
             and _text(lifecycle.get("next_owner")) == "external_supervisor"
             and lifecycle.get("external_supervisor_required") is True
         )
@@ -53,7 +52,6 @@ def ai_reviewer_lifecycle_superseded_by_consumed_route_back(
     return (
         _text(lifecycle.get("blocked_reason")) == opl_owner_route_handoff.OPL_RUNTIME_OWNER_ROUTE_REASON
         and _consumed_ai_reviewer_route_back(status)
-        and _current_ai_reviewer_present(ai_reviewer_assessment)
         and _text(lifecycle.get("next_owner")) == "external_supervisor"
         and lifecycle.get("external_supervisor_required") is True
     )
