@@ -329,7 +329,7 @@ jobs:
       - name: Download advisory lane summaries
         if: always()
         continue-on-error: true
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: mas-test-lane-summary-*
           path: artifacts/mas-test-lane-summary-history

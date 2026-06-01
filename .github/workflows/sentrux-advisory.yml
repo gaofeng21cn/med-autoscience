@@ -65,7 +65,7 @@ jobs:
           output-dir: artifacts/opl-quality-details
 
       - name: Upload OPL quality details
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: opl-quality-details
           path: artifacts/opl-quality-details/quality-details.json
