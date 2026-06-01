@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+from med_autoscience.controllers.domain_action_request_materializer_parts import current_action_selection
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -109,13 +110,13 @@ def selected_dispatches(
 ) -> list[dict[str, Any]]:
     current_study = _scan_study(scan_payload, study_id)
     current_study = _with_consumed_transition_owner_route(current_study)
-    current_dispatches = current_consumer_dispatches(
+    consumer_dispatches = current_consumer_dispatches(
         study_id=study_id,
         consumer_payload=consumer_payload,
         consumer_latest_path=consumer_latest_path,
     )
     current_dispatches = _current_dispatches_only(
-        dispatches=current_dispatches,
+        dispatches=consumer_dispatches,
         current_study=current_study,
     )
     requested = set(action_types)
@@ -134,6 +135,17 @@ def selected_dispatches(
         (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type"))): index
         for index, payload in enumerate(selected)
     }
+    for payload in consumer_dispatches:
+        if _dispatch_owner_route(payload):
+            continue
+        if _text(payload.get("action_type")) not in requested:
+            continue
+        key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
+        if key in selected_by_key:
+            continue
+        selected.append(payload)
+        selected_keys.add(key)
+        selected_by_key[key] = len(selected) - 1
     for payload in explicit_action_dispatches(
         profile=profile,
         study_id=study_id,
@@ -156,7 +168,38 @@ def selected_dispatches(
             selected.append(payload)
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
-    return _current_dispatches_only(dispatches=selected, current_study=current_study)
+    return _selected_dispatches_only(
+        profile=profile,
+        study_id=study_id,
+        dispatches=selected,
+        current_study=current_study,
+    )
+
+
+def _selected_dispatches_only(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatches: list[dict[str, Any]],
+    current_study: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
+    for dispatch in dispatches:
+        action_type = _text(dispatch.get("action_type")) or ""
+        if _dispatch_currentness_score(dispatch, current_study) > (0, 0):
+            selected.append(dispatch)
+            continue
+        if owner_request_matches_dispatch(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
+            dispatch=dispatch,
+        ):
+            selected.append(dispatch)
+            continue
+        if not _dispatch_owner_route(dispatch):
+            selected.append(dispatch)
+    return selected
 
 
 def _with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
@@ -172,6 +215,9 @@ def _consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[s
     completion = _mapping(transition.get("completion_receipt_consumption"))
     if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
         return {}
+    route = current_action_selection.domain_transition_owner_route_for_study(current_study)
+    if _gate_replay_route(route):
+        return route
     if _text(transition.get("controller_action")) is None:
         return {}
     next_work_unit = _mapping(transition.get("next_work_unit"))
@@ -227,6 +273,17 @@ def _consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[s
         },
     }
     return owner_route_part.ensure_owner_route_v2(route)
+
+
+def _gate_replay_route(route: Mapping[str, Any]) -> bool:
+    if not route:
+        return False
+    source_refs = _mapping(route.get("source_refs"))
+    return (
+        _text(route.get("next_owner")) == "gate_clearing_batch"
+        and "run_gate_clearing_batch" in {_text(item) for item in route.get("allowed_actions") or []}
+        and _text(source_refs.get("work_unit_id")) in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+    )
 
 
 def _action_type_for_consumed_transition(
@@ -334,6 +391,12 @@ def _current_owner_route_from_scan(
     *,
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    consumed_transition_route = _matching_consumed_transition_gate_replay_route(
+        current_study=current_study,
+        dispatch=dispatch,
+    )
+    if consumed_transition_route is not None:
+        return consumed_transition_route
     route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
     if route:
         return route
@@ -355,6 +418,13 @@ def current_owner_route_from_scan_payload(
     dispatch: Mapping[str, Any] | None,
 ) -> tuple[dict[str, Any] | None, str | None]:
     current_study = _scan_study(scan_payload, study_id)
+    if dispatch is not None:
+        consumed_transition_route = _matching_consumed_transition_gate_replay_route(
+            current_study=current_study,
+            dispatch=dispatch,
+        )
+        if consumed_transition_route is not None:
+            return consumed_transition_route, "consumed_transition_gate_replay"
     route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
     if route:
         return route, "scan_latest"
@@ -367,6 +437,21 @@ def current_owner_route_from_scan_payload(
     if dispatch_route is not None:
         return dispatch_route, "dispatch_owner_route"
     return None, None
+
+
+def _matching_consumed_transition_gate_replay_route(
+    *,
+    current_study: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    route = _consumed_transition_owner_route(current_study)
+    if not _gate_replay_route(route):
+        return None
+    if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=route):
+        return None
+    if not owner_route_part.route_allows_action(action=dispatch, owner_route=route):
+        return None
+    return route
 
 
 def live_provider_attempt_owner_route_from_scan_payload(

@@ -156,6 +156,22 @@ def _domain_transition_owner_route(
     return owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
 
 
+def domain_transition_owner_route_for_study(study: Mapping[str, Any]) -> dict[str, Any]:
+    study_payload = _mapping(study)
+    study_id = _text(study_payload.get("study_id"))
+    if study_id is None:
+        return {}
+    generated = domain_transition_actions.actions(study_payload)
+    if not generated:
+        return {}
+    return _domain_transition_owner_route(
+        study=study_payload,
+        generated=generated,
+        study_id=study_id,
+        quest_id=_text(study_payload.get("quest_id")),
+    )
+
+
 def _queue_action_allowed_by_current_study_route(action: Mapping[str, Any], study: Mapping[str, Any]) -> bool:
     owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
     return bool(owner_route) and _action_allowed_by_owner_route(action, owner_route)
@@ -210,4 +226,4 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["current_actions_for_studies"]
+__all__ = ["current_actions_for_studies", "domain_transition_owner_route_for_study"]
