@@ -300,6 +300,79 @@ def test_progress_first_monitoring_does_not_redrive_same_consumed_ai_reviewer_re
     assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
 
 
+def test_progress_first_monitoring_does_not_redrive_same_scalar_consumed_ai_reviewer_record() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "domain_transition": {
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "owner": "ai_reviewer",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            "completion_receipt_consumption": {
+                "status": "consumed",
+                "receipt_kind": "ai_reviewer_publication_eval",
+                "receipt_ref": "artifacts/publication_eval/latest.json",
+                "eval_id": "publication-eval::003-dpcc::current",
+                "next_action": "honor_ai_reviewer_publication_eval_authority",
+            },
+        },
+    }
+
+    projection = module.build_progress_first_monitoring_summary(payload)
+
+    assert projection["execution_state_kind"] == "receipt_consumed"
+    assert projection["next_owner"] == "ai_reviewer"
+    assert projection["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert projection["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
+
+
+def test_progress_first_monitoring_keeps_consumed_ai_reviewer_closeout_blocker_blocked() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_execution_envelope": {
+            "state_kind": "typed_blocker",
+            "typed_blocker": {
+                "blocker_id": "typed_closeout_packet_required",
+                "blocker_type": "provider_completed_without_typed_closeout",
+                "owner": "one-person-lab",
+            },
+            "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        },
+        "domain_transition": {
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "owner": "ai_reviewer",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            "completion_receipt_consumption": {
+                "status": "consumed",
+                "receipt_kind": "ai_reviewer_publication_eval",
+                "receipt_ref": "artifacts/publication_eval/latest.json",
+                "eval_id": "publication-eval::003-dpcc::current",
+                "next_action": "honor_ai_reviewer_publication_eval_authority",
+            },
+        },
+    }
+
+    projection = module.build_progress_first_monitoring_summary(payload)
+
+    assert projection["execution_state_kind"] == "typed_blocker"
+    assert projection["next_owner"] == "ai_reviewer"
+    assert projection["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert projection["typed_blocker"]["blocker_id"] == "typed_closeout_packet_required"
+    assert projection["current_blockers"] == [
+        "typed_closeout_packet_required",
+        "provider_completed_without_typed_closeout",
+    ]
+    assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
+
+
 def test_redrive_projection_prefers_explicit_handoff_owner_over_stale_terminal_log() -> None:
     handoff_projection = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"

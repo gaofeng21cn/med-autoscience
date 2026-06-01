@@ -147,6 +147,7 @@ def default_executor_execution_receipt_consumption(
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         )
+        owner_route_currentness_basis = _owner_route_currentness_basis(owner_route)
         return {
             "status": "consumed",
             "receipt_kind": "default_executor_execution",
@@ -157,6 +158,9 @@ def default_executor_execution_receipt_consumption(
             "owner_result_status": _text(owner_result.get("status")),
             "repair_execution_evidence_status": _text(repair_evidence.get("status")),
             **({"blocked_reason": blocked_reason} if blocked_reason else {}),
+            "work_unit_id": _text(owner_route_currentness_basis.get("work_unit_id")),
+            "work_unit_fingerprint": _text(owner_route_currentness_basis.get("work_unit_fingerprint")),
+            "owner_route_currentness_basis": owner_route_currentness_basis,
             "consumed_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
             "consumed_owner_route_epoch": _text(owner_route.get("route_epoch")),
             "consumed_owner_route_source_fingerprint": _text(owner_route.get("source_fingerprint")),

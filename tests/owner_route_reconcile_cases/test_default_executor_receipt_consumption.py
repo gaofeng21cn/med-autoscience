@@ -9,6 +9,9 @@ from med_autoscience.controllers.study_transition_receipt_consumption import (
     default_executor_execution_followthrough_receipt_consumption,
     default_executor_execution_receipt_consumption,
 )
+from med_autoscience.controllers.owner_route_reconcile_parts.current_controller_followthrough import (
+    action_after_consumed_receipt,
+)
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -16,6 +19,37 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_current_controller_decision(
+    study_root: Path,
+    *,
+    study_id: str,
+    quest_id: str,
+    work_unit_id: str,
+    work_unit_fingerprint: str,
+    action_type: str = "run_quality_repair_batch",
+) -> None:
+    controller_action = "request_opl_stage_attempt" if action_type == "run_quality_repair_batch" else action_type
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": f"decision::{study_id}::{work_unit_id}",
+            "decision_type": "route_back_same_line",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": controller_action}],
+            "route_target": "write",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": {
+                "unit_id": work_unit_id,
+                "lane": "write",
+                "summary": "Repair the current manuscript story surface.",
+            },
+        },
+    )
 
 
 def test_scan_consumes_executed_default_executor_receipt_for_current_write_route(
@@ -169,11 +203,136 @@ def test_scan_consumes_executed_default_executor_receipt_for_current_write_route
     assert receipt["status"] == "consumed"
     assert receipt["receipt_kind"] == "default_executor_execution"
     assert receipt["action_type"] == "run_quality_repair_batch"
+    consumed_basis = consumed_owner_route["source_refs"]["owner_route_currentness_basis"]
+    assert receipt["work_unit_id"] == "dm002_same_line_publication_paper_repair"
+    assert receipt["work_unit_fingerprint"] == consumed_basis["work_unit_fingerprint"]
+    assert receipt["owner_route_currentness_basis"]["work_unit_id"] == "dm002_same_line_publication_paper_repair"
+    assert receipt["owner_route_currentness_basis"]["work_unit_fingerprint"] == consumed_basis["work_unit_fingerprint"]
     assert receipt["consumed_owner_route_idempotency_key"] == consumed_owner_route["idempotency_key"]
     assert receipt["next_action"] == "do_not_redrive_consumed_owner_route"
     assert receipt["quality_authorized"] is False
     assert receipt["submission_authorized"] is False
     assert receipt["current_package_write_authorized"] is False
+
+
+def test_default_executor_consumed_receipt_identity_prevents_same_current_controller_followthrough(
+    tmp_path: Path,
+) -> None:
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    work_unit_id = "dm002_same_line_publication_paper_repair"
+    work_unit_fingerprint = "dm002_same_line_publication_paper_repair_20260521"
+    owner_route = {
+        "route_epoch": "truth-event-000017-bac190eb1c889a78",
+        "truth_epoch": "truth-event-000017-bac190eb1c889a78",
+        "runtime_health_epoch": "runtime-health-after-execution",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "next_owner": "write",
+        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "source_refs": {
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-event-000017-bac190eb1c889a78",
+                "runtime_health_epoch": "runtime-health-after-execution",
+                "source_eval_id": "publication-eval::dm002::ai-reviewer-routeback",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "work_unit_id": work_unit_id,
+                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            },
+            "study_truth_epoch": "truth-event-000017-bac190eb1c889a78",
+            "runtime_health_epoch": "runtime-health-after-execution",
+            "source_eval_id": "publication-eval::dm002::ai-reviewer-routeback",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "work_unit_id": work_unit_id,
+            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+        },
+        "idempotency_key": f"owner-route::{study_id}::{work_unit_id}",
+    }
+    _write_current_controller_decision(
+        study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_id,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "executed",
+                    "execution_id": f"execution::{study_id}::run_quality_repair_batch::identity",
+                    "idempotency_key": owner_route["idempotency_key"],
+                    "repeat_suppression_key": owner_route["work_unit_fingerprint"],
+                    "current_owner_route": owner_route,
+                    "prompt_contract": {"owner_route": owner_route},
+                    "owner_result": {
+                        "status": "executed",
+                        "repair_execution_evidence": {
+                            "status": "progress_delta_candidate",
+                            "gate_replay_done": True,
+                            "ai_reviewer_recheck_required": True,
+                            "ai_reviewer_recheck_done": True,
+                            "changed_artifact_refs": [
+                                {"path": str(study_root / "paper" / "draft.md")},
+                            ],
+                        },
+                        "quality_authorized": False,
+                        "submission_authorized": False,
+                        "current_package_write_authorized": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    receipt = default_executor_execution_receipt_consumption(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+
+    assert receipt["status"] == "consumed"
+    assert receipt["work_unit_id"] == work_unit_id
+    assert receipt["work_unit_fingerprint"] == work_unit_fingerprint
+    assert receipt["owner_route_currentness_basis"]["work_unit_id"] == work_unit_id
+    assert receipt["owner_route_currentness_basis"]["work_unit_fingerprint"] == work_unit_fingerprint
+    assert (
+        action_after_consumed_receipt(
+            study_id=study_id,
+            quest_id=quest_id,
+            study_root=study_root,
+            publication_eval_payload={
+                "schema_version": 1,
+                "eval_id": "publication-eval::dm002::ai-reviewer-routeback",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "recommended_actions": [
+                    {
+                        "action_id": "route-back-same-line-write-paper-repair-dm002",
+                        "action_type": "route_back_same_line",
+                        "route_target": "write",
+                        "work_unit_fingerprint": work_unit_fingerprint,
+                        "next_work_unit": {"unit_id": work_unit_id, "lane": "write"},
+                    }
+                ],
+            },
+            consumed_receipt=receipt,
+        )
+        is None
+    )
 
 
 def test_scan_does_not_consume_quality_repair_receipt_without_story_surface_delta(

@@ -63,7 +63,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     typed_blocker = (
         {}
-        if transition_consumed_owner_action
+        if transition_consumed_owner_action and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition)
         else _mapping(execution.get("typed_blocker"))
         or _mapping(domain_transition.get("typed_blocker"))
         or _terminal_closeout_typed_blocker_projection(
@@ -73,7 +73,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     current_blockers = (
         []
-        if transition_consumed_owner_action
+        if transition_consumed_owner_action and not typed_blocker
         else _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
     )
     running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
@@ -231,6 +231,16 @@ def _transition_receipt_consumed(domain_transition: Mapping[str, Any]) -> bool:
     return status in {"consumed", "receipt_consumed", "completed"}
 
 
+def _transition_consumed_same_ai_reviewer_work_unit(domain_transition: Mapping[str, Any]) -> bool:
+    completion = _mapping(domain_transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    return _consumed_receipt_matches_transition_work_unit(
+        domain_transition=domain_transition,
+        completion=completion,
+    )
+
+
 def _consumed_receipt_matches_transition_work_unit(
     *,
     domain_transition: Mapping[str, Any],
@@ -242,8 +252,7 @@ def _consumed_receipt_matches_transition_work_unit(
         return False
     if _text(domain_transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
         return False
-    work_unit = _work_unit_projection(domain_transition.get("next_work_unit"))
-    work_unit_id = _text(_mapping(work_unit).get("unit_id"))
+    work_unit_id = _work_unit_id(domain_transition.get("next_work_unit"))
     return bool(work_unit_id and work_unit_id.startswith("produce_ai_reviewer_publication_eval_record"))
 
 
@@ -559,6 +568,12 @@ def _work_unit_projection(value: object) -> dict[str, Any] | str | None:
         ) or dict(value)
     text = _text(value)
     return text
+
+
+def _work_unit_id(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id"))
+    return _text(value)
 
 
 def _explicit_wakeup_hydration_work_unit(launch_policy: Mapping[str, Any]) -> str | None:
