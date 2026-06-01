@@ -91,6 +91,7 @@ def _study_queue_actions(
 ) -> tuple[list[dict[str, Any]], str]:
     study_id = _text(study.get("study_id"))
     quest_id = _text(study.get("quest_id"))
+    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
     actions: list[dict[str, Any]] = []
     if "action_queue" in study:
         for action in study.get("action_queue") or []:
@@ -101,7 +102,7 @@ def _study_queue_actions(
                 payload["study_id"] = _text(payload.get("study_id")) or study_id
             if quest_id is not None:
                 payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
-            actions.append(payload)
+            actions.append(_attach_owner_route_if_missing(payload, owner_route))
         return actions, "per_study" if actions else "per_study_empty"
     if _current_execution_is_authoritative(study):
         return [], "current_execution_envelope"
@@ -109,7 +110,7 @@ def _study_queue_actions(
         payload = dict(action)
         if quest_id is not None:
             payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
-        actions.append(payload)
+        actions.append(_attach_owner_route_if_missing(payload, owner_route))
     return actions, "top_level"
 
 
@@ -124,6 +125,21 @@ def _top_level_study_actions(
         for action in top_level_actions
         if isinstance(action, Mapping) and _text(action.get("study_id")) == study_id
     ]
+
+
+def _attach_owner_route_if_missing(action: Mapping[str, Any], owner_route: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(action)
+    if not owner_route:
+        return payload
+    handoff = dict(_mapping(payload.get("handoff_packet")))
+    if _mapping(payload.get("owner_route")) or _mapping(handoff.get("owner_route")):
+        return payload
+    payload["owner_route"] = dict(owner_route)
+    handoff["owner_route"] = dict(owner_route)
+    if idempotency_key := _text(owner_route.get("idempotency_key")):
+        handoff["idempotency_key"] = idempotency_key
+    payload["handoff_packet"] = handoff
+    return payload
 
 
 def _domain_transition_current_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -235,7 +251,10 @@ def _study_with_owner_route_currentness(
 ) -> dict[str, Any]:
     payload = dict(study)
     owner_route = owner_route_part.ensure_owner_route_v2(_mapping(payload.get("owner_route")))
-    if not owner_route or not any(_action_allowed_by_owner_route(action, owner_route) for action in generated):
+    if not owner_route or not _owner_route_currentness_applies_to_generated(
+        owner_route=owner_route,
+        generated=generated,
+    ):
         return payload
     source_refs = _mapping(owner_route.get("source_refs"))
     basis = _mapping(_mapping(owner_route.get("currentness_contract")).get("basis")) or _mapping(
@@ -260,6 +279,41 @@ def _study_with_owner_route_currentness(
     return payload
 
 
+def _owner_route_currentness_applies_to_generated(
+    *,
+    owner_route: Mapping[str, Any],
+    generated: list[dict[str, Any]],
+) -> bool:
+    if any(_action_allowed_by_owner_route(action, owner_route) for action in generated):
+        return True
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(_mapping(owner_route.get("currentness_contract")).get("basis")) or _mapping(
+        source_refs.get("owner_route_currentness_basis")
+    )
+    route_work_unit_id = _text(basis.get("work_unit_id")) or _text(source_refs.get("work_unit_id"))
+    route_work_unit_fingerprint = _text(basis.get("work_unit_fingerprint")) or _text(
+        source_refs.get("work_unit_fingerprint")
+    )
+    if route_work_unit_id is None and route_work_unit_fingerprint is None:
+        return False
+    for action in generated:
+        action_work_unit_id = (
+            _text(action.get("controller_work_unit_id"))
+            or _text(action.get("executable_work_unit"))
+            or _work_unit_id(action.get("next_work_unit"))
+        )
+        action_work_unit_fingerprint = _text(action.get("work_unit_fingerprint"))
+        if route_work_unit_id is not None and route_work_unit_id == action_work_unit_id:
+            return True
+        if (
+            route_work_unit_fingerprint is not None
+            and action_work_unit_fingerprint is not None
+            and route_work_unit_fingerprint == action_work_unit_fingerprint
+        ):
+            return True
+    return False
+
+
 def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:
     handoff_packet = _mapping(action.get("handoff_packet"))
     return (
@@ -277,6 +331,12 @@ def _request_owner_for_action_type(action_type: str) -> str:
     from med_autoscience.controllers.default_executor_action_policy import request_owner_for_action_type
 
     return request_owner_for_action_type(action_type)
+
+
+def _work_unit_id(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id")) or _text(value.get("work_unit_id"))
+    return _text(value)
 
 
 def _ignored_action(action: Mapping[str, Any], reason: str) -> dict[str, Any]:

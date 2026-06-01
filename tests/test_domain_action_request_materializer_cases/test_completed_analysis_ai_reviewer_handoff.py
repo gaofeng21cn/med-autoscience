@@ -552,3 +552,100 @@ def test_consumed_ai_reviewer_transition_uses_current_owner_route_basis_for_disp
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
     ).is_file()
+
+
+def test_action_queue_dispatch_inherits_complete_owner_route_currentness_basis(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    expected_basis = {
+        "runtime_health_epoch": "runtime-health-event-dm003-current",
+        "source_eval_id": "publication-eval::dm003::current",
+        "truth_epoch": "truth-event-dm003-current",
+        "work_unit_fingerprint": "truth-snapshot::dm003-current",
+        "work_unit_id": work_unit_id,
+    }
+    current_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="ai_reviewer_record_stale_after_current_manuscript",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+        runtime_health_epoch=expected_basis["runtime_health_epoch"],
+    )
+    current_route.update(
+        {
+            "truth_epoch": expected_basis["truth_epoch"],
+            "route_epoch": expected_basis["truth_epoch"],
+            "source_fingerprint": expected_basis["work_unit_fingerprint"],
+            "work_unit_fingerprint": expected_basis["work_unit_fingerprint"],
+            "source_refs": {
+                "source_eval_id": expected_basis["source_eval_id"],
+                "study_truth_epoch": expected_basis["truth_epoch"],
+                "runtime_health_epoch": expected_basis["runtime_health_epoch"],
+                "work_unit_id": expected_basis["work_unit_id"],
+                "work_unit_fingerprint": expected_basis["work_unit_fingerprint"],
+                "owner_route_currentness_basis": expected_basis,
+            },
+        }
+    )
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "owner": "ai_reviewer",
+        "request_owner": "ai_reviewer",
+        "recommended_owner": "ai_reviewer",
+        "reason": "ai_reviewer_record_stale_after_current_manuscript",
+        "controller_work_unit_id": work_unit_id,
+        "executable_work_unit": work_unit_id,
+        "next_work_unit": work_unit_id,
+        "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        "owner_route": current_route,
+        "handoff_packet": {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "authority": "observability_only",
+            "request_owner": "ai_reviewer",
+            "owner_route": current_route,
+        },
+    }
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": current_route,
+                    "action_queue": [action],
+                }
+            ],
+            "action_queue": [action],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["blocked_reason"] is None
+    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"] == expected_basis
+    assert dispatch["prompt_contract"]["owner_route_currentness_basis"] == expected_basis
+    assert dispatch["owner_route_attempt_envelope"]["owner_route_currentness_basis"] == expected_basis
+    assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True

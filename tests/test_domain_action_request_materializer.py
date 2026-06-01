@@ -58,13 +58,19 @@ def _owner_route(
     owner_reason: str,
     allowed_actions: list[str],
 ) -> dict[str, object]:
+    source_fingerprint = f"truth-source::{study_id}::{owner_reason}"
+    truth_epoch = f"truth-epoch::{study_id}"
+    runtime_health_epoch = f"runtime-health::{study_id}::{owner_reason}"
     return {
         "surface": "domain_route_owner_route",
-        "schema_version": 1,
+        "schema_version": 2,
         "study_id": study_id,
         "quest_id": quest_id,
-        "route_epoch": f"truth-epoch::{study_id}",
-        "source_fingerprint": f"truth-source::{study_id}::{owner_reason}",
+        "truth_epoch": truth_epoch,
+        "route_epoch": truth_epoch,
+        "runtime_health_epoch": runtime_health_epoch,
+        "work_unit_fingerprint": source_fingerprint,
+        "source_fingerprint": source_fingerprint,
         "current_owner": "mas_controller",
         "next_owner": next_owner,
         "owner_reason": owner_reason,
@@ -72,6 +78,18 @@ def _owner_route(
         "allowed_actions": allowed_actions,
         "blocked_actions": [],
         "idempotency_key": f"owner-route::{study_id}::{owner_reason}",
+        "source_refs": {
+            "study_truth_epoch": truth_epoch,
+            "runtime_health_epoch": runtime_health_epoch,
+            "work_unit_id": owner_reason,
+            "work_unit_fingerprint": source_fingerprint,
+            "owner_route_currentness_basis": {
+                "runtime_health_epoch": runtime_health_epoch,
+                "truth_epoch": truth_epoch,
+                "work_unit_fingerprint": source_fingerprint,
+                "work_unit_id": owner_reason,
+            },
+        },
     }
 
 
@@ -844,7 +862,9 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     assert dispatches[0]["next_executable_owner"] == "publication_gate"
     assert dispatches[1]["next_executable_owner"] == "ai_reviewer"
     assert dispatches[0]["default_model_policy"] == "inherit_current_codex_configuration"
-    assert dispatches[1]["prompt_contract"]["forbidden_surfaces"] == module.FORBIDDEN_SURFACES
+    assert set(module.FORBIDDEN_SURFACES).issubset(dispatches[1]["prompt_contract"]["forbidden_surfaces"])
+    assert "artifacts/publication_eval/latest.json" in dispatches[1]["prompt_contract"]["forbidden_surfaces"]
+    assert "artifacts/controller_decisions/latest.json" in dispatches[1]["prompt_contract"]["forbidden_surfaces"]
     assert "publication_eval/latest.json" in dispatches[1]["prompt_contract"]["required_output_surface"]
     assert dispatches[1]["prompt_contract"]["manual_study_patch_allowed"] is False
     assert dispatches[0]["dispatch_status"] == "blocked"
