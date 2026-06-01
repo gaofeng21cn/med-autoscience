@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import hashlib
 from pathlib import Path
 
 from tests.reviewer_os_fixture_helpers import (
@@ -13,6 +14,66 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _current_input_routeback_record(
+    *,
+    study_root: Path,
+    manuscript_path: Path,
+    manuscript_text: str,
+    evidence_path: Path,
+    evidence_digest: str,
+    claim_map_path: Path,
+    claim_map_digest: str,
+    study_id: str,
+    quest_id: str,
+    eval_id: str,
+) -> dict:
+    record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-05-31T19:23:20+00:00",
+    )
+    currentness = record["reviewer_operating_system"]["currentness_checks"]
+    currentness["evidence_ledger"] = {
+        "status": "current",
+        "ref": str(evidence_path.resolve()),
+        "digest": evidence_digest,
+        "authority_source_signature": "ai_reviewer_workflow_live_input",
+    }
+    currentness["claim_evidence_map"] = {
+        "status": "current",
+        "ref": str(claim_map_path.resolve()),
+        "digest": claim_map_digest,
+        "authority_source_signature": "ai_reviewer_workflow_live_input",
+    }
+    currentness["source_eval"] = {"status": "current", "eval_id": eval_id}
+    record["recommended_actions"][0].update(
+        {
+            "action_id": "A1_consume_current_ai_reviewer_record_then_gate_replay",
+            "reason": (
+                "Consume this current AI reviewer record through MAS owner surfaces, refresh "
+                "medical-prose currentness and publication-gate replay, then decide downstream package freshness."
+            ),
+            "work_unit_fingerprint": (
+                "domain-transition::ai_reviewer_re_eval::"
+                "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+            ),
+            "next_work_unit": {
+                "unit_id": "consume_current_ai_reviewer_record_then_prose_gate_package_replay",
+                "lane": "write",
+                "summary": (
+                    "Consume the current AI reviewer record, refresh medical-prose currentness, "
+                    "replay the publication gate, and only then refresh downstream package/display surfaces."
+                ),
+            },
+        }
+    )
+    return record
 
 
 def _required_coverage() -> dict[str, object]:
@@ -735,5 +796,171 @@ def test_consumed_current_record_production_receipt_returns_to_write_without_rev
     assert action["owner"] == "write"
     assert action["next_work_unit"] == "consume_current_manuscript_ai_reviewer_record_and_return_to_write"
     assert action["source_eval_id"] == eval_id
+    assert study["owner_route"]["next_owner"] == "write"
+    assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
+
+
+def test_consumed_current_input_record_archive_preempts_stale_reviewer_redrive(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    canonical_inputs = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.canonical_inputs"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    manuscript_path = study_root / "paper" / "draft.md"
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    manuscript_text = "# Draft\n\nCurrent DM002 manuscript after current-input AI reviewer record production.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    evidence_payload = {"schema_version": 1, "status": "current-input-evidence"}
+    claim_map_payload = {"schema_version": 1, "status": "current-input-claims"}
+    _write_json(evidence_path, evidence_payload)
+    _write_json(claim_map_path, claim_map_payload)
+    evidence_digest = "sha256:" + hashlib.sha256(
+        (json.dumps(evidence_payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    ).hexdigest()
+    claim_map_digest = "sha256:" + hashlib.sha256(
+        (json.dumps(claim_map_payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    ).hexdigest()
+    old_eval = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text="# Draft\n\nOlder DM002 manuscript before current inputs.\n",
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id="publication-eval::dm002::old::2026-05-28T23:10:58+00:00::ai-reviewer-record",
+        emitted_at="2026-05-28T23:10:58+00:00",
+    )
+    latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(latest_path, old_eval)
+    eval_id = "publication-eval::002-dm-china-us-mortality-attribution::ai-reviewer-current-inputs::20260531T192047Z"
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260531T192320Z_publication_eval_record.json"
+    )
+    current_record = _current_input_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        evidence_path=evidence_path,
+        evidence_digest=evidence_digest,
+        claim_map_path=claim_map_path,
+        claim_map_digest=claim_map_digest,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+    )
+    _write_json(record_path, current_record)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "state": "requested",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+                "stale_record_ref": str(record_path.resolve()),
+                "required_currentness_refs": [
+                    str(evidence_path.resolve()),
+                    str(claim_map_path.resolve()),
+                ],
+            },
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+                    "evidence_ledger": {"path": str(evidence_path.resolve()), "present": True, "valid": True},
+                    "claim_evidence_map": {"path": str(claim_map_path.resolve()), "present": True, "valid": True},
+                },
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+        },
+    )
+    completion_receipt_consumption = {
+        "status": "consumed",
+        "receipt_kind": "ai_reviewer_publication_eval",
+        "receipt_ref": str(record_path.resolve()),
+        "eval_id": eval_id,
+        "reviewer_trace_ref": f"{record_path.resolve()}#reviewer_operating_system",
+        "next_action": "honor_ai_reviewer_publication_eval_authority",
+    }
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "decision": "resume",
+        "reason": "domain_transition_ai_reviewer_re_eval",
+        "active_run_id": None,
+        "publication_eval": old_eval,
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "owner": "ai_reviewer",
+            "next_work_unit": {
+                "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "lane": "review",
+                "summary": "Produce a current AI reviewer publication-eval record before dispatching the publication-eval workflow.",
+            },
+            "completion_receipt_consumption": completion_receipt_consumption,
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm002-current-input-record",
+            "source_signature": "truth-source-dm002-current-input-record",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "publication_supervision",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(latest_path)},
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    selected_publication_eval = canonical_inputs.publication_eval_payload(status_payload, progress_payload)
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, selected_publication_eval),
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["domain_transition"]["completion_receipt_consumption"] == completion_receipt_consumption
+    assert study["ai_reviewer_assessment"]["present"] is True
+    assert study["ai_reviewer_assessment"].get("blocked_reason") is None
+    assert [action["action_type"] for action in study["action_queue"]] == ["run_quality_repair_batch"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "write"
+    assert action["next_work_unit"] == "consume_current_ai_reviewer_record_then_prose_gate_package_replay"
+    assert action["source_eval_id"] == eval_id
+    assert action["controller_route"]["publication_eval_ref"]["artifact_path"] == str(record_path.resolve())
+    assert "owner_output_consumption" in action
     assert study["owner_route"]["next_owner"] == "write"
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]

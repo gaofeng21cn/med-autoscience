@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-01：current AI reviewer archive projection ref 可关闭 record-production consumption ledger
+
+- 决策：当 owner-route/read-model 已选择 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 中的 current AI reviewer record 作为 effective publication eval，且 record-production completion receipt 已 consumed 时，owner-output consumption ledger 可以使用该 record 的 projection source ref 作为 `record_ref`。旧 `artifacts/supervision/requests/ai_reviewer/latest.json` 缺 `publication_eval_record_ref` 不再使 consumption ledger 丢失。
+- 决策：该规则只适用于已通过 AI reviewer record-only currentness 合同的 archive projection；旧 request lifecycle、stale `publication_eval/latest.json` 或 stale `controller_decisions/latest.json` 不能继续把同一 work unit 路由回 `return_to_ai_reviewer_workflow`。后续 owner-route 必须 honor current archive 的 `recommended_actions`，进入 write、gate/package follow-through 或 typed blocker。
+- 理由：DM002 暴露出 current-input AI reviewer record 已写入 archive，OPL current-control-state 也能看到 completion receipt consumed，但 request lifecycle 仍无 `publication_eval_record_ref`，导致 read-model 丢失 owner-output consumption ledger，并继续呈现 `produce_ai_reviewer_publication_eval_record_against_current_inputs`。根因是 MAS consumption ledger 只认 request-attached record ref，没有认 current archive projection ref。
+- 影响：这是 MAS read-model / owner-route currentness 修复，不写 DM002 workspace truth、delivery surface、`publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`manuscript/current_package/` 或 package surface。DM002 后续仍需由 MAS/OPL owner path 根据 current archive 推荐动作继续执行 write/gate/package 或 typed blocker。
+
 ## 2026-06-01：Progress-first publication-gate replay 以 work-unit family 决定 owner
 
 - 决策：publication-gate replay work unit family 是执行 owner 的机器锚点。`publication_gate_replay`、`owner_authorized_publication_gate_replay` 和 `dpcc_publication_gate_replay_after_current_ai_reviewer_record` 必须物化和分派为 `gate_clearing_batch/run_gate_clearing_batch`，即便同一 AI reviewer route-back 的 `route_target=write`。

@@ -115,7 +115,9 @@ def owner_output_consumption_ledger(
         return None
     publication_eval = mapping(publication_eval_payload)
     eval_id = text(publication_eval.get("eval_id"))
-    record_ref = text(request_packet.get("publication_eval_record_ref"))
+    record_ref = text(request_packet.get("publication_eval_record_ref")) or text(
+        publication_eval.get("_projection_source_ref")
+    )
     if eval_id is None or record_ref is None:
         return None
     blocked_reason = record_blocker_reason(request_packet) or record_production_blocker_reason(request_packet)
