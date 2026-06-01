@@ -1693,6 +1693,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出当前 AI reviewer dispatch 已有 current receipt，write dispatch 仍未消费，但旧 export 先选择较新的 AI reviewer 候选，再因 receipt consumed 跳过，最终只导出 refs-only reconcile task，OPL scheduler tick 全部 idempotent-noop。根因是候选选择顺序错误，不是论文 truth、OPL provider liveness 或手工 queue 状态问题。
 - 影响：Progress-First 的正确节奏是 consumed owner step 立刻让位给下一未消费 owner work unit；MAS 仍不写 OPL runtime state、不直接 resume provider、不放宽 publication gate 或 submission/package authority。新增 `test_domain_handler_export_falls_through_consumed_newer_dispatch_to_pending_owner_action` 锁定该回归。
 
+## 2026-06-01：Progress-First gate replay dispatch 优先于通用写作回修映射
+
+- 决策：已消费 AI reviewer receipt 后的 domain transition 如果携带 `PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS` 中的 work unit，`domain-owner-action-dispatch` 必须优先选择 `run_gate_clearing_batch`，即使 transition 同时保留 `route_back_same_line` / `route_target=write` 的上游语义。
+- 理由：DM003 暴露出一个 Progress-First 闭环缺陷：`domain-action-request-materialize` 已经正确产出 gate replay dispatch，但 dispatch selector 先命中通用写作回修规则，把当前 work unit 误映射成 `run_quality_repair_batch`，导致后续 dispatch 报 `no_selected_dispatch_for_requested_action_types`，把时间耗在重复 receipt / read-model reconcile 上。
+- 影响：gate replay work unit family 是 publication-gate lane 的显式 controller action，优先级高于通用 write route-back；新增回归覆盖 consumed transition 后正确选择并执行当前 `run_gate_clearing_batch` dispatch。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

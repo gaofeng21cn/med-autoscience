@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -237,6 +238,8 @@ def _action_type_for_consumed_transition(
     route_target = _text(transition.get("route_target"))
     controller_action = _text(transition.get("controller_action"))
     work_unit_id = _text(next_work_unit.get("unit_id")) or _text(next_work_unit.get("work_unit_id"))
+    if work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return "run_gate_clearing_batch"
     if decision_type == "route_back_same_line" and route_target == "write":
         return "run_quality_repair_batch"
     if controller_action == "run_gate_clearing_batch":
