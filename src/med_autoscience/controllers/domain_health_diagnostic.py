@@ -381,6 +381,7 @@ def run_domain_health_diagnostic_for_runtime(
     controller_runners: dict[str, ControllerRunner] | None = None,
     apply: bool,
     profile: WorkspaceProfile | None = None,
+    study_ids: tuple[str, ...] = (),
     request_opl_stage_attempts: bool = False,
     request_opl_owner_route_reconcile: bool = False,
 ) -> dict[str, Any]:
@@ -394,7 +395,7 @@ def run_domain_health_diagnostic_for_runtime(
         request_opl_stage_attempts=request_opl_stage_attempts,
     )
     if apply and request_opl_stage_attempts and request_opl_owner_route_reconcile and profile is not None:
-        supervisor_tick = _run_developer_supervisor_same_tick(profile=profile)
+        supervisor_tick = _run_developer_supervisor_same_tick(profile=profile, study_ids=study_ids)
         first_iteration = (supervisor_tick.get("iterations") or [{}])[0]
         report["opl_owner_route_reconcile_request"] = (
             _mapping(first_iteration).get("owner_route_reconcile") or {}
@@ -406,27 +407,28 @@ def run_domain_health_diagnostic_for_runtime(
 def _run_developer_supervisor_same_tick(
     *,
     profile: WorkspaceProfile,
+    study_ids: tuple[str, ...] = (),
     max_passes: int = PROGRESS_FIRST_SAME_TICK_MAX_PASSES,
 ) -> dict[str, Any]:
-    study_ids = owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
+    resolved_study_ids = tuple(study_ids) or owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
     iterations: list[dict[str, Any]] = []
     stop_reason = "max_passes_exhausted"
     for pass_index in range(1, max(1, max_passes) + 1):
         scan_result = owner_route_reconcile.scan_domain_routes(
             profile=profile,
-            study_ids=study_ids,
+            study_ids=resolved_study_ids,
             apply_safe_actions=True,
             developer_supervisor_mode="developer_apply_safe",
         )
         materialize_result = domain_action_request_materializer.materialize_domain_action_requests(
             profile=profile,
-            study_ids=study_ids,
+            study_ids=resolved_study_ids,
             mode="developer_apply_safe",
             apply=True,
         )
         dispatch_result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
             profile=profile,
-            study_ids=study_ids,
+            study_ids=resolved_study_ids,
             action_types=(),
             mode="developer_apply_safe",
             apply=True,
@@ -456,7 +458,7 @@ def _run_developer_supervisor_same_tick(
         "surface": "developer_supervisor_same_tick",
         "schema_version": 1,
         "mode": "developer_apply_safe",
-        "study_ids": list(study_ids),
+        "study_ids": list(resolved_study_ids),
         "max_passes": max(1, max_passes),
         "pass_count": len(iterations),
         "stop_reason": stop_reason,

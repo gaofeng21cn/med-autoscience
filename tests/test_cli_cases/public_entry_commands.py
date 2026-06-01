@@ -372,12 +372,14 @@ def test_domain_health_diagnostic_command_dispatches_controller(monkeypatch, tmp
         runtime_root: Path,
         apply: bool,
         profile=None,
+        study_ids=(),
         request_opl_stage_attempts: bool = False,
         request_opl_owner_route_reconcile: bool = False,
     ) -> dict:
         called["runtime_root"] = runtime_root
         called["apply"] = apply
         called["profile"] = profile
+        called["study_ids"] = study_ids
         called["request_opl_stage_attempts"] = request_opl_stage_attempts
         called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
         return {"scanned_quests": ["q001"], "runtime_root": str(runtime_root)}
@@ -391,6 +393,7 @@ def test_domain_health_diagnostic_command_dispatches_controller(monkeypatch, tmp
     assert called["runtime_root"] == tmp_path / "quests"
     assert called["apply"] is True
     assert called["profile"] is None
+    assert called["study_ids"] == ()
     assert called["request_opl_stage_attempts"] is False
     assert called["request_opl_owner_route_reconcile"] is False
     assert "q001" in captured.out
@@ -623,12 +626,14 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
         runtime_root: Path,
         apply: bool,
         profile=None,
+        study_ids=(),
         request_opl_stage_attempts: bool = False,
         request_opl_owner_route_reconcile: bool = False,
     ) -> dict:
         called["runtime_root"] = runtime_root
         called["apply"] = apply
         called["profile"] = profile
+        called["study_ids"] = study_ids
         called["request_opl_stage_attempts"] = request_opl_stage_attempts
         called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
         return {"managed_study_actions": [{"study_id": "001-risk", "decision": "create_and_start"}]}
@@ -645,6 +650,9 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
             "--request-opl-stage-attempts",
             "--request-opl-owner-route-reconcile",
             "--apply",
+            "--studies",
+            "002-risk",
+            "003-risk",
         ]
     )
     captured = capsys.readouterr()
@@ -653,6 +661,7 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
     assert called["runtime_root"] == tmp_path / "quests"
     assert called["apply"] is True
     assert called["profile"].name == "nfpitnet"
+    assert called["study_ids"] == ("002-risk", "003-risk")
     assert called["request_opl_stage_attempts"] is True
     assert called["request_opl_owner_route_reconcile"] is True
     assert '"study_id": "001-risk"' in captured.out

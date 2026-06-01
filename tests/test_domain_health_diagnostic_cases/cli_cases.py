@@ -141,6 +141,29 @@ def test_domain_health_diagnostic_cli_accepts_explicit_dry_run() -> None:
     assert args.dry_run is True
 
 
+def test_domain_health_diagnostic_cli_accepts_focused_owner_route_studies() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    args = cli.build_parser().parse_args(
+        [
+            "domain-health-diagnostic",
+            "--runtime-root",
+            "/tmp/runtime/quests",
+            "--profile",
+            "/tmp/workspace-profile.toml",
+            "--request-opl-stage-attempts",
+            "--request-opl-owner-route-reconcile",
+            "--apply",
+            "--studies",
+            "002-dm-paper",
+            "003-dm-paper",
+        ]
+    )
+
+    assert args.command == "domain-health-diagnostic"
+    assert args.studies == ["002-dm-paper", "003-dm-paper"]
+
+
 def test_domain_health_diagnostic_cli_rejects_apply_and_dry_run_together() -> None:
     cli = importlib.import_module("med_autoscience.cli")
 

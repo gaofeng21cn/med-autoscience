@@ -18,10 +18,14 @@ def handle_domain_health_diagnostic_command(
             parser.error("Specify exactly one of --quest-root or --runtime-root")
         if args.quest_root and args.profile:
             parser.error("--profile is only supported with --runtime-root")
+        if args.quest_root and args.studies:
+            parser.error("--studies is only supported with --runtime-root")
         if args.quest_root and args.request_opl_stage_attempts:
             parser.error("--request-opl-stage-attempts is only supported with --runtime-root")
         if args.quest_root and args.request_opl_owner_route_reconcile:
             parser.error("--request-opl-owner-route-reconcile is only supported with --runtime-root")
+        if args.studies and not args.request_opl_owner_route_reconcile:
+            parser.error("--studies is only supported with --request-opl-owner-route-reconcile")
         if args.request_opl_stage_attempts and not args.profile:
             parser.error("--request-opl-stage-attempts requires --profile")
         if args.request_opl_owner_route_reconcile and not args.request_opl_stage_attempts:
@@ -39,6 +43,7 @@ def handle_domain_health_diagnostic_command(
                 runtime_root=Path(args.runtime_root),
                 apply=args.apply,
                 profile=profile,
+                study_ids=tuple(args.studies or ()),
                 request_opl_stage_attempts=bool(args.request_opl_stage_attempts),
                 request_opl_owner_route_reconcile=bool(args.request_opl_owner_route_reconcile),
             )
