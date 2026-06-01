@@ -271,3 +271,171 @@ def test_domain_handler_dispatch_evidence_payload_projects_writer_dispatch_curre
             "default_executor_dispatches/run_quality_repair_batch.json"
         ),
     )
+
+
+def test_domain_handler_dispatch_evidence_payload_projects_dpcc_gate_clearing_blocker_for_stale_writer_dispatch(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    stage_attempt_id = "sat_3b5b062ba800c1f81e0c18df"
+    stage_attempt_source = "mas_default_executor_source_3e3cd74d7475b77eb8372a9f"
+    domain_source = "899b0362d9b68d3e"
+    owner_reason = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    dispatch_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/"
+        "default_executor_dispatches/immutable/run_quality_repair_batch/3684d9b4f9b031adf43c280b.json"
+    )
+    workorder_path = tmp_path / f"{stage_attempt_id}.workorder.json"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    _write_current_owner_workorder(
+        path=workorder_path,
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        stage_attempt_id=stage_attempt_id,
+        stage_attempt_source=stage_attempt_source,
+        domain_source=domain_source,
+        dispatch_ref=dispatch_ref,
+    )
+
+    def fake_scan_domain_routes(*, profile, study_ids, apply_safe_actions, developer_supervisor_mode):
+        assert study_ids == (study_id,)
+        return {
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "blocked_reason": owner_reason,
+                    "domain_transition": {
+                        "decision_type": "route_back_same_line",
+                        "route_target": "write",
+                        "owner": "write",
+                        "controller_action": "request_opl_stage_attempt",
+                        "next_work_unit": {
+                            "unit_id": owner_reason,
+                            "lane": "publication_gate",
+                            "summary": (
+                                "MAS publication-gate/currentness replay after current "
+                                "AI reviewer archive."
+                            ),
+                        },
+                        "source_refs": [
+                            "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                            "artifacts/controller/gate_clearing_batch/latest.json",
+                        ],
+                        "completion_receipt_consumption": {
+                            "status": "consumed",
+                            "receipt_kind": "ai_reviewer_publication_eval",
+                            "receipt_ref": "artifacts/publication_eval/ai_reviewer_responses/current.json",
+                            "reviewer_trace_ref": (
+                                "artifacts/publication_eval/ai_reviewer_responses/"
+                                "current.json#reviewer_operating_system"
+                            ),
+                            "next_action": "honor_ai_reviewer_publication_eval_authority",
+                        },
+                    },
+                    "owner_route": {
+                        "next_owner": "external_supervisor",
+                        "owner_reason": owner_reason,
+                        "source_fingerprint": "truth-snapshot::dpcc-current-gate-clearing",
+                        "idempotency_key": (
+                            f"owner-route::{study_id}::truth-event-000031-dpcc::"
+                            f"external_supervisor::{owner_reason}::b32a9ab86aa"
+                        ),
+                        "source_refs": {
+                            "study_truth_epoch": "truth-event-000031-dpcc",
+                            "source_eval_id": (
+                                "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                                "sat_cc2c6c6cf90bbe4444a4d388"
+                            ),
+                            "work_unit_id": owner_reason,
+                            "work_unit_fingerprint": "truth-snapshot::dpcc-current-gate-clearing",
+                            "blocked_reason": owner_reason,
+                            "publication_eval_path": (
+                                "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                                "artifacts/publication_eval/ai_reviewer_responses/current.json"
+                            ),
+                        },
+                        "owner_reason_contract": {
+                            "registered": True,
+                            "reason": owner_reason,
+                            "owner": "gate_clearing_batch",
+                            "allowed_actions": ["run_gate_clearing_batch"],
+                        },
+                        "currentness_contract": {
+                            "status": "currentness_basis_required",
+                            "missing_required_fields": [],
+                        },
+                        "owner_route_attempt_protocol": {
+                            "version": "mas-owner-route-attempt-protocol.v1",
+                            "dispatchable": False,
+                        },
+                    },
+                    "domain_authority_handoff": {
+                        "surface_kind": "mas_domain_authority_handoff",
+                        "status": "typed_blocker",
+                        "typed_blocker": {
+                            "surface_kind": "mas_domain_typed_blocker",
+                            "blocker_kind": "owner_route_blocked",
+                            "reason": owner_reason,
+                            "detail_reason": owner_reason,
+                            "next_owner": "external_supervisor",
+                            "source_fingerprint": "truth-snapshot::dpcc-current-gate-clearing",
+                            "idempotency_key": (
+                                f"owner-route::{study_id}::truth-event-000031-dpcc::"
+                                f"external_supervisor::{owner_reason}::b32a9ab86aa"
+                            ),
+                            "provider_completion_is_domain_completion": False,
+                        },
+                    },
+                }
+            ]
+        }
+
+    monkeypatch.setattr(cli.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+
+    exit_code = cli.main(
+        [
+            "domain-handler",
+            "dispatch-evidence-payload",
+            "--profile",
+            str(profile_path),
+            "--workorder",
+            str(workorder_path),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "typed_blocker_payload_ready"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="publication_gate_supersession_blocked",
+        detail_reason="owner_authorized_publication_gate_replay_stage_attempt_blocker",
+    )
+    _assert_refs_only_current_owner_route_blocker_contract(
+        payload,
+        expected_action_type="run_quality_repair_batch",
+        expected_next_owner="external_supervisor",
+        expected_owner_reason=owner_reason,
+        expected_dispatch_ref=dispatch_ref,
+    )
+    record_payload = payload["opl_runtime_action_execute_payload"]
+    assert record_payload["source_fingerprint"] == stage_attempt_source
+    assert record_payload["domain_source_fingerprint"] == domain_source
+    assert stage_attempt_source in record_payload["typed_blocker_refs"][0]
+    assert "owner-route-reconcile:completion_receipt_consumption=consumed" in record_payload[
+        "evidence_refs"
+    ]
+    assert "owner-route-reconcile:route_target=write" in record_payload["evidence_refs"]
+    assert "owner-route-reconcile:controller_action=request_opl_stage_attempt" in record_payload[
+        "evidence_refs"
+    ]
+    assert f"owner-route-reconcile:blocked_reason={owner_reason}" in record_payload["evidence_refs"]
+    assert f"domain-authority-handoff:typed_blocker_reason={owner_reason}" in record_payload[
+        "evidence_refs"
+    ]

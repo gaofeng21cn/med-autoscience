@@ -63,6 +63,9 @@ OPL_RUNTIME_OWNER_ROUTE_REASON = "quest_waiting_opl_runtime_owner_route"
 RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON = "runtime_recovery_not_authorized"
 RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON = "runtime_recovery_retry_budget_exhausted"
 OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON = "owner_authorized_publication_gate_replay"
+DPCC_PUBLICATION_GATE_REPLAY_AFTER_CURRENT_AI_REVIEWER_RECORD_REASON = (
+    "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+)
 PUBLICATION_GATE_ROUTE_BACK_WRITE_REQUIRED_REASON = "publication_gate_route_back_write_required"
 WRITE_OWNER = "write"
 WRITE_ACTION_TYPE = "run_quality_repair_batch"

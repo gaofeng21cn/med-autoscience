@@ -6,6 +6,7 @@ from med_autoscience.controllers.stable_blocker_classes import stable_blocker_cl
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
     GATE_CLEARING_ACTION_TYPE,
     GATE_CLEARING_OWNER,
+    DPCC_PUBLICATION_GATE_REPLAY_AFTER_CURRENT_AI_REVIEWER_RECORD_REASON,
     OPL_RUNTIME_OWNER_ROUTE_REASON,
     OPL_STAGE_ATTEMPT_ADMISSION_REASON,
     OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON,
@@ -317,24 +318,34 @@ def owner_authorized_publication_gate_replay_stage_attempt_blocker_observed(
     owner_reason_contract = mapping(owner_route.get("owner_reason_contract"))
     currentness_contract = mapping(owner_route.get("currentness_contract"))
     attempt_protocol = mapping(owner_route.get("owner_route_attempt_protocol"))
+    owner_source_refs = mapping(owner_route.get("source_refs"))
     domain_authority_handoff = mapping(study_scan.get("domain_authority_handoff"))
     typed_blocker = mapping(domain_authority_handoff.get("typed_blocker"))
     blocked_reason = text(study_scan.get("blocked_reason")) or text(owner_route.get("owner_reason"))
+    supported_gate_clearing_reasons = {
+        OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON,
+        DPCC_PUBLICATION_GATE_REPLAY_AFTER_CURRENT_AI_REVIEWER_RECORD_REASON,
+    }
     return (
         text(completion.get("status")) == "consumed"
         and text(completion.get("receipt_kind")) == "ai_reviewer_publication_eval"
-        and text(domain_transition.get("route_target")) == "finalize"
-        and text(domain_transition.get("owner")) == "finalize"
+        and text(domain_transition.get("route_target")) in {"finalize", WRITE_OWNER}
+        and text(domain_transition.get("owner")) in {"finalize", WRITE_OWNER}
         and text(domain_transition.get("controller_action")) == "request_opl_stage_attempt"
+        and (
+            text(mapping(domain_transition.get("next_work_unit")).get("unit_id")) == blocked_reason
+            or text(owner_source_refs.get("work_unit_id")) == blocked_reason
+        )
         and text(owner_route.get("next_owner")) == "external_supervisor"
-        and blocked_reason == OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON
+        and blocked_reason in supported_gate_clearing_reasons
         and owner_reason_contract.get("registered") is True
+        and text(owner_reason_contract.get("reason")) == blocked_reason
         and text(owner_reason_contract.get("owner")) == GATE_CLEARING_OWNER
         and GATE_CLEARING_ACTION_TYPE in set(texts(sequence(owner_reason_contract.get("allowed_actions"))))
         and currentness_contract.get("missing_required_fields") == []
         and attempt_protocol.get("dispatchable") is False
         and text(domain_authority_handoff.get("status")) == "typed_blocker"
-        and _typed_blocker_matches_reason(typed_blocker, OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_REASON)
+        and _typed_blocker_matches_reason(typed_blocker, blocked_reason)
         and text(typed_blocker.get("next_owner")) == "external_supervisor"
     )
 
