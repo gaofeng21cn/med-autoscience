@@ -3,6 +3,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.story_surface_work_units import (
+    is_claim_evidence_alignment_write_work_unit,
+    is_story_surface_delta_write_work_unit,
+)
+
 
 def action_from_controller_route(controller_route: Mapping[str, Any]) -> dict[str, Any] | None:
     controller_actions = set(_controller_action_types(controller_route.get("controller_actions")))
@@ -30,6 +35,30 @@ def action_from_controller_route(controller_route: Mapping[str, Any]) -> dict[st
             "controller_decision_write_allowed": False,
             "paper_package_mutation_allowed": False,
         }
+    if _is_write_followthrough_route(controller_route):
+        return {
+            "action_type": "run_quality_repair_batch",
+            "authority": "observability_only",
+            "owner": "write",
+            "request_owner": "write",
+            "recommended_owner": "write",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "summary": "The current controller decision routes this study to the write owner.",
+            "required_output_surface": _write_required_output_surface(work_unit_id),
+            "next_work_unit": work_unit_id,
+            "executable_work_unit": work_unit_id,
+            "controller_work_unit_id": work_unit_id,
+            "controller_next_work_unit": {"unit_id": work_unit_id},
+            "route_target": "write",
+            "domain_transition_decision_type": "route_back_same_line",
+            "controller_route": dict(controller_route),
+            "work_unit_fingerprint": _text(controller_route.get("work_unit_fingerprint")),
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "current_package_write_allowed": False,
+            "manual_study_patch_allowed": False,
+            "medical_claim_authoring_allowed": False,
+        }
     if "run_gate_clearing_batch" in controller_actions:
         return {
             "action_type": "run_gate_clearing_batch",
@@ -56,6 +85,28 @@ def action_from_controller_route(controller_route: Mapping[str, Any]) -> dict[st
             "medical_claim_authoring_allowed": False,
         }
     return None
+
+
+def _is_write_followthrough_route(controller_route: Mapping[str, Any]) -> bool:
+    controller_actions = set(_controller_action_types(controller_route.get("controller_actions")))
+    if not controller_actions & {"request_opl_stage_attempt", "run_quality_repair_batch"}:
+        return False
+    if _text(controller_route.get("route_target")) == "write":
+        return True
+    work_unit_id = _text(controller_route.get("work_unit_id"))
+    return is_story_surface_delta_write_work_unit(work_unit_id) or is_claim_evidence_alignment_write_work_unit(work_unit_id)
+
+
+def _write_required_output_surface(work_unit_id: str) -> str:
+    if is_claim_evidence_alignment_write_work_unit(work_unit_id):
+        return (
+            "claim-evidence map and evidence ledger alignment or "
+            "typed blocker:claim_evidence_alignment_required"
+        )
+    return (
+        "canonical manuscript story-surface delta or "
+        "typed blocker:manuscript_story_surface_delta_missing"
+    )
 
 
 def _text(value: object) -> str | None:

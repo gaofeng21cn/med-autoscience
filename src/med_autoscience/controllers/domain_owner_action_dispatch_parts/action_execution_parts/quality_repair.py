@@ -8,9 +8,16 @@ from med_autoscience.controllers import quality_repair_batch
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
+from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
+    EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 TASK_KIND = "domain_owner/default-executor-dispatch"
+AI_REVIEWER_CURRENT_MANUSCRIPT_RECORD_WORK_UNIT = (
+    "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+)
+AI_REVIEWER_CURRENT_MANUSCRIPT_RECORD_REASON = "ai_reviewer_record_stale_after_current_manuscript"
 
 
 def execute_quality_repair_batch(
@@ -75,6 +82,11 @@ def execute_quality_repair_batch(
         or _text(result_payload.get("status"))
         or "quality_repair_batch_not_applied"
     )
+    progress_first_route = _progress_first_currentness_routeback(
+        dispatch=dispatch,
+        owner_result=result_payload,
+        blocked_reason=blocked_reason,
+    )
     evidence_payload = (
         _blocked_owner_result_evidence_payload(
             profile=profile,
@@ -92,6 +104,7 @@ def execute_quality_repair_batch(
         "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
         "owner_result": result_payload if result_payload else owner_result,
         **({"writer_worker_handoff": dict(result_payload["writer_worker_handoff"])} if handoff_ready else {}),
+        **progress_first_route,
         **evidence_payload,
         "quest_root": str(quest_root),
     }
@@ -191,6 +204,51 @@ def _blocked_owner_result_evidence_payload(
         "publication_ready_claimed": False,
         "artifact_mutation_authorized": False,
         "current_package_mutation_authorized": False,
+    }
+
+
+def _progress_first_currentness_routeback(
+    *,
+    dispatch: Mapping[str, Any],
+    owner_result: Mapping[str, Any],
+    blocked_reason: str | None,
+) -> dict[str, Any]:
+    if blocked_reason != EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER:
+        return {}
+    next_work_unit = AI_REVIEWER_CURRENT_MANUSCRIPT_RECORD_WORK_UNIT
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(
+        _mapping(dispatch.get("prompt_contract")).get("owner_route")
+    )
+    currentness_blocker = _mapping(owner_result.get("currentness_blocker"))
+    if not currentness_blocker:
+        currentness_blocker = _mapping(owner_result.get("typed_blocker_payload"))
+    return {
+        "next_owner": "ai_reviewer",
+        "required_next_owner": "ai_reviewer",
+        "next_action_type": "return_to_ai_reviewer_workflow",
+        "next_required_actions": [
+            next_work_unit,
+            "rematerialize_ai_reviewer_request",
+            "return_to_ai_reviewer_workflow",
+        ],
+        "progress_first_routeback": {
+            "surface": "progress_first_currentness_routeback",
+            "schema_version": 1,
+            "from_action_type": "run_quality_repair_batch",
+            "blocked_reason": EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
+            "next_owner": "ai_reviewer",
+            "next_action_type": "return_to_ai_reviewer_workflow",
+            "next_work_unit": next_work_unit,
+            "owner_reason": AI_REVIEWER_CURRENT_MANUSCRIPT_RECORD_REASON,
+            "stale_write_dispatch_reuse_allowed": False,
+            "repeat_write_dispatch_allowed": False,
+            "reason": (
+                "The writer dispatch was bound to a stale AI reviewer manuscript digest; "
+                "Progress-First must refresh the AI reviewer record before redriving write."
+            ),
+            "source_owner_route": dict(owner_route) if owner_route else None,
+            "currentness_blocker": dict(currentness_blocker) if currentness_blocker else None,
+        },
     }
 
 

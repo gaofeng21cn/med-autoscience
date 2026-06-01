@@ -14,7 +14,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import analysis_har
 from med_autoscience.controllers.owner_route_reconcile_parts import artifact_freshness
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import completion_evidence
-from med_autoscience.controllers.owner_route_reconcile_parts import controller_followthrough_actions
+from med_autoscience.controllers.owner_route_reconcile_parts import current_controller_followthrough
 from med_autoscience.controllers.owner_route_reconcile_parts import current_ai_reviewer_record_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import currentness_preemption_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
@@ -166,14 +166,11 @@ def action_queue(
         publication_eval_payload=publication_eval_payload,
     )
     if current_ai_reviewer_write_action is not None:
-        request_lifecycle = ai_reviewer_owner_output_consumption.current_request_lifecycle(
+        current_ai_reviewer_write_action = current_controller_followthrough.bind_ai_reviewer_owner_output_consumption(
+            action=current_ai_reviewer_write_action,
+            status=status,
             study_root=study_root,
             publication_eval_payload=publication_eval_payload,
-        )
-        current_ai_reviewer_write_action = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
-            payload=current_ai_reviewer_write_action,
-            publication_eval_payload=publication_eval_payload,
-            lifecycle=request_lifecycle,
         )
         return [
             decorate_action(
@@ -421,6 +418,27 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    current_controller_write_action = _current_controller_write_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if current_controller_write_action is not None:
+        current_controller_write_action = current_controller_followthrough.bind_ai_reviewer_owner_output_consumption(
+            action=current_controller_write_action,
+            status=status,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=current_controller_write_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     oracle_actions = domain_transition_actions.actions(status)
     if oracle_actions is not None:
         return [
@@ -551,16 +569,23 @@ def _current_controller_ai_reviewer_action(
     study_root: Path,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    controller_route = current_truth_owner.current_controller_runtime_route(
+    return current_controller_followthrough.current_controller_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
+        action_type="return_to_ai_reviewer_workflow",
     )
-    if controller_route is None:
-        return None
-    action = controller_followthrough_actions.action_from_controller_route(controller_route)
-    if _text(_mapping(action).get("action_type")) != "return_to_ai_reviewer_workflow":
-        return None
-    return action
+
+
+def _current_controller_write_action(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return current_controller_followthrough.current_controller_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        action_type="run_quality_repair_batch",
+    )
 
 
 def _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(

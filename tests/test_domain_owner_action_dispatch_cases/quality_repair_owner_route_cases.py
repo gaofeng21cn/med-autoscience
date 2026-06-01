@@ -729,6 +729,21 @@ def test_execute_quality_repair_batch_projects_digest_mismatch_as_typed_blocker_
     assert result["blocked_count"] == 1
     assert execution["execution_status"] == "blocked"
     assert execution["blocked_reason"] == "quality_repair_batch_current_manuscript_digest_mismatch"
+    assert execution["next_owner"] == "ai_reviewer"
+    assert execution["required_next_owner"] == "ai_reviewer"
+    assert execution["next_action_type"] == "return_to_ai_reviewer_workflow"
+    assert execution["next_required_actions"] == [
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "rematerialize_ai_reviewer_request",
+        "return_to_ai_reviewer_workflow",
+    ]
+    routeback = execution["progress_first_routeback"]
+    assert routeback["next_owner"] == "ai_reviewer"
+    assert routeback["next_action_type"] == "return_to_ai_reviewer_workflow"
+    assert routeback["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert routeback["owner_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert routeback["stale_write_dispatch_reuse_allowed"] is False
+    assert routeback["repeat_write_dispatch_allowed"] is False
     assert execution["typed_blocker_refs"]
     assert execution["no_regression_refs"]
     evidence_payload = execution["domain_dispatch_evidence_record_payload"]
