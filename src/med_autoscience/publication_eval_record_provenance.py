@@ -10,6 +10,9 @@ _ASSESSMENT_PROVENANCE_ALLOWED_FIELDS = frozenset(
         "source_kind",
         "policy_id",
         "source_refs",
+        "owner_route_currentness_basis",
+        "work_unit_id",
+        "work_unit_fingerprint",
         "ai_reviewer_required",
         "mechanical_projection_used_as_quality_authority",
     }
@@ -70,6 +73,23 @@ def _require_text_sequence(label: str, field_name: str, value: Any) -> tuple[str
     return normalized
 
 
+def _optional_text(value: Any) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value.strip()
+
+
+def _optional_owner_route_currentness_basis(value: Any) -> dict[str, str] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise TypeError("publication eval assessment provenance owner_route_currentness_basis must be a mapping")
+    allowed = frozenset({"truth_epoch", "runtime_health_epoch", "work_unit_id", "work_unit_fingerprint", "source_eval_id"})
+    _reject_unknown_fields("publication eval owner route currentness basis", value, allowed)
+    normalized = {key: text for key in allowed if (text := _optional_text(value.get(key))) is not None}
+    return normalized or None
+
+
 @dataclass(frozen=True)
 class PublicationEvalAssessmentProvenance:
     owner: str
@@ -78,6 +98,9 @@ class PublicationEvalAssessmentProvenance:
     source_refs: tuple[str, ...]
     ai_reviewer_required: bool
     mechanical_projection_used_as_quality_authority: bool = False
+    owner_route_currentness_basis: dict[str, str] | None = None
+    work_unit_id: str | None = None
+    work_unit_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -124,9 +147,16 @@ class PublicationEvalAssessmentProvenance:
             raise ValueError("ai_reviewer publication eval provenance cannot require another AI reviewer")
         if self.owner == "mechanical_projection" and not self.ai_reviewer_required:
             raise ValueError("mechanical publication eval projection must require AI reviewer judgment")
+        object.__setattr__(
+            self,
+            "owner_route_currentness_basis",
+            _optional_owner_route_currentness_basis(self.owner_route_currentness_basis),
+        )
+        object.__setattr__(self, "work_unit_id", _optional_text(self.work_unit_id))
+        object.__setattr__(self, "work_unit_fingerprint", _optional_text(self.work_unit_fingerprint))
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "owner": self.owner,
             "source_kind": self.source_kind,
             "policy_id": self.policy_id,
@@ -134,6 +164,13 @@ class PublicationEvalAssessmentProvenance:
             "ai_reviewer_required": self.ai_reviewer_required,
             "mechanical_projection_used_as_quality_authority": self.mechanical_projection_used_as_quality_authority,
         }
+        if self.owner_route_currentness_basis:
+            payload["owner_route_currentness_basis"] = dict(self.owner_route_currentness_basis)
+        if self.work_unit_id:
+            payload["work_unit_id"] = self.work_unit_id
+        if self.work_unit_fingerprint:
+            payload["work_unit_fingerprint"] = self.work_unit_fingerprint
+        return payload
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "PublicationEvalAssessmentProvenance":
@@ -170,6 +207,11 @@ class PublicationEvalAssessmentProvenance:
                 if "mechanical_projection_used_as_quality_authority" in payload
                 else False
             ),
+            owner_route_currentness_basis=_optional_owner_route_currentness_basis(
+                payload.get("owner_route_currentness_basis")
+            ),
+            work_unit_id=_optional_text(payload.get("work_unit_id")),
+            work_unit_fingerprint=_optional_text(payload.get("work_unit_fingerprint")),
         )
 
 

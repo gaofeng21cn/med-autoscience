@@ -300,6 +300,48 @@ def test_progress_first_monitoring_does_not_redrive_same_consumed_ai_reviewer_re
     assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
 
 
+def test_progress_first_monitoring_redrives_consumed_ai_reviewer_record_with_different_identity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "domain_transition": {
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "owner": "ai_reviewer",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "next_work_unit": {
+                "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "lane": "review",
+            },
+            "work_unit_fingerprint": "domain-transition::review::current-manuscript-v2",
+            "completion_receipt_consumption": {
+                "status": "consumed",
+                "receipt_kind": "ai_reviewer_publication_eval",
+                "receipt_ref": "artifacts/publication_eval/latest.json",
+                "eval_id": "publication-eval::003-dpcc::previous",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": "domain-transition::review::previous-inputs",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "work_unit_fingerprint": "domain-transition::review::previous-inputs",
+                    "source_eval_id": "publication-eval::003-dpcc::previous",
+                },
+                "next_action": "honor_ai_reviewer_publication_eval_authority",
+            },
+        },
+    }
+
+    projection = module.build_progress_first_monitoring_summary(payload)
+
+    assert projection["execution_state_kind"] == "executable_owner_action"
+    assert projection["next_work_unit"]["unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+    assert projection["typed_blocker"] is None
+    assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
+
+
 def test_progress_first_monitoring_does_not_redrive_same_scalar_consumed_ai_reviewer_record() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
     payload = {

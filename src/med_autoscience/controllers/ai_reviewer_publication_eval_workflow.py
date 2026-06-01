@@ -112,8 +112,8 @@ def _normalize_ref_bundle(
     review_ref: str | Path,
     charter_ref: str | Path,
     additional_refs: Mapping[str, Any] | None = None,
-) -> dict[str, str]:
-    refs: dict[str, str] = {}
+) -> dict[str, Any]:
+    refs: dict[str, Any] = {}
     for field_name, surface in _REF_ALIASES.items():
         raw_value = {
             "manuscript_ref": manuscript_ref,
@@ -127,6 +127,9 @@ def _normalize_ref_bundle(
         refs[surface] = value
     for key, value in _mapping(additional_refs).items():
         surface = _text(key)
+        if surface == "owner_route_currentness_basis" and isinstance(value, Mapping):
+            refs[surface] = dict(value)
+            continue
         ref = _text(value)
         if surface and ref:
             refs[surface] = ref
@@ -892,6 +895,11 @@ def _record_with_trace(
     provenance["source_kind"] = "publication_eval_ai_reviewer"
     provenance["policy_id"] = DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"]
     provenance["ai_reviewer_required"] = False
+    owner_route_currentness_basis = _mapping(_mapping(trace.get("input_bundle")).get("owner_route_currentness_basis"))
+    if owner_route_currentness_basis:
+        provenance["owner_route_currentness_basis"] = dict(owner_route_currentness_basis)
+        provenance["work_unit_id"] = _text(owner_route_currentness_basis.get("work_unit_id"))
+        provenance["work_unit_fingerprint"] = _text(owner_route_currentness_basis.get("work_unit_fingerprint"))
     payload["assessment_provenance"] = provenance
     workflow_ref = _mapping(payload.get("reviewer_operating_system")).get("input_bundle")
     publication_gate_projection_ref = _text(_mapping(workflow_ref).get("publication_gate_projection"))

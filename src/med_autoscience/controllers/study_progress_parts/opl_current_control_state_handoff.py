@@ -541,6 +541,21 @@ def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) ->
     ]
     if not missing:
         return projection
+    if missing == ["progress_delta_classification"]:
+        inferred = _infer_progress_delta_classification(paper_stage_log)
+        if inferred is not None:
+            projection = dict(projection)
+            normalized_log = dict(paper_stage_log)
+            normalized_log["progress_delta_classification"] = inferred
+            normalized_log["progress_delta_classification_source"] = (
+                "inferred_from_changed_paper_surfaces"
+                if inferred == "deliverable_progress"
+                else "inferred_from_changed_stage_surfaces"
+            )
+            projection["diagnostic"] = "progress_delta_classification_inferred_from_changed_surfaces"
+            projection["missing_user_stage_log_fields"] = missing
+            projection["paper_stage_log"] = normalized_log
+            return projection
     projection = dict(projection)
     projection["typed_blocker_reason"] = "typed_closeout_packet_required"
     projection["diagnostic"] = "user_stage_log_missing_required_progress_fields"
@@ -562,6 +577,14 @@ def _paper_stage_log_field_missing(field: str, paper_stage_log: Mapping[str, Any
         return False
     value = paper_stage_log.get(field)
     return value in (None, "", [], {})
+
+
+def _infer_progress_delta_classification(paper_stage_log: Mapping[str, Any]) -> str | None:
+    if _string_list(paper_stage_log.get("changed_paper_surfaces")):
+        return "deliverable_progress"
+    if _string_list(paper_stage_log.get("changed_stage_surfaces")):
+        return "platform_repair"
+    return None
 
 
 def _terminal_stage_log_authority_boundary() -> dict[str, bool]:

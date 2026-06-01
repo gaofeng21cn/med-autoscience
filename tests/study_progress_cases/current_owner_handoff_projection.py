@@ -130,6 +130,76 @@ def test_terminal_stage_log_missing_user_progress_fields_projects_typed_blocker(
     ]
 
 
+def test_terminal_stage_log_infers_missing_delta_classification_from_paper_surfaces(tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff"
+    )
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
+    closeout_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat-002.closeout.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "stage_attempt_id": "sat-002",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "action_type": "run_quality_repair_batch",
+            "status": "completed",
+            "generated_at": "2026-05-31T01:00:00+00:00",
+            "closeout_refs": ["artifacts/supervision/consumer/default_executor_execution/sat-002.json"],
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "stage_name": "current_story_surface_repair",
+                "problem_summary": "Story-surface repair produced manuscript-facing changes.",
+                "stage_goal": "Produce a user-readable repair delta or stable blocker.",
+                "stage_work_done": ["Updated manuscript-facing surfaces."],
+                "paper_work_done": ["Updated manuscript-facing surfaces."],
+                "changed_stage_surfaces": [
+                    "studies/001-risk/paper/draft.md",
+                ],
+                "changed_paper_surfaces": [
+                    "studies/001-risk/paper/draft.md",
+                ],
+                "outcome": "completed",
+                "remaining_blockers": [],
+                "duration": {"seconds": 42},
+                "token_usage": {"total_tokens": 1200},
+                "cost": {"usd": 0.04},
+                "usage_refs": ["usage://sat-002"],
+                "cost_refs": ["cost://sat-002"],
+                "evidence_refs": [
+                    "artifacts/supervision/consumer/default_executor_execution/sat-002.json"
+                ],
+            },
+        },
+    )
+
+    handoff = module.opl_current_control_state_study_handoff_projection(
+        profile=profile,
+        study_id="001-risk",
+    )
+
+    assert handoff is not None
+    terminal_log = handoff["latest_terminal_stage_log"]
+    assert terminal_log["status"] == "completed"
+    assert "typed_blocker_reason" not in terminal_log
+    assert terminal_log["missing_user_stage_log_fields"] == ["progress_delta_classification"]
+    assert terminal_log["paper_stage_log"]["progress_delta_classification"] == "deliverable_progress"
+    assert (
+        terminal_log["paper_stage_log"]["progress_delta_classification_source"]
+        == "inferred_from_changed_paper_surfaces"
+    )
+
+
 def test_progress_first_monitoring_projects_terminal_closeout_semantic_completeness() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
@@ -219,6 +289,72 @@ def test_progress_first_monitoring_projects_terminal_closeout_semantic_completen
             },
         },
     }
+
+
+def test_progress_first_monitoring_counts_paper_delta_despite_missing_closeout_observability() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "next_forced_delta": {
+                "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "owner_action": {
+                    "next_owner": "ai_reviewer",
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "latest_terminal_stage_log": {
+                    "stage_attempt_id": "sat-003",
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "action_type": "run_quality_repair_batch",
+                    "status": "executed",
+                    "missing_user_stage_log_fields": ["progress_delta_classification"],
+                    "observability_status": "missing",
+                    "missing_observability_fields": ["duration", "token_usage", "cost"],
+                    "duration": {},
+                    "token_usage": {},
+                    "cost": {},
+                    "paper_stage_log": {
+                        "stage_name": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                        "problem_summary": "Repair produced paper-facing artifact changes.",
+                        "stage_goal": "Produce manuscript-facing deltas or a stable blocker.",
+                        "outcome": "executed",
+                        "stage_work_done": ["Recorded paper-facing artifact changes."],
+                        "paper_work_done": ["Recorded paper-facing artifact changes."],
+                        "changed_stage_surfaces": [
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/draft.md",
+                        ],
+                        "changed_paper_surfaces": [
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/draft.md",
+                        ],
+                        "remaining_blockers": [],
+                        "evidence_refs": [
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/draft.md",
+                        ],
+                    },
+                },
+            },
+        }
+    )
+
+    assert monitoring["typed_blocker"] is None
+    assert monitoring["progress_delta_classification"] == "deliverable_progress"
+    terminal = monitoring["latest_terminal_stage"]
+    assert terminal["progress_delta_classification"] == "deliverable_progress"
+    completeness = terminal["terminal_closeout_semantic_completeness"]
+    assert completeness["status"] == "complete"
+    assert completeness["typed_blocker"] is None
+    assert completeness["telemetry"] == "missing"
+    assert completeness["missing_telemetry_fields"] == ["duration", "token_usage", "cost"]
+    assert (
+        completeness["progress_delta_classification_source"]
+        == "inferred_from_changed_paper_surfaces"
+    )
 
 
 def test_progress_first_monitoring_marks_complete_terminal_closeout_semantics() -> None:

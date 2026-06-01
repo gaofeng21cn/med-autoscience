@@ -264,12 +264,16 @@ def ai_reviewer_publication_eval_receipt_consumption(
     eval_id = _text(publication_eval.get("eval_id"))
     if not eval_id:
         return {}
+    owner_route_currentness_basis = _publication_eval_owner_route_currentness_basis(publication_eval)
     return {
         "status": "consumed",
         "receipt_kind": "ai_reviewer_publication_eval",
         "receipt_ref": str(publication_eval_ref),
         "eval_id": eval_id,
         "reviewer_trace_ref": f"{publication_eval_ref}#reviewer_operating_system",
+        "work_unit_id": _text(owner_route_currentness_basis.get("work_unit_id")),
+        "work_unit_fingerprint": _text(owner_route_currentness_basis.get("work_unit_fingerprint")),
+        "owner_route_currentness_basis": owner_route_currentness_basis or None,
         "next_action": "honor_ai_reviewer_publication_eval_authority",
     }
 
@@ -606,6 +610,56 @@ def _publication_eval_quest_root(publication_eval: Mapping[str, Any]) -> Path | 
     if artifacts_index <= 0:
         return None
     return Path(*parts[:artifacts_index]).resolve()
+
+
+def _publication_eval_owner_route_currentness_basis(publication_eval: Mapping[str, Any]) -> dict[str, Any]:
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    reviewer_os = _mapping(publication_eval.get("reviewer_operating_system"))
+    input_bundle = _mapping(reviewer_os.get("input_bundle"))
+    basis = (
+        _mapping(provenance.get("owner_route_currentness_basis"))
+        or _mapping(input_bundle.get("owner_route_currentness_basis"))
+        or _mapping(publication_eval.get("owner_route_currentness_basis"))
+    )
+    work_unit_id = (
+        _text(basis.get("work_unit_id"))
+        or _text(provenance.get("work_unit_id"))
+        or _text(input_bundle.get("work_unit_id"))
+        or _publication_eval_work_unit_id(publication_eval)
+    )
+    work_unit_fingerprint = (
+        _text(basis.get("work_unit_fingerprint"))
+        or _text(provenance.get("work_unit_fingerprint"))
+        or _text(input_bundle.get("work_unit_fingerprint"))
+        or _publication_eval_work_unit_fingerprint(publication_eval)
+    )
+    source_eval_id = _text(basis.get("source_eval_id")) or _text(publication_eval.get("eval_id"))
+    return {
+        "truth_epoch": _text(basis.get("truth_epoch")),
+        "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "source_eval_id": source_eval_id,
+    }
+
+
+def _publication_eval_work_unit_id(publication_eval: Mapping[str, Any]) -> str:
+    for action in _mapping_list(publication_eval.get("recommended_actions")):
+        work_unit = _mapping(action.get("next_work_unit"))
+        value = _text(work_unit.get("unit_id")) or _text(action.get("work_unit_id"))
+        if value:
+            return value
+    return ""
+
+
+def _publication_eval_work_unit_fingerprint(publication_eval: Mapping[str, Any]) -> str:
+    for action in _mapping_list(publication_eval.get("recommended_actions")):
+        value = _text(action.get("work_unit_fingerprint")) or _text(
+            _mapping(action.get("next_work_unit")).get("fingerprint")
+        )
+        if value:
+            return value
+    return ""
 
 
 def _resolve_runtime_artifact_ref(quest_root: Path, artifact_ref: str) -> Path | None:

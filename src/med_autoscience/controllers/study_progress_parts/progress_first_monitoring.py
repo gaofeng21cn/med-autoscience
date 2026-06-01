@@ -61,15 +61,21 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _work_unit_from_action_queue(handoff.get("action_queue"))
         or _work_unit_projection(next_forced_delta.get("work_unit_id"))
     )
+    terminal_closeout_blocker = _terminal_closeout_typed_blocker_projection(
+        latest_terminal_stage_log=latest_terminal_stage_log,
+        paper_stage_log=paper_stage_log,
+    )
     typed_blocker = (
         {}
         if transition_consumed_owner_action and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition)
         else _mapping(execution.get("typed_blocker"))
         or _mapping(domain_transition.get("typed_blocker"))
-        or _terminal_closeout_typed_blocker_projection(
-            latest_terminal_stage_log=latest_terminal_stage_log,
-            paper_stage_log=paper_stage_log,
-        )
+        or terminal_closeout_blocker
+    )
+    progress_delta_classification = (
+        _text(payload.get("progress_delta_classification"))
+        or _text(progress_state.get("classification"))
+        or _terminal_progress_delta_classification(paper_stage_log)
     )
     current_blockers = (
         []
@@ -119,8 +125,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "owner_handoff_hydration": _owner_handoff_hydration_projection(launch_policy),
         "typed_blocker": typed_blocker or None,
         "current_blockers": current_blockers,
-        "progress_delta_classification": _text(payload.get("progress_delta_classification"))
-        or _text(progress_state.get("classification")),
+        "progress_delta_classification": progress_delta_classification,
         "paper_progress_delta_counted": bool(progress_state.get("paper_progress_delta_counted")),
         "platform_repair_delta_counted": bool(progress_state.get("platform_repair_delta_counted")),
         "next_forced_delta": _compact_mapping(
@@ -252,8 +257,69 @@ def _consumed_receipt_matches_transition_work_unit(
         return False
     if _text(domain_transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
         return False
+    receipt_has_identity = _completion_has_work_unit_identity(completion)
+    transition_has_identity = _transition_has_work_unit_identity(domain_transition)
+    if receipt_has_identity or transition_has_identity:
+        receipt_fingerprint = _completion_work_unit_fingerprint(completion)
+        transition_fingerprint = _transition_work_unit_fingerprint(domain_transition)
+        if receipt_fingerprint or transition_fingerprint:
+            return bool(receipt_fingerprint and transition_fingerprint and receipt_fingerprint == transition_fingerprint)
+        receipt_work_unit_id = _completion_work_unit_id(completion)
+        transition_work_unit_id = _work_unit_id(domain_transition.get("next_work_unit"))
+        return bool(receipt_work_unit_id and transition_work_unit_id and receipt_work_unit_id == transition_work_unit_id)
     work_unit_id = _work_unit_id(domain_transition.get("next_work_unit"))
     return bool(work_unit_id and work_unit_id.startswith("produce_ai_reviewer_publication_eval_record"))
+
+
+def _completion_has_work_unit_identity(completion: Mapping[str, Any]) -> bool:
+    basis = _mapping(completion.get("owner_route_currentness_basis"))
+    return any(
+        _text(value) is not None
+        for value in (
+            completion.get("work_unit_id"),
+            completion.get("work_unit_fingerprint"),
+            basis.get("work_unit_id"),
+            basis.get("work_unit_fingerprint"),
+        )
+    )
+
+
+def _transition_has_work_unit_identity(domain_transition: Mapping[str, Any]) -> bool:
+    source_refs = _mapping(domain_transition.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    next_work_unit = _mapping(domain_transition.get("next_work_unit"))
+    return any(
+        _text(value) is not None
+        for value in (
+            domain_transition.get("work_unit_fingerprint"),
+            source_refs.get("work_unit_id"),
+            source_refs.get("work_unit_fingerprint"),
+            basis.get("work_unit_id"),
+            basis.get("work_unit_fingerprint"),
+            next_work_unit.get("fingerprint"),
+        )
+    )
+
+
+def _completion_work_unit_id(completion: Mapping[str, Any]) -> str | None:
+    basis = _mapping(completion.get("owner_route_currentness_basis"))
+    return _text(completion.get("work_unit_id")) or _text(basis.get("work_unit_id"))
+
+
+def _completion_work_unit_fingerprint(completion: Mapping[str, Any]) -> str | None:
+    basis = _mapping(completion.get("owner_route_currentness_basis"))
+    return _text(completion.get("work_unit_fingerprint")) or _text(basis.get("work_unit_fingerprint"))
+
+
+def _transition_work_unit_fingerprint(domain_transition: Mapping[str, Any]) -> str | None:
+    source_refs = _mapping(domain_transition.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return (
+        _text(domain_transition.get("work_unit_fingerprint"))
+        or _text(source_refs.get("work_unit_fingerprint"))
+        or _text(basis.get("work_unit_fingerprint"))
+        or _text(_mapping(domain_transition.get("next_work_unit")).get("fingerprint"))
+    )
 
 
 def _first_action_queue_item(value: object) -> dict[str, Any] | None:
@@ -275,7 +341,15 @@ def _latest_terminal_stage_summary(
         return None
     semantic_completeness = _stage_semantic_completeness(paper_stage_log)
     telemetry_completeness = _stage_telemetry_completeness(latest_terminal_stage_log)
-    progress_delta_classification = _text(paper_stage_log.get("progress_delta_classification"))
+    explicit_blocker = _text(latest_terminal_stage_log.get("typed_blocker_reason")) is not None
+    progress_delta_classification = _terminal_progress_delta_classification(
+        paper_stage_log,
+        infer_from_surfaces=not explicit_blocker,
+    )
+    progress_delta_classification_source = _terminal_progress_delta_classification_source(
+        paper_stage_log,
+        infer_from_surfaces=not explicit_blocker,
+    )
     missing_user_fields = _missing_user_stage_log_fields(
         latest_terminal_stage_log=latest_terminal_stage_log,
         paper_stage_log=paper_stage_log,
@@ -291,6 +365,7 @@ def _latest_terminal_stage_summary(
         "stage_goal": _text(paper_stage_log.get("stage_goal")),
         "outcome": _text(paper_stage_log.get("outcome")),
         "progress_delta_classification": progress_delta_classification,
+        "progress_delta_classification_source": progress_delta_classification_source,
         "stage_work_done": _text_list(paper_stage_log.get("stage_work_done")),
         "paper_work_done": _text_list(paper_stage_log.get("paper_work_done")),
         "changed_stage_surfaces": _text_list(paper_stage_log.get("changed_stage_surfaces")),
@@ -312,6 +387,7 @@ def _latest_terminal_stage_summary(
             paper_stage_log=paper_stage_log,
             next_forced_delta=next_forced_delta,
             progress_delta_classification=progress_delta_classification,
+            progress_delta_classification_source=progress_delta_classification_source,
             missing_user_fields=missing_user_fields,
             missing_telemetry_fields=missing_telemetry_fields,
         ),
@@ -325,6 +401,7 @@ def _terminal_closeout_semantic_completeness(
     paper_stage_log: Mapping[str, Any],
     next_forced_delta: Mapping[str, Any],
     progress_delta_classification: str | None,
+    progress_delta_classification_source: str | None,
     missing_user_fields: list[str],
     missing_telemetry_fields: list[str],
 ) -> dict[str, Any]:
@@ -342,7 +419,7 @@ def _terminal_closeout_semantic_completeness(
         changed_surfaces_status=changed_surfaces_status,
         progress_delta_classification=progress_delta_classification,
     )
-    return {
+    result = {
         "status": "complete" if typed_blocker is None else "typed_blocker",
         "required_user_stage_log_fields": "complete" if not missing_user_fields else "missing",
         "missing_user_stage_log_fields": missing_user_fields,
@@ -360,6 +437,9 @@ def _terminal_closeout_semantic_completeness(
             else None
         ),
     }
+    if progress_delta_classification_source is not None:
+        result["progress_delta_classification_source"] = progress_delta_classification_source
+    return result
 
 
 def _terminal_closeout_typed_blocker(
@@ -373,12 +453,12 @@ def _terminal_closeout_typed_blocker(
     explicit = _text(latest_terminal_stage_log.get("typed_blocker_reason"))
     if explicit is not None:
         return explicit
-    if (
-        missing_user_fields
-        or missing_telemetry_fields
-        or changed_surfaces_status == "missing"
-        or progress_delta_classification is None
-    ):
+    if changed_surfaces_status == "missing":
+        return "typed_closeout_packet_required"
+    blocking_missing_user_fields = [
+        field for field in missing_user_fields if field != "progress_delta_classification"
+    ]
+    if blocking_missing_user_fields or progress_delta_classification is None:
         return "typed_closeout_packet_required"
     return None
 
@@ -407,7 +487,7 @@ def _terminal_closeout_typed_blocker_projection(
         missing_user_fields=missing_user_fields,
         missing_telemetry_fields=missing_telemetry_fields,
         changed_surfaces_status=changed_surfaces_status,
-        progress_delta_classification=_text(paper_stage_log.get("progress_delta_classification")),
+        progress_delta_classification=_terminal_progress_delta_classification(paper_stage_log),
     )
     if blocker_id is None:
         return {}
@@ -432,6 +512,42 @@ def _missing_user_stage_log_fields(
         for field in TERMINAL_CLOSEOUT_REQUIRED_USER_STAGE_LOG_FIELDS
         if _user_stage_log_field_missing(paper_stage_log, field)
     ]
+
+
+def _terminal_progress_delta_classification(
+    paper_stage_log: Mapping[str, Any],
+    *,
+    infer_from_surfaces: bool = True,
+) -> str | None:
+    explicit = _text(paper_stage_log.get("progress_delta_classification"))
+    if explicit is not None:
+        return explicit
+    if not infer_from_surfaces:
+        return None
+    if _text_list(paper_stage_log.get("changed_paper_surfaces")):
+        return "deliverable_progress"
+    if _text_list(paper_stage_log.get("changed_stage_surfaces")):
+        return "platform_repair"
+    return None
+
+
+def _terminal_progress_delta_classification_source(
+    paper_stage_log: Mapping[str, Any],
+    *,
+    infer_from_surfaces: bool = True,
+) -> str | None:
+    if _text(paper_stage_log.get("progress_delta_classification")) is not None:
+        return "explicit"
+    explicit_source = _text(paper_stage_log.get("progress_delta_classification_source"))
+    if explicit_source is not None:
+        return explicit_source
+    if not infer_from_surfaces:
+        return None
+    if _text_list(paper_stage_log.get("changed_paper_surfaces")):
+        return "inferred_from_changed_paper_surfaces"
+    if _text_list(paper_stage_log.get("changed_stage_surfaces")):
+        return "inferred_from_changed_stage_surfaces"
+    return None
 
 
 def _missing_telemetry_fields(latest_terminal_stage_log: Mapping[str, Any]) -> list[str]:

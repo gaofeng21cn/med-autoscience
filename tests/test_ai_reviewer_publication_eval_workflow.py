@@ -470,6 +470,44 @@ def test_ai_reviewer_publication_eval_workflow_materializes_latest_with_reviewer
     ]
 
 
+def test_ai_reviewer_publication_eval_workflow_preserves_owner_route_identity(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    _write_ai_reviewer_currentness_inputs(study_root)
+    owner_route_currentness_basis = {
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "work_unit_fingerprint": "domain-transition::review::current-manuscript",
+        "source_eval_id": "publication-eval::previous",
+    }
+
+    module.run_ai_reviewer_publication_eval_workflow(
+        study_root=study_root,
+        manuscript_ref=refs["manuscript"],
+        evidence_ref=refs["evidence_ledger"],
+        review_ref=refs["review_ledger"],
+        charter_ref=refs["study_charter"],
+        additional_refs={
+            "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+            "claim_evidence_map": refs["claim_evidence_map"],
+            "medical_prose_review": refs["medical_prose_review"],
+            "publication_gate_projection": refs["publication_gate_projection"],
+            "owner_route_currentness_basis": owner_route_currentness_basis,
+        },
+        record=_publication_eval_record(study_root),
+    )
+
+    latest = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
+    provenance = latest["assessment_provenance"]
+    assert provenance["owner_route_currentness_basis"] == owner_route_currentness_basis
+    assert provenance["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert provenance["work_unit_fingerprint"] == "domain-transition::review::current-manuscript"
+
+
 def test_ai_reviewer_publication_eval_workflow_accepts_study_relative_currentness_refs(
     tmp_path: Path,
 ) -> None:
