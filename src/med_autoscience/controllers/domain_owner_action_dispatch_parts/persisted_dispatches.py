@@ -78,18 +78,26 @@ def explicit_action_dispatches(
             continue
         refs = _mapping(payload.get("refs"))
         payload["refs"] = {**refs, "dispatch_path": str(path)}
-        if not owner_request_matches_dispatch(
-            profile=profile,
-            study_id=study_id,
-            action_type=action_type,
-            dispatch=payload,
-        ):
-            if not _self_authorized_quality_repair_writer_handoff(
+        if (
+            not owner_request_matches_dispatch(
+                profile=profile,
                 study_id=study_id,
                 action_type=action_type,
                 dispatch=payload,
-            ):
-                continue
+            )
+            and live_provider_attempt_owner_route_from_scan_payload(
+                scan_payload=scan_latest_payload(profile),
+                study_id=study_id,
+                dispatch=payload,
+            )
+            is None
+            and not _self_authorized_quality_repair_writer_handoff(
+                study_id=study_id,
+                action_type=action_type,
+                dispatch=payload,
+            )
+        ):
+            continue
         key = (str(path), action_type)
         if key in seen:
             continue
@@ -138,7 +146,13 @@ def selected_dispatches(
             supported_action_types=supported_action_types,
             dispatch_relative_root=dispatch_relative_root,
         ):
-            if _dispatch_currentness_score(payload, current_study) <= (0, 0):
+            action_type = _text(payload.get("action_type")) or ""
+            if _dispatch_currentness_score(payload, current_study) <= (0, 0) and not owner_request_matches_dispatch(
+                profile=profile,
+                study_id=study_id,
+                action_type=action_type,
+                dispatch=payload,
+            ):
                 continue
             key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
             if key in selected_by_key:
@@ -225,6 +239,13 @@ def _selected_dispatches_only(
             profile=profile,
             study_id=study_id,
             action_type=action_type,
+            dispatch=dispatch,
+        ):
+            selected.append(dispatch)
+            continue
+        if live_provider_attempt_owner_route_from_scan_payload(
+            scan_payload=scan_latest_payload(profile),
+            study_id=study_id,
             dispatch=dispatch,
         ):
             selected.append(dispatch)

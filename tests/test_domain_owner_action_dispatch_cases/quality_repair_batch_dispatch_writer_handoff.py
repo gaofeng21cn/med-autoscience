@@ -322,6 +322,184 @@ def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_pa
     assert execution["writer_worker_handoff"]["source_action"]["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
 
 
+def test_default_dispatch_picks_quality_repair_writer_handoff_from_owner_request(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    quest_root.mkdir(parents=True, exist_ok=True)
+    current_route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    current_route.update(
+        {
+            "truth_epoch": "truth-event-000035-d649b1535a6bc2aa",
+            "route_epoch": "truth-event-000035-d649b1535a6bc2aa",
+            "runtime_health_epoch": "runtime-health-event-006487-7e921dd42b7003d0",
+            "source_fingerprint": "truth-snapshot::86ef8e2d33582504debb97a2",
+            "work_unit_fingerprint": "truth-snapshot::86ef8e2d33582504debb97a2",
+            "idempotency_key": (
+                "owner-route::002-dm-china-us-mortality-attribution::"
+                "truth-event-000035-d649b1535a6bc2aa::ai_reviewer::domain_transition_ai_reviewer_re_eval"
+            ),
+            "source_refs": {
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": "truth-snapshot::86ef8e2d33582504debb97a2",
+                "source_eval_id": (
+                    "publication-eval::002-dm-china-us-mortality-attribution::"
+                    "ai-reviewer-current-inputs::20260601T130009Z"
+                ),
+            },
+        }
+    )
+    writer_route = dict(current_route)
+    writer_route.update(
+        {
+            "next_owner": "write",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "idempotency_key": (
+                "owner-route::002-dm-china-us-mortality-attribution::"
+                "truth-snapshot::86ef8e2d33582504debb97a2::write::"
+                "manuscript_story_surface_delta_missing::run_quality_repair_batch"
+            ),
+            "source_refs": {
+                **current_route["source_refs"],
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "materialized_from_action_type": "return_to_ai_reviewer_workflow",
+                "materialized_work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "bridge_authority": "domain_action_request_materializer_story_surface_bridge",
+                "bridged_from_owner_reason": "domain_transition_ai_reviewer_re_eval",
+                "bridged_from_idempotency_key": current_route["idempotency_key"],
+            },
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=writer_route,
+    )
+    dispatch_payload["dispatch_authority"] = "quality_repair_batch_writer_handoff"
+    dispatch_payload["source_action"] = {
+        "surface": "quality_repair_batch",
+        "blocked_reason": "manuscript_story_surface_delta_missing",
+        "next_work_unit": {
+            "unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+            "lane": "write",
+        },
+    }
+    dispatch_payload["prompt_contract"]["next_work_unit"] = {
+        "unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+        "lane": "write",
+    }
+    dispatch_payload["medical_claim_authoring_allowed"] = True
+    dispatch_payload["prompt_contract"]["medical_claim_authoring_allowed"] = True
+    dispatch_payload["prompt_contract"]["allowed_write_surfaces"] = [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/**",
+    ]
+    dispatch_payload["prompt_contract"]["forbidden_surfaces"] = [
+        "manuscript/**",
+        "current_package/**",
+        "paper/current_package/**",
+        "manuscript/current_package/**",
+        "src/med_autoscience/platform/**",
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+    ]
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": {
+                        **current_route,
+                        "idempotency_key": "owner-route::002::stale-scan-route",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "quality_repair_batch" / "latest.json",
+        {
+            "surface": "supervisor_request_handoff_packet",
+            "request_kind": "run_quality_repair_batch",
+            "action_type": "run_quality_repair_batch",
+            "status": "requested",
+            "study_id": study_id,
+            "request_owner": "write",
+            "next_executable_owner": "write",
+            "owner_route": writer_route,
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [],
+        },
+    )
+    monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        lambda **_: (_ for _ in ()).throw(
+            AssertionError("writer handoff dispatch must not re-enter quality_repair_batch owner callable")
+        ),
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    summary = result["per_study_execution_summary"][0]
+    assert summary["selected_dispatch_count"] == 1
+    assert summary["zero_dispatch_reason"] is None
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    execution = result["executions"][0]
+    assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["owner_route_basis"] == "owner_request"
+    assert execution["will_start_llm"] is True
+    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+
+
 def test_execute_dispatch_consumes_quality_repair_writer_handoff_as_stage_attempt(
     monkeypatch,
     tmp_path: Path,

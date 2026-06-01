@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-01：默认 Progress-First dispatch 必须消费 owner-request-current writer handoff
+
+- 决策：`domain-owner-action-dispatch` 在未传 `--action-types` 的默认 tick 中扫描 persisted `default_executor_dispatches/*.json` 时，必须把 canonical owner request currentness 纳入预筛条件。若 persisted dispatch 与同 study/action 的 owner request route 精确匹配，且后续 contract guard、owner-route guard、repeat suppression 均通过，默认 tick 必须选中执行；不得要求 operator 额外猜 `--action-types run_quality_repair_batch` 才推进。
+- 决策：该规则不放宽 currentness、写权限或质量门禁。owner-request currentness 只让 dispatch 进入选择候选；实际执行仍必须通过 dispatch contract、prompt contract、owner route protocol、forbidden surface、repeat suppression 与 owner callable 规则。
+- 理由：DM002 暴露出 materializer 已写出 current `write/run_quality_repair_batch` writer handoff 和 `requests/quality_repair_batch/latest.json`，显式 `--action-types run_quality_repair_batch` 可以选中，但默认 Progress-First tick selected=0。根因是默认 persisted-dispatch 预筛只看 scan/bridge currentness，尚未承认 canonical owner request currentness，导致流程继续把时间耗在重复 materialize/read-model reconcile 上。
+- 影响：这是 MAS dispatch selector / Progress-First operator cadence 修复，不写 DM002/DM003 study truth、runtime-owned surface、paper/package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍由 selected owner action、OPL provider attempt、typed closeout、AI reviewer、publication gate 与 package freshness proof 判定。
+
 ## 2026-06-01：current AI reviewer record 消费 stale request 后必须同 tick 进入 route-back owner
 
 - 决策：`study_domain_transition_table` 选择到 current AI reviewer archive record 后，必须用同一个 selected record 重新投影 `project_ai_reviewer_request_lifecycle`。若 lifecycle 已是 `assessment_written=true` 且 `blocked_reason` 为空，旧 `artifacts/supervision/requests/ai_reviewer/latest.json` 的 stale-record blocker 已关闭，domain transition 不得继续生成 `ai_reviewer_re_eval` / reviewer record-production work unit。
