@@ -331,7 +331,7 @@ def _progress_first_monitoring_summary(
     }
     existing_consumed_same_ai_reviewer_record = _existing_consumed_ai_reviewer_record(
         existing=existing,
-        dispatch_consumption=existing_dispatch_consumption,
+        dispatch_consumption=dispatch_consumption,
     )
     owner_action_current = (existing_owner_action and not existing_consumed_same_ai_reviewer_record) or (
         transition_consumed_owner_action
@@ -365,7 +365,15 @@ def _progress_first_monitoring_summary(
         "execution_state_kind": (
             "executable_owner_action"
             if transition_consumed_owner_action
-            else ("receipt_consumed" if existing_consumed_same_ai_reviewer_record else _text(existing.get("execution_state_kind")))
+            else (
+                "blocked_typed_owner"
+                if existing_consumed_same_ai_reviewer_record and typed_blocker
+                else (
+                    "receipt_consumed"
+                    if existing_consumed_same_ai_reviewer_record
+                    else _text(existing.get("execution_state_kind"))
+                )
+            )
         )
         or ("receipt_consumed" if transition_receipt_consumed else None),
         "owner_action_current": owner_action_current,
