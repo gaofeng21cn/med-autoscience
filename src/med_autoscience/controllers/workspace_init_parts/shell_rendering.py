@@ -359,8 +359,3 @@ def _render_mas_runtime_bridge_show_config() -> str:
         "load_mas_runtime_bridge_contract\n"
         "render_mas_runtime_bridge_config_json\n"
     )
-
-
-_render_med_deepscientist_shared = _render_mas_runtime_bridge_shared
-_render_med_deepscientist_forward = _render_mas_runtime_bridge_forward
-_render_med_deepscientist_show_config = _render_mas_runtime_bridge_show_config
