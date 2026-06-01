@@ -316,6 +316,56 @@ def test_publication_gate_replay_route_authorizes_delivery_sync_without_snapshot
     assert gate["blocking_reasons"] == []
 
 
+@pytest.mark.parametrize(
+    "work_unit_id",
+    [
+        "owner_authorized_publication_gate_replay",
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+    ],
+)
+def test_publication_gate_replay_work_unit_family_authorizes_submission_refresh_without_snapshot(
+    work_unit_id: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+
+    submission_gate = module.authorize_authority_route(
+        "submission_materialize",
+        {
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::003::latest",
+                "work_unit_fingerprint": f"publication-blockers::{work_unit_id}",
+            },
+        },
+    )
+    delivery_gate = module.authorize_authority_route(
+        "delivery_sync",
+        {
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::003::latest",
+                "work_unit_fingerprint": f"publication-blockers::{work_unit_id}",
+            },
+        },
+    )
+
+    assert submission_gate["authorized"] is True
+    assert submission_gate["snapshot_ref"] is None
+    assert submission_gate["controller_route_gate"]["authorized"] is True
+    assert submission_gate["controller_repair_authorization_ref"]["work_unit_id"] == work_unit_id
+    assert submission_gate["blocking_reasons"] == []
+    assert delivery_gate["authorized"] is True
+    assert delivery_gate["controller_route_gate"]["authorized"] is True
+    assert delivery_gate["controller_repair_authorization_ref"]["work_unit_id"] == work_unit_id
+    assert delivery_gate["blocking_reasons"] == []
+
+
 def test_submission_authority_sync_closure_route_authorizes_submission_and_delivery_actions() -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
     context = {

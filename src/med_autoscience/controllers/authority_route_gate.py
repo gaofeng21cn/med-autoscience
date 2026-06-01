@@ -7,7 +7,10 @@ from typing import Any
 from med_autoscience.controllers.claim_evidence_alignment_work_units import (
     CURRENT_MANUSCRIPT_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID,
 )
-from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
+    UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+)
 
 
 ROUTE_ACTIONS = frozenset(
@@ -48,6 +51,10 @@ _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS = frozenset(
     }
 )
 
+_PUBLICATION_GATE_REPLAY_ALLOWED_ACTIONS = frozenset(
+    {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
+)
+
 _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "analysis_claim_evidence_repair": frozenset({"paper_write"}),
     "claim_evidence_alignment_repair": frozenset({"paper_write"}),
@@ -68,9 +75,10 @@ _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "manuscript_story_repair": frozenset({"paper_write"}),
     "medical_prose_quality_analysis_source_documentation_repair": frozenset({"paper_write"}),
     "medical_prose_write_repair": frozenset({"paper_write"}),
-    "publication_gate_replay": frozenset(
-        {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
-    ),
+    **{
+        work_unit_id: _PUBLICATION_GATE_REPLAY_ALLOWED_ACTIONS
+        for work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+    },
     "submission_delivery_sync_closure": frozenset(
         {"bundle_build", "delivery_sync", "submission_notice_materialize"}
     ),
