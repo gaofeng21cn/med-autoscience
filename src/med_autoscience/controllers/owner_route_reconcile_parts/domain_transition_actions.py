@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.controllers.default_executor_action_policy import request_output_surface_for_action_type
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.story_surface_work_units import (
     is_story_surface_delta_write_work_unit,
 )
@@ -42,7 +43,7 @@ def actions(
         route_target=route_target,
         next_work_unit=controller_next_work_unit,
     )
-    finalize_gate_replay_route = _is_finalize_gate_replay_route(
+    publication_gate_replay_route = _is_publication_gate_replay_route(
         decision_type=decision_type,
         route_target=route_target,
         next_work_unit=controller_next_work_unit,
@@ -50,11 +51,11 @@ def actions(
     if unit_harmonized_analysis_route:
         action_type = "unit_harmonized_external_validation_rerun"
         work_unit_id = "unit_harmonized_external_validation_rerun"
-    elif finalize_gate_replay_route:
+    elif publication_gate_replay_route:
         action_type = "run_gate_clearing_batch"
     owner = (
         _owner_for_domain_action(action_type)
-        if unit_harmonized_analysis_route or finalize_gate_replay_route or decision_type == "publication_gate_blocker"
+        if unit_harmonized_analysis_route or publication_gate_replay_route or decision_type == "publication_gate_blocker"
         else "write"
         if write_repair_route or current_ai_reviewer_materialization_route
         else domain_transition_guard.owner(status) or _owner_for_domain_action(action_type)
@@ -63,7 +64,7 @@ def actions(
         "unit_harmonized_rerun_required"
         if unit_harmonized_analysis_route
         else work_unit_id
-        if finalize_gate_replay_route
+        if publication_gate_replay_route
         else domain_transition_guard.reason(status) or f"domain_transition_{decision_type or 'current'}"
     )
     action: dict[str, Any] = {
@@ -97,7 +98,7 @@ def actions(
             action["work_unit_fingerprint"] = f"domain-transition::{decision_type}::{work_unit_id}"
         if route_target and route_target != "write":
             action["original_route_target"] = route_target
-    if finalize_gate_replay_route:
+    if publication_gate_replay_route:
         action["controller_next_work_unit"] = controller_next_work_unit
         action["controller_work_unit_id"] = controller_work_unit_id
         action["executable_work_unit"] = work_unit_id
@@ -189,17 +190,21 @@ def _is_current_ai_reviewer_materialization_route(
     )
 
 
-def _is_finalize_gate_replay_route(
+def _is_publication_gate_replay_route(
     *,
     decision_type: str | None,
     route_target: str | None,
     next_work_unit: Mapping[str, Any],
 ) -> bool:
-    return (
-        decision_type == "route_back_same_line"
-        and route_target == "finalize"
-        and _text(next_work_unit.get("unit_id")) == "owner_authorized_publication_gate_replay"
-    )
+    if decision_type != "route_back_same_line":
+        return False
+    work_unit_id = _text(next_work_unit.get("unit_id"))
+    if work_unit_id not in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return False
+    return route_target in {"finalize", "publication_gate", "write"} or _text(next_work_unit.get("lane")) in {
+        "finalize",
+        "publication_gate",
+    }
 
 
 def _text(value: object) -> str | None:

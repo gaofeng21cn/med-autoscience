@@ -197,8 +197,8 @@ def test_materialize_domain_action_requests_honors_consumed_transition_owner_act
                         "controller_action": "request_opl_stage_attempt",
                         "next_work_unit": {
                             "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-                            "lane": "write",
-                            "summary": "Continue the paper-line gate replay after the current AI reviewer record.",
+                            "lane": "publication_gate",
+                            "summary": "MAS publication-gate/currentness replay after current AI reviewer archive.",
                         },
                         "completion_receipt_consumption": {
                             "status": "consumed",
@@ -229,14 +229,15 @@ def test_materialize_domain_action_requests_honors_consumed_transition_owner_act
     assert result["default_executor_dispatch_count"] == 1
     dispatch = result["default_executor_dispatches"][0]
     assert dispatch["dispatch_status"] == "ready"
-    assert dispatch["action_type"] == "run_quality_repair_batch"
-    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["action_type"] == "run_gate_clearing_batch"
+    assert dispatch["next_executable_owner"] == "gate_clearing_batch"
     assert dispatch["source_action"]["controller_work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     )
     route = dispatch["owner_route"]
-    assert route["next_owner"] == "write"
-    assert route["allowed_actions"] == ["run_quality_repair_batch"]
+    assert route["next_owner"] == "gate_clearing_batch"
+    assert route["owner_reason"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert route["allowed_actions"] == ["run_gate_clearing_batch"]
     assert route["source_refs"]["work_unit_id"] == (
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     )

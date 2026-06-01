@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-01：Progress-first publication-gate replay 以 work-unit family 决定 owner
+
+- 决策：publication-gate replay work unit family 是执行 owner 的机器锚点。`publication_gate_replay`、`owner_authorized_publication_gate_replay` 和 `dpcc_publication_gate_replay_after_current_ai_reviewer_record` 必须物化和分派为 `gate_clearing_batch/run_gate_clearing_batch`，即便同一 AI reviewer route-back 的 `route_target=write`。
+- 决策：`route_target` 继续表达 reviewer 对后续修复方向的语义意图；当 `next_work_unit` 已明确属于 publication-gate replay family 时，controller/read-model/materializer/dispatcher 必须以 work-unit family 和 lane/control surface 为准。真正的 writer work unit 才能进入 `write/run_quality_repair_batch`。
+- 决策：该路径的 required output surface 统一为 `artifacts/controller/gate_clearing_batch/latest.json`。不得把 publication-gate replay 错派成 writer receipt、`run_quality_repair_batch`、`publication_eval/latest.json` 写入或 `current_package` 刷新。
+- 理由：DM003 暴露出当前 AI reviewer record 已被消费，并给出 `dpcc_publication_gate_replay_after_current_ai_reviewer_record` 作为下一 work unit；旧逻辑只看 `route_target=write`，把 publication-gate replay 错派给 `write/run_quality_repair_batch`，随后 default executor 返回 `controller_route_work_unit_unsupported`。根因是 controller/materializer/dispatch currentness 没有把 work-unit family 作为 owner 选择的最高优先级，导致 Progress-first 时间耗在重复 receipt 与 read-model reconcile 上，而不是进入下一真实 owner work unit。
+- 影响：这是 MAS controller/read-model/materializer/dispatcher 修复，不写 DM003 canonical paper、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续 DM003 仍必须通过 MAS owner/controller/runtime path 重新 materialize、dispatch、执行 gate-clearing batch，并由 gate replay 输出决定下一步 write repair、AI reviewer recheck、package freshness 或 typed blocker。
+
 ## 2026-05-31：default-executor export currentness 不能让旧 generated_at handoff 压住当前 legacy dispatch
 
 - 决策：`default_executor_dispatch_request` materializer 必须为新生成的 dispatch payload 写入 `generated_at`，使后续 `domain-handler export` 能按明确物化时间比较同类候选。

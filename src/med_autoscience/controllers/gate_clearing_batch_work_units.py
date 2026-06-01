@@ -8,6 +8,13 @@ from med_autoscience.controllers.claim_evidence_alignment_work_units import (
     CURRENT_MANUSCRIPT_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID,
 )
 
+PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS = frozenset(
+    {
+        "publication_gate_replay",
+        "owner_authorized_publication_gate_replay",
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+    }
+)
 
 UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS = frozenset(
     {

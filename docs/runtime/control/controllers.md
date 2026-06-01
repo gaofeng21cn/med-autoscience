@@ -161,6 +161,8 @@ AI reviewer request refresh 的 currentness 判断采用两层证据。第一层
 
 `domain-handler export` 选择 `domain_owner/default-executor-dispatch` 时必须先剔除已经被 MAS owner receipt 消费的 dispatch，再在剩余候选之间做 blocked-action / currentness / newest 选择。较新的 `return_to_ai_reviewer_workflow` dispatch 若已有 current AI reviewer receipt，只能作为已完成 owner step 进入 receipt ledger；它不得继续遮蔽后续未消费的 `run_quality_repair_batch`、gate 或 delivery work unit。若未消费候选存在，export 必须把它投影为 OPL 可调度 family task，而不是只输出 refs-only reconcile task 或让 scheduler tick idempotent-noop。该规则保持 MAS 不写 OPL runtime state、不直接 resume provider，也不放宽 publication gate；它只保证 Progress-First 的下一 owner work unit 不被已完成 receipt 吞掉。
 
+Publication-gate replay 的 owner 选择以 work-unit family 为准。`publication_gate_replay`、`owner_authorized_publication_gate_replay` 和 `dpcc_publication_gate_replay_after_current_ai_reviewer_record` 必须进入 `gate_clearing_batch/run_gate_clearing_batch`，即便 reviewer action 的 `route_target` 写成 `write`。`route_target` 只表达后续修复语义；已注册的 replay work unit、lane 和 required output surface 才是当前 executable owner truth。这个规则用于防止已消费 AI reviewer receipt 后再次落入 writer receipt / read-model reconcile 循环。
+
 Generic provider lifecycle CLI 已退役，不再作为 MAS 活跃 controller surface。外部 research/analysis progression 通过 publication aftercare 的 refs-only owner-route task 投影或 OPL provider-backed family runtime 进入 MAS domain-handler family bridge；MAS 仓不再保留 `recommend-domain-handler` / `provision-domain-handler` / `import-domain-handler` 这类 provider registry、workspace provisioning 或 import control-plane 壳。任何可执行任务仍必须回到 MAS owner chain，并由 `domain-handler export` / `domain-handler dispatch` 产出 owner receipt、typed blocker 或 refs-only dispatch receipt。
 
 后续优先顺序：

@@ -5,15 +5,14 @@ from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
     PUBLICATION_WORK_UNIT_REPAIR_IDS,
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
 
-GATE_CLEARING_ROUTE_WORK_UNIT_IDS = frozenset(PUBLICATION_WORK_UNIT_REPAIR_IDS) | {
-    "publication_gate_replay",
-}
+GATE_CLEARING_ROUTE_WORK_UNIT_IDS = frozenset(PUBLICATION_WORK_UNIT_REPAIR_IDS) | PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 
 
 @dataclass(frozen=True)

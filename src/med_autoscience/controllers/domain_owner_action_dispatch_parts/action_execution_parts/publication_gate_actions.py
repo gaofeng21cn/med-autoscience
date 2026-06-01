@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.profiles import WorkspaceProfile
 
 from ... import gate_clearing_batch, publication_gate
@@ -257,6 +258,7 @@ def _materialized_publication_owner_work_unit_id(source_refs: Mapping[str, Any])
     if _text(source_refs.get("blocked_reason")) not in {
         "current_package_freshness_required",
         "publication_owner_materialization_required",
+        *PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
     }:
         return None
     materialized_work_unit_id = _text(source_refs.get("materialized_work_unit_id"))

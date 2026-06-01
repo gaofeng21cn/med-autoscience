@@ -11,6 +11,7 @@ from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers.default_executor_action_policy import (
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
 )
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.story_surface_work_units import (
     is_story_surface_delta_write_work_unit,
 )
@@ -38,6 +39,7 @@ AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS = frozenset(
         "consume_current_input_ai_reviewer_record",
     }
 )
+AI_REVIEWER_PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS = frozenset(
     {
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
@@ -85,6 +87,12 @@ def materialization_action(
     source_refs = _mapping(owner_route.get("source_refs"))
     source_eval_id = _text(source_refs.get("source_eval_id"))
     study_root = _study_root(profile, study_id)
+    if _publication_gate_replay_work_unit(action):
+        return _publication_gate_replay_action(
+            action=action,
+            owner_route=owner_route,
+            source_eval_id=source_eval_id,
+        )
     current_record = ai_reviewer_publication_eval_records.latest_current_ai_reviewer_publication_eval_record(
         study_root=study_root,
         current_publication_eval=None,
@@ -370,6 +378,62 @@ def _gate_clearing_action(
             "story_surface_delta_refs": story_refs,
         },
         rewritten_route,
+    )
+
+
+def _publication_gate_replay_action(
+    *,
+    action: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+    source_eval_id: str | None,
+) -> dict[str, Any]:
+    route_work_unit_id = _route_work_unit_id(action=action, owner_route=owner_route) or "publication_gate_replay"
+    rewritten_route = _rewrite_owner_route(
+        owner_route=owner_route,
+        next_owner="gate_clearing_batch",
+        owner_reason=route_work_unit_id,
+        allowed_actions=["run_gate_clearing_batch"],
+        work_unit_id=route_work_unit_id,
+        source_eval_id=source_eval_id,
+    )
+    return _with_owner_route(
+        {
+            **dict(action),
+            "action_type": "run_gate_clearing_batch",
+            "owner": "gate_clearing_batch",
+            "request_owner": "gate_clearing_batch",
+            "recommended_owner": "gate_clearing_batch",
+            "reason": route_work_unit_id,
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "next_work_unit": route_work_unit_id,
+            "materialization_decision": "publication_gate_replay",
+            "source_eval_id": source_eval_id,
+        },
+        rewritten_route,
+    )
+
+
+def _publication_gate_replay_work_unit(action: Mapping[str, Any]) -> bool:
+    owner_route = _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+    work_unit_id = _route_work_unit_id(action=action, owner_route=owner_route)
+    if work_unit_id in AI_REVIEWER_PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return True
+    next_work_unit = _mapping(action.get("controller_next_work_unit"))
+    if _work_unit_id(next_work_unit) in AI_REVIEWER_PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return True
+    return _text(next_work_unit.get("lane")) in {"publication_gate", "finalize"} and "gate_replay" in str(
+        _work_unit_id(next_work_unit) or ""
+    )
+
+
+def _route_work_unit_id(*, action: Mapping[str, Any], owner_route: Mapping[str, Any]) -> str | None:
+    source_refs = _mapping(owner_route.get("source_refs"))
+    return (
+        _text(action.get("controller_work_unit_id"))
+        or _text(action.get("executable_work_unit"))
+        or _work_unit_id(action.get("next_work_unit"))
+        or _work_unit_id(source_refs.get("work_unit_id"))
+        or _work_unit_id(_mapping(source_refs.get("owner_route_currentness_basis")).get("work_unit_id"))
     )
 
 

@@ -460,6 +460,9 @@ _REASON_REGISTRY = {
     "publication_owner_materialization_required": _gate_clearing_entry(
         "DM002:current_ai_reviewer_materialization"
     ),
+    "dpcc_publication_gate_replay_after_current_ai_reviewer_record": _gate_clearing_entry(
+        "DM003:current_ai_reviewer_publication_gate_replay"
+    ),
     "owner_authorized_publication_gate_replay": _gate_clearing_entry(
         "DM003:owner_authorized_publication_gate_replay"
     ),

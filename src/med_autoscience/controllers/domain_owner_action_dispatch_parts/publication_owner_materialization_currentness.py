@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 
 
 BRIDGE_AUTHORITY = "domain_action_request_materializer_publication_owner_bridge"
@@ -15,6 +16,7 @@ MATERIALIZED_OWNER_REASONS = frozenset(
     }
 )
 MATERIALIZED_WORK_UNIT_IDS = frozenset({"current_package_freshness_required", "publication_gate_replay"})
+DIRECT_GATE_REPLAY_WORK_UNIT_IDS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 
 
 def bridged_publication_owner_materialization_route_from_scan_payload(
@@ -87,7 +89,8 @@ def _bridge_refs_match_current(
         and _text(dispatch_refs.get("bridged_from_owner_reason")) == _route_reason(current_route)
         and _text(dispatch_refs.get("bridged_from_idempotency_key")) == _text(current_route.get("idempotency_key"))
         and _text(dispatch_refs.get("materialized_from_action_type")) in SOURCE_ACTION_TYPES
-        and _text(dispatch_refs.get("materialized_work_unit_id")) in MATERIALIZED_WORK_UNIT_IDS
+        and _text(dispatch_refs.get("materialized_work_unit_id"))
+        in MATERIALIZED_WORK_UNIT_IDS | DIRECT_GATE_REPLAY_WORK_UNIT_IDS
     )
 
 
@@ -108,11 +111,15 @@ def _currentness_refs_match(
             return False
     dispatch_refs = _mapping(dispatch_route.get("source_refs"))
     current_refs = _mapping(current_route.get("source_refs"))
-    return _same_required_currentness_value(
+    work_unit_matches = _same_required_currentness_value(
         dispatch_refs,
         current_refs,
         "work_unit_id",
-    ) and _optional_currentness_value_matches(dispatch_refs, current_refs, "source_eval_id")
+    ) or (
+        _text(dispatch_refs.get("work_unit_id")) in DIRECT_GATE_REPLAY_WORK_UNIT_IDS
+        and _text(current_refs.get("work_unit_id")) in DIRECT_GATE_REPLAY_WORK_UNIT_IDS
+    )
+    return work_unit_matches and _optional_currentness_value_matches(dispatch_refs, current_refs, "source_eval_id")
 
 
 def _current_route_allows_materialized_source_action(
