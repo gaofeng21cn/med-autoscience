@@ -304,6 +304,11 @@ def _controller_route_context(route_context: Mapping[str, Any]) -> Mapping[str, 
         value = route_context.get(key)
         if isinstance(value, Mapping):
             return value
+    if all(
+        _text(route_context.get(key)) is not None
+        for key in ("work_unit_id", "controller_action_type", "control_surface")
+    ):
+        return route_context
     return {}
 
 

@@ -65,12 +65,22 @@ def _explicit_controller_route(route_context: Mapping[str, Any]) -> Mapping[str,
         value = route_context.get(key)
         if isinstance(value, Mapping):
             return value
+    if all(
+        _text(route_context.get(key)) is not None
+        for key in ("work_unit_id", "controller_action_type", "control_surface")
+    ):
+        return route_context
     return {}
 
 
 def _append_unique(items: list[str], item: str) -> None:
     if item not in items:
         items.append(item)
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 __all__ = [

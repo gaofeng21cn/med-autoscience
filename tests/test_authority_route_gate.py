@@ -366,6 +366,45 @@ def test_publication_gate_replay_work_unit_family_authorizes_submission_refresh_
     assert delivery_gate["blocking_reasons"] == []
 
 
+@pytest.mark.parametrize(
+    "action",
+    [
+        "bundle_build",
+        "delivery_sync",
+        "submission_materialize",
+        "submission_notice_materialize",
+    ],
+)
+def test_publication_gate_replay_work_unit_family_authorizes_flat_progress_first_route_context(
+    action: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+
+    gate = module.authorize_authority_route(
+        action,
+        {
+            "control_surface": "gate_clearing_batch",
+            "controller_action_type": "run_gate_clearing_batch",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "requires_human_confirmation": False,
+            "source_eval_id": "publication-eval::003-dpcc::latest",
+            "work_unit_fingerprint": (
+                "domain-transition::publication-gate-replay::"
+                "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+            ),
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["snapshot_ref"] is None
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["controller_route_gate"]["work_unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+    assert gate["controller_repair_authorization_ref"]["control_surface"] == "gate_clearing_batch"
+    assert gate["blocking_reasons"] == []
+
+
 def test_submission_authority_sync_closure_route_authorizes_submission_and_delivery_actions() -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
     context = {

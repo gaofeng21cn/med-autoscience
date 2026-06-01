@@ -218,6 +218,28 @@ def test_delivery_sync_without_snapshot_is_blocked_before_current_package_write(
     assert not (study_root / "manuscript" / "current_package.zip").exists()
 
 
+def test_flat_progress_first_publication_gate_replay_route_context_is_explicit_without_snapshot() -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_write_route")
+
+    _route_context, gate = module.resolve_authority_write_route_context(
+        action="delivery_sync",
+        context={
+            "control_surface": "gate_clearing_batch",
+            "controller_action_type": "run_gate_clearing_batch",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "requires_human_confirmation": False,
+            "source_eval_id": "publication-eval::003-dpcc::latest",
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["controller_route_gate"]["work_unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+    assert gate["blocking_reasons"] == []
+
+
 def test_publication_gate_apply_false_is_read_only_without_snapshot(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate_parts.supervisor_and_cli")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
