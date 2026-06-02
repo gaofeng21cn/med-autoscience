@@ -9,6 +9,7 @@ from med_autoscience.controllers.default_executor_action_policy import (
     request_owner_for_action_type,
 )
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+from med_autoscience.controllers.story_surface_work_units import is_story_surface_delta_write_work_unit
 from med_autoscience.stage_route_contract import PROGRESS_FIRST_SPRINT_ID
 
 
@@ -18,6 +19,14 @@ PROGRESS_FIRST_OUTCOME_CLASSES = (
     "gate_replay_result",
     "human_gate",
     "stop_loss",
+)
+CURRENT_AI_REVIEWER_RECORD_CONSUMPTION_WRITE_WORK_UNIT_IDS = frozenset(
+    {
+        "consume_current_ai_reviewer_record",
+        "consume_current_ai_reviewer_record_and_replay_gate",
+        "consume_current_input_ai_reviewer_record",
+        "consume_current_ai_reviewer_record_then_prose_gate_package_replay",
+    }
 )
 
 
@@ -267,6 +276,7 @@ def _owner_route_from_domain_transition(payload: Mapping[str, Any]) -> dict[str,
     target_surface_ref = _domain_transition_target_surface_ref(
         guard=guard,
         action_type=action_type,
+        work_unit_id=work_unit_id,
     )
     completion = _mapping(transition.get("completion_receipt_consumption"))
     route: dict[str, Any] = {
@@ -297,11 +307,11 @@ def _owner_route_from_domain_transition(payload: Mapping[str, Any]) -> dict[str,
             "surface_ref": target_surface_ref,
         }
         route["target_surface_source"] = (
-            "default_executor_action_policy.request_output_surface_for_action_type"
-            if _publication_gate_replay_work_unit(work_unit_id)
-            else "domain_transition.guard_boundary.required_owner_surface"
-            if _text(guard.get("required_owner_surface")) is not None
-            else "default_executor_action_policy.request_output_surface_for_action_type"
+            _domain_transition_target_surface_source(
+                guard=guard,
+                action_type=action_type,
+                work_unit_id=work_unit_id,
+            )
         )
     return route
 
@@ -309,21 +319,52 @@ def _owner_route_from_domain_transition(payload: Mapping[str, Any]) -> dict[str,
 def _domain_transition_action_type(*, controller_action: str | None, work_unit_id: str | None) -> str | None:
     if _publication_gate_replay_work_unit(work_unit_id):
         return "run_gate_clearing_batch"
+    if _write_quality_repair_work_unit(work_unit_id):
+        return "run_quality_repair_batch"
     if controller_action == "request_opl_stage_attempt":
         return None
     return controller_action
 
 
-def _domain_transition_target_surface_ref(*, guard: Mapping[str, Any], action_type: str | None) -> str | None:
-    if action_type is not None and _publication_gate_replay_action(action_type):
+def _domain_transition_target_surface_ref(
+    *,
+    guard: Mapping[str, Any],
+    action_type: str | None,
+    work_unit_id: str | None,
+) -> str | None:
+    if action_type is not None and (
+        _publication_gate_replay_action(action_type) or _write_quality_repair_work_unit(work_unit_id)
+    ):
         return request_output_surface_for_action_type(action_type)
     return _text(guard.get("required_owner_surface")) or (
         request_output_surface_for_action_type(action_type) if action_type is not None else None
     )
 
 
+def _domain_transition_target_surface_source(
+    *,
+    guard: Mapping[str, Any],
+    action_type: str | None,
+    work_unit_id: str | None,
+) -> str:
+    if action_type is not None and (
+        _publication_gate_replay_action(action_type) or _write_quality_repair_work_unit(work_unit_id)
+    ):
+        return "default_executor_action_policy.request_output_surface_for_action_type"
+    if _text(guard.get("required_owner_surface")) is not None:
+        return "domain_transition.guard_boundary.required_owner_surface"
+    return "default_executor_action_policy.request_output_surface_for_action_type"
+
+
 def _publication_gate_replay_work_unit(work_unit_id: str | None) -> bool:
     return work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+
+
+def _write_quality_repair_work_unit(work_unit_id: str | None) -> bool:
+    return (
+        work_unit_id in CURRENT_AI_REVIEWER_RECORD_CONSUMPTION_WRITE_WORK_UNIT_IDS
+        or is_story_surface_delta_write_work_unit(work_unit_id)
+    )
 
 
 def _publication_gate_replay_action(action_type: str) -> bool:
