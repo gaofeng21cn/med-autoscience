@@ -35,6 +35,14 @@ def paper_stage_log_for_default_executor_execution(
     duration = _duration_observability(execution)
     token_usage = _token_usage_observability(execution)
     cost = _cost_observability(execution)
+    next_forced_delta = _next_forced_delta(
+        action_type=action_type,
+        next_executable_owner=next_executable_owner,
+        required_output_surface=required_output_surface,
+        dispatch=dispatch,
+        changed_surfaces=changed_surfaces,
+        blocked_reason=blocked_reason,
+    )
     return {
         "surface_kind": "mas_paper_facing_stage_log_summary",
         "schema_version": 1,
@@ -62,7 +70,11 @@ def paper_stage_log_for_default_executor_execution(
         "cost": cost,
         "usage_refs": _usage_refs(execution=execution),
         "cost_refs": _cost_refs(execution=execution),
-        **_progress_delta_projection(execution=execution, changed_surfaces=changed_surfaces),
+        **_progress_delta_projection(
+            execution=execution,
+            changed_surfaces=changed_surfaces,
+            next_forced_delta=next_forced_delta,
+        ),
         "evidence_refs": _evidence_refs(
             study_id=study_id,
             dispatch_path=dispatch_path,
@@ -80,6 +92,7 @@ def _progress_delta_projection(
     *,
     execution: Mapping[str, Any],
     changed_surfaces: list[str],
+    next_forced_delta: Mapping[str, Any],
 ) -> dict[str, Any]:
     if _mapping(execution.get("anti_loop_budget")):
         return {
@@ -87,6 +100,7 @@ def _progress_delta_projection(
             "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
             "paper_progress_delta": {"count": 0, "token_usage_total": 0},
             "platform_repair_delta": {"count": 0, "token_usage_total": 0},
+            "next_forced_delta": dict(next_forced_delta),
         }
     total_tokens = _token_usage_total(execution)
     if changed_surfaces:
@@ -96,6 +110,7 @@ def _progress_delta_projection(
             "deliverable_progress_delta": deliverable_delta,
             "paper_progress_delta": deliverable_delta,
             "platform_repair_delta": {"count": 0, "token_usage_total": 0},
+            "next_forced_delta": dict(next_forced_delta),
         }
     if _platform_repair_delta(execution):
         return {
@@ -103,12 +118,63 @@ def _progress_delta_projection(
             "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
             "paper_progress_delta": {"count": 0, "token_usage_total": 0},
             "platform_repair_delta": {"count": 1, "token_usage_total": total_tokens},
+            "next_forced_delta": dict(next_forced_delta),
         }
     return {
         "progress_delta_classification": "typed_blocker",
         "deliverable_progress_delta": {"count": 0, "token_usage_total": 0},
         "paper_progress_delta": {"count": 0, "token_usage_total": 0},
         "platform_repair_delta": {"count": 0, "token_usage_total": 0},
+        "next_forced_delta": dict(next_forced_delta),
+    }
+
+
+def _next_forced_delta(
+    *,
+    action_type: str,
+    next_executable_owner: str | None,
+    required_output_surface: str | None,
+    dispatch: Mapping[str, Any],
+    changed_surfaces: list[str],
+    blocked_reason: str | None,
+) -> dict[str, Any]:
+    source_action = _mapping(dispatch.get("source_action"))
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    work_unit_id = (
+        _text(source_action.get("executable_work_unit"))
+        or _text(source_action.get("controller_work_unit_id"))
+        or _work_unit_id(source_action.get("next_work_unit"))
+        or _work_unit_id(prompt_contract.get("next_work_unit"))
+        or _text(owner_route.get("work_unit_id"))
+        or _text(_mapping(owner_route.get("source_refs")).get("work_unit_id"))
+        or action_type
+    )
+    target_surface = (
+        required_output_surface
+        or _text(prompt_contract.get("required_output_surface"))
+        or _text(owner_route.get("target_surface"))
+        or _text(owner_route.get("next_forced_target_surface"))
+        or "owner_authorized_output_surface_or_typed_blocker"
+    )
+    required_delta_kind = "paper_progress_delta_or_typed_blocker"
+    if changed_surfaces:
+        reason = "deliverable_progress_observed_next_quality_or_blocker_required"
+    elif blocked_reason:
+        reason = f"typed_blocker::{blocked_reason}"
+    else:
+        reason = "no_deliverable_delta_observed"
+    return {
+        "required_delta_kind": required_delta_kind,
+        "work_unit_id": work_unit_id,
+        "target_surface": {"surface_ref": target_surface},
+        "owner_action": {
+            "next_owner": next_executable_owner or _text(owner_route.get("next_owner")),
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+        },
+        "acceptance_refs": ["owner_receipt_ref", "typed_blocker_ref", "changed_surface_ref"],
+        "reason": reason,
     }
 
 

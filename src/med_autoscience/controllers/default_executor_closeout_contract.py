@@ -35,6 +35,11 @@ def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, A
             "cost",
             "usage_refs",
             "cost_refs",
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "paper_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta",
             "evidence_refs",
         ],
         "user_stage_log_policy": {
@@ -45,6 +50,24 @@ def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, A
             "internal_review_language_allowed_in_paper_body": False,
             "quality_verdict_authorized": False,
             "submission_readiness_authorized": False,
+            "progress_delta_policy": {
+                "classification_values": [
+                    "deliverable_progress",
+                    "platform_repair",
+                    "mixed",
+                    "typed_blocker",
+                    "human_gate",
+                    "stop_loss",
+                ],
+                "deliverable_progress_delta_shape": {
+                    "count": "integer",
+                    "token_usage_total": "integer_or_null",
+                    "refs": "optional_string_list",
+                },
+                "paper_progress_delta": "alias_of_deliverable_progress_delta_for_paper_lines",
+                "platform_repair_delta_does_not_count_as_paper_progress": True,
+                "next_forced_delta_required_for_no_deliverable_progress": True,
+            },
         },
         "completion_boundary": {
             "provider_completion": "typed_closeout_packet_observed",
@@ -63,7 +86,9 @@ def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, A
             "artifact delta, or typed blocker evidence refs. Include paper_stage_log with "
             "stage_name, problem_summary, stage_goal, stage_work_done, changed_stage_surfaces, "
             "paper_work_done, changed_paper_surfaces, outcome, remaining_blockers, duration, "
-            "token_usage, cost, usage_refs, cost_refs, and evidence_refs so OPL "
+            "token_usage, cost, usage_refs, cost_refs, progress_delta_classification, "
+            "deliverable_progress_delta, paper_progress_delta, platform_repair_delta, "
+            "next_forced_delta, and evidence_refs so OPL "
             "stage_progress_log.user_stage_log can answer user progress questions. This "
             "paper_stage_log is read-model/log content only; "
             "do not write it into the manuscript body and do not use it to claim quality, submission, "

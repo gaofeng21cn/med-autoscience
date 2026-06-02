@@ -531,10 +531,19 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
     assert "cost" in dispatch["required_closeout_packet"]["required_user_stage_log_fields"]
     assert "usage_refs" in dispatch["required_closeout_packet"]["required_user_stage_log_fields"]
     assert "cost_refs" in dispatch["required_closeout_packet"]["required_user_stage_log_fields"]
+    assert "progress_delta_classification" in dispatch["required_closeout_packet"]["required_user_stage_log_fields"]
+    assert "deliverable_progress_delta" in dispatch["required_closeout_packet"]["required_user_stage_log_fields"]
+    assert "paper_progress_delta" in dispatch["required_closeout_packet"]["required_user_stage_log_fields"]
+    assert "platform_repair_delta" in dispatch["required_closeout_packet"]["required_user_stage_log_fields"]
+    assert "next_forced_delta" in dispatch["required_closeout_packet"]["required_user_stage_log_fields"]
+    assert dispatch["required_closeout_packet"]["user_stage_log_policy"]["progress_delta_policy"][
+        "next_forced_delta_required_for_no_deliverable_progress"
+    ] is True
     assert dispatch["prompt_contract"]["required_closeout_packet"] == dispatch["required_closeout_packet"]
     assert "exactly one JSON object" in dispatch["executor_prompt"]
     assert "stage_work_done" in dispatch["executor_prompt"]
     assert "paper_stage_log" in dispatch["executor_prompt"]
+    assert "next_forced_delta" in dispatch["executor_prompt"]
     assert packet["owner_route"]["schema_version"] == 2
     assert packet["owner_route"]["truth_epoch"] == owner_route["route_epoch"]
     assert packet["idempotency_key"] == owner_route["idempotency_key"]

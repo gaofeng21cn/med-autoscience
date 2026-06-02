@@ -320,3 +320,15 @@ def test_execute_quality_repair_batch_escalates_after_two_same_auto_failures(
     assert execution["paper_stage_log"]["deliverable_progress_delta"] == {"count": 0, "token_usage_total": 0}
     assert execution["paper_stage_log"]["paper_progress_delta"] == {"count": 0, "token_usage_total": 0}
     assert execution["paper_stage_log"]["platform_repair_delta"] == {"count": 0, "token_usage_total": 0}
+    assert execution["paper_stage_log"]["next_forced_delta"]["required_delta_kind"] == (
+        "paper_progress_delta_or_typed_blocker"
+    )
+    assert execution["paper_stage_log"]["next_forced_delta"]["work_unit_id"] == work_unit_id
+    assert execution["paper_stage_log"]["next_forced_delta"]["target_surface"]["surface_ref"] == (
+        "canonical manuscript story-surface delta or typed blocker:manuscript_story_surface_delta_missing"
+    )
+    assert execution["paper_stage_log"]["next_forced_delta"]["owner_action"] == {
+        "next_owner": "write",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": work_unit_id,
+    }

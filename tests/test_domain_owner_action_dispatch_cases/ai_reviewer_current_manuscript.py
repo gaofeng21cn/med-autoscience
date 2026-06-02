@@ -178,6 +178,19 @@ def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_r
         "Do not inspect MAS source code to discover alternate CLI spellings or write artifacts/publication_eval/latest.json.",
         "Emit the required typed closeout packet with the materialized record ref.",
     ]
+    closeout_contract = handoff["required_closeout_packet"]
+    assert closeout_contract["required_user_stage_log_field"] == "paper_stage_log"
+    assert set(closeout_contract["required_user_stage_log_fields"]) >= {
+        "progress_delta_classification",
+        "deliverable_progress_delta",
+        "paper_progress_delta",
+        "platform_repair_delta",
+        "next_forced_delta",
+    }
+    assert closeout_contract["user_stage_log_policy"]["progress_delta_policy"][
+        "platform_repair_delta_does_not_count_as_paper_progress"
+    ] is True
+    assert "next_forced_delta" in handoff["terminal_output_instruction"]
     assert handoff["owner_route"]["next_owner"] == "ai_reviewer"
     assert handoff["owner_route"]["owner_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
     assert handoff["owner_route"]["source_refs"]["work_unit_id"] == (

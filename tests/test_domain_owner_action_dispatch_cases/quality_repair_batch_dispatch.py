@@ -59,10 +59,15 @@ def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: 
         "duration",
         "token_usage",
         "cost",
-        "usage_refs",
-        "cost_refs",
-        "evidence_refs",
-    ]
+            "usage_refs",
+            "cost_refs",
+            "progress_delta_classification",
+            "deliverable_progress_delta",
+            "paper_progress_delta",
+            "platform_repair_delta",
+            "next_forced_delta",
+            "evidence_refs",
+        ]
     assert closeout_contract["user_stage_log_policy"] == {
         "surface_kind": "mas_paper_facing_stage_log_summary",
         "summary_scope": "stage_log_read_model_only",
@@ -71,6 +76,24 @@ def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: 
         "internal_review_language_allowed_in_paper_body": False,
         "quality_verdict_authorized": False,
         "submission_readiness_authorized": False,
+        "progress_delta_policy": {
+            "classification_values": [
+                "deliverable_progress",
+                "platform_repair",
+                "mixed",
+                "typed_blocker",
+                "human_gate",
+                "stop_loss",
+            ],
+            "deliverable_progress_delta_shape": {
+                "count": "integer",
+                "token_usage_total": "integer_or_null",
+                "refs": "optional_string_list",
+            },
+            "paper_progress_delta": "alias_of_deliverable_progress_delta_for_paper_lines",
+            "platform_repair_delta_does_not_count_as_paper_progress": True,
+            "next_forced_delta_required_for_no_deliverable_progress": True,
+        },
     }
     assert handoff["prompt_contract"]["required_closeout_packet"] == closeout_contract
     assert "exactly one JSON object" in handoff["terminal_output_instruction"]
@@ -217,8 +240,14 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
     assert "stage_attempt_closeout_packet" in closeout_contract["accepted_surface_kinds"]
     assert closeout_contract["required_user_stage_log_field"] == "paper_stage_log"
     assert "paper_work_done" in closeout_contract["required_user_stage_log_fields"]
+    assert "progress_delta_classification" in closeout_contract["required_user_stage_log_fields"]
+    assert "deliverable_progress_delta" in closeout_contract["required_user_stage_log_fields"]
+    assert "paper_progress_delta" in closeout_contract["required_user_stage_log_fields"]
+    assert "platform_repair_delta" in closeout_contract["required_user_stage_log_fields"]
+    assert "next_forced_delta" in closeout_contract["required_user_stage_log_fields"]
     assert "terminal_output_instruction" in execution["writer_worker_handoff"]
     assert "exactly one JSON object" in execution["writer_worker_handoff"]["terminal_output_instruction"]
+    assert "next_forced_delta" in execution["writer_worker_handoff"]["terminal_output_instruction"]
     assert called["study_id"] == study_id
     assert called["quest_id"] == f"quest-{study_id}"
     route_context = called["authority_route_context"]
