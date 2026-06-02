@@ -357,6 +357,72 @@ def test_progress_first_monitoring_counts_paper_delta_despite_missing_closeout_o
     )
 
 
+def test_progress_first_monitoring_counts_stage_delta_despite_missing_closeout_observability() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "next_forced_delta": {
+                "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                "work_unit_id": "unit_harmonized_external_validation_rerun",
+                "owner_action": {
+                    "next_owner": "analysis_harmonization_owner",
+                    "work_unit_id": "unit_harmonized_external_validation_rerun",
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "latest_terminal_stage_log": {
+                    "stage_attempt_id": "sat-002",
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "action_type": "run_quality_repair_batch",
+                    "status": "executed",
+                    "typed_blocker_reason": "typed_closeout_packet_required",
+                    "diagnostic": "missing_usage_telemetry",
+                    "missing_user_stage_log_fields": ["progress_delta_classification"],
+                    "observability_status": "missing",
+                    "missing_observability_fields": ["duration", "token_usage", "cost"],
+                    "duration": {},
+                    "token_usage": {},
+                    "cost": {},
+                    "paper_stage_log": {
+                        "stage_name": "unit_harmonized_external_validation_rerun",
+                        "problem_summary": "Repair advanced the runtime-stage surface.",
+                        "stage_goal": "Produce a stage-level repair delta or a stable blocker.",
+                        "outcome": "executed",
+                        "stage_work_done": ["Recorded stage-facing runtime repair changes."],
+                        "paper_work_done": [],
+                        "changed_stage_surfaces": [
+                            "artifacts/supervision/current_control_state/latest.json",
+                        ],
+                        "changed_paper_surfaces": [],
+                        "remaining_blockers": [],
+                        "evidence_refs": [
+                            "artifacts/supervision/current_control_state/latest.json",
+                        ],
+                    },
+                },
+            },
+        }
+    )
+
+    assert monitoring["typed_blocker"] is None
+    assert monitoring["progress_delta_classification"] == "platform_repair"
+    terminal = monitoring["latest_terminal_stage"]
+    assert terminal["progress_delta_classification"] == "platform_repair"
+    completeness = terminal["terminal_closeout_semantic_completeness"]
+    assert completeness["status"] == "complete"
+    assert completeness["typed_blocker"] is None
+    assert completeness["telemetry"] == "missing"
+    assert completeness["missing_telemetry_fields"] == ["duration", "token_usage", "cost"]
+    assert (
+        completeness["progress_delta_classification_source"]
+        == "inferred_from_changed_stage_surfaces"
+    )
+
+
 def test_progress_first_monitoring_marks_complete_terminal_closeout_semantics() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
@@ -464,9 +530,7 @@ def test_progress_first_monitoring_prefers_consumed_transition_owner_action_over
     assert monitoring["next_owner"] == "write"
     assert monitoring["route_target"] == "write"
     assert monitoring["controller_action"] == "request_opl_stage_attempt"
-    assert monitoring["next_work_unit"]["unit_id"] == (
-        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
-    )
+    assert monitoring["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     assert monitoring["typed_blocker"] is None
     assert monitoring["current_blockers"] == []
     assert monitoring["dispatch_consumption"]["consumption_status"] == "consumed"

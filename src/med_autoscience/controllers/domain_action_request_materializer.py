@@ -32,6 +32,7 @@ from med_autoscience.controllers.default_executor_action_policy import (
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
     default_executor_search_discipline,
     request_output_surface_for_action_type,
+    request_output_target_surface_for_action_type,
     request_owner_for_action_type,
     request_packet_ref_for_action_type,
     request_packet_ref_for_dispatch,
@@ -221,6 +222,10 @@ def _request_output_surface_for_action_type(action_type: str) -> str:
     return request_output_surface_for_action_type(action_type)
 
 
+def _request_output_target_surface_for_action_type(action_type: str) -> dict[str, object] | None:
+    return request_output_target_surface_for_action_type(action_type)
+
+
 def _request_packet_ref_for_action_type(action_type: str) -> str:
     return request_packet_ref_for_action_type(action_type)
 
@@ -313,6 +318,7 @@ def _default_executor_dispatch(
     repeat_key = repeat_suppression.repeat_key(owner_route)
     typed_closeout_contract = default_executor_typed_closeout_contract(action_type=action_type)
     forbidden_surfaces = _default_executor_forbidden_surfaces(owner_route)
+    required_output_target_surface = _request_output_target_surface_for_action_type(action_type)
     prompt_contract = {
         "study_id": study_id,
         "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
@@ -343,6 +349,8 @@ def _default_executor_dispatch(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+    if required_output_target_surface is not None:
+        prompt_contract["required_output_target_surface"] = required_output_target_surface
     dispatch_shell = {
         "action_type": action_type,
         "next_executable_owner": next_executable_owner,
@@ -455,6 +463,11 @@ def _default_executor_dispatch_payload(
         "action_id": _text(action.get("action_id")),
         "next_executable_owner": next_executable_owner,
         "required_output_surface": required_output_surface,
+        **(
+            {"required_output_target_surface": dict(prompt_contract["required_output_target_surface"])}
+            if "required_output_target_surface" in prompt_contract
+            else {}
+        ),
         "owner_route": owner_route or None,
         "idempotency_key": idempotency_key,
         "repeat_suppression_key": repeat_key,

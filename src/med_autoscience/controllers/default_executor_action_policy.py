@@ -180,6 +180,35 @@ REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE = {
     ),
 }
 
+REQUEST_OUTPUT_TARGET_SURFACE_BY_ACTION_TYPE = {
+    "unit_harmonized_external_validation_rerun": {
+        "surface": "analysis_harmonization_owner_target_surface",
+        "schema_version": 1,
+        "body_free": True,
+        "owner": "analysis_harmonization_owner",
+        "work_unit": "unit_harmonized_external_validation_rerun",
+        "accepted_outputs": [
+            "unit_harmonized_external_validation_rerun_evidence",
+            "feature_order_and_coefficient_provenance",
+            "calibration_or_recalibration_evidence",
+            "claim_evidence_map_update_ref",
+            "stable_typed_blocker:unit_harmonized_rerun_required",
+        ],
+        "output_refs": {
+            "owner_result": "artifacts/controller/analysis_harmonization/latest.json",
+            "rerun_evidence": (
+                "artifacts/controller/analysis_harmonization/"
+                "unit_harmonized_external_validation_rerun.json"
+            ),
+            "claim_evidence_map": "paper/claim_evidence_map.json",
+            "request_packet": "artifacts/supervision/requests/analysis_harmonization/latest.json",
+        },
+        "publication_ready_authorized": False,
+        "current_package_write_allowed": False,
+        "paper_body_write_allowed": False,
+    },
+}
+
 REQUEST_PACKET_REF_BY_ACTION_TYPE = {
     "publication_gate_specificity_required": "artifacts/supervision/requests/publication_gate_specificity/latest.json",
     "current_package_freshness_required": "artifacts/supervision/requests/current_package_freshness/latest.json",
@@ -203,6 +232,11 @@ def request_output_surface_for_action_type(action_type: str) -> str:
     return REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE.get(action_type, "artifacts/supervision/requests")
 
 
+def request_output_target_surface_for_action_type(action_type: str) -> dict[str, object] | None:
+    target_surface = REQUEST_OUTPUT_TARGET_SURFACE_BY_ACTION_TYPE.get(action_type)
+    return _deep_copy_mapping(target_surface) if target_surface is not None else None
+
+
 def request_packet_ref_for_action_type(action_type: str) -> str:
     return REQUEST_PACKET_REF_BY_ACTION_TYPE.get(action_type, "artifacts/supervision/requests")
 
@@ -223,11 +257,24 @@ def default_executor_search_discipline() -> dict[str, object]:
     }
 
 
+def _deep_copy_mapping(payload: dict[str, object]) -> dict[str, object]:
+    copied: dict[str, object] = {}
+    for key, value in payload.items():
+        if isinstance(value, dict):
+            copied[key] = _deep_copy_mapping(value)
+        elif isinstance(value, list):
+            copied[key] = list(value)
+        else:
+            copied[key] = value
+    return copied
+
+
 __all__ = [
     "ALLOWED_WRITE_SURFACES",
     "DEFAULT_EXECUTOR_SEARCH_DISCIPLINE",
     "FORBIDDEN_SURFACES",
     "REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE",
+    "REQUEST_OUTPUT_TARGET_SURFACE_BY_ACTION_TYPE",
     "REQUEST_OWNER_BY_ACTION_TYPE",
     "REQUEST_PACKET_REF_BY_ACTION_TYPE",
     "RETIRED_ABSENT_SURFACES",
@@ -235,6 +282,7 @@ __all__ = [
     "SOURCE_HANDOFF_REF_FIELDS",
     "SUPPORTED_ACTION_TYPES",
     "request_output_surface_for_action_type",
+    "request_output_target_surface_for_action_type",
     "request_owner_for_action_type",
     "default_executor_search_discipline",
     "request_packet_ref_for_action_type",

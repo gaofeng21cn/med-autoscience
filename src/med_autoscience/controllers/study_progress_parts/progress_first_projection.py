@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.controllers.default_executor_action_policy import (
     request_output_surface_for_action_type,
+    request_output_target_surface_for_action_type,
     request_owner_for_action_type,
 )
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
@@ -168,7 +169,11 @@ def _owner_route_from_handoff_action_queue(handoff: Mapping[str, Any]) -> dict[s
         or next_owner
     )
     required_output_surface = _text(action.get("required_output_surface"))
-    target_surface_ref = required_output_surface or request_output_surface_for_action_type(action_type)
+    target_surface = _action_queue_target_surface(
+        action=action,
+        action_type=action_type,
+        route_target=route_target,
+    )
     source_refs = {
         key: value
         for key, value in {
@@ -193,11 +198,7 @@ def _owner_route_from_handoff_action_queue(handoff: Mapping[str, Any]) -> dict[s
             "allowed_actions": [action_type],
             "owner_receipt_required": True,
         },
-        "target_surface": {
-            "ref_kind": "route_obligation",
-            "route_target": route_target,
-            "surface_ref": target_surface_ref,
-        },
+        "target_surface": target_surface,
         "target_surface_source": (
             "opl_current_control_state.action_queue.required_output_surface"
             if required_output_surface is not None
@@ -222,6 +223,26 @@ def _first_current_action_queue_item(value: object) -> dict[str, Any] | None:
             continue
         return payload
     return None
+
+
+def _action_queue_target_surface(
+    *,
+    action: Mapping[str, Any],
+    action_type: str,
+    route_target: str | None,
+) -> dict[str, Any]:
+    explicit = _mapping(action.get("required_output_target_surface"))
+    if explicit:
+        return explicit
+    target_surface = request_output_target_surface_for_action_type(action_type)
+    if target_surface is not None:
+        return target_surface
+    required_output_surface = _text(action.get("required_output_surface"))
+    return {
+        "ref_kind": "route_obligation",
+        "route_target": route_target,
+        "surface_ref": required_output_surface or request_output_surface_for_action_type(action_type),
+    }
 
 
 def _route_has_explicit_target_surface(route: Mapping[str, Any]) -> bool:

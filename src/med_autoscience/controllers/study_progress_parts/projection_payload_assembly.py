@@ -18,6 +18,7 @@ from .current_owner_handoff_projection import (
     apply_current_owner_handoff_user_visible_status,
     current_owner_redrive_domain_transition,
 )
+from .current_executable_owner_action import build_current_executable_owner_action
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .parked_projection import parked_progress_fields
 from .progress_first_projection import build_progress_first_projection
@@ -682,6 +683,7 @@ def assemble_study_progress_payload(
         study_id=study_id,
     )
     payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
+    payload["current_executable_owner_action"] = build_current_executable_owner_action(payload)
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))

@@ -8,6 +8,8 @@ from med_autoscience.controllers.progress_first_receipt_identity import (
     consumed_ai_reviewer_receipt_matches_transition_work_unit,
 )
 
+from .current_executable_owner_action import build_current_executable_owner_action
+
 
 TERMINAL_CLOSEOUT_REQUIRED_USER_STAGE_LOG_FIELDS = (
     "stage_work_done",
@@ -42,6 +44,9 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     supervision = _mapping(payload.get("supervision"))
     runtime_health = _mapping(payload.get("runtime_health_snapshot"))
     next_forced_delta = _mapping(payload.get("next_forced_delta"))
+    current_action = _mapping(payload.get("current_executable_owner_action")) or _mapping(
+        build_current_executable_owner_action(payload)
+    )
     progress_state = _mapping(payload.get("progress_first_sprint_state"))
     latest_terminal_stage_log = _mapping(handoff.get("latest_terminal_stage_log"))
     paper_stage_log = _mapping(latest_terminal_stage_log.get("paper_stage_log"))
@@ -57,6 +62,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     handoff_owner_action = _first_current_action_queue_item(handoff.get("action_queue"))
     next_work_unit = (
         hydration_work_unit
+        or _work_unit_from_current_action(current_action)
         or _work_unit_from_action(handoff_owner_action)
         or (
             _work_unit_projection(domain_transition.get("next_work_unit"))
@@ -125,6 +131,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "execution_state_kind": "owner_handoff_hydration" if hydration_work_unit is not None else state_kind,
         "next_owner": (
             _explicit_wakeup_hydration_owner(launch_policy)
+            or _text(current_action.get("next_owner"))
             or _owner_from_action(handoff_owner_action)
             or (_text(domain_transition.get("owner")) if transition_consumed_owner_action else None)
             or _text(execution.get("owner"))
@@ -136,9 +143,12 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "controller_action": (
             _text(handoff_owner_action.get("action_type"))
             if handoff_owner_action is not None
-            else _text(domain_transition.get("controller_action")) or _text(payload.get("runtime_decision"))
+            else _first_text(current_action.get("allowed_actions"))
+            or _text(domain_transition.get("controller_action"))
+            or _text(payload.get("runtime_decision"))
         ),
         "next_work_unit": next_work_unit,
+        "current_executable_owner_action": current_action or None,
         "owner_handoff_hydration": _owner_handoff_hydration_projection(launch_policy),
         "typed_blocker": typed_blocker or None,
         "current_blockers": current_blockers,
@@ -313,20 +323,35 @@ def _latest_terminal_stage_summary(
         return None
     semantic_completeness = _stage_semantic_completeness(paper_stage_log)
     telemetry_completeness = _stage_telemetry_completeness(latest_terminal_stage_log)
-    explicit_blocker = _text(latest_terminal_stage_log.get("typed_blocker_reason")) is not None
-    progress_delta_classification = _terminal_progress_delta_classification(
-        paper_stage_log,
-        infer_from_surfaces=not explicit_blocker,
-    )
-    progress_delta_classification_source = _terminal_progress_delta_classification_source(
-        paper_stage_log,
-        infer_from_surfaces=not explicit_blocker,
-    )
     missing_user_fields = _missing_user_stage_log_fields(
         latest_terminal_stage_log=latest_terminal_stage_log,
         paper_stage_log=paper_stage_log,
     )
     missing_telemetry_fields = _missing_telemetry_fields(latest_terminal_stage_log)
+    changed_stage_status = _field_presence_status(paper_stage_log, "changed_stage_surfaces")
+    changed_paper_status = _field_presence_status(paper_stage_log, "changed_paper_surfaces")
+    changed_surfaces_status = (
+        "missing"
+        if changed_stage_status == "missing" and changed_paper_status == "missing"
+        else "present"
+    )
+    explicit_blocker = _text(latest_terminal_stage_log.get("typed_blocker_reason")) is not None
+    infer_from_surfaces = not explicit_blocker or _explicit_closeout_blocker_is_telemetry_diagnostic_only(
+        explicit=_text(latest_terminal_stage_log.get("typed_blocker_reason")) or "",
+        latest_terminal_stage_log=latest_terminal_stage_log,
+        missing_user_fields=missing_user_fields,
+        missing_telemetry_fields=missing_telemetry_fields,
+        changed_surfaces_status=changed_surfaces_status,
+        progress_delta_classification=_terminal_progress_delta_classification(paper_stage_log),
+    )
+    progress_delta_classification = _terminal_progress_delta_classification(
+        paper_stage_log,
+        infer_from_surfaces=infer_from_surfaces,
+    )
+    progress_delta_classification_source = _terminal_progress_delta_classification_source(
+        paper_stage_log,
+        infer_from_surfaces=infer_from_surfaces,
+    )
     return {
         "stage_attempt_id": _text(latest_terminal_stage_log.get("stage_attempt_id")),
         "stage_id": _text(latest_terminal_stage_log.get("stage_id")),
@@ -424,6 +449,15 @@ def _terminal_closeout_typed_blocker(
 ) -> str | None:
     explicit = _text(latest_terminal_stage_log.get("typed_blocker_reason"))
     if explicit is not None:
+        if _explicit_closeout_blocker_is_telemetry_diagnostic_only(
+            explicit=explicit,
+            latest_terminal_stage_log=latest_terminal_stage_log,
+            missing_user_fields=missing_user_fields,
+            missing_telemetry_fields=missing_telemetry_fields,
+            changed_surfaces_status=changed_surfaces_status,
+            progress_delta_classification=progress_delta_classification,
+        ):
+            return None
         return explicit
     if changed_surfaces_status == "missing":
         return "typed_closeout_packet_required"
@@ -433,6 +467,34 @@ def _terminal_closeout_typed_blocker(
     if blocking_missing_user_fields or progress_delta_classification is None:
         return "typed_closeout_packet_required"
     return None
+
+
+def _explicit_closeout_blocker_is_telemetry_diagnostic_only(
+    *,
+    explicit: str,
+    latest_terminal_stage_log: Mapping[str, Any],
+    missing_user_fields: list[str],
+    missing_telemetry_fields: list[str],
+    changed_surfaces_status: str,
+    progress_delta_classification: str | None,
+) -> bool:
+    if explicit != "typed_closeout_packet_required":
+        return False
+    if changed_surfaces_status == "missing" or progress_delta_classification is None:
+        return False
+    blocking_missing_user_fields = [
+        field for field in missing_user_fields if field != "progress_delta_classification"
+    ]
+    if blocking_missing_user_fields:
+        return False
+    diagnostic = _text(latest_terminal_stage_log.get("diagnostic"))
+    if not missing_telemetry_fields and diagnostic not in {
+        "missing_usage_telemetry",
+        "missing_observability_telemetry",
+        "missing_observability_fields",
+    }:
+        return False
+    return True
 
 
 def _terminal_closeout_typed_blocker_projection(
@@ -656,6 +718,10 @@ def _work_unit_from_action(action: Mapping[str, Any] | None) -> dict[str, Any] |
     return None
 
 
+def _work_unit_from_current_action(action: Mapping[str, Any]) -> str | None:
+    return _text(action.get("work_unit_id"))
+
+
 def _work_unit_projection(value: object) -> dict[str, Any] | str | None:
     if isinstance(value, Mapping):
         return _compact_mapping(
@@ -765,6 +831,11 @@ def _dedupe_text(values: list[object] | tuple[object, ...] | set[object]) -> lis
         if text is not None and text not in result:
             result.append(text)
     return result
+
+
+def _first_text(value: object) -> str | None:
+    items = _text_list(value)
+    return items[0] if items else _text(value)
 
 
 def _text(value: object) -> str | None:

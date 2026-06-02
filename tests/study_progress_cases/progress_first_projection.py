@@ -337,12 +337,30 @@ def test_next_forced_delta_prefers_current_handoff_action_queue_over_stale_trans
     assert result["progress_first_sprint_state"]["next_owner"] == "analysis_harmonization_owner"
     assert result["next_forced_delta"]["work_unit_id"] == "unit_harmonized_external_validation_rerun"
     assert result["next_forced_delta"]["target_surface"] == {
-        "ref_kind": "route_obligation",
-        "route_target": "analysis_harmonization_owner",
-        "surface_ref": (
-            "unit-harmonized external-validation rerun evidence or "
-            "typed blocker:unit_harmonized_rerun_required"
-        ),
+        "surface": "analysis_harmonization_owner_target_surface",
+        "schema_version": 1,
+        "body_free": True,
+        "owner": "analysis_harmonization_owner",
+        "work_unit": "unit_harmonized_external_validation_rerun",
+        "accepted_outputs": [
+            "unit_harmonized_external_validation_rerun_evidence",
+            "feature_order_and_coefficient_provenance",
+            "calibration_or_recalibration_evidence",
+            "claim_evidence_map_update_ref",
+            "stable_typed_blocker:unit_harmonized_rerun_required",
+        ],
+        "output_refs": {
+            "owner_result": "artifacts/controller/analysis_harmonization/latest.json",
+            "rerun_evidence": (
+                "artifacts/controller/analysis_harmonization/"
+                "unit_harmonized_external_validation_rerun.json"
+            ),
+            "claim_evidence_map": "paper/claim_evidence_map.json",
+            "request_packet": "artifacts/supervision/requests/analysis_harmonization/latest.json",
+        },
+        "publication_ready_authorized": False,
+        "current_package_write_allowed": False,
+        "paper_body_write_allowed": False,
     }
     assert result["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
     assert result["next_forced_delta"]["missing_explicit_target_surface"] is False

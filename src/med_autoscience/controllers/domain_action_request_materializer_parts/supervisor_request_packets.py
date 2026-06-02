@@ -7,6 +7,7 @@ from typing import Any
 from med_autoscience.controllers.default_executor_action_policy import (
     RETIRED_ABSENT_SURFACES,
     request_output_surface_for_action_type,
+    request_output_target_surface_for_action_type,
     request_owner_for_action_type,
     request_packet_ref_for_action_type,
 )
@@ -37,6 +38,7 @@ def request_task(
     authority = _text(action.get("authority")) or _text(handoff_packet.get("authority")) or "observability_only"
     request_owner = _owner_from_action(action, action_type)
     required_output_surface = _required_output_surface(action, action_type)
+    required_output_target_surface = request_output_target_surface_for_action_type(action_type)
     request_packet_ref = request_packet_ref_for_action_type(action_type)
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(action.get("owner_route")) or _mapping(handoff_packet.get("owner_route"))
@@ -55,6 +57,7 @@ def request_task(
     owner_pickup = _owner_pickup(
         request_owner=request_owner,
         required_output_surface=required_output_surface,
+        required_output_target_surface=required_output_target_surface,
         owner_route=owner_route,
         idempotency_key=idempotency_key,
         request_packet_ref=request_packet_ref,
@@ -68,6 +71,7 @@ def request_task(
         authority=authority,
         request_owner=request_owner,
         required_output_surface=required_output_surface,
+        required_output_target_surface=required_output_target_surface,
         owner_route=owner_route,
         idempotency_key=idempotency_key,
         request_packet_ref=request_packet_ref,
@@ -87,6 +91,11 @@ def request_task(
         "expected_owner": request_owner,
         "next_executable_owner": request_owner,
         "required_output_surface": required_output_surface,
+        **(
+            {"required_output_target_surface": required_output_target_surface}
+            if required_output_target_surface is not None
+            else {}
+        ),
         "request_packet_ref": request_packet_ref,
         "owner_pickup": owner_pickup,
         "owner_route": owner_route or None,
@@ -127,11 +136,12 @@ def _owner_pickup(
     *,
     request_owner: str,
     required_output_surface: str,
+    required_output_target_surface: Mapping[str, Any] | None,
     owner_route: Mapping[str, Any],
     idempotency_key: str | None,
     request_packet_ref: str,
 ) -> dict[str, Any]:
-    return {
+    pickup = {
         "owner": request_owner,
         "state": "pending",
         "required_output_surface": required_output_surface,
@@ -140,6 +150,9 @@ def _owner_pickup(
         "request_packet_ref": request_packet_ref,
         "supervisor_authority_boundary": "request_only",
     }
+    if required_output_target_surface is not None:
+        pickup["required_output_target_surface"] = dict(required_output_target_surface)
+    return pickup
 
 
 def request_task_handoff_packet(
@@ -152,6 +165,7 @@ def request_task_handoff_packet(
     authority: str,
     request_owner: str,
     required_output_surface: str,
+    required_output_target_surface: Mapping[str, Any] | None,
     owner_route: Mapping[str, Any],
     idempotency_key: str | None,
     request_packet_ref: str,
@@ -171,6 +185,11 @@ def request_task_handoff_packet(
         "expected_owner": request_owner,
         "next_executable_owner": request_owner,
         "required_output_surface": required_output_surface,
+        **(
+            {"required_output_target_surface": dict(required_output_target_surface)}
+            if required_output_target_surface is not None
+            else {}
+        ),
         "owner_route": owner_route or None,
         "idempotency_key": idempotency_key,
         "request_packet_ref": request_packet_ref,

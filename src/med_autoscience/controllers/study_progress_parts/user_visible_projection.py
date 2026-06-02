@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.controllers.paper_progress_state import build_paper_progress_state
 from med_autoscience.runtime_control.decision_trace_ledger import decision_trace_projection
 
+from .current_executable_owner_action import owner_action_next_step
 from .current_owner_handoff_projection import current_owner_handoff_action
 from .shared import _mapping_copy, _non_empty_text
 
@@ -90,7 +91,12 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     meaningful_artifact_delta = bool(paper_progress_state.get("meaningful_artifact_delta")) or _meaningful_artifact_delta(
         payload
     )
-    next_owner = _non_empty_text(paper_progress_state.get("next_owner")) or _next_owner(payload=payload, details=details)
+    executable_owner_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    next_owner = (
+        _non_empty_text(executable_owner_action.get("next_owner"))
+        or _non_empty_text(paper_progress_state.get("next_owner"))
+        or _next_owner(payload=payload, details=details)
+    )
     why_not_progressing = _non_empty_text(paper_progress_state.get("why_not_progressing")) or _why_not_progressing(
         payload=payload,
         actual_write_active=actual_write_active,
@@ -133,13 +139,16 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         user_action_required=user_action_required,
         current_blockers=current_blockers,
     )
-    next_step = _next_step(
-        writer_state=writer_state,
-        user_next=user_next,
-        reason=reason,
-        terminal_delivery=terminal_delivery,
-        details=details,
-        quality_owner_pending=quality_owner_pending,
+    next_step = (
+        owner_action_next_step(executable_owner_action)
+        or _next_step(
+            writer_state=writer_state,
+            user_next=user_next,
+            reason=reason,
+            terminal_delivery=terminal_delivery,
+            details=details,
+            quality_owner_pending=quality_owner_pending,
+        )
     )
     trace_projection = decision_trace_projection(
         payload,
@@ -193,6 +202,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         "study_macro_state": dict(macro_state),
         "supervision": _supervision_projection(payload),
         "paper_progress_state": paper_progress_state,
+        "current_executable_owner_action": executable_owner_action or None,
         "evidence": evidence,
         "evidence_refs": dict(evidence["refs"]),
         "conditions": _projection_conditions(
@@ -368,6 +378,7 @@ def _meaningful_artifact_delta(payload: Mapping[str, Any]) -> bool:
 
 
 def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> str | None:
+    executable_action = _mapping_copy(payload.get("current_executable_owner_action"))
     impact = _mapping_copy(payload.get("production_blocker_impact"))
     owner_route = _mapping_copy(payload.get("owner_route"))
     paper_progress_stall = _mapping_copy(payload.get("paper_progress_stall"))
@@ -375,7 +386,8 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
     opl_handoff_action = current_owner_handoff_action(payload)
     ai_repair_lifecycle = _mapping_copy(payload.get("ai_repair_lifecycle"))
     return (
-        _non_empty_text(impact.get("next_owner"))
+        _non_empty_text(executable_action.get("next_owner"))
+        or _non_empty_text(impact.get("next_owner"))
         or _non_empty_text(owner_route.get("next_owner"))
         or _non_empty_text(details.get("decision_owner"))
         or _non_empty_text(paper_progress_stall.get("next_owner"))
@@ -587,6 +599,7 @@ def _next_step(
     details: Mapping[str, Any],
     quality_owner_pending: bool = False,
 ) -> str:
+    # Kept for compatibility; build_user_visible_projection supplies owner-action wording separately.
     if writer_state == "live":
         return "观察自动运行推进。"
     if user_next == "submit_info" and reason == "external_info":
