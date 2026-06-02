@@ -25,8 +25,10 @@ _OPL_CURRENT_CONTROL_REF = Path("artifacts/supervision/opl_current_control_state
 _CURRENTNESS_BASIS_KEYS = (
     "owner_reason",
     "runtime_health_epoch",
+    "source_eval_id",
     "truth_epoch",
     "work_unit_fingerprint",
+    "work_unit_id",
 )
 
 
@@ -325,12 +327,21 @@ def _existing_handoff_recorded_at(record: Mapping[str, Any]) -> str | None:
 
 def _currentness_basis(contract: Mapping[str, Any]) -> dict[str, str] | None:
     basis = mapping(contract.get("basis"))
-    currentness_basis = {key: text(basis.get(key)) for key in _CURRENTNESS_BASIS_KEYS}
-    if any(value is None for value in currentness_basis.values()):
-        return None
     missing = contract.get("missing_required_fields")
     if isinstance(missing, list) and any(text(item) for item in missing):
         return None
+    currentness_basis = {key: text(basis.get(key)) for key in _CURRENTNESS_BASIS_KEYS}
+    required_fields = [text(item) for item in contract.get("required_fields") or []]
+    required_fields = [item for item in required_fields if item is not None]
+    if not required_fields:
+        required_fields = ["runtime_health_epoch", "truth_epoch", "work_unit_fingerprint"]
+    for field in required_fields:
+        if field == "runtime_health_epoch_or_source_eval_id":
+            if currentness_basis.get("runtime_health_epoch") is None and currentness_basis.get("source_eval_id") is None:
+                return None
+            continue
+        if currentness_basis.get(field) is None:
+            return None
     return {key: value for key, value in currentness_basis.items() if value is not None}
 
 

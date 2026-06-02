@@ -151,10 +151,14 @@ def methodology_reframe_route_decision_materialized(study_root: Path) -> bool:
 
 def methodology_reframe_audit_route_decision_materialized(study_root: Path) -> bool:
     decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
-    if _any_artifact_supersedes(newer_refs=_methodology_reframe_trigger_paths(study_root), older_ref=decision_ref):
-        return False
     decision = _read_json_object(decision_ref)
     next_work_unit = _mapping(decision.get("next_work_unit"))
+    trigger_paths = _methodology_reframe_trigger_paths(
+        study_root,
+        controller_next_work_unit=next_work_unit,
+    )
+    if _any_artifact_supersedes(newer_refs=trigger_paths, older_ref=decision_ref):
+        return False
     return (
         _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
         and _text(decision.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
@@ -169,13 +173,20 @@ def methodology_reframe_audit_route_decision_materialized(study_root: Path) -> b
 
 def methodology_reframe_rebuild_route_decision_materialized(study_root: Path) -> bool:
     decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
-    trigger_paths = _methodology_reframe_trigger_paths(study_root)
-    if analysis_harmonization_owner_result.clean_rebuild_decision_supersedes_legacy_blocker(study_root=study_root):
-        trigger_paths = tuple(path for path in trigger_paths if path != analysis_harmonization_owner_result.result_path(study_root=study_root))
-    if _any_artifact_supersedes(newer_refs=trigger_paths, older_ref=decision_ref):
-        return False
     decision = _read_json_object(decision_ref)
     next_work_unit = _mapping(decision.get("next_work_unit"))
+    trigger_paths = _methodology_reframe_trigger_paths(
+        study_root,
+        controller_next_work_unit=next_work_unit,
+    )
+    if analysis_harmonization_owner_result.clean_rebuild_decision_supersedes_legacy_blocker(study_root=study_root):
+        trigger_paths = tuple(
+            path
+            for path in trigger_paths
+            if path != analysis_harmonization_owner_result.result_path(study_root=study_root)
+        )
+    if _any_artifact_supersedes(newer_refs=trigger_paths, older_ref=decision_ref):
+        return False
     return (
         _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
         and _text(decision.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
@@ -187,10 +198,29 @@ def methodology_reframe_rebuild_route_decision_materialized(study_root: Path) ->
     )
 
 
-def _methodology_reframe_trigger_paths(study_root: Path) -> tuple[Path, ...]:
-    return (
+def _methodology_reframe_trigger_paths(
+    study_root: Path,
+    *,
+    controller_next_work_unit: Mapping[str, Any] | None = None,
+) -> tuple[Path, ...]:
+    paths = (
         analysis_harmonization_owner_result.result_path(study_root=study_root),
         source_provenance_owner_result.result_path(study_root=study_root),
+    )
+    next_work_unit = _mapping(controller_next_work_unit)
+    if _clean_rebuild_decision_consumes_source_blocker(next_work_unit):
+        source_ref = source_provenance_owner_result.result_path(study_root=study_root)
+        paths = tuple(path for path in paths if path != source_ref)
+    return paths
+
+
+def _clean_rebuild_decision_consumes_source_blocker(next_work_unit: Mapping[str, Any]) -> bool:
+    return (
+        _text(next_work_unit.get("unit_id")) == _REBUILD_ROUTE_WORK_UNIT
+        and _text(next_work_unit.get("selected_route_option")) == _REBUILD_ROUTE_OPTION
+        and next_work_unit.get("terminal_source_provenance_blocker_consumed") is True
+        and next_work_unit.get("clean_reproducible_model_rebuild_authorized") is True
+        and next_work_unit.get("current_transport_claim_must_not_be_used_as_medical_conclusion") is True
     )
 
 
