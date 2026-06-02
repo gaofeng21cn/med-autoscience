@@ -80,7 +80,3 @@ def render_mas_runtime_bridge_readme() -> str:
         "- 需要进入 study 时，使用 `ops/medautoscience/bin/enter-study`、`ops/medautoscience/bin/bootstrap` 与 OPL stage control 面。\n"
         "- 如果需要查看或维护 runtime，读取 OPL current-control-state；本目录下脚本只调用 MAS domain refs / diagnostic surface，不调用外部 MDS launcher、daemon 或 WebUI。\n"
     )
-
-
-render_med_deepscientist_config = render_mas_runtime_bridge_config
-render_med_deepscientist_readme = render_mas_runtime_bridge_readme
