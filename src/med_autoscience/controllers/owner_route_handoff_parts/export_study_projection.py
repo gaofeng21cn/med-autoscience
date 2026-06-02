@@ -9,6 +9,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from .. import publication_aftercare
 from .. import reviewer_refinement_loop
 from .. import stage_knowledge_plane
+from ..domain_action_request_materializer_parts import current_writer_handoff
 from .authority_boundary import authority_boundary_payload
 
 
@@ -86,10 +87,15 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
     )
     if current_control_handoff is not None:
         payload["owner_route_handoff"] = current_control_handoff
-    current_owner_action = current_control_owner_action_record(
+    current_control_owner_action = current_control_owner_action_record(
         study_root=study_root,
         profile=profile,
     )
+    current_writer_owner_action = current_writer_handoff_owner_action_record(
+        study_root=study_root,
+        profile=profile,
+    )
+    current_owner_action = current_writer_owner_action or current_control_owner_action
     if current_owner_action is not None:
         payload["current_owner_action"] = current_owner_action
     current_owner_route_handoff_exists = (
@@ -270,6 +276,58 @@ def current_control_owner_action_record(
     }
 
 
+def current_writer_handoff_owner_action_record(
+    *,
+    study_root: Path,
+    profile: WorkspaceProfile,
+) -> dict[str, Any] | None:
+    action = current_writer_handoff.current_quality_repair_writer_handoff_action(
+        profile=profile,
+        study_id=study_root.name,
+    )
+    if action is None:
+        return None
+    action_type = text(action.get("action_type"))
+    if action_type is None:
+        return None
+    owner_route = mapping(action.get("owner_route"))
+    currentness_basis = _owner_route_currentness_basis(owner_route)
+    if currentness_basis is None:
+        return None
+    next_work_unit = mapping(action.get("next_work_unit"))
+    work_unit_id = text(next_work_unit.get("unit_id")) or text(action.get("work_unit_id")) or currentness_basis.get(
+        "work_unit_id"
+    )
+    if work_unit_id is None:
+        return None
+    writer_handoff = mapping(action.get("writer_worker_handoff"))
+    recorded_at = text(writer_handoff.get("generated_at"))
+    return {
+        "surface_kind": "mas_current_owner_action_record",
+        "schema_version": 1,
+        "source": "quality_repair_batch_writer_handoff",
+        "study_id": study_root.name,
+        "quest_id": text(action.get("quest_id")) or study_root.name,
+        "recorded_at": recorded_at,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        "owner_route_currentness_basis": currentness_basis,
+        "owner_route": dict(owner_route),
+        "currentness_status": "current_writer_handoff_active",
+        "source_ref_role": "quality_repair_batch_writer_handoff",
+        "source_relative_path": "studies/"
+        f"{study_root.name}/artifacts/controller/quality_repair_batch/latest.json",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
+
+
 def _matching_current_control_study(
     payload: Mapping[str, Any],
     *,
@@ -305,6 +363,41 @@ def _matching_current_control_action(
             continue
         return dict(item)
     return None
+
+
+def _owner_route_currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, str] | None:
+    source_refs = mapping(owner_route.get("source_refs"))
+    embedded_basis = mapping(source_refs.get("owner_route_currentness_basis"))
+    basis = {
+        "owner_reason": text(owner_route.get("owner_reason"))
+        or text(owner_route.get("failure_signature"))
+        or text(source_refs.get("blocked_reason"))
+        or text(embedded_basis.get("owner_reason")),
+        "runtime_health_epoch": text(owner_route.get("runtime_health_epoch"))
+        or text(source_refs.get("runtime_health_epoch"))
+        or text(embedded_basis.get("runtime_health_epoch")),
+        "source_eval_id": text(owner_route.get("source_eval_id"))
+        or text(source_refs.get("source_eval_id"))
+        or text(embedded_basis.get("source_eval_id")),
+        "truth_epoch": text(owner_route.get("truth_epoch"))
+        or text(owner_route.get("route_epoch"))
+        or text(embedded_basis.get("truth_epoch")),
+        "work_unit_fingerprint": text(owner_route.get("work_unit_fingerprint"))
+        or text(source_refs.get("work_unit_fingerprint"))
+        or text(embedded_basis.get("work_unit_fingerprint")),
+        "work_unit_id": text(owner_route.get("work_unit_id"))
+        or text(source_refs.get("work_unit_id"))
+        or text(embedded_basis.get("work_unit_id")),
+    }
+    if basis["truth_epoch"] is None:
+        return None
+    if basis["work_unit_fingerprint"] is None:
+        return None
+    if basis["work_unit_id"] is None:
+        return None
+    if basis["runtime_health_epoch"] is None and basis["source_eval_id"] is None:
+        return None
+    return {key: value for key, value in basis.items() if value is not None}
 
 
 def _current_control_supersedes_existing(

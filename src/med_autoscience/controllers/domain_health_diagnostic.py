@@ -476,7 +476,7 @@ def _run_developer_supervisor_same_tick(
                 provider_readiness_timeout_seconds=PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
                 retain_unscanned_studies=retain_unscanned_studies,
             )
-            if _provider_attempt_started(_mapping(iteration["provider_admission_probe"])):
+            if _provider_attempt_started_for_iteration(iteration):
                 iteration["post_admission_materialize"] = domain_action_request_materializer.materialize_domain_action_requests(
                     profile=profile,
                     study_ids=resolved_study_ids,
@@ -573,7 +573,7 @@ def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
     delta = _mapping(iteration.get("progress_first_delta"))
     if _same_tick_handoff_written(iteration):
         provider_admission_probe = _mapping(iteration.get("provider_admission_probe"))
-        if _provider_attempt_started(provider_admission_probe):
+        if _provider_attempt_started_for_iteration(iteration):
             if _provider_probe_has_non_running_actions(provider_admission_probe):
                 return "continue_same_tick_after_provider_admission_delta"
             return "provider_attempt_started"
@@ -612,6 +612,85 @@ def _provider_attempt_started(scan_result: Mapping[str, Any]) -> bool:
         ):
             return True
     return False
+
+
+def _provider_attempt_started_for_iteration(iteration: Mapping[str, Any]) -> bool:
+    provider_admission_probe = _mapping(iteration.get("provider_admission_probe"))
+    identities = _same_tick_handoff_identities(iteration)
+    if not identities:
+        return _provider_attempt_started(provider_admission_probe)
+    return all(
+        _provider_probe_has_matching_attempt(provider_admission_probe, identity=identity)
+        for identity in identities
+    )
+
+
+def _same_tick_handoff_identities(iteration: Mapping[str, Any]) -> list[dict[str, str]]:
+    dispatch = _mapping(iteration.get("dispatch"))
+    identities: list[dict[str, str]] = []
+    for execution in dispatch.get("executions") or []:
+        if not isinstance(execution, Mapping):
+            continue
+        if not (
+            execution.get("will_start_llm") is True
+            or _non_empty_text(execution.get("execution_status")) == "handoff_ready"
+        ):
+            continue
+        identity = {
+            key: value
+            for key in ("study_id", "action_type", "work_unit_id", "dispatch_path")
+            if (value := _non_empty_text(execution.get(key))) is not None
+        }
+        if len(identity) > 1:
+            identities.append(identity)
+    return identities
+
+
+def _provider_probe_has_matching_attempt(
+    scan_result: Mapping[str, Any],
+    *,
+    identity: Mapping[str, str],
+) -> bool:
+    expected_study_id = _non_empty_text(identity.get("study_id"))
+    for study in scan_result.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        if expected_study_id is not None and _non_empty_text(study.get("study_id")) != expected_study_id:
+            continue
+        if not _study_has_running_provider_attempt(study):
+            continue
+        live_attempt = _mapping(study.get("opl_provider_attempt")) or study
+        if _provider_attempt_matches_identity(live_attempt, identity=identity):
+            return True
+    return False
+
+
+def _study_has_running_provider_attempt(study: Mapping[str, Any]) -> bool:
+    return study.get("running_provider_attempt") is True and (
+        _non_empty_text(study.get("active_stage_attempt_id"))
+        or _non_empty_text(study.get("active_run_id"))
+        or _non_empty_text(study.get("active_workflow_id"))
+    ) is not None
+
+
+def _provider_attempt_matches_identity(
+    live_attempt: Mapping[str, Any],
+    *,
+    identity: Mapping[str, str],
+) -> bool:
+    expected_action = _non_empty_text(identity.get("action_type"))
+    if expected_action is not None and _non_empty_text(live_attempt.get("action_type")) != expected_action:
+        return False
+    expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
+    if expected_work_unit is not None and _non_empty_text(live_attempt.get("work_unit_id")) != expected_work_unit:
+        return False
+    expected_dispatch = _non_empty_text(identity.get("dispatch_path"))
+    live_dispatch = _non_empty_text(live_attempt.get("dispatch_ref")) or _non_empty_text(live_attempt.get("dispatch_path"))
+    if expected_dispatch is None or live_dispatch is None:
+        return True
+    normalized_expected = expected_dispatch.replace("\\", "/")
+    normalized_live = live_dispatch.replace("\\", "/")
+    return normalized_expected == normalized_live or normalized_expected.endswith(f"/{normalized_live}")
 
 
 def _provider_probe_has_non_running_actions(scan_result: Mapping[str, Any]) -> bool:
@@ -785,7 +864,7 @@ def _same_tick_terminal_projection(
     last_delta: Mapping[str, Any],
     provider_admission_probe: Mapping[str, Any],
 ) -> dict[str, Any]:
-    provider_attempt_running = _provider_attempt_started(provider_admission_probe)
+    provider_attempt_running = _provider_attempt_started_for_iteration(last_iteration)
     stable_typed_blocker_observed = stop_reason == "typed_blocker_or_dispatch_blocker_observed" and (
         _int_value(last_delta.get("blocked_default_executor_dispatch_count")) > 0
         or _int_value(last_delta.get("dispatch_blocked_count")) > 0

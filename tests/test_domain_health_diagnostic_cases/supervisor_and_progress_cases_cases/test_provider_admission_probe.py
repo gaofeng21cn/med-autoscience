@@ -166,6 +166,105 @@ def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_aft
     assert diagnostic["forbidden_next_actions"] == []
 
 
+def test_domain_health_diagnostic_same_tick_rejects_stale_provider_attempt_for_new_handoff(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "run_quality_repair_batch.json"
+    )
+
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    scan_calls: list[dict[str, object]] = []
+
+    def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
+        scan_calls.append(kwargs)
+        admitted = len(scan_calls) == 2
+        return {
+            "surface": "portable_owner_route_reconcile",
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "controller_next_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "owner": "write",
+                    },
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "running_provider_attempt": admitted,
+                    "active_run_id": "opl-stage-attempt://sat-stale-ai" if admitted else None,
+                    "active_stage_attempt_id": "sat-stale-ai" if admitted else None,
+                    "opl_provider_attempt": (
+                        {
+                            "running_provider_attempt": True,
+                            "active_stage_attempt_id": "sat-stale-ai",
+                            "active_run_id": "opl-stage-attempt://sat-stale-ai",
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                            "dispatch_ref": (
+                                f"studies/{study_id}/artifacts/supervision/consumer/"
+                                "default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+                            ),
+                        }
+                        if admitted
+                        else {}
+                    ),
+                }
+            ],
+        }
+
+    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **kwargs: {
+            "surface": "domain_action_request_materializer",
+            "request_task_count": 1,
+            "default_executor_dispatch_count": 1,
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        lambda **kwargs: {
+            "surface": "domain_owner_action_dispatch",
+            "execution_count": 1,
+            "executed_count": 1,
+            "codex_dispatch_count": 1,
+            "executions": [
+                {
+                    "study_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "dispatch_path": str(profile.workspace_root / dispatch_ref),
+                    "execution_status": "handoff_ready",
+                    "will_start_llm": True,
+                }
+            ],
+        },
+    )
+
+    supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=1)
+
+    assert len(scan_calls) == 2
+    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
+    diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
+    assert diagnostic["same_tick_terminal_projection"]["provider_attempt_running"] is False
+    assert diagnostic["requires_provider_admission"] is True
+
+
 def test_domain_health_diagnostic_same_tick_continues_after_partial_provider_admission(
     tmp_path: Path,
     monkeypatch,
