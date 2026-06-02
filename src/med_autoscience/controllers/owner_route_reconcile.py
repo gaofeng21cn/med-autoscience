@@ -7,39 +7,23 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
-from med_autoscience.controllers import study_progress, domain_status_projection
-from med_autoscience.controllers import current_execution_envelope
-from med_autoscience.controllers.owner_route_reconcile_parts import canonical_inputs
-from med_autoscience.controllers.owner_route_reconcile_parts import current_controller_followthrough
-from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
-from med_autoscience.controllers.owner_route_reconcile_parts import default_executor_receipts
+from med_autoscience.controllers import current_execution_envelope, domain_status_projection, study_progress
+from med_autoscience.controllers.owner_route_reconcile_parts import action_projection, artifact_freshness
+from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer, canonical_inputs
+from med_autoscience.controllers.owner_route_reconcile_parts import block_state as block_state_part, completion_evidence
+from med_autoscience.controllers.owner_route_reconcile_parts import current_controller_followthrough, current_truth_owner
+from med_autoscience.controllers.owner_route_reconcile_parts import default_executor_receipts, domain_authority_handoff
+from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract, evidence_adoption
 from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
-from med_autoscience.controllers.owner_route_reconcile_parts import action_projection
-from med_autoscience.controllers.owner_route_reconcile_parts import artifact_freshness
-from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer
-from med_autoscience.controllers.owner_route_reconcile_parts import block_state as block_state_part
-from med_autoscience.controllers.owner_route_reconcile_parts import completion_evidence
-from med_autoscience.controllers.owner_route_reconcile_parts import domain_authority_handoff
-from med_autoscience.controllers.owner_route_reconcile_parts import evidence_adoption
-from med_autoscience.controllers.owner_route_reconcile_parts import lifecycle_projection
-from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth
-from med_autoscience.controllers.owner_route_reconcile_parts import paper_progress_stall_projection
-from med_autoscience.controllers.owner_route_reconcile_parts import projection_errors
-from med_autoscience.controllers.owner_route_reconcile_parts import opl_provider_attempts
-from med_autoscience.controllers.owner_route_reconcile_parts import provider_readiness_runtime_health
-from med_autoscience.controllers.owner_route_reconcile_parts import queue_slo
-from med_autoscience.controllers.owner_route_reconcile_parts import repo_write_policy
-from med_autoscience.controllers.owner_route_reconcile_parts import request_packets
-from med_autoscience.controllers.owner_route_reconcile_parts import runtime_facts
-from med_autoscience.controllers.owner_route_reconcile_parts import scan_output
-from med_autoscience.controllers.owner_route_reconcile_parts import status_projection
-from med_autoscience.controllers.owner_route_reconcile_parts import story_surface_delta_actions
-from med_autoscience.controllers.owner_route_reconcile_parts import publication_gate_actions
+from med_autoscience.controllers.owner_route_reconcile_parts import lifecycle_projection, opl_provider_attempts
+from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth, paper_progress_stall_projection
+from med_autoscience.controllers.owner_route_reconcile_parts import projection_errors, provider_readiness_runtime_health
+from med_autoscience.controllers.owner_route_reconcile_parts import publication_gate_actions, queue_slo
+from med_autoscience.controllers.owner_route_reconcile_parts import repo_write_policy, request_packets
+from med_autoscience.controllers.owner_route_reconcile_parts import runtime_facts, scan_output, status_projection
+from med_autoscience.controllers.owner_route_reconcile_parts import story_surface_delta_actions, study_identity
 from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_parking
-from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_projection
-from med_autoscience.controllers.owner_route_reconcile_parts import study_identity
-from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract
-from med_autoscience.controllers.owner_route_reconcile_parts import workspace_daemon
+from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_projection, workspace_daemon
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import domain_authority_refs_index
@@ -450,6 +434,8 @@ def _study_projection(
     generated_at: str,
     provider_readiness: Mapping[str, Any] | None = None,
     previous_payload: Mapping[str, Any] | None = None,
+    live_attempt_timeout_seconds: float = opl_provider_attempts.DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS,
+    live_attempt_max_inspect_count: int = 2,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
     status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
@@ -548,6 +534,8 @@ def _study_projection(
     live_provider_attempt = opl_provider_attempts.live_provider_attempt_for_study(
         profile=profile,
         study_id=study_id,
+        timeout_seconds=live_attempt_timeout_seconds,
+        max_inspect_count=live_attempt_max_inspect_count,
         preferred_actions=actions,
     )
     initial_lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
@@ -865,6 +853,9 @@ def scan_domain_routes(
     developer_supervisor_mode: str | None = None,
     persist_surfaces: bool = True,
     retain_unscanned_studies: bool = True,
+    live_attempt_timeout_seconds: float = opl_provider_attempts.DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS,
+    live_attempt_max_inspect_count: int = 2,
+    provider_readiness_timeout_seconds: float = 3.0,
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
     study_identity.validate_scan_owner_route_reconcile_study_ids(profile, resolved_study_ids)
@@ -884,7 +875,9 @@ def scan_domain_routes(
         if isinstance(action, Mapping)
     }
     previous_action_ids.discard(None)
-    provider_readiness = opl_provider_attempts.current_provider_readiness()
+    provider_readiness = opl_provider_attempts.current_provider_readiness(
+        timeout_seconds=provider_readiness_timeout_seconds
+    )
     studies: list[dict[str, Any]] = []
     for study_id in resolved_study_ids:
         try:
@@ -897,6 +890,8 @@ def scan_domain_routes(
                 generated_at=generated_at,
                 provider_readiness=provider_readiness,
                 previous_payload=previous_payload,
+                live_attempt_timeout_seconds=live_attempt_timeout_seconds,
+                live_attempt_max_inspect_count=live_attempt_max_inspect_count,
             )
         except (ValueError, TypeError) as exc:
             study_root = _study_root(profile, study_id)

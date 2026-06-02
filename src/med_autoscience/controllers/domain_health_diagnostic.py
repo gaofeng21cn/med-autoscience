@@ -106,6 +106,9 @@ from med_autoscience.runtime_control.ports import RuntimeControlPorts
 
 
 PROGRESS_FIRST_SAME_TICK_MAX_PASSES = 3
+PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS = 2.0
+PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS = 1.0
+PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT = 1
 
 
 def _materialize_managed_study_autonomy_slo(
@@ -423,6 +426,9 @@ def _run_developer_supervisor_same_tick(
                 study_ids=resolved_study_ids,
                 apply_safe_actions=True,
                 developer_supervisor_mode="developer_apply_safe",
+                live_attempt_timeout_seconds=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
+                live_attempt_max_inspect_count=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
+                provider_readiness_timeout_seconds=PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
             )
         else:
             scan_result = carried_scan_result
@@ -462,6 +468,9 @@ def _run_developer_supervisor_same_tick(
                 apply_safe_actions=True,
                 developer_supervisor_mode="developer_apply_safe",
                 persist_surfaces=True,
+                live_attempt_timeout_seconds=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
+                live_attempt_max_inspect_count=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
+                provider_readiness_timeout_seconds=PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
             )
             if _provider_attempt_started(_mapping(iteration["provider_admission_probe"])):
                 iteration["post_admission_materialize"] = domain_action_request_materializer.materialize_domain_action_requests(
@@ -502,6 +511,12 @@ def _run_developer_supervisor_same_tick(
             "domain-action-request-materialize",
             "domain-owner-action-dispatch",
         ],
+        "provider_probe_budget": {
+            "live_attempt_timeout_seconds": PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
+            "provider_readiness_timeout_seconds": PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
+            "live_attempt_max_inspect_count": PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
+            "scope": "focused_same_tick_owner_route_scan",
+        },
         "iterations": iterations,
         "owner_route_reconcile": _mapping(iterations[-1].get("owner_route_reconcile")) if iterations else {},
         "materialize": _mapping(iterations[-1].get("materialize")) if iterations else {},

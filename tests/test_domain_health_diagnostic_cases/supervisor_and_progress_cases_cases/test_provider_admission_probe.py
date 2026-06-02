@@ -128,9 +128,27 @@ def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_aft
     supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=3)
 
     assert len(scan_calls) == 2
+    assert scan_calls[0]["live_attempt_timeout_seconds"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS
+    assert scan_calls[0]["live_attempt_max_inspect_count"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT
+    assert (
+        scan_calls[0]["provider_readiness_timeout_seconds"]
+        == module.PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS
+    )
     assert scan_calls[1]["persist_surfaces"] is True
+    assert scan_calls[1]["live_attempt_timeout_seconds"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS
+    assert scan_calls[1]["live_attempt_max_inspect_count"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT
+    assert (
+        scan_calls[1]["provider_readiness_timeout_seconds"]
+        == module.PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS
+    )
     assert supervisor_tick["pass_count"] == 1
     assert supervisor_tick["stop_reason"] == "provider_attempt_started"
+    assert supervisor_tick["provider_probe_budget"] == {
+        "live_attempt_timeout_seconds": module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
+        "provider_readiness_timeout_seconds": module.PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
+        "live_attempt_max_inspect_count": module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
+        "scope": "focused_same_tick_owner_route_scan",
+    }
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
     assert diagnostic["same_tick_terminal_projection"] == {
         "terminal_state": "provider_attempt_running",
@@ -226,6 +244,13 @@ def test_domain_health_diagnostic_same_tick_continues_after_partial_provider_adm
     assert supervisor_tick["pass_count"] == 2
     assert supervisor_tick["stop_reason"] == "provider_attempt_started"
     assert len(dispatch_calls) == 2
+    for call in scan_calls:
+        assert call["live_attempt_timeout_seconds"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS
+        assert call["live_attempt_max_inspect_count"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT
+        assert (
+            call["provider_readiness_timeout_seconds"]
+            == module.PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS
+        )
     assert scan_calls[1]["persist_surfaces"] is True
     assert scan_calls[2]["persist_surfaces"] is True
     assert supervisor_tick["iterations"][0]["provider_admission_probe"]["action_queue"] == [

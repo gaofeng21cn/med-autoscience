@@ -704,6 +704,104 @@ def test_scan_projects_live_opl_provider_attempt_for_current_owner_route(monkeyp
     assert envelope["typed_blocker"] is None
 
 
+def test_scan_passes_bounded_opl_probe_budget_to_provider_projection(monkeypatch, tmp_path: Path) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    opl_attempts = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": None,
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-dm002",
+            "canonical_runtime_action": "continue_supervising_runtime",
+            "worker_liveness_state": {"state": "not_live", "worker_running": False},
+        },
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "owner": "write",
+            "controller_action": "request_opl_stage_attempt",
+            "next_work_unit": {
+                "unit_id": "dm002_methods_write_pass",
+                "lane": "write",
+            },
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-dm002",
+            "source_signature": "truth-source-dm002",
+        },
+    }
+    progress_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_opl_runtime_owner_handoff_gap",
+        "paper_stage": "publishability_gate_blocked",
+        "active_run_id": None,
+        "supervision": {"active_run_id": None, "health_status": "stale"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::write-route",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "ai_reviewer"},
+    }
+    readiness_calls: list[float] = []
+    live_attempt_calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
+    )
+    monkeypatch.setattr(
+        opl_attempts,
+        "current_provider_readiness",
+        lambda *, timeout_seconds: readiness_calls.append(timeout_seconds) or None,
+    )
+    monkeypatch.setattr(
+        opl_attempts,
+        "live_provider_attempt_for_study",
+        lambda **kwargs: live_attempt_calls.append(kwargs) or None,
+    )
+
+    scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+        live_attempt_timeout_seconds=1.25,
+        live_attempt_max_inspect_count=1,
+        provider_readiness_timeout_seconds=0.75,
+    )
+
+    assert readiness_calls == [0.75]
+    assert len(live_attempt_calls) == 1
+    assert live_attempt_calls[0]["timeout_seconds"] == 1.25
+    assert live_attempt_calls[0]["max_inspect_count"] == 1
+    assert live_attempt_calls[0]["profile"] == profile
+    assert live_attempt_calls[0]["study_id"] == study_id
+
+
 def test_scan_does_not_project_terminal_stage_attempt_as_active_run(monkeypatch, tmp_path: Path) -> None:
     scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
     opl_attempts = importlib.import_module(
