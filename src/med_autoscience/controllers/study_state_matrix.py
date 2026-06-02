@@ -759,6 +759,7 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
     semantic = _dict(latest_terminal_stage.get("semantic_completeness"))
     telemetry = _dict(latest_terminal_stage.get("telemetry_completeness"))
     next_forced_delta = _dict(summary.get("next_forced_delta"))
+    running_provider_attempt = summary.get("running_provider_attempt") is True
     target_surface_specificity = _target_surface_specificity(next_forced_delta)
     missing_closeout_semantics = bool(latest_terminal_stage) and _text(semantic.get("status")) not in {
         None,
@@ -777,17 +778,18 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
         dispatch_consumption=dispatch_consumption,
         owner_route_contract_blocker=owner_route_contract_blocker,
     )
+    owner_pickup_overdue = False if running_provider_attempt else _owner_pickup_overdue(dispatch_consumption)
     return {
         "study_id": _text(summary.get("study_id")),
         "monitoring_status": monitoring_status,
         "active_run_id": _text(summary.get("active_run_id")),
-        "running_provider_attempt": summary.get("running_provider_attempt") is True,
+        "running_provider_attempt": running_provider_attempt,
         "next_owner": _text(summary.get("next_owner")),
         "controller_action": _text(summary.get("controller_action")),
         "next_work_unit": _dict(summary.get("next_work_unit")) or _text(summary.get("next_work_unit")),
         "typed_blocker": _dict(summary.get("typed_blocker")) or None,
         "dispatch_consumption": dispatch_consumption or None,
-        "owner_pickup_overdue": _owner_pickup_overdue(dispatch_consumption),
+        "owner_pickup_overdue": owner_pickup_overdue,
         "target_surface_specificity": target_surface_specificity,
         "missing_explicit_target_surface": next_forced_delta.get("missing_explicit_target_surface") is True,
         "owner_route_contract_blocker": owner_route_contract_blocker,
@@ -798,7 +800,7 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
         "missing_stage_telemetry": missing_stage_telemetry,
         "throughput_bottleneck": _throughput_bottleneck(
             monitoring_status=monitoring_status,
-            owner_pickup_overdue=_owner_pickup_overdue(dispatch_consumption),
+            owner_pickup_overdue=owner_pickup_overdue,
             target_surface_specificity=target_surface_specificity,
             missing_closeout_semantics=missing_closeout_semantics,
             missing_stage_telemetry=missing_stage_telemetry,
