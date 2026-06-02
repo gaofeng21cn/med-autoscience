@@ -460,6 +460,70 @@ def test_domain_health_diagnostic_profile_only_uses_profile_runtime_root(
     assert called["request_opl_stage_attempts"] is True
     assert called["request_opl_owner_route_reconcile"] is True
     assert str(called["runtime_root"]) in captured.out
+
+
+def test_domain_health_diagnostic_focused_stage_attempt_probe_allows_studies_without_owner_route_reconcile(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    called: dict[str, object] = {}
+
+    def fake_run_domain_health_diagnostic_for_runtime(
+        *,
+        runtime_root: Path,
+        apply: bool,
+        profile=None,
+        study_ids=(),
+        request_opl_stage_attempts: bool = False,
+        request_opl_owner_route_reconcile: bool = False,
+    ) -> dict:
+        called["runtime_root"] = runtime_root
+        called["apply"] = apply
+        called["profile"] = profile
+        called["study_ids"] = study_ids
+        called["request_opl_stage_attempts"] = request_opl_stage_attempts
+        called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
+        return {"managed_study_actions": [], "runtime_root": str(runtime_root)}
+
+    monkeypatch.setattr(
+        cli.domain_health_diagnostic,
+        "run_domain_health_diagnostic_for_runtime",
+        fake_run_domain_health_diagnostic_for_runtime,
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "domain-health-diagnostic",
+            "--profile",
+            str(profile_path),
+            "--studies",
+            "002-dm-china-us-mortality-attribution",
+            "003-dpcc-primary-care-phenotype-treatment-gap",
+            "--request-opl-stage-attempts",
+            "--dry-run",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["runtime_root"] == workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"
+    assert called["apply"] is False
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_ids"] == (
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+    )
+    assert called["request_opl_stage_attempts"] is True
+    assert called["request_opl_owner_route_reconcile"] is False
+    assert str(called["runtime_root"]) in captured.out
+
+
 def test_study_progress_command_dispatches_controller_and_renders_markdown(
     monkeypatch,
     tmp_path: Path,

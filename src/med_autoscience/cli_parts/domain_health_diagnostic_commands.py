@@ -27,8 +27,8 @@ def handle_domain_health_diagnostic_command(
             parser.error("--request-opl-stage-attempts is only supported with --runtime-root")
         if args.quest_root and args.request_opl_owner_route_reconcile:
             parser.error("--request-opl-owner-route-reconcile is only supported with --runtime-root")
-        if args.studies and not args.request_opl_owner_route_reconcile:
-            parser.error("--studies is only supported with --request-opl-owner-route-reconcile")
+        if args.studies and not (args.request_opl_stage_attempts or args.request_opl_owner_route_reconcile):
+            parser.error("--studies requires --request-opl-stage-attempts or --request-opl-owner-route-reconcile")
         if args.request_opl_stage_attempts and not args.profile:
             parser.error("--request-opl-stage-attempts requires --profile")
         if args.request_opl_owner_route_reconcile and not args.request_opl_stage_attempts:

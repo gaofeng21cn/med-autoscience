@@ -380,7 +380,8 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     assert calls[1]["study_ids"] == study_ids
     assert calls[1]["apply_safe_actions"] is True
     assert calls[1]["developer_supervisor_mode"] == "developer_apply_safe"
-    assert calls[1]["persist_surfaces"] is False
+    assert calls[1]["persist_surfaces"] is True
+    assert calls[1]["retain_unscanned_studies"] is True
     assert result["opl_owner_route_reconcile_request"] == {
         "surface": "portable_owner_route_reconcile",
         "apply_safe_actions": True,

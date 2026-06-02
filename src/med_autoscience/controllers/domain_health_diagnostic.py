@@ -415,6 +415,7 @@ def _run_developer_supervisor_same_tick(
     max_passes: int = PROGRESS_FIRST_SAME_TICK_MAX_PASSES,
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_ids) or owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
+    retain_unscanned_studies = not bool(study_ids)
     iterations: list[dict[str, Any]] = []
     stop_reason = "max_passes_exhausted"
     carried_scan_result: dict[str, Any] | None = None
@@ -429,6 +430,7 @@ def _run_developer_supervisor_same_tick(
                 live_attempt_timeout_seconds=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
                 live_attempt_max_inspect_count=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
                 provider_readiness_timeout_seconds=PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
+                retain_unscanned_studies=retain_unscanned_studies,
             )
         else:
             scan_result = carried_scan_result
@@ -471,6 +473,7 @@ def _run_developer_supervisor_same_tick(
                 live_attempt_timeout_seconds=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
                 live_attempt_max_inspect_count=PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
                 provider_readiness_timeout_seconds=PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
+                retain_unscanned_studies=retain_unscanned_studies,
             )
             if _provider_attempt_started(_mapping(iteration["provider_admission_probe"])):
                 iteration["post_admission_materialize"] = domain_action_request_materializer.materialize_domain_action_requests(

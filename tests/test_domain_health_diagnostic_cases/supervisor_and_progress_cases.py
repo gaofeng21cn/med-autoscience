@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .supervisor_and_progress_cases_cases.test_managed_recovery_holds import *  # noqa: F403,F401
+from .supervisor_and_progress_cases_cases.test_focused_scope import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_materialized_dispatch_blockers import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_provider_admission_probe import *  # noqa: F403,F401
 from .supervisor_and_progress_cases_cases.test_managed_recovery_redrive import *  # noqa: F403,F401
