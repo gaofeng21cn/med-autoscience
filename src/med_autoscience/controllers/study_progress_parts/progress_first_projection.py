@@ -8,6 +8,9 @@ from med_autoscience.controllers.default_executor_action_policy import (
     request_output_target_surface_for_action_type,
     request_owner_for_action_type,
 )
+from med_autoscience.controllers.ai_reviewer_record_work_units import (
+    AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS,
+)
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.story_surface_work_units import is_story_surface_delta_write_work_unit
 from med_autoscience.stage_route_contract import PROGRESS_FIRST_SPRINT_ID
@@ -20,14 +23,7 @@ PROGRESS_FIRST_OUTCOME_CLASSES = (
     "human_gate",
     "stop_loss",
 )
-CURRENT_AI_REVIEWER_RECORD_CONSUMPTION_WRITE_WORK_UNIT_IDS = frozenset(
-    {
-        "consume_current_ai_reviewer_record",
-        "consume_current_ai_reviewer_record_and_replay_gate",
-        "consume_current_input_ai_reviewer_record",
-        "consume_current_ai_reviewer_record_then_prose_gate_package_replay",
-    }
-)
+CURRENT_AI_REVIEWER_RECORD_CONSUMPTION_WRITE_WORK_UNIT_IDS = AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
 
 
 def build_progress_first_projection(payload: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
