@@ -132,6 +132,15 @@ def _current_owner_route(payload: Mapping[str, Any]) -> dict[str, Any]:
     if route := _owner_route_from_handoff_action_queue(handoff):
         return route
     if route := _mapping(handoff.get("owner_route")):
+        route = _owner_route_with_policy_target_surface(route)
+        if transition_route and not _route_has_explicit_target_surface(route):
+            return transition_route
+        return route
+    evidence_handoff = _mapping(_mapping(payload.get("current_execution_evidence")).get("opl_current_control_state_handoff"))
+    if route := _owner_route_from_handoff_action_queue(evidence_handoff):
+        return route
+    if route := _mapping(evidence_handoff.get("owner_route")):
+        route = _owner_route_with_policy_target_surface(route)
         if transition_route and not _route_has_explicit_target_surface(route):
             return transition_route
         return route
@@ -139,11 +148,12 @@ def _current_owner_route(payload: Mapping[str, Any]) -> dict[str, Any]:
         return transition_route
     envelope = _mapping(payload.get("current_execution_envelope"))
     if route := _mapping(envelope.get("owner_route")):
+        route = _owner_route_with_policy_target_surface(route)
         if transition_route and not _route_has_explicit_target_surface(route):
             return transition_route
         return route
     status = _mapping(payload.get("status"))
-    route = _mapping(status.get("owner_route"))
+    route = _owner_route_with_policy_target_surface(_mapping(status.get("owner_route")))
     if transition_route and not _route_has_explicit_target_surface(route):
         return transition_route
     return route
@@ -256,6 +266,56 @@ def _action_queue_target_surface(
 
 def _route_has_explicit_target_surface(route: Mapping[str, Any]) -> bool:
     return bool(_mapping(route.get("target_surface")) or _mapping(route.get("next_forced_target_surface")))
+
+
+def _owner_route_with_policy_target_surface(route: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(route)
+    if _route_has_explicit_target_surface(payload):
+        return payload
+    source_refs = _mapping(payload.get("source_refs"))
+    work_unit_id = _text(source_refs.get("work_unit_id")) or _text(payload.get("work_unit_id"))
+    action_type = _policy_action_type_for_route(payload, work_unit_id=work_unit_id)
+    if action_type is None:
+        return payload
+    route_target = (
+        _text(payload.get("route_target"))
+        or _text(payload.get("next_route"))
+        or _text(payload.get("next_owner"))
+        or request_owner_for_action_type(action_type)
+    )
+    target_surface = request_output_target_surface_for_action_type(action_type)
+    if target_surface is None:
+        target_surface = {
+            "ref_kind": "route_obligation",
+            "route_target": route_target,
+            "surface_ref": request_output_surface_for_action_type(action_type),
+        }
+    payload["route_target"] = route_target
+    payload["target_surface"] = target_surface
+    payload["target_surface_source"] = "default_executor_action_policy.request_output_surface_for_action_type"
+    if not _mapping(payload.get("owner_action")):
+        payload["owner_action"] = {
+            "next_owner": _text(payload.get("next_owner")) or request_owner_for_action_type(action_type),
+            "work_unit_id": work_unit_id,
+            "allowed_actions": [action_type],
+            "owner_receipt_required": True,
+        }
+    return payload
+
+
+def _policy_action_type_for_route(route: Mapping[str, Any], *, work_unit_id: str | None) -> str | None:
+    explicit = _first_text(route.get("allowed_actions")) or _first_text(route.get("allowed_action_refs"))
+    owner_action = _mapping(route.get("owner_action"))
+    action_type = explicit or _first_text(owner_action.get("allowed_actions"))
+    if action_type in {"run_quality_repair_batch", "run_gate_clearing_batch"}:
+        return action_type
+    if action_type is not None and request_output_target_surface_for_action_type(action_type) is not None:
+        return action_type
+    if _publication_gate_replay_work_unit(work_unit_id):
+        return "run_gate_clearing_batch"
+    if _write_quality_repair_work_unit(work_unit_id):
+        return "run_quality_repair_batch"
+    return None
 
 
 def _owner_route_from_domain_transition(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -464,6 +524,17 @@ def _delta_count(payload: Mapping[str, Any]) -> int:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _first_text(value: object) -> str | None:
+    if isinstance(value, str):
+        return _text(value)
+    if not isinstance(value, list | tuple):
+        return None
+    for item in value:
+        if text := _text(item):
+            return text
+    return None
 
 
 def _text(value: object) -> str | None:

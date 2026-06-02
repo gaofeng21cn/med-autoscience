@@ -479,6 +479,90 @@ def test_next_forced_delta_maps_current_ai_reviewer_consumption_write_route_to_q
     }
 
 
+def test_next_forced_delta_maps_current_handoff_owner_route_action_to_quality_repair_surface() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 1},
+            "platform_repair_delta": {"count": 0},
+            "opl_current_control_state_handoff": {
+                "owner_route": {
+                    "next_owner": "write",
+                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                    "source_fingerprint": "truth-snapshot::current",
+                    "source_refs": {
+                        "work_unit_id": "consume_current_ai_reviewer_record_then_prose_gate_package_replay",
+                        "source_eval_id": "publication-eval::current-inputs",
+                    },
+                    "allowed_actions": ["run_quality_repair_batch"],
+                },
+            },
+        }
+    )
+
+    assert result["next_forced_delta"]["required_delta_kind"] == "review_current_paper_delta"
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "write",
+        "surface_ref": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+    }
+    assert result["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
+    assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
+    assert result["next_forced_delta"]["target_surface_diagnostic"] == {
+        "specificity": "precise",
+        "source": "default_executor_action_policy.request_output_surface_for_action_type",
+        "missing_explicit_target_surface": False,
+    }
+    assert result["next_forced_delta"]["owner_action"] == {
+        "next_owner": "write",
+        "work_unit_id": "consume_current_ai_reviewer_record_then_prose_gate_package_replay",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "owner_receipt_required": True,
+    }
+
+
+def test_next_forced_delta_reads_current_execution_evidence_owner_route() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 1},
+            "platform_repair_delta": {"count": 0},
+            "current_execution_evidence": {
+                "opl_current_control_state_handoff": {
+                    "owner_route": {
+                        "next_owner": "write",
+                        "source_refs": {
+                            "work_unit_id": "consume_current_ai_reviewer_record_then_prose_gate_package_replay",
+                            "source_eval_id": "publication-eval::current-inputs",
+                        },
+                        "allowed_actions": ["run_quality_repair_batch"],
+                    },
+                },
+            },
+        }
+    )
+
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "write",
+        "surface_ref": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+    }
+    assert result["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
+    assert result["next_forced_delta"]["owner_action"]["allowed_actions"] == ["run_quality_repair_batch"]
+
+
 def test_next_forced_delta_reports_generic_target_surface_fallback_when_owner_route_lacks_precise_surface() -> None:
     projection = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_projection"
