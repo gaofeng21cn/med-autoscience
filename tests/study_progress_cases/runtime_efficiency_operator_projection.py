@@ -857,13 +857,13 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
     assert result["progress_freshness"]["worker_liveness_freshness"]["status"] == "fresh"
     assert result["progress_freshness"]["activity_timeout"]["state"] == "timed_out"
     assert result["progress_freshness"]["activity_timeout"]["active_run_id"] == "run-live-stale"
-    assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
+    assert result["intervention_lane"]["lane_id"] == "progress_continuation_required"
     assert result["intervention_lane"]["severity"] == "critical"
     assert result["intervention_lane"].get("route_target") != "analysis-campaign"
-    assert result["operator_status_card"]["handling_state"] == "runtime_recovering"
+    assert result["operator_status_card"]["handling_state"] == "progress_continuation_required"
     assert result["operator_status_card"]["human_surface_freshness"] == "monitoring_runtime"
     assert "supervisor ticks alone cannot prove paper progress" in result["operator_status_card"]["current_focus"]
-    assert "meaningful artifact delta" in result["operator_status_card"]["next_confirmation_signal"]
+    assert "domain_route/reconcile-apply" in result["operator_status_card"]["next_confirmation_signal"]
 
 
 def test_study_progress_gives_new_live_run_grace_before_activity_timeout(

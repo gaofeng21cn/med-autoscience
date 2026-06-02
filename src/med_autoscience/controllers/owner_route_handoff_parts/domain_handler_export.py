@@ -352,7 +352,7 @@ def _autonomy_progress_pressure_task(
                 else None
             ),
             "slo_status_ref": source_ref,
-            "authority_boundary": "mas_owner_reconcile_only",
+            "authority_boundary": "mas_owner_route_refs_only_opl_stage_attempt_owner",
         },
     }
 

@@ -21,8 +21,8 @@ def activity_timeout_lane(
 ) -> dict[str, Any]:
     activity_timeout = progress_freshness.get("activity_timeout")
     return {
-        "lane_id": "runtime_recovery_required",
-        "title": "优先处理 activity timeout",
+        "lane_id": "progress_continuation_required",
+        "title": "优先继续 owner-route 推进",
         "severity": "critical",
         "summary": (
             _non_empty_text((activity_timeout or {}).get("summary"))
@@ -31,7 +31,7 @@ def activity_timeout_lane(
             or blocker_summary
             or next_system_action
         ),
-        "recommended_action_id": "continue_or_relaunch",
+        "recommended_action_id": "domain_route/reconcile-apply",
         "activity_timeout": dict(activity_timeout or {}),
         "progress_pressure": dict((activity_timeout or {}).get("progress_pressure") or {}),
         "terminal_failure": False,

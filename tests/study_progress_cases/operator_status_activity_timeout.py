@@ -138,15 +138,15 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
         "no_progress_is_terminal_failure": False,
         "continuation_required": True,
         "next_owner": "one-person-lab",
-        "next_action_type": "continue_or_relaunch",
+        "next_action_type": "domain_route/reconcile-apply",
         "quality_gate_relaxation_allowed": False,
     }
-    assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
+    assert result["intervention_lane"]["lane_id"] == "progress_continuation_required"
     assert result["intervention_lane"]["progress_pressure"]["timeout_is_terminal_failure"] is False
     assert result["intervention_lane"]["terminal_failure"] is False
-    assert result["operator_status_card"]["handling_state"] == "runtime_recovering"
+    assert result["operator_status_card"]["handling_state"] == "progress_continuation_required"
     assert result["operator_status_card"]["human_surface_freshness"] == "monitoring_runtime"
-    assert "meaningful artifact delta" in result["operator_status_card"]["next_confirmation_signal"]
+    assert "domain_route/reconcile-apply" in result["operator_status_card"]["next_confirmation_signal"]
 
 
 def test_runtime_health_snapshot_recovery_dominates_stale_live_runtime_module_projection(
@@ -368,7 +368,7 @@ def test_study_progress_does_not_extend_new_run_grace_from_fresh_supervisor_tick
     assert result["progress_freshness"]["meaningful_artifact_delta_freshness"]["status"] == "missing"
     assert result["progress_freshness"]["activity_timeout"]["state"] == "timed_out"
     assert "new_run_grace" not in result["progress_freshness"]["activity_timeout"]
-    assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
+    assert result["intervention_lane"]["lane_id"] == "progress_continuation_required"
 
 
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

@@ -178,6 +178,7 @@ _RECOVERY_ACTION_MODE_LABELS = {
 _OPERATOR_STATUS_HANDLING_LABELS = {
     "opl_runtime_owner_handoff_recovering": "监管恢复中",
     "runtime_recovering": "运行恢复中",
+    "progress_continuation_required": "需要继续 owner-route 推进",
     "publication_gate_specificity_required": "发表门控需具体化",
     "paper_surface_refresh_in_progress": "人类查看面刷新中",
     "scientific_or_quality_repair_in_progress": "论文硬阻塞处理中",

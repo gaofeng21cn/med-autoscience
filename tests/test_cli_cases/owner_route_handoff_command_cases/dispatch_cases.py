@@ -744,11 +744,13 @@ def test_domain_handler_export_turns_slo_progress_pressure_into_continuation_tas
     assert task["payload"]["continuation_reason"] == "progress_pressure_continue"
     assert task["payload"]["progress_pressure"]["status"] == "advance_now"
     assert task["payload"]["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
-    assert task["payload"]["authority_boundary"] == "mas_owner_reconcile_only"
+    assert task["payload"]["authority_boundary"] == "mas_owner_route_refs_only_opl_stage_attempt_owner"
+    assert task["payload"]["progress_pressure"]["next_action_type"] == "domain_route/reconcile-apply"
     study_projection = payload["studies"][0]
     assert study_projection["autonomy_continuation"]["eligible_for_auto_dispatch"] is True
     assert study_projection["autonomy_continuation"]["recommended_task_kind"] == "domain_route/reconcile-apply"
     assert study_projection["autonomy_continuation"]["status"] == "progress_pressure_continue"
+    assert study_projection["autonomy_continuation"]["operator_label"] == "continue_owner_route"
 
 
 def test_domain_handler_dispatch_rejects_domain_truth_writes(tmp_path: Path, capsys) -> None:

@@ -31,6 +31,9 @@ def _operator_status_handling_state(
         "managed_runtime_escalated",
         "runtime_blocked",
     }
+    if lane_id == "progress_continuation_required" and isinstance(activity_timeout, dict):
+        if _non_empty_text(activity_timeout.get("state")) == "timed_out":
+            return "progress_continuation_required"
     if lane_id == "runtime_recovery_required" and isinstance(activity_timeout, dict):
         if _non_empty_text(activity_timeout.get("state")) == "timed_out":
             return "runtime_recovering"
@@ -93,6 +96,10 @@ def _operator_status_truth_snapshot(
             ("supervisor_tick_audit", _non_empty_text((supervisor_tick_audit or {}).get("latest_recorded_at"))),
             (latest_event_source, latest_event_time),
         ),
+        "progress_continuation_required": (
+            ("supervisor_tick_audit", _non_empty_text((supervisor_tick_audit or {}).get("latest_recorded_at"))),
+            (latest_event_source, latest_event_time),
+        ),
         "paper_surface_refresh_in_progress": (
             ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
             ("domain_health_diagnostic", _non_empty_text((domain_health_diagnostic_payload or {}).get("scanned_at"))),
@@ -147,7 +154,7 @@ def _operator_status_human_surface_summary(handling_state: str) -> tuple[str, st
         return "stale", "completed study 的 completion evidence 合同还未闭环；不能重开写作或 runtime repair。"
     if handling_state == "waiting_user_decision":
         return "pending_decision", "当前主要等待人工判断，给人看的稿件状态以论文门控为准。"
-    if handling_state in {"opl_runtime_owner_handoff_recovering", "runtime_recovering"}:
+    if handling_state in {"opl_runtime_owner_handoff_recovering", "runtime_recovering", "progress_continuation_required"}:
         return "monitoring_runtime", "当前优先看结构化监管真相，给人看的稿件表面还不是主判断面。"
     return "current", "给人看的稿件表面当前没有额外刷新告警。"
 
@@ -160,6 +167,8 @@ def _operator_status_verdict(handling_state: str) -> str:
         return "MAS 正在恢复外环监管，当前 study 仍处在受管修复中。"
     if handling_state == "runtime_recovering":
         return "MAS 正在处理 runtime recovery，当前 study 仍处在受管修复中。"
+    if handling_state == "progress_continuation_required":
+        return "MAS 已把无产物增量/超时投影为继续推进压力，下一步应进入 owner-route continuation。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
     if handling_state == "publication_gate_specificity_required":
@@ -181,6 +190,8 @@ def _operator_status_owner_summary(handling_state: str) -> str:
         return "MAS 正在恢复 workspace 级监管心跳，托管执行仍由 runtime 持有。"
     if handling_state == "runtime_recovering":
         return "MAS 正在根据 OPL current_control_state refs 和 domain blocker 继续处理恢复。"
+    if handling_state == "progress_continuation_required":
+        return "MAS 正在把 activity timeout 转成 OPL owner-route continuation，而不是停在 runtime recovery 文案。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "MAS 正在根据 publication gate 真相刷新给人看的投稿包镜像。"
     if handling_state == "publication_gate_specificity_required":
@@ -203,7 +214,7 @@ def _operator_status_focus_summary(
     no_op_suppression: dict[str, Any] | None,
 ) -> str:
     activity_timeout = (intervention_lane or {}).get("activity_timeout")
-    if handling_state == "runtime_recovering" and isinstance(activity_timeout, dict):
+    if handling_state in {"runtime_recovering", "progress_continuation_required"} and isinstance(activity_timeout, dict):
         return (
             _non_empty_text(activity_timeout.get("summary"))
             or _non_empty_text((intervention_lane or {}).get("summary"))
@@ -252,6 +263,8 @@ def _operator_status_next_confirmation_signal(handling_state: str, intervention_
         return "看 supervisor tick 是否回到 fresh，并确认监管缺口告警从 attention queue 消失。"
     if handling_state == "runtime_recovering":
         return "看 OPL current_control_state 或 stage attempt refs 是否恢复，并确认 meaningful artifact delta 刷新。"
+    if handling_state == "progress_continuation_required":
+        return "看 domain_route/reconcile-apply 是否写出 owner receipt、typed blocker、human gate 或新的 meaningful artifact delta。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "看 artifacts/controller/current_package_freshness/latest.json 是否写出 fresh proof，再看 current_package 和 submission_minimal 是否同步到同一 authority signature。"
     if handling_state == "publication_gate_specificity_required":
