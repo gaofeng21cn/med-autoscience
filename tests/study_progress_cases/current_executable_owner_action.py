@@ -114,7 +114,9 @@ def test_progress_first_monitoring_requests_admission_for_current_executable_own
     admission = monitoring["owner_action_admission"]
     assert admission["surface_kind"] == "current_executable_owner_action_admission"
     assert admission["admission_requested"] is True
+    assert admission["provider_attempt_start_requested"] is True
     assert admission["provider_attempt_started"] is True
+    assert admission["provider_attempt_running_proven"] is False
     assert admission["hard_gate_blocked"] is False
     assert admission["hard_gate_reasons"] == []
     assert admission["next_owner"] == "finalize"
@@ -244,7 +246,9 @@ def test_progress_first_monitoring_treats_missing_telemetry_and_closeout_as_obse
 
     admission = monitoring["owner_action_admission"]
     assert admission["admission_requested"] is True
+    assert admission["provider_attempt_start_requested"] is True
     assert admission["provider_attempt_started"] is True
+    assert admission["provider_attempt_running_proven"] is False
     assert admission["hard_gate_blocked"] is False
     assert admission["hard_gate_reasons"] == []
     assert admission["observability_diagnostics"] == [
@@ -304,7 +308,9 @@ def test_progress_first_monitoring_blocks_owner_action_admission_on_hard_gate_fo
 
     admission = monitoring["owner_action_admission"]
     assert admission["admission_requested"] is False
+    assert admission["provider_attempt_start_requested"] is False
     assert admission["provider_attempt_started"] is False
+    assert admission["provider_attempt_running_proven"] is False
     assert admission["hard_gate_blocked"] is True
     assert admission["hard_gate_reasons"] == [
         "human_gate_required",
@@ -357,7 +363,9 @@ def test_progress_first_monitoring_blocks_owner_action_admission_on_existing_own
 
     admission = monitoring["owner_action_admission"]
     assert admission["admission_requested"] is False
+    assert admission["provider_attempt_start_requested"] is False
     assert admission["provider_attempt_started"] is False
+    assert admission["provider_attempt_running_proven"] is False
     assert admission["hard_gate_reasons"] == ["owner_callable_surface_missing"]
     assert admission["blocked_by"]["owner_callable_surface"] == {
         "status": "missing",
@@ -366,6 +374,42 @@ def test_progress_first_monitoring_blocks_owner_action_admission_on_existing_own
             "interaction_arbitration.blocked_reason",
             "current_execution_envelope.typed_blocker",
         ],
+    }
+
+
+def test_progress_first_monitoring_distinguishes_admission_request_from_running_provider_proof() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "next_owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "allowed_actions": ["run_quality_repair_batch"],
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": True,
+                "active_stage_attempt_id": "sat-running",
+                "active_workflow_id": "wf-running",
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_requested"] is True
+    assert admission["provider_attempt_start_requested"] is True
+    assert admission["provider_attempt_running_proven"] is True
+    assert admission["provider_attempt_proof"] == {
+        "running_provider_attempt": True,
+        "active_stage_attempt_id": "sat-running",
+        "active_run_id": None,
+        "active_workflow_id": "wf-running",
     }
 
 

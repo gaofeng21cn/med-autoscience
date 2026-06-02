@@ -20,12 +20,18 @@ def build_owner_action_admission_projection(
     blocked_by = _hard_gate_blockers(payload)
     hard_gate_reasons = _hard_gate_reasons(blocked_by)
     hard_gate_blocked = bool(hard_gate_reasons)
+    start_requested = not hard_gate_blocked
+    provider_attempt_proof = _provider_attempt_proof(handoff)
+    running_proven = bool(provider_attempt_proof)
     return {
         "surface_kind": "current_executable_owner_action_admission",
         "schema_version": 1,
         "source": "progress_first_monitoring.current_executable_owner_action",
-        "admission_requested": not hard_gate_blocked,
-        "provider_attempt_started": not hard_gate_blocked,
+        "admission_requested": start_requested,
+        "provider_attempt_start_requested": start_requested,
+        "provider_attempt_started": start_requested,
+        "provider_attempt_running_proven": running_proven,
+        "provider_attempt_proof": provider_attempt_proof,
         "hard_gate_blocked": hard_gate_blocked,
         "hard_gate_reasons": hard_gate_reasons,
         "blocked_by": blocked_by or None,
@@ -45,6 +51,22 @@ def build_owner_action_admission_projection(
             "can_authorize_quality_verdict": False,
             "can_authorize_publication_ready": False,
         },
+    }
+
+
+def _provider_attempt_proof(handoff: Mapping[str, Any]) -> dict[str, Any] | None:
+    if handoff.get("running_provider_attempt") is not True:
+        return None
+    active_stage_attempt_id = _text(handoff.get("active_stage_attempt_id"))
+    active_run_id = _text(handoff.get("active_run_id"))
+    active_workflow_id = _text(handoff.get("active_workflow_id"))
+    if active_stage_attempt_id is None and active_run_id is None and active_workflow_id is None:
+        return None
+    return {
+        "running_provider_attempt": True,
+        "active_stage_attempt_id": active_stage_attempt_id,
+        "active_run_id": active_run_id,
+        "active_workflow_id": active_workflow_id,
     }
 
 
