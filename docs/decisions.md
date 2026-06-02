@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-02：Progress-first / AI-first admission 以可执行 owner action 为推进锚点
+
+- 决策：Progress-first 的非终局 stage 完成口径不是状态解释完成，而是尽快形成可消费的 `owner receipt`、paper-artifact delta、reviewer-gate delta、stable typed blocker 或 next owner handoff。telemetry completion、currentness reconcile、read-model hygiene、diagnostic explanation、ledger record/verify 和 `next_system_action` wording 只能作为观测或平台修复证据；它们不能单独关闭 MAS paper-line stage。
+- 决策：AI-first 的下一步锚点是 `current_executable_owner_action`，不是只显示 `next_system_action`。当该 owner action 已携带当前 owner、work unit、required output surface、source refs、allowed/forbidden write boundary 与 dispatchable owner-route attempt envelope，且 hard gate 不存在时，MAS/OPL projection 必须允许自动 admission 到 OPL/provider attempt 或 MAS owner callable dispatch；不能把 provider attempt start 等待在额外 doctor preflight、operator wording review、telemetry completeness 或 read-model currentness hygiene 之后。
+- 决策：preflight 只保留 hard gates：human gate、forbidden authority write、missing owner callable、missing required source/data、不可逆操作。telemetry 缺口、duration/token/cost 缺失、currentness projection hygiene、read-model reconciliation backlog、operator card wording drift 或 diagnostic completeness 必须单独列账为 observability/platform repair，不得阻断当前可执行 owner action；若这些缺口影响 owner-route identity、required source/data 或 forbidden write boundary，则按对应 hard gate 明确归类，而不是泛化为 preflight failure。
+- 理由：DM002/DM003 近期反复证明，系统如果把“解释下一步”“补齐观测字段”“刷新 read-model”当作 admission 前置条件，会把论文线困在 receipt/currentness/reconcile 循环里。Progress-first 的真正交付节奏应让每个 stage 尽快产生可接力 owner delta 或稳定 typed blocker，再由 AI reviewer、publication gate、write owner 和 artifact owner 继续提升质量。
+- 影响：这是 admission/read-model 验收口径，不写 DM-CVD study truth、runtime-owned state、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 `current_package`。它不授权 publication-ready、paper body 写入、publication verdict、artifact mutation、quality gate 放行或 submission readiness；这些 authority 仍归 MAS owner receipt、AI reviewer-backed eval、publication gate、artifact/package owner 和对应 durable surfaces。
+
 ## 2026-06-02：无 outcome / timeout 是推进压力，不是终止式 runtime failure
 
 - 决策：`autonomy_progress_slo_status.state=breach`、`activity_timeout.state=timed_out`、read churn、same fingerprint loop、live worker 无 meaningful artifact delta 等信号，在没有 `stop_loss`、hard human gate 或外部 provider/account hard blocker 时，必须投影为 `progress_pressure.status=advance_now`。这些信号代表 Progress-first 调度压力，要求缩小任务、换 owner、重水化 owner route、继续/重启 OPL stage attempt 或导出 `domain_route/reconcile-apply`，不得被解释成 stage terminal failure。

@@ -79,6 +79,215 @@ def test_progress_first_monitoring_exposes_current_executable_owner_action_from_
     assert monitoring["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
 
 
+def test_progress_first_monitoring_requests_admission_for_current_executable_owner_action_without_hard_gate() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "next_system_action": "观察自动运行推进。",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "study_progress.next_forced_delta.owner_action",
+                "next_owner": "finalize",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "owner_receipt_required": True,
+            },
+            "next_forced_delta": {
+                "required_delta_kind": "review_current_paper_delta",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "owner_action": {
+                    "next_owner": "finalize",
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert admission["surface_kind"] == "current_executable_owner_action_admission"
+    assert admission["admission_requested"] is True
+    assert admission["provider_attempt_started"] is True
+    assert admission["hard_gate_blocked"] is False
+    assert admission["hard_gate_reasons"] == []
+    assert admission["next_owner"] == "finalize"
+    assert admission["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert admission["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert admission["source"] == "progress_first_monitoring.current_executable_owner_action"
+
+
+def test_progress_first_monitoring_treats_missing_telemetry_and_closeout_as_observability_diagnostics_not_admission_gates() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "next_owner": "ai_reviewer",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "allowed_actions": ["produce_publication_eval"],
+            },
+            "opl_current_control_state_handoff": {
+                "stage_progress_log": {
+                    "attempt_count": 1,
+                    "missing_usage_telemetry_attempt_count": 1,
+                    "attempt_refs": ["runtime/stage_attempts/sat-telemetry-missing.json"],
+                },
+                "latest_terminal_stage_log": {
+                    "stage_attempt_id": "sat-closeout-missing",
+                    "status": "completed",
+                    "missing_user_stage_log_fields": [
+                        "stage_work_done",
+                        "paper_work_done",
+                        "changed_stage_surfaces",
+                        "changed_paper_surfaces",
+                        "progress_delta_classification",
+                    ],
+                    "missing_observability_fields": ["duration", "token_usage", "cost"],
+                },
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_requested"] is True
+    assert admission["provider_attempt_started"] is True
+    assert admission["hard_gate_blocked"] is False
+    assert admission["hard_gate_reasons"] == []
+    assert admission["observability_diagnostics"] == [
+        {
+            "diagnostic": "missing_usage_telemetry",
+            "authority": "observability_only",
+            "attempt_count": 1,
+            "attempt_refs": ["runtime/stage_attempts/sat-telemetry-missing.json"],
+        },
+        {
+            "diagnostic": "terminal_closeout_observability_incomplete",
+            "authority": "observability_only",
+            "stage_attempt_id": "sat-closeout-missing",
+            "missing_user_stage_log_fields": [
+                "stage_work_done",
+                "paper_work_done",
+                "changed_stage_surfaces",
+                "changed_paper_surfaces",
+                "progress_delta_classification",
+            ],
+            "missing_observability_fields": ["duration", "token_usage", "cost"],
+        },
+    ]
+
+
+def test_progress_first_monitoring_blocks_owner_action_admission_on_hard_gate_forbidden_write_and_missing_callable() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "next_owner": "finalize",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+            "interaction_arbitration": {
+                "classification": "human_gate",
+                "requires_user_input": True,
+                "blocked_reason": "needs_physician_decision",
+            },
+            "execution_owner_guard": {
+                "supervisor_only": True,
+                "forbidden_write_refs": ["runtime/current_execution_envelope.json"],
+            },
+            "owner_callable_surface": {
+                "status": "missing",
+                "reason_code": "owner_callable_surface_missing",
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_requested"] is False
+    assert admission["provider_attempt_started"] is False
+    assert admission["hard_gate_blocked"] is True
+    assert admission["hard_gate_reasons"] == [
+        "human_gate_required",
+        "forbidden_write_refs",
+        "owner_callable_surface_missing",
+    ]
+    assert admission["blocked_by"] == {
+        "human_gate": {
+            "requires_user_input": True,
+            "blocked_reason": "needs_physician_decision",
+        },
+        "forbidden_write_refs": ["runtime/current_execution_envelope.json"],
+        "owner_callable_surface": {
+            "status": "missing",
+            "reason_code": "owner_callable_surface_missing",
+        },
+    }
+
+
+def test_progress_first_monitoring_blocks_owner_action_admission_on_existing_owner_callable_missing_surfaces() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "next_owner": "ai_reviewer",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "allowed_actions": ["produce_publication_eval"],
+            },
+            "interaction_arbitration": {
+                "classification": "blocked_closeout_owner_redrive",
+                "action": "resume",
+                "requires_user_input": False,
+                "blocked_reason": "owner_callable_surface_missing",
+            },
+            "current_execution_envelope": {
+                "typed_blocker": {
+                    "blocker_id": "owner_callable_surface_missing",
+                    "owner": "ai_reviewer",
+                },
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_requested"] is False
+    assert admission["provider_attempt_started"] is False
+    assert admission["hard_gate_reasons"] == ["owner_callable_surface_missing"]
+    assert admission["blocked_by"]["owner_callable_surface"] == {
+        "status": "missing",
+        "reason_code": "owner_callable_surface_missing",
+        "sources": [
+            "interaction_arbitration.blocked_reason",
+            "current_execution_envelope.typed_blocker",
+        ],
+    }
+
+
 def test_user_visible_projection_prefers_current_executable_owner_action_over_stale_paper_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.user_visible_projection")
 

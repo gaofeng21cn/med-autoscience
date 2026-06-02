@@ -9,6 +9,7 @@ from med_autoscience.controllers.progress_first_receipt_identity import (
 )
 
 from .current_executable_owner_action import build_current_executable_owner_action
+from .owner_action_admission import build_owner_action_admission_projection
 
 
 TERMINAL_CLOSEOUT_REQUIRED_USER_STAGE_LOG_FIELDS = (
@@ -91,6 +92,13 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _text(progress_state.get("classification"))
         or _terminal_progress_delta_classification(paper_stage_log)
     )
+    owner_action_admission = build_owner_action_admission_projection(
+        payload=payload,
+        current_action=current_action,
+        handoff=handoff,
+        stage_progress_log=stage_progress_log,
+        latest_terminal_stage_log=latest_terminal_stage_log,
+    )
     current_blockers = (
         []
         if (handoff_owner_action is not None or transition_consumed_owner_action) and not typed_blocker
@@ -149,6 +157,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         ),
         "next_work_unit": next_work_unit,
         "current_executable_owner_action": current_action or None,
+        "owner_action_admission": owner_action_admission,
         "owner_handoff_hydration": _owner_handoff_hydration_projection(launch_policy),
         "typed_blocker": typed_blocker or None,
         "current_blockers": current_blockers,
