@@ -289,6 +289,223 @@ def test_materialize_runtime_owner_story_surface_route_to_writer_handoff(
     assert written_dispatch["prompt_contract"]["allowed_write_surfaces"] == prompt_contract["allowed_write_surfaces"]
 
 
+def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_to_writer_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    dispatch_contract = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.dispatch_contract"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    review_manuscript_path = study_root / "paper" / "build" / "review_manuscript.md"
+    manuscript_text = "# Draft\n\nCurrent DM002 manuscript requires prose hardening after AI review.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    review_manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    review_manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "ai-reviewer-current-manuscript::20260602T062142Z"
+    )
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260602T062142Z_publication_eval_record.json"
+    )
+    from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
+
+    record_payload = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=source_eval_id,
+        emitted_at="2026-06-02T06:21:42+00:00",
+    )
+    _write_json(record_path, record_payload)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {"state": "assessment_written", "blocked_reason": None},
+            "publication_eval_record_ref": str(record_path.resolve()),
+            "ai_reviewer_record": record_payload,
+        },
+    )
+    work_unit_id = "consume_current_ai_reviewer_record_then_prose_gate_package_replay"
+    work_unit_fingerprint = "domain-transition::ai_reviewer_re_eval::produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "truth_epoch": "truth-event-000035-d649b1535a6bc2aa",
+        "route_epoch": "truth-event-000035-d649b1535a6bc2aa",
+        "runtime_health_epoch": "runtime-health-event-006513-a0659016cafcf7e2",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "failure_signature": "quest_waiting_opl_runtime_owner_route",
+        "trace_id": "owner-route-trace::dm002::current-reviewer-record-consumption",
+        "source_fingerprint": "truth-snapshot::023fed00f609d4d2ab1283f7",
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": None,
+        "allowed_actions": ["run_quality_repair_batch"],
+        "blocked_actions": ["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
+        "idempotency_key": "owner-route::dm002::current-reviewer-record-consumption",
+        "source_refs": {
+            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "runtime_health_epoch": "runtime-health-event-006513-a0659016cafcf7e2",
+            "source_eval_id": source_eval_id,
+            "study_truth_epoch": "truth-event-000035-d649b1535a6bc2aa",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "work_unit_id": work_unit_id,
+            "owner_route_currentness_basis": {
+                "runtime_health_epoch": "runtime-health-event-006513-a0659016cafcf7e2",
+                "source_eval_id": source_eval_id,
+                "truth_epoch": "truth-event-000035-d649b1535a6bc2aa",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "work_unit_id": work_unit_id,
+            },
+        },
+    }
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "run_quality_repair_batch",
+        "authority": "observability_only",
+        "owner": "write",
+        "request_owner": "write",
+        "recommended_owner": "write",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "route_target": "write",
+        "required_output_surface": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        "next_work_unit": work_unit_id,
+        "controller_work_unit_id": work_unit_id,
+        "executable_work_unit": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "source_eval_id": source_eval_id,
+        "owner_route": route,
+        "handoff_packet": {
+            "request_kind": "run_quality_repair_batch",
+            "authority": "observability_only",
+            "request_owner": "write",
+            "owner_route": route,
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {"status": "progress_delta_candidate", "blockers": []},
+    )
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "action_queue": [action],
+                }
+            ],
+            "action_queue": [action],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    request = result["request_tasks"][0]
+    dispatch = result["default_executor_dispatches"][0]
+    prompt_contract = dispatch["prompt_contract"]
+    source_refs = dispatch["owner_route"]["source_refs"]
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    written_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    assert request["reason"] == "manuscript_story_surface_delta_missing"
+    assert request["source_action"]["next_work_unit"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
+    assert dispatch["medical_claim_authoring_allowed"] is True
+    assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert prompt_contract["next_work_unit"]["unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    assert source_refs["work_unit_id"] == work_unit_id
+    assert source_refs["source_eval_id"] == source_eval_id
+    assert source_refs["materialized_work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    assert source_refs["materialized_from_action_type"] == "run_quality_repair_batch"
+    assert source_refs["bridged_from_owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert source_refs["bridge_authority"] == "domain_action_request_materializer_story_surface_bridge"
+    assert prompt_contract["medical_claim_authoring_allowed"] is True
+    assert prompt_contract["allowed_write_surfaces"] == [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/**",
+    ]
+    assert dispatch_contract.prompt_contract_error(
+        prompt_contract,
+        forbidden_surfaces=module.FORBIDDEN_SURFACES,
+    ) is None
+    assert written_dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
+    assert written_dispatch["medical_claim_authoring_allowed"] is True
+    monkeypatch.setattr(
+        dispatch_module.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        lambda **_: {
+            "execution_status": "handoff_ready",
+            "blocked_reason": None,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "owner_result": {"status": "handoff_ready"},
+        },
+    )
+
+    dispatch_result = dispatch_module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = dispatch_result["executions"][0]
+    assert dispatch_result["blocked_count"] == 0
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] == "bridged_writer_handoff"
+
+
 def _writer_handoff(*, study_id: str, dispatch_path: Path, route: dict[str, object]) -> dict[str, object]:
     required_output = (
         "canonical manuscript story-surface delta or "

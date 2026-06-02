@@ -7,6 +7,9 @@ from typing import Any
 
 from med_autoscience.controllers import ai_reviewer_publication_eval_records
 from med_autoscience.controllers import ai_reviewer_owner_output_consumption
+from med_autoscience.controllers.ai_reviewer_record_work_units import (
+    AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS,
+)
 from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers.default_executor_action_policy import (
     SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
@@ -30,13 +33,6 @@ AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS = frozenset(
     {
         CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT,
         CURRENT_MANUSCRIPT_PUBLICATION_SURFACE_RECHECK_WORK_UNIT,
-    }
-)
-AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS = frozenset(
-    {
-        "consume_current_ai_reviewer_record",
-        "consume_current_ai_reviewer_record_and_replay_gate",
-        "consume_current_input_ai_reviewer_record",
     }
 )
 AI_REVIEWER_PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS

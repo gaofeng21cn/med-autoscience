@@ -5,19 +5,13 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import domain_action_request_lifecycle
+from med_autoscience.controllers.ai_reviewer_record_work_units import (
+    AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS,
+    CURRENT_MANUSCRIPT_AI_REVIEWER_RECORD_WORK_UNIT,
+)
 from med_autoscience.controllers.owner_route_reconcile_parts import action_decorators
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_transition_actions
-
-
-CURRENT_MANUSCRIPT_AI_REVIEWER_RECORD_WORK_UNIT = (
-    "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
-)
-AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS = {
-    "consume_current_ai_reviewer_record",
-    "consume_current_ai_reviewer_record_and_replay_gate",
-    "consume_current_input_ai_reviewer_record",
-}
 
 
 def current_request_lifecycle(
