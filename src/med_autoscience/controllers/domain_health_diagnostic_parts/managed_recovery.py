@@ -77,11 +77,17 @@ def projection_error_payload(
     }
 
 
-def _managed_study_roots(profile: WorkspaceProfile) -> list[Path]:
+def _managed_study_roots(
+    profile: WorkspaceProfile,
+    *,
+    study_ids: tuple[str, ...] = (),
+) -> list[Path]:
+    requested_study_ids = {str(study_id).strip() for study_id in study_ids if str(study_id).strip()}
     return [
         study_root
         for study_root in sorted(profile.studies_root.iterdir())
         if study_root.is_dir() and (study_root / "study.yaml").exists()
+        and (not requested_study_ids or study_root.name in requested_study_ids)
     ]
 
 
@@ -239,6 +245,7 @@ def managed_study_initial_statuses(
     profile: WorkspaceProfile | None,
     apply: bool,
     request_opl_stage_attempts: bool,
+    study_ids: tuple[str, ...] = (),
     auto_recoveries: list[dict[str, Any]],
     recovery_holds: list[dict[str, Any]],
     runtime_recovery_payloads: dict[str, dict[str, Any]],
@@ -248,7 +255,7 @@ def managed_study_initial_statuses(
     if profile is None:
         raise ValueError("profile is required when request_opl_stage_attempts is enabled")
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
-    for study_root in _managed_study_roots(profile):
+    for study_root in _managed_study_roots(profile, study_ids=study_ids):
         if apply:
             action_payload = _apply_managed_study_status(
                 runtime_control_ports=runtime_control_ports,

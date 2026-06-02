@@ -285,6 +285,7 @@ def run_domain_health_diagnostic_for_runtime(
     run_domain_health_diagnostic_for_quest_fn: RunDomainHealthDiagnosticForQuest,
     runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile | None = None,
+    study_ids: tuple[str, ...] = (),
     request_opl_stage_attempts: bool = False,
 ) -> dict[str, Any]:
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
@@ -302,6 +303,7 @@ def run_domain_health_diagnostic_for_runtime(
         profile=profile,
         apply=apply,
         request_opl_stage_attempts=request_opl_stage_attempts,
+        study_ids=study_ids,
         auto_recoveries=managed_study_auto_recoveries,
         recovery_holds=managed_study_recovery_holds,
         runtime_recovery_payloads=managed_study_runtime_recovery_payloads,
@@ -311,6 +313,7 @@ def run_domain_health_diagnostic_for_runtime(
         controller_runners=controller_runners,
         apply=apply,
         run_domain_health_diagnostic_for_quest_fn=run_domain_health_diagnostic_for_quest_fn,
+        study_ids=study_ids,
     )
     if apply and request_opl_stage_attempts and profile is not None:
         rerouted_managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []

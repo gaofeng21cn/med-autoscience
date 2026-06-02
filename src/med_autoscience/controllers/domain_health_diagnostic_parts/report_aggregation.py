@@ -16,10 +16,14 @@ def scan_active_quest_reports(
     controller_runners: dict[str, Callable[..., dict[str, Any]]],
     apply: bool,
     run_domain_health_diagnostic_for_quest_fn: Callable[..., dict[str, Any]],
+    study_ids: tuple[str, ...] = (),
 ) -> tuple[list[str], list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    requested_study_ids = {str(study_id).strip() for study_id in study_ids if str(study_id).strip()}
     scanned: list[str] = []
     reports: list[dict[str, Any]] = []
     for quest_root in quest_state.iter_active_quests(runtime_root):
+        if requested_study_ids and quest_root.name not in requested_study_ids:
+            continue
         scanned.append(quest_root.name)
         reports.append(
             run_domain_health_diagnostic_for_quest_fn(

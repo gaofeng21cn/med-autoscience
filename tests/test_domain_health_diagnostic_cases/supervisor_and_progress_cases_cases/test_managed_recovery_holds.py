@@ -488,6 +488,103 @@ def test_domain_health_diagnostic_owner_route_same_tick_honors_explicit_study_sc
     assert result["opl_owner_route_reconcile_request"]["study_ids"] == list(focused_study_ids)
 
 
+def test_domain_health_diagnostic_focused_scope_limits_runtime_scan_and_managed_status(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    all_study_ids = ("001-risk", "002-risk", "003-risk", "004-risk")
+    focused_study_ids = ("002-risk", "003-risk")
+    for study_id in all_study_ids:
+        study_root = profile.studies_root / study_id
+        study_root.mkdir(parents=True, exist_ok=True)
+        dump_json(study_root / "study.yaml", {"study_id": study_id})
+        quest_root = profile.runtime_root / study_id
+        dump_json(quest_root / ".ds" / "runtime_state.json", {"quest_id": study_id, "status": "running"})
+
+    status_reads: list[str] = []
+    quest_scans: list[str] = []
+    scan_calls: list[dict[str, object]] = []
+    materialize_calls: list[dict[str, object]] = []
+    dispatch_calls: list[dict[str, object]] = []
+
+    def fake_progress_projection(*, profile, study_root):
+        status_reads.append(Path(study_root).name)
+        study_id = Path(study_root).name
+        return {
+            **make_progress_projection_payload(
+                study_id=study_id,
+                decision="blocked",
+                reason="focused_scope_probe",
+            ),
+            "study_root": str(study_root),
+            "quest_root": str(profile.runtime_root / study_id),
+            "quest_status": "running",
+        }
+
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", fake_progress_projection)
+    monkeypatch.setattr(
+        module.quest_state,
+        "iter_active_quests",
+        lambda runtime_root: [Path(runtime_root) / study_id for study_id in all_study_ids],
+    )
+    monkeypatch.setattr(
+        module,
+        "run_domain_health_diagnostic_for_quest",
+        lambda *, quest_root, controller_runners, apply: quest_scans.append(Path(quest_root).name)
+        or {
+            "schema_version": 1,
+            "scanned_at": "2026-06-02T00:00:00+00:00",
+            "quest_root": str(quest_root),
+            "quest_status": "running",
+            "controllers": {},
+        },
+    )
+    monkeypatch.setattr(
+        module.owner_route_reconcile,
+        "scan_domain_routes",
+        lambda **kwargs: scan_calls.append(kwargs)
+        or {
+            "surface": "portable_owner_route_reconcile",
+            "study_ids": list(kwargs["study_ids"]),
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **kwargs: materialize_calls.append(kwargs)
+        or {"surface": "domain_action_request_materializer", "request_task_count": 0},
+    )
+    monkeypatch.setattr(
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        lambda **kwargs: dispatch_calls.append(kwargs)
+        or {"surface": "domain_owner_action_dispatch", "execution_count": 0},
+    )
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        study_ids=focused_study_ids,
+        request_opl_stage_attempts=True,
+        request_opl_owner_route_reconcile=True,
+    )
+
+    assert set(status_reads) == set(focused_study_ids)
+    assert quest_scans == list(focused_study_ids)
+    assert result["scanned_quests"] == list(focused_study_ids)
+    assert scan_calls[0]["study_ids"] == focused_study_ids
+    assert materialize_calls[0]["study_ids"] == focused_study_ids
+    assert dispatch_calls[0]["study_ids"] == focused_study_ids
+    assert "001-risk" not in status_reads
+    assert "004-risk" not in status_reads
+    assert "004-risk" not in quest_scans
+
+
 def test_domain_health_diagnostic_same_tick_pumps_receipt_followthrough_before_next_heartbeat(
     tmp_path: Path,
     monkeypatch,

@@ -392,6 +392,7 @@ def run_domain_health_diagnostic_for_runtime(
         run_domain_health_diagnostic_for_quest_fn=run_domain_health_diagnostic_for_quest,
         runtime_control_ports=_build_runtime_control_ports(),
         profile=profile,
+        study_ids=study_ids,
         request_opl_stage_attempts=request_opl_stage_attempts,
     )
     if apply and request_opl_stage_attempts and request_opl_owner_route_reconcile and profile is not None:
