@@ -330,6 +330,15 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
             "surface": "portable_owner_route_reconcile",
             "apply_safe_actions": kwargs["apply_safe_actions"],
             "study_count": len(kwargs["study_ids"]),
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "running_provider_attempt": False,
+                    "active_run_id": None,
+                    "active_stage_attempt_id": None,
+                }
+                for study_id in kwargs["study_ids"]
+            ],
         }
 
     monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
@@ -362,15 +371,34 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
         request_opl_owner_route_reconcile=True,
     )
 
-    assert len(calls) == 1
+    assert len(calls) == 2
     assert calls[0]["profile"] == profile
     assert calls[0]["study_ids"] == study_ids
     assert calls[0]["apply_safe_actions"] is True
     assert calls[0]["developer_supervisor_mode"] == "developer_apply_safe"
+    assert calls[1]["profile"] == profile
+    assert calls[1]["study_ids"] == study_ids
+    assert calls[1]["apply_safe_actions"] is True
+    assert calls[1]["developer_supervisor_mode"] == "developer_apply_safe"
+    assert calls[1]["persist_surfaces"] is False
     assert result["opl_owner_route_reconcile_request"] == {
         "surface": "portable_owner_route_reconcile",
         "apply_safe_actions": True,
         "study_count": 2,
+        "studies": [
+            {
+                "study_id": "001-risk",
+                "running_provider_attempt": False,
+                "active_run_id": None,
+                "active_stage_attempt_id": None,
+            },
+            {
+                "study_id": "002-risk",
+                "running_provider_attempt": False,
+                "active_run_id": None,
+                "active_stage_attempt_id": None,
+            },
+        ],
     }
     assert len(materialize_calls) == 1
     assert materialize_calls[0]["profile"] == profile
@@ -389,7 +417,7 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     assert supervisor_tick["mode"] == "developer_apply_safe"
     assert supervisor_tick["study_ids"] == ["001-risk", "002-risk"]
     assert supervisor_tick["pass_count"] == 1
-    assert supervisor_tick["stop_reason"] == "provider_handoff_started"
+    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
     assert supervisor_tick["actions"] == [
         "owner-route-reconcile",
         "domain-action-request-materialize",
@@ -406,6 +434,14 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
         "codex_dispatch_count": 1,
     }
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 1
+    diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
+    assert diagnostic["requires_provider_admission"] is True
+    assert diagnostic["next_forced_delta"]["required_delta_kind"] == "opl_provider_attempt_admission"
+    assert diagnostic["forbidden_next_actions"] == [
+        "repeat_receipt_reconcile_without_owner_delta",
+        "repeat_read_model_reconcile_without_owner_delta",
+        "start_new_provider_attempt_for_same_source_without_owner_delta",
+    ]
     assert supervisor_tick["owner_boundaries"] == {
         "runtime_owner": "one-person-lab",
         "domain_owner": "med-autoscience",
@@ -606,6 +642,7 @@ def test_domain_health_diagnostic_same_tick_pumps_receipt_followthrough_before_n
         scan_calls.append(kwargs)
         pass_index = len(scan_calls)
         action_type = "run_gate_clearing_batch" if pass_index == 1 else "run_quality_repair_batch"
+        admitted = pass_index == 3
         return {
             "surface": "portable_owner_route_reconcile",
             "apply_safe_actions": kwargs["apply_safe_actions"],
@@ -615,6 +652,14 @@ def test_domain_health_diagnostic_same_tick_pumps_receipt_followthrough_before_n
                     "study_id": study_id,
                     "action_type": action_type,
                     "action_id": f"action-{pass_index}",
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "running_provider_attempt": admitted,
+                    "active_run_id": "opl-stage-attempt://sat_followthrough" if admitted else None,
+                    "active_stage_attempt_id": "sat_followthrough" if admitted else None,
                 }
             ],
         }
@@ -669,11 +714,12 @@ def test_domain_health_diagnostic_same_tick_pumps_receipt_followthrough_before_n
     )
 
     supervisor_tick = result["developer_supervisor_same_tick"]
-    assert len(scan_calls) == 2
+    assert len(scan_calls) == 3
     assert len(materialize_calls) == 2
     assert len(dispatch_calls) == 2
     assert supervisor_tick["pass_count"] == 2
-    assert supervisor_tick["stop_reason"] == "provider_handoff_started"
+    assert supervisor_tick["stop_reason"] == "provider_attempt_started"
+    assert scan_calls[2]["persist_surfaces"] is False
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["dispatch_executed_count"] == 1
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 0
     assert supervisor_tick["iterations"][1]["progress_first_delta"]["codex_dispatch_count"] == 1

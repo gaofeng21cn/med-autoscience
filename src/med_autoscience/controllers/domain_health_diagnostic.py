@@ -445,6 +445,14 @@ def _run_developer_supervisor_same_tick(
                 dispatch_result=dispatch_result,
             ),
         }
+        if _same_tick_handoff_written(iteration):
+            iteration["provider_admission_probe"] = owner_route_reconcile.scan_domain_routes(
+                profile=profile,
+                study_ids=resolved_study_ids,
+                apply_safe_actions=True,
+                developer_supervisor_mode="developer_apply_safe",
+                persist_surfaces=False,
+            )
         iterations.append(iteration)
         stop_reason = _same_tick_stop_reason(iteration)
         if stop_reason != "continue_same_tick_after_sync_owner_delta":
@@ -504,8 +512,10 @@ def _same_tick_delta(
 
 def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
     delta = _mapping(iteration.get("progress_first_delta"))
-    if _int_value(delta.get("codex_dispatch_count")) > 0 or _int_value(delta.get("handoff_ready_count")) > 0:
-        return "provider_handoff_started"
+    if _same_tick_handoff_written(iteration):
+        if _provider_attempt_started(_mapping(iteration.get("provider_admission_probe"))):
+            return "provider_attempt_started"
+        return "provider_handoff_written_admission_pending"
     if _int_value(delta.get("dispatch_blocked_count")) > 0:
         return "typed_blocker_or_dispatch_blocker_observed"
     if _int_value(delta.get("dispatch_repeat_suppressed_count")) > 0:
@@ -519,6 +529,27 @@ def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
     return "no_owner_action_remaining"
 
 
+def _same_tick_handoff_written(iteration: Mapping[str, Any]) -> bool:
+    delta = _mapping(iteration.get("progress_first_delta"))
+    return (
+        _int_value(delta.get("codex_dispatch_count")) > 0
+        or _int_value(delta.get("handoff_ready_count")) > 0
+    )
+
+
+def _provider_attempt_started(scan_result: Mapping[str, Any]) -> bool:
+    for study in scan_result.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        if study.get("running_provider_attempt") is True and (
+            _non_empty_text(study.get("active_stage_attempt_id"))
+            or _non_empty_text(study.get("active_run_id"))
+            or _non_empty_text(study.get("active_workflow_id"))
+        ):
+            return True
+    return False
+
+
 def _same_tick_terminal_diagnostic(
     *,
     stop_reason: str,
@@ -526,15 +557,42 @@ def _same_tick_terminal_diagnostic(
 ) -> dict[str, Any]:
     last_iteration = iterations[-1] if iterations else {}
     last_delta = _mapping(last_iteration.get("progress_first_delta"))
+    provider_admission_probe = _mapping(last_iteration.get("provider_admission_probe"))
     requires_next_owner_delta = stop_reason in {
         "repeat_suppressed_owner_delta_required",
         "max_passes_exhausted_owner_delta_required",
     }
+    requires_provider_admission = stop_reason == "provider_handoff_written_admission_pending"
     return {
         "surface": "progress_first_developer_supervisor_terminal_diagnostic",
         "schema_version": 1,
         "stop_reason": stop_reason,
         "requires_next_owner_delta": requires_next_owner_delta,
+        "requires_provider_admission": requires_provider_admission,
+        "provider_admission_probe": (
+            {
+                "observed": False,
+                "running_provider_attempt_count": 0,
+                "study_ids": [
+                    study.get("study_id")
+                    for study in provider_admission_probe.get("studies") or []
+                    if isinstance(study, Mapping) and _non_empty_text(study.get("study_id"))
+                ],
+            }
+            if requires_provider_admission
+            else (
+                {
+                    "observed": True,
+                    "running_provider_attempt_count": sum(
+                        1
+                        for study in provider_admission_probe.get("studies") or []
+                        if isinstance(study, Mapping) and study.get("running_provider_attempt") is True
+                    ),
+                }
+                if stop_reason == "provider_attempt_started"
+                else None
+            )
+        ),
         "last_iteration_delta": dict(last_delta),
         "next_forced_delta": (
             {
@@ -554,7 +612,27 @@ def _same_tick_terminal_diagnostic(
                 ],
             }
             if requires_next_owner_delta
-            else None
+            else (
+                {
+                    "required_delta_kind": "opl_provider_attempt_admission",
+                    "reason": stop_reason,
+                    "target_surface": {
+                        "surface_ref": "OPL provider attempt receipt with active stage attempt id",
+                        "owner": "one-person-lab",
+                    },
+                    "acceptance_refs": [
+                        "running_provider_attempt",
+                        "active_stage_attempt_id",
+                        "active_run_id",
+                    ],
+                    "recommended_owner_commands": [
+                        "opl family-runtime worker status --provider temporal",
+                        "opl family-runtime scheduler tick --provider temporal",
+                    ],
+                }
+                if requires_provider_admission
+                else None
+            )
         ),
         "forbidden_next_actions": (
             [
@@ -562,7 +640,7 @@ def _same_tick_terminal_diagnostic(
                 "repeat_read_model_reconcile_without_owner_delta",
                 "start_new_provider_attempt_for_same_source_without_owner_delta",
             ]
-            if requires_next_owner_delta
+            if requires_next_owner_delta or requires_provider_admission
             else []
         ),
     }
