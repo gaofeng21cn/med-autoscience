@@ -295,15 +295,17 @@ def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) 
         return dict(payload)
     updated = dict(payload)
     updated["next_system_action"] = next_step
+    if (owner := _non_empty_text(executable_owner_action.get("next_owner"))) is not None:
+        updated["next_owner"] = owner
     route_back_checklist = current_owner_route_back_checklist(updated, handoff_action=handoff_action)
     if route_back_checklist is not None:
         updated["route_back_checklist"] = route_back_checklist
     if user_visible:
         user_visible["next_system_action"] = next_step
         user_visible["next_step"] = next_step
-        if handoff_action is not None and (owner := _non_empty_text(handoff_action.get("owner"))) is not None:
+        if (owner := _non_empty_text(executable_owner_action.get("next_owner"))) is not None:
             user_visible["next_owner"] = owner
-        elif (owner := _non_empty_text(executable_owner_action.get("next_owner"))) is not None:
+        elif handoff_action is not None and (owner := _non_empty_text(handoff_action.get("owner"))) is not None:
             user_visible["next_owner"] = owner
         if route_back_checklist is not None:
             user_visible["route_back_checklist"] = route_back_checklist

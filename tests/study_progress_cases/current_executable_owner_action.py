@@ -159,4 +159,42 @@ def test_current_owner_handoff_projection_prefers_current_executable_owner_actio
         "产出 owner receipt、typed blocker 或下一 owner handoff。"
     )
     assert result["user_visible_projection"]["next_system_action"] == result["next_system_action"]
+    assert result["user_visible_projection"]["next_owner"] == "finalize"
+    assert result["status_narration_contract"]["next_step"] == result["next_system_action"]
+
+
+def test_current_owner_handoff_decision_uses_current_executable_owner_action_next_step() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"
+    )
+
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "domain_transition": {"decision_type": "current_owner_handoff"},
+        "next_system_action": "等待显式 resume、rerun 或 relaunch。",
+        "status_narration_contract": {"next_step": "等待显式 resume、rerun 或 relaunch。"},
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "next_owner": "finalize",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "allowed_actions": ["run_gate_clearing_batch"],
+        },
+        "user_visible_projection": {
+            "surface_kind": "study_progress_user_visible_projection",
+            "schema_version": 2,
+            "next_owner": "ai_reviewer",
+            "next_step": "等待旧 reviewer route。",
+            "next_system_action": "等待旧 reviewer route。",
+        },
+    }
+
+    result = module.apply_current_owner_handoff_user_visible_status(payload)
+
+    assert result["next_system_action"] == (
+        "等待 finalize owner 执行 run_gate_clearing_batch，"
+        "处理 work unit dpcc_publication_gate_replay_after_current_ai_reviewer_record，"
+        "产出 owner receipt、typed blocker 或下一 owner handoff。"
+    )
+    assert result["user_visible_projection"]["next_system_action"] == result["next_system_action"]
+    assert result["user_visible_projection"]["next_owner"] == "finalize"
     assert result["status_narration_contract"]["next_step"] == result["next_system_action"]

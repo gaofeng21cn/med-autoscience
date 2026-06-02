@@ -294,9 +294,7 @@ def test_progress_first_monitoring_does_not_redrive_same_consumed_ai_reviewer_re
     assert projection["execution_state_kind"] == "receipt_consumed"
     assert projection["next_owner"] == "ai_reviewer"
     assert projection["controller_action"] == "return_to_ai_reviewer_workflow"
-    assert projection["next_work_unit"]["unit_id"] == (
-        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
-    )
+    assert projection["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
 
 
@@ -335,9 +333,7 @@ def test_progress_first_monitoring_redrives_consumed_ai_reviewer_record_with_dif
     projection = module.build_progress_first_monitoring_summary(payload)
 
     assert projection["execution_state_kind"] == "executable_owner_action"
-    assert projection["next_work_unit"]["unit_id"] == (
-        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
-    )
+    assert projection["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
     assert projection["typed_blocker"] is None
     assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
 
