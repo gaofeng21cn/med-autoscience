@@ -14,10 +14,13 @@ def handle_domain_health_diagnostic_command(
     load_profile: Any,
 ) -> int | None:
     if args.command == "domain-health-diagnostic":
-        if bool(args.quest_root) == bool(args.runtime_root):
+        profile = load_profile(args.profile) if args.profile else None
+        if args.quest_root and args.runtime_root:
             parser.error("Specify exactly one of --quest-root or --runtime-root")
         if args.quest_root and args.profile:
             parser.error("--profile is only supported with --runtime-root")
+        if not args.quest_root and not args.runtime_root and profile is None:
+            parser.error("Specify exactly one of --quest-root or --runtime-root")
         if args.quest_root and args.studies:
             parser.error("--studies is only supported with --runtime-root")
         if args.quest_root and args.request_opl_stage_attempts:
@@ -38,9 +41,9 @@ def handle_domain_health_diagnostic_command(
                 apply=args.apply,
             )
         else:
-            profile = load_profile(args.profile) if args.profile else None
+            runtime_root = Path(args.runtime_root) if args.runtime_root else Path(profile.runtime_root)
             result = domain_health_diagnostic.run_domain_health_diagnostic_for_runtime(
-                runtime_root=Path(args.runtime_root),
+                runtime_root=runtime_root,
                 apply=args.apply,
                 profile=profile,
                 study_ids=tuple(args.studies or ()),
