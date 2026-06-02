@@ -61,6 +61,12 @@ DM002 暴露出 `consume_current_ai_reviewer_record_then_prose_gate_package_repl
 
 该修复只改变 MAS controller/materializer/dispatcher currentness bridge 与 work-unit family 注册，不写 DM-CVD study truth、runtime-owned state、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 package；它也不声明 DM002 publication-ready、paper closure、artifact authority、domain-ready 或 production-ready。后续 DM002 仍必须由 MAS/OPL owner path 执行 writer handoff，产出 story-surface delta、owner receipt、stable typed blocker 或下一 owner handoff。
 
+## 2026-06-02 Progress-first closeout ingestion / scoped reconcile repair
+
+DM002 继续暴露出 owner-route reconcile 能消费 `paper/review/domain_stage_closeout_*.json` 中的 idempotent write-owner closeout，但 `study-state-matrix` 与 progress-first accounting 仍把相同 work unit 投影为 ready owner action；同时 focused `owner-route-reconcile --studies 002...` 会把 previous scan 中未扫描的 DM003 handoff 合并进输出，造成 operator 读面混入另一篇论文线。当前修复把 `study_domain_transition_table` 接入 default-executor receipt consumption：同一 canonical work-unit identity 已在 `paper/review/` 或 supervision closeout root 被消费时，transition 投影为 `completion_receipt_consumed`，monitoring 投影为 `receipt_consumed`，不再计入 `ready_for_dispatch` / `expected_owner_action_count`。
+
+CLI scoped scan 也已收紧：显式 `--studies` 调用传入 `retain_unscanned_studies=false`，只输出本次扫描 study；未指定 `--studies` 的 full workspace scan 仍保留 previous unscanned study handoff，维持 dashboard continuity。该修复只改变 read-model/currentness 与 operator scoped surface，不写 DM-CVD study truth、runtime-owned state、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission/current package 或 quality verdict；论文推进仍必须由后续 MAS/OPL owner action、owner receipt、AI reviewer、publication gate、typed blocker 或 human gate 判定。
+
 ## 当前机器事实
 
 - `agent/` 是 canonical medical research semantic pack：`prompts/`、`stages/`、`skills/`、`quality_gates/`、`knowledge/` 持有医学研究 stage / prompt / skill / quality / knowledge 语义。

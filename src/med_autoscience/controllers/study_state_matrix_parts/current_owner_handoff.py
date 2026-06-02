@@ -41,6 +41,13 @@ def monitoring_has_authoritative_owner_action(monitoring: Mapping[str, Any]) -> 
     )
 
 
+def completion_receipt_consumed_handoff(transition: Mapping[str, Any]) -> bool:
+    if _text(transition.get("decision_type")) != "completion_receipt_consumed":
+        return False
+    completion = _dict(transition.get("completion_receipt_consumption"))
+    return _text(completion.get("status")) in {"consumed", "receipt_consumed", "completed"}
+
+
 def _monitoring_disagrees_with_transition(
     *,
     monitoring: Mapping[str, Any],
@@ -113,6 +120,7 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "completion_receipt_consumed_handoff",
     "effective_transition_for_monitoring",
     "monitoring_has_authoritative_owner_action",
 ]

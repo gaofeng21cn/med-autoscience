@@ -10,7 +10,10 @@ def merge_previous_unscanned_study_handoff(
     previous_payload: Mapping[str, Any] | None,
     scanned_studies: list[dict[str, Any]],
     scanned_action_queue: list[dict[str, Any]],
+    retain_unscanned_studies: bool = True,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if not retain_unscanned_studies:
+        return scanned_studies, scanned_action_queue
     scanned_ids = {
         study_id
         for study in scanned_studies

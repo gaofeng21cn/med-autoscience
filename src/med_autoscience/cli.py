@@ -549,12 +549,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "owner-route-reconcile":
         profile = load_profile(args.profile)
-        study_ids = tuple(args.studies or ()) or owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
+        explicit_study_ids = tuple(args.studies or ())
+        study_ids = explicit_study_ids or owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
         result = owner_route_reconcile.scan_domain_routes(
             profile=profile,
             study_ids=study_ids,
             apply_safe_actions=bool(args.apply_safe_actions),
             developer_supervisor_mode=args.developer_supervisor_mode,
+            retain_unscanned_studies=not bool(explicit_study_ids),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

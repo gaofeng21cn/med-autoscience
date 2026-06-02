@@ -13,6 +13,7 @@ from med_autoscience.controllers.progress_first_receipt_identity import (
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers import study_macro_state
 from med_autoscience.controllers.study_state_matrix_parts.current_owner_handoff import (
+    completion_receipt_consumed_handoff,
     effective_transition_for_monitoring,
     monitoring_has_authoritative_owner_action,
 )
@@ -395,8 +396,9 @@ def _progress_first_monitoring_summary(
         )
         or use_transition_consumed_owner_action
     )
+    consumed_handoff = completion_receipt_consumed_handoff(transition)
     typed_blocker = ({} if use_transition_consumed_owner_action else _dict(existing.get("typed_blocker"))) or (
-        {} if existing_owner_action or existing_receipt_consumed else _dict(transition.get("typed_blocker"))
+        {} if existing_owner_action or existing_receipt_consumed or consumed_handoff else _dict(transition.get("typed_blocker"))
     )
     current_blockers = [] if use_transition_consumed_owner_action else _string_list(existing.get("current_blockers"))
     if not current_blockers and typed_blocker:
@@ -548,6 +550,8 @@ def _provider_status(monitoring: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _transition_consumed_owner_action(transition: Mapping[str, Any]) -> bool:
+    if completion_receipt_consumed_handoff(transition):
+        return False
     if _dict(transition.get("typed_blocker")):
         return False
     completion = _dict(transition.get("completion_receipt_consumption"))

@@ -19,11 +19,13 @@ def test_owner_route_reconcile_command_dispatches_controller(monkeypatch, tmp_pa
         study_ids,
         apply_safe_actions: bool,
         developer_supervisor_mode: str | None = None,
+        retain_unscanned_studies: bool = True,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_ids"] = study_ids
         called["apply_safe_actions"] = apply_safe_actions
         called["developer_supervisor_mode"] = developer_supervisor_mode
+        called["retain_unscanned_studies"] = retain_unscanned_studies
         return {"surface": "owner_route_reconcile", "study_count": len(study_ids)}
 
     monkeypatch.setattr(cli.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
@@ -48,6 +50,7 @@ def test_owner_route_reconcile_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["study_ids"] == ("NF003", "DM002")
     assert called["apply_safe_actions"] is True
     assert called["developer_supervisor_mode"] == "developer_apply_safe"
+    assert called["retain_unscanned_studies"] is False
     assert json.loads(captured.out)["surface"] == "owner_route_reconcile"
 
 
@@ -74,9 +77,11 @@ def test_owner_route_reconcile_command_discovers_studies_when_not_explicit(
         study_ids,
         apply_safe_actions: bool,
         developer_supervisor_mode: str | None = None,
+        retain_unscanned_studies: bool = True,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_ids"] = study_ids
+        called["retain_unscanned_studies"] = retain_unscanned_studies
         return {"surface": "owner_route_reconcile", "study_count": len(study_ids)}
 
     monkeypatch.setattr(cli.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
@@ -93,4 +98,25 @@ def test_owner_route_reconcile_command_discovers_studies_when_not_explicit(
 
     assert exit_code == 0
     assert called["study_ids"] == ("001-first", "002-second")
+    assert called["retain_unscanned_studies"] is True
     assert json.loads(captured.out)["study_count"] == 2
+
+
+def test_owner_route_reconcile_explicit_study_scan_output_stays_scoped() -> None:
+    scan_output = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.scan_output"
+    )
+
+    studies, action_queue = scan_output.merge_previous_unscanned_study_handoff(
+        previous_payload={
+            "generated_at": "2026-06-02T00:00:00Z",
+            "studies": [{"study_id": "003-dpcc", "handoff_scan_status": "scanned"}],
+            "action_queue": [{"study_id": "003-dpcc", "action_id": "stale-003"}],
+        },
+        scanned_studies=[{"study_id": "002-dm", "handoff_scan_status": "scanned"}],
+        scanned_action_queue=[{"study_id": "002-dm", "action_id": "current-002"}],
+        retain_unscanned_studies=False,
+    )
+
+    assert studies == [{"study_id": "002-dm", "handoff_scan_status": "scanned"}]
+    assert action_queue == [{"study_id": "002-dm", "action_id": "current-002"}]

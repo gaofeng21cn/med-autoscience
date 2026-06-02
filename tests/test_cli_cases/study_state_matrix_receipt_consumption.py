@@ -247,6 +247,150 @@ def test_study_state_matrix_marks_default_executor_execution_receipt_supersessio
     assert case["context"]["completion_receipt_consumption"]["next_action"] == "honor_newer_owner_execution_receipt"
 
 
+def test_study_state_matrix_consumes_paper_review_default_executor_closeout(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    work_unit_id = "dm002_same_line_publication_paper_repair"
+    work_unit_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    source_eval_id = "publication-eval::dm002::current-inputs::20260602"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": source_eval_id,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "reviewer_operating_system": {
+                "currentness_checks": {
+                    "medical_prose_review": {
+                        "status": "current",
+                        "route_back_required": True,
+                        "route_target": "write",
+                        "request_digest": "dm002-current-request",
+                        "manuscript_ref": "paper/build/review_manuscript.md",
+                        "manuscript_digest": "dm002-current-manuscript",
+                    },
+                    "current_manuscript": {
+                        "status": "current",
+                        "manuscript_ref": "paper/build/review_manuscript.md",
+                        "manuscript_digest": "dm002-current-manuscript",
+                    },
+                },
+            },
+            "recommended_actions": [
+                {
+                    "action_type": "route_back_same_line",
+                    "route_target": "write",
+                    "requires_controller_decision": True,
+                    "next_work_unit": {
+                        "unit_id": work_unit_id,
+                        "lane": "write",
+                        "summary": "Repair current manuscript story surface.",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "review" / "domain_stage_closeout_sat_dm002_20260602T090821Z.json",
+        {
+            "surface_kind": "domain_stage_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": "sat_dm002_writer",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "owner": "write",
+            "status": "completed_for_write_owner_idempotent",
+            "owner_route_basis": {
+                "truth_epoch": "truth-event-dm002-current",
+                "runtime_health_epoch": "runtime-health-dm002-current",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            },
+            "artifact_delta": {
+                "status": "already_materialized_for_stage_packet",
+                "story_surface_delta_present": True,
+                "changed_artifact_refs": [
+                    {"path": f"studies/{study_id}/paper/draft.md"},
+                    {"path": f"studies/{study_id}/paper/review/manuscript_story_repair_story_surface.json"},
+                ],
+                "manuscript_surface_hygiene": {
+                    "status": "clear_for_current_story_surface_delta",
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": True,
+                    "blockers": [],
+                },
+            },
+            "domain_owner_evidence": {
+                "story_surface_delta_present": True,
+                "gate_replay_done": True,
+                "ai_reviewer_recheck_required": True,
+                "ai_reviewer_recheck_done": True,
+            },
+            "closeout_refs": [
+                f"studies/{study_id}/paper/review/domain_stage_closeout_sat_dm002_20260602T090821Z.json",
+                f"studies/{study_id}/paper/review/manuscript_story_repair_story_surface.json",
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "quest_status": "waiting_for_user",
+            "active_run_id": None,
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-dm002-current",
+                "source_signature": "truth-source-dm002-current",
+            },
+            },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+    transition = payload["studies"][0]["domain_transition"]
+    monitoring = payload["studies"][0]["monitoring"]
+    accounting = payload["progress_first_tick_accounting"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "completion_receipt_consumed"
+    assert transition["controller_action"] == "none"
+    assert transition["owner"] == "med-autoscience"
+    receipt = transition["completion_receipt_consumption"]
+    assert receipt["status"] == "consumed"
+    assert receipt["receipt_kind"] == "default_executor_execution"
+    assert receipt["receipt_ref"] == "paper/review/domain_stage_closeout_sat_dm002_20260602T090821Z.json"
+    assert receipt["action_type"] == "run_quality_repair_batch"
+    assert receipt["owner_result_status"] == "completed_for_write_owner_idempotent"
+    assert receipt["work_unit_id"] == work_unit_id
+    assert receipt["work_unit_fingerprint"] == work_unit_fingerprint
+    assert monitoring["execution_state_kind"] == "receipt_consumed"
+    assert monitoring["owner_action_current"] is False
+    assert monitoring["dispatch_consumption"]["consumption_status"] == "consumed"
+    assert accounting["ready_for_owner_action_count"] == 0
+    assert accounting["expected_owner_action_count"] == 0
+    assert accounting["studies"][0]["monitoring_status"] == "receipt_consumed"
+
+
 def test_study_state_matrix_consumes_mas_owner_apply_receipt_as_artifact_delta(
     monkeypatch,
     tmp_path: Path,

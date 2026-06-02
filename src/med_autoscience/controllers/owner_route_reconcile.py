@@ -863,6 +863,7 @@ def scan_domain_routes(
     apply_safe_actions: bool = False,
     developer_supervisor_mode: str | None = None,
     persist_surfaces: bool = True,
+    retain_unscanned_studies: bool = True,
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
     study_identity.validate_scan_owner_route_reconcile_study_ids(profile, resolved_study_ids)
@@ -939,6 +940,7 @@ def scan_domain_routes(
             previous_payload=previous_payload,
             scanned_studies=studies,
             scanned_action_queue=scanned_action_queue,
+            retain_unscanned_studies=retain_unscanned_studies,
         )
     else:
         output_studies, action_queue = studies, scanned_action_queue

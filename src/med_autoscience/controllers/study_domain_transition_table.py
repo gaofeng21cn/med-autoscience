@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import ai_reviewer_publication_eval_records
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
+from med_autoscience.controllers.study_domain_transition_table_parts import default_executor_receipts
 from med_autoscience.controllers.study_domain_transition_table_parts import family_transition_spec
 from med_autoscience.controllers.study_domain_transition_table_parts import publication_gate_lifecycle_transitions
 from med_autoscience.controllers.study_domain_transition_table_parts import story_surface_recheck_transition
@@ -245,7 +246,16 @@ def project_domain_transition(
         completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
     )
     if review_recheck_transition is not None:
-        return review_recheck_transition
+        consumed_transition = _consumed_default_executor_transition(
+            study_id=study_id,
+            quest_id=_text(status.get("quest_id")),
+            study_root=root,
+            status=status,
+            publication_eval=publication_eval,
+            transition=review_recheck_transition,
+            active_run_id=active_run_id,
+        )
+        return consumed_transition or review_recheck_transition
 
     ai_reviewer_transition = ai_reviewer_transitions.project_transition(
         study_id=study_id,
@@ -257,10 +267,19 @@ def project_domain_transition(
         completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
     )
     if ai_reviewer_transition is not None:
-        return ai_reviewer_transition
+        consumed_transition = _consumed_default_executor_transition(
+            study_id=study_id,
+            quest_id=_text(status.get("quest_id")),
+            study_root=root,
+            status=status,
+            publication_eval=publication_eval,
+            transition=ai_reviewer_transition,
+            active_run_id=active_run_id,
+        )
+        return consumed_transition or ai_reviewer_transition
 
     if _publication_gate_blocked(publication_eval, status=status):
-        return _transition(
+        publication_gate_transition = _transition(
             study_id=study_id,
             decision_type="publication_gate_blocker",
             route_target="review",
@@ -281,6 +300,16 @@ def project_domain_transition(
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
         )
+        consumed_transition = _consumed_default_executor_transition(
+            study_id=study_id,
+            quest_id=_text(status.get("quest_id")),
+            study_root=root,
+            status=status,
+            publication_eval=publication_eval,
+            transition=publication_gate_transition,
+            active_run_id=active_run_id,
+        )
+        return consumed_transition or publication_gate_transition
 
     bundle_stage_work_unit = _bundle_stage_finalize_work_unit(
         status=status,
@@ -460,6 +489,53 @@ def project_domain_transition(
         guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
         source_refs=source_refs,
         completion_receipt_consumption=execution_receipt_consumption,
+    )
+
+
+def _consumed_default_executor_transition(
+    *,
+    study_id: str,
+    quest_id: str | None,
+    study_root: Path,
+    status: Mapping[str, Any],
+    publication_eval: Mapping[str, Any],
+    transition: Mapping[str, Any],
+    active_run_id: str | None,
+) -> dict[str, Any] | None:
+    receipt = default_executor_receipts.consumed_current_transition_receipt(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        status=status,
+        publication_eval_payload=publication_eval,
+        transition=transition,
+        active_run_id=active_run_id,
+    )
+    if not receipt:
+        return None
+    return _transition(
+        study_id=study_id,
+        decision_type="completion_receipt_consumed",
+        route_target="inspect",
+        next_work_unit=_work_unit(
+            "default_executor_owner_receipt_consumed_handoff",
+            "controller",
+            "Expose the consumed default-executor owner receipt without redriving the current work unit.",
+        ),
+        controller_action="none",
+        owner="med-autoscience",
+        typed_blocker=_typed_blocker(
+            blocker_id="completed_work_unit_consumed",
+            blocker_type="completion_receipt",
+            summary="Default-executor owner receipt already consumed this work unit; automatic redrive is forbidden.",
+            required_owner_surface=_text(receipt.get("receipt_ref")) or "paper/review",
+        ),
+        guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
+        source_refs=[
+            *_text_list(transition.get("source_refs")),
+            *([receipt_ref] if (receipt_ref := _text(receipt.get("receipt_ref"))) else []),
+        ],
+        completion_receipt_consumption=receipt,
     )
 
 
