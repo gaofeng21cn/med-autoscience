@@ -3,6 +3,35 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
+)
+
+
+def quality_repair_allowed_work_unit_ids(publication_work_unit_repair_ids: Mapping[str, Any]) -> frozenset[str]:
+    return frozenset(publication_work_unit_repair_ids) | PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+
+
+def upstream_work_unit_id_for_route(
+    route_work_unit_id: str | None,
+    selected_work_unit_id: str | None,
+    *,
+    upstream_work_unit_ids: frozenset[str],
+) -> str | None:
+    if route_work_unit_id in upstream_work_unit_ids:
+        return route_work_unit_id
+    if route_work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return None
+    return selected_work_unit_id
+
+
+def route_work_unit_should_pin_explicit_publication_work_unit(
+    route_work_unit_id: str | None,
+    *,
+    upstream_work_unit_ids: frozenset[str],
+) -> bool:
+    return route_work_unit_id in upstream_work_unit_ids or route_work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+
 
 def apply_explicit_upstream_publication_work_unit(
     publication_work_unit_payload: Mapping[str, Any],
@@ -220,8 +249,11 @@ __all__ = [
     "controller_route_context_for_publication_work_unit_payload",
     "explicit_upstream_publication_work_unit",
     "has_explicit_controller_route_context",
+    "quality_repair_allowed_work_unit_ids",
     "merge_route_contexts",
     "route_action_for_controller_context",
     "route_context_work_unit_id",
+    "route_work_unit_should_pin_explicit_publication_work_unit",
     "unsupported_explicit_controller_route_record",
+    "upstream_work_unit_id_for_route",
 ]

@@ -14,6 +14,9 @@ from med_autoscience.controllers.story_surface_work_units import (
     STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS,
     is_story_surface_delta_write_work_unit,
 )
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
+)
 from med_autoscience.policies.medical_manuscript_draft_quality import (
     PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS,
 )
@@ -28,7 +31,7 @@ STABLE_REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = Path(
 _CURRENT_PACKAGE_BLOCKER = "current_package_ref_not_canonical_delta"
 _CONTROLLER_PROGRESS_WORK_UNIT_IDS = frozenset(
     {
-        "publication_gate_replay",
+        *PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
         "submission_authority_sync_closure",
         "submission_delivery_sync_closure",
         "submission_minimal_refresh",

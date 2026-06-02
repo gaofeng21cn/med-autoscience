@@ -45,6 +45,8 @@ DM003 后续暴露出 `artifacts/controller/gate_clearing_batch/latest.json` 已
 
 该修复关闭的是 read-model/currentness 空转缺陷：已执行 stable output 不再进入 `expected_owner_action_count`、`ready_for_dispatch` 或下一轮 redrive。它不写 DM-CVD study truth、runtime-owned state、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 package，也不宣布 DM003 ready。后续 DM003 仍必须 fresh projection 后按当前 owner route 推进；若 projection 已转到新的 AI reviewer、write 或 typed blocker lane，应以该 live owner 为准，而不是强行重放旧 gate-clearing。
 
+随后 DM003 还暴露出同源的 quality-repair currentness 缺陷：`quality_repair_batch` 收到 `dpcc_publication_gate_replay_after_current_ai_reviewer_record` 这类 publication-gate replay work unit 时，曾把它投影为 `controller_route_work_unit_unsupported`，即使 `gate_clearing_batch/latest.json` 已执行且 `current_package_freshness/latest.json` 已 fresh。当前修复把所有 `PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS` 纳入 quality-repair 的 allowed controller route，并在 repair-execution evidence 中把这类 route 计为 `controller_progress_delta_candidate`；显式 gate-replay route 不再回退执行 skipped prose/write repair unit。Progress-first 口径为：gate replay / package freshness 是 controller-progress delta，可以关闭当前 route-back currentness obligation；若后续仍 blocked，应投影真实 gate/package blocker 或下一 owner，而不是重复 receipt reconcile 或重新制造 prose repair dispatch。
+
 ## 当前机器事实
 
 - `agent/` 是 canonical medical research semantic pack：`prompts/`、`stages/`、`skills/`、`quality_gates/`、`knowledge/` 持有医学研究 stage / prompt / skill / quality / knowledge 语义。

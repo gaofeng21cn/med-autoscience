@@ -44,7 +44,9 @@ _QUALITY_REPAIR_LANES = frozenset({"general_quality_repair", "quality_floor_bloc
 _ANALYSIS_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
 _ANALYSIS_REPAIR_ROUTE_TARGET = "analysis-campaign"
 _ANALYSIS_REPAIR_ACTION = StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
-_QUALITY_REPAIR_BATCH_ALLOWED_WORK_UNIT_IDS = frozenset(PUBLICATION_WORK_UNIT_REPAIR_IDS)
+_QUALITY_REPAIR_BATCH_ALLOWED_WORK_UNIT_IDS = upstream_route_context.quality_repair_allowed_work_unit_ids(
+    PUBLICATION_WORK_UNIT_REPAIR_IDS
+)
 
 
 def stable_quality_repair_batch_path(*, study_root: Path) -> Path:
@@ -552,19 +554,6 @@ def _hard_methodology_target_from_publication_work_units(
     return hard_methodology_handoff.target_from_publication_work_units(publication_work_unit_payload)
 
 
-def _explicit_upstream_publication_work_unit(
-    publication_eval_payload: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    return upstream_route_context.explicit_upstream_publication_work_unit(
-        publication_eval_payload,
-        upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
-        compact_publication_work_unit=_compact_publication_work_unit,
-        non_empty_text=_non_empty_text,
-        bounded_analysis_action=StudyDecisionType.BOUNDED_ANALYSIS.value,
-        route_back_same_line_action=StudyDecisionType.ROUTE_BACK_SAME_LINE.value,
-    )
-
-
 def _apply_explicit_upstream_publication_work_unit(
     publication_work_unit_payload: Mapping[str, Any],
     *,
@@ -888,8 +877,11 @@ def run_quality_repair_batch(
         upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
     )
     route_work_unit_id = _route_context_work_unit_id(resolved_route_context)
-    if route_work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
-        upstream_work_unit_id = route_work_unit_id
+    upstream_work_unit_id = upstream_route_context.upstream_work_unit_id_for_route(
+        route_work_unit_id,
+        upstream_work_unit_id,
+        upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+    )
     upstream_unit_result = quality_repair_batch_upstream.run_upstream_paper_repair_unit(
         study_id=study_id,
         quest_id=quest_id,
@@ -905,7 +897,10 @@ def run_quality_repair_batch(
         gate_clearing_result=gate_clearing_result,
         upstream_unit_result=upstream_unit_result,
     )
-    if route_work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+    if upstream_route_context.route_work_unit_should_pin_explicit_publication_work_unit(
+        route_work_unit_id,
+        upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+    ):
         gate_clearing_result["explicit_publication_work_unit"] = {"unit_id": route_work_unit_id}
     gate_clearing_execution_summary = (
         dict(gate_clearing_result.get("execution_summary"))

@@ -709,3 +709,156 @@ def test_medical_prose_write_repair_uses_explicit_route_context_when_gate_result
     story_text = (paper_root / "draft.md").read_text(encoding="utf-8")
     assert "Phenotype derivation and assignment" in story_text
     assert "recorded treatment-review gap" in story_text
+
+
+def test_quality_repair_batch_consumes_publication_gate_replay_as_controller_progress_delta(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="primary_care_gap",
+    )
+    quest_id = "quest-003"
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
+    paper_root = study_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "draft.md").write_text("# Draft\n\nCurrent story surface.\n", encoding="utf-8")
+    _write_json(paper_root / "claim_evidence_map.json", {"schema_version": 1, "claims": []})
+    _write_json(paper_root / "evidence_ledger.json", {"schema_version": 1, "claims": []})
+    _write_json(paper_root / "review" / "review_ledger.json", {"schema_version": 1, "concerns": []})
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["verdict"]["overall_verdict"] = "promising"
+    publication_eval_payload["recommended_actions"][0].update(
+        {
+            "action_type": "route_back_same_line",
+            "route_target": "finalize",
+            "work_unit_fingerprint": "truth-snapshot::gate-replay-current",
+            "next_work_unit": {
+                "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "lane": "finalize",
+                "summary": "Replay the publication gate and package/currentness checks.",
+            },
+        }
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_quality_summary(study_root)
+    freshness_path = study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_root.mkdir(parents=True)
+    current_package_zip = study_root / "manuscript" / "current_package.zip"
+    current_package_zip.write_text("zip-placeholder", encoding="utf-8")
+    _write_json(
+        freshness_path,
+        {
+            "schema_version": 1,
+            "status": "fresh",
+            "source_eval_id": publication_eval_payload["eval_id"],
+            "current_package_root": str(current_package_root.resolve()),
+            "current_package_zip": str(current_package_zip.resolve()),
+            "proof_path": str(freshness_path.resolve()),
+        },
+    )
+    gate_batch_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": ["stale_study_delivery_mirror", "submission_hardening_incomplete"],
+            "current_required_action": "return_to_publishability_gate",
+            "gate_fingerprint": "publication-gate::003",
+        },
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **_: {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(gate_batch_path),
+            "explicit_publication_work_unit": {
+                "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "lane": "finalize",
+            },
+            "selected_publication_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "status": "skipped",
+                "lifecycle_status": "skipped",
+            },
+            "current_publication_work_unit": {
+                "unit_id": "submission_delivery_terminal_blocker",
+                "control_surface": "gate_clearing_batch",
+                "controller_work_unit_executable": False,
+            },
+            "gate_replay": {
+                "status": "blocked",
+                "report_json": str(study_root / "artifacts" / "reports" / "publication_gate" / "latest.json"),
+            },
+            "current_package_freshness_proof": {
+                "schema_version": 1,
+                "status": "fresh",
+                "source_eval_id": publication_eval_payload["eval_id"],
+                "proof_path": str(freshness_path.resolve()),
+            },
+            "unit_results": [],
+        },
+    )
+    route_context = {
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
+            "control_state": "supervisor_gated",
+            "canonical_next_action": "resume_same_study_line",
+            "authority_refs": {"study_truth": {"epoch": "truth-1"}, "runtime_health": {"epoch": "runtime-1"}},
+            "dispatch_gate": {"state": "open", "blocking_reasons": []},
+            "route_authorization": {
+                "paper_write_allowed": True,
+                "bundle_build_allowed": True,
+                "runtime_recovery_allowed": True,
+            },
+        },
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": "run_quality_repair_batch",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "requires_human_confirmation": False,
+            "source_eval_id": publication_eval_payload["eval_id"],
+            "work_unit_fingerprint": "truth-snapshot::gate-replay-current",
+        },
+    }
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        authority_route_context=route_context,
+    )
+
+    assert result["status"] == "executed"
+    assert result["ok"] is True
+    assert result.get("typed_blocker") != "controller_route_work_unit_unsupported"
+    evidence = result["repair_execution_evidence"]
+    assert evidence["status"] == "controller_progress_delta_candidate"
+    assert evidence["controller_progress_delta_candidate"] is True
+    assert evidence["repair_work_unit"]["unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    controller_refs = {
+        Path(ref).relative_to(study_root).as_posix()
+        for ref in evidence["controller_progress_delta"]["artifact_refs"]
+    }
+    assert "artifacts/controller/current_package_freshness/latest.json" in controller_refs
