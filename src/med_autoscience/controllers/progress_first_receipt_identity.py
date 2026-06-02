@@ -81,13 +81,14 @@ def canonical_work_unit_identity_from_transition(transition: Mapping[str, Any]) 
     payload = _mapping(transition)
     source_refs = _mapping(payload.get("source_refs"))
     basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    next_work_unit = _mapping(payload.get("next_work_unit"))
+    next_work_unit_value = payload.get("next_work_unit")
+    next_work_unit = _mapping(next_work_unit_value)
     return _compact_mapping(
         {
             "work_unit_id": _text(basis.get("work_unit_id"))
             or _text(source_refs.get("work_unit_id"))
             or _text(payload.get("work_unit_id"))
-            or _work_unit_id(next_work_unit),
+            or _work_unit_id(next_work_unit_value),
             "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint"))
             or _text(source_refs.get("work_unit_fingerprint"))
             or _text(payload.get("work_unit_fingerprint"))
@@ -193,6 +194,8 @@ def consumed_ai_reviewer_receipt_matches_transition_work_unit(
         return False
     if _text(transition.get("controller_action")) != "return_to_ai_reviewer_workflow":
         return False
+    if _existing_summary_ai_reviewer_receipt_self_match(transition=transition, completion=completion):
+        return True
     receipt_identity = canonical_work_unit_identity_from_completion(completion)
     transition_identity = canonical_work_unit_identity_from_transition(transition)
     receipt_has_identity = _has_work_unit_identity(receipt_identity)
@@ -223,10 +226,23 @@ def _has_work_unit_identity(identity: Mapping[str, Any]) -> bool:
     )
 
 
+def _existing_summary_ai_reviewer_receipt_self_match(
+    *,
+    transition: Mapping[str, Any],
+    completion: Mapping[str, Any],
+) -> bool:
+    next_work_unit = _work_unit_id(transition.get("next_work_unit"))
+    if next_work_unit != "return_to_ai_reviewer_workflow":
+        return False
+    identity = canonical_work_unit_identity_from_completion(completion)
+    return bool(_has_work_unit_identity(identity))
+
+
 def _transition_has_explicit_work_unit_identity(transition: Mapping[str, Any]) -> bool:
     source_refs = _mapping(transition.get("source_refs"))
     basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    next_work_unit = _mapping(transition.get("next_work_unit"))
+    next_work_unit = transition.get("next_work_unit")
+    next_work_unit_mapping = _mapping(next_work_unit)
     return any(
         _text(value) is not None
         for value in (
@@ -236,7 +252,7 @@ def _transition_has_explicit_work_unit_identity(transition: Mapping[str, Any]) -
             source_refs.get("work_unit_fingerprint"),
             basis.get("work_unit_id"),
             basis.get("work_unit_fingerprint"),
-            next_work_unit.get("fingerprint"),
+            next_work_unit_mapping.get("fingerprint"),
         )
     )
 
