@@ -241,6 +241,7 @@ def _pending_family_tasks(
                 profile=profile,
                 profile_ref=profile_ref,
                 study_id=study_id,
+                current_owner_action=mapping(study.get("current_owner_action")),
             )
         )
         tasks.extend(

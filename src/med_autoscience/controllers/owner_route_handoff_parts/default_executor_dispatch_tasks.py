@@ -30,6 +30,7 @@ def default_executor_dispatch_tasks(
     profile: WorkspaceProfile,
     profile_ref: Path,
     study_id: str,
+    current_owner_action: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     dispatch_root = profile.studies_root / study_id / DISPATCH_RELATIVE_ROOT
     if not dispatch_root.is_dir():
@@ -39,6 +40,7 @@ def default_executor_dispatch_tasks(
         dispatch_root,
         profile=profile,
         study_id=study_id,
+        current_owner_action=current_owner_action,
     )
     for candidate in candidates:
         dispatch_path = candidate["path"]
@@ -138,14 +140,18 @@ def _current_dispatch_candidates(
     *,
     profile: WorkspaceProfile,
     study_id: str,
+    current_owner_action: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
+    current_action = _mapping(current_owner_action)
     for dispatch_path in sorted(dispatch_root.glob("*.json")):
         dispatch = _read_json_object(dispatch_path)
         if not _dispatch_ready_for_opl_attempt(dispatch):
             continue
         action_type = _text(dispatch.get("action_type"))
         if action_type is None:
+            continue
+        if current_action and not _dispatch_matches_current_owner_action(dispatch, current_action):
             continue
         if _dispatch_execution_receipt_consumed(
             profile=profile,
@@ -161,6 +167,8 @@ def _current_dispatch_candidates(
                 "mtime_key": _dispatch_mtime_key(dispatch_path),
             }
         )
+    if current_action:
+        return candidates
     unresolved = [
         candidate
         for candidate in candidates
@@ -169,6 +177,34 @@ def _current_dispatch_candidates(
     if len(unresolved) <= 1:
         return unresolved
     return [_newest_candidate(unresolved)]
+
+
+def _dispatch_matches_current_owner_action(
+    dispatch: Mapping[str, Any],
+    current_owner_action: Mapping[str, Any],
+) -> bool:
+    action_type = _text(dispatch.get("action_type"))
+    current_action_type = _text(current_owner_action.get("action_type"))
+    if action_type is None or current_action_type is None or action_type != current_action_type:
+        return False
+    current_work_unit_id = _text(current_owner_action.get("work_unit_id"))
+    if current_work_unit_id is None:
+        current_basis = _mapping(current_owner_action.get("owner_route_currentness_basis"))
+        current_work_unit_id = _text(current_basis.get("work_unit_id"))
+    if current_work_unit_id is None:
+        return False
+    dispatch_work_unit_id = _owner_route_work_unit_id(_dispatch_owner_route(dispatch))
+    if dispatch_work_unit_id != current_work_unit_id:
+        return False
+    owner_route = _dispatch_owner_route(dispatch)
+    allowed_actions = set(_string_list(owner_route.get("allowed_actions")))
+    if allowed_actions and action_type not in allowed_actions:
+        return False
+    current_owner_route = _mapping(current_owner_action.get("owner_route"))
+    current_allowed_actions = set(_string_list(current_owner_route.get("allowed_actions")))
+    if current_allowed_actions and action_type not in current_allowed_actions:
+        return False
+    return True
 
 
 def _dispatch_blocked_by_newer_candidate(

@@ -84,7 +84,15 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
     )
     if current_control_handoff is not None:
         payload["owner_route_handoff"] = current_control_handoff
-    current_owner_route_handoff_exists = current_control_handoff is not None
+    current_owner_action = current_control_owner_action_record(
+        study_root=study_root,
+        profile=profile,
+    )
+    if current_owner_action is not None:
+        payload["current_owner_action"] = current_owner_action
+    current_owner_route_handoff_exists = (
+        current_control_handoff is not None or current_owner_action is not None
+    )
     payload["paper_autonomy_loop"] = paper_autonomy_loop_projection(
         study_root=study_root,
         current_owner_route_handoff_exists=current_owner_route_handoff_exists,
@@ -208,6 +216,58 @@ def current_control_owner_route_handoff_record(
     }
 
 
+def current_control_owner_action_record(
+    *,
+    study_root: Path,
+    profile: WorkspaceProfile,
+) -> dict[str, Any] | None:
+    handoff_path = profile.workspace_root / _OPL_CURRENT_CONTROL_REF
+    payload = read_json_object(handoff_path)
+    if payload is None:
+        return None
+    action = _matching_current_control_action(payload, study_id=study_root.name)
+    if action is None:
+        return None
+    action_type = text(action.get("action_type"))
+    if action_type is None:
+        return None
+    owner_route = mapping(action.get("owner_route"))
+    currentness_contract = mapping(owner_route.get("currentness_contract"))
+    currentness_basis = _currentness_basis(currentness_contract)
+    if currentness_basis is None:
+        return None
+    next_work_unit = mapping(action.get("controller_next_work_unit"))
+    work_unit_id = text(next_work_unit.get("unit_id")) or currentness_basis.get("work_unit_id")
+    if work_unit_id is None:
+        return None
+    current_recorded_at = text(mapping(action.get("consumption")).get("first_seen_at")) or text(
+        payload.get("generated_at")
+    )
+    return {
+        "surface_kind": "mas_current_owner_action_record",
+        "schema_version": 1,
+        "source": "opl_current_control_state_action_queue",
+        "study_id": study_root.name,
+        "quest_id": text(action.get("quest_id")) or study_root.name,
+        "recorded_at": current_recorded_at,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        "owner_route_currentness_basis": currentness_basis,
+        "owner_route": dict(owner_route),
+        "currentness_status": "current_owner_action_active",
+        "source_ref_role": "opl_current_control_state_action_queue",
+        "source_relative_path": str(_OPL_CURRENT_CONTROL_REF),
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
+
+
 def _matching_current_control_study(
     payload: Mapping[str, Any],
     *,
@@ -216,6 +276,32 @@ def _matching_current_control_study(
     for item in payload.get("studies") or []:
         if isinstance(item, Mapping) and text(item.get("study_id")) == study_id:
             return dict(item)
+    return None
+
+
+def _matching_current_control_action(
+    payload: Mapping[str, Any],
+    *,
+    study_id: str,
+) -> dict[str, Any] | None:
+    for item in payload.get("action_queue") or []:
+        if not isinstance(item, Mapping) or text(item.get("study_id")) != study_id:
+            continue
+        consumption_state = text(mapping(item.get("consumption")).get("state"))
+        if consumption_state not in {None, "unconsumed"}:
+            continue
+        owner_route = mapping(item.get("owner_route"))
+        action_type = text(item.get("action_type"))
+        if action_type is None:
+            continue
+        allowed_actions = {
+            text(entry)
+            for entry in owner_route.get("allowed_actions") or []
+            if text(entry) is not None
+        }
+        if allowed_actions and action_type not in allowed_actions:
+            continue
+        return dict(item)
     return None
 
 
