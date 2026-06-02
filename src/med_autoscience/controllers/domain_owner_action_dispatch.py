@@ -19,7 +19,9 @@ from .default_executor_stage_log import paper_stage_log_for_default_executor_exe
 from .domain_owner_action_dispatch_parts import action_execution
 from .domain_owner_action_dispatch_parts import action_router
 from .domain_owner_action_dispatch_parts import controller_refresh
+from .domain_owner_action_dispatch_parts import current_writer_handoff
 from .domain_owner_action_dispatch_parts import dispatch_contract
+from .domain_owner_action_dispatch_parts import execution_summary
 from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import paper_progress_stall_diagnostic
 from .domain_owner_action_dispatch_parts import persisted_dispatches
@@ -304,6 +306,16 @@ def _execution_owner_route(
         and _owner_route_block_reason(dispatch=dispatch, current_route=bridged_route) is None
     ):
         return bridged_route, "bridged_writer_handoff"
+    current_writer_handoff_route = current_writer_handoff.current_quality_repair_writer_handoff_route(
+        profile=profile,
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+    if (
+        current_writer_handoff_route is not None
+        and _owner_route_block_reason(dispatch=dispatch, current_route=current_writer_handoff_route) is None
+    ):
+        return current_writer_handoff_route, "current_writer_handoff"
     publication_owner_bridge_route = persisted_dispatches.bridged_publication_owner_materialization_route(
         profile=profile,
         study_id=study_id,
@@ -312,8 +324,8 @@ def _execution_owner_route(
     if (
         publication_owner_bridge_route is not None
         and _owner_route_block_reason(dispatch=dispatch, current_route=publication_owner_bridge_route) is None
-        ):
-            return publication_owner_bridge_route, "bridged_publication_owner_materialization"
+    ):
+        return publication_owner_bridge_route, "bridged_publication_owner_materialization"
     if not _dispatch_uses_bridge_authority(dispatch):
         scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
         route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=scan_route)
@@ -881,34 +893,6 @@ def _persist_study_executions(
     return [str(latest_path), str(history_path)]
 
 
-def _execution_summary(*, study_id: str, study_executions: list[dict[str, Any]]) -> dict[str, Any]:
-    selected_dispatch_count = len(study_executions)
-    executed_count = sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in study_executions)
-    blocked_count = sum(item.get("execution_status") == "blocked" for item in study_executions)
-    repeat_suppressed_count = sum(item.get("execution_status") == "repeat_suppressed" for item in study_executions)
-    dry_run_count = sum(item.get("execution_status") == "dry_run" for item in study_executions)
-    codex_dispatch_count = sum(item.get("will_start_llm") is True for item in study_executions)
-    return {
-        "study_id": study_id,
-        "selected_dispatch_count": selected_dispatch_count,
-        "executed_count": executed_count,
-        "blocked_count": blocked_count,
-        "repeat_suppressed_count": repeat_suppressed_count,
-        "dry_run_count": dry_run_count,
-        "codex_dispatch_count": codex_dispatch_count,
-        "suppressed_dispatch_count": sum(
-            item.get("execution_status") in {"repeat_suppressed", "blocked"} for item in study_executions
-        ),
-        "zero_dispatch_reason": "no_selected_dispatch_for_requested_action_types"
-        if selected_dispatch_count == 0
-        else None,
-        "action_fingerprints": list(
-            dict.fromkeys(item.get("action_fingerprint") for item in study_executions if item.get("action_fingerprint"))
-        ),
-        "execution_statuses": [item.get("execution_status") for item in study_executions],
-    }
-
-
 def dispatch_domain_owner_actions(
     *,
     profile: WorkspaceProfile,
@@ -948,7 +932,7 @@ def dispatch_domain_owner_actions(
             executions.append(execution)
         study_executions = [execution for execution in executions if execution["study_id"] == study_id]
         per_study_execution_summary.append(
-            _execution_summary(study_id=study_id, study_executions=study_executions)
+            execution_summary.execution_summary(study_id=study_id, study_executions=study_executions)
         )
         if apply and study_executions:
             written_files.extend(

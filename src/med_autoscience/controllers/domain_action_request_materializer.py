@@ -18,6 +18,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_selection,
+    current_writer_handoff,
     publication_owner_materialization,
     supervisor_request_packets,
     writer_handoff_preservation,
@@ -575,6 +576,15 @@ def _selected_actions(
     request_selected: list[dict[str, Any]] = []
     ignored: list[dict[str, Any]] = []
     allowed_studies = set(study_ids)
+    current_writer_handoff_actions: dict[str, dict[str, Any]] = {}
+    for study_id in study_ids:
+        current_action = current_writer_handoff.current_quality_repair_writer_handoff_action(
+            profile=profile,
+            study_id=study_id,
+        )
+        if current_action is not None:
+            current_writer_handoff_actions[study_id] = current_action
+    request_selected.extend(current_writer_handoff_actions.values())
     actions, preignored = _current_actions_for_studies(scan_payload=scan_payload, study_ids=study_ids)
     ignored.extend(preignored)
     if not isinstance(actions, list):
@@ -585,6 +595,9 @@ def _selected_actions(
         study_id = _text(action.get("study_id"))
         if study_id not in allowed_studies:
             ignored.append(_ignored_action(action, "study_not_requested"))
+            continue
+        if study_id in current_writer_handoff_actions:
+            ignored.append(_ignored_action(action, "superseded_by_current_quality_repair_writer_handoff"))
             continue
         selected_action = publication_owner_materialization.materialization_action(
             profile=profile,

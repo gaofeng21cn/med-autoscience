@@ -132,6 +132,13 @@ def _writer_handoff_dispatch_payload(
     payload = _read_json_object(dispatch_path)
     if _text(_mapping(payload).get("dispatch_authority")) == "quality_repair_batch_writer_handoff":
         return payload
+    payload = _writer_handoff_dispatch_from_current_batch_action(
+        study_id=study_id,
+        action_type=action_type,
+        action=action,
+    )
+    if payload is not None:
+        return payload
     payload = _writer_handoff_dispatch_from_owner_request(
         profile=profile,
         study_id=study_id,
@@ -147,6 +154,28 @@ def _writer_handoff_dispatch_payload(
         action=action,
         owner_route=owner_route,
     )
+
+
+def _writer_handoff_dispatch_from_current_batch_action(
+    *,
+    study_id: str,
+    action_type: str,
+    action: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if action_type != "run_quality_repair_batch":
+        return None
+    handoff = _mapping(action.get("writer_worker_handoff"))
+    if _text(handoff.get("dispatch_authority")) != "quality_repair_batch_writer_handoff":
+        return None
+    if _text(handoff.get("dispatch_status")) != "ready":
+        return None
+    if _text(handoff.get("study_id")) != study_id:
+        return None
+    if _text(handoff.get("action_type")) != action_type:
+        return None
+    if _text(handoff.get("next_executable_owner")) != "write":
+        return None
+    return handoff
 
 
 def _writer_handoff_dispatch_from_current_action(

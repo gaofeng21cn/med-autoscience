@@ -14,6 +14,7 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 from . import owner_request_currentness
 from . import owner_request_paths
 from . import consumed_transition_currentness
+from . import current_writer_handoff
 from . import publication_owner_materialization_currentness
 from . import runtime_current_dispatch_selection
 from . import writer_handoff_currentness
@@ -78,7 +79,7 @@ def explicit_action_dispatches(
                 dispatch=payload,
             )
             is None
-            and not _self_authorized_quality_repair_writer_handoff(
+            and not current_writer_handoff.self_authorized_quality_repair_writer_handoff(
                 study_id=study_id,
                 action_type=action_type,
                 dispatch=payload,
@@ -131,11 +132,20 @@ def selected_dispatches(
             require_current_authority=True,
         ):
             action_type = _text(payload.get("action_type")) or ""
-            if _dispatch_currentness_score(payload, current_study) <= (0, 0) and not owner_request_matches_dispatch(
-                profile=profile,
-                study_id=study_id,
-                action_type=action_type,
-                dispatch=payload,
+            if (
+                _dispatch_currentness_score(payload, current_study) <= (0, 0)
+                and not owner_request_matches_dispatch(
+                    profile=profile,
+                    study_id=study_id,
+                    action_type=action_type,
+                    dispatch=payload,
+                )
+                and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
+                    profile=profile,
+                    study_id=study_id,
+                    action_type=action_type,
+                    dispatch=payload,
+                )
             ):
                 continue
             key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
@@ -272,6 +282,14 @@ def _selected_dispatches_only(
         if live_provider_attempt_owner_route_from_scan_payload(
             scan_payload=scan_latest_payload(profile),
             study_id=study_id,
+            dispatch=dispatch,
+        ):
+            selected.append(dispatch)
+            continue
+        if current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
             dispatch=dispatch,
         ):
             selected.append(dispatch)
@@ -881,34 +899,6 @@ def _request_owner_route(
     return owner_route_part.ensure_owner_route_v2(request_route)
 
 
-def _self_authorized_quality_repair_writer_handoff(
-    *,
-    study_id: str,
-    action_type: str,
-    dispatch: Mapping[str, Any],
-) -> bool:
-    if action_type != "run_quality_repair_batch":
-        return False
-    if _text(dispatch.get("dispatch_authority")) != "quality_repair_batch_writer_handoff":
-        return False
-    if _text(dispatch.get("study_id")) != study_id:
-        return False
-    if _text(dispatch.get("next_executable_owner")) != "write":
-        return False
-    source_action = _mapping(dispatch.get("source_action"))
-    if _text(source_action.get("surface")) != "quality_repair_batch":
-        return False
-    if _text(source_action.get("blocked_reason")) != "manuscript_story_surface_delta_missing":
-        return False
-    route = _dispatch_owner_route(dispatch)
-    route_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
-    if _text(route.get("next_owner")) != "write":
-        return False
-    if route_reason != "manuscript_story_surface_delta_missing":
-        return False
-    return owner_route_part.route_allows_action(action=dispatch, owner_route=route)
-
-
 def _persisted_quality_repair_writer_handoff_supersedes_consumer_inline(
     *,
     profile: WorkspaceProfile,
@@ -917,7 +907,7 @@ def _persisted_quality_repair_writer_handoff_supersedes_consumer_inline(
     persisted_dispatch: Mapping[str, Any],
 ) -> bool:
     action_type = _text(persisted_dispatch.get("action_type"))
-    if not _self_authorized_quality_repair_writer_handoff(
+    if not current_writer_handoff.self_authorized_quality_repair_writer_handoff(
         study_id=study_id,
         action_type=action_type or "",
         dispatch=persisted_dispatch,
@@ -930,7 +920,7 @@ def _persisted_quality_repair_writer_handoff_supersedes_consumer_inline(
         dispatch=persisted_dispatch,
     ):
         return False
-    return not _self_authorized_quality_repair_writer_handoff(
+    return not current_writer_handoff.self_authorized_quality_repair_writer_handoff(
         study_id=study_id,
         action_type=_text(consumer_dispatch.get("action_type")) or "",
         dispatch=consumer_dispatch,

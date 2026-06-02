@@ -451,6 +451,7 @@ def _run_developer_supervisor_same_tick(
             action_types=(),
             mode="developer_apply_safe",
             apply=True,
+            consumer_payload=materialize_result,
         )
         iteration = {
             "pass_index": pass_index,

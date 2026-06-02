@@ -506,6 +506,166 @@ def test_materialize_current_ai_reviewer_record_then_prose_gate_package_replay_t
     assert execution["owner_route_basis"] == "bridged_writer_handoff"
 
 
+def test_materialize_prefers_current_writer_handoff_over_consumed_reviewer_transition(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    writer_handoff = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.writer_handoff"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    source_eval_id = "publication-eval::003::current-writer-handoff"
+    work_unit_id = "dpcc_medical_journal_quality_story_surface_repair"
+    stale_reviewer_work_unit = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    current_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "truth_epoch": source_eval_id,
+        "route_epoch": source_eval_id,
+        "runtime_health_epoch": "runtime-health::003::current-writer-handoff",
+        "work_unit_fingerprint": "domain-transition::dm003::current-writer-handoff",
+        "failure_signature": "manuscript_story_surface_delta_missing",
+        "trace_id": "owner-route-trace::003::current-writer-handoff",
+        "source_fingerprint": "truth-source::003::current-writer-handoff",
+        "current_owner": "quality_repair_batch",
+        "next_owner": "write",
+        "owner_reason": "manuscript_story_surface_delta_missing",
+        "active_run_id": None,
+        "allowed_actions": ["run_quality_repair_batch"],
+        "blocked_actions": ["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
+        "idempotency_key": "quality-repair-writer-handoff::003::current",
+        "source_refs": {
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": "domain-transition::dm003::current-writer-handoff",
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+        },
+    }
+    handoff = writer_handoff.build_writer_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        quest_id=quest_id,
+        schema_version=1,
+        source_eval_id=source_eval_id,
+        source_eval_artifact_path=str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        source_summary_artifact_path=None,
+        repair_execution_evidence_path=(
+            study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+        ),
+        blocked_repair_reason="manuscript_story_surface_delta_missing",
+        authority_route_context={
+            "current_owner_route": current_route,
+            "controller_route_context": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": "domain-transition::dm003::current-writer-handoff",
+                "required_output_surface": (
+                    "canonical manuscript story-surface delta or "
+                    "typed blocker:manuscript_story_surface_delta_missing"
+                ),
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {"eval_id": source_eval_id, "study_id": study_id, "quest_id": quest_id},
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "handoff_ready",
+            "source_eval_id": source_eval_id,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "next_owner": "write",
+            "writer_worker_handoff": handoff,
+        },
+    )
+    stale_reviewer_route = dict(current_route)
+    stale_reviewer_route.update(
+        {
+            "current_owner": "mas_controller",
+            "next_owner": "ai_reviewer",
+            "owner_reason": "ai_reviewer_record_stale_after_current_inputs",
+            "failure_signature": "ai_reviewer_record_stale_after_current_inputs",
+            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            "blocked_actions": ["run_quality_repair_batch", "run_gate_clearing_batch"],
+            "idempotency_key": "owner-route::003::stale-ai-reviewer-receipt",
+            "source_refs": {
+                **current_route["source_refs"],
+                "work_unit_id": stale_reviewer_work_unit,
+                "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+            },
+        }
+    )
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": stale_reviewer_route,
+                    "domain_transition": {
+                        "decision_type": "ai_reviewer_re_eval",
+                        "route_target": "review",
+                        "controller_action": "return_to_ai_reviewer_workflow",
+                        "next_work_unit": {
+                            "unit_id": stale_reviewer_work_unit,
+                            "lane": "review",
+                        },
+                        "completion_receipt_consumption": {
+                            "status": "consumed",
+                            "receipt_kind": "ai_reviewer_publication_eval",
+                            "eval_id": source_eval_id,
+                        },
+                    },
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": quest_id,
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "owner": "ai_reviewer",
+                            "request_owner": "ai_reviewer",
+                            "reason": "ai_reviewer_record_stale_after_current_inputs",
+                            "owner_route": stale_reviewer_route,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert [dispatch["action_type"] for dispatch in result["default_executor_dispatches"]] == [
+        "run_quality_repair_batch"
+    ]
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
+    assert dispatch["owner_route"]["source_refs"]["source_eval_id"] == source_eval_id
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
+    assert dispatch["medical_claim_authoring_allowed"] is True
+    assert result["request_tasks"][0]["action_type"] == "run_quality_repair_batch"
+    assert result["request_tasks"][0]["reason"] == "manuscript_story_surface_delta_missing"
+    assert result["ignored_actions"][0]["reason"] == "superseded_by_current_quality_repair_writer_handoff"
+
+
 def _writer_handoff(*, study_id: str, dispatch_path: Path, route: dict[str, object]) -> dict[str, object]:
     required_output = (
         "canonical manuscript story-surface delta or "
