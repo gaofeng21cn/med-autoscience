@@ -56,6 +56,13 @@ def test_domain_health_diagnostic_same_tick_reports_handoff_pending_without_prov
 
     assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
+    assert diagnostic["same_tick_terminal_projection"] == {
+        "terminal_state": "provider_handoff_written_admission_pending",
+        "owner_delta_produced": False,
+        "provider_attempt_running": False,
+        "stable_typed_blocker_observed": False,
+        "provider_handoff_written": True,
+    }
     assert diagnostic["requires_provider_admission"] is True
     assert diagnostic["provider_admission_probe"] == {
         "observed": False,
@@ -125,6 +132,13 @@ def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_aft
     assert supervisor_tick["pass_count"] == 1
     assert supervisor_tick["stop_reason"] == "provider_attempt_started"
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
+    assert diagnostic["same_tick_terminal_projection"] == {
+        "terminal_state": "provider_attempt_running",
+        "owner_delta_produced": False,
+        "provider_attempt_running": True,
+        "stable_typed_blocker_observed": False,
+        "provider_handoff_written": True,
+    }
     assert diagnostic["requires_provider_admission"] is False
     assert diagnostic["provider_admission_probe"] == {
         "observed": True,
@@ -132,3 +146,36 @@ def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_aft
     }
     assert diagnostic["next_forced_delta"] is None
     assert diagnostic["forbidden_next_actions"] == []
+
+
+def test_domain_health_diagnostic_same_tick_terminal_projection_reports_owner_delta_required() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+
+    diagnostic = module._same_tick_terminal_diagnostic(
+        stop_reason="repeat_suppressed_owner_delta_required",
+        iterations=[
+            {
+                "progress_first_delta": {
+                    "dispatch_repeat_suppressed_count": 1,
+                    "codex_dispatch_count": 0,
+                    "handoff_ready_count": 0,
+                },
+                "dispatch": {
+                    "executions": [
+                        {
+                            "execution_status": "repeat_suppressed",
+                            "repeat_suppressed": True,
+                        }
+                    ]
+                },
+            }
+        ],
+    )
+
+    assert diagnostic["same_tick_terminal_projection"] == {
+        "terminal_state": "owner_delta_required",
+        "owner_delta_produced": True,
+        "provider_attempt_running": False,
+        "stable_typed_blocker_observed": False,
+        "provider_handoff_written": False,
+    }

@@ -73,6 +73,13 @@ def test_domain_health_diagnostic_same_tick_treats_blocked_materialized_dispatch
     assert delta["default_executor_dispatch_total_count"] == 1
     assert delta["blocked_default_executor_dispatch_count"] == 1
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
+    assert diagnostic["same_tick_terminal_projection"] == {
+        "terminal_state": "stable_typed_blocker_observed",
+        "owner_delta_produced": False,
+        "provider_attempt_running": False,
+        "stable_typed_blocker_observed": True,
+        "provider_handoff_written": False,
+    }
     assert diagnostic["requires_dispatch_blocker_resolution"] is True
     assert diagnostic["dispatch_blocker_summary"] == {
         "blocked_default_executor_dispatch_count": 1,

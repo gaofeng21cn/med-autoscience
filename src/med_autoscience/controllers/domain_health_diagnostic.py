@@ -590,6 +590,12 @@ def _same_tick_terminal_diagnostic(
         "surface": "progress_first_developer_supervisor_terminal_diagnostic",
         "schema_version": 1,
         "stop_reason": stop_reason,
+        "same_tick_terminal_projection": _same_tick_terminal_projection(
+            stop_reason=stop_reason,
+            last_iteration=last_iteration,
+            last_delta=last_delta,
+            provider_admission_probe=provider_admission_probe,
+        ),
         "requires_next_owner_delta": requires_next_owner_delta,
         "requires_provider_admission": requires_provider_admission,
         "requires_dispatch_blocker_resolution": requires_dispatch_blocker_resolution,
@@ -690,6 +696,55 @@ def _same_tick_terminal_diagnostic(
             else []
         ),
     }
+
+
+def _same_tick_terminal_projection(
+    *,
+    stop_reason: str,
+    last_iteration: Mapping[str, Any],
+    last_delta: Mapping[str, Any],
+    provider_admission_probe: Mapping[str, Any],
+) -> dict[str, Any]:
+    provider_attempt_running = _provider_attempt_started(provider_admission_probe)
+    stable_typed_blocker_observed = stop_reason == "typed_blocker_or_dispatch_blocker_observed" and (
+        _int_value(last_delta.get("blocked_default_executor_dispatch_count")) > 0
+        or _int_value(last_delta.get("dispatch_blocked_count")) > 0
+    )
+    owner_delta_produced = stop_reason in {
+        "repeat_suppressed_owner_delta_required",
+        "max_passes_exhausted_owner_delta_required",
+    }
+    terminal_state = _same_tick_terminal_state(
+        stop_reason=stop_reason,
+        owner_delta_produced=owner_delta_produced,
+        provider_attempt_running=provider_attempt_running,
+        stable_typed_blocker_observed=stable_typed_blocker_observed,
+    )
+    return {
+        "terminal_state": terminal_state,
+        "owner_delta_produced": owner_delta_produced,
+        "provider_attempt_running": provider_attempt_running,
+        "stable_typed_blocker_observed": stable_typed_blocker_observed,
+        "provider_handoff_written": _same_tick_handoff_written(last_iteration),
+    }
+
+
+def _same_tick_terminal_state(
+    *,
+    stop_reason: str,
+    owner_delta_produced: bool,
+    provider_attempt_running: bool,
+    stable_typed_blocker_observed: bool,
+) -> str:
+    if provider_attempt_running:
+        return "provider_attempt_running"
+    if stable_typed_blocker_observed:
+        return "stable_typed_blocker_observed"
+    if owner_delta_produced:
+        if stop_reason == "max_passes_exhausted_owner_delta_required":
+            return "owner_delta_produced"
+        return "owner_delta_required"
+    return stop_reason
 
 
 def _mapping(value: object) -> dict[str, Any]:
