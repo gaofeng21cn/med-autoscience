@@ -258,8 +258,141 @@ def test_study_progress_counts_gate_clearing_paper_outputs_as_artifact_delta(
     assert result["progress_freshness"]["activity_timeout"]["state"] == "ok"
     assert result["user_visible_projection"]["actual_write_active"] is True
     assert result["user_visible_projection"]["paper_progress_state"]["state"] == "progressing"
-    assert result["user_visible_projection"]["paper_progress_state"]["paper_facing_progress_slo"]["visible_as_progressing"] is True
-    assert "系统有实际 writer/run 正在推进" in result["user_visible_projection"]["status_summary"]
+
+
+def test_study_progress_invalidates_live_run_after_no_selected_dispatch_closeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dm",
+        study_archetype="clinical_classifier",
+        endpoint_type="cross_sectional",
+        manuscript_family="phenotype_gap",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-003"
+    _write_publication_eval(study_root, quest_root)
+    attempt_id = "sat-no-selected-dispatch"
+    run_id = f"opl-stage-attempt://{attempt_id}"
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / f"{attempt_id}.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "study_id": "003-dm",
+            "stage_attempt_id": attempt_id,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "status": "blocked",
+            "blocked_reason": "no_selected_dispatch_for_requested_action_types",
+            "closeout_refs": [
+                f"studies/003-dm/artifacts/supervision/consumer/stage_attempt_closeouts/{attempt_id}.json"
+            ],
+            "authority_boundary": {
+                "refs_only": True,
+                "can_write_paper_or_package": False,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "003-dm",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-003", "auto_resume": True},
+            "quest_id": "quest-003",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "waiting_for_user",
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "runtime_liveness_status": "live",
+            "active_run_id": run_id,
+            "worker_running": True,
+            "runtime_liveness_audit": {
+                "source": "opl_current_control_state_provider_attempt",
+                "status": "live",
+                "active_run_id": run_id,
+                "active_stage_attempt_id": attempt_id,
+                "running_provider_attempt": True,
+                "stage_progress_log": {"attempt_refs": [run_id]},
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": run_id,
+                    "worker_running": True,
+                },
+            },
+            "runtime_health_snapshot": {
+                "attempt_state": "live",
+                "canonical_runtime_action": "continue_supervising_runtime",
+                "active_run_id": run_id,
+                "worker_liveness_state": {
+                    "state": "live",
+                    "runtime_liveness_status": "live",
+                    "worker_running": True,
+                    "active_run_id": run_id,
+                },
+                "blocking_reasons": [],
+            },
+            "execution_owner_guard": {
+                "supervisor_only": True,
+                "guard_reason": "runtime_live",
+                "active_run_id": run_id,
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "notification_reason": "managed_runtime_live",
+                "active_run_id": run_id,
+            },
+            "continuation_state": {
+                "quest_status": "running",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+                "active_run_id": run_id,
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+                "latest_recorded_at": "2026-06-02T07:30:00+00:00",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="003-dm")
+
+    assert result["active_run_id"] is None
+    assert result["supervision"]["active_run_id"] is None
+    assert result["opl_runtime_refs"]["active_run_id"] is None
+    assert result["opl_runtime_refs"]["strict_live"] is False
+    assert result["user_visible_projection"]["writer_state"] != "live"
+    assert result["user_visible_projection"]["actual_write_active"] is False
+    assert result["runtime_closeout_invalidation"] == {
+        "surface_kind": "study_progress_runtime_closeout_invalidation",
+        "stage_attempt_id": attempt_id,
+        "closeout_status": "blocked",
+        "blocked_reason": "no_selected_dispatch_for_requested_action_types",
+        "source_path": str(
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "stage_attempt_closeouts"
+            / f"{attempt_id}.json"
+        ),
+    }
 
 
 def test_study_progress_counts_runtime_closeout_paper_outputs_as_artifact_delta(

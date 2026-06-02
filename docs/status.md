@@ -47,6 +47,12 @@ DM003 后续暴露出 `artifacts/controller/gate_clearing_batch/latest.json` 已
 
 随后 DM003 还暴露出同源的 quality-repair currentness 缺陷：`quality_repair_batch` 收到 `dpcc_publication_gate_replay_after_current_ai_reviewer_record` 这类 publication-gate replay work unit 时，曾把它投影为 `controller_route_work_unit_unsupported`，即使 `gate_clearing_batch/latest.json` 已执行且 `current_package_freshness/latest.json` 已 fresh。当前修复把所有 `PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS` 纳入 quality-repair 的 allowed controller route，并在 repair-execution evidence 中把这类 route 计为 `controller_progress_delta_candidate`；显式 gate-replay route 不再回退执行 skipped prose/write repair unit。Progress-first 口径为：gate replay / package freshness 是 controller-progress delta，可以关闭当前 route-back currentness obligation；若后续仍 blocked，应投影真实 gate/package blocker 或下一 owner，而不是重复 receipt reconcile 或重新制造 prose repair dispatch。
 
+## 2026-06-02 DM003 stale provider-attempt liveness invalidation
+
+DM003 fresh closeout 核查发现 OPL active run `opl-stage-attempt://sat_1fcc800f545f39a61029507a` 的 exact closeout 已是 `status=blocked` / `blocked_reason=no_selected_dispatch_for_requested_action_types`，且缺少 `paper_stage_log`、`user_stage_log` 或 `stage_log_summary` 这类语义 stage log；但 `study_progress` 仍可能把旧 provider-attempt liveness 投影为 live writer。此轮在 `study_progress` 投影入口增加 closeout-first invalidation：只有当 active run 是 `opl-stage-attempt://<id>`，且对应 closeout 是上述无 selected dispatch / 无语义 stage log 的 blocked closeout 时，才清空 `active_run_id`、runtime liveness、worker running、supervision active run 与 OPL runtime refs，并在 projection 中暴露 `runtime_closeout_invalidation` diagnostic。
+
+Fresh DM003 `study progress` 现在读为 `active_run_id=null`、`supervision.active_run_id=null`、`opl_runtime_refs.strict_live=false`、`opl_runtime_refs.runtime_liveness_status=parked`，用户可见 writer state 为 `queued`，next step 指向 `write/run_quality_repair_batch` 的 `medical_prose_write_repair` owner work unit。该修复只关闭 stale provider-attempt liveness / read-model currentness drift；`actual_write_active=true` 仍表示质量修复 owner 链上有待执行 work unit，不是 live provider run 证据。它不写 DM-CVD study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、memory body 或 artifact body，也不声明 paper closure、publication-ready、domain-ready、production-ready 或 global completion。
+
 ## 当前机器事实
 
 - `agent/` 是 canonical medical research semantic pack：`prompts/`、`stages/`、`skills/`、`quality_gates/`、`knowledge/` 持有医学研究 stage / prompt / skill / quality / knowledge 语义。

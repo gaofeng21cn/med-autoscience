@@ -56,6 +56,7 @@ from .projection_runtime_surfaces import (
     supervision_health_status as _supervision_health_status,
 )
 from .runtime_medical_publication_surface import build_runtime_medical_publication_surface_projection
+from .runtime_closeout_invalidation import status_with_invalidated_closed_runtime_attempt
 from .projection_status_context import build_projection_status_context
 from .task_intake_override import task_intake_override_superseded_by_gate_specificity
 from .user_visible_projection import build_user_visible_projection
@@ -128,6 +129,7 @@ def build_study_progress_projection(
 ) -> dict[str, Any]:
     del entry_mode
     status = _status_payload(status_payload)
+    status = status_with_invalidated_closed_runtime_attempt(status=status, study_root=study_root)
     existing_projection = status.get("progress_projection")
     if isinstance(existing_projection, dict) and _non_empty_text(existing_projection.get("study_id")) == study_id:
         normalized_existing = _normalize_study_progress_payload(
