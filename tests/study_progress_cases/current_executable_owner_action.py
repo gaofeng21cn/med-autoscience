@@ -123,6 +123,87 @@ def test_progress_first_monitoring_requests_admission_for_current_executable_own
     assert admission["source"] == "progress_first_monitoring.current_executable_owner_action"
 
 
+def test_progress_first_monitoring_keeps_paper_line_owner_delta_and_platform_repair_accounting_separate() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    paper_line_monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "next_owner": "finalize",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+            "progress_first_sprint_state": {
+                "classification": "deliverable_progress",
+                "paper_progress_delta_counted": True,
+                "platform_repair_delta_counted": False,
+                "deliverable_progress_delta": {
+                    "count": 1,
+                    "owner_receipt_refs": [
+                        "artifacts/controller/gate_clearing_batch/latest.json#owner_receipt"
+                    ],
+                },
+                "platform_repair_delta": {"count": 0},
+            },
+        }
+    )
+
+    assert paper_line_monitoring["progress_delta_classification"] == "deliverable_progress"
+    assert paper_line_monitoring["paper_progress_delta_counted"] is True
+    assert paper_line_monitoring["platform_repair_delta_counted"] is False
+
+    platform_repair_monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "next_owner": "ai_reviewer",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "allowed_actions": ["produce_publication_eval"],
+            },
+            "progress_first_sprint_state": {
+                "classification": "platform_repair",
+                "paper_progress_delta_counted": False,
+                "platform_repair_delta_counted": True,
+                "deliverable_progress_delta": {"count": 0},
+                "platform_repair_delta": {
+                    "count": 1,
+                    "refs": ["artifacts/supervision/opl_current_control_state/latest.json#read_model_hygiene"],
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "stage_progress_log": {
+                    "attempt_count": 1,
+                    "missing_usage_telemetry_attempt_count": 1,
+                    "attempt_refs": ["runtime/stage_attempts/sat-telemetry-missing.json"],
+                },
+            },
+        }
+    )
+
+    assert platform_repair_monitoring["progress_delta_classification"] == "platform_repair"
+    assert platform_repair_monitoring["paper_progress_delta_counted"] is False
+    assert platform_repair_monitoring["platform_repair_delta_counted"] is True
+    assert platform_repair_monitoring["owner_action_admission"]["admission_requested"] is True
+    assert platform_repair_monitoring["owner_action_admission"]["hard_gate_blocked"] is False
+    assert platform_repair_monitoring["owner_action_admission"]["observability_diagnostics"] == [
+        {
+            "diagnostic": "missing_usage_telemetry",
+            "authority": "observability_only",
+            "attempt_count": 1,
+            "attempt_refs": ["runtime/stage_attempts/sat-telemetry-missing.json"],
+        }
+    ]
+
+
 def test_progress_first_monitoring_treats_missing_telemetry_and_closeout_as_observability_diagnostics_not_admission_gates() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
