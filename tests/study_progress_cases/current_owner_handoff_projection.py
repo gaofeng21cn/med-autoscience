@@ -472,6 +472,62 @@ def test_progress_first_monitoring_prefers_consumed_transition_owner_action_over
     assert monitoring["dispatch_consumption"]["consumption_status"] == "consumed"
 
 
+def test_progress_first_monitoring_prefers_current_handoff_action_over_stale_transition() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "typed_blocker": {
+                    "blocker_type": "typed_closeout_packet_required",
+                    "owner": "one-person-lab",
+                },
+            },
+            "current_blockers": ["typed_closeout_packet_required"],
+            "next_forced_delta": {
+                "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                "work_unit_id": "unit_harmonized_external_validation_rerun",
+            },
+            "opl_current_control_state_handoff": {
+                "action_queue": [
+                    {
+                        "action_type": "unit_harmonized_external_validation_rerun",
+                        "owner": "analysis_harmonization_owner",
+                        "controller_work_unit_id": "unit_harmonized_external_validation_rerun",
+                    }
+                ],
+            },
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "consume_current_ai_reviewer_record_then_prose_gate_package_replay",
+                    "lane": "publication_gate",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "receipt_ref": "artifacts/publication_eval/old.json",
+                },
+            },
+        }
+    )
+
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["next_owner"] == "analysis_harmonization_owner"
+    assert monitoring["controller_action"] == "unit_harmonized_external_validation_rerun"
+    assert monitoring["next_work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert monitoring["typed_blocker"] is None
+    assert monitoring["current_blockers"] == []
+
+
 def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     mcp_adapter = importlib.import_module("med_autoscience.mcp_server_parts.projection_adapters")

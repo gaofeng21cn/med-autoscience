@@ -289,6 +289,76 @@ def test_next_forced_delta_prefers_domain_transition_when_handoff_route_lacks_ta
     assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
 
 
+def test_next_forced_delta_prefers_current_handoff_action_queue_over_stale_transition() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 0},
+            "opl_current_control_state_handoff": {
+                "owner_route": {
+                    "next_owner": "analysis_harmonization_owner",
+                    "owner_reason": "unit_harmonized_rerun_required",
+                    "allowed_actions": ["unit_harmonized_external_validation_rerun"],
+                    "source_refs": {"work_unit_id": "unit_harmonized_external_validation_rerun"},
+                },
+                "action_queue": [
+                    {
+                        "action_type": "unit_harmonized_external_validation_rerun",
+                        "owner": "analysis_harmonization_owner",
+                        "controller_work_unit_id": "unit_harmonized_external_validation_rerun",
+                    }
+                ],
+            },
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "consume_current_ai_reviewer_record_then_prose_gate_package_replay",
+                    "lane": "publication_gate",
+                },
+                "guard_boundary": {
+                    "required_owner_surface": "artifacts/publication_eval/latest.json",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "eval_id": "eval-stale",
+                    "action_fingerprint": "domain-transition::stale-write-replay",
+                },
+            },
+        }
+    )
+
+    assert result["progress_first_sprint_state"]["next_owner"] == "analysis_harmonization_owner"
+    assert result["next_forced_delta"]["work_unit_id"] == "unit_harmonized_external_validation_rerun"
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "analysis_harmonization_owner",
+        "surface_ref": (
+            "unit-harmonized external-validation rerun evidence or "
+            "typed blocker:unit_harmonized_rerun_required"
+        ),
+    }
+    assert result["next_forced_delta"]["target_surface_specificity"] == "explicit_owner_route_target"
+    assert result["next_forced_delta"]["missing_explicit_target_surface"] is False
+    assert result["next_forced_delta"]["target_surface_diagnostic"] == {
+        "specificity": "precise",
+        "source": "default_executor_action_policy.request_output_surface_for_action_type",
+        "missing_explicit_target_surface": False,
+    }
+    assert result["next_forced_delta"]["owner_action"] == {
+        "next_owner": "analysis_harmonization_owner",
+        "work_unit_id": "unit_harmonized_external_validation_rerun",
+        "allowed_actions": ["unit_harmonized_external_validation_rerun"],
+        "owner_receipt_required": True,
+    }
+
+
 def test_next_forced_delta_maps_publication_gate_replay_family_to_gate_clearing_surface() -> None:
     projection = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_projection"

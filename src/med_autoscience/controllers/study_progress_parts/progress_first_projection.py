@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.default_executor_action_policy import request_output_surface_for_action_type
+from med_autoscience.controllers.default_executor_action_policy import (
+    request_output_surface_for_action_type,
+    request_owner_for_action_type,
+)
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.stage_route_contract import PROGRESS_FIRST_SPRINT_ID
 
@@ -116,6 +119,8 @@ def _forced_delta_reason(*, classification: str | None, current_blockers: object
 def _current_owner_route(payload: Mapping[str, Any]) -> dict[str, Any]:
     transition_route = _owner_route_from_domain_transition(payload)
     handoff = _mapping(payload.get("opl_current_control_state_handoff"))
+    if route := _owner_route_from_handoff_action_queue(handoff):
+        return route
     if route := _mapping(handoff.get("owner_route")):
         if transition_route and not _route_has_explicit_target_surface(route):
             return transition_route
@@ -132,6 +137,91 @@ def _current_owner_route(payload: Mapping[str, Any]) -> dict[str, Any]:
     if transition_route and not _route_has_explicit_target_surface(route):
         return transition_route
     return route
+
+
+def _owner_route_from_handoff_action_queue(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    action = _first_current_action_queue_item(handoff.get("action_queue"))
+    if action is None:
+        return {}
+    action_type = _text(action.get("action_type"))
+    if action_type is None:
+        return {}
+    handoff_route = _mapping(handoff.get("owner_route"))
+    next_work_unit = _mapping(action.get("next_work_unit"))
+    work_unit_id = (
+        _text(next_work_unit.get("unit_id"))
+        or _text(action.get("controller_work_unit_id"))
+        or _text(action.get("work_unit_id"))
+        or action_type
+    )
+    next_owner = (
+        _text(action.get("owner"))
+        or _text(action.get("request_owner"))
+        or _text(action.get("recommended_owner"))
+        or _text(handoff_route.get("next_owner"))
+        or request_owner_for_action_type(action_type)
+    )
+    route_target = (
+        _text(action.get("route_target"))
+        or _text(handoff_route.get("route_target"))
+        or _text(handoff_route.get("next_route"))
+        or next_owner
+    )
+    required_output_surface = _text(action.get("required_output_surface"))
+    target_surface_ref = required_output_surface or request_output_surface_for_action_type(action_type)
+    source_refs = {
+        key: value
+        for key, value in {
+            **_mapping(handoff_route.get("source_refs")),
+            "work_unit_id": work_unit_id,
+            "source_eval_id": _text(action.get("source_eval_id")) or _text(handoff_route.get("source_eval_id")),
+            "source_fingerprint": _text(action.get("source_fingerprint"))
+            or _text(action.get("fingerprint"))
+            or _text(handoff_route.get("source_fingerprint")),
+        }.items()
+        if value is not None
+    }
+    route: dict[str, Any] = {
+        **handoff_route,
+        "next_owner": next_owner,
+        "route_target": route_target,
+        "allowed_actions": [action_type],
+        "source_refs": source_refs,
+        "owner_action": {
+            "next_owner": next_owner,
+            "work_unit_id": work_unit_id,
+            "allowed_actions": [action_type],
+            "owner_receipt_required": True,
+        },
+        "target_surface": {
+            "ref_kind": "route_obligation",
+            "route_target": route_target,
+            "surface_ref": target_surface_ref,
+        },
+        "target_surface_source": (
+            "opl_current_control_state.action_queue.required_output_surface"
+            if required_output_surface is not None
+            else "default_executor_action_policy.request_output_surface_for_action_type"
+        ),
+    }
+    if source_fingerprint := _text(source_refs.get("source_fingerprint")):
+        route["source_fingerprint"] = source_fingerprint
+    return route
+
+
+def _first_current_action_queue_item(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, list):
+        return None
+    for item in value:
+        if not isinstance(item, Mapping):
+            continue
+        payload = dict(item)
+        consumption = _mapping(payload.get("consumption"))
+        status = _text(payload.get("consumption_status")) or _text(consumption.get("status"))
+        if status in {"consumed", "receipt_consumed", "completed"}:
+            continue
+        return payload
+    return None
 
 
 def _route_has_explicit_target_surface(route: Mapping[str, Any]) -> bool:

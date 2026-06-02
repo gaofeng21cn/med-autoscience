@@ -241,7 +241,7 @@ def _action_allowed_by_owner_route(action: Mapping[str, Any], owner_route: Mappi
 def _current_execution_is_authoritative(study: Mapping[str, Any]) -> bool:
     envelope = _mapping(study.get("current_execution_envelope"))
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    return state_kind in {"typed_blocker", "blocked_typed_owner", "parked"}
+    return state_kind in {"typed_blocker", "blocked_typed_owner", "parked", "executable_owner_action"}
 
 
 def _study_with_owner_route_currentness(

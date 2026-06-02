@@ -54,8 +54,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     hydration_work_unit = _explicit_wakeup_hydration_work_unit(launch_policy)
     transition_consumed_owner_action = _transition_consumed_owner_action(domain_transition)
     receipt_consumed = _transition_receipt_consumed(domain_transition)
+    handoff_owner_action = _first_current_action_queue_item(handoff.get("action_queue"))
     next_work_unit = (
         hydration_work_unit
+        or _work_unit_from_action(handoff_owner_action)
         or (
             _work_unit_projection(domain_transition.get("next_work_unit"))
             if transition_consumed_owner_action
@@ -72,7 +74,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     typed_blocker = (
         {}
-        if transition_consumed_owner_action and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition)
+        if handoff_owner_action is not None
+        or (transition_consumed_owner_action and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition))
         else _mapping(execution.get("typed_blocker"))
         or _mapping(domain_transition.get("typed_blocker"))
         or terminal_closeout_blocker
@@ -84,11 +87,15 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     current_blockers = (
         []
-        if transition_consumed_owner_action and not typed_blocker
+        if (handoff_owner_action is not None or transition_consumed_owner_action) and not typed_blocker
         else _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
     )
     running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
-    state_kind = "executable_owner_action" if transition_consumed_owner_action else _text(execution.get("state_kind"))
+    state_kind = (
+        "executable_owner_action"
+        if handoff_owner_action is not None or transition_consumed_owner_action
+        else _text(execution.get("state_kind"))
+    )
     if state_kind is None:
         if receipt_consumed:
             state_kind = "receipt_consumed"
@@ -118,14 +125,19 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "execution_state_kind": "owner_handoff_hydration" if hydration_work_unit is not None else state_kind,
         "next_owner": (
             _explicit_wakeup_hydration_owner(launch_policy)
+            or _owner_from_action(handoff_owner_action)
             or (_text(domain_transition.get("owner")) if transition_consumed_owner_action else None)
             or _text(execution.get("owner"))
             or _text(domain_transition.get("owner"))
             or _text(handoff.get("next_owner"))
             or _text(progress_state.get("next_owner"))
         ),
-        "route_target": _text(domain_transition.get("route_target")),
-        "controller_action": _text(domain_transition.get("controller_action")) or _text(payload.get("runtime_decision")),
+        "route_target": _text(handoff_owner_action.get("route_target")) if handoff_owner_action is not None else _text(domain_transition.get("route_target")),
+        "controller_action": (
+            _text(handoff_owner_action.get("action_type"))
+            if handoff_owner_action is not None
+            else _text(domain_transition.get("controller_action")) or _text(payload.get("runtime_decision"))
+        ),
         "next_work_unit": next_work_unit,
         "owner_handoff_hydration": _owner_handoff_hydration_projection(launch_policy),
         "typed_blocker": typed_blocker or None,
@@ -273,6 +285,21 @@ def _first_action_queue_item(value: object) -> dict[str, Any] | None:
     for item in value:
         if isinstance(item, Mapping):
             return dict(item)
+    return None
+
+
+def _first_current_action_queue_item(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, list):
+        return None
+    for item in value:
+        if not isinstance(item, Mapping):
+            continue
+        payload = dict(item)
+        consumption = _mapping(payload.get("consumption"))
+        status = _text(payload.get("consumption_status")) or _text(consumption.get("status"))
+        if status in {"consumed", "receipt_consumed", "completed"}:
+            continue
+        return payload
     return None
 
 
@@ -616,6 +643,19 @@ def _work_unit_from_action_queue(value: object) -> dict[str, Any] | str | None:
     return None
 
 
+def _work_unit_from_action(action: Mapping[str, Any] | None) -> dict[str, Any] | str | None:
+    if action is None:
+        return None
+    unit = _work_unit_projection(action.get("next_work_unit"))
+    if unit is not None:
+        return unit
+    for key in ("controller_work_unit_id", "work_unit_id", "action_type"):
+        text = _text(action.get(key))
+        if text is not None:
+            return text
+    return None
+
+
 def _work_unit_projection(value: object) -> dict[str, Any] | str | None:
     if isinstance(value, Mapping):
         return _compact_mapping(
@@ -637,6 +677,16 @@ def _work_unit_id(value: object) -> str | None:
     if isinstance(value, Mapping):
         return _text(value.get("unit_id"))
     return _text(value)
+
+
+def _owner_from_action(action: Mapping[str, Any] | None) -> str | None:
+    if action is None:
+        return None
+    return (
+        _text(action.get("owner"))
+        or _text(action.get("request_owner"))
+        or _text(action.get("recommended_owner"))
+    )
 
 
 def _explicit_wakeup_hydration_work_unit(launch_policy: Mapping[str, Any]) -> str | None:

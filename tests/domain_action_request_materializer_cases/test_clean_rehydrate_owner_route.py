@@ -501,3 +501,84 @@ def test_materialize_domain_action_requests_prefers_current_study_queue_over_sta
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
     ).exists()
+
+
+def test_materialize_domain_action_requests_rejects_stale_top_level_queue_when_executable_envelope_current(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = "quest-dm002"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="decision",
+        owner_reason="methodology_reframe_route_decision",
+        allowed_actions=["methodology_reframe_route_decision"],
+    )
+    current_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="analysis_harmonization_owner",
+        owner_reason="unit_harmonized_rerun_required",
+        allowed_actions=["unit_harmonized_external_validation_rerun"],
+    )
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "methodology_reframe_route_decision",
+                    "authority": "observability_only",
+                    "owner": "decision",
+                    "recommended_owner": "decision",
+                    "reason": "methodology_reframe_route_decision",
+                    "required_output_surface": "controller route decision for a provenance-limited reframe",
+                    "owner_route": stale_route,
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": current_route,
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "analysis_harmonization_owner",
+                        "next_work_unit": "unit_harmonized_external_validation_rerun",
+                        "typed_blocker": None,
+                    },
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    ignored = result["ignored_actions"]
+    assert result["default_executor_dispatch_count"] == 0
+    assert result["request_tasks"] == []
+    assert ignored[0]["action_type"] == "methodology_reframe_route_decision"
+    assert ignored[0]["reason"] == "superseded_by_current_execution_envelope"
+    assert not (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "methodology_reframe_route_decision.json"
+    ).exists()
