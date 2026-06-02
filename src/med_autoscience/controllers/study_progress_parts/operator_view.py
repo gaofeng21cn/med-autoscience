@@ -94,6 +94,28 @@ def _recovery_contract(
             ),
         ]
         action_mode = "refresh_supervision"
+    elif lane_id == "progress_continuation_required":
+        steps = [
+            _recovery_step(
+                step_id="domain_route/reconcile-apply",
+                title="提交 OPL owner-route continuation",
+                surface_kind="domain_handler_export",
+                command=commands["study_progress"],
+            ),
+            _recovery_step(
+                step_id="inspect_runtime_status",
+                title="读取结构化运行真相",
+                surface_kind="progress_projection",
+                command=commands["progress_projection"],
+            ),
+            _recovery_step(
+                step_id="inspect_study_progress",
+                title="读取当前研究进度",
+                surface_kind="study_progress",
+                command=commands["study_progress"],
+            ),
+        ]
+        action_mode = "domain_route/reconcile-apply"
     elif lane_id in {"runtime_recovery_required", "runtime_blocker"}:
         steps = [
             _recovery_step(
@@ -324,6 +346,8 @@ def _autonomy_contract(
         autonomy_state = "compatibility_guard"
     elif needs_physician_decision:
         autonomy_state = "human_gate"
+    elif lane_id == "progress_continuation_required":
+        autonomy_state = "progress_continuation"
     elif lane_id in {"workspace_supervision_gap", "runtime_recovery_required", "runtime_blocker"}:
         autonomy_state = "runtime_recovery"
     else:
@@ -524,6 +548,8 @@ def _operator_verdict(
 
     if lane_id in {"workspace_supervision_gap", "runtime_recovery_required", "runtime_blocker"}:
         decision_mode = "intervene_now"
+    elif lane_id == "progress_continuation_required":
+        decision_mode = "continue_owner_route"
     elif is_user_decision_lane(lane_id):
         decision_mode = "human_decision_required"
     elif lane_id == "auto_runtime_parked":
@@ -540,7 +566,11 @@ def _operator_verdict(
         "lane_id": lane_id,
         "severity": severity,
         "decision_mode": decision_mode,
-        "needs_intervention": decision_mode in {"intervene_now", "human_decision_required"},
+        "needs_intervention": decision_mode in {
+            "intervene_now",
+            "human_decision_required",
+            "continue_owner_route",
+        },
         "focus_scope": "workspace" if lane_id == "workspace_supervision_gap" else "study",
         "summary": summary,
         "reason_summary": summary,

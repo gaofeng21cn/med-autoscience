@@ -22,7 +22,7 @@ def activity_timeout_lane(
     activity_timeout = progress_freshness.get("activity_timeout")
     return {
         "lane_id": "progress_continuation_required",
-        "title": "优先继续 owner-route 推进",
+        "title": "优先提交 OPL owner-route continuation",
         "severity": "critical",
         "summary": (
             _non_empty_text((activity_timeout or {}).get("summary"))
@@ -35,4 +35,6 @@ def activity_timeout_lane(
         "activity_timeout": dict(activity_timeout or {}),
         "progress_pressure": dict((activity_timeout or {}).get("progress_pressure") or {}),
         "terminal_failure": False,
+        "runtime_recovery_required": False,
+        "operator_continuation_required": True,
     }

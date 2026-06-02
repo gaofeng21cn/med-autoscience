@@ -168,7 +168,7 @@ def _operator_status_verdict(handling_state: str) -> str:
     if handling_state == "runtime_recovering":
         return "MAS 正在处理 runtime recovery，当前 study 仍处在受管修复中。"
     if handling_state == "progress_continuation_required":
-        return "MAS 已把无产物增量/超时投影为继续推进压力，下一步应进入 owner-route continuation。"
+        return "MAS 正在要求 OPL owner-route continuation；这不是终局失败或 runtime recovery 完成声明。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
     if handling_state == "publication_gate_specificity_required":
@@ -191,7 +191,7 @@ def _operator_status_owner_summary(handling_state: str) -> str:
     if handling_state == "runtime_recovering":
         return "MAS 正在根据 OPL current_control_state refs 和 domain blocker 继续处理恢复。"
     if handling_state == "progress_continuation_required":
-        return "MAS 正在把 activity timeout 转成 OPL owner-route continuation，而不是停在 runtime recovery 文案。"
+        return "MAS 暴露 refs-only continuation，OPL 持有 stage attempt / queue owner。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "MAS 正在根据 publication gate 真相刷新给人看的投稿包镜像。"
     if handling_state == "publication_gate_specificity_required":
@@ -264,7 +264,7 @@ def _operator_status_next_confirmation_signal(handling_state: str, intervention_
     if handling_state == "runtime_recovering":
         return "看 OPL current_control_state 或 stage attempt refs 是否恢复，并确认 meaningful artifact delta 刷新。"
     if handling_state == "progress_continuation_required":
-        return "看 domain_route/reconcile-apply 是否写出 owner receipt、typed blocker、human gate 或新的 meaningful artifact delta。"
+        return "看 OPL 是否消费 domain_route/reconcile-apply continuation，并确认下一次 stage attempt 写出 owner receipt、typed blocker 或 meaningful artifact delta。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "看 artifacts/controller/current_package_freshness/latest.json 是否写出 fresh proof，再看 current_package 和 submission_minimal 是否同步到同一 authority signature。"
     if handling_state == "publication_gate_specificity_required":
