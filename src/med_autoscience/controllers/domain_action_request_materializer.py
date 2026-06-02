@@ -843,6 +843,10 @@ def _persist_consumer_payload(
     )
 
 
+def _dispatch_status_count(dispatches: list[dict[str, Any]], status: str) -> int:
+    return sum(_text(dispatch.get("dispatch_status")) == status for dispatch in dispatches)
+
+
 def materialize_domain_action_requests(
     *,
     profile: WorkspaceProfile,
@@ -888,6 +892,8 @@ def materialize_domain_action_requests(
         )
         for action in selected_request_actions
     ]
+    ready_default_executor_dispatch_count = _dispatch_status_count(default_executor_dispatches, "ready")
+    blocked_default_executor_dispatch_count = _dispatch_status_count(default_executor_dispatches, "blocked")
     _apply_progress_first_closeout_to_request_tasks(
         request_tasks=request_tasks,
         default_executor_dispatches=default_executor_dispatches,
@@ -931,6 +937,8 @@ def materialize_domain_action_requests(
         "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
         "ai_reviewer_request_refreshes": ai_reviewer_request_refreshes,
         "default_executor_dispatch_count": len(default_executor_dispatches),
+        "ready_default_executor_dispatch_count": ready_default_executor_dispatch_count,
+        "blocked_default_executor_dispatch_count": blocked_default_executor_dispatch_count,
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in default_executor_dispatches),
         "default_executor_dispatches": default_executor_dispatches,
         "ignored_actions": ignored_actions,

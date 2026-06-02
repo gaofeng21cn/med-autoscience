@@ -711,6 +711,15 @@ def _source_eval_id(
         controller_route = _mapping(action.get("controller_route"))
         if text := _text(controller_route.get("source_eval_id")) or _text(controller_route.get("publication_eval_id")):
             return text
+    transition = _mapping(status.get("domain_transition")) or _mapping(progress.get("domain_transition"))
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    if text := (
+        _text(completion.get("eval_id"))
+        or _text(transition.get("source_eval_id"))
+        or _text(transition.get("publication_eval_id"))
+        or _text(_mapping(transition.get("publication_eval_ref")).get("eval_id"))
+    ):
+        return text
     publication_eval = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
     return _text(publication_eval.get("eval_id")) or _text(publication_eval.get("source_eval_id"))
 

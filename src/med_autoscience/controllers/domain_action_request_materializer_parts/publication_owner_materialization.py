@@ -165,7 +165,7 @@ def _ai_reviewer_currentness_action(
         owner_reason=blocked_reason,
         allowed_actions=["return_to_ai_reviewer_workflow"],
         work_unit_id=_ai_reviewer_record_production_work_unit_id(blocked_reason),
-        source_eval_id=None,
+        source_eval_id=_source_eval_id_from_route(owner_route),
     )
     return _with_owner_route(
         {
@@ -443,9 +443,11 @@ def _current_ai_reviewer_materialization_work_unit(action: Mapping[str, Any]) ->
     source_refs = _mapping(owner_route.get("source_refs"))
     return (
         _text(action.get("controller_work_unit_id")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
+        or _text(action.get("executable_work_unit")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
         or _text(action.get("next_work_unit")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
         or _text(source_refs.get("work_unit_id")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
         or _text(action.get("controller_work_unit_id")) in AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
+        or _text(action.get("executable_work_unit")) in AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
         or _text(action.get("next_work_unit")) in AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
         or _text(source_refs.get("work_unit_id")) in AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
     )
@@ -456,6 +458,7 @@ def _ai_reviewer_record_production_work_unit(action: Mapping[str, Any]) -> bool:
     source_refs = _mapping(owner_route.get("source_refs"))
     return (
         _text(action.get("controller_work_unit_id")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+        or _text(action.get("executable_work_unit")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
         or _text(action.get("next_work_unit")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
         or _text(source_refs.get("work_unit_id")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
     )
@@ -592,6 +595,23 @@ def _rewrite_owner_route(
         if item
     )
     return owner_route_part.ensure_owner_route_v2(route)
+
+
+def _source_eval_id_from_route(owner_route: Mapping[str, Any]) -> str | None:
+    route = owner_route_part.ensure_owner_route_v2(owner_route)
+    source_refs = _mapping(route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    publication_eval_ref = _mapping(source_refs.get("publication_eval_ref")) or _mapping(
+        route.get("publication_eval_ref")
+    )
+    return (
+        _text(source_refs.get("source_eval_id"))
+        or _text(source_refs.get("publication_eval_id"))
+        or _text(publication_eval_ref.get("eval_id"))
+        or _text(route.get("source_eval_id"))
+        or _text(route.get("publication_eval_id"))
+        or _text(basis.get("source_eval_id"))
+    )
 
 
 def _is_runtime_to_story_surface_bridge(

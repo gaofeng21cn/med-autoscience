@@ -4,12 +4,22 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.default_executor_action_policy import request_output_surface_for_action_type
+from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.story_surface_work_units import (
     is_story_surface_delta_write_work_unit,
 )
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
+
+
+AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS = frozenset(
+    {
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+    }
+)
 
 
 def actions(
@@ -43,6 +53,9 @@ def actions(
         route_target=route_target,
         next_work_unit=controller_next_work_unit,
     )
+    ai_reviewer_record_production_route = _is_ai_reviewer_record_production_route(
+        next_work_unit=controller_next_work_unit,
+    )
     publication_gate_replay_route = _is_publication_gate_replay_route(
         decision_type=decision_type,
         route_target=route_target,
@@ -51,11 +64,18 @@ def actions(
     if unit_harmonized_analysis_route:
         action_type = "unit_harmonized_external_validation_rerun"
         work_unit_id = "unit_harmonized_external_validation_rerun"
+    elif ai_reviewer_record_production_route:
+        action_type = "return_to_ai_reviewer_workflow"
     elif publication_gate_replay_route:
         action_type = "run_gate_clearing_batch"
     owner = (
         _owner_for_domain_action(action_type)
-        if unit_harmonized_analysis_route or publication_gate_replay_route or decision_type == "publication_gate_blocker"
+        if (
+            unit_harmonized_analysis_route
+            or ai_reviewer_record_production_route
+            or publication_gate_replay_route
+            or decision_type == "publication_gate_blocker"
+        )
         else "write"
         if write_repair_route or current_ai_reviewer_materialization_route
         else domain_transition_guard.owner(status) or _owner_for_domain_action(action_type)
@@ -63,6 +83,8 @@ def actions(
     reason = (
         "unit_harmonized_rerun_required"
         if unit_harmonized_analysis_route
+        else _ai_reviewer_record_production_reason(work_unit_id)
+        if ai_reviewer_record_production_route
         else work_unit_id
         if publication_gate_replay_route
         else domain_transition_guard.reason(status) or f"domain_transition_{decision_type or 'current'}"
@@ -86,11 +108,11 @@ def actions(
         action["controller_next_work_unit"] = controller_next_work_unit
         action["controller_work_unit_id"] = controller_work_unit_id
         action["executable_work_unit"] = "unit_harmonized_external_validation_rerun"
-    if write_repair_route or current_ai_reviewer_materialization_route:
+    if write_repair_route or current_ai_reviewer_materialization_route or ai_reviewer_record_production_route:
         action["controller_next_work_unit"] = controller_next_work_unit
         action["controller_work_unit_id"] = controller_work_unit_id
         action["executable_work_unit"] = work_unit_id
-        action["route_target"] = "write"
+        action["route_target"] = "ai_reviewer" if ai_reviewer_record_production_route else "write"
         action["domain_transition_decision_type"] = decision_type
         if source_eval_id := _source_eval_id(status=status, publication_eval_payload=publication_eval_payload):
             action["source_eval_id"] = source_eval_id
@@ -189,6 +211,19 @@ def _is_current_ai_reviewer_materialization_route(
         and route_target == "controller"
         and _text(next_work_unit.get("unit_id"))
         == "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+    )
+
+
+def _is_ai_reviewer_record_production_route(*, next_work_unit: Mapping[str, Any]) -> bool:
+    return _text(next_work_unit.get("unit_id")) in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+
+
+def _ai_reviewer_record_production_reason(work_unit_id: str | None) -> str:
+    return (
+        domain_action_request_lifecycle.AI_REVIEWER_RECORD_PRODUCTION_BLOCKED_REASONS_BY_WORK_UNIT.get(
+            work_unit_id or ""
+        )
+        or "domain_transition_ai_reviewer_re_eval"
     )
 
 

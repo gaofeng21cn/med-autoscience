@@ -497,10 +497,24 @@ def _same_tick_delta(
     materialize_result: Mapping[str, Any],
     dispatch_result: Mapping[str, Any],
 ) -> dict[str, Any]:
+    total_default_executor_dispatch_count = _int_value(materialize_result.get("default_executor_dispatch_count"))
+    ready_default_executor_dispatch_count = (
+        _int_value(materialize_result.get("ready_default_executor_dispatch_count"))
+        if "ready_default_executor_dispatch_count" in materialize_result
+        else total_default_executor_dispatch_count
+    )
+    blocked_default_executor_dispatch_count = (
+        _int_value(materialize_result.get("blocked_default_executor_dispatch_count"))
+        if "blocked_default_executor_dispatch_count" in materialize_result
+        else _materialized_dispatch_status_count(materialize_result, "blocked")
+    )
     return {
         "scan_action_count": _count(scan_result, "action_queue"),
         "materialized_request_count": _int_value(materialize_result.get("request_task_count")),
-        "default_executor_dispatch_count": _int_value(materialize_result.get("default_executor_dispatch_count")),
+        "default_executor_dispatch_count": ready_default_executor_dispatch_count,
+        "default_executor_dispatch_total_count": total_default_executor_dispatch_count,
+        "ready_default_executor_dispatch_count": ready_default_executor_dispatch_count,
+        "blocked_default_executor_dispatch_count": blocked_default_executor_dispatch_count,
         "dispatch_execution_count": _int_value(dispatch_result.get("execution_count")),
         "dispatch_executed_count": _int_value(dispatch_result.get("executed_count")),
         "dispatch_blocked_count": _int_value(dispatch_result.get("blocked_count")),
@@ -516,6 +530,8 @@ def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
         if _provider_attempt_started(_mapping(iteration.get("provider_admission_probe"))):
             return "provider_attempt_started"
         return "provider_handoff_written_admission_pending"
+    if _int_value(delta.get("blocked_default_executor_dispatch_count")) > 0:
+        return "typed_blocker_or_dispatch_blocker_observed"
     if _int_value(delta.get("dispatch_blocked_count")) > 0:
         return "typed_blocker_or_dispatch_blocker_observed"
     if _int_value(delta.get("dispatch_repeat_suppressed_count")) > 0:
@@ -563,12 +579,25 @@ def _same_tick_terminal_diagnostic(
         "max_passes_exhausted_owner_delta_required",
     }
     requires_provider_admission = stop_reason == "provider_handoff_written_admission_pending"
+    requires_dispatch_blocker_resolution = (
+        stop_reason == "typed_blocker_or_dispatch_blocker_observed"
+        and (
+            _int_value(last_delta.get("blocked_default_executor_dispatch_count")) > 0
+            or _int_value(last_delta.get("dispatch_blocked_count")) > 0
+        )
+    )
     return {
         "surface": "progress_first_developer_supervisor_terminal_diagnostic",
         "schema_version": 1,
         "stop_reason": stop_reason,
         "requires_next_owner_delta": requires_next_owner_delta,
         "requires_provider_admission": requires_provider_admission,
+        "requires_dispatch_blocker_resolution": requires_dispatch_blocker_resolution,
+        "dispatch_blocker_summary": (
+            _dispatch_blocker_summary(last_iteration)
+            if requires_dispatch_blocker_resolution
+            else None
+        ),
         "provider_admission_probe": (
             {
                 "observed": False,
@@ -631,7 +660,24 @@ def _same_tick_terminal_diagnostic(
                     ],
                 }
                 if requires_provider_admission
-                else None
+                else (
+                    {
+                        "required_delta_kind": "dispatch_blocker_resolution_or_owner_route_currentness_delta",
+                        "reason": stop_reason,
+                        "target_surface": {
+                            "surface_ref": "owner-route currentness basis, dispatch typed blocker, or domain owner receipt",
+                            "owner": "med-autoscience",
+                        },
+                        "acceptance_refs": [
+                            "currentness_contract.missing_required_fields == []",
+                            "default_executor_dispatch.blocked_reason",
+                            "domain_typed_blocker_ref",
+                            "domain_owner_receipt_ref",
+                        ],
+                    }
+                    if requires_dispatch_blocker_resolution
+                    else None
+                )
             )
         ),
         "forbidden_next_actions": (
@@ -640,7 +686,7 @@ def _same_tick_terminal_diagnostic(
                 "repeat_read_model_reconcile_without_owner_delta",
                 "start_new_provider_attempt_for_same_source_without_owner_delta",
             ]
-            if requires_next_owner_delta or requires_provider_admission
+            if requires_next_owner_delta or requires_provider_admission or requires_dispatch_blocker_resolution
             else []
         ),
     }
@@ -663,6 +709,48 @@ def _execution_status_count(payload: Mapping[str, Any], status: str) -> int:
         for item in payload.get("executions") or []
         if isinstance(item, Mapping) and _non_empty_text(item.get("execution_status")) == status
     )
+
+
+def _materialized_dispatch_status_count(payload: Mapping[str, Any], status: str) -> int:
+    return sum(
+        1
+        for item in payload.get("default_executor_dispatches") or []
+        if isinstance(item, Mapping) and _non_empty_text(item.get("dispatch_status")) == status
+    )
+
+
+def _dispatch_blocker_summary(iteration: Mapping[str, Any]) -> dict[str, Any]:
+    delta = _mapping(iteration.get("progress_first_delta"))
+    materialize = _mapping(iteration.get("materialize"))
+    dispatch = _mapping(iteration.get("dispatch"))
+    blocked_reasons: list[str] = []
+    blocked_actions: list[str] = []
+    for item in materialize.get("default_executor_dispatches") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if _non_empty_text(item.get("dispatch_status")) != "blocked":
+            continue
+        if (reason := _non_empty_text(item.get("blocked_reason"))) is not None and reason not in blocked_reasons:
+            blocked_reasons.append(reason)
+        if (action_type := _non_empty_text(item.get("action_type"))) is not None and action_type not in blocked_actions:
+            blocked_actions.append(action_type)
+    for item in dispatch.get("executions") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if _non_empty_text(item.get("execution_status")) != "blocked":
+            continue
+        if (reason := _non_empty_text(item.get("blocked_reason"))) is not None and reason not in blocked_reasons:
+            blocked_reasons.append(reason)
+        if (action_type := _non_empty_text(item.get("action_type"))) is not None and action_type not in blocked_actions:
+            blocked_actions.append(action_type)
+    return {
+        "blocked_default_executor_dispatch_count": _int_value(
+            delta.get("blocked_default_executor_dispatch_count")
+        ),
+        "dispatch_blocked_count": _int_value(delta.get("dispatch_blocked_count")),
+        "blocked_reasons": blocked_reasons,
+        "blocked_actions": blocked_actions,
+    }
 
 
 def _int_value(value: object) -> int:
