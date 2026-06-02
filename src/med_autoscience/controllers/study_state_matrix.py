@@ -11,6 +11,10 @@ from med_autoscience.controllers.progress_first_receipt_identity import (
 )
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers import study_macro_state
+from med_autoscience.controllers.study_state_matrix_parts.current_owner_handoff import (
+    effective_transition_for_monitoring,
+    monitoring_has_authoritative_owner_action,
+)
 from med_autoscience.study_manual_finish import _delivered_package_ready
 
 
@@ -83,14 +87,18 @@ def build_study_state_matrix(
             active_run_id=active_run_id,
             study_root=study_root,
         )
+        effective_transition = effective_transition_for_monitoring(
+            transition=transition,
+            monitoring=monitoring,
+        )
         supervisor_bundle = _supervisor_monitoring_bundle(
             status=status,
             monitoring=monitoring,
-            transition=transition,
+            transition=effective_transition,
             study_root=study_root,
         )
         monitoring_summaries.append(monitoring)
-        transitions.append(transition)
+        transitions.append(effective_transition)
         studies.append(
             {
                 "study_id": study_id,
@@ -102,7 +110,7 @@ def build_study_state_matrix(
                 "supervisor_monitoring_bundle": supervisor_bundle,
                 "delivered_package": delivered_package or None,
                 "study_macro_state": macro,
-                "domain_transition": transition,
+                "domain_transition": effective_transition,
             }
         )
     return {
@@ -331,9 +339,18 @@ def _progress_first_monitoring_summary(
     existing = _dict(status.get("progress_first_monitoring_summary")) or _dict(
         projection.get("progress_first_monitoring_summary")
     )
+    existing_authoritative_owner_action = _existing_authoritative_owner_action(existing)
     transition_consumed_owner_action = _transition_consumed_owner_action(transition)
-    next_work_unit = _dict(existing.get("next_work_unit")) or _dict(transition.get("next_work_unit"))
-    if transition_consumed_owner_action:
+    existing_next_work_unit = _dict(existing.get("next_work_unit")) or _text(existing.get("next_work_unit"))
+    next_work_unit = (
+        existing_next_work_unit
+        if existing_authoritative_owner_action and existing_next_work_unit
+        else _dict(existing.get("next_work_unit")) or _dict(transition.get("next_work_unit"))
+    )
+    use_transition_consumed_owner_action = (
+        transition_consumed_owner_action and not existing_authoritative_owner_action
+    )
+    if use_transition_consumed_owner_action:
         next_work_unit = _dict(transition.get("next_work_unit")) or next_work_unit
     existing_owner_action = (
         _text(existing.get("next_owner")) is not None
@@ -357,13 +374,15 @@ def _progress_first_monitoring_summary(
         existing=existing,
         dispatch_consumption=dispatch_consumption,
     )
-    owner_action_current = (existing_owner_action and not existing_consumed_same_ai_reviewer_record) or (
-        transition_consumed_owner_action
+    owner_action_current = (
+        existing_authoritative_owner_action
+        or (existing_owner_action and not existing_consumed_same_ai_reviewer_record)
+        or use_transition_consumed_owner_action
     )
-    typed_blocker = ({} if transition_consumed_owner_action else _dict(existing.get("typed_blocker"))) or (
+    typed_blocker = ({} if use_transition_consumed_owner_action else _dict(existing.get("typed_blocker"))) or (
         {} if existing_owner_action or existing_receipt_consumed else _dict(transition.get("typed_blocker"))
     )
-    current_blockers = [] if transition_consumed_owner_action else _string_list(existing.get("current_blockers"))
+    current_blockers = [] if use_transition_consumed_owner_action else _string_list(existing.get("current_blockers"))
     if not current_blockers and typed_blocker:
         current_blockers = [
             text
@@ -388,7 +407,7 @@ def _progress_first_monitoring_summary(
         "worker_liveness": _dict(existing.get("worker_liveness")),
         "execution_state_kind": (
             "executable_owner_action"
-            if transition_consumed_owner_action
+            if use_transition_consumed_owner_action or existing_authoritative_owner_action
             else (
                 "blocked_typed_owner"
                 if existing_consumed_same_ai_reviewer_record and typed_blocker
@@ -402,18 +421,20 @@ def _progress_first_monitoring_summary(
         or ("receipt_consumed" if transition_receipt_consumed else None),
         "owner_action_current": owner_action_current,
         "next_owner": (
-            _text(transition.get("owner")) if transition_consumed_owner_action else _text(existing.get("next_owner"))
+            _text(transition.get("owner"))
+            if use_transition_consumed_owner_action
+            else _text(existing.get("next_owner"))
         )
         or _text(transition.get("owner")),
         "route_target": (
             _text(transition.get("route_target"))
-            if transition_consumed_owner_action
+            if use_transition_consumed_owner_action
             else _text(existing.get("route_target"))
         )
         or _text(transition.get("route_target")),
         "controller_action": (
             _text(transition.get("controller_action"))
-            if transition_consumed_owner_action
+            if use_transition_consumed_owner_action
             else _text(existing.get("controller_action"))
         )
         or _text(transition.get("controller_action")),
@@ -475,6 +496,23 @@ def _supervisor_monitoring_bundle(
             "can_authorize_publication_ready": False,
         },
     }
+
+
+def _existing_authoritative_owner_action(existing: Mapping[str, Any]) -> bool:
+    if _dict(existing.get("typed_blocker")):
+        return False
+    if _text(existing.get("execution_state_kind")) != "executable_owner_action":
+        return False
+    if _existing_consumed_ai_reviewer_record(
+        existing=existing,
+        dispatch_consumption=_dict(existing.get("dispatch_consumption")),
+    ):
+        return False
+    return (
+        _text(existing.get("next_owner")) is not None
+        or _text(existing.get("controller_action")) is not None
+        or _work_unit_id(existing.get("next_work_unit")) is not None
+    )
 
 
 def _provider_status(monitoring: Mapping[str, Any]) -> dict[str, Any]:
