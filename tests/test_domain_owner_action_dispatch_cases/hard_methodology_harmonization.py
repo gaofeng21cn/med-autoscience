@@ -254,6 +254,248 @@ def test_explicit_harmonization_dispatch_survives_empty_consumer_latest_with_own
     assert not (study_root / "paper").exists()
 
 
+def test_explicit_harmonization_dispatch_ignores_stale_consumer_tail_actions(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    current_route = _owner_route(
+        study_id=study_id,
+        action_type="unit_harmonized_external_validation_rerun",
+        owner="analysis_harmonization_owner",
+    )
+    current_route.update(
+        {
+            "failure_signature": "unit_harmonized_rerun_required",
+            "owner_reason": "unit_harmonized_rerun_required",
+            "work_unit_fingerprint": "hard-methodology::unit_harmonized_external_validation_rerun::current",
+            "source_fingerprint": "truth-snapshot::current-analysis-harmonization",
+            "idempotency_key": "owner-route::dm002::analysis-harmonization::current",
+        }
+    )
+    current_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="unit_harmonized_external_validation_rerun",
+        owner="analysis_harmonization_owner",
+        required_output_surface=(
+            "unit-harmonized external-validation rerun evidence or "
+            "typed blocker:unit_harmonized_rerun_required"
+        ),
+        owner_route=current_route,
+    )
+    current_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "unit_harmonized_external_validation_rerun.json"
+    )
+    current_dispatch["refs"] = {"dispatch_path": str(current_dispatch_path)}
+    _write_json(current_dispatch_path, current_dispatch)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "analysis_harmonization" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "request_kind": "unit_harmonized_external_validation_rerun",
+            "request_owner": "analysis_harmonization_owner",
+            "status": "requested",
+            "blocked_reason": "unit_harmonized_rerun_required",
+            "next_owner": "analysis_harmonization_owner",
+            "next_work_unit": "unit_harmonized_external_validation_rerun",
+            "owner_route": current_route,
+            "idempotency_key": current_route["idempotency_key"],
+        },
+    )
+
+    stale_decision_route = _owner_route(
+        study_id=study_id,
+        action_type="methodology_reframe_route_decision",
+        owner="decision",
+    )
+    stale_decision_route.update(
+        {
+            "failure_signature": "methodology_reframe_required",
+            "owner_reason": "methodology_reframe_required",
+            "work_unit_fingerprint": "decision::methodology_reframe_route_decision::stale",
+            "source_fingerprint": "truth-snapshot::stale-methodology-reframe",
+            "idempotency_key": "owner-route::dm002::decision::methodology-reframe::stale",
+        }
+    )
+    stale_decision_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="methodology_reframe_route_decision",
+        owner="decision",
+        required_output_surface=(
+            "controller route decision for a provenance-limited reframe, "
+            "reproducible-model restart, stop-loss, or human gate"
+        ),
+        owner_route=stale_decision_route,
+    )
+    stale_decision_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "methodology_reframe_route_decision.json"
+    )
+    stale_decision_dispatch["refs"] = {"dispatch_path": str(stale_decision_path)}
+    _write_json(stale_decision_path, stale_decision_dispatch)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "decision" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "request_kind": "methodology_reframe_route_decision",
+            "request_owner": "decision",
+            "status": "requested",
+            "blocked_reason": "methodology_reframe_required",
+            "next_owner": "decision",
+            "next_work_unit": "methodology_reframe_route_decision",
+            "owner_route": stale_decision_route,
+            "idempotency_key": stale_decision_route["idempotency_key"],
+        },
+    )
+
+    stale_ai_route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    stale_ai_route.update(
+        {
+            "work_unit_fingerprint": "ai-reviewer::stale-record-production",
+            "source_fingerprint": "truth-snapshot::stale-ai-reviewer",
+            "idempotency_key": "owner-route::dm002::ai-reviewer::stale",
+        }
+    )
+    stale_ai_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=stale_ai_route,
+    )
+    stale_ai_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    stale_ai_dispatch["refs"] = {"dispatch_path": str(stale_ai_path)}
+    _write_json(stale_ai_path, stale_ai_dispatch)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": current_route}],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatch_count": 3,
+            "default_executor_dispatches": [
+                current_dispatch,
+                stale_decision_dispatch,
+                stale_ai_dispatch,
+            ],
+        },
+    )
+
+    executed: list[str] = []
+
+    def fake_harmonization_owner(**kwargs) -> dict[str, object]:
+        executed.append("unit_harmonized_external_validation_rerun")
+        request_path = (
+            study_root / "artifacts" / "supervision" / "requests" / "analysis_harmonization" / "latest.json"
+        )
+        owner_result_path = study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
+        _write_json(
+            owner_result_path,
+            {
+                "surface": "analysis_harmonization_owner_result",
+                "study_id": study_id,
+                "owner": "analysis_harmonization_owner",
+                "work_unit": "unit_harmonized_external_validation_rerun",
+                "status": "completed",
+                "unit_harmonized_rerun_completed": True,
+            },
+        )
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": (
+                "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker"
+            ),
+            "request_path": str(request_path),
+            "result_ref": str(owner_result_path),
+            "surface": "analysis_harmonization_owner_result",
+            "status": "completed",
+            "work_unit": "unit_harmonized_external_validation_rerun",
+        }
+
+    def fail_stale_dispatch(**kwargs) -> dict[str, object]:
+        raise AssertionError("stale consumer tail dispatch should not execute")
+
+    monkeypatch.setattr(
+        module.action_execution,
+        "execute_unit_harmonized_external_validation_rerun",
+        fake_harmonization_owner,
+    )
+    monkeypatch.setattr(module.action_execution, "execute_methodology_reframe_route_decision", fail_stale_dispatch)
+    monkeypatch.setattr(module, "_execute_ai_reviewer_workflow", fail_stale_dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(
+            "unit_harmonized_external_validation_rerun",
+            "methodology_reframe_route_decision",
+            "return_to_ai_reviewer_workflow",
+        ),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert executed == ["unit_harmonized_external_validation_rerun"]
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    execution = result["executions"][0]
+    assert execution["action_type"] == "unit_harmonized_external_validation_rerun"
+    assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] in {"scan_latest", "owner_request"}
+    latest = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_execution"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert [item["action_type"] for item in latest["executions"]] == [
+        "unit_harmonized_external_validation_rerun"
+    ]
+
+
 def test_execute_dispatch_hands_model_provenance_route_to_source_owner(
     monkeypatch,
     tmp_path: Path,
@@ -713,4 +955,3 @@ def test_execute_dispatch_materializes_provenance_limited_harmonization_audit(
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
-

@@ -13,6 +13,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002/DM003 近期反复把超时、read-model currentness、receipt reconcile 或 no-delta 解释成“仍在跑 / breach / runtime recovery”，导致控制面持续解释状态而没有把下一步落到 owner action。目的优先的设计应让时间压力转成下一次产出约束，而不是停机报错。真正的结束条件只有 deliverable delta、owner receipt、typed blocker、human gate、stop-loss 或外部硬故障 handoff。
 - 影响：这是 MAS SLO/read-model/domain-handler 出口语义修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。OPL 继续持有 queue、retry/dead-letter 和 provider lifecycle；MAS 持有 progress pressure 的 domain route 语义、owner receipt、typed blocker 和 quality/publication authority。
 
+## 2026-06-02：显式 dispatch 重驱也必须按 current owner route 仲裁
+
+- 决策：`domain-owner-action-dispatch --action-types ...` 不是绕过 Progress-first currentness 的许可。显式 action list 只限制候选动作集合；当 scan/latest、consumed transition 或 live provider attempt 已经给出同一 study 的 current owner route / work unit 时，dispatcher 必须只执行与该 current route 匹配的 dispatch，并压制 consumer/latest 或 persisted dispatch 里残留的旧 owner request tail。
+- 决策：owner request currentness 是 scan lag 或 consumer/latest 为空时的恢复入口，不得覆盖更高优先级的 runtime/control current route。若本轮存在 runtime-current dispatch，历史 `requested` owner request 即使仍是 active lifecycle，也只能作为 provenance，不得和当前 handoff 并列执行。
+- 理由：DM002 暴露出 `unit_harmonized_external_validation_rerun` 当前 handoff 已产出 rerun evidence，但同一次显式 dispatch 仍继续执行旧 `methodology_reframe_route_decision` / AI reviewer 等 tail，随后 read-model 又被旧 typed blocker 拉回。Progress-first 的正确语义是先消费当前 owner work unit 的实质 delta 或 stable blocker，不能让旧 dispatch 抢占最新 handoff。
+- 影响：这是 MAS dispatch selector / owner-route currentness 修复，不清理历史 request 文件，不写 DM-CVD study truth、runtime-owned state、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍由当前 owner action、OPL provider attempt、owner receipt、AI reviewer、publication gate 与 typed closeout 继续判定。
+
 ## 2026-06-02：AI reviewer repair-recheck 必须按 callable surface 批处理并 fail-fast unsupported callable
 
 - 决策：`reviewer_refinement_loop` 从 AI reviewer `publication_eval/latest.json` 生成 repair/recheck work units 时，必须按每个 study、每个 callable surface 聚合为少量批处理 owner work unit。多个 quality dimension、publication gap 或同类 comment 不能逐 item 导出为独立 `paper_autonomy/repair-recheck` OPL task；`quality_repair_batch.run_quality_repair_batch` 与 `ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow` 各自最多形成一个 batch work unit，batch 内保留 `source_comment_ids`、`batched_work_units`、source refs、required inputs/outputs 和单次 owner replay 预算。

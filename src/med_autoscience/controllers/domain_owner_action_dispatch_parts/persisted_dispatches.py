@@ -12,31 +12,15 @@ from med_autoscience.controllers.owner_route_reconcile_parts import domain_route
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 from . import owner_request_currentness
+from . import owner_request_paths
 from . import consumed_transition_currentness
 from . import publication_owner_materialization_currentness
+from . import runtime_current_dispatch_selection
 from . import writer_handoff_currentness
 
 
 SUPERVISION_LATEST_RELATIVE_PATH = domain_route_contract.SUPERVISION_LATEST_RELATIVE_PATH
-OWNER_REQUEST_RELATIVE_PATHS = {
-    "publication_gate_specificity_required": Path("artifacts/supervision/requests/publication_gate_specificity/latest.json"),
-    "current_package_freshness_required": Path("artifacts/supervision/requests/current_package_freshness/latest.json"),
-    "artifact_display_surface_materialization_required": Path(
-        "artifacts/supervision/requests/artifact_display_materialization/latest.json"
-    ),
-    "return_to_ai_reviewer_workflow": Path("artifacts/supervision/requests/ai_reviewer/latest.json"),
-    "run_gate_clearing_batch": Path("artifacts/supervision/requests/gate_clearing_batch/latest.json"),
-    "canonical_paper_inputs_rehydrate_required": Path(
-        "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
-    ),
-    "run_quality_repair_batch": Path("artifacts/supervision/requests/quality_repair_batch/latest.json"),
-    "unit_harmonized_external_validation_rerun": Path("artifacts/supervision/requests/analysis_harmonization/latest.json"),
-    "recover_transport_model_provenance": Path("artifacts/supervision/requests/source_provenance/latest.json"),
-    "methodology_reframe_route_decision": Path("artifacts/supervision/requests/decision/latest.json"),
-    "provenance_limited_harmonization_audit": Path(
-        "artifacts/supervision/requests/provenance_limited_harmonization/latest.json"
-    ),
-}
+OWNER_REQUEST_RELATIVE_PATHS = owner_request_paths.OWNER_REQUEST_RELATIVE_PATHS
 
 
 def scan_latest_payload(profile: WorkspaceProfile) -> dict[str, Any] | None:
@@ -122,9 +106,10 @@ def selected_dispatches(
         consumer_payload=consumer_payload,
         consumer_latest_path=consumer_latest_path,
     )
-    current_dispatches = _current_dispatches_only(
+    current_dispatches = runtime_current_dispatch_selection.current_dispatches_only(
         dispatches=consumer_dispatches,
         current_study=current_study,
+        dispatch_currentness_score=_dispatch_currentness_score,
     )
     requested = set(action_types)
     if not action_types:
@@ -172,6 +157,13 @@ def selected_dispatches(
             dispatches=selected,
             current_study=current_study,
         )
+        runtime_current_selected = _runtime_current_dispatches_only(
+            study_id=study_id,
+            dispatches=selected,
+            current_study=current_study,
+        )
+        if runtime_current_selected:
+            return runtime_current_selected
         if current_selected:
             return current_selected
         if _consumed_transition_owner_route(current_study):
@@ -180,7 +172,18 @@ def selected_dispatches(
             payload
             for payload in consumer_dispatches
             if _text(payload.get("action_type")) in supported_action_types
-            if not _current_route_allows_dispatch_action(current_study=current_study, dispatch=payload)
+            if not runtime_current_dispatch_selection.current_route_allows_dispatch_action(
+                current_study=current_study,
+                dispatch=payload,
+                current_owner_route_from_scan=lambda study, selected_dispatch: _current_owner_route_from_scan(
+                    study,
+                    dispatch=selected_dispatch,
+                ),
+                route_allows_action=lambda selected_dispatch, route: owner_route_part.route_allows_action(
+                    action=selected_dispatch,
+                    owner_route=route,
+                ),
+            )
         ]
     selected = [
         payload
@@ -227,6 +230,21 @@ def selected_dispatches(
             selected.append(payload)
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
+    runtime_current_selected = _runtime_current_dispatches_only(
+        study_id=study_id,
+        dispatches=selected,
+        current_study=current_study,
+    )
+    if runtime_current_selected:
+        return runtime_current_selected
+    current_selected = _selected_dispatches_only(
+        profile=profile,
+        study_id=study_id,
+        dispatches=selected,
+        current_study=current_study,
+    )
+    if current_selected:
+        return current_selected
     return selected
 
 
@@ -261,6 +279,21 @@ def _selected_dispatches_only(
         if not _dispatch_owner_route(dispatch):
             selected.append(dispatch)
     return selected
+
+
+def _runtime_current_dispatches_only(
+    *,
+    study_id: str,
+    dispatches: list[dict[str, Any]],
+    current_study: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return runtime_current_dispatch_selection.runtime_current_dispatches_only(
+        study_id=study_id,
+        dispatches=dispatches,
+        current_study=current_study,
+        dispatch_currentness_score=_dispatch_currentness_score,
+        live_provider_attempt_owner_route_from_scan_payload=live_provider_attempt_owner_route_from_scan_payload,
+    )
 
 
 def _with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
@@ -389,21 +422,6 @@ def _owner_for_consumed_transition(*, action_type: str, transition: Mapping[str,
     if action_type == "return_to_ai_reviewer_workflow":
         return "ai_reviewer"
     return _text(transition.get("owner")) or "med-autoscience"
-
-
-def _current_dispatches_only(*, dispatches: list[dict[str, Any]], current_study: Mapping[str, Any]) -> list[dict[str, Any]]:
-    if not current_study:
-        return dispatches
-    return [
-        dispatch
-        for dispatch in dispatches
-        if _dispatch_currentness_score(dispatch, current_study) > (0, 0)
-    ]
-
-
-def _current_route_allows_dispatch_action(*, current_study: Mapping[str, Any], dispatch: Mapping[str, Any]) -> bool:
-    current_route = _current_owner_route_from_scan(current_study, dispatch=dispatch)
-    return bool(current_route and owner_route_part.route_allows_action(action=dispatch, owner_route=current_route))
 
 
 def _prefer_current_dispatch(
@@ -930,18 +948,8 @@ def _owner_request_fallback_route(*, action_type: str, dispatch: Mapping[str, An
     return dispatch_route
 
 
-def owner_request_payload(profile: WorkspaceProfile, study_id: str, action_type: str) -> dict[str, Any] | None:
-    path = owner_request_path(profile, study_id, action_type)
-    if path is None:
-        return None
-    return _read_json_object(path)
-
-
-def owner_request_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path | None:
-    relative_path = OWNER_REQUEST_RELATIVE_PATHS.get(action_type)
-    if relative_path is None:
-        return None
-    return profile.studies_root / study_id / relative_path
+owner_request_payload = owner_request_paths.owner_request_payload
+owner_request_path = owner_request_paths.owner_request_path
 
 
 def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:

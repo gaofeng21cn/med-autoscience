@@ -5,6 +5,7 @@ readonly DEFAULT_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="${DEFAULT_REPO_ROOT}"
 INSTALL_HOME="${HOME}"
 SKIP_TOOLS=0
+PYTHON_BIN=""
 
 fail() {
   printf "med-autoscience codex installer error: %s\n" "$1" >&2
@@ -47,11 +48,40 @@ parse_args() {
 
 check_dependencies() {
   local cmd
-  for cmd in bash python3; do
+  for cmd in bash; do
     if ! command -v "${cmd}" >/dev/null 2>&1; then
       fail "required command not found: ${cmd}"
     fi
   done
+  PYTHON_BIN="$(resolve_python)" || fail "required command not found: python3.12 or python3"
+}
+
+python_works_with_install_home() {
+  local candidate="$1"
+  HOME="${INSTALL_HOME}" "${candidate}" - <<'PY' >/dev/null 2>&1
+import sys
+raise SystemExit(0 if sys.version_info >= (3, 12) else 1)
+PY
+}
+
+resolve_python() {
+  local candidate
+  local candidates=()
+  if [[ -n "${PYTHON:-}" ]]; then
+    candidates+=("${PYTHON}")
+  fi
+  candidates+=(python3.12 python3)
+  for candidate in "${candidates[@]}"; do
+    if ! command -v "${candidate}" >/dev/null 2>&1; then
+      continue
+    fi
+    candidate="$(command -v "${candidate}")"
+    if python_works_with_install_home "${candidate}"; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+  return 1
 }
 
 install_python_tools() {
@@ -78,7 +108,7 @@ EOF
 }
 
 install_codex_paths() {
-  HOME="${INSTALL_HOME}" PYTHONPATH="${REPO_ROOT}/src" python3 -m med_autoscience.codex_plugin_installer \
+  HOME="${INSTALL_HOME}" PYTHONPATH="${REPO_ROOT}/src" "${PYTHON_BIN}" -m med_autoscience.codex_plugin_installer \
     --repo-root "${REPO_ROOT}" \
     --home "${INSTALL_HOME}"
 }
