@@ -167,7 +167,8 @@ def _has_interval(interval: Mapping[str, Any]) -> bool:
 
 
 def _matches_analysis_harmonization_result(payload: Mapping[str, Any]) -> bool:
-    if _text(payload.get("surface")) != "analysis_harmonization_owner_result":
+    surface = _text(payload.get("surface"))
+    if surface is not None and surface != "analysis_harmonization_owner_result":
         return False
     if _text(payload.get("owner")) != OWNER:
         return False

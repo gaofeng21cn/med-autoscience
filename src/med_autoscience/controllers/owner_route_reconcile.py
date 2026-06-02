@@ -799,6 +799,7 @@ def _study_projection(
         blocked_reason=blocked_reason,
         next_owner=next_owner,
         runtime_health=runtime_health,
+        live_provider_attempt=live_provider_attempt,
     )
     execution_evidence = current_execution_envelope.build_current_execution_evidence(
         action_queue=actions,

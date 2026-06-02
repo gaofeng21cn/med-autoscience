@@ -14,7 +14,7 @@ ENVELOPE_KEYS = (
     "conflict_suppression_refs",
     "authority_boundary",
 )
-ALLOWED_STATE_KINDS = ("parked", "executable_owner_action", "typed_blocker")
+ALLOWED_STATE_KINDS = ("parked", "executable_owner_action", "running_provider_attempt", "typed_blocker")
 EVIDENCE_ONLY_SURFACES = ("action_queue", "runtime_health", "no_op")
 AUTHORITY_BOUNDARY = {
     "surface_kind": "current_execution_envelope",
@@ -34,6 +34,7 @@ def build_current_execution_envelope(
     next_owner: str | None = None,
     typed_blocker: Mapping[str, Any] | None = None,
     runtime_health: Mapping[str, Any] | None = None,
+    live_provider_attempt: Mapping[str, Any] | None = None,
     source_refs: Sequence[str] | None = None,
     conflict_suppression_refs: Sequence[str] | None = None,
 ) -> dict[str, Any]:
@@ -64,6 +65,21 @@ def build_current_execution_envelope(
             state_kind="executable_owner_action",
             owner=_text(action.get("owner")) or _text(action.get("recommended_owner")) or _text(next_owner) or "med-autoscience",
             next_work_unit=_next_work_unit(action),
+            typed_blocker=None,
+            parked_state=None,
+            source_refs=resolved_source_refs,
+            conflict_suppression_refs=resolved_suppression_refs,
+        )
+    running_attempt = _running_provider_attempt_state(
+        live_provider_attempt=live_provider_attempt,
+        runtime_health=runtime_health,
+        owner=next_owner,
+    )
+    if running_attempt is not None and not _mapping(typed_blocker):
+        return _envelope(
+            state_kind="running_provider_attempt",
+            owner=running_attempt["owner"],
+            next_work_unit=running_attempt["next_work_unit"],
             typed_blocker=None,
             parked_state=None,
             source_refs=resolved_source_refs,
@@ -186,6 +202,28 @@ def _next_work_unit(action: Mapping[str, Any]) -> object:
         if (value := _text(action.get(key))) is not None:
             return value
     return None
+
+
+def _running_provider_attempt_state(
+    *,
+    live_provider_attempt: Mapping[str, Any] | None,
+    runtime_health: Mapping[str, Any] | None,
+    owner: str | None,
+) -> dict[str, Any] | None:
+    attempt = _mapping(live_provider_attempt)
+    if attempt.get("running_provider_attempt") is not True:
+        return None
+    health = _mapping(runtime_health)
+    next_work_unit = (
+        _text(attempt.get("work_unit_id"))
+        or _text(attempt.get("next_work_unit"))
+        or _text(health.get("work_unit_id"))
+        or _text(attempt.get("action_type"))
+    )
+    return {
+        "owner": _text(owner) or "supervisor_only/live_provider_attempt",
+        "next_work_unit": next_work_unit,
+    }
 
 
 def _source_refs(

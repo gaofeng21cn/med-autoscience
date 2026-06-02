@@ -697,6 +697,11 @@ def test_scan_projects_live_opl_provider_attempt_for_current_owner_route(monkeyp
     assert study["blocked_reason"] is None
     assert study["why_not_applied"] is None
     assert study["next_owner"] == "supervisor_only/live_provider_attempt"
+    envelope = study["current_execution_envelope"]
+    assert envelope["state_kind"] == "running_provider_attempt"
+    assert envelope["owner"] == "supervisor_only/live_provider_attempt"
+    assert envelope["next_work_unit"] == "dm002_methods_write_pass"
+    assert envelope["typed_blocker"] is None
 
 
 def test_scan_does_not_project_terminal_stage_attempt_as_active_run(monkeypatch, tmp_path: Path) -> None:

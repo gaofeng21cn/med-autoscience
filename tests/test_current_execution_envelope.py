@@ -129,7 +129,12 @@ def test_owner_route_envelope_prefers_explicit_resume_pending_over_ai_reviewer_q
             "surface_kind": "current_execution_envelope",
             "authority": "read_model_projection",
             "top_level_truth": "state_kind",
-            "allowed_state_kinds": ["parked", "executable_owner_action", "typed_blocker"],
+            "allowed_state_kinds": [
+                "parked",
+                "executable_owner_action",
+                "running_provider_attempt",
+                "typed_blocker",
+            ],
             "evidence_only_surfaces": ["action_queue", "runtime_health", "no_op"],
         },
     }

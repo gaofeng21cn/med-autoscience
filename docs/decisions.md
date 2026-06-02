@@ -149,6 +149,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：新增 scan-level 回归覆盖了当前 controller decision 已存在、action queue 已可投影 AI reviewer 时，`scan_domain_routes` 仍先消费同 work unit 的 writer idempotent closeout，再把 `return_to_ai_reviewer_workflow` 投影为当前 executable owner action。
 - 影响：该修复只改变 MAS owner-route read-model/current-control projection，不写 study truth、runtime-owned surface、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 canonical paper。后续论文推进仍由 MAS/OPL owner path materialize、dispatch、owner receipt、AI reviewer 和 publication gate 判定。
 
+## 2026-06-02：Live provider 覆盖 action 是执行态，analysis currentness 优先于旧 reviewer write route
+
+- 决策：`current_execution_envelope.state_kind` 增加 `running_provider_attempt`。当 OPL live provider attempt 已覆盖当前 owner action / work unit 时，`owner-route-reconcile` 可以把待新派发 `action_queue` 过滤为空，但 envelope 必须投影 running provider、owner 和 work unit；不得回落为 `typed_blocker/current_execution_unresolved`。
+- 决策：`domain-action-request-materialize` 必须把 `running_provider_attempt` 当作 current execution authoritative state，不能在 live provider 正在执行同一 action 时从 workspace top-level stale action queue 回填重复 dispatch。
+- 决策：当 `analysis_harmonization/latest.json` 已完成 unit-harmonized rerun，且当前 `publication_eval` 未覆盖该 result / rerun evidence 的 currentness refs 时，AI reviewer re-eval action 优先于旧 `publication_eval.recommended_actions` 中的 write routeback。旧 reviewer write route 可以保留为 provenance，但不能抢先消费 writer receipt 或清空当前 analysis-harmonization reviewer handoff。
+- 理由：DM003 暴露出 live `return_to_ai_reviewer_workflow` provider attempt 正在运行时，scan 因去重过滤 action queue 后把当前执行投影成 unresolved typed blocker，造成 operator 误判为空转。DM002 暴露出 completed analysis rerun 后，旧 AI reviewer write routeback 仍抢在 analysis currentness recheck 前面，随后 consumed writer receipt 把 queue 清空，阻断了对新 rerun evidence 的 AI reviewer 质量授权。
+- 影响：这是 MAS controller/read-model/currentness 修复，不写 DM002/DM003 study truth、runtime-owned surface、paper/package、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 canonical manuscript。后续论文推进仍必须通过 MAS owner route、OPL provider attempt、typed closeout、AI reviewer record 和 publication gate 判定。
+
 ## 2026-06-01：consumed-transition gate replay selector 必须复用 materializer owner-route currentness
 
 - 决策：`domain-owner-action-dispatch` 在选择 `default_executor_dispatches/run_gate_clearing_batch.json` 时，若当前 scan 顶层 `owner_route.next_owner=null`，但同一 study 的 `domain_transition.completion_receipt_consumption.status=consumed` 且 `next_work_unit.unit_id` 属于 publication-gate replay work-unit family，selector 必须复用 `domain_action_request_materializer` 的 domain-transition owner-route builder 来判断 currentness。
