@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from .current_executable_owner_action import owner_action_next_step
 from .shared import _mapping_copy, _non_empty_text, _paper_stage_label, _timestamp_is_newer
 
 
@@ -260,6 +261,8 @@ def current_owner_handoff_next_action(
     *,
     user_visible: Mapping[str, Any],
 ) -> str | None:
+    if current_step := owner_action_next_step(_mapping_copy(payload.get("current_executable_owner_action"))):
+        return current_step
     handoff_action = current_owner_handoff_action(payload)
     if handoff_action is not None:
         if summary := current_owner_handoff_summary(handoff_action):
@@ -282,7 +285,8 @@ def current_owner_handoff_next_action(
 
 
 def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) -> dict[str, Any]:
-    if not current_owner_redrive_domain_transition(payload):
+    executable_owner_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not current_owner_redrive_domain_transition(payload) and owner_action_next_step(executable_owner_action) is None:
         return dict(payload)
     user_visible = _mapping_copy(payload.get("user_visible_projection"))
     handoff_action = current_owner_handoff_action(payload)
@@ -298,6 +302,8 @@ def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) 
         user_visible["next_system_action"] = next_step
         user_visible["next_step"] = next_step
         if handoff_action is not None and (owner := _non_empty_text(handoff_action.get("owner"))) is not None:
+            user_visible["next_owner"] = owner
+        elif (owner := _non_empty_text(executable_owner_action.get("next_owner"))) is not None:
             user_visible["next_owner"] = owner
         if route_back_checklist is not None:
             user_visible["route_back_checklist"] = route_back_checklist
