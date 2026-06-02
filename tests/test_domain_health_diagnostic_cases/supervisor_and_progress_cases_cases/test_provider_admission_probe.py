@@ -128,7 +128,7 @@ def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_aft
     supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=3)
 
     assert len(scan_calls) == 2
-    assert scan_calls[1]["persist_surfaces"] is False
+    assert scan_calls[1]["persist_surfaces"] is True
     assert supervisor_tick["pass_count"] == 1
     assert supervisor_tick["stop_reason"] == "provider_attempt_started"
     diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
@@ -146,6 +146,95 @@ def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_aft
     }
     assert diagnostic["next_forced_delta"] is None
     assert diagnostic["forbidden_next_actions"] == []
+
+
+def test_domain_health_diagnostic_same_tick_continues_after_partial_provider_admission(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_ids = ("001-risk", "002-risk")
+    for study_id in study_ids:
+        study_root = profile.studies_root / study_id
+        study_root.mkdir(parents=True, exist_ok=True)
+        dump_json(study_root / "study.yaml", {"study_id": study_id})
+    scan_calls: list[dict[str, object]] = []
+    materialize_calls: list[dict[str, object]] = []
+    dispatch_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
+        scan_calls.append(kwargs)
+        call_index = len(scan_calls)
+        if call_index == 1:
+            action_queue = [
+                {"study_id": "001-risk", "action_type": "run_quality_repair_batch"},
+                {"study_id": "002-risk", "action_type": "return_to_ai_reviewer_workflow"},
+            ]
+            running = set()
+        elif call_index == 2:
+            action_queue = [{"study_id": "002-risk", "action_type": "return_to_ai_reviewer_workflow"}]
+            running = {"001-risk"}
+        else:
+            action_queue = []
+            running = {"001-risk", "002-risk"}
+        return {
+            "surface": "portable_owner_route_reconcile",
+            "action_queue": action_queue,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "running_provider_attempt": study_id in running,
+                    "active_run_id": f"opl-stage-attempt://sat-{study_id}" if study_id in running else None,
+                    "active_stage_attempt_id": f"sat-{study_id}" if study_id in running else None,
+                }
+                for study_id in study_ids
+            ],
+        }
+
+    def fake_materialize(**kwargs) -> dict[str, object]:
+        materialize_calls.append(kwargs)
+        return {
+            "surface": "domain_action_request_materializer",
+            "request_task_count": 1,
+            "default_executor_dispatch_count": 1,
+        }
+
+    def fake_dispatch(**kwargs) -> dict[str, object]:
+        dispatch_calls.append(kwargs)
+        return {
+            "surface": "domain_owner_action_dispatch",
+            "execution_count": 1,
+            "executed_count": 1,
+            "codex_dispatch_count": 1,
+            "executions": [{"execution_status": "handoff_ready", "will_start_llm": True}],
+        }
+
+    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+    monkeypatch.setattr(module.domain_action_request_materializer, "materialize_domain_action_requests", fake_materialize)
+    monkeypatch.setattr(module.domain_owner_action_dispatch, "dispatch_domain_owner_actions", fake_dispatch)
+
+    supervisor_tick = module._run_developer_supervisor_same_tick(
+        profile=profile,
+        study_ids=study_ids,
+        max_passes=4,
+    )
+
+    assert supervisor_tick["pass_count"] == 2
+    assert supervisor_tick["stop_reason"] == "provider_attempt_started"
+    assert len(dispatch_calls) == 2
+    assert scan_calls[1]["persist_surfaces"] is True
+    assert scan_calls[2]["persist_surfaces"] is True
+    assert supervisor_tick["iterations"][0]["provider_admission_probe"]["action_queue"] == [
+        {"study_id": "002-risk", "action_type": "return_to_ai_reviewer_workflow"}
+    ]
+    assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 1
+    assert supervisor_tick["iterations"][1]["provider_admission_probe"]["action_queue"] == []
+    assert supervisor_tick["iterations"][1]["post_admission_materialize"]["default_executor_dispatch_count"] == 1
+    assert len(materialize_calls) == 3
 
 
 def test_domain_health_diagnostic_same_tick_terminal_projection_reports_owner_delta_required() -> None:

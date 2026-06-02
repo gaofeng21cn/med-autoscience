@@ -715,14 +715,15 @@ def test_domain_health_diagnostic_same_tick_pumps_receipt_followthrough_before_n
 
     supervisor_tick = result["developer_supervisor_same_tick"]
     assert len(scan_calls) == 3
-    assert len(materialize_calls) == 2
+    assert len(materialize_calls) == 3
     assert len(dispatch_calls) == 2
     assert supervisor_tick["pass_count"] == 2
     assert supervisor_tick["stop_reason"] == "provider_attempt_started"
-    assert scan_calls[2]["persist_surfaces"] is False
+    assert scan_calls[2]["persist_surfaces"] is True
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["dispatch_executed_count"] == 1
     assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 0
     assert supervisor_tick["iterations"][1]["progress_first_delta"]["codex_dispatch_count"] == 1
+    assert supervisor_tick["iterations"][1]["post_admission_materialize"]["default_executor_dispatch_count"] == 1
     assert supervisor_tick["owner_route_reconcile"]["action_queue"][0]["action_type"] == "run_quality_repair_batch"
 
 

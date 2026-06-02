@@ -414,19 +414,29 @@ def _run_developer_supervisor_same_tick(
     resolved_study_ids = tuple(study_ids) or owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
     iterations: list[dict[str, Any]] = []
     stop_reason = "max_passes_exhausted"
+    carried_scan_result: dict[str, Any] | None = None
+    carried_materialize_result: dict[str, Any] | None = None
     for pass_index in range(1, max(1, max_passes) + 1):
-        scan_result = owner_route_reconcile.scan_domain_routes(
-            profile=profile,
-            study_ids=resolved_study_ids,
-            apply_safe_actions=True,
-            developer_supervisor_mode="developer_apply_safe",
-        )
-        materialize_result = domain_action_request_materializer.materialize_domain_action_requests(
-            profile=profile,
-            study_ids=resolved_study_ids,
-            mode="developer_apply_safe",
-            apply=True,
-        )
+        if carried_scan_result is None:
+            scan_result = owner_route_reconcile.scan_domain_routes(
+                profile=profile,
+                study_ids=resolved_study_ids,
+                apply_safe_actions=True,
+                developer_supervisor_mode="developer_apply_safe",
+            )
+        else:
+            scan_result = carried_scan_result
+            carried_scan_result = None
+        if carried_materialize_result is None:
+            materialize_result = domain_action_request_materializer.materialize_domain_action_requests(
+                profile=profile,
+                study_ids=resolved_study_ids,
+                mode="developer_apply_safe",
+                apply=True,
+            )
+        else:
+            materialize_result = carried_materialize_result
+            carried_materialize_result = None
         dispatch_result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
             profile=profile,
             study_ids=resolved_study_ids,
@@ -451,13 +461,29 @@ def _run_developer_supervisor_same_tick(
                 study_ids=resolved_study_ids,
                 apply_safe_actions=True,
                 developer_supervisor_mode="developer_apply_safe",
-                persist_surfaces=False,
+                persist_surfaces=True,
             )
+            if _provider_attempt_started(_mapping(iteration["provider_admission_probe"])):
+                iteration["post_admission_materialize"] = domain_action_request_materializer.materialize_domain_action_requests(
+                    profile=profile,
+                    study_ids=resolved_study_ids,
+                    mode="developer_apply_safe",
+                    apply=True,
+                )
+                if _provider_probe_has_non_running_actions(_mapping(iteration["provider_admission_probe"])):
+                    carried_scan_result = _mapping(iteration["provider_admission_probe"])
+                    carried_materialize_result = _mapping(iteration["post_admission_materialize"])
         iterations.append(iteration)
         stop_reason = _same_tick_stop_reason(iteration)
-        if stop_reason != "continue_same_tick_after_sync_owner_delta":
+        if stop_reason not in {
+            "continue_same_tick_after_sync_owner_delta",
+            "continue_same_tick_after_provider_admission_delta",
+        }:
             break
-    if stop_reason == "continue_same_tick_after_sync_owner_delta":
+    if stop_reason in {
+        "continue_same_tick_after_sync_owner_delta",
+        "continue_same_tick_after_provider_admission_delta",
+    }:
         stop_reason = "max_passes_exhausted_owner_delta_required"
     terminal_diagnostic = _same_tick_terminal_diagnostic(
         stop_reason=stop_reason,
@@ -527,7 +553,10 @@ def _same_tick_delta(
 def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
     delta = _mapping(iteration.get("progress_first_delta"))
     if _same_tick_handoff_written(iteration):
-        if _provider_attempt_started(_mapping(iteration.get("provider_admission_probe"))):
+        provider_admission_probe = _mapping(iteration.get("provider_admission_probe"))
+        if _provider_attempt_started(provider_admission_probe):
+            if _provider_probe_has_non_running_actions(provider_admission_probe):
+                return "continue_same_tick_after_provider_admission_delta"
             return "provider_attempt_started"
         return "provider_handoff_written_admission_pending"
     if _int_value(delta.get("blocked_default_executor_dispatch_count")) > 0:
@@ -562,6 +591,23 @@ def _provider_attempt_started(scan_result: Mapping[str, Any]) -> bool:
             or _non_empty_text(study.get("active_run_id"))
             or _non_empty_text(study.get("active_workflow_id"))
         ):
+            return True
+    return False
+
+
+def _provider_probe_has_non_running_actions(scan_result: Mapping[str, Any]) -> bool:
+    running_study_ids = {
+        study_id
+        for study in scan_result.get("studies") or []
+        if isinstance(study, Mapping)
+        and study.get("running_provider_attempt") is True
+        and (study_id := _non_empty_text(study.get("study_id"))) is not None
+    }
+    for action in scan_result.get("action_queue") or []:
+        if not isinstance(action, Mapping):
+            continue
+        study_id = _non_empty_text(action.get("study_id"))
+        if study_id is None or study_id not in running_study_ids:
             return True
     return False
 
@@ -627,6 +673,21 @@ def _same_tick_terminal_diagnostic(
                 if stop_reason == "provider_attempt_started"
                 else None
             )
+        ),
+        "post_admission_materialize": (
+            {
+                "observed": isinstance(last_iteration.get("post_admission_materialize"), Mapping),
+                "default_executor_dispatch_count": _int_value(
+                    _mapping(last_iteration.get("post_admission_materialize")).get("default_executor_dispatch_count")
+                ),
+                "ready_default_executor_dispatch_count": _int_value(
+                    _mapping(last_iteration.get("post_admission_materialize")).get(
+                        "ready_default_executor_dispatch_count"
+                    )
+                ),
+            }
+            if stop_reason == "provider_attempt_started"
+            else None
         ),
         "last_iteration_delta": dict(last_delta),
         "next_forced_delta": (

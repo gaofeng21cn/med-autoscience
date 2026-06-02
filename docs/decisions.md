@@ -582,6 +582,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 OPL worker、Temporal provider 和 scheduler 均在线，但 Codex App heartbeat 与 workspace wrapper 默认只跑 observe-only diagnostic；当前 owner route 需要经过 materialize/dispatch 才会形成 OPL provider attempt，结果表现为 `quest_status=active`、worker 在线却 `active_run_id=null`、`wait_for_user_or_resume` 或 stale owner request 需要人工连敲三条命令。根因是 MAS developer-supervisor one-shot 入口没有落地完整 same-tick action chain，不是 OPL provider 离线，也不是论文 package 可以手工修补。
 - 影响：这是 MAS command surface / generated workspace wrapper / developer-supervisor policy 修复。它让 hourly Codex App heartbeat 和人工巡检使用同一个安全入口持续推进 owner action，同时保留显式 dry-run 诊断能力。
 
+## 2026-06-02：provider admission probe 必须刷新 current-control/consumer 读面并继续剩余 work unit
+
+- 决策：developer-supervisor same-tick 在写出 default-executor handoff 后执行的 provider-admission probe 是最新 `opl_current_control_state` handoff 刷新，不是只读旁路观测。只要 probe 证明 `running_provider_attempt=true`，就必须持久化本轮 current-control handoff，并立即刷新 `artifacts/supervision/consumer/latest.json`，避免 operator 读面继续显示同一 action 为 `ready` / `unconsumed`。
+- 决策：same-tick 的 stop reason 不能被“任意 study 已出现 running provider attempt”短路。若 provider-admission probe 中仍存在未被 running study 覆盖的 `action_queue`，必须继续下一 pass，沿用最新 probe/materialize 结果推进剩余 study/work unit；只有没有剩余未覆盖 action 时，才以 `provider_attempt_started` 收口。
+- 理由：DM002/DM003 同轮推进时出现 002 已启动 live provider attempt、003 仍等待 AI reviewer dispatch，但 stale workspace handoff 与 consumer dispatch 继续显示旧 `ready`/`unconsumed`。旧 same-tick 看到一个 provider attempt started 就停止，导致剩余 work unit 需要下个 heartbeat 才可能推进，且 operator 读面继续把时间耗在 receipt/read-model reconcile 上。
+- 影响：这是 MAS developer-supervisor/read-model currentness 修复，不写 study truth、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。OPL 仍持有 queue、provider admission、stage attempt 与 worker liveness；MAS 只持久化 owner-route/current-control/consumer refs-only handoff。
+
 ## 2026-06-01：已消费 AI reviewer receipt 不能重复计作 ready dispatch
 
 - 决策：`progress_first_monitoring_summary` 与 `study-state-matrix.progress_first_tick_accounting` 读取 `completion_receipt_consumption.status=consumed|receipt_consumed|completed` 时，必须区分“receipt 后出现新的不同 owner work unit”和“仍停留在同一个 AI reviewer record production work unit”。若 receipt_kind 是 `ai_reviewer_publication_eval`，且当前 transition 仍是 `return_to_ai_reviewer_workflow` / `produce_ai_reviewer_publication_eval_record*`，则只能投影为 `receipt_consumed` observability，不得计入 `expected_owner_action_count` / `ready_for_owner_action_count`。
