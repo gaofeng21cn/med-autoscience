@@ -25,6 +25,8 @@ from med_autoscience.medical_prose_review_request import (
     materialize_medical_prose_review_request,
     stable_medical_prose_review_request_path,
 )
+from med_autoscience.publication_eval_record_parts.validation import _RECORD_ALLOWED_FIELDS
+from med_autoscience.publication_eval_record_provenance import _ASSESSMENT_PROVENANCE_ALLOWED_FIELDS
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
@@ -50,6 +52,11 @@ _REQUIRED_TRACE_INPUTS = (
     "study_charter",
     "evidence_ledger",
     "review_ledger",
+)
+_CURRENT_MANUSCRIPT_RECORD_WORK_UNITS = frozenset(
+    {
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+    }
 )
 _MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS = MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS
 
@@ -265,11 +272,13 @@ def _record_current_manuscript_payload(record_payload: Mapping[str, Any]) -> Map
 
 def _record_is_current_manuscript_review(record_payload: Mapping[str, Any]) -> bool:
     provenance = _mapping(record_payload.get("assessment_provenance"))
-    return (
-        _text(provenance.get("owner")) == "ai_reviewer"
-        and _text(provenance.get("source_kind")) == "publication_eval_ai_reviewer_current_manuscript_record"
-        and provenance.get("ai_reviewer_required") is False
-    )
+    if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
+        return False
+    if _text(provenance.get("source_kind")) == "publication_eval_ai_reviewer_current_manuscript_record":
+        return True
+    owner_route_basis = _mapping(provenance.get("owner_route_currentness_basis"))
+    work_unit_id = _text(provenance.get("work_unit_id")) or _text(owner_route_basis.get("work_unit_id"))
+    return work_unit_id in _CURRENT_MANUSCRIPT_RECORD_WORK_UNITS
 
 
 def _record_publication_quality_readiness(record_payload: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -810,7 +819,13 @@ def _currentness_checks(
 
 
 def _record_payload_without_workflow_only_fields(record_payload: Mapping[str, Any]) -> dict[str, Any]:
-    return dict(record_payload)
+    payload = {key: value for key, value in record_payload.items() if key in _RECORD_ALLOWED_FIELDS}
+    provenance = payload.get("assessment_provenance")
+    if isinstance(provenance, Mapping):
+        payload["assessment_provenance"] = {
+            key: value for key, value in provenance.items() if key in _ASSESSMENT_PROVENANCE_ALLOWED_FIELDS
+        }
+    return payload
 
 
 def build_ai_reviewer_publication_eval_workflow_trace(

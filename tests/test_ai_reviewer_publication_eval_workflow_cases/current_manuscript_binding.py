@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.publication_eval_record import PublicationEvalRecord
+
 from tests.test_ai_reviewer_publication_eval_workflow import (
     _publication_eval_record,
     _refs,
@@ -161,6 +163,121 @@ def test_request_bound_route_back_uses_record_current_manuscript_digest_over_sta
     ]
 
 
+def test_request_bound_owner_route_current_manuscript_record_uses_live_manuscript_when_prose_review_is_stale(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    old_manuscript_text = "# Old manuscript\n\nStale prose-review manuscript.\n"
+    current_manuscript_text = "# Current manuscript\n\nReviewer record is bound to this current manuscript.\n"
+    old_request_digest = "sha256:" + "a" * 64
+    current_request_digest = "sha256:" + "b" * 64
+    old_manuscript_digest = _sha256_text(old_manuscript_text)
+    current_manuscript_digest = _sha256_text(current_manuscript_text)
+    request_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+    review_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    record = _publication_eval_record(study_root)
+    record["assessment_provenance"]["source_kind"] = "publication_eval_ai_reviewer"
+    record["assessment_provenance"]["owner_route_currentness_basis"] = {
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "work_unit_fingerprint": "truth-snapshot::current-record",
+        "source_eval_id": "publication-eval::stale-record",
+    }
+    record["assessment_provenance"][
+        "work_unit_id"
+    ] = "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    record["assessment_provenance"]["work_unit_fingerprint"] = "truth-snapshot::current-record"
+    record["quality_assessment"]["medical_journal_prose_quality"] = {
+        "status": "ready",
+        "summary": "The current manuscript can proceed to gate replay.",
+        "evidence_refs": [refs["manuscript"], refs["medical_prose_review"]],
+        "reviewer_reason": "This record is bound to the current manuscript work unit.",
+    }
+    record["recommended_actions"] = [
+        {
+            "action_id": "route-current-record-to-gate-replay",
+            "action_type": "route_back_same_line",
+            "priority": "now",
+            "reason": "Archive the current-manuscript AI reviewer record and replay the gate.",
+            "route_target": "finalize",
+            "route_key_question": "Can MAS consume this current AI reviewer record in gate replay?",
+            "route_rationale": "The reviewer record is current even though the durable prose review is stale.",
+            "evidence_refs": [refs["manuscript"], refs["evidence_ledger"], refs["claim_evidence_map"]],
+            "requires_controller_decision": True,
+            "work_unit_fingerprint": "truth-snapshot::current-record",
+            "next_work_unit": {
+                "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "lane": "finalize",
+                "summary": "Replay publication gate against the current AI reviewer record.",
+            },
+        }
+    ]
+    _write_text(Path(refs["manuscript"]), current_manuscript_text)
+    _write_json(
+        request_path,
+        {
+            "surface": "medical_prose_review_request",
+            "request_digest": current_request_digest,
+            "manuscript": {"path": refs["manuscript"], "digest": current_manuscript_digest},
+        },
+    )
+    _write_json(
+        review_path,
+        {
+            "surface": "medical_prose_review",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "request_ref": str(request_path),
+                "request_digest": old_request_digest,
+                "manuscript_ref": refs["manuscript"],
+                "manuscript_digest": old_manuscript_digest,
+            },
+            "medical_journal_prose_quality": {
+                "status": "partial",
+                "overall_style_verdict": "revise",
+                "route_back_recommendation": {
+                    "required": True,
+                    "route_target": "write",
+                    "reason": "Stale prose review retained only as context.",
+                },
+            },
+        },
+    )
+    _write_ai_reviewer_alignment_inputs(study_root)
+
+    payload = module.build_ai_reviewer_publication_eval_record_with_workflow_trace(
+        study_root=study_root,
+        manuscript_ref=refs["manuscript"],
+        evidence_ref=refs["evidence_ledger"],
+        review_ref=refs["review_ledger"],
+        charter_ref=refs["study_charter"],
+        additional_refs={
+            "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+            "claim_evidence_map": refs["claim_evidence_map"],
+            "medical_prose_review": refs["medical_prose_review"],
+            "publication_gate_projection": refs["publication_gate_projection"],
+        },
+        record=record,
+        workflow_currentness_mode="request_bound_ai_reviewer_record",
+        emitted_at="2026-06-02T06:21:10Z",
+    )
+
+    currentness = payload["reviewer_operating_system"]["currentness_checks"]
+    medical_prose = currentness["medical_prose_review"]
+    current_manuscript = currentness["current_manuscript"]
+
+    assert current_manuscript["manuscript_digest"] == current_manuscript_digest
+    assert medical_prose["request_digest"] == current_request_digest
+    assert medical_prose["review_request_digest"] == old_request_digest
+    assert medical_prose["review_request_manuscript_digest"] == old_manuscript_digest
+    assert medical_prose["manuscript_digest"] == current_manuscript_digest
+    assert medical_prose["durable_medical_prose_review_status"] == "stale_for_current_request"
+    assert medical_prose["route_target"] == "finalize"
+
+
 def test_request_bound_current_manuscript_record_rebuilds_trace_after_prior_prose_review(
     tmp_path: Path,
 ) -> None:
@@ -233,6 +350,57 @@ def test_request_bound_current_manuscript_record_rebuilds_trace_after_prior_pros
         "rationale": "Route back for source-backed baseline and display repair before readiness.",
         "route_target": "analysis-campaign",
     }
+
+
+def test_request_bound_record_production_strips_workflow_only_provenance_fields(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    manuscript_text = "# Current manuscript\n\nEvidence-bound clinical manuscript body.\n"
+    manuscript_digest = _sha256_text(manuscript_text)
+    record = _publication_eval_record(study_root)
+    record["assessment_provenance"]["input_digests"] = {
+        "manuscript": manuscript_digest,
+        "evidence_ledger": "sha256:" + "0" * 64,
+        "claim_evidence_map": "sha256:" + "1" * 64,
+    }
+    record["reviewer_operating_system"] = {
+        "currentness_checks": {
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": refs["manuscript"],
+                "manuscript_digest": manuscript_digest,
+                "reviewed_at": "2026-05-28T09:41:33+00:00",
+            },
+        },
+    }
+    _write_ai_reviewer_currentness_inputs(study_root)
+    _write_ai_reviewer_alignment_inputs(study_root)
+
+    payload = module.build_ai_reviewer_publication_eval_record_with_workflow_trace(
+        study_root=study_root,
+        manuscript_ref=refs["manuscript"],
+        evidence_ref=refs["evidence_ledger"],
+        review_ref=refs["review_ledger"],
+        charter_ref=refs["study_charter"],
+        additional_refs={
+            "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+            "claim_evidence_map": refs["claim_evidence_map"],
+            "medical_prose_review": refs["medical_prose_review"],
+            "publication_gate_projection": refs["publication_gate_projection"],
+        },
+        record=record,
+        workflow_currentness_mode="request_bound_ai_reviewer_record",
+        emitted_at="2026-05-28T09:41:33Z",
+    )
+
+    assert "input_digests" not in payload["assessment_provenance"]
+    assert payload["reviewer_operating_system"]["currentness_checks"]["current_manuscript"][
+        "manuscript_digest"
+    ] == manuscript_digest
+    PublicationEvalRecord.from_payload(payload)
 
 
 def test_request_bound_route_back_uses_current_request_digest_when_durable_prose_review_is_stale(

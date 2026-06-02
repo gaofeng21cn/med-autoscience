@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-02：AI reviewer record-bound publication eval 必须剥离 workflow-only 字段
+
+- 决策：`request_bound_ai_reviewer_record` 生成 `publication_eval/latest.json` payload 时，只能保留 `PublicationEvalRecord` schema 字段与 `PublicationEvalAssessmentProvenance` schema 字段。workflow trace、input digest scratch、request binding helper 字段、diagnostic-only 字段只能留在 reviewer operating system / trace surfaces，不能混入权威 publication eval record 的 assessment provenance。
+- 理由：DM002/DM003 的 AI reviewer re-eval 路径需要把当前 manuscript 绑定到 reviewer record，同时保持 publication eval payload 可被 schema 严格解析。若把 workflow-only provenance 写入权威 record，后续 currentness/gate replay 会把 schema hygiene 问题误当成论文质量或 owner-route 问题，继续消耗 receipt/reconcile 时间。
+- 影响：这是 AI reviewer workflow payload hygiene 修复；不放宽 publication gate，不改 DM-CVD study truth、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`controller_decisions/latest.json` 或质量 verdict。current manuscript digest 与 reviewer operating system currentness checks 继续保留，用于证明 reviewer record 绑定的是当前 manuscript。
+
 ## 2026-06-02：Progress-first / AI-first admission 以可执行 owner action 为推进锚点
 
 - 决策：Progress-first 的非终局 stage 完成口径不是状态解释完成，而是尽快形成可消费的 `owner receipt`、paper-artifact delta、reviewer-gate delta、stable typed blocker 或 next owner handoff。telemetry completion、currentness reconcile、read-model hygiene、diagnostic explanation、ledger record/verify 和 `next_system_action` wording 只能作为观测或平台修复证据；它们不能单独关闭 MAS paper-line stage。
