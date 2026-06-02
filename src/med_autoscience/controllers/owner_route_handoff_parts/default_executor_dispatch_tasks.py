@@ -13,6 +13,7 @@ from med_autoscience.controllers.domain_dispatch_evidence_payload import (
 )
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import default_executor_dispatch_packets
+from med_autoscience.controllers.default_executor_action_policy import REQUEST_OWNER_BY_ACTION_TYPE
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
@@ -21,7 +22,7 @@ DISPATCH_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_d
 REQUIRED_SURFACE = "default_executor_dispatch_request"
 REQUIRED_EXECUTOR_KIND = "codex_cli_default"
 DEFAULT_NEXT_OWNER = "write"
-ALLOWED_NEXT_OWNERS = frozenset({"write", "ai_reviewer", "write/ai_reviewer"})
+ALLOWED_NEXT_OWNERS = frozenset({*REQUEST_OWNER_BY_ACTION_TYPE.values(), "write/ai_reviewer"})
 OWNER_RECEIPT_CONTRACT = "mas-default-executor-owner-receipt.v1"
 
 
