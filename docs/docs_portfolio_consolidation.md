@@ -87,7 +87,7 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 少数 `docs/active/*.md` 仍被 `human_doc:*`、contract、source projection 或测试 manifest 指向。它们可以暂留原路径，但必须收窄为单一职责：
 
 - `mas-ideal-state-gap-plan.md` 是唯一当前 gap / 完善计划。
-- `mas-state-contract-thinning-plan.md` 是 gap plan 下的控制面收薄子计划，只维护 `macro_state + owner_route + receipt_or_blocker + evidence_refs` 的当前落地路线；其 durable 结论必须折回 gap plan、核心五件套、runtime docs、contracts 或 focused tests。
+- `state_contract_thinning` 当前只作为 active guard 留在 gap plan 与 current-development-lines；已关闭折返记录位于 `docs/history/program/mas-state-contract-thinning-foldback-record-2026-05-29.md`。任何 durable 结论必须折回 gap plan、核心五件套、runtime docs、contracts 或 focused tests，不再恢复为 active 子计划。
 - `current-development-lines.md` 是唯一当前执行内容地图。
 - `program_portfolio_consolidation.md` 只解释旧 program 文档组合与生命周期，不维护第二 backlog。
 - `ai_first_paper_autonomy_closure_program.md` 只定义论文自治验收合同。

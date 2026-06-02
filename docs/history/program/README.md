@@ -33,6 +33,7 @@ Machine boundary: 人读 program/process 历史索引。当前执行顺序、gap
 
 - [Docs lifecycle governance closeout 2026-05-20](./docs_lifecycle_governance_closeout_2026_05_20.md)
 - [Docs lifecycle audit 2026-05-17](./docs_lifecycle_audit_2026_05_17.md)
+- [MAS 状态与 Contract 收薄折返记录 2026-05-29](./mas-state-contract-thinning-foldback-record-2026-05-29.md)
 - [Plan Completion Ledger](./plan_completion_ledger.md)
 - [Real-study relaunch verification](./real_study_relaunch_verification.md)
 - [AI-first paper autonomy full record 2026-05-10](./ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)

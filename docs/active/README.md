@@ -14,7 +14,6 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 - [文档索引](../README.md)
 - [当前状态](../status.md)
 - [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)
-- [MAS 状态与 Contract 收薄折返记录](./mas-state-contract-thinning-plan.md)
 - [MAS Current Development Lines](./current-development-lines.md)
 - [Program Portfolio Consolidation](./program_portfolio_consolidation.md)
 - [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)
@@ -24,13 +23,14 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 
 - [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)
 - [Docs lifecycle governance closeout 2026-05-20](../history/program/docs_lifecycle_governance_closeout_2026_05_20.md)
+- [MAS 状态与 Contract 收薄折返记录 2026-05-29](../history/program/mas-state-contract-thinning-foldback-record-2026-05-29.md)
 
 ## 当前 active 层次
 
 | 层次 | 文档 | 当前作用 |
 | --- | --- | --- |
 | 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前唯一真相、已落地状态、功能/结构差距、测试/证据差距、完善顺序、历史索引和禁止误写口径。 |
-| 控制面收薄折返记录 | [MAS 状态与 Contract 收薄折返记录](./mas-state-contract-thinning-plan.md) | 记录已关闭的控制面收薄行为契约；稳定 execution contract 已收敛到 `macro_state + owner_route + receipt_or_blocker + evidence_refs`，剩余 production evidence tail 只回到 gap plan。 |
+| 控制面收薄 guard | [MAS Current Development Lines](./current-development-lines.md) + [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 当前 active 层只保留 `macro_state + owner_route + receipt_or_blocker + evidence_refs` 行为契约和 production evidence tail；已关闭折返记录进入 history/provenance。 |
 | 当前内容线索引 | [MAS Current Development Lines](./current-development-lines.md) | 把仍有效内容线归为 landed foundation、functional follow-through gate 或 production evidence gate；不维护第二 backlog，若与 gap plan 冲突以 gap plan 为准。 |
 | 文档组合 / 历史归位 | [Program Portfolio Consolidation](./program_portfolio_consolidation.md) | 只说明 active program 文档唯一职责、历史记录去向和 direct retirement rule；不替代 gap plan，也不作为第二 backlog。 |
 | 目标 / 验收 owner | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | 只定义 MAS 论文自治验收合同和 AI-first quality gate；dated evidence 与 full record 回 history。 |
