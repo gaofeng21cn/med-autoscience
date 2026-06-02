@@ -200,8 +200,12 @@ def consumed_ai_reviewer_receipt_matches_transition_work_unit(
     if receipt_has_identity or transition_has_identity:
         receipt_fingerprint = _text(receipt_identity.get("work_unit_fingerprint"))
         transition_fingerprint = _text(transition_identity.get("work_unit_fingerprint"))
-        if receipt_fingerprint or transition_fingerprint:
-            return bool(receipt_fingerprint and transition_fingerprint and receipt_fingerprint == transition_fingerprint)
+        if transition_fingerprint:
+            return bool(receipt_fingerprint and receipt_fingerprint == transition_fingerprint)
+        if receipt_fingerprint:
+            receipt_work_unit_id = _text(receipt_identity.get("work_unit_id"))
+            transition_work_unit_id = _text(transition_identity.get("work_unit_id"))
+            return bool(receipt_work_unit_id and transition_work_unit_id and receipt_work_unit_id == transition_work_unit_id)
         receipt_work_unit_id = _text(receipt_identity.get("work_unit_id"))
         transition_work_unit_id = _text(transition_identity.get("work_unit_id"))
         return bool(receipt_work_unit_id and transition_work_unit_id and receipt_work_unit_id == transition_work_unit_id)
