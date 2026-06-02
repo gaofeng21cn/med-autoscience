@@ -39,11 +39,10 @@ from med_autoscience.controllers.paper_repair_executor_parts.owner_callable_resu
     owner_result_handoff_ready,
     writer_worker_handoff,
 )
-from med_autoscience.controllers.paper_repair_executor_parts import unsupported_callable
+from med_autoscience.controllers.paper_repair_executor_parts import owner_route_currentness_blockers, unsupported_callable
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
-
 
 SURFACE = "paper_repair_executor"
 SCHEMA_VERSION = 1
@@ -523,6 +522,7 @@ def _owner_callable_result(
     typed_blocker = None if accepted else owner_result_blocker(owner_result)
     changed_refs = owner_result_changed_refs(owner_result)
     evidence_path = owner_result_evidence_path(study_root=study_root, owner_result=owner_result)
+    currentness = owner_route_currentness_blockers.materialize(study_id, quest_id, study_root, work_unit, owner_result, typed_blocker, evidence_path)
     receipt = _owner_receipt(
         generated_at=generated_at,
         accepted=accepted,
@@ -533,12 +533,13 @@ def _owner_callable_result(
         execution_status=execution_status,
         typed_blocker=typed_blocker,
         changed_refs=changed_refs,
-        evidence_path=evidence_path,
+        evidence_path=currentness.evidence_path,
         gate_replay_ref=None,
         ai_reviewer_request=None,
     )
     receipt["owner_callable_surface"] = owner_callable_surface
     receipt["owner_result_status"] = _text(owner_result.get("status"))
+    receipt.update(currentness.receipt_fields)
     writer_handoff = writer_worker_handoff(owner_result)
     reviewer_record_handoff = ai_reviewer_record_worker_handoff(owner_result)
     if writer_handoff:
@@ -559,8 +560,9 @@ def _owner_callable_result(
         "owner_result": dict(owner_result),
         "owner_receipt": receipt,
         "owner_receipt_ref": str(receipt_path),
-        "repair_execution_evidence_ref": str(evidence_path),
+        "repair_execution_evidence_ref": str(currentness.evidence_path),
         "canonical_artifact_delta": _mapping(_mapping(owner_result.get("repair_execution_evidence")).get("canonical_artifact_delta")),
+        **currentness.result_fields,
         **(
             {"writer_worker_handoff": dict(writer_handoff)}
             if writer_handoff

@@ -293,11 +293,15 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     study_projection = payload["studies"][0]
     assert study_projection["study_id"] == "001-risk"
     assert "runtime_supervision" not in study_projection
-    assert "slo_status" not in study_projection
+    assert study_projection["slo_status"]["state"] == "breach"
     assert "owner_receipt_handoff" not in study_projection
     assert study_projection["controller_decisions"]["decision_id"] == "decision-001"
     assert any(
         ref["role"] == "controller_decisions" and ref["exists"] is True
+        for ref in study_projection["domain_owned_source_refs"]
+    )
+    assert any(
+        ref["role"] == "autonomy_slo_status" and ref["exists"] is True
         for ref in study_projection["domain_owned_source_refs"]
     )
     assert study_projection["autonomy_continuation"]["status"] == "retired_runtime_liveness_scheduler_signal"
@@ -666,6 +670,69 @@ def test_domain_handler_export_projects_ai_reviewer_repair_recheck_tasks(tmp_pat
         "quality_override",
         "submission_authorization",
     ]
+
+
+def test_domain_handler_export_suppresses_auxiliary_paper_tasks_when_opl_current_route_handoff_exists(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        _ai_reviewer_blocking_eval(study_root),
+    )
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"review_refs": ["review-ref:ledger"]})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claim_refs": ["claim-ref:main"]})
+    _write_json(
+        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "generated_at": "2026-06-02T00:00:00Z",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_id": "001-risk",
+                    "handoff_generated_at": "2026-06-02T00:00:00Z",
+                    "runtime_state_path": "runtime/quests/001-risk/.ds/runtime_state.json",
+                    "runtime_health": {"canonical_runtime_action": "continue_current_owner_route"},
+                    "owner_route": {
+                        "next_owner": "one-person-lab",
+                        "owner_reason": "current_controller_work_unit",
+                        "idempotency_key": "owner-route::001-risk::current",
+                        "owner_route_attempt_protocol": {"protocol_id": "owner-route-attempt.v1"},
+                        "currentness_contract": {
+                            "basis": {
+                                "owner_reason": "current_controller_work_unit",
+                                "runtime_health_epoch": "runtime-epoch-current",
+                                "truth_epoch": "truth-epoch-current",
+                                "work_unit_fingerprint": "work-unit-current",
+                            },
+                            "missing_required_fields": [],
+                        },
+                    },
+                }
+            ],
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study = payload["studies"][0]
+    assert study["paper_autonomy_loop"]["status"] == "superseded_by_opl_current_owner_route"
+    assert study["paper_autonomy_loop"]["eligible_for_auto_dispatch"] is False
+    assert study["publication_aftercare"]["currentness_status"] == "superseded_by_opl_current_owner_route"
+    task_kinds = [task["task_kind"] for task in payload["pending_family_tasks"]]
+    assert "paper_autonomy/repair-recheck" not in task_kinds
+    assert "publication_aftercare/analysis-queue-progress" not in task_kinds
+    assert "publication_aftercare/reviewer-refresh" not in task_kinds
+    assert task_kinds == ["domain_route/reconcile-apply"]
+    assert payload["pending_family_tasks"][0]["reason"] == "current_controller_work_unit"
 
 
 def test_domain_handler_export_projects_controller_route_back_as_pending_task(

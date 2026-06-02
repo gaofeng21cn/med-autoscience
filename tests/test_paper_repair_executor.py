@@ -663,6 +663,59 @@ def test_paper_repair_executor_preserves_ai_reviewer_dispatch_blocked_reason(
     assert result["owner_receipt"]["blocked_reason"] == "ai_reviewer_request_missing"
 
 
+def test_paper_repair_executor_marks_stale_owner_route_blocker_non_retryable(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    profile = make_profile(tmp_path)
+    study_root = profile.studies_root / "006d-dpcc"
+
+    def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
+        return {
+            "surface": "default_executor_dispatch_executor",
+            "executed_count": 0,
+            "blocked_count": 1,
+            "repeat_suppressed_count": 0,
+            "executions": [
+                {
+                    "execution_status": "blocked",
+                    "blocked_reason": "owner_route_stale",
+                    "owner_route_current": False,
+                    "owner_callable_surface": (
+                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+                    ),
+                }
+            ],
+        }
+
+    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
+
+    result = module.dispatch_repair_work_unit(
+        profile=profile,
+        study_id="006d-dpcc",
+        quest_id="quest-006d",
+        study_root=study_root,
+        repair_work_unit={
+            **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-stale-route"),
+            "owner": "ai_reviewer",
+            "callable_surface": (
+                "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+            ),
+        },
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    assert result["execution_status"] == "blocked"
+    assert result["typed_blocker"] == "owner_route_stale"
+    assert result["retryable"] is False
+    assert result["owner_receipt"]["blocked_reason"] == "owner_route_stale"
+    assert result["owner_receipt"]["retryable"] is False
+    assert result["repair_execution_evidence"]["retryable"] is False
+
+
 def test_paper_repair_executor_preserves_ai_reviewer_repeat_suppressed_reason(
     monkeypatch,
     tmp_path: Path,

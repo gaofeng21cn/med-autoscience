@@ -43,6 +43,7 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_alias_and_family_companion.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_holds.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_provider_admission_probe.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_gate.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
@@ -75,6 +76,7 @@ NESTED_CASE_REEXPORT_SURFACES = {
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_alias_and_family_companion.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_holds.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_provider_admission_probe.py",
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
     },
     "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases.py": {

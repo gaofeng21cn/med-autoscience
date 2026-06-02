@@ -84,9 +84,14 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
     )
     if current_control_handoff is not None:
         payload["owner_route_handoff"] = current_control_handoff
-    payload["paper_autonomy_loop"] = paper_autonomy_loop_projection(study_root=study_root)
-    payload["publication_aftercare"] = publication_aftercare.build_publication_aftercare_plan(
+    current_owner_route_handoff_exists = current_control_handoff is not None
+    payload["paper_autonomy_loop"] = paper_autonomy_loop_projection(
         study_root=study_root,
+        current_owner_route_handoff_exists=current_owner_route_handoff_exists,
+    )
+    payload["publication_aftercare"] = publication_aftercare_projection(
+        study_root=study_root,
+        current_owner_route_handoff_exists=current_owner_route_handoff_exists,
     )
     payload["memory_paper_soak_proof"] = memory_paper_soak_proof_projection(
         study_root=study_root,
@@ -249,7 +254,11 @@ def study_roots(profile: WorkspaceProfile) -> list[Path]:
     return sorted(path for path in profile.studies_root.iterdir() if path.is_dir())
 
 
-def paper_autonomy_loop_projection(*, study_root: Path) -> dict[str, Any]:
+def paper_autonomy_loop_projection(
+    *,
+    study_root: Path,
+    current_owner_route_handoff_exists: bool = False,
+) -> dict[str, Any]:
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     if not publication_eval_path.exists():
         return {
@@ -275,6 +284,22 @@ def paper_autonomy_loop_projection(*, study_root: Path) -> dict[str, Any]:
             "source_refs": [
                 {"role": "publication_eval", "ref": str(publication_eval_path), "exists": True},
             ],
+        }
+    if current_owner_route_handoff_exists:
+        return {
+            "surface_kind": "mas_paper_autonomy_loop_projection",
+            "status": "superseded_by_opl_current_owner_route",
+            "eligible_for_auto_dispatch": False,
+            "reason": "opl_current_owner_route_handoff_active",
+            "accept_status": text(mapping(refinement.get("accept")).get("status")),
+            "repair_plan": dict(mapping(mapping(refinement.get("repair_loop")).get("repair_plan"))),
+            "repair_work_units": [],
+            "source_eval_id": text(mapping(refinement.get("snapshot")).get("source_eval_id")),
+            "source_refs": [
+                {"role": "publication_eval", "ref": str(publication_eval_path), "exists": True},
+            ],
+            "currentness_status": "superseded_by_opl_current_owner_route",
+            "authority_boundary": authority_boundary_payload(),
         }
     accept = mapping(refinement.get("accept"))
     repair_loop = mapping(refinement.get("repair_loop"))
@@ -304,6 +329,28 @@ def paper_autonomy_loop_projection(*, study_root: Path) -> dict[str, Any]:
         ],
         "authority_boundary": authority_boundary_payload(),
     }
+
+
+def publication_aftercare_projection(
+    *,
+    study_root: Path,
+    current_owner_route_handoff_exists: bool = False,
+) -> dict[str, Any]:
+    projection = publication_aftercare.build_publication_aftercare_plan(study_root=study_root)
+    if not current_owner_route_handoff_exists:
+        return projection
+    result = dict(projection)
+    result["currentness_status"] = "superseded_by_opl_current_owner_route"
+    for entry_key in ("analysis_queue_entry", "reviewer_refresh_entry"):
+        entry = mapping(result.get(entry_key))
+        if not entry:
+            continue
+        result[entry_key] = {
+            **dict(entry),
+            "eligible_for_owner_route_task_ref": False,
+            "currentness_status": "superseded_by_opl_current_owner_route",
+        }
+    return result
 
 
 def memory_paper_soak_proof_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
