@@ -123,13 +123,22 @@
         "tests/test_opl_runtime_contract_no_provider_backend.py"
       ],
       "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "slo_breach_read_model_runtime_continuity_projection_only",
+      "authority_boundary": "slo_breach_progress_pressure_continuation_projection_only",
       "implementation_status": "landed_standard_agent_purity_guard",
       "surface_kind": "autonomy_progress_slo_status",
       "required_breach_fields_when_state_breach": [
         "breach_reason",
         "breach_explanation"
       ],
+      "required_progress_pressure_fields_when_no_outcome_or_timeout": [
+        "status",
+        "purpose",
+        "no_progress_is_terminal_failure",
+        "timeout_is_terminal_failure",
+        "continuation_required",
+        "quality_gate_relaxation_allowed"
+      ],
+      "progress_pressure_terminal_policy": "no_outcome_timeout_and_no_delta_are_non_terminal_continuation_pressure_unless_stop_loss_hard_human_gate_or_external_provider_blocker",
       "allowed_breach_explanation_categories": [
         "owner_route",
         "human_gate",

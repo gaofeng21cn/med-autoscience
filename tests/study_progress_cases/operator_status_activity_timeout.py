@@ -130,7 +130,20 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
     result = module.read_study_progress(profile=profile, study_id="002-risk")
 
     assert result["progress_freshness"]["activity_timeout"]["state"] == "timed_out"
+    assert result["progress_freshness"]["activity_timeout"]["progress_pressure"] == {
+        "surface": "progress_first_activity_timeout_pressure",
+        "status": "advance_now",
+        "purpose": "continue_progress",
+        "timeout_is_terminal_failure": False,
+        "no_progress_is_terminal_failure": False,
+        "continuation_required": True,
+        "next_owner": "one-person-lab",
+        "next_action_type": "continue_or_relaunch",
+        "quality_gate_relaxation_allowed": False,
+    }
     assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
+    assert result["intervention_lane"]["progress_pressure"]["timeout_is_terminal_failure"] is False
+    assert result["intervention_lane"]["terminal_failure"] is False
     assert result["operator_status_card"]["handling_state"] == "runtime_recovering"
     assert result["operator_status_card"]["human_surface_freshness"] == "monitoring_runtime"
     assert "meaningful artifact delta" in result["operator_status_card"]["next_confirmation_signal"]

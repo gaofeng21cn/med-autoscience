@@ -501,6 +501,7 @@ def _split_progress_freshness(
             "live worker has exceeded the meaningful artifact delta activity window; "
             "supervisor ticks alone cannot prove paper progress."
         )
+        activity_timeout["progress_pressure"] = _activity_timeout_progress_pressure()
     elif (
         runtime_facts.strict_live
         and artifact_delta_freshness["status"] != "fresh"
@@ -510,6 +511,7 @@ def _split_progress_freshness(
         activity_timeout["summary"] = (
             "live worker has autonomy SLO churn signals and must produce artifact delta before closeout."
         )
+        activity_timeout["progress_pressure"] = _activity_timeout_progress_pressure()
 
     updated = dict(progress_freshness)
     updated["supervisor_tick_freshness"] = supervisor_tick
@@ -534,3 +536,17 @@ def _split_progress_freshness(
         "meaningful_artifact_delta_freshness",
     ]
     return updated
+
+
+def _activity_timeout_progress_pressure() -> dict[str, Any]:
+    return {
+        "surface": "progress_first_activity_timeout_pressure",
+        "status": "advance_now",
+        "purpose": "continue_progress",
+        "timeout_is_terminal_failure": False,
+        "no_progress_is_terminal_failure": False,
+        "continuation_required": True,
+        "next_owner": "one-person-lab",
+        "next_action_type": "continue_or_relaunch",
+        "quality_gate_relaxation_allowed": False,
+    }

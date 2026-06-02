@@ -75,6 +75,46 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
     assert payload["incident_learning_loop"]["gate_relaxation_allowed"] is False
 
 
+def test_autonomy_slo_turns_no_progress_into_advancement_pressure() -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_slo")
+
+    payload = module.build_autonomy_slo_signals(
+        {
+            "study_id": "002-dm",
+            "quest_id": "quest-002",
+            "sli_summary": {
+                "duplicate_dispatch_active": True,
+                "next_work_unit_id": "medical_prose_write_repair",
+            },
+            "gate_blocker_summary": {
+                "current_blockers": ["claim_evidence_consistency_failed"],
+                "actionability_status": "actionable",
+                "next_work_unit": {"unit_id": "medical_prose_write_repair"},
+            },
+            "autonomy_incident_candidates": [
+                {
+                    "incident_id": "incident-repeat-dispatch",
+                    "incident_type": "repeated_controller_decision",
+                    "severity": "medium",
+                }
+            ],
+        }
+    )
+
+    pressure = payload["progress_pressure"]
+    assert pressure["status"] == "advance_now"
+    assert pressure["no_progress_is_terminal_failure"] is False
+    assert pressure["quality_gate_relaxation_allowed"] is False
+    assert pressure["next_step"]["action_type"] == "dedupe_controller_dispatch"
+    assert pressure["next_step"]["apply_mode"] == "controller_only"
+    assert pressure["next_step"]["purpose"] == "continue_progress"
+    assert pressure["continuation_plan"]["state"] == "ready_for_controller_execution"
+    assert pressure["continuation_plan"]["must_continue"] is True
+    assert pressure["continuation_plan"]["stop_allowed"] is False
+    assert payload["slo_execution_plan"]["state"] == "ready_for_controller_execution"
+    assert payload["slo_execution_plan"]["purpose"] == "continue_progress"
+
+
 @pytest.mark.parametrize(
     ("profile_payload", "expected_state"),
     [

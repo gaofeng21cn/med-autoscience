@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-02：无 outcome / timeout 是推进压力，不是终止式 runtime failure
+
+- 决策：`autonomy_progress_slo_status.state=breach`、`activity_timeout.state=timed_out`、read churn、same fingerprint loop、live worker 无 meaningful artifact delta 等信号，在没有 `stop_loss`、hard human gate 或外部 provider/account hard blocker 时，必须投影为 `progress_pressure.status=advance_now`。这些信号代表 Progress-first 调度压力，要求缩小任务、换 owner、重水化 owner route、继续/重启 OPL stage attempt 或导出 `domain_route/reconcile-apply`，不得被解释成 stage terminal failure。
+- 决策：`domain-handler export` 必须消费 MAS durable SLO status 中的 `progress_pressure`，在 stop-loss / human gate 缺席时生成幂等 `pending_family_tasks[]`，task kind 为 `domain_route/reconcile-apply`，payload 必须携带 `continuation_reason=progress_pressure_continue`、source fingerprint、slo status ref、next work unit 和 refs-only authority boundary。`progress_pressure` 不授权质量门放宽、paper body 写入、publication verdict、artifact mutation 或 `current_package` 更新。
+- 决策：AI Doctor / breach explanation 只作为诊断和修复建议面；当同一 payload 已有具体 next work unit 时，用户和 OPL-facing continuation projection 必须优先指向 MAS controller / owner-route continuation，而不是把诊断 invocation 抢占为下一 stage owner。
+- 理由：DM002/DM003 近期反复把超时、read-model currentness、receipt reconcile 或 no-delta 解释成“仍在跑 / breach / runtime recovery”，导致控制面持续解释状态而没有把下一步落到 owner action。目的优先的设计应让时间压力转成下一次产出约束，而不是停机报错。真正的结束条件只有 deliverable delta、owner receipt、typed blocker、human gate、stop-loss 或外部硬故障 handoff。
+- 影响：这是 MAS SLO/read-model/domain-handler 出口语义修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。OPL 继续持有 queue、retry/dead-letter 和 provider lifecycle；MAS 持有 progress pressure 的 domain route 语义、owner receipt、typed blocker 和 quality/publication authority。
+
 ## 2026-06-02：AI reviewer repair-recheck 必须按 callable surface 批处理并 fail-fast unsupported callable
 
 - 决策：`reviewer_refinement_loop` 从 AI reviewer `publication_eval/latest.json` 生成 repair/recheck work units 时，必须按每个 study、每个 callable surface 聚合为少量批处理 owner work unit。多个 quality dimension、publication gap 或同类 comment 不能逐 item 导出为独立 `paper_autonomy/repair-recheck` OPL task；`quality_repair_batch.run_quality_repair_batch` 与 `ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow` 各自最多形成一个 batch work unit，batch 内保留 `source_comment_ids`、`batched_work_units`、source refs、required inputs/outputs 和单次 owner replay 预算。

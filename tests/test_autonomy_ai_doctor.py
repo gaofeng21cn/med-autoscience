@@ -133,6 +133,55 @@ def test_autonomy_progress_slo_uses_mds_read_churn_without_artifact_delta(tmp_pa
     assert payload["breach_explanation"]["category"] == "quality_repair"
 
 
+def test_autonomy_progress_slo_status_exports_progress_pressure_for_no_delta(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_ai_doctor")
+    quest_root = tmp_path / "runtime" / "quests" / "quest-002"
+    telemetry_path = quest_root / ".ds" / "runs" / "run-read-churn" / "telemetry.json"
+    telemetry_path.parent.mkdir(parents=True, exist_ok=True)
+    telemetry_path.write_text(
+        json.dumps(
+            {
+                "run_id": "run-read-churn",
+                "turn_progress_kind": "read_churn_without_artifact_delta",
+                "completed_at": "2026-05-02T01:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = module.build_autonomy_control_plane_observer(
+        {
+            "study_id": "002-dm",
+            "quest_id": "quest-002",
+            "sli_summary": {
+                "duplicate_dispatch_active": False,
+                "next_work_unit_id": "analysis_claim_evidence_repair",
+            },
+            "gate_blocker_summary": {
+                "current_blockers": ["claim_evidence_consistency_failed"],
+                "actionability_status": "actionable",
+                "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+            },
+            "autonomy_slo": {"runtime_failure_classification": {"external_blocker": False}},
+        },
+        quest_root=quest_root,
+        generated_at="2026-05-02T01:05:00+00:00",
+    )
+
+    assert payload["state"] == "breach"
+    assert payload["progress_pressure"]["status"] == "advance_now"
+    assert payload["progress_pressure"]["purpose"] == "continue_progress"
+    assert payload["progress_pressure"]["no_progress_is_terminal_failure"] is False
+    assert payload["progress_pressure"]["timeout_is_terminal_failure"] is False
+    assert payload["progress_pressure"]["continuation_required"] is True
+    assert payload["progress_pressure"]["next_owner"] == "mas_controller"
+    assert payload["progress_pressure"]["next_work_unit_id"] == "analysis_claim_evidence_repair"
+    assert payload["progress_pressure"]["stop_allowed"] is False
+    assert payload["progress_pressure"]["quality_gate_relaxation_allowed"] is False
+
+
 def test_autonomy_slo_read_model_explains_existing_low_information_breach(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.autonomy_ai_doctor")
     study_root = tmp_path / "studies" / "003-dpcc"

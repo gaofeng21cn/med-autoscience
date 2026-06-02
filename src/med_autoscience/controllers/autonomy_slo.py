@@ -215,6 +215,7 @@ def _recovery_actions(profile_payload: Mapping[str, Any]) -> list[dict[str, Any]
                 "source_incident_type": incident_type,
                 "source_severity": severity,
                 "next_work_unit_id": _text(next_work_unit.get("unit_id")),
+                "purpose": "continue_progress",
                 "apply_mode": "controller_only",
                 "quality_gate_relaxation_allowed": False,
                 "source_rank": source_rank,
@@ -285,6 +286,7 @@ def _runtime_failure_action(
             "source_incident_type": blocker_class,
             "source_severity": "high" if action_mode == "external_fix_required" else "medium",
             "next_work_unit_id": None,
+            "purpose": "restore_continuation_path",
             "apply_mode": "human_required" if action_mode == "external_fix_required" else "controller_only",
             "quality_gate_relaxation_allowed": False,
             "action_type": "external_runtime_blocker",
@@ -302,6 +304,7 @@ def _runtime_failure_action(
             "source_incident_type": blocker_class,
             "source_severity": "high",
             "next_work_unit_id": None,
+            "purpose": "restore_continuation_path",
             "apply_mode": "opl_runtime_owner_handoff",
             "quality_gate_relaxation_allowed": False,
             "action_type": "opl_runtime_blocker_handoff",
@@ -319,6 +322,7 @@ def _runtime_failure_action(
             "source_incident_type": blocker_class,
             "source_severity": "medium",
             "next_work_unit_id": None,
+            "purpose": "await_human_resume",
             "apply_mode": "human_required",
             "quality_gate_relaxation_allowed": False,
             "action_type": "human_resume_gate",
@@ -350,15 +354,72 @@ def _slo_execution_plan(
         state = "ready_for_controller_execution"
     else:
         state = "monitor_only"
+    must_continue = state in {"ready_for_controller_execution", "monitor_only"} or action_mode == "provider_backoff_and_recheck"
     return {
         "surface": "autonomy_slo_execution_plan",
         "schema_version": 1,
         "state": state,
+        "purpose": "continue_progress",
         "step_count": len(steps),
         "steps": steps,
+        "must_continue": must_continue,
+        "stop_allowed": state in {"blocked_by_external_runtime", "blocked_by_runtime_gate"},
+        "terminal_failure": False,
         "gate_relaxation_allowed": False,
         "apply_mode": steps[0].get("apply_mode") if steps else "monitor",
         "quality_authority_surfaces": list(_QUALITY_AUTHORITY_SURFACES),
+    }
+
+
+def _progress_pressure(
+    *,
+    progress_health: Mapping[str, Any],
+    long_run_health: Mapping[str, Any],
+    runtime_failure_classification: Mapping[str, Any],
+    slo_execution_plan: Mapping[str, Any],
+) -> dict[str, Any]:
+    steps = _list(slo_execution_plan.get("steps"))
+    top_step = dict(steps[0]) if steps and isinstance(steps[0], Mapping) else None
+    action_mode = _text(runtime_failure_classification.get("action_mode"))
+    external_blocker = bool(runtime_failure_classification.get("external_blocker"))
+    stop_allowed = bool(slo_execution_plan.get("stop_allowed"))
+    if stop_allowed:
+        status = "handoff_or_human_gate"
+    elif top_step is not None:
+        status = "advance_now"
+    elif _text(progress_health.get("state")) in {
+        "no_progress_candidate",
+        "incident_candidate",
+        "blocked_with_actionable_work",
+    }:
+        status = "advance_now"
+    elif _text(long_run_health.get("state")) in {"breach", "watch"}:
+        status = "advance_now"
+    else:
+        status = "monitor"
+    return {
+        "surface": "progress_first_advancement_pressure",
+        "schema_version": 1,
+        "status": status,
+        "purpose": "continue_progress",
+        "no_progress_is_terminal_failure": False,
+        "timeout_is_terminal_failure": False,
+        "external_blocker": external_blocker,
+        "runtime_action_mode": action_mode,
+        "quality_gate_relaxation_allowed": False,
+        "continuation_required": status in {"advance_now", "monitor"},
+        "next_step": top_step,
+        "continuation_plan": {
+            "state": _text(slo_execution_plan.get("state")) or "unknown",
+            "must_continue": bool(slo_execution_plan.get("must_continue")),
+            "stop_allowed": stop_allowed,
+            "terminal_failure": False,
+            "apply_mode": _text(slo_execution_plan.get("apply_mode")) or "monitor",
+        },
+        "diagnostic_states": {
+            "progress_health": _text(progress_health.get("state")),
+            "long_run_health": _text(long_run_health.get("state")),
+        },
     }
 
 
@@ -471,6 +532,12 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
         runtime_failure_classification=runtime_failure_classification,
         recovery_actions=recovery_actions,
     )
+    progress_pressure = _progress_pressure(
+        progress_health=progress_health,
+        long_run_health=long_run_health,
+        runtime_failure_classification=runtime_failure_classification,
+        slo_execution_plan=slo_execution_plan,
+    )
     top_action = (slo_execution_plan["steps"][0] if slo_execution_plan["steps"] else {})
     efficiency_signals = _efficiency_signals(
         sli_summary=sli_summary,
@@ -519,6 +586,7 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
         "runtime_failure_classification": runtime_failure_classification,
         "recovery_actions": recovery_actions,
         "slo_execution_plan": slo_execution_plan,
+        "progress_pressure": progress_pressure,
         "efficiency_summary": {
             "signal_count": len(efficiency_signals),
             "breach_signal_ids": breach_signal_ids,

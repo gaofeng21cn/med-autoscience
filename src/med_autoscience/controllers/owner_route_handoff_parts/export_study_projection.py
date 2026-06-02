@@ -16,6 +16,7 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("safe_reconcile_dry_run", Path("artifacts/supervision/reconcile/latest.json"), "safe_reconcile"),
     ("controller_receipt", Path("artifacts/runtime/supervisor_dispatch_receipt/latest.json"), "controller_receipt"),
     ("controller_decisions", Path("artifacts/controller_decisions/latest.json"), "controller_decisions"),
+    ("autonomy_slo_status", Path("artifacts/autonomy/slo_status/latest.json"), "slo_status"),
     ("publication_eval", Path("artifacts/publication_eval/latest.json"), "publication_eval"),
     ("paper_work_unit_outbox_receipts", Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl"), "paper_work_unit_receipts"),
     ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
@@ -91,15 +92,34 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         study_root=study_root,
         profile=profile,
     )
-    payload["autonomy_continuation"] = {
+    payload["autonomy_continuation"] = autonomy_continuation_projection(payload)
+    return payload
+
+
+def autonomy_continuation_projection(study: Mapping[str, Any]) -> dict[str, Any]:
+    slo_status = mapping(study.get("slo_status"))
+    progress_pressure = mapping(slo_status.get("progress_pressure"))
+    pressure_status = text(progress_pressure.get("status"))
+    stop_allowed = progress_pressure.get("stop_allowed") is True
+    continuation_required = progress_pressure.get("continuation_required") is True
+    if pressure_status == "advance_now" and continuation_required and not stop_allowed:
+        return {
+            "surface_kind": "mas_autonomy_continuation_projection",
+            "eligible_for_auto_dispatch": True,
+            "status": "progress_pressure_continue",
+            "replacement_owner": "one-person-lab",
+            "recommended_task_kind": "domain_route/reconcile-apply",
+            "workspace_profile": None,
+            "progress_pressure": dict(progress_pressure),
+        }
+    return {
         "surface_kind": "mas_autonomy_continuation_projection",
         "eligible_for_auto_dispatch": False,
         "status": "retired_runtime_liveness_scheduler_signal",
         "replacement_owner": "one-person-lab",
         "recommended_task_kind": None,
-        "workspace_profile": profile.name,
+        "workspace_profile": None,
     }
-    return payload
 
 
 def current_control_owner_route_handoff_record(

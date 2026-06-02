@@ -33,5 +33,6 @@ def activity_timeout_lane(
         ),
         "recommended_action_id": "continue_or_relaunch",
         "activity_timeout": dict(activity_timeout or {}),
+        "progress_pressure": dict((activity_timeout or {}).get("progress_pressure") or {}),
+        "terminal_failure": False,
     }
-

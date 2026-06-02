@@ -695,6 +695,62 @@ def test_domain_handler_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_
     assert payload["studies"][1]["autonomy_continuation"]["eligible_for_auto_dispatch"] is False
 
 
+def test_domain_handler_export_turns_slo_progress_pressure_into_continuation_task(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "002-dm"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        {
+            "surface": "autonomy_progress_slo_status",
+            "study_id": "002-dm",
+            "quest_id": "quest-002",
+            "state": "breach",
+            "breach_types": ["read_churn_without_artifact_delta"],
+            "progress_pressure": {
+                "status": "advance_now",
+                "purpose": "continue_progress",
+                "no_progress_is_terminal_failure": False,
+                "timeout_is_terminal_failure": False,
+                "continuation_required": True,
+                "next_owner": "mas_controller",
+                "next_action_type": "domain_route/reconcile-apply",
+                "next_work_unit_id": "analysis_claim_evidence_repair",
+                "stop_allowed": False,
+                "quality_gate_relaxation_allowed": False,
+            },
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    route_tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_route/reconcile-apply"
+    ]
+    assert len(route_tasks) == 1
+    task = route_tasks[0]
+    assert task["source"] == "mas-autonomy-progress-pressure"
+    assert task["reason"] == "progress_pressure_continue"
+    assert task["requires_approval"] is False
+    assert task["payload"]["continuation_reason"] == "progress_pressure_continue"
+    assert task["payload"]["progress_pressure"]["status"] == "advance_now"
+    assert task["payload"]["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert task["payload"]["authority_boundary"] == "mas_owner_reconcile_only"
+    study_projection = payload["studies"][0]
+    assert study_projection["autonomy_continuation"]["eligible_for_auto_dispatch"] is True
+    assert study_projection["autonomy_continuation"]["recommended_task_kind"] == "domain_route/reconcile-apply"
+    assert study_projection["autonomy_continuation"]["status"] == "progress_pressure_continue"
+
+
 def test_domain_handler_dispatch_rejects_domain_truth_writes(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     task_path = tmp_path / "task.json"

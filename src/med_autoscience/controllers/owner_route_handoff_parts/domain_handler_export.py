@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
+import json
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -14,6 +16,9 @@ from ..study_domain_transition_table_parts import family_transition_spec
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
 from .default_executor_dispatch_tasks import default_executor_dispatch_tasks
+from med_autoscience.controllers.domain_dispatch_evidence_payload import (
+    build_domain_dispatch_evidence_record_payload,
+)
 from .domain_handler_functional_closure import build_domain_handler_functional_closure_projection
 from .export_study_projection import (
     build_study_projection,
@@ -254,6 +259,14 @@ def _pending_family_tasks(
         )
         if handoff_task is not None:
             tasks.append(handoff_task)
+        continuation_task = _autonomy_progress_pressure_task(
+            study=study,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+        )
+        if continuation_task is not None:
+            tasks.append(continuation_task)
         controller_task = controller_decision_route_back_task(
             study=study,
             profile=profile,
@@ -263,6 +276,85 @@ def _pending_family_tasks(
         if controller_task is not None:
             tasks.append(controller_task)
     return tasks
+
+
+def _autonomy_progress_pressure_task(
+    *,
+    study: Mapping[str, Any],
+    profile: WorkspaceProfile,
+    profile_ref: Path,
+    study_id: str,
+) -> dict[str, Any] | None:
+    continuation = mapping(study.get("autonomy_continuation"))
+    if continuation.get("eligible_for_auto_dispatch") is not True:
+        return None
+    if text(continuation.get("recommended_task_kind")) != "domain_route/reconcile-apply":
+        return None
+    progress_pressure = mapping(continuation.get("progress_pressure"))
+    if text(progress_pressure.get("status")) != "advance_now":
+        return None
+    next_work_unit_id = text(progress_pressure.get("next_work_unit_id"))
+    study_root = Path(text(study.get("study_root")) or profile.studies_root / study_id)
+    slo_path = study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json"
+    source_ref = workspace_relative(slo_path, workspace_root=profile.workspace_root)
+    source_fingerprint = _fingerprint(
+        {
+            "profile": profile.name,
+            "study_id": study_id,
+            "progress_pressure": dict(progress_pressure),
+            "slo_state": text(mapping(study.get("slo_status")).get("state")),
+            "breach_types": list(mapping(study.get("slo_status")).get("breach_types") or []),
+        }
+    )
+    source_refs = [
+        {
+            "role": "mas_autonomy_progress_pressure",
+            "ref": source_ref,
+            "exists": slo_path.exists(),
+        }
+    ]
+    evidence_record_payload = build_domain_dispatch_evidence_record_payload(
+        task_kind="domain_route/reconcile-apply",
+        study_id=study_id,
+        reason="progress_pressure_continue",
+        evidence_refs=source_refs,
+        source_fingerprint=source_fingerprint,
+        profile_name=profile.name,
+    )
+    return {
+        "domain_id": "medautoscience",
+        "task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "priority": 65,
+        "source": "mas-autonomy-progress-pressure",
+        "requires_approval": False,
+        "dedupe_key": f"mas:{profile.name}:{study_id}:progress-pressure:{source_fingerprint}",
+        "source_fingerprint": source_fingerprint,
+        "domain_truth_owner": "med-autoscience",
+        "queue_owner": "one-person-lab",
+        "reason": "progress_pressure_continue",
+        "source_refs": source_refs,
+        "dispatch_owner": "med-autoscience",
+        "profile_name": profile.name,
+        "domain_dispatch_evidence_record_payload": evidence_record_payload,
+        "payload": {
+            "profile": str(profile_ref),
+            "study_id": study_id,
+            "source_fingerprint": source_fingerprint,
+            "continuation_reason": "progress_pressure_continue",
+            "progress_pressure": dict(progress_pressure),
+            "next_work_unit": (
+                {
+                    "unit_id": next_work_unit_id,
+                    "source": "autonomy_progress_slo_status.progress_pressure",
+                }
+                if next_work_unit_id is not None
+                else None
+            ),
+            "slo_status_ref": source_ref,
+            "authority_boundary": "mas_owner_reconcile_only",
+        },
+    }
 
 
 def _guarded_apply_targets(studies: list[Mapping[str, Any]]) -> tuple[str, ...]:
@@ -370,6 +462,10 @@ def _aggregate_domain_refs(studies: list[Mapping[str, Any]]) -> list[dict[str, A
             if isinstance(ref, dict) and ref.get("exists") is True:
                 refs.append(ref)
     return refs[:50]
+
+
+def _fingerprint(value: object) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
 
 
 __all__ = ["export_family_domain_handler"]

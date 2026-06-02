@@ -9,6 +9,9 @@ from typing import Any, Mapping
 from med_autoscience.controllers.autonomy_ai_doctor_parts.breach_explanation import (
     with_breach_explanation,
 )
+from med_autoscience.controllers.autonomy_ai_doctor_parts.progress_pressure import (
+    progress_pressure_from_slo_status,
+)
 
 
 SCHEMA_VERSION = 1
@@ -854,6 +857,12 @@ def build_autonomy_control_plane_observer(
     payload = with_breach_explanation(payload) or payload
     request = build_ai_doctor_request(payload) if ai_doctor_required else None
     repair = build_repair_orchestration(slo_status=payload)
+    payload["progress_pressure"] = progress_pressure_from_slo_status(
+        payload=payload,
+        repair=repair,
+        profile_payload=profile_payload,
+        schema_version=SCHEMA_VERSION,
+    )
     if request is not None:
         payload["ai_doctor_request"] = {
             "request_id": request["request_id"],
