@@ -161,11 +161,20 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    request_lifecycle = ai_reviewer_owner_output_consumption.current_request_lifecycle(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    consumed_ai_reviewer_route_back = _consumed_ai_reviewer_route_back_actions(
+        status,
+        publication_eval_payload=publication_eval_payload,
+        request_lifecycle=request_lifecycle,
+    )
     analysis_handoff_action = analysis_harmonization_ai_review.completed_ai_reviewer_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     )
-    if analysis_handoff_action is not None:
+    if analysis_handoff_action is not None and consumed_ai_reviewer_route_back is None:
         return [
             decorate_action(
                 study_id=study_id,
@@ -213,10 +222,6 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    request_lifecycle = ai_reviewer_owner_output_consumption.current_request_lifecycle(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
     submission_refresh_action = _gate_replay_submission_refresh_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -247,6 +252,7 @@ def action_queue(
         ]
     if (
         _explicit_ai_reviewer_request_pending(ai_reviewer_assessment)
+        and consumed_ai_reviewer_route_back is None
         and not _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(
             status=status,
             progress=progress,
@@ -323,11 +329,6 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    consumed_ai_reviewer_route_back = _consumed_ai_reviewer_route_back_actions(
-        status,
-        publication_eval_payload=publication_eval_payload,
-        request_lifecycle=request_lifecycle,
-    )
     if consumed_ai_reviewer_route_back is not None:
         return [
             decorate_action(

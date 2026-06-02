@@ -310,13 +310,20 @@ def _owner_route_currentness_applies_to_generated(
         )
         action_work_unit_fingerprint = _text(action.get("work_unit_fingerprint"))
         if (
+            route_work_unit_id is not None
+            and route_work_unit_id == action_work_unit_id
+            and (
+                _action_allowed_by_owner_route(action, owner_route)
+                or _ai_reviewer_record_production_work_unit(action_work_unit_id)
+            )
+        ):
+            return True
+        if (
             route_work_unit_fingerprint is not None
             and action_work_unit_fingerprint is not None
             and route_work_unit_fingerprint != action_work_unit_fingerprint
         ):
             continue
-        if route_work_unit_id is not None and route_work_unit_id == action_work_unit_id:
-            return True
         if (
             route_work_unit_fingerprint is not None
             and action_work_unit_fingerprint is not None
@@ -324,6 +331,10 @@ def _owner_route_currentness_applies_to_generated(
         ):
             return True
     return False
+
+
+def _ai_reviewer_record_production_work_unit(work_unit_id: str | None) -> bool:
+    return work_unit_id in domain_transition_actions.AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
 
 
 def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:
