@@ -120,3 +120,27 @@ def test_owner_route_reconcile_explicit_study_scan_output_stays_scoped() -> None
 
     assert studies == [{"study_id": "002-dm", "handoff_scan_status": "scanned"}]
     assert action_queue == [{"study_id": "002-dm", "action_id": "current-002"}]
+
+
+def test_owner_route_reconcile_scoped_scan_does_not_retain_previous_execution_envelopes() -> None:
+    scan_output = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.scan_output"
+    )
+
+    envelopes = scan_output.merge_current_execution_envelopes(
+        previous_payload={
+            "current_execution_envelopes": {
+                "003-dpcc": {"state_kind": "running_provider_attempt"},
+            },
+        },
+        output_studies=[
+            {
+                "study_id": "002-dm",
+                "current_execution_envelope": {"state_kind": "executable_owner_action"},
+            }
+        ],
+        scanned_studies=[{"study_id": "002-dm"}],
+        retain_unscanned_studies=False,
+    )
+
+    assert envelopes == {"002-dm": {"state_kind": "executable_owner_action"}}

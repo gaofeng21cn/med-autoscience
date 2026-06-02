@@ -48,6 +48,41 @@ def merge_previous_unscanned_study_handoff(
     )
 
 
+def merge_current_execution_envelopes(
+    *,
+    previous_payload: Mapping[str, Any] | None,
+    output_studies: list[dict[str, Any]],
+    scanned_studies: list[dict[str, Any]],
+    retain_unscanned_studies: bool = True,
+) -> dict[str, Any]:
+    scanned_ids = {
+        study_id
+        for study in scanned_studies
+        if (study_id := _text(study.get("study_id"))) is not None
+    }
+    envelopes: dict[str, Any] = {}
+    if retain_unscanned_studies and scanned_ids:
+        previous_envelopes = _mapping(_mapping(previous_payload).get("current_execution_envelopes"))
+        envelopes.update(
+            {
+                study_id: dict(envelope)
+                for key, envelope in previous_envelopes.items()
+                if (study_id := _text(key)) is not None
+                and study_id not in scanned_ids
+                and isinstance(envelope, Mapping)
+            }
+        )
+    envelopes.update(
+        {
+            study_id: dict(envelope)
+            for study in output_studies
+            if (study_id := _text(study.get("study_id"))) is not None
+            and isinstance((envelope := study.get("current_execution_envelope")), Mapping)
+        }
+    )
+    return envelopes
+
+
 def build_scan_domain_routes_payload(
     *,
     schema_version: int,
@@ -162,6 +197,7 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "build_scan_domain_routes_payload",
+    "merge_current_execution_envelopes",
     "merge_previous_unscanned_study_handoff",
     "persist_scan_domain_routes_payload",
 ]

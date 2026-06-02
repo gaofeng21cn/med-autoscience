@@ -186,6 +186,14 @@ def test_persisted_single_study_scan_preserves_unscanned_study_handoff(
                     "status": "queued",
                 }
             ],
+            "current_execution_envelopes": {
+                retained_study_id: {
+                    "state_kind": "executable_owner_action",
+                    "owner": "write",
+                    "next_work_unit": "current_manuscript_repair",
+                    "typed_blocker": None,
+                }
+            },
         },
     )
 
@@ -244,6 +252,15 @@ def test_persisted_single_study_scan_preserves_unscanned_study_handoff(
     assert persisted["studies"][0]["handoff_scan_status"] == "retained_from_previous_scan"
     assert persisted["studies"][1]["handoff_scan_status"] == "scanned"
     assert retained_study_id in [action["study_id"] for action in persisted["action_queue"]]
+    assert persisted["current_execution_envelopes"][retained_study_id] == {
+        "state_kind": "executable_owner_action",
+        "owner": "write",
+        "next_work_unit": "current_manuscript_repair",
+        "typed_blocker": None,
+    }
+    assert persisted["current_execution_envelopes"][scanned_study_id] == result["current_execution_envelopes"][
+        scanned_study_id
+    ]
 
 
 def test_scan_domain_routes_rejects_unknown_study_id_before_reading_status(

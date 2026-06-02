@@ -946,11 +946,12 @@ def scan_domain_routes(
         "previous_action_count": len(previous_action_ids),
         **queue_slo_payload,
     }
-    current_execution_envelopes = {
-        study["study_id"]: study["current_execution_envelope"]
-        for study in output_studies
-        if _text(study.get("study_id")) is not None and isinstance(study.get("current_execution_envelope"), Mapping)
-    }
+    current_execution_envelopes = scan_output.merge_current_execution_envelopes(
+        previous_payload=previous_payload,
+        output_studies=output_studies,
+        scanned_studies=studies,
+        retain_unscanned_studies=persist_surfaces and retain_unscanned_studies,
+    )
     workspace_daemon_lifecycle = workspace_daemon.workspace_daemon_lifecycle(
         profile=profile,
         developer_mode=developer_mode,
