@@ -338,6 +338,56 @@ def test_progress_first_monitoring_redrives_consumed_ai_reviewer_record_with_dif
     assert projection["dispatch_consumption"]["consumption_status"] == "consumed"
 
 
+def test_progress_first_monitoring_does_not_redrive_executed_gate_clearing_batch() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
+    source_eval_id = "publication-eval::003-dpcc::ai-reviewer-record::current"
+    work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "domain_transition": {
+            "decision_type": "route_back_same_line",
+            "route_target": "finalize",
+            "owner": "gate_clearing_batch",
+            "controller_action": "run_gate_clearing_batch",
+            "next_work_unit": {
+                "unit_id": work_unit_id,
+                "lane": "review",
+            },
+            "source_refs": {
+                "owner_route_currentness_basis": {
+                    "source_eval_id": source_eval_id,
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": "truth-snapshot::gate-replay-current",
+                }
+            },
+            "completion_receipt_consumption": {
+                "status": "consumed",
+                "receipt_kind": "ai_reviewer_publication_eval",
+                "receipt_ref": "artifacts/publication_eval/latest.json",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "work_unit_fingerprint": "truth-snapshot::reviewer-record",
+            },
+        },
+        "gate_clearing_batch_followthrough": {
+            "surface_kind": "gate_clearing_batch_followthrough",
+            "status": "executed",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": "truth-snapshot::gate-replay-current",
+            "latest_record_path": "artifacts/controller/gate_clearing_batch/latest.json",
+        },
+    }
+
+    projection = module.build_progress_first_monitoring_summary(payload)
+
+    assert projection["execution_state_kind"] == "receipt_consumed"
+    assert projection["dispatch_consumption"]["receipt_kind"] == "gate_clearing_batch"
+    assert projection["dispatch_consumption"]["receipt_ref"] == "artifacts/controller/gate_clearing_batch/latest.json"
+    assert projection["dispatch_consumption"]["work_unit_id"] == work_unit_id
+
+
 def test_progress_first_monitoring_does_not_redrive_same_scalar_consumed_ai_reviewer_record() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_monitoring")
     payload = {

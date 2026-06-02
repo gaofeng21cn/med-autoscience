@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience.controllers.progress_first_receipt_identity import (
     canonical_work_unit_identity_from_completion,
     consumed_ai_reviewer_receipt_matches_transition_work_unit,
+    gate_clearing_batch_receipt_consumption_for_transition,
 )
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers import study_macro_state
@@ -339,8 +340,14 @@ def _progress_first_monitoring_summary(
     existing = _dict(status.get("progress_first_monitoring_summary")) or _dict(
         projection.get("progress_first_monitoring_summary")
     )
-    existing_authoritative_owner_action = _existing_authoritative_owner_action(existing)
     transition_consumed_owner_action = _transition_consumed_owner_action(transition)
+    gate_clearing_dispatch_consumption = _gate_clearing_batch_dispatch_consumption(
+        study_root=study_root,
+        transition=transition,
+    )
+    existing_authoritative_owner_action = (
+        _existing_authoritative_owner_action(existing) and not gate_clearing_dispatch_consumption
+    )
     existing_next_work_unit = _dict(existing.get("next_work_unit")) or _text(existing.get("next_work_unit"))
     next_work_unit = (
         existing_next_work_unit
@@ -348,7 +355,9 @@ def _progress_first_monitoring_summary(
         else _dict(existing.get("next_work_unit")) or _dict(transition.get("next_work_unit"))
     )
     use_transition_consumed_owner_action = (
-        transition_consumed_owner_action and not existing_authoritative_owner_action
+        transition_consumed_owner_action
+        and not existing_authoritative_owner_action
+        and not gate_clearing_dispatch_consumption
     )
     if use_transition_consumed_owner_action:
         next_work_unit = _dict(transition.get("next_work_unit")) or next_work_unit
@@ -359,7 +368,9 @@ def _progress_first_monitoring_summary(
     )
     existing_dispatch_consumption = _dict(existing.get("dispatch_consumption"))
     transition_dispatch_consumption = _transition_dispatch_consumption(transition)
-    dispatch_consumption = existing_dispatch_consumption or transition_dispatch_consumption
+    dispatch_consumption = (
+        gate_clearing_dispatch_consumption or existing_dispatch_consumption or transition_dispatch_consumption
+    )
     existing_receipt_consumed = _text(existing_dispatch_consumption.get("consumption_status")) in {
         "consumed",
         "receipt_consumed",
@@ -374,9 +385,14 @@ def _progress_first_monitoring_summary(
         existing=existing,
         dispatch_consumption=dispatch_consumption,
     )
+    existing_consumed_same_gate_clearing_batch = bool(gate_clearing_dispatch_consumption)
     owner_action_current = (
         existing_authoritative_owner_action
-        or (existing_owner_action and not existing_consumed_same_ai_reviewer_record)
+        or (
+            existing_owner_action
+            and not existing_consumed_same_ai_reviewer_record
+            and not existing_consumed_same_gate_clearing_batch
+        )
         or use_transition_consumed_owner_action
     )
     typed_blocker = ({} if use_transition_consumed_owner_action else _dict(existing.get("typed_blocker"))) or (
@@ -413,7 +429,7 @@ def _progress_first_monitoring_summary(
                 if existing_consumed_same_ai_reviewer_record and typed_blocker
                 else (
                     "receipt_consumed"
-                    if existing_consumed_same_ai_reviewer_record
+                    if existing_consumed_same_ai_reviewer_record or existing_consumed_same_gate_clearing_batch
                     else _text(existing.get("execution_state_kind"))
                 )
             )
@@ -567,6 +583,25 @@ def _transition_dispatch_consumption(transition: Mapping[str, Any]) -> dict[str,
         "work_unit_fingerprint": _text(identity.get("work_unit_fingerprint")),
         "canonical_work_unit_identity": identity or None,
     }
+
+
+def _gate_clearing_batch_dispatch_consumption(
+    *,
+    study_root: Path,
+    transition: Mapping[str, Any],
+) -> dict[str, Any]:
+    path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(payload, Mapping):
+        return {}
+    receipt = gate_clearing_batch_receipt_consumption_for_transition(
+        transition=transition,
+        record=payload,
+    )
+    return dict(receipt or {})
 
 
 def _existing_consumed_ai_reviewer_record(

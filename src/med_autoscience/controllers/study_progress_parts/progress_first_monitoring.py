@@ -6,6 +6,7 @@ from typing import Any
 from med_autoscience.controllers.progress_first_receipt_identity import (
     canonical_work_unit_identity_from_completion,
     consumed_ai_reviewer_receipt_matches_transition_work_unit,
+    gate_clearing_batch_receipt_consumption_for_transition,
 )
 
 from .current_executable_owner_action import build_current_executable_owner_action
@@ -59,7 +60,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     hydration_work_unit = _explicit_wakeup_hydration_work_unit(launch_policy)
     transition_consumed_owner_action = _transition_consumed_owner_action(domain_transition)
-    receipt_consumed = _transition_receipt_consumed(domain_transition)
+    gate_clearing_dispatch_consumption = _gate_clearing_batch_dispatch_consumption(payload)
+    receipt_consumed = _transition_receipt_consumed(domain_transition) or gate_clearing_dispatch_consumption is not None
     handoff_owner_action = _first_current_action_queue_item(handoff.get("action_queue"))
     next_work_unit = (
         hydration_work_unit
@@ -67,7 +69,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _work_unit_from_action(handoff_owner_action)
         or (
             _work_unit_projection(domain_transition.get("next_work_unit"))
-            if transition_consumed_owner_action
+            if transition_consumed_owner_action and gate_clearing_dispatch_consumption is None
             else None
         )
         or _work_unit_projection(execution.get("next_work_unit"))
@@ -82,7 +84,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     typed_blocker = (
         {}
         if handoff_owner_action is not None
-        or (transition_consumed_owner_action and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition))
+        or (
+            transition_consumed_owner_action
+            and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition)
+            and gate_clearing_dispatch_consumption is None
+        )
         else _mapping(execution.get("typed_blocker"))
         or _mapping(domain_transition.get("typed_blocker"))
         or terminal_closeout_blocker
@@ -101,13 +107,18 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     current_blockers = (
         []
-        if (handoff_owner_action is not None or transition_consumed_owner_action) and not typed_blocker
+        if (
+            handoff_owner_action is not None
+            or (transition_consumed_owner_action and gate_clearing_dispatch_consumption is None)
+        )
+        and not typed_blocker
         else _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
     )
     running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
     state_kind = (
         "executable_owner_action"
-        if handoff_owner_action is not None or transition_consumed_owner_action
+        if handoff_owner_action is not None
+        or (transition_consumed_owner_action and gate_clearing_dispatch_consumption is None)
         else _text(execution.get("state_kind"))
     )
     if state_kind is None:
@@ -141,7 +152,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             _explicit_wakeup_hydration_owner(launch_policy)
             or _text(current_action.get("next_owner"))
             or _owner_from_action(handoff_owner_action)
-            or (_text(domain_transition.get("owner")) if transition_consumed_owner_action else None)
+            or (
+                _text(domain_transition.get("owner"))
+                if transition_consumed_owner_action and gate_clearing_dispatch_consumption is None
+                else None
+            )
             or _text(execution.get("owner"))
             or _text(domain_transition.get("owner"))
             or _text(handoff.get("next_owner"))
@@ -187,7 +202,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             paper_stage_log=paper_stage_log,
             next_forced_delta=next_forced_delta,
         ),
-        "dispatch_consumption": _dispatch_consumption_summary(
+        "dispatch_consumption": gate_clearing_dispatch_consumption or _dispatch_consumption_summary(
             handoff=handoff,
             execution=execution,
             domain_transition=domain_transition,
@@ -248,6 +263,36 @@ def _dispatch_consumption_summary(
         "unconsumed_duration_hours": _numeric(queue_item.get("queue_age_hours"))
         or _numeric(queue_item.get("unconsumed_duration_hours")),
     }
+
+
+def _gate_clearing_batch_dispatch_consumption(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    domain_transition = _mapping(payload.get("domain_transition"))
+    followthrough = _mapping(payload.get("gate_clearing_batch_followthrough"))
+    if followthrough:
+        record = {
+            "status": _text(followthrough.get("status")),
+            "source_eval_id": _text(followthrough.get("source_eval_id")),
+            "work_unit_id": _text(followthrough.get("work_unit_id")),
+            "work_unit_fingerprint": _text(followthrough.get("work_unit_fingerprint")),
+            "owner_route_currentness_basis": _mapping(followthrough.get("owner_route_currentness_basis")),
+            "work_unit_currentness": _mapping(followthrough.get("work_unit_currentness")),
+            "explicit_publication_work_unit": _mapping(followthrough.get("explicit_publication_work_unit")),
+        }
+        if record.get("source_eval_id") is None:
+            record["source_eval_id"] = _text(
+                _mapping(_mapping(domain_transition.get("source_refs")).get("owner_route_currentness_basis")).get(
+                    "source_eval_id"
+                )
+            )
+        receipt = gate_clearing_batch_receipt_consumption_for_transition(
+            transition=domain_transition,
+            record=record,
+            receipt_ref=_text(followthrough.get("latest_record_path"))
+            or "artifacts/controller/gate_clearing_batch/latest.json",
+        )
+        if receipt is not None:
+            return receipt
+    return None
 
 
 def _transition_consumed_owner_action(domain_transition: Mapping[str, Any]) -> bool:

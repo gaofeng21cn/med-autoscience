@@ -625,6 +625,132 @@ def test_study_state_matrix_does_not_redrive_existing_consumed_ai_reviewer_summa
     assert study["throughput_bottleneck"] == "observability_only"
 
 
+def test_study_state_matrix_does_not_redrive_executed_gate_clearing_batch(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    state_matrix = importlib.import_module("med_autoscience.controllers.study_state_matrix")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    source_eval_id = "publication-eval::003-dpcc::ai-reviewer-record::current"
+    work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    work_unit_fingerprint = "truth-snapshot::current-gate-replay"
+    _write_json(
+        study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "executed",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "owner_route_currentness_basis": {
+                "source_eval_id": source_eval_id,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "truth_epoch": "truth-event-current",
+                "runtime_health_epoch": "runtime-health-current",
+            },
+        },
+    )
+
+    domain_transition = {
+        "decision_type": "route_back_same_line",
+        "route_target": "finalize",
+        "owner": "gate_clearing_batch",
+        "controller_action": "run_gate_clearing_batch",
+        "next_work_unit": {
+            "unit_id": work_unit_id,
+            "lane": "review",
+            "summary": "Replay publication gate after the current AI reviewer record.",
+        },
+        "source_refs": {
+            "owner_route_currentness_basis": {
+                "source_eval_id": source_eval_id,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "truth_epoch": "truth-event-current",
+                "runtime_health_epoch": "runtime-health-current",
+            }
+        },
+        "typed_blocker": None,
+        "completion_receipt_consumption": {
+            "status": "consumed",
+            "receipt_kind": "ai_reviewer_publication_eval",
+            "receipt_ref": "artifacts/publication_eval/latest.json",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            "work_unit_fingerprint": "truth-snapshot::reviewer-record",
+        },
+    }
+
+    monkeypatch.setattr(
+        cli.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "waiting_for_user",
+            "progress_first_monitoring_summary": {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": study_id,
+                "running_provider_attempt": False,
+                "execution_state_kind": "executable_owner_action",
+                "owner_action_current": True,
+                "next_owner": "gate_clearing_batch",
+                "route_target": "finalize",
+                "controller_action": "run_gate_clearing_batch",
+                "next_work_unit": {
+                    "unit_id": work_unit_id,
+                    "lane": "review",
+                },
+                "dispatch_consumption": {
+                    "consumption_status": "consumed",
+                    "receipt_ref": "artifacts/publication_eval/latest.json",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                    "work_unit_fingerprint": "truth-snapshot::reviewer-record",
+                    "canonical_work_unit_identity": {
+                        "source_eval_id": source_eval_id,
+                        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                        "work_unit_fingerprint": "truth-snapshot::reviewer-record",
+                    },
+                },
+            },
+        },
+    )
+    monkeypatch.setattr(
+        state_matrix.study_domain_transition_table,
+        "project_domain_transition",
+        lambda **_: dict(domain_transition),
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+    accounting = payload["progress_first_tick_accounting"]
+    study = accounting["studies"][0]
+    monitoring = payload["studies"][0]["monitoring"]
+
+    assert exit_code == 0
+    assert accounting["expected_owner_action_count"] == 0
+    assert accounting["ready_for_owner_action_count"] == 0
+    assert monitoring["execution_state_kind"] == "receipt_consumed"
+    assert monitoring["owner_action_current"] is False
+    assert monitoring["dispatch_consumption"]["receipt_kind"] == "gate_clearing_batch"
+    assert monitoring["dispatch_consumption"]["receipt_ref"] == "artifacts/controller/gate_clearing_batch/latest.json"
+    assert study["monitoring_status"] == "receipt_consumed"
+    assert study["throughput_bottleneck"] == "observability_only"
+
+
 def test_study_state_matrix_keeps_consumed_ai_reviewer_closeout_blocker_out_of_ready_queue(
     monkeypatch,
     tmp_path: Path,

@@ -898,7 +898,7 @@ def _gate_clearing_batch_followthrough(
         summary = f"最近一轮 gate-clearing batch 已执行；{blocker_summary}"
         next_confirmation_signal = "看 publication_eval/latest.json 或最新 gate replay 是否继续收窄 blocker。"
         user_intervention_required_now = False
-    return {
+    result = {
         "surface_kind": "gate_clearing_batch_followthrough",
         "status": _non_empty_text(record.get("status")) or "executed",
         "summary": summary,
@@ -909,6 +909,25 @@ def _gate_clearing_batch_followthrough(
         "user_intervention_required_now": user_intervention_required_now,
         "latest_record_path": str(record_path),
     }
+    identity = {
+        "source_eval_id": source_eval_id,
+        "work_unit_id": _non_empty_text(record.get("work_unit_id"))
+        or _non_empty_text(record.get("source_work_unit_id"))
+        or _non_empty_text(dict(record.get("work_unit_currentness") or {}).get("explicit_publication_work_unit_id"))
+        or _non_empty_text(dict(record.get("explicit_publication_work_unit") or {}).get("unit_id")),
+        "work_unit_fingerprint": _non_empty_text(record.get("work_unit_fingerprint"))
+        or _non_empty_text(record.get("source_work_unit_fingerprint"))
+        or _non_empty_text(dict(record.get("work_unit_currentness") or {}).get("explicit_work_unit_fingerprint"))
+        or _non_empty_text(dict(record.get("explicit_publication_work_unit") or {}).get("fingerprint")),
+        "owner_route_currentness_basis": dict(record.get("owner_route_currentness_basis") or {}) or None,
+        "work_unit_currentness": dict(record.get("work_unit_currentness") or {}) or None,
+        "explicit_publication_work_unit": dict(record.get("explicit_publication_work_unit") or {}) or None,
+    }
+    if any(value for key, value in identity.items() if key != "source_eval_id"):
+        for key, value in identity.items():
+            if value:
+                result[key] = value
+    return result
 
 
 def _quality_repair_batch_followthrough(
