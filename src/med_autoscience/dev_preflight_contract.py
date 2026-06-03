@@ -306,6 +306,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         exact_paths=(
             "Makefile",
             "pyproject.toml",
+            "scripts/run-build-clean.sh",
+            "scripts/run-python-clean.sh",
+            "scripts/run-pytest-clean.sh",
             "scripts/run-structure-quality-gate.sh",
             "scripts/verify.sh",
             "src/med_autoscience/editable_shared_bootstrap.py",

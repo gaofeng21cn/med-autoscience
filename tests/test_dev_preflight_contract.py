@@ -741,11 +741,14 @@ def test_classify_changed_files_matches_codex_plugin_skill_surface() -> None:
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_verify_script_as_family_shared_surface() -> None:
+def test_classify_changed_clean_runner_scripts_as_family_shared_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
         [
+            "scripts/run-build-clean.sh",
+            "scripts/run-python-clean.sh",
+            "scripts/run-pytest-clean.sh",
             "scripts/verify.sh",
         ]
     )
