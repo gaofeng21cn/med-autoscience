@@ -35,17 +35,14 @@ def current_action_from_stage_artifact_index(payload: Mapping[str, Any]) -> dict
         "target_surface_specificity": _text(action.get("target_surface_specificity"))
         or "artifact_first_stage_target",
         "acceptance_refs": _text_list(action.get("acceptance_refs")),
+        "artifact_native_contract_ref": _text(action.get("artifact_native_contract_ref"))
+        or _text(index.get("artifact_native_contract_ref")),
+        "stage_artifact_contract_refs": _stage_artifact_contract_refs(action),
         "artifact_first_precedence": {
             "stale_platform_repairs_superseded": bool(_sequence(index.get("stale_platform_repairs"))),
             "provider_completion_is_paper_progress": False,
         },
-        "authority_boundary": {
-            "refs_only": True,
-            "can_write_runtime_owned_surfaces": False,
-            "can_write_paper_or_package": False,
-            "can_authorize_quality_verdict": False,
-            "can_authorize_publication_ready": False,
-        },
+        "authority_boundary": _authority_boundary(action),
     }
 
 
@@ -56,6 +53,7 @@ def stage_artifact_index_monitoring_projection(value: object) -> dict[str, Any] 
     return {
         "surface_kind": "stage_artifact_index_monitoring_projection",
         "current_stage": index.get("current_stage"),
+        "artifact_native_contract_ref": _text(index.get("artifact_native_contract_ref")),
         "next_owner_action_source": (
             "stage_artifact_index.next_owner_action" if _mapping(index.get("next_owner_action")) else None
         ),
@@ -79,6 +77,29 @@ def _stage_artifact_target_surface(action: Mapping[str, Any]) -> dict[str, Any] 
     return {
         "ref_kind": "stage_artifact_index_required_output",
         "surface_ref": required,
+    }
+
+
+def _stage_artifact_contract_refs(action: Mapping[str, Any]) -> dict[str, Any]:
+    refs = {
+        "manifest_ref": _text(action.get("manifest_ref")),
+        "receipt_ref": _text(action.get("receipt_ref")),
+    }
+    return {key: value for key, value in refs.items() if value is not None}
+
+
+def _authority_boundary(action: Mapping[str, Any]) -> dict[str, bool]:
+    boundary = _mapping(action.get("authority_boundary"))
+    return {
+        "refs_only": True,
+        "can_write_runtime_owned_surfaces": False,
+        "can_write_paper_or_package": False,
+        "can_authorize_quality_verdict": bool(boundary.get("can_authorize_quality_verdict", False)),
+        "can_authorize_publication_ready": bool(
+            boundary.get("can_authorize_publication_readiness", False)
+            or boundary.get("can_authorize_publication_ready", False)
+        ),
+        "stage_artifact_index_is_derived_projection": True,
     }
 
 

@@ -187,6 +187,7 @@ When validating a docs-only change in this repo, use documentation review plus g
   - Stage artifact refs / `stage_artifact_index` are the MVP progress core and are projected into study progress, Progress Portal, and OPL domain-pack workbench descriptors.
   - typed closeout / read-model / currentness / evidence-tail / provider liveness are enhancement, audit, or scheduling layers.
   - OPL App / workbench surfaces display refs-only stage artifacts and cannot write MAS truth, publication readiness, quality verdict, paper body, or package outputs.
+  - 2026-06-03 stage-native contract follow-through: `stage_artifact_index` now projects stage folder contract, manifest requirements, receipt requirements, and fail-closed artifact classification. Legacy declared refs can still seed the projection, but missing manifest or owner receipt keeps the artifact historical / missing_manifest_or_receipt rather than current.
 - Landed commits:
   - `1878effb` Add artifact-first stage index kernel.
   - `43e80918` Prioritize artifact-first owner actions in progress monitoring.

@@ -33,6 +33,8 @@ Stage card
 
 Artifact-first MVP 是当前推进核心。每个非终局 stage attempt 首先要产出、定位或更新可接力的 stage artifact refs，并把它们汇入 `stage_artifact_index` / Stage Deliverable Index 级 projection；只有这个 artifact refs 链条存在，后续 typed closeout、owner receipt、AI reviewer recheck、gate replay、route-back、human gate 或 stop-loss 才有可审阅对象。typed closeout、read-model/currentness hygiene、evidence-tail 分类和 provider liveness 仍然重要，但它们是增强、审计和调度层：用于证明 artifact delta 可消费、阻止重复 dispatch、暴露 blocker、安排 provider admission 或解释 no-progress，不得替代 artifact-first MVP 本身，也不得被写成 publication readiness、submission readiness 或 MAS truth。
 
+2026-06-03 更新：MAS 已在 `stage_artifact_index` 接入 OPL Stage-Native Artifact Contract 的 machine-readable 派生投影。每个 stage state 现在显式暴露 `stage_folder_contract`、`manifest_requirements`、`receipt_requirements` 与 `artifact_classification`，并按 `current`、`historical`、`missing_manifest_or_receipt`、`orphan`、`broken`、`missing` fail-closed 分类。`stage_artifact_index` 仍是 derived refs-only index，不是 artifact truth、study truth、quality verdict 或 publication readiness authority；当前实现可以从 legacy declared refs fallback 生成 projection，但仅有文件存在而缺 stage-native manifest / owner receipt 时只能归入 historical / missing_manifest_or_receipt，不能算 current artifact delta。
+
 ## 理想形态
 
 理想状态下，MAS 的每个 stage 都应满足同一组形式要求。

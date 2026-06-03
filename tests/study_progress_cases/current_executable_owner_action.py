@@ -748,6 +748,17 @@ def test_progress_first_monitoring_consumes_lane1_stage_artifact_index_action_sh
                     "owner": "idea",
                     "action_type": "materialize_stage_artifact_delta",
                     "required_output_surface": "artifacts/stage_outputs/idea/line_selection_note.md",
+                    "artifact_native_contract_ref": "mas-opl-stage-native-artifact-contract.v1",
+                    "manifest_ref": "artifacts/stage_outputs/idea/stage_artifact_manifest.json",
+                    "receipt_ref": "artifacts/stage_outputs/idea/owner_receipt.json",
+                    "authority_boundary": {
+                        "artifact_first_can_determine_stage_progress": True,
+                        "can_write_mas_truth": False,
+                        "can_authorize_quality_verdict": False,
+                        "can_authorize_publication_readiness": False,
+                        "can_authorize_submission_readiness": False,
+                        "provider_completion_is_paper_progress": False,
+                    },
                     "artifact_first_authority": True,
                     "can_authorize_quality_verdict": False,
                     "can_authorize_submission_readiness": False,
@@ -774,6 +785,19 @@ def test_progress_first_monitoring_consumes_lane1_stage_artifact_index_action_sh
     assert action["target_surface"] == {
         "ref_kind": "stage_artifact_index_required_output",
         "surface_ref": "artifacts/stage_outputs/idea/line_selection_note.md",
+    }
+    assert action["artifact_native_contract_ref"] == "mas-opl-stage-native-artifact-contract.v1"
+    assert action["stage_artifact_contract_refs"] == {
+        "manifest_ref": "artifacts/stage_outputs/idea/stage_artifact_manifest.json",
+        "receipt_ref": "artifacts/stage_outputs/idea/owner_receipt.json",
+    }
+    assert action["authority_boundary"] == {
+        "refs_only": True,
+        "can_write_runtime_owned_surfaces": False,
+        "can_write_paper_or_package": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_ready": False,
+        "stage_artifact_index_is_derived_projection": True,
     }
     assert monitoring["execution_state_kind"] == "executable_owner_action"
     assert monitoring["next_owner"] == "idea"
