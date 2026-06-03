@@ -16,6 +16,7 @@ from . import owner_request_paths
 from . import consumed_transition_currentness
 from . import consumed_writer_handoff_filter
 from . import current_writer_handoff
+from . import persisted_handoff_selection
 from . import publication_owner_materialization_currentness
 from . import runtime_current_dispatch_selection
 from . import writer_handoff_currentness
@@ -461,11 +462,18 @@ def _prefer_current_dispatch(
     scan_payload: Mapping[str, Any] | None,
     study_id: str,
 ) -> dict[str, Any]:
-    if _persisted_quality_repair_writer_handoff_supersedes_consumer_inline(
-        profile=profile,
+    action_type = _text(persisted_dispatch.get("action_type")) or ""
+    if persisted_handoff_selection.persisted_handoff_supersedes_consumer_inline(
         study_id=study_id,
+        action_type=action_type,
         consumer_dispatch=consumer_dispatch,
         persisted_dispatch=persisted_dispatch,
+        owner_request_current=owner_request_matches_dispatch(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
+            dispatch=persisted_dispatch,
+        ),
     ):
         return dict(persisted_dispatch)
     current_study = _scan_study(scan_payload, study_id)
@@ -901,34 +909,6 @@ def _request_owner_route(
     if not request_route:
         request_route = _owner_request_fallback_route(action_type=action_type, dispatch=dispatch)
     return owner_route_part.ensure_owner_route_v2(request_route)
-
-
-def _persisted_quality_repair_writer_handoff_supersedes_consumer_inline(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    consumer_dispatch: Mapping[str, Any],
-    persisted_dispatch: Mapping[str, Any],
-) -> bool:
-    action_type = _text(persisted_dispatch.get("action_type"))
-    if not current_writer_handoff.self_authorized_quality_repair_writer_handoff(
-        study_id=study_id,
-        action_type=action_type or "",
-        dispatch=persisted_dispatch,
-    ):
-        return False
-    if not owner_request_matches_dispatch(
-        profile=profile,
-        study_id=study_id,
-        action_type=action_type or "",
-        dispatch=persisted_dispatch,
-    ):
-        return False
-    return not current_writer_handoff.self_authorized_quality_repair_writer_handoff(
-        study_id=study_id,
-        action_type=_text(consumer_dispatch.get("action_type")) or "",
-        dispatch=consumer_dispatch,
-    )
 
 
 def _owner_request_fallback_route(*, action_type: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
