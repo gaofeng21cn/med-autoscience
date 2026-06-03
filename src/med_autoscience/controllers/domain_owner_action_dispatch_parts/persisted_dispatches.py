@@ -14,6 +14,7 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 from . import owner_request_currentness
 from . import owner_request_paths
 from . import consumed_transition_currentness
+from . import consumed_writer_handoff_filter
 from . import current_writer_handoff
 from . import publication_owner_materialization_currentness
 from . import runtime_current_dispatch_selection
@@ -107,6 +108,11 @@ def selected_dispatches(
         consumer_payload=consumer_payload,
         consumer_latest_path=consumer_latest_path,
     )
+    consumer_dispatches = consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
+        profile=profile,
+        study_id=study_id,
+        dispatches=consumer_dispatches,
+    )
     current_dispatches = runtime_current_dispatch_selection.current_dispatches_only(
         dispatches=consumer_dispatches,
         current_study=current_study,
@@ -123,13 +129,17 @@ def selected_dispatches(
             (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type"))): index
             for index, payload in enumerate(selected)
         }
-        for payload in explicit_action_dispatches(
+        for payload in consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
             profile=profile,
             study_id=study_id,
-            action_types=tuple(sorted(supported_action_types)),
-            supported_action_types=supported_action_types,
-            dispatch_relative_root=dispatch_relative_root,
-            require_current_authority=True,
+            dispatches=explicit_action_dispatches(
+                profile=profile,
+                study_id=study_id,
+                action_types=tuple(sorted(supported_action_types)),
+                supported_action_types=supported_action_types,
+                dispatch_relative_root=dispatch_relative_root,
+                require_current_authority=True,
+            ),
         ):
             action_type = _text(payload.get("action_type")) or ""
             if (
@@ -217,13 +227,17 @@ def selected_dispatches(
         selected.append(payload)
         selected_keys.add(key)
         selected_by_key[key] = len(selected) - 1
-    for payload in explicit_action_dispatches(
+    for payload in consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
         profile=profile,
         study_id=study_id,
-        action_types=action_types,
-        supported_action_types=supported_action_types,
-        dispatch_relative_root=dispatch_relative_root,
-        require_current_authority=True,
+        dispatches=explicit_action_dispatches(
+            profile=profile,
+            study_id=study_id,
+            action_types=action_types,
+            supported_action_types=supported_action_types,
+            dispatch_relative_root=dispatch_relative_root,
+            require_current_authority=True,
+        ),
     ):
         key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         if key in selected_by_key:
@@ -256,7 +270,6 @@ def selected_dispatches(
     if current_selected:
         return current_selected
     return selected
-
 
 def _selected_dispatches_only(
     *,
@@ -378,9 +391,7 @@ def _consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[s
         "owner_reason": owner_reason,
         "active_run_id": _text(current_study.get("active_run_id")),
         "allowed_actions": [action_type],
-        "blocked_actions": [
-            item for item in OWNER_REQUEST_RELATIVE_PATHS if item != action_type
-        ],
+        "blocked_actions": [item for item in OWNER_REQUEST_RELATIVE_PATHS if item != action_type],
         "idempotency_key": f"owner-route::{study_id}::{route_epoch}::{owner}::{owner_reason}",
         "source_refs": {
             "source_eval_id": _text(completion.get("eval_id"))
@@ -695,10 +706,7 @@ def _live_provider_attempt_matches_dispatch(
         return False
     normalized_dispatch_path = dispatch_path.replace("\\", "/")
     normalized_live_ref = live_dispatch_ref.replace("\\", "/")
-    return (
-        normalized_dispatch_path == normalized_live_ref
-        or normalized_dispatch_path.endswith(f"/{normalized_live_ref}")
-    )
+    return normalized_dispatch_path == normalized_live_ref or normalized_dispatch_path.endswith(f"/{normalized_live_ref}")
 
 
 def _dispatch_work_unit_id(dispatch: Mapping[str, Any]) -> str | None:

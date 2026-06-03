@@ -5,6 +5,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.study_transition_receipt_consumption import (
+    default_executor_execution_receipt_consumption,
+)
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -68,7 +71,39 @@ def current_quality_repair_writer_handoff_dispatch(
     dispatch_action_id = _text(dispatch.get("action_id"))
     if batch_action_id and dispatch_action_id and batch_action_id != dispatch_action_id:
         return False
+    if consumed_quality_repair_writer_handoff_dispatch(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+    ):
+        return False
     return True
+
+
+def consumed_quality_repair_writer_handoff_dispatch(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if not self_authorized_quality_repair_writer_handoff(
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+    ):
+        return False
+    route = dispatch_owner_route(dispatch)
+    if not route:
+        return False
+    return bool(
+        default_executor_execution_receipt_consumption(
+            study_root=profile.studies_root / study_id,
+            owner_route=route,
+            actions=[{"action_type": "run_quality_repair_batch"}],
+        )
+    )
 
 
 def self_authorized_quality_repair_writer_handoff(
@@ -143,6 +178,7 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "consumed_quality_repair_writer_handoff_dispatch",
     "current_quality_repair_writer_handoff_dispatch",
     "current_quality_repair_writer_handoff_route",
     "dispatch_owner_route",
