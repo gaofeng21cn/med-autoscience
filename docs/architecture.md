@@ -87,6 +87,8 @@ MAS 的 authority 边界不因 refs-only lifecycle 上收而外移：study truth
 
 科研 lifecycle 审计链不随旧 runtime UX 退役而降级。OPL 可以持有 attempt ledger、file lifecycle shell、generic artifact/memory transport、restore/retention orchestration 和 workbench drilldown；MAS 必须在 reviewer / writer sprint、analysis campaign、publication gate 或 artifact handoff 后留下研究 evidence pack refs、negative / failed-path ledger refs、decision trace refs、artifact lineage / reproducibility refs，或返回命名缺失 ref family 与 route-back owner 的 stable typed blocker。缺这条链时，transport 成功、queue 完成、package 存在或 UI 可见都不能关闭医学研究 authority。
 
+Co-Scientist 论文启发进入 MAS 时，架构落点是 `hypothesis portfolio -> evidence pack -> independent reviewer / human gate -> owner receipt or stable typed blocker`，不是外部 runtime、外部 authority 或 ranking owner。MAS 持有候选假设的医学语义、source readiness、证据包质量、claim restraint、AI reviewer / auditor judgment、publication gate、human/PI decision 和 artifact authority；OPL 只能托管 stage attempt、queue、attempt ledger、refs-only projection、generated/default callers 和 App/workbench shell。Elo、pairwise ranking、proximity cluster、novelty 或 coverage score 只作为 advisory selection / review briefing signal，最多影响探索顺序和候选聚类；缺 MAS owner receipt、独立 reviewer/auditor record、human gate 或 publication gate 时，不能把最高分候选写成 ready、publication-ready、artifact-authorized 或 source-ready。
+
 ## 当前自治与质量合同主线
 
 - `study charter` 冻结方向锁定后的自治边界与论文质量合同。
