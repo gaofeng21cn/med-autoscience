@@ -147,7 +147,7 @@ def _is_git_ignored(root: Path, relative_path: str) -> bool:
 def _remove_path(path: Path) -> None:
     if not path.exists() and not path.is_symlink():
         return
-    if path.is_dir():
+    if path.is_dir() and not path.is_symlink():
         for child in path.iterdir():
             _remove_path(child)
         try:

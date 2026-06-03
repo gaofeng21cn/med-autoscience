@@ -130,3 +130,19 @@ def test_repo_hygiene_audit_remove_path_is_idempotent(tmp_path: Path) -> None:
     module._remove_path(cache_dir)
 
     assert cache_dir.exists() is False
+
+
+def test_repo_hygiene_audit_remove_path_does_not_dereference_directory_symlink(tmp_path: Path) -> None:
+    module = _load_repo_hygiene_module()
+    target_dir = tmp_path / "outside-target"
+    target_dir.mkdir()
+    target_file = target_dir / "keep.txt"
+    target_file.write_text("keep\n", encoding="utf-8")
+    cache_link = tmp_path / "__pycache__"
+    cache_link.symlink_to(target_dir, target_is_directory=True)
+
+    module._remove_path(cache_link)
+
+    assert cache_link.exists() is False
+    assert cache_link.is_symlink() is False
+    assert target_file.read_text(encoding="utf-8") == "keep\n"
