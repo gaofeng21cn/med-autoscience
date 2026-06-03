@@ -484,6 +484,37 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
             "no_parallel_blocker_lineage_schema": True,
             "no_domain_runtime_fork": True,
         },
+        "purpose_first_adapter_thinning_policy": {
+            "policy_id": "mas.purpose_first_adapter_thinning.v1",
+            "default_retained_surface_roles": [
+                "refs_only_adapter",
+                "domain_handler_target",
+                "minimal_authority_function",
+                "migration_input",
+                "history_or_tombstone_provenance",
+            ],
+            "default_operator_delta_shape": (
+                "paper_progress_delta_or_mas_owned_typed_blocker"
+            ),
+            "physical_delete_required_gates": [
+                "replacement_parity",
+                "no_active_caller",
+                "owner_receipt_or_typed_blocker",
+                "no_forbidden_write",
+                "tombstone_or_provenance",
+            ],
+            "evidence_tail_boundary": {
+                "structural_conformance_is_domain_ready": False,
+                "platform_repair_or_read_model_currentness_is_paper_progress": False,
+                "provider_completion_is_publication_ready": False,
+                "generated_surface_can_claim_production_ready": False,
+                "missing_paper_research_human_gate_returns": (
+                    "mas_owned_typed_blocker"
+                ),
+            },
+            "private_surface_policy_ref": "contracts/functional_privatization_audit.json",
+            "active_plan_ref": "docs/active/mas-ideal-state-gap-plan.md",
+        },
         "app_projection_policy": {
             "app_consumes_shared_progress_projection_only": True,
             "app_can_read_domain_body": False,

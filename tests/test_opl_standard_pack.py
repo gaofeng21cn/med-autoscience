@@ -164,6 +164,36 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     ]
     assert foundry_series["domain_adapter_policy"]["no_parallel_progress_schema"] is True
     assert foundry_series["domain_adapter_policy"]["no_parallel_blocker_lineage_schema"] is True
+    thinning = foundry_series["purpose_first_adapter_thinning_policy"]
+    assert thinning["default_retained_surface_roles"] == [
+        "refs_only_adapter",
+        "domain_handler_target",
+        "minimal_authority_function",
+        "migration_input",
+        "history_or_tombstone_provenance",
+    ]
+    assert thinning["default_operator_delta_shape"] == (
+        "paper_progress_delta_or_mas_owned_typed_blocker"
+    )
+    assert thinning["physical_delete_required_gates"] == [
+        "replacement_parity",
+        "no_active_caller",
+        "owner_receipt_or_typed_blocker",
+        "no_forbidden_write",
+        "tombstone_or_provenance",
+    ]
+    assert (
+        thinning["evidence_tail_boundary"][
+            "platform_repair_or_read_model_currentness_is_paper_progress"
+        ]
+        is False
+    )
+    assert (
+        thinning["evidence_tail_boundary"][
+            "missing_paper_research_human_gate_returns"
+        ]
+        == "mas_owned_typed_blocker"
+    )
     assert (
         foundry_series["app_projection_policy"]["app_consumes_shared_progress_projection_only"]
         is True
