@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-03：runtime event JSONL 必须保持 contract-bounded，oversized 历史日志走 refs-only slimming
+
+- 决策：`RuntimeEventRecord` 与 `NativeRuntimeEventRecord` 写入 `status_snapshot` / `outer_loop_input` 时，只保留 runtime event contract 字段和显式 optional 字段；`last_orphan_worker_cleanup`、`last_worker_cleanup` 等 legacy worker cleanup 明细不得进入 runtime event JSONL。worker lease termination 明细属于 worker cleanup diagnostic body，不是 MAS runtime event snapshot contract。
+- 决策：MAS runtime storage maintenance 持有 `runtime maintain-storage` / `runtime storage-audit` 稳定 CLI 入口，并在 `maintain_runtime_storage` / `maintain_quest_runtime_storage` 中执行 oversized runtime JSONL slimming：原始 `.jsonl` 先 gzip 到 `artifacts/runtime/runtime_storage_maintenance/oversized_jsonl/*.jsonl.gz`，原路径替换为 `runtime_oversized_jsonl_slimming` slim ref，保留 head/tail、line count、sha256、archive path 和 release-byte receipt。
+- 决策：对 live runtime，仍以 quest runtime snapshot 为 gate；`allow_live_runtime=false` 且存在 active run 时不得对该 quest 执行 storage maintenance。对 stopped、waiting 或 orphan/legacy quest，可以使用 `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --slim-jsonl-threshold-mb 8` 做 refs-only 历史日志瘦身。不得复活旧 `runtime_transport/mas_runtime_core*` 或依赖旧 MDS backend script 来解决 MAS-owned JSONL 膨胀。
+- 理由：DM-CVD DM002/DM003 暴露出 `artifacts/runtime/mas_runtime_events.jsonl` 不是行数爆炸，而是单条 `worker_lease_termination` 与 turn snapshot 携带 1100+ 条 worker cleanup termination 明细，导致 2 万多行膨胀到 5-7GB。根因是 snapshot contract 未白名单裁剪，加上 MAS 本地 maintenance 缺少 oversized JSONL refs-only slimming 入口。
+- 影响：这是 runtime event contract hygiene 与 storage maintenance 修复，不改 DM-CVD study truth、runtime-owned `.ds/runtime_state.json`、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、manuscript/current package 或 quality verdict。后续排查同类磁盘异常时，先看 `artifacts/runtime/mas_runtime_events.jsonl` 是否为 slim ref，再读 `artifacts/runtime/runtime_storage_maintenance/latest.json` 的 `jsonl_slimming` receipt；live quest 先停车或等待 inactive 后再维护。
+
 ## 2026-06-02：AI reviewer record-bound publication eval 必须剥离 workflow-only 字段
 
 - 决策：`request_bound_ai_reviewer_record` 生成 `publication_eval/latest.json` payload 时，只能保留 `PublicationEvalRecord` schema 字段与 `PublicationEvalAssessmentProvenance` schema 字段。workflow trace、input digest scratch、request binding helper 字段、diagnostic-only 字段只能留在 reviewer operating system / trace surfaces，不能混入权威 publication eval record 的 assessment provenance。
