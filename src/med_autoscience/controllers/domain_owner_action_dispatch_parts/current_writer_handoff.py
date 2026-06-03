@@ -94,7 +94,7 @@ def consumed_quality_repair_writer_handoff_dispatch(
         dispatch=dispatch,
     ):
         return False
-    route = dispatch_owner_route(dispatch)
+    route = raw_dispatch_owner_route(dispatch) or dispatch_owner_route(dispatch)
     if not route:
         return False
     return bool(
@@ -160,6 +160,10 @@ def dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     )
 
 
+def raw_dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    return _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
+
+
 def _read_json_object(path: Path) -> dict[str, Any] | None:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -183,5 +187,6 @@ __all__ = [
     "current_quality_repair_writer_handoff_route",
     "dispatch_owner_route",
     "dispatch_source_eval_id",
+    "raw_dispatch_owner_route",
     "self_authorized_quality_repair_writer_handoff",
 ]

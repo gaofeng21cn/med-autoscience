@@ -55,7 +55,7 @@ def test_execute_dispatch_does_not_execute_consumed_quality_repair_handoff_when_
             "runtime_health_epoch": None,
             "work_unit_fingerprint": "publication-blockers::old-writer",
             "source_fingerprint": "publication-blockers::old-writer",
-            "route_epoch": "publication-eval::003::ai-reviewer-record::old",
+            "route_epoch": "quality-repair-writer-handoff::003::publication-eval::old",
             "failure_signature": "manuscript_story_surface_delta_missing",
             "owner_reason": "manuscript_story_surface_delta_missing",
             "source_refs": {
@@ -100,7 +100,14 @@ def test_execute_dispatch_does_not_execute_consumed_quality_repair_handoff_when_
         "paper/review/**",
     ]
     writer_path = dispatch_dir / "run_quality_repair_batch.json"
+    immutable_writer_path = dispatch_dir / "immutable" / "run_quality_repair_batch" / "dd76a2fe47b4c2bcc0771490.json"
+    writer_dispatch["refs"] = {
+        "dispatch_path": str(writer_path),
+        "immutable_dispatch_path": str(immutable_writer_path),
+        "stage_packet_path": str(immutable_writer_path),
+    }
     _write_json(writer_path, writer_dispatch)
+    _write_json(immutable_writer_path, writer_dispatch)
     _write_json(
         study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
         {
@@ -126,8 +133,8 @@ def test_execute_dispatch_does_not_execute_consumed_quality_repair_handoff_when_
             "route_outcome": "write_repair_delta_recorded",
             "source_eval_id": "publication-eval::003::ai-reviewer-record::old",
             "stage_packet_ref": (
-                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
-                "run_quality_repair_batch.json"
+                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/immutable/"
+                "run_quality_repair_batch/dd76a2fe47b4c2bcc0771490.json"
             ),
             "artifact_delta": {
                 "status": "materialized",
@@ -176,7 +183,7 @@ def test_execute_dispatch_does_not_execute_consumed_quality_repair_handoff_when_
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
             "default_executor_dispatches": [
-                {**writer_dispatch, "refs": {"dispatch_path": str(writer_path)}},
+                writer_dispatch,
             ],
         },
     )
