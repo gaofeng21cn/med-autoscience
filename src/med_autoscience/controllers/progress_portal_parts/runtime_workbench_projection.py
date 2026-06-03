@@ -22,6 +22,7 @@ from .stage_review import runtime_stage_review_summary
 
 PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
 PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "artifacts/runtime/progress_portal/studies/{study_id}/latest.json"
+STAGE_KERNEL_TRUTH_SOURCE = "stage_kernel_projection"
 
 
 def build_runtime_workbench_projection(
@@ -88,6 +89,9 @@ def build_runtime_workbench_projection(
             "opl_role": "projection_consumer_and_action_transport_only",
             "mas_truth_owner": True,
             "page_scope": page_scope,
+            "writes_mas_truth": False,
+            "claims_publication_ready": False,
+            "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
             "forbidden_writes": [
                 "study_truth",
                 "publication_judgment",
@@ -186,6 +190,7 @@ def _selected_workbench_study(
     )
     progress_first = build_progress_first_operator_projection(progress)
     stage_artifact_index = _stage_artifact_index_projection(progress)
+    stage_operating_layer = _stage_operating_layer_projection(progress)
     return {
         "study_id": study_id,
         "display_title": study_id,
@@ -204,6 +209,8 @@ def _selected_workbench_study(
         "source_refs": source_refs[:12],
         "links": _workbench_links(study_id, selected=True, artifact_refs=_stage_review_artifact_refs(stage_review)),
         "actions": _workbench_actions(),
+        "information_hierarchy": _workbench_information_hierarchy(),
+        "stage_operating_layer": stage_operating_layer,
         "workbench": dict(study_workbench),
         "stage_review": stage_review,
         **({"stage_artifact_index": stage_artifact_index} if stage_artifact_index else {}),
@@ -478,6 +485,10 @@ def _stage_artifact_index_lane(progress: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "lane_id": "stage_artifact_index",
         "status": "observed",
+        "diagnostic_tier": "secondary",
+        "derived_projection": True,
+        "is_truth_source": False,
+        "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
         "surface_kind": "stage_artifact_index",
         "current_stage": _non_empty_text(payload.get("current_stage")),
         "next_owner_action": dict(_mapping(payload.get("next_owner_action"))),
@@ -486,6 +497,46 @@ def _stage_artifact_index_lane(progress: Mapping[str, Any]) -> dict[str, Any]:
         "stages": [dict(item) for item in payload.get("stages") or [] if isinstance(item, Mapping)],
         "authority": _workbench_projection_authority(),
     }
+
+
+def _stage_operating_layer_projection(progress: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _mapping(progress.get(STAGE_KERNEL_TRUTH_SOURCE))
+    if _non_empty_text(payload.get("surface_kind")) != STAGE_KERNEL_TRUTH_SOURCE:
+        return {
+            "surface_kind": "mas_opl_stage_operating_layer",
+            "schema_version": 1,
+            "status": "pending",
+            "display_role": "primary_progress",
+            "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
+            "summary": "等待 MAS stage_kernel_projection；Workbench fail-closed 为 pending lane。",
+            "pending_lane": {
+                "required_surface": STAGE_KERNEL_TRUTH_SOURCE,
+                "display_only": True,
+                "fail_closed": True,
+            },
+            "authority": _stage_operating_layer_authority(),
+        }
+    return {
+        "surface_kind": "mas_opl_stage_operating_layer",
+        "schema_version": 1,
+        "status": "observed",
+        "display_role": "primary_progress",
+        "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
+        "current_stage": _non_empty_text(payload.get("current_stage")),
+        "artifact_roles": _mapping_items(payload.get("artifact_roles")),
+        "missing_outputs": _string_list(payload.get("missing_outputs")),
+        "accepted_receipts": _string_list(payload.get("accepted_receipts")),
+        "blocker": dict(_mapping(payload.get("blocker"))),
+        "next_owner": dict(_mapping(payload.get("next_owner"))),
+        "provider_liveness": dict(_mapping(payload.get("provider_liveness"))),
+        "authority": _stage_operating_layer_authority(),
+    }
+
+
+def _mapping_items(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
 
 
 def _typed_blocker_lane(
@@ -547,11 +598,40 @@ def _workbench_projection_authority() -> dict[str, Any]:
     return {
         "opl_role": "workbench_projection_consumer_only",
         "writes_mas_truth": False,
+        "claims_publication_ready": False,
         "body_free": True,
         "can_authorize_publication_readiness": False,
         "can_authorize_quality_verdict": False,
         "can_authorize_artifact_mutation": False,
         "can_write_memory_body": False,
+        "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
+    }
+
+
+def _stage_operating_layer_authority() -> dict[str, Any]:
+    return {
+        "opl_role": "stage_operating_layer_projection_consumer_only",
+        "writes_mas_truth": False,
+        "claims_publication_ready": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_artifact_mutation": False,
+        "can_write_artifact_body": False,
+        "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
+    }
+
+
+def _workbench_information_hierarchy() -> dict[str, Any]:
+    return {
+        "primary_progress": ["stage_operating_layer"],
+        "secondary_diagnostics": [
+            "stage_artifact_index",
+            "progress_first",
+            "paper_route_lens",
+            "reference_projection",
+        ],
+        "diagnostic_surfaces_are_primary_progress": False,
+        "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
     }
 
 
