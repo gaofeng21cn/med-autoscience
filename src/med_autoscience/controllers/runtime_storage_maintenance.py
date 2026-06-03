@@ -38,6 +38,7 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.dataset_reten
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 from med_autoscience.runtime_protocol import quest_state
+from med_autoscience.runtime_protocol import refs_only_state_index_pilot as refs_only_state_index_pilot_module
 from med_autoscience.runtime_protocol.study_runtime import resolve_study_runtime_paths
 
 
@@ -410,6 +411,7 @@ def audit_workspace_storage(
     restore_proof_buckets: Iterable[str] | None = None,
     reinitialize_empty_workspace_git: bool = False,
     retire_workspace_root_git: bool = False,
+    refs_only_state_index_pilot: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     workspace_root = profile.workspace_root.expanduser().resolve()
@@ -495,6 +497,7 @@ def audit_workspace_storage(
                     include_parked_controller_stop=include_parked_controller_stop,
                     include_operator_confirmed_parked_active=include_operator_confirmed_parked_active,
                     restore_proof_buckets=selected_restore_proof_buckets,
+                    refs_only_state_index_pilot=refs_only_state_index_pilot,
                 )
                 workspace_archive_index = _record_workspace_archive_ref(
                     workspace_root=workspace_root,
@@ -617,6 +620,7 @@ def audit_workspace_storage(
             "git_only": git_only,
             "reinitialize_empty_workspace_git": reinitialize_empty_workspace_git,
             "retire_workspace_root_git": retire_workspace_root_git,
+            "refs_only_state_index_pilot": refs_only_state_index_pilot,
         },
         "summary": {
             "study_count": len(study_reports),
@@ -718,6 +722,7 @@ def maintain_runtime_storage(
     include_parked_controller_stop: bool = False,
     include_operator_confirmed_parked_active: bool = False,
     restore_proof_buckets: Iterable[str] | None = None,
+    refs_only_state_index_pilot: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     selected_restore_proof_buckets = _restore_proof_buckets(restore_proof_buckets)
@@ -752,6 +757,7 @@ def maintain_runtime_storage(
         "include_parked_controller_stop": include_parked_controller_stop,
         "include_operator_confirmed_parked_active": include_operator_confirmed_parked_active,
         "restore_proof_buckets": list(selected_restore_proof_buckets),
+        "refs_only_state_index_pilot_enabled": refs_only_state_index_pilot,
         "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
             report_mode="study_runtime_storage_maintenance",
         ),
@@ -853,6 +859,21 @@ def maintain_runtime_storage(
             else:
                 result["status"] = "maintained"
                 result["summary"] = "runtime storage maintenance 已完成。"
+
+    if refs_only_state_index_pilot:
+        if result.get("status") == "maintained":
+            result["refs_only_state_index_pilot"] = refs_only_state_index_pilot_module.rebuild_refs_only_state_index(
+                workspace_root=profile.workspace_root,
+                study_root=resolved_study_root,
+                quest_root=resolved_quest_root,
+            )
+        else:
+            result["refs_only_state_index_pilot"] = {
+                "surface_kind": refs_only_state_index_pilot_module.SURFACE_KIND,
+                "status": "skipped",
+                "skip_reason": str(result.get("status") or "storage_maintenance_not_maintained"),
+                "body_included": False,
+            }
 
     result["quest_runtime_after"] = _quest_runtime_snapshot(resolved_quest_root)
     result["size_after"] = _size_summary(

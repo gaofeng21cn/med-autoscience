@@ -101,6 +101,7 @@ def _add_storage_cleanup_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--head-lines", type=int, default=200)
     parser.add_argument("--tail-lines", type=int, default=200)
     parser.add_argument("--allow-live-runtime", action="store_true")
+    parser.add_argument("--refs-only-state-index-pilot", action="store_true")
 
 
 def _add_restore_proof_compaction_options(parser: argparse.ArgumentParser) -> None:
@@ -128,6 +129,7 @@ def _storage_maintenance_kwargs(args: argparse.Namespace) -> dict[str, Any]:
         "restore_proof_buckets": tuple(args.restore_proof_buckets or ()),
         "include_parked_controller_stop": bool(args.include_parked_controller_stop),
         "include_operator_confirmed_parked_active": bool(args.include_operator_confirmed_parked_active),
+        "refs_only_state_index_pilot": bool(args.refs_only_state_index_pilot),
     }
 
 

@@ -32,6 +32,38 @@
     "contracts/generated_surface_handoff.json",
     "contracts/action_catalog.json"
   ],
+  "mas_refs_only_pilot": {
+    "surface_kind": "mas_runtime_refs_only_state_index_pilot",
+    "implementation_ref": "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py",
+    "maintenance_entry_refs": [
+      "medautosci runtime maintain-storage --refs-only-state-index-pilot",
+      "medautosci runtime storage-audit --apply --refs-only-state-index-pilot"
+    ],
+    "sqlite_ref": "artifacts/runtime/mas_refs_only_state_index_pilot.sqlite",
+    "indexed_ref_families": [
+      "cursor",
+      "index",
+      "lifecycle",
+      "outbox",
+      "receipt_ref"
+    ],
+    "body_included": false,
+    "derived_index_rebuildable": true,
+    "sqlite_record_counts_as_stage_complete": false,
+    "generic_state_index_owner": "one-person-lab",
+    "forbidden_payload_roles": [
+      "study_truth_body",
+      "publication_eval_body",
+      "controller_decision_body",
+      "manuscript_body",
+      "paper_package_body",
+      "evidence_ledger_body",
+      "review_ledger_body",
+      "memory_body",
+      "artifact_body",
+      "owner_receipt_authority"
+    ]
+  },
   "compaction_policy": {
     "small_file_runtime_refs_may_be_indexed": true,
     "large_payload_strategy": "store_preview_hash_and_refs_never_body",

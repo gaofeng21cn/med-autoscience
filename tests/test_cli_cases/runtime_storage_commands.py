@@ -33,6 +33,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
+        refs_only_state_index_pilot: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -51,6 +52,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
+        called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
         return {"status": "maintained", "quest_id": "quest-001"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "maintain_runtime_storage", fake_maintain_runtime_storage)
@@ -81,6 +83,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
             "--tail-lines",
             "120",
             "--allow-live-runtime",
+            "--refs-only-state-index-pilot",
         ]
     )
     captured = capsys.readouterr()
@@ -103,6 +106,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
     assert called["restore_proof_buckets"] == ()
     assert called["include_parked_controller_stop"] is False
     assert called["include_operator_confirmed_parked_active"] is False
+    assert called["refs_only_state_index_pilot"] is True
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -135,6 +139,7 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
+        refs_only_state_index_pilot: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["quest_root"] = quest_root
@@ -142,6 +147,7 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
+        called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
         return {"status": "maintained", "quest_id": "legacy-quest"}
 
     monkeypatch.setattr(
@@ -173,6 +179,7 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
     assert called["restore_proof_buckets"] == ("runs",)
     assert called["include_parked_controller_stop"] is True
     assert called["include_operator_confirmed_parked_active"] is False
+    assert called["refs_only_state_index_pilot"] is False
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -206,6 +213,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
+        refs_only_state_index_pilot: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -229,6 +237,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
+        called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
         return {"mode": "apply", "latest_report_path": "storage_audit/latest.json"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -258,6 +267,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
             "--tail-lines",
             "120",
             "--allow-live-runtime",
+            "--refs-only-state-index-pilot",
         ]
     )
     captured = capsys.readouterr()
@@ -285,6 +295,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["restore_proof_buckets"] == ()
     assert called["include_parked_controller_stop"] is False
     assert called["include_operator_confirmed_parked_active"] is False
+    assert called["refs_only_state_index_pilot"] is True
     assert json.loads(captured.out)["latest_report_path"] == "storage_audit/latest.json"
 
 
@@ -322,6 +333,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
+        refs_only_state_index_pilot: bool,
     ) -> dict[str, object]:
         called["study_id"] = study_id
         called["apply"] = apply
@@ -330,6 +342,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
+        called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
         return {"mode": "apply" if apply else "dry-run", "restore_proof_compaction": restore_proof_compaction}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -360,6 +373,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         "restore_proof_buckets": ("cold_archive",),
         "include_parked_controller_stop": True,
         "include_operator_confirmed_parked_active": True,
+        "refs_only_state_index_pilot": False,
     }
     assert json.loads(captured.out)["restore_proof_compaction"] is True
 

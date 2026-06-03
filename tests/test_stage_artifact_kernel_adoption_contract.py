@@ -108,6 +108,41 @@ def test_legacy_mas_sqlite_policy_remains_domain_authority_refs_not_generic_runt
     assert policy["mas_can_claim_generic_read_model_owner"] is False
 
 
+def test_mas_refs_only_state_index_pilot_is_body_free_and_opt_in() -> None:
+    pilot = _contract()["state_index_kernel_adoption"]["mas_refs_only_pilot"]
+
+    assert pilot["surface_kind"] == "mas_runtime_refs_only_state_index_pilot"
+    assert pilot["implementation_ref"] == "src/med_autoscience/runtime_protocol/refs_only_state_index_pilot.py"
+    assert pilot["maintenance_entry_refs"] == [
+        "medautosci runtime maintain-storage --refs-only-state-index-pilot",
+        "medautosci runtime storage-audit --apply --refs-only-state-index-pilot",
+    ]
+    assert pilot["sqlite_ref"] == "artifacts/runtime/mas_refs_only_state_index_pilot.sqlite"
+    assert pilot["indexed_ref_families"] == [
+        "cursor",
+        "index",
+        "lifecycle",
+        "outbox",
+        "receipt_ref",
+    ]
+    assert pilot["body_included"] is False
+    assert pilot["derived_index_rebuildable"] is True
+    assert pilot["sqlite_record_counts_as_stage_complete"] is False
+    assert pilot["generic_state_index_owner"] == "one-person-lab"
+    assert {
+        "study_truth_body",
+        "publication_eval_body",
+        "controller_decision_body",
+        "manuscript_body",
+        "paper_package_body",
+        "evidence_ledger_body",
+        "review_ledger_body",
+        "memory_body",
+        "artifact_body",
+        "owner_receipt_authority",
+    } <= set(pilot["forbidden_payload_roles"])
+
+
 def test_operating_layer_landed_surfaces_are_read_only_and_projected() -> None:
     surfaces = _contract()["operating_layer_landed_surfaces"]
 
