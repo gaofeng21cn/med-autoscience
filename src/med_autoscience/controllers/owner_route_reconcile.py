@@ -16,7 +16,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import default_exec
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract, evidence_adoption
 from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.owner_route_reconcile_parts import lifecycle_projection, opl_provider_attempts
-from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth, paper_progress_stall_projection
+from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth, paper_progress_stall_projection, path_utils
 from med_autoscience.controllers.owner_route_reconcile_parts import projection_errors, provider_readiness_runtime_health
 from med_autoscience.controllers.owner_route_reconcile_parts import publication_gate_actions, queue_slo
 from med_autoscience.controllers.owner_route_reconcile_parts import repo_write_policy, request_packets
@@ -56,11 +56,6 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _path_or_none(value: object) -> Path | None:
-    text = _text(value)
-    return Path(text).expanduser().resolve() if text else None
 
 
 resolve_owner_route_reconcile_study_ids = study_identity.resolve_owner_route_reconcile_study_ids
@@ -757,6 +752,16 @@ def _study_projection(
         live_attempt=live_provider_attempt,
         actions=actions,
     )
+    live_attempt_overlay = stale_redrive_resolution.live_attempt_overlay(
+        live_attempt=live_provider_attempt,
+        actions=actions,
+        receipt=default_executor_execution_receipt_consumption,
+    )
+    if live_attempt_overlay:
+        default_executor_execution_receipt_consumption = _mapping(live_attempt_overlay.get("receipt"))
+        blocked_reason = why_not_applied = None
+        next_owner = "supervisor_only/live_provider_attempt"
+        lifecycle = {}
     repeat_guard = repeat_suppression.scan_repeat_suppression(
         previous_payload=previous_payload,
         study_id=study_id,
@@ -774,7 +779,7 @@ def _study_projection(
             workspace_root=profile.workspace_root,
             study_id=study_id,
             quest_id=resolved_quest_id,
-            quest_root=_path_or_none(status_payload.get("quest_root")),
+            quest_root=path_utils.path_or_none(status_payload.get("quest_root")),
             publication_eval_payload=publication_eval_payload,
             actions=actions,
         )

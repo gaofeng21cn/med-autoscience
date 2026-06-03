@@ -124,10 +124,86 @@ def test_opl_bin_prefers_packaged_runtime_over_dev_checkout(monkeypatch, tmp_pat
     dev_bin.write_text("#!/bin/sh\n", encoding="utf-8")
     monkeypatch.delenv("OPL_BIN", raising=False)
     monkeypatch.delenv("OPL_FAMILY_RUNTIME_BIN", raising=False)
+    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
     monkeypatch.setattr(module, "PACKAGED_OPL_BIN", packaged_bin)
     monkeypatch.setattr(module, "DEV_OPL_BIN", dev_bin)
 
     assert module._opl_bin() == packaged_bin
+
+
+def test_current_provider_readiness_uses_current_cli_over_stale_packaged_runtime(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    path_bin = tmp_path / "homebrew" / "opl"
+    packaged_bin = tmp_path / "runtime" / "current" / "bin" / "opl"
+    dev_bin = tmp_path / "one-person-lab" / "bin" / "opl"
+    for path in (path_bin, packaged_bin, dev_bin):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("#!/bin/sh\n", encoding="utf-8")
+    calls: list[Path] = []
+
+    monkeypatch.delenv("OPL_BIN", raising=False)
+    monkeypatch.delenv("OPL_FAMILY_RUNTIME_BIN", raising=False)
+    monkeypatch.setattr(module.shutil, "which", lambda _name: str(path_bin))
+    monkeypatch.setattr(module, "PACKAGED_OPL_BIN", packaged_bin)
+    monkeypatch.setattr(module, "DEV_OPL_BIN", dev_bin)
+
+    def fake_run_opl_json(opl_bin: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        assert args == ("family-runtime", "status", "--provider", "temporal", "--json")
+        assert timeout_seconds > 0
+        calls.append(opl_bin)
+        if opl_bin == packaged_bin:
+            return _opl_status_payload(provider_ready=False, worker_ready=False, source_current=False)
+        if opl_bin == path_bin:
+            return _opl_status_payload(provider_ready=True, worker_ready=True, source_current=True)
+        raise AssertionError(opl_bin)
+
+    monkeypatch.setattr(module, "_run_opl_json", fake_run_opl_json)
+
+    readiness = module.current_provider_readiness(timeout_seconds=2.0)
+
+    assert calls == [path_bin]
+    assert readiness["provider_ready"] is True
+    assert readiness["worker_ready"] is True
+    assert readiness["managed_worker_source_current"] is True
+
+
+def test_current_provider_readiness_can_skip_stale_packaged_for_current_dev_cli(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    packaged_bin = tmp_path / "runtime" / "current" / "bin" / "opl"
+    dev_bin = tmp_path / "one-person-lab" / "bin" / "opl"
+    for path in (packaged_bin, dev_bin):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("#!/bin/sh\n", encoding="utf-8")
+    calls: list[Path] = []
+
+    monkeypatch.delenv("OPL_BIN", raising=False)
+    monkeypatch.delenv("OPL_FAMILY_RUNTIME_BIN", raising=False)
+    monkeypatch.setattr(module.shutil, "which", lambda _name: None)
+    monkeypatch.setattr(module, "PACKAGED_OPL_BIN", packaged_bin)
+    monkeypatch.setattr(module, "DEV_OPL_BIN", dev_bin)
+
+    def fake_run_opl_json(opl_bin: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        assert args == ("family-runtime", "status", "--provider", "temporal", "--json")
+        assert timeout_seconds > 0
+        calls.append(opl_bin)
+        if opl_bin == packaged_bin:
+            return _opl_status_payload(provider_ready=False, worker_ready=False, source_current=False)
+        if opl_bin == dev_bin:
+            return _opl_status_payload(provider_ready=True, worker_ready=True, source_current=True)
+        raise AssertionError(opl_bin)
+
+    monkeypatch.setattr(module, "_run_opl_json", fake_run_opl_json)
+
+    readiness = module.current_provider_readiness(timeout_seconds=2.0)
+
+    assert calls == [packaged_bin, dev_bin]
+    assert readiness["provider_ready"] is True
+    assert readiness["worker_ready"] is True
+    assert readiness["managed_worker_source_current"] is True
 
 
 def test_opl_bin_keeps_explicit_env_override(monkeypatch, tmp_path: Path) -> None:
@@ -145,6 +221,41 @@ def test_opl_bin_keeps_explicit_env_override(monkeypatch, tmp_path: Path) -> Non
     monkeypatch.setattr(module, "PACKAGED_OPL_BIN", packaged_bin)
 
     assert module._opl_bin() == override_bin
+
+
+def _opl_status_payload(*, provider_ready: bool, worker_ready: bool, source_current: bool) -> dict:
+    return {
+        "family_runtime": {
+            "readiness": {
+                "provider_ready": provider_ready,
+                "full_online_ready": provider_ready,
+                "durable_online_ready": provider_ready,
+                "degraded": not provider_ready,
+                "degraded_reason": None if provider_ready else "temporal_worker_source_stale",
+                "selected_provider_can_replace_domain_daemons": provider_ready,
+            },
+            "provider_runtime": {
+                "providers": {
+                    "temporal": {
+                        "details": {
+                            "worker_ready": worker_ready,
+                            "task_queue": "opl-stage-attempts",
+                            "worker_readiness": {
+                                "managed_worker_source_current": source_current,
+                                "managed_worker_pid": 12345 if worker_ready else None,
+                            },
+                        }
+                    }
+                }
+            },
+            "periodic_execution": {
+                "authority_boundary": {
+                    "can_write_domain_truth": False,
+                    "can_authorize_publication_ready": False,
+                }
+            },
+        }
+    }
 
 
 def test_live_provider_attempt_default_budget_allows_temporal_queue_inspect(

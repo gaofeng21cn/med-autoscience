@@ -31,6 +31,62 @@ def annotate_superseded_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def superseded_by_live_provider_attempt(
+    *,
+    live_attempt: Mapping[str, Any] | None,
+    actions: list[Mapping[str, Any]],
+    receipt: Mapping[str, Any] | None,
+) -> bool:
+    if _mapping(live_attempt).get("running_provider_attempt") is not True:
+        return False
+    if actions:
+        return False
+    return _text(_mapping(receipt).get("blocked_reason")) == REDRIVE_BUDGET_EXHAUSTED_REASON
+
+
+def annotate_live_attempt_superseded_receipt(
+    receipt: Mapping[str, Any],
+    *,
+    live_attempt: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    attempt = _mapping(live_attempt)
+    return {
+        **dict(receipt),
+        "stale_blocker_resolution": {
+            "status": "superseded",
+            "blocker_type": REDRIVE_BUDGET_EXHAUSTED_REASON,
+            "basis": "live_provider_attempt_running",
+            "active_stage_attempt_id": _text(attempt.get("active_stage_attempt_id")),
+            "active_run_id": _text(attempt.get("active_run_id")),
+        },
+        "next_action": "honor_live_provider_attempt_after_stale_redrive_blocker",
+    }
+
+
+def live_attempt_overlay(
+    *,
+    live_attempt: Mapping[str, Any] | None,
+    actions: list[Mapping[str, Any]],
+    receipt: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not superseded_by_live_provider_attempt(
+        live_attempt=live_attempt,
+        actions=actions,
+        receipt=receipt,
+    ):
+        return {}
+    return {
+        "receipt": annotate_live_attempt_superseded_receipt(
+            _mapping(receipt),
+            live_attempt=live_attempt,
+        ),
+        "blocked_reason": None,
+        "why_not_applied": None,
+        "next_owner": "supervisor_only/live_provider_attempt",
+        "lifecycle": {},
+    }
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -42,6 +98,9 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "REDRIVE_BUDGET_EXHAUSTED_REASON",
+    "annotate_live_attempt_superseded_receipt",
     "annotate_superseded_receipt",
+    "live_attempt_overlay",
+    "superseded_by_live_provider_attempt",
     "superseded_by_current_delta",
 ]

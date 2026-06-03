@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import signal
+import shutil
 import subprocess
 import time
 from collections.abc import Iterable, Mapping
@@ -13,6 +14,7 @@ from typing import Any
 LIVE_ATTEMPT_STATES = {"running", "checkpointed", "human_gate"}
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
+PATH_OPL_BIN = "opl"
 DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS = 8.0
 STAGE_PROGRESS_LOG_KEYS = (
     "surface_kind",
@@ -105,14 +107,9 @@ def current_provider_readiness(
     *,
     timeout_seconds: float = 3.0,
 ) -> dict[str, Any] | None:
-    opl_bin = _opl_bin()
-    if opl_bin is None:
+    status_payload = _current_provider_status_payload(timeout_seconds=timeout_seconds)
+    if status_payload is None:
         return None
-    status_payload = _run_opl_json(
-        opl_bin,
-        ("family-runtime", "status", "--provider", "temporal", "--json"),
-        timeout_seconds=timeout_seconds,
-    )
     return _provider_readiness_from_status(status_payload)
 
 
@@ -212,10 +209,72 @@ def _opl_bin() -> Path | None:
     if configured:
         path = Path(configured).expanduser()
         return path if path.exists() else None
-    for path in (PACKAGED_OPL_BIN, DEV_OPL_BIN):
+    for path in _ranked_opl_bin_candidates():
         if path.exists():
             return path
     return None
+
+
+def _current_provider_status_payload(*, timeout_seconds: float) -> dict[str, Any] | None:
+    configured = os.environ.get("OPL_BIN") or os.environ.get("OPL_FAMILY_RUNTIME_BIN")
+    if configured:
+        path = Path(configured).expanduser()
+        if not path.exists():
+            return None
+        return _run_opl_json(
+            path,
+            ("family-runtime", "status", "--provider", "temporal", "--json"),
+            timeout_seconds=timeout_seconds,
+        )
+    candidates = [path for path in _ranked_opl_bin_candidates() if path.exists()]
+    if not candidates:
+        return None
+    deadline = time.monotonic() + max(timeout_seconds, 0.0)
+    first_payload: dict[str, Any] | None = None
+    for candidate in candidates:
+        remaining_seconds = _remaining_seconds(deadline)
+        if remaining_seconds <= 0:
+            break
+        payload = _run_opl_json(
+            candidate,
+            ("family-runtime", "status", "--provider", "temporal", "--json"),
+            timeout_seconds=remaining_seconds,
+        )
+        if first_payload is None:
+            first_payload = payload
+        readiness = _provider_readiness_from_status(payload)
+        if _provider_readiness_is_current(readiness):
+            return payload
+    return first_payload
+
+
+def _ranked_opl_bin_candidates() -> list[Path]:
+    candidates: list[Path] = []
+    path_candidate = shutil.which(PATH_OPL_BIN)
+    if path_candidate is not None:
+        candidates.append(Path(path_candidate).expanduser())
+    candidates.extend([PACKAGED_OPL_BIN, DEV_OPL_BIN])
+    ranked: list[Path] = []
+    seen: set[Path] = set()
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+        except OSError:
+            resolved = candidate
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        ranked.append(candidate)
+    return ranked
+
+
+def _provider_readiness_is_current(readiness: Mapping[str, Any] | None) -> bool:
+    payload = _mapping(readiness)
+    return (
+        payload.get("provider_ready") is True
+        and payload.get("worker_ready") is True
+        and payload.get("managed_worker_source_current") is True
+    )
 
 
 def _run_opl_json(opl_bin: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, Any] | None:

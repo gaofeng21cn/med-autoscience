@@ -829,3 +829,120 @@ def test_scan_routes_stale_redrive_blocker_after_deliverable_delta_keeps_owner_a
     assert [item["action_type"] for item in study["action_queue"]] == ["run_quality_repair_batch"]
     assert study["current_execution_envelope"]["state_kind"] == "executable_owner_action"
     assert study["current_execution_envelope"]["typed_blocker"] is None
+
+
+def test_scan_routes_live_provider_attempt_supersedes_stale_redrive_handoff_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::current-inputs::live-attempt",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::live-current-write",
+                "next_work_unit": {"unit_id": "live-current-write", "lane": "write"},
+            }
+        ],
+    }
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(publication_eval_path, publication_eval)
+    status = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(profile.runtime_root / study_id),
+        "quest_status": "active",
+        "active_run_id": "opl-stage-attempt://sat-live",
+        "publication_eval": publication_eval,
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-live-attempt",
+            "canonical_runtime_action": "observe_runtime",
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-live-attempt",
+            "source_signature": "truth-snapshot::live-attempt",
+        },
+        "domain_transition": {
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "controller_action": "request_opl_stage_attempt",
+            "owner": "write",
+            "next_work_unit": {"unit_id": "live-current-write", "lane": "write"},
+            "typed_blocker": None,
+        },
+    }
+    progress = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(profile.runtime_root / study_id),
+        "current_stage": "managed_runtime_recovering",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(publication_eval_path)},
+        "supervision": {"active_run_id": "opl-stage-attempt://sat-live", "health_status": "running"},
+        "study_truth_snapshot": status["study_truth_snapshot"],
+    }
+    live_attempt = {
+        "surface_kind": "opl_current_control_state_provider_attempt",
+        "source": "opl_family_runtime_attempt_inspect",
+        "active_run_id": "opl-stage-attempt://sat-live",
+        "active_stage_attempt_id": "sat-live",
+        "active_workflow_id": "wf-live",
+        "running_provider_attempt": True,
+        "task_kind": "domain_owner/default-executor-dispatch",
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": f"{study_id}::current-write-repair",
+        "runtime_health": {
+            "health_status": "running",
+            "runtime_liveness_status": "live",
+            "provider_status": "running",
+        },
+    }
+    monkeypatch.setattr(scan, "_read_study_projection_inputs", lambda **_: (status, progress, study_id, publication_eval))
+    monkeypatch.setattr(scan.opl_provider_attempts, "current_provider_readiness", lambda **_: {})
+    before_receipt = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+    )
+    owner_route = before_receipt["studies"][0]["action_queue"][0]["owner_route"]
+    _write_repeated_nonconsumable_execution(study_root, owner_route)
+    live_attempt["work_unit_id"] = owner_route["source_refs"]["work_unit_id"]
+    monkeypatch.setattr(scan.opl_provider_attempts, "live_provider_attempt_for_study", lambda **_: live_attempt)
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    receipt = study["default_executor_execution_receipt_consumption"]
+    assert receipt["blocked_reason"] == "progress_first_owner_redrive_budget_exhausted"
+    assert receipt["stale_blocker_resolution"]["status"] == "superseded"
+    assert receipt["stale_blocker_resolution"]["basis"] == "live_provider_attempt_running"
+    assert study["blocked_reason"] is None
+    assert study["next_owner"] == "supervisor_only/live_provider_attempt"
+    assert study["domain_authority_handoff"]["status"] == "owner_route_ready"
+    assert study["domain_authority_handoff"]["typed_blocker"] is None
+    assert study["current_execution_envelope"]["state_kind"] == "running_provider_attempt"
+    assert study["current_execution_envelope"]["typed_blocker"] is None
