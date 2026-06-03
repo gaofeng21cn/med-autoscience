@@ -391,6 +391,8 @@ def _truth_conflict(*, status: Mapping[str, Any], progress: Mapping[str, Any], t
 def _active_run_id(*, status: Mapping[str, Any], progress: Mapping[str, Any], truth: Mapping[str, Any]) -> str | None:
     if _text(status.get("quest_status")) in {"paused", "stopped", "completed"}:
         return None
+    if _explicit_not_running_provider_attempt(status=status, progress=progress):
+        return None
     if _runtime_redrive_route(status=status) is not None and not _live_status_active_run_id(
         status=status,
         progress=progress,
@@ -443,6 +445,8 @@ def _live_status_active_run_id(
     truth: Mapping[str, Any],
 ) -> str | None:
     del truth
+    if _explicit_not_running_provider_attempt(status=status, progress=progress):
+        return None
     runtime_refs = _opl_runtime_refs(status=status, progress=progress)
     if runtime_refs:
         if runtime_refs.get("strict_live") is not True:
@@ -466,6 +470,18 @@ def _live_status_active_run_id(
         or _text(liveness.get("active_run_id"))
         or _text(runtime_audit.get("active_run_id"))
     )
+
+
+def _explicit_not_running_provider_attempt(*, status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    for surface in (
+        _mapping(status.get("opl_current_control_state_handoff")),
+        _mapping(progress.get("opl_current_control_state_handoff")),
+        _mapping(status.get("progress_first_monitoring_summary")),
+        _mapping(progress.get("progress_first_monitoring_summary")),
+    ):
+        if surface.get("running_provider_attempt") is False:
+            return True
+    return False
 
 
 def _opl_runtime_refs(*, status: Mapping[str, Any], progress: Mapping[str, Any]) -> Mapping[str, Any]:

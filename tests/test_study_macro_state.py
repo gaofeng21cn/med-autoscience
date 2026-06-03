@@ -404,6 +404,49 @@ def test_running_and_repairable_studies_are_not_collapsed_into_parked_states() -
     assert queued["reason"] == "runtime"
 
 
+def test_stale_active_run_does_not_make_macro_state_live_when_provider_attempt_is_not_running() -> None:
+    state = _derive(
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        status={
+            "quest_status": "active",
+            "active_run_id": "opl-stage-attempt://sat_stale",
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "gate_clearing_batch",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "publication_gate",
+                },
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "recover_runtime",
+                "attempt_state": "recovering",
+            },
+            "opl_current_control_state_handoff": {
+                "active_run_id": None,
+                "active_stage_attempt_id": None,
+                "running_provider_attempt": False,
+            },
+        },
+        progress={
+            "active_run_id": "opl-stage-attempt://sat_stale",
+            "progress_first_monitoring_summary": {
+                "running_provider_attempt": False,
+                "execution_state_kind": "executable_owner_action",
+                "next_owner": "gate_clearing_batch",
+                "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            },
+        },
+    )
+
+    assert state["writer_state"] == "queued"
+    assert state["user_next"] == "repair"
+    assert state["reason"] == "quality"
+    assert state["details"]["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert state["details"].get("active_run_id") is None
+
+
 def test_controller_stop_truth_conflict_takes_priority_over_stale_active_run() -> None:
     state = _derive(
         study_id="001-dm-cvd-mortality-risk",

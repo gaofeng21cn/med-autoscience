@@ -86,6 +86,9 @@ def default_executor_dispatch_tasks(
         quest_id = _text(dispatch.get("quest_id")) or study_id
         next_owner = _next_executable_owner(dispatch) or DEFAULT_NEXT_OWNER
         executor_kind = _text(dispatch.get("executor_kind")) or REQUIRED_EXECUTOR_KIND
+        owner_route_basis = _mapping(protocol_payload_fields.get("owner_route_currentness_basis"))
+        work_unit_id = _text(protocol_payload_fields.get("work_unit_id")) or _text(owner_route_basis.get("work_unit_id"))
+        work_unit_fingerprint = _text(owner_route_basis.get("work_unit_fingerprint"))
         source_fingerprint = _source_fingerprint(
             dispatch=dispatch,
             dispatch_path=stage_packet_path,
@@ -103,6 +106,12 @@ def default_executor_dispatch_tasks(
             {
                 "domain_id": "medautoscience",
                 "task_kind": TASK_KIND,
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "action_type": action_type,
+                "domain_owner": next_owner,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
                 "priority": 65,
                 "source": "mas-domain-handler-export",
                 "requires_approval": False,

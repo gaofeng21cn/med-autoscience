@@ -59,7 +59,8 @@ def default_executor_execution_receipt_consumption(
     if not current_action_types:
         return {}
     nonconsumable_matches: list[dict[str, Any]] = []
-    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
+    outcomes: list[dict[str, Any]] = []
+    for index, (execution, receipt_ref) in enumerate(default_executor_execution_candidates(study_root=study_root)):
         action_type = _text(execution.get("action_type"))
         if action_type not in current_action_types:
             continue
@@ -91,47 +92,72 @@ def default_executor_execution_receipt_consumption(
             continue
         dispatch_zero_execution_blocker = default_executor_dispatch_zero_execution_blocker(owner_result)
         if dispatch_zero_execution_blocker:
-            nonconsumable_matches.append(
-                nonconsumable_redrive_budget.match(
-                    execution=execution,
-                    receipt_ref=receipt_ref,
+            match = nonconsumable_redrive_budget.match(
+                execution=execution,
+                receipt_ref=receipt_ref,
+                action_type=action_type,
+                owner_result=owner_result,
+                repair_evidence=repair_evidence,
+                reason=nonconsumable_redrive_budget.reason(
                     action_type=action_type,
                     owner_result=owner_result,
                     repair_evidence=repair_evidence,
-                    reason=nonconsumable_redrive_budget.reason(
-                        action_type=action_type,
-                        owner_result=owner_result,
-                        repair_evidence=repair_evidence,
-                        dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
-                    ),
+                    dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
+                ),
+            )
+            nonconsumable_matches.append(match)
+            outcomes.append(
+                _default_executor_execution_outcome(
+                    kind="nonconsumable",
+                    receipt_ref=receipt_ref,
+                    sequence_index=index,
+                    payload=match,
+                    study_root=study_root,
                 )
             )
             continue
         if missing_refs_typed_closeout_packet:
-            return missing_refs_typed_closeout.consumption(
-                execution=execution,
-                receipt_ref=receipt_ref,
-                owner_route=owner_route,
-                action_type=action_type,
+            outcomes.append(
+                _default_executor_execution_outcome(
+                    kind="consumed",
+                    receipt_ref=receipt_ref,
+                    sequence_index=index,
+                    payload=missing_refs_typed_closeout.consumption(
+                        execution=execution,
+                        receipt_ref=receipt_ref,
+                        owner_route=owner_route,
+                        action_type=action_type,
+                    ),
+                    study_root=study_root,
+                )
             )
+            continue
         if not default_executor_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         ):
-            nonconsumable_matches.append(
-                nonconsumable_redrive_budget.match(
-                    execution=execution,
-                    receipt_ref=receipt_ref,
+            match = nonconsumable_redrive_budget.match(
+                execution=execution,
+                receipt_ref=receipt_ref,
+                action_type=action_type,
+                owner_result=owner_result,
+                repair_evidence=repair_evidence,
+                reason=nonconsumable_redrive_budget.reason(
                     action_type=action_type,
                     owner_result=owner_result,
                     repair_evidence=repair_evidence,
-                    reason=nonconsumable_redrive_budget.reason(
-                        action_type=action_type,
-                        owner_result=owner_result,
-                        repair_evidence=repair_evidence,
-                        dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
-                    ),
+                    dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
+                ),
+            )
+            nonconsumable_matches.append(match)
+            outcomes.append(
+                _default_executor_execution_outcome(
+                    kind="nonconsumable",
+                    receipt_ref=receipt_ref,
+                    sequence_index=index,
+                    payload=match,
+                    study_root=study_root,
                 )
             )
             continue
@@ -141,37 +167,49 @@ def default_executor_execution_receipt_consumption(
             repair_evidence=repair_evidence,
         )
         owner_route_currentness_basis = build_owner_route_currentness_basis(owner_route)
-        return {
-            "status": "consumed",
-            "receipt_kind": "default_executor_execution",
-            "receipt_ref": str(receipt_ref),
-            "execution_id": _text(execution.get("execution_id")),
-            "action_type": action_type,
-            "execution_status": _text(execution.get("execution_status")),
-            "owner_result_status": _text(owner_result.get("status")),
-            "repair_execution_evidence_status": _text(repair_evidence.get("status")),
-            **({"blocked_reason": blocked_reason} if blocked_reason else {}),
-            "work_unit_id": _text(owner_route_currentness_basis.get("work_unit_id")),
-            "work_unit_fingerprint": _text(owner_route_currentness_basis.get("work_unit_fingerprint")),
-            "canonical_work_unit_identity": owner_route_currentness_basis,
-            "owner_route_currentness_basis": owner_route_currentness_basis,
-            "consumed_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
-            "consumed_owner_route_epoch": _text(owner_route.get("route_epoch")),
-            "consumed_owner_route_source_fingerprint": _text(owner_route.get("source_fingerprint")),
-            "changed_artifact_ref_count": len(_mapping_list(repair_evidence.get("changed_artifact_refs"))),
-            "quality_authorized": False,
-            "submission_authorized": False,
-            "current_package_write_authorized": False,
-            "next_action": "do_not_redrive_consumed_owner_route",
-        }
-    if nonconsumable_redrive_budget.budget_exhausted(nonconsumable_matches):
-        latest = nonconsumable_matches[0]
+        outcomes.append(
+            _default_executor_execution_outcome(
+                kind="consumed",
+                receipt_ref=receipt_ref,
+                sequence_index=index,
+                payload={
+                    "status": "consumed",
+                    "receipt_kind": "default_executor_execution",
+                    "receipt_ref": str(receipt_ref),
+                    "execution_id": _text(execution.get("execution_id")),
+                    "action_type": action_type,
+                    "execution_status": _text(execution.get("execution_status")),
+                    "owner_result_status": _text(owner_result.get("status")),
+                    "repair_execution_evidence_status": _text(repair_evidence.get("status")),
+                    **({"blocked_reason": blocked_reason} if blocked_reason else {}),
+                    "work_unit_id": _text(owner_route_currentness_basis.get("work_unit_id")),
+                    "work_unit_fingerprint": _text(owner_route_currentness_basis.get("work_unit_fingerprint")),
+                    "canonical_work_unit_identity": owner_route_currentness_basis,
+                    "owner_route_currentness_basis": owner_route_currentness_basis,
+                    "consumed_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
+                    "consumed_owner_route_epoch": _text(owner_route.get("route_epoch")),
+                    "consumed_owner_route_source_fingerprint": _text(owner_route.get("source_fingerprint")),
+                    "changed_artifact_ref_count": len(_mapping_list(repair_evidence.get("changed_artifact_refs"))),
+                    "quality_authorized": False,
+                    "submission_authorized": False,
+                    "current_package_write_authorized": False,
+                    "next_action": "do_not_redrive_consumed_owner_route",
+                },
+                study_root=study_root,
+            )
+        )
+    latest_outcome = _latest_default_executor_execution_outcome(outcomes)
+    if latest_outcome is None:
+        return {}
+    if latest_outcome.get("kind") == "nonconsumable":
+        if not nonconsumable_redrive_budget.budget_exhausted(nonconsumable_matches):
+            return {}
         return nonconsumable_redrive_budget.consumption(
-            latest=latest,
+            latest=_mapping(latest_outcome.get("payload")),
             owner_route=owner_route,
             repeat_count=len(nonconsumable_matches),
         )
-    return {}
+    return dict(_mapping(latest_outcome.get("payload")))
 
 
 def default_executor_execution_nonconsumable_closeout(
@@ -246,6 +284,56 @@ def default_executor_execution_nonconsumable_closeout(
             "next_action": "redrive_owner_route_with_closeout_context",
         }
     return {}
+
+
+def _default_executor_execution_outcome(
+    *,
+    kind: str,
+    receipt_ref: str,
+    sequence_index: int,
+    payload: Mapping[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "receipt_ref": str(receipt_ref),
+        "sequence_index": sequence_index,
+        "sort_key": _default_executor_execution_outcome_sort_key(
+            receipt_ref=receipt_ref,
+            sequence_index=sequence_index,
+            study_root=study_root,
+        ),
+        "payload": dict(payload),
+    }
+
+
+def _latest_default_executor_execution_outcome(outcomes: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+    if not outcomes:
+        return None
+    return max(outcomes, key=lambda item: _mapping(item).get("sort_key") or ("", 0))
+
+
+def _default_executor_execution_outcome_sort_key(
+    *,
+    receipt_ref: str,
+    sequence_index: int,
+    study_root: Path,
+) -> tuple[str, int]:
+    path = _resolve_study_artifact_ref(study_root=study_root, ref=receipt_ref)
+    try:
+        return f"{path.stat().st_mtime_ns:020d}", -sequence_index
+    except OSError:
+        return "", -sequence_index
+
+
+def _resolve_study_artifact_ref(*, study_root: Path, ref: str) -> Path:
+    path = Path(ref).expanduser()
+    if path.is_absolute():
+        return path
+    workspace_root = _workspace_root_from_study_root(study_root)
+    if workspace_root is not None and path.parts and path.parts[0] == "studies":
+        return workspace_root / path
+    return study_root / path
 
 
 def ai_reviewer_publication_eval_receipt_consumption(

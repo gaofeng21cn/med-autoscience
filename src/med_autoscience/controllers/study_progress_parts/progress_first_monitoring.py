@@ -53,10 +53,21 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     latest_terminal_stage_log = _mapping(handoff.get("latest_terminal_stage_log"))
     paper_stage_log = _mapping(latest_terminal_stage_log.get("paper_stage_log"))
     stage_progress_log = _mapping(handoff.get("stage_progress_log"))
-    active_run_id = (
-        _text(supervision.get("active_run_id"))
-        or _text(payload.get("active_run_id"))
-        or _text(handoff.get("active_run_id"))
+    running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
+    active_run_id = _running_provider_attempt_ref(
+        running_provider_attempt=running_provider_attempt,
+        handoff=handoff,
+        key="active_run_id",
+    )
+    active_stage_attempt_id = _running_provider_attempt_ref(
+        running_provider_attempt=running_provider_attempt,
+        handoff=handoff,
+        key="active_stage_attempt_id",
+    )
+    active_workflow_id = _running_provider_attempt_ref(
+        running_provider_attempt=running_provider_attempt,
+        handoff=handoff,
+        key="active_workflow_id",
     )
     hydration_work_unit = _explicit_wakeup_hydration_work_unit(launch_policy)
     transition_consumed_owner_action = _transition_consumed_owner_action(domain_transition)
@@ -114,7 +125,6 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         and not typed_blocker
         else _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
     )
-    running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
     state_kind = (
         "executable_owner_action"
         if handoff_owner_action is not None
@@ -135,8 +145,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "current_stage": _text(payload.get("current_stage")),
         "paper_stage": _text(payload.get("paper_stage")),
         "active_run_id": active_run_id,
-        "active_stage_attempt_id": _text(handoff.get("active_stage_attempt_id")),
-        "active_workflow_id": _text(handoff.get("active_workflow_id")),
+        "active_stage_attempt_id": active_stage_attempt_id,
+        "active_workflow_id": active_workflow_id,
         "running_provider_attempt": running_provider_attempt,
         "worker_liveness": {
             "health_status": _text(supervision.get("health_status"))
@@ -146,6 +156,12 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             "runtime_liveness_status": _text(_mapping(handoff.get("runtime_health")).get("runtime_liveness_status")),
             "worker_liveness_state": _text(runtime_health.get("worker_liveness_state")),
             "supervisor_tick_status": _text(supervision.get("supervisor_tick_status")),
+            "stale_active_run_id": _stale_active_run_id(
+                running_provider_attempt=running_provider_attempt,
+                payload=payload,
+                supervision=supervision,
+                handoff=handoff,
+            ),
         },
         "execution_state_kind": "owner_handoff_hydration" if hydration_work_unit is not None else state_kind,
         "next_owner": (
@@ -849,6 +865,33 @@ def _source_refs(
     refs.append(latest_terminal_stage_log.get("source_path"))
     refs.extend(latest_terminal_stage_log.get("closeout_refs") or [])
     return _dedupe_text(refs)[:20]
+
+
+def _running_provider_attempt_ref(
+    *,
+    running_provider_attempt: bool | None,
+    handoff: Mapping[str, Any],
+    key: str,
+) -> str | None:
+    if running_provider_attempt is not True:
+        return None
+    return _text(handoff.get(key))
+
+
+def _stale_active_run_id(
+    *,
+    running_provider_attempt: bool | None,
+    payload: Mapping[str, Any],
+    supervision: Mapping[str, Any],
+    handoff: Mapping[str, Any],
+) -> str | None:
+    if running_provider_attempt is True:
+        return None
+    return (
+        _text(supervision.get("active_run_id"))
+        or _text(payload.get("active_run_id"))
+        or _text(handoff.get("active_run_id"))
+    )
 
 
 def _compact_mapping(value: object, keys: tuple[str, ...]) -> dict[str, Any]:

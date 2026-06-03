@@ -114,8 +114,9 @@ def test_progress_first_monitoring_requests_admission_for_current_executable_own
     admission = monitoring["owner_action_admission"]
     assert admission["surface_kind"] == "current_executable_owner_action_admission"
     assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is True
     assert admission["provider_attempt_start_requested"] is True
-    assert admission["provider_attempt_started"] is True
+    assert admission["provider_attempt_started"] is False
     assert admission["provider_attempt_running_proven"] is False
     assert admission["hard_gate_blocked"] is False
     assert admission["hard_gate_reasons"] == []
@@ -246,8 +247,9 @@ def test_progress_first_monitoring_treats_missing_telemetry_and_closeout_as_obse
 
     admission = monitoring["owner_action_admission"]
     assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is True
     assert admission["provider_attempt_start_requested"] is True
-    assert admission["provider_attempt_started"] is True
+    assert admission["provider_attempt_started"] is False
     assert admission["provider_attempt_running_proven"] is False
     assert admission["hard_gate_blocked"] is False
     assert admission["hard_gate_reasons"] == []
@@ -308,6 +310,7 @@ def test_progress_first_monitoring_blocks_owner_action_admission_on_hard_gate_fo
 
     admission = monitoring["owner_action_admission"]
     assert admission["admission_requested"] is False
+    assert admission["admission_pending"] is False
     assert admission["provider_attempt_start_requested"] is False
     assert admission["provider_attempt_started"] is False
     assert admission["provider_attempt_running_proven"] is False
@@ -363,6 +366,7 @@ def test_progress_first_monitoring_blocks_owner_action_admission_on_existing_own
 
     admission = monitoring["owner_action_admission"]
     assert admission["admission_requested"] is False
+    assert admission["admission_pending"] is False
     assert admission["provider_attempt_start_requested"] is False
     assert admission["provider_attempt_started"] is False
     assert admission["provider_attempt_running_proven"] is False
@@ -403,7 +407,9 @@ def test_progress_first_monitoring_distinguishes_admission_request_from_running_
 
     admission = monitoring["owner_action_admission"]
     assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is False
     assert admission["provider_attempt_start_requested"] is True
+    assert admission["provider_attempt_started"] is True
     assert admission["provider_attempt_running_proven"] is True
     assert admission["provider_attempt_proof"] == {
         "running_provider_attempt": True,
@@ -411,6 +417,42 @@ def test_progress_first_monitoring_distinguishes_admission_request_from_running_
         "active_run_id": None,
         "active_workflow_id": "wf-running",
     }
+
+
+def test_progress_first_monitoring_keeps_stale_active_run_id_out_of_running_fields() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "active_run_id": "opl-stage-attempt://sat-stale",
+            "supervision": {"active_run_id": "opl-stage-attempt://sat-stale"},
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "next_owner": "gate_clearing_batch",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+            "opl_current_control_state_handoff": {
+                "active_run_id": None,
+                "active_stage_attempt_id": None,
+                "active_workflow_id": None,
+                "running_provider_attempt": False,
+            },
+        }
+    )
+
+    assert monitoring["running_provider_attempt"] is False
+    assert monitoring["active_run_id"] is None
+    assert monitoring["active_stage_attempt_id"] is None
+    assert monitoring["active_workflow_id"] is None
+    assert monitoring["worker_liveness"]["stale_active_run_id"] == "opl-stage-attempt://sat-stale"
+    assert monitoring["owner_action_admission"]["admission_pending"] is True
+    assert monitoring["owner_action_admission"]["provider_attempt_started"] is False
 
 
 def test_user_visible_projection_prefers_current_executable_owner_action_over_stale_paper_state() -> None:
@@ -451,6 +493,56 @@ def test_user_visible_projection_prefers_current_executable_owner_action_over_st
         "产出 owner receipt、typed blocker 或下一 owner handoff。"
     )
     assert projection["current_executable_owner_action"]["next_owner"] == "finalize"
+
+
+def test_user_visible_projection_does_not_mark_stale_live_macro_state_as_running_when_owner_action_is_pending() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.user_visible_projection")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "opl-stage-attempt://sat-stale"},
+                "conditions": [],
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {"status": "stale"},
+                "activity_timeout": {"state": "timed_out"},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "recover_runtime",
+                "attempt_state": "recovering",
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "artifact_delta": {"status": "stale"},
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "next_owner": "gate_clearing_batch",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+        }
+    )
+
+    assert projection["writer_state"] == "live"
+    assert projection["actual_write_active"] is False
+    assert projection["owner_resolution_state"] == "ready_for_owner_action"
+    assert projection["next_owner"] == "gate_clearing_batch"
+    assert projection["next_system_action"] == (
+        "等待 gate_clearing_batch owner 执行 run_gate_clearing_batch，"
+        "处理 work unit dpcc_publication_gate_replay_after_current_ai_reviewer_record，"
+        "产出 owner receipt、typed blocker 或下一 owner handoff。"
+    )
 
 
 def test_current_owner_handoff_projection_prefers_current_executable_owner_action_next_step() -> None:

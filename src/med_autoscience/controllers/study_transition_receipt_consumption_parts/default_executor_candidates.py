@@ -204,6 +204,8 @@ def _stage_closeout_stage_packet_owner_route(*, closeout: Mapping[str, Any], stu
     stage_packet_ref = _text(closeout.get("stage_packet_ref"))
     if not stage_packet_ref:
         return {}
+    if not _stage_packet_ref_has_immutable_owner_route_identity(stage_packet_ref):
+        return {}
     stage_packet = _read_json_object(_resolve_study_workspace_ref(study_root=study_root, ref=stage_packet_ref))
     if stage_packet is None:
         return {}
@@ -212,6 +214,14 @@ def _stage_closeout_stage_packet_owner_route(*, closeout: Mapping[str, Any], stu
     if _text(stage_packet.get("study_id")) != _text(closeout.get("study_id")):
         return {}
     return dict(_mapping(stage_packet.get("owner_route")) or _mapping(_mapping(stage_packet.get("prompt_contract")).get("owner_route")))
+
+
+def _stage_packet_ref_has_immutable_owner_route_identity(stage_packet_ref: str) -> bool:
+    parts = Path(stage_packet_ref).parts
+    if "default_executor_dispatches" not in parts:
+        return False
+    dispatch_index = parts.index("default_executor_dispatches")
+    return len(parts) > dispatch_index + 1 and parts[dispatch_index + 1] == "immutable"
 
 
 def _stage_closeout_repair_evidence(closeout: Mapping[str, Any]) -> dict[str, Any]:

@@ -145,6 +145,10 @@ def test_default_executor_closeout_with_recovered_stage_packet_currentness_redri
 ) -> None:
     study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
     owner_route = _current_write_route()
+    immutable_packet_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+        "consumer/default_executor_dispatches/immutable/run_quality_repair_batch/current.json"
+    )
     _write_json(
         study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
         {
@@ -177,10 +181,7 @@ def test_default_executor_closeout_with_recovered_stage_packet_currentness_redri
             "schema_version": 1,
             "stage_attempt_id": "sat_story_delta",
             "stage_id": "domain_owner/default-executor-dispatch",
-            "stage_packet_ref": (
-                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                "consumer/default_executor_dispatches/run_quality_repair_batch.json"
-            ),
+            "stage_packet_ref": immutable_packet_ref,
             "study_id": "002-dm-china-us-mortality-attribution",
             "quest_id": "002-dm-china-us-mortality-attribution",
             "action_type": "run_quality_repair_batch",
@@ -234,6 +235,20 @@ def test_default_executor_closeout_with_recovered_stage_packet_currentness_redri
             "prompt_contract": {"owner_route": owner_route},
         },
     )
+    _write_json(
+        tmp_path / immutable_packet_ref,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "executor_kind": "codex_cli_default",
+            "owner_route": owner_route,
+            "prompt_contract": {"owner_route": owner_route},
+        },
+    )
 
     assert (
         default_executor_execution_receipt_consumption(
@@ -257,11 +272,106 @@ def test_default_executor_closeout_with_recovered_stage_packet_currentness_redri
     assert redrive["reason"] == "quality_repair_batch_current_manuscript_digest_mismatch"
 
 
+def test_default_executor_closeout_does_not_recover_currentness_from_mutable_dispatch_slot(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    owner_route = _current_write_route()
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat_legacy_mutable_slot.closeout_payload.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": "sat_legacy_mutable_slot",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_packet_ref": (
+                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                "consumer/default_executor_dispatches/run_quality_repair_batch.json"
+            ),
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "generated_at": "2026-05-26T19:42:10+00:00",
+            "domain_execution": {
+                "execution_status": "blocked",
+                "blocked_reason": "quality_repair_batch_current_manuscript_digest_mismatch",
+                "domain_owner": "write",
+            },
+            "owner_receipt": {
+                "status": "blocked",
+                "typed_blocker": "quality_repair_batch_current_manuscript_digest_mismatch",
+            },
+            "status": "closed_with_typed_domain_blocker",
+            "route_outcome": "closed_with_domain_owner_refs",
+            "artifact_delta": {
+                "status": "progress_delta_candidate",
+                "story_surface_delta_present": False,
+                "changed_artifact_refs": [
+                    {"path": str(study_root / "paper" / "claim_evidence_map.json")},
+                ],
+            },
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json",
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "executor_kind": "codex_cli_default",
+            "owner_route": owner_route,
+            "prompt_contract": {"owner_route": owner_route},
+        },
+    )
+
+    candidates = [
+        execution
+        for execution, _ in default_executor_execution_candidates(study_root=study_root)
+        if execution.get("execution_id") == "sat_legacy_mutable_slot"
+    ]
+    assert len(candidates) == 1
+    assert candidates[0]["owner_route_currentness_source"] == "missing"
+    assert candidates[0]["current_owner_route"] is None
+    assert (
+        default_executor_execution_receipt_consumption(
+            study_root=study_root,
+            owner_route=owner_route,
+            actions=[{"action_type": "run_quality_repair_batch"}],
+        )
+        == {}
+    )
+    assert (
+        default_executor_execution_nonconsumable_closeout(
+            study_root=study_root,
+            owner_route=owner_route,
+            actions=[{"action_type": "run_quality_repair_batch"}],
+        )
+        == {}
+    )
+
+
 def test_default_executor_blocked_closeout_supersedes_older_executed_closeout(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
     owner_route = _current_write_route()
+    immutable_packet_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+        "consumer/default_executor_dispatches/immutable/run_quality_repair_batch/current.json"
+    )
     dispatch_ref = (
         study_root
         / "artifacts"
@@ -292,10 +402,7 @@ def test_default_executor_blocked_closeout_supersedes_older_executed_closeout(
             "schema_version": 1,
             "stage_attempt_id": "sat_f6_latest",
             "stage_id": "domain_owner/default-executor-dispatch",
-            "stage_packet_ref": (
-                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                "consumer/default_executor_dispatches/run_quality_repair_batch.json"
-            ),
+            "stage_packet_ref": immutable_packet_ref,
             "study_id": "002-dm-china-us-mortality-attribution",
             "quest_id": "002-dm-china-us-mortality-attribution",
             "action_type": "run_quality_repair_batch",
@@ -335,10 +442,7 @@ def test_default_executor_blocked_closeout_supersedes_older_executed_closeout(
             "schema_version": 1,
             "stage_attempt_id": "sat_ef_old",
             "stage_id": "domain_owner/default-executor-dispatch",
-            "stage_packet_ref": (
-                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                "consumer/default_executor_dispatches/run_quality_repair_batch.json"
-            ),
+            "stage_packet_ref": immutable_packet_ref,
             "study_id": "002-dm-china-us-mortality-attribution",
             "quest_id": "002-dm-china-us-mortality-attribution",
             "action_type": "run_quality_repair_batch",
@@ -367,6 +471,20 @@ def test_default_executor_blocked_closeout_supersedes_older_executed_closeout(
                     "blockers": ["manuscript_story_surface_delta_missing"],
                 },
             },
+        },
+    )
+    _write_json(
+        tmp_path / immutable_packet_ref,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "executor_kind": "codex_cli_default",
+            "owner_route": owner_route,
+            "prompt_contract": {"owner_route": owner_route},
         },
     )
 

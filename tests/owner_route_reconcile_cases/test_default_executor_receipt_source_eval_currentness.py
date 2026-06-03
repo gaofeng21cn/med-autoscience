@@ -7,11 +7,53 @@ from med_autoscience.controllers.study_transition_receipt_consumption import (
     default_executor_execution_followthrough_receipt_consumption,
     default_executor_execution_receipt_consumption,
 )
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.owner_route_currentness import (
+    owner_route_currentness_matches,
+)
 
 
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_owner_route_currentness_allows_missing_route_epoch_only_with_same_work_unit_identity() -> None:
+    current_route = {
+        "route_epoch": "truth-event-current",
+        "next_owner": "ai_reviewer",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "source_refs": {
+            "source_eval_id": "publication-eval::current",
+            "work_unit_id": "produce_current_ai_reviewer_record",
+            "work_unit_fingerprint": "truth-snapshot::current-ai-reviewer-workflow",
+            "study_truth_epoch": "truth-event-current",
+        },
+    }
+    legacy_execution_route = {
+        "next_owner": "ai_reviewer",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "source_refs": {
+            "source_eval_id": "publication-eval::current",
+            "work_unit_id": "produce_current_ai_reviewer_record",
+            "work_unit_fingerprint": "truth-snapshot::current-ai-reviewer-workflow",
+        },
+    }
+    ambiguous_execution_route = {
+        "next_owner": "ai_reviewer",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "source_refs": {
+            "source_eval_id": "publication-eval::current",
+        },
+    }
+
+    assert owner_route_currentness_matches(
+        execution_route=legacy_execution_route,
+        owner_route=current_route,
+    )
+    assert not owner_route_currentness_matches(
+        execution_route=ambiguous_execution_route,
+        owner_route=current_route,
+    )
 
 
 def test_default_executor_receipt_rejects_same_handoff_key_when_source_eval_advances(

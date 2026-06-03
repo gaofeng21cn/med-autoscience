@@ -471,7 +471,7 @@ def _owner_resolution_state(
     user_action_required: bool,
     current_blockers: list[str],
 ) -> str:
-    if actual_write_active or writer_state == "live":
+    if actual_write_active:
         return "running"
     if user_action_required:
         return "terminal_stop_loss" if reason == "stop_loss" else "waiting_human"

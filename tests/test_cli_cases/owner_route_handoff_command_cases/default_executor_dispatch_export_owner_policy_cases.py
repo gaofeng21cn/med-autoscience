@@ -110,6 +110,14 @@ def test_domain_handler_export_projects_gate_clearing_default_executor_dispatch(
     ]
     assert len(tasks) == 1
     task = tasks[0]
+    assert task["study_id"] == study_id
+    assert task["quest_id"] == study_id
+    assert task["action_type"] == "run_gate_clearing_batch"
+    assert task["domain_owner"] == "gate_clearing_batch"
+    assert task["work_unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+    assert task["work_unit_fingerprint"] == "dm003::gate-clearing::current"
     assert task["payload"]["action_type"] == "run_gate_clearing_batch"
     assert task["payload"]["domain_owner"] == "gate_clearing_batch"
     assert task["payload"]["next_executable_owner"] == "gate_clearing_batch"
