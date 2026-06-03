@@ -82,10 +82,16 @@ if [[ "${MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE:-0}" != "1" ]] || path_is_inside_che
   unset UV_CACHE_DIR
 fi
 
+default_uv_cache_dir="${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR:-${HOME}/Library/Caches/med-autoscience/uv-cache}"
+if path_is_inside_checkout "${default_uv_cache_dir}"; then
+  echo "run-python-clean.sh: default uv cache must be outside the checkout: ${default_uv_cache_dir}" >&2
+  exit 2
+fi
+
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-${tmp_root}/pycache}"
 export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"
-export UV_CACHE_DIR="${UV_CACHE_DIR:-${tmp_root}/uv-cache}"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-${default_uv_cache_dir}}"
 mkdir -p "${UV_CACHE_DIR}"
 pythonpath_root="${MAS_CLEAN_RUNNER_SOURCE_ROOT:-${repo_root}}"
 export PYTHONPATH="${pythonpath_root}/src:${pythonpath_root}${PYTHONPATH:+:${PYTHONPATH}}"
@@ -179,4 +185,8 @@ if [[ ! -x "${venv_python}" ]]; then
   exit 1
 fi
 
-exec "${venv_python}" "$@"
+set +e
+"${venv_python}" "$@"
+exit_code="$?"
+set -e
+exit "${exit_code}"

@@ -365,8 +365,10 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if path_is_inside_checkout "${UV_PROJECT_ENVIRONMENT:-}"; then' in runner_script
     assert 'if path_is_inside_checkout "${PYTHONPYCACHEPREFIX:-}"; then' in runner_script
     assert 'if [[ "${MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE:-0}" != "1" ]] || path_is_inside_checkout "${UV_CACHE_DIR:-}"; then' in runner_script
+    assert 'default_uv_cache_dir="${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR:-${HOME}/Library/Caches/med-autoscience/uv-cache}"' in runner_script
+    assert 'if path_is_inside_checkout "${default_uv_cache_dir}"; then' in runner_script
     assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
-    assert 'export UV_CACHE_DIR="${UV_CACHE_DIR:-${tmp_root}/uv-cache}"' in runner_script
+    assert 'export UV_CACHE_DIR="${UV_CACHE_DIR:-${default_uv_cache_dir}}"' in runner_script
     assert 'mkdir -p "${UV_CACHE_DIR}"' in runner_script
     assert 'uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)' in runner_script
     assert 'uv_sync_args+=(--extra analysis)' in runner_script
@@ -374,6 +376,9 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert '"${UV_NO_SYNC:-0}" != "1"' not in runner_script
     assert 'venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"' in runner_script
     assert 'venv_python="${repo_root}/.venv/bin/python"' not in runner_script
+    assert 'exec "${venv_python}" "$@"' not in runner_script
+    assert '"${venv_python}" "$@"' in runner_script
+    assert 'exit "${exit_code}"' in runner_script
     assert "run_sanity_checks() {" in verify_script
     assert 'clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"' in verify_script
     assert '"${clean_python_runner}" scripts/repo_hygiene_audit.py' in verify_script

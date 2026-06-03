@@ -81,5 +81,5 @@ Machine boundary: 本文是人读不可变约束。机器真相继续归 `contra
 - `regression`、`display`、`submission`、`family` 与 `meta` lane 由 advisory/nightly 承接，不回灌到 push quick-checks。
 - `smoke`、`ci-preflight` 与 `full` 的耗时预算只用于观察和提醒；duration drift 与相对基线百分比变化通过 advisory run log、summary artifact、只读 history summary 或 release/full 记录暴露，不得成为 push quick-checks 的新增阻塞项。
 - 修改 machine-readable contract surface、测试入口或运行语义时，至少补跑 `make test-meta`；纯叙述性 docs-only 变更按 `documentation_review_only` 处理。
-- Python / pytest 验证必须通过 clean runner 路由缓存、bytecode、`uv sync` project venv 与 runner-local `UV_CACHE_DIR`；开发 checkout 不应产生 `.venv`、`__pycache__`、`.pytest_cache`、`.uv-cache` 或 `*.egg-info` 副产物，也不得让 provider stage 继承用户全局 uv cache 后因宿主权限/沙箱漂移阻断 owner callable。
+- Python / pytest 验证必须通过 clean runner 路由 bytecode、`uv sync` project venv、pytest cache 与仓库外稳定 `UV_CACHE_DIR`；开发 checkout 不应产生 `.venv`、`__pycache__`、`.pytest_cache`、`.uv-cache` 或 `*.egg-info` 副产物，也不得让 provider stage 继承用户全局 uv cache 后因宿主权限/沙箱漂移阻断 owner callable。短命 runner 临时目录不得承载可复用 uv 依赖缓存，避免 clean-run 或 MCP 长驻进程把系统临时卷打满。
 - Study runtime 的 analysis bundle 准备必须修复将被 worker 实际使用的 study workspace Python；不得通过创建或依赖 MAS checkout 内 `.venv` 来伪造 ready 状态。

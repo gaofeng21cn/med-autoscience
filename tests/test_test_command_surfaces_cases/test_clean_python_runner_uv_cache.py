@@ -50,6 +50,7 @@ def test_clean_python_runner_preserves_external_uv_cache_only_when_requested(tmp
 
 def test_clean_python_runner_routes_uv_cache_to_runner_tmp_by_default(tmp_path: Path) -> None:
     runner_tmp, fake_venv = _runner_tmp_with_fake_venv(tmp_path)
+    persistent_cache = tmp_path / "persistent-uv-cache"
     sync_log = tmp_path / "uv-sync.log"
     fake_uv = tmp_path / "uv"
     fake_uv.write_text(
@@ -72,6 +73,7 @@ def test_clean_python_runner_routes_uv_cache_to_runner_tmp_by_default(tmp_path: 
             **os.environ,
             "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
             "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
+            "MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR": str(persistent_cache),
             "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
             "MAS_TEST_SYNC_LOG": str(sync_log),
             "UV_PROJECT_ENVIRONMENT": str(fake_venv),
@@ -83,8 +85,79 @@ def test_clean_python_runner_routes_uv_cache_to_runner_tmp_by_default(tmp_path: 
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "runner-ok"
+    expected_uv_cache = persistent_cache
     assert sync_log.read_text(encoding="utf-8").splitlines() == [
-        str(runner_tmp / "uv-cache"),
+        str(expected_uv_cache),
         "sync --frozen --group dev --no-install-project --inexact",
     ]
-    assert (runner_tmp / "uv-cache").is_dir()
+    assert expected_uv_cache.is_dir()
+    assert not (runner_tmp / "uv-cache").exists()
+
+
+def test_clean_python_runner_rejects_checkout_local_default_uv_cache(tmp_path: Path) -> None:
+    runner_tmp, fake_venv = _runner_tmp_with_fake_venv(tmp_path)
+    checkout_local_default_cache = REPO_ROOT / ".mas-clean-runner-default-uv-cache"
+    (runner_tmp / "uv-sync.done").write_text("synced\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            str(REPO_ROOT / "scripts/run-python-clean.sh"),
+            "-c",
+            "print('runner-ok')",
+        ],
+        cwd=REPO_ROOT,
+        env={
+            **os.environ,
+            "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
+            "MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR": str(checkout_local_default_cache),
+            "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
+            "UV_PROJECT_ENVIRONMENT": str(fake_venv),
+        },
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "default uv cache must be outside the checkout" in result.stderr
+    assert not checkout_local_default_cache.exists()
+
+
+def test_clean_python_runner_removes_auto_tmp_root_after_success(tmp_path: Path) -> None:
+    auto_tmp = tmp_path / "auto-tmp"
+    auto_tmp.mkdir()
+    persistent_cache = tmp_path / "persistent-uv-cache"
+    fake_uv = tmp_path / "uv"
+    fake_uv.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "mkdir -p \"${UV_PROJECT_ENVIRONMENT}/bin\"\n"
+        "ln -sf \"${MAS_TEST_PYTHON}\" \"${UV_PROJECT_ENVIRONMENT}/bin/python\"\n",
+        encoding="utf-8",
+    )
+    fake_uv.chmod(0o755)
+
+    result = subprocess.run(
+        [
+            str(REPO_ROOT / "scripts/run-python-clean.sh"),
+            "-c",
+            "print('runner-ok')",
+        ],
+        cwd=REPO_ROOT,
+        env={
+            **os.environ,
+            "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
+            "MAS_CLEAN_RUNNER_SKIP_SYNC": "0",
+            "MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR": str(persistent_cache),
+            "MAS_TEST_PYTHON": sys.executable,
+            "TMPDIR": f"{auto_tmp}/",
+            "UV_PROJECT_ENVIRONMENT": "",
+        },
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "runner-ok"
+    assert list(auto_tmp.glob("mas-python-run.*")) == []
