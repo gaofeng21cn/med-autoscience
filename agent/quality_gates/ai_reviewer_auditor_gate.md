@@ -11,6 +11,7 @@ The reviewer or auditor agent must run as a separate invocation from the executo
 - reviewer/auditor role and invocation or task record id.
 - separate context summary and refs reviewed.
 - manuscript, source, evidence, artifact, review, runtime, controller, and memory refs considered.
+- hypothesis portfolio candidate, assumption, support/contradiction, novelty/provenance, testability/safety, negative failed-path, advisory ranking/proximity, and human gate receipt refs when the route depends on a hypothesis portfolio.
 - medical judgment findings, not only checklist status.
 - verdict or route-back recommendation with typed blocker when not ready.
 - receipt proving currentness relative to task intake, controller decisions, manuscript/source refs, and artifact rebuild proof.
@@ -28,6 +29,7 @@ Rubrics and quality packs define the traceable floor. The reviewer/auditor must 
 - display-to-claim consistency.
 - limitations, failed paths, reader risk, contribution logic, and journal fit.
 - route memory relevance and memory writeback safety.
+- hypothesis novelty, evidence balance, failed-path handling, advisory ranking limits, testability, safety, and human/independent-review boundary.
 
 The journal-family floor must be explicitly consumed when the route touches manuscript, review, finalization, or journal resolution:
 
@@ -60,6 +62,7 @@ Fail closed or route back when:
 
 - the reviewer/auditor record is missing, stale, or from the same executor invocation.
 - required source, evidence, manuscript, review, memory, or artifact refs are stale or missing.
+- hypothesis portfolio refs are used for route selection but lack assumption/sub-assumption decomposition, supporting and contradicting evidence refs, novelty/source provenance refs, testability/safety refs, negative failed-path refs, or required reviewer/human gate receipt refs.
 - required journal-family pack refs, output refs, typed blocker refs, or owner receipts are missing for an in-scope route.
 - publication eval says ready but reviewer operating-system trace or manuscript refs are not current.
 - only mechanical checks, test pass, provider completion, generated interface readiness, package presence, prose completeness, template completion, or pack presence support the ready claim.

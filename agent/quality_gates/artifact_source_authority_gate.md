@@ -11,6 +11,7 @@ A source-readiness decision requires current refs for:
 - study charter and active claim boundary.
 - source locator, source provenance, and source body ownership.
 - cohort, endpoint, exposure/model target, comparator, measurement window, and missingness assumptions.
+- hypothesis candidate assumptions, sub-assumptions, support/contradiction evidence refs, novelty/source provenance refs, testability/safety refs, and negative failed-path refs when source readiness depends on a hypothesis portfolio.
 - evidence or baseline refs that depend on the source.
 - reviewer/auditor or authority receipt when the gate contract requires independent review.
 

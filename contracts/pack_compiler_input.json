@@ -36,6 +36,7 @@
     "stage_policies",
     "domain_skill_policies",
     "knowledge_refs",
+    "hypothesis_portfolio_evidence_pack_refs",
     "stage_descriptors",
     "action_catalog",
     "domain_transition_table",
@@ -68,6 +69,61 @@
     "workbench_drilldown",
     "functional_harness_cases"
   ],
+  "hypothesis_portfolio_evidence_pack_contract": {
+    "advisory_only_fields": [
+      "ranking",
+      "proximity",
+      "elo_like_score",
+      "debate_winner",
+      "candidate_evolution_order"
+    ],
+    "advisory_ref_families": [
+      "ranking_ref",
+      "proximity_ref",
+      "debate_ref",
+      "tournament_ref",
+      "evolution_ref"
+    ],
+    "authority_boundary": {
+      "evidence_interpretation_owner": "MedAutoScience",
+      "hypothesis_truth_owner": "MedAutoScience",
+      "negative_failed_path_owner": "MedAutoScience",
+      "novelty_source_provenance_owner": "MedAutoScience",
+      "opl_can_accept_novelty": false,
+      "opl_can_authorize_artifact_mutation": false,
+      "opl_can_authorize_publication_quality": false,
+      "opl_can_authorize_route_by_ranking": false,
+      "opl_can_close_independent_review_gate": false,
+      "opl_can_declare_testability_or_safety": false,
+      "opl_can_promote_evidence": false,
+      "opl_can_write_hypothesis_truth": false,
+      "opl_role": "refs_projection_transport_and_display_only",
+      "quality_publication_artifact_authority_owner": "MedAutoScience",
+      "ranking_and_proximity_authority": "advisory_only",
+      "testability_safety_owner": "MedAutoScience"
+    },
+    "candidate_required_ref_families": [
+      "hypothesis_candidate_ref",
+      "assumption_ref",
+      "sub_assumption_ref",
+      "supporting_evidence_ref",
+      "contradicting_evidence_ref",
+      "novelty_ref",
+      "source_provenance_ref",
+      "testability_ref",
+      "safety_risk_ref",
+      "negative_failed_path_ref",
+      "independent_reviewer_or_auditor_receipt_ref",
+      "human_gate_receipt_ref",
+      "owner_receipt_or_typed_blocker_ref"
+    ],
+    "fail_closed_missing_ref_policy": "emit_typed_blocker_naming_missing_hypothesis_portfolio_ref_family_and_route_back_owner",
+    "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+    "owner": "MedAutoScience",
+    "portfolio_role": "mas_owned_hypothesis_candidate_and_evidence_ref_pack",
+    "schema_version": 1,
+    "surface_kind": "mas_hypothesis_portfolio_evidence_pack_contract"
+  },
   "independent_executor_reviewer_agent_policy": {
     "codex_cli_may_serve_both_roles_only_as_separate_invocations": true,
     "executor_agent_role": "stage_work_executor",
@@ -115,6 +171,7 @@
     "agent/quality_gates/ai_reviewer_auditor_gate.md",
     "agent/quality_gates/artifact_source_authority_gate.md",
     "agent/knowledge/medical_research_truth.md",
+    "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
     "agent/knowledge/publication_route_memory.md",
     "agent/knowledge/source_readiness_and_artifact_authority.md"
   ],
@@ -145,6 +202,7 @@
       "agent/quality_gates/ai_reviewer_auditor_gate.md",
       "agent/quality_gates/artifact_source_authority_gate.md",
       "agent/knowledge/medical_research_truth.md",
+      "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
       "agent/knowledge/publication_route_memory.md",
       "agent/knowledge/source_readiness_and_artifact_authority.md"
     ],

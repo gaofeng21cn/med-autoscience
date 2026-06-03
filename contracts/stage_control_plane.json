@@ -80,10 +80,13 @@
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
+        "can_authorize_route_by_ranking": false,
         "can_authorize_submission_readiness": false,
+        "can_close_hypothesis_independent_review_gate": false,
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "hypothesis_portfolio_owner": "MedAutoScience",
         "independent_gate_receipt_required": true,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
@@ -134,6 +137,11 @@
         "knowledge_refs": [
           {
             "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
             "ref_kind": "repo_path",
             "role": "domain_pack_knowledge"
           },
@@ -314,6 +322,11 @@
       "knowledge_refs": [
         {
           "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ref_kind": "repo_path",
           "role": "domain_pack_knowledge"
         },
@@ -528,6 +541,34 @@
           ],
           "schema_version": 1,
           "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ]
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -854,10 +895,13 @@
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
+        "can_authorize_route_by_ranking": false,
         "can_authorize_submission_readiness": false,
+        "can_close_hypothesis_independent_review_gate": false,
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "hypothesis_portfolio_owner": "MedAutoScience",
         "independent_gate_receipt_required": false,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
@@ -908,6 +952,11 @@
         "knowledge_refs": [
           {
             "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
             "ref_kind": "repo_path",
             "role": "domain_pack_knowledge"
           },
@@ -1079,6 +1128,11 @@
       "knowledge_refs": [
         {
           "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ref_kind": "repo_path",
           "role": "domain_pack_knowledge"
         },
@@ -1281,6 +1335,34 @@
           ],
           "schema_version": 1,
           "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ]
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -1603,10 +1685,13 @@
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
+        "can_authorize_route_by_ranking": false,
         "can_authorize_submission_readiness": false,
+        "can_close_hypothesis_independent_review_gate": false,
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "hypothesis_portfolio_owner": "MedAutoScience",
         "independent_gate_receipt_required": false,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
@@ -1657,6 +1742,11 @@
         "knowledge_refs": [
           {
             "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
             "ref_kind": "repo_path",
             "role": "domain_pack_knowledge"
           },
@@ -1836,6 +1926,11 @@
       "knowledge_refs": [
         {
           "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ref_kind": "repo_path",
           "role": "domain_pack_knowledge"
         },
@@ -2050,6 +2145,34 @@
           ],
           "schema_version": 1,
           "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ]
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -2368,10 +2491,13 @@
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
+        "can_authorize_route_by_ranking": false,
         "can_authorize_submission_readiness": false,
+        "can_close_hypothesis_independent_review_gate": false,
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "hypothesis_portfolio_owner": "MedAutoScience",
         "independent_gate_receipt_required": false,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
@@ -2422,6 +2548,11 @@
         "knowledge_refs": [
           {
             "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
             "ref_kind": "repo_path",
             "role": "domain_pack_knowledge"
           },
@@ -2598,6 +2729,11 @@
       "knowledge_refs": [
         {
           "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ref_kind": "repo_path",
           "role": "domain_pack_knowledge"
         },
@@ -2811,6 +2947,34 @@
           ],
           "schema_version": 1,
           "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ]
         },
         "late_stage_progress_sprint_contract": {
           "admission_order": [
@@ -3158,10 +3322,13 @@
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
+        "can_authorize_route_by_ranking": false,
         "can_authorize_submission_readiness": false,
+        "can_close_hypothesis_independent_review_gate": false,
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "hypothesis_portfolio_owner": "MedAutoScience",
         "independent_gate_receipt_required": true,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
@@ -3212,6 +3379,11 @@
         "knowledge_refs": [
           {
             "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
             "ref_kind": "repo_path",
             "role": "domain_pack_knowledge"
           },
@@ -3398,6 +3570,11 @@
       "knowledge_refs": [
         {
           "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ref_kind": "repo_path",
           "role": "domain_pack_knowledge"
         },
@@ -3625,6 +3802,34 @@
           ],
           "schema_version": 1,
           "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ]
         },
         "late_stage_progress_sprint_contract": {
           "admission_order": [
@@ -3976,10 +4181,13 @@
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
+        "can_authorize_route_by_ranking": false,
         "can_authorize_submission_readiness": false,
+        "can_close_hypothesis_independent_review_gate": false,
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "hypothesis_portfolio_owner": "MedAutoScience",
         "independent_gate_receipt_required": false,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
@@ -4030,6 +4238,11 @@
         "knowledge_refs": [
           {
             "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
             "ref_kind": "repo_path",
             "role": "domain_pack_knowledge"
           },
@@ -4215,6 +4428,11 @@
       "knowledge_refs": [
         {
           "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ref_kind": "repo_path",
           "role": "domain_pack_knowledge"
         },
@@ -4443,6 +4661,34 @@
           ],
           "schema_version": 1,
           "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ]
         },
         "late_stage_progress_sprint_contract": {
           "admission_order": [

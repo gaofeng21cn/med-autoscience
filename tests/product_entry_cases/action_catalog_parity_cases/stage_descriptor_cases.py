@@ -318,6 +318,35 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert ai_ml_selection["requires_clinical_base_guideline"] is True
     assert "dispatch_mas_exported_task" in descriptor["allowed_family_actions"]
     assert "replace_route_contract" in descriptor["forbidden_family_actions"]
+    assert "treat_ranking_or_proximity_as_authority" in descriptor["forbidden_family_actions"]
+    hypothesis_descriptor = descriptor["hypothesis_portfolio_evidence_pack"]
+    assert hypothesis_descriptor["owner"] == "MedAutoScience"
+    assert hypothesis_descriptor["knowledge_ref"] == (
+        "agent/knowledge/hypothesis_portfolio_evidence_pack.md"
+    )
+    assert {
+        "hypothesis_candidate_ref",
+        "assumption_ref",
+        "sub_assumption_ref",
+        "supporting_evidence_ref",
+        "contradicting_evidence_ref",
+        "novelty_ref",
+        "source_provenance_ref",
+        "testability_ref",
+        "safety_risk_ref",
+        "negative_failed_path_ref",
+        "independent_reviewer_or_auditor_receipt_ref",
+        "human_gate_receipt_ref",
+    } <= set(hypothesis_descriptor["candidate_required_refs"])
+    assert {"ranking_ref", "proximity_ref"} <= set(hypothesis_descriptor["advisory_only_refs"])
+    assert hypothesis_descriptor["authority_boundary"]["ranking_and_proximity_authority"] == (
+        "advisory_only"
+    )
+    assert hypothesis_descriptor["authority_boundary"]["opl_can_write_hypothesis_truth"] is False
+    assert (
+        hypothesis_descriptor["authority_boundary"]["opl_can_authorize_route_by_ranking"]
+        is False
+    )
 
     authority = descriptor["authority_boundary"]
     assert authority["opl_role"] == "read_only_descriptor_consumer"
@@ -447,6 +476,17 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["stage_contract"]["human_gate_progress_evidence"][
             "missing_evidence_policy"
         ] == "return_to_ai_executor_for_minimum_forward_delta_or_typed_blocker"
+        hypothesis_pack = stage["stage_contract"]["hypothesis_portfolio_evidence_pack"]
+        assert hypothesis_pack["knowledge_ref"] == (
+            "agent/knowledge/hypothesis_portfolio_evidence_pack.md"
+        )
+        assert hypothesis_pack["ranking_and_proximity_authority"] == "advisory_only"
+        assert "supporting_evidence_ref" in hypothesis_pack["required_ref_families"]
+        assert "contradicting_evidence_ref" in hypothesis_pack["required_ref_families"]
+        assert "negative_failed_path_ref" in hypothesis_pack["required_ref_families"]
+        assert "human_gate_receipt_ref" in hypothesis_pack["required_ref_families"]
+        assert "ranking_ref" in hypothesis_pack["advisory_ref_families"]
+        assert "proximity_ref" in hypothesis_pack["advisory_ref_families"]
         if set(stage["domain_stage_refs"]) & {"write", "review", "finalize"}:
             sprint_contract = stage["stage_contract"]["late_stage_progress_sprint_contract"]
             assert sprint_contract["sprint_id"] == "publishability_repair_sprint"

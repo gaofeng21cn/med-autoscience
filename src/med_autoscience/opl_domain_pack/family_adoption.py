@@ -30,6 +30,7 @@ from .agent_pack_refs import (
     stage_prompt_ref,
 )
 from .adoption_ref_payload import empty_payload, payload_from_authority_refs
+from . import hypothesis_portfolio_pack
 from .progress_first_policies import PROGRESS_DELTA_POLICY, TYPED_BLOCKER_LINEAGE_POLICY
 from .stage_throughput_contracts import (
     human_gate_progress_evidence_contract,
@@ -228,6 +229,9 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     stage_deliverable_index = _stage_deliverable_index_projection(stage_surface)
     ars_learning_projection = build_ars_learning_projection()
     autosci_learning_projection = build_autosci_learning_projection()
+    hypothesis_portfolio_evidence_pack = (
+        hypothesis_portfolio_pack.build_hypothesis_portfolio_evidence_pack_descriptor()
+    )
     return {
         "surface_kind": FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND,
         "schema_version": 1,
@@ -248,7 +252,6 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "agent_stage_policy_sources": AGENT_STAGE_POLICY_REFS,
             "agent_skill_sources": list(AGENT_SKILL_REFS),
             "agent_quality_gate_sources": list(AGENT_QUALITY_GATE_REFS),
-            "agent_knowledge_sources": list(AGENT_KNOWLEDGE_REFS),
             "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "quality_pack_contract_source": STAGE_QUALITY_PACK_CONTRACT_REF,
             "life_science_source_discovery_pack_source": STAGE_QUALITY_PACK_CONTRACT_REF,
@@ -295,6 +298,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "memory_write_router_receipt": stage_knowledge_contract.MEMORY_ROUTER_SURFACE,
             "stage_recall_index": stage_knowledge_contract.RECALL_INDEX_SURFACE,
         },
+        "hypothesis_portfolio_evidence_pack": hypothesis_portfolio_evidence_pack,
         "memory_control": {
             "closeout_categories": list(stage_knowledge_contract.TYPED_CLOSEOUT_CATEGORIES),
             "router_receipt_surface": stage_knowledge_contract.MEMORY_ROUTER_SURFACE,
@@ -337,10 +341,12 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "authorize_publication_quality",
             "authorize_submission_readiness",
             "promote_memory_to_evidence",
+            *hypothesis_portfolio_pack.HYPOTHESIS_PORTFOLIO_FORBIDDEN_FAMILY_ACTIONS,
             "infer_medical_route_from_projection",
         ],
         "authority_boundary": {
             "domain_truth_owner": "MedAutoScience",
+            "hypothesis_truth_owner": "MedAutoScience",
             "route_contract_owner": "MedAutoScience",
             "stage_knowledge_plane_owner": "MedAutoScience",
             "evidence_ledger_owner": "MedAutoScience",
@@ -353,6 +359,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "can_write_domain_truth": False,
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
+            **hypothesis_portfolio_pack.HYPOTHESIS_PORTFOLIO_AUTHORITY_FLAGS,
         },
     }
 
@@ -631,6 +638,9 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         "minimum_forward_delta": minimum_forward_delta_contract(stage),
         "route_obligation_lens": route_obligation_lens(stage),
         "human_gate_progress_evidence": human_gate_progress_evidence_contract(),
+        "hypothesis_portfolio_evidence_pack": (
+            hypothesis_portfolio_pack.stage_hypothesis_portfolio_evidence_pack_contract()
+        ),
     }
     progress_sprint_contract = _stage_progress_sprint_contract(stage, descriptor=descriptor)
     if progress_sprint_contract is not None:
@@ -729,6 +739,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "route_contract_owner": "MedAutoScience",
             "stage_knowledge_plane_owner": "MedAutoScience",
             "publication_gate_owner": "MedAutoScience",
+            "hypothesis_portfolio_owner": "MedAutoScience",
             "opl_role": "projection_consumer_only",
             "maps_existing_routes_only": True,
             "independent_gate_receipt_required": independent_gate_receipt_required,
@@ -736,6 +747,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "can_replace_route_contract": False,
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
+            **hypothesis_portfolio_pack.HYPOTHESIS_PORTFOLIO_AUTHORITY_FLAGS,
         },
     }
 
