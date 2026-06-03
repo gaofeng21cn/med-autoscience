@@ -647,7 +647,9 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "contracts/functional_privatization_audit.json",
             "contracts/generated_surface_handoff.json",
             "contracts/foundry_agent_series.json",
+            "contracts/mas-paper-study-stage-pack.json",
             "contracts/pack_compiler_input.json",
+            "contracts/stage_artifact_kernel_adoption.json",
             "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
             "templates/codex/medautoscience-entry.SKILL.md",
@@ -666,6 +668,30 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
         ),
         "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
     ]
+
+
+def test_classify_changed_files_matches_stage_kernel_pack_contract_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "contracts/README.md",
+            "contracts/mas-paper-study-stage-pack.json",
+            "contracts/stage_artifact_kernel_adoption.json",
+            "docs/active/stage_surface_standardization_program.md",
+            "src/med_autoscience/controllers/stage_artifact_index.py",
+            "tests/test_stage_artifact_index.py",
+            "tests/test_stage_artifact_kernel_adoption_contract.py",
+        ]
+    )
+
+    assert result.matched_categories == (
+        "root_governance_contract_surface",
+        "standard_agent_pack_surface",
+        "documentation_review_only",
+        "generic_python_regression_surface",
+    )
+    assert result.unclassified_changes == ()
 
 
 def test_classify_changed_files_matches_domain_action_materializer_surface() -> None:
