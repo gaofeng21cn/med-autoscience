@@ -455,6 +455,39 @@ def test_progress_first_monitoring_keeps_stale_active_run_id_out_of_running_fiel
     assert monitoring["owner_action_admission"]["provider_attempt_started"] is False
 
 
+def test_progress_first_monitoring_shows_handoff_active_run_ref_without_running_provider_proof() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "next_owner": "gate_clearing_batch",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+            "opl_current_control_state_handoff": {
+                "active_run_id": "opl-stage-attempt://sat-handoff-ref",
+                "active_stage_attempt_id": "sat-not-running",
+                "active_workflow_id": "wf-not-running",
+                "running_provider_attempt": False,
+            },
+        }
+    )
+
+    assert monitoring["running_provider_attempt"] is False
+    assert monitoring["active_run_id"] == "opl-stage-attempt://sat-handoff-ref"
+    assert monitoring["active_stage_attempt_id"] is None
+    assert monitoring["active_workflow_id"] is None
+    assert monitoring["owner_action_admission"]["provider_attempt_running_proven"] is False
+    assert monitoring["owner_action_admission"]["provider_attempt_started"] is False
+
+
 def test_user_visible_projection_prefers_current_executable_owner_action_over_stale_paper_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.user_visible_projection")
 

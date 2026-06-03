@@ -199,7 +199,7 @@ When validating a docs-only change in this repo, use documentation review plus g
   - `rtk scripts/run-pytest-clean.sh tests/study_progress_cases/stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_review_opl_projection_reference.py -q` -> 5 passed.
   - `rtk scripts/run-pytest-clean.sh tests/test_product_entry.py -q -k stage_control_plane_descriptor` -> 1 passed, 105 deselected.
   - `rtk scripts/run-pytest-clean.sh tests/test_runtime_storage_maintenance.py -q` -> 31 passed.
-  - `rtk make test-meta` -> 282 passed, 4192 deselected.
+  - `rtk make test-meta` -> 282 passed, 4193 deselected.
   - `rtk scripts/verify.sh` -> repo hygiene audit passed; smoke entrypoints / line budget 4 passed.
 - Residual risk / next owner:
   - This closeout does not declare any study publication ready, submission ready, or final paper quality ready.

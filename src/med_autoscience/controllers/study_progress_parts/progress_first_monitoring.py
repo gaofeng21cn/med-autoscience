@@ -889,6 +889,8 @@ def _running_provider_attempt_ref(
     handoff: Mapping[str, Any],
     key: str,
 ) -> str | None:
+    if key == "active_run_id":
+        return _text(handoff.get(key))
     if running_provider_attempt is not True:
         return None
     return _text(handoff.get(key))
