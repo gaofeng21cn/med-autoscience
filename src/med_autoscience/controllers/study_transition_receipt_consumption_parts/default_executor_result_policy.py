@@ -23,6 +23,8 @@ def default_executor_owner_result_consumable(
 ) -> bool:
     if default_executor_dispatch_zero_execution_blocker(owner_result):
         return False
+    if _current_manuscript_digest_mismatch(owner_result=owner_result, repair_evidence=repair_evidence):
+        return False
     if action_type == "return_to_ai_reviewer_workflow":
         return _ai_reviewer_workflow_owner_result_satisfies_route_output(owner_result=owner_result)
     if action_type == "run_quality_repair_batch":
@@ -87,6 +89,17 @@ def default_executor_consumed_blocked_reason(
         ):
             return "manuscript_story_surface_delta_missing"
     return _text(owner_result.get("blocked_reason")) or _text(repair_evidence.get("blocked_reason")) or None
+
+
+def _current_manuscript_digest_mismatch(
+    *,
+    owner_result: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+) -> bool:
+    blocked_reasons = _string_set(owner_result.get("blocked_reasons"))
+    blocked_reasons.add(_text(owner_result.get("blocked_reason")))
+    blocked_reasons.add(_text(repair_evidence.get("blocked_reason")))
+    return "quality_repair_batch_current_manuscript_digest_mismatch" in blocked_reasons
 
 
 def _ai_reviewer_workflow_owner_result_satisfies_route_output(*, owner_result: Mapping[str, Any]) -> bool:
