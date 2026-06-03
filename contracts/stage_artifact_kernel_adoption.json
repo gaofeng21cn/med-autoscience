@@ -1,0 +1,77 @@
+{
+  "surface_kind": "opl_stage_artifact_kernel_adoption",
+  "version": "opl-stage-artifact-kernel-adoption.v1",
+  "owner": "med-autoscience",
+  "domain_id": "med-autoscience",
+  "kernel_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
+  "stage_folder_unit": [
+    "Stage Folder",
+    "Manifest",
+    "Receipt",
+    "current pointer"
+  ],
+  "terminal_states": [
+    "success",
+    "blocked",
+    "skipped",
+    "deferred"
+  ],
+  "required_ref_fields": [
+    "stage_folder_contract_ref",
+    "stage_json_ref",
+    "attempt_json_ref",
+    "manifest_ref",
+    "receipt_ref",
+    "current_pointer_ref",
+    "canonical_artifact_ref",
+    "export_ref",
+    "lineage_ref",
+    "retention_ref"
+  ],
+  "kernel_refs": {
+    "physical_stage_folder_source_of_truth": true,
+    "derived_index_rebuildable": true,
+    "manifest_receipt_hash_required": true
+  },
+  "domain_pack_binding": {
+    "accepted_source_refs": [
+      "contracts/stage_control_plane.json",
+      "contracts/foundry_agent_series.json",
+      "src/med_autoscience/controllers/stage_artifact_index.py",
+      "src/med_autoscience/controllers/opl_physical_stage_kernel.py"
+    ],
+    "domain_output_roles_are_interface": true,
+    "file_name_is_not_interface": true,
+    "domain_truth_owner": "med-autoscience"
+  },
+  "projection_boundary": {
+    "derived_projection_refs": [
+      "stage_artifact_index",
+      "stage_kernel_projection",
+      "mas_opl_runtime_workbench_projection",
+      "app_workbench_artifact_drilldown"
+    ],
+    "file_presence_only_counts_as": "orphan_or_historical",
+    "provider_completion_counts_as_progress": false,
+    "derived_index_authority": "rebuildable_projection_not_primary_truth"
+  },
+  "authority_boundary": {
+    "opl_can_create_domain_owner_receipt": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_mutate_domain_artifact_body": false,
+    "opl_can_authorize_quality_or_export": false
+  },
+  "domain_authority_retained": [
+    "study_truth",
+    "publication_quality_verdict",
+    "paper_artifact_authority",
+    "memory_accept_reject",
+    "owner_receipt",
+    "typed_blocker"
+  ],
+  "notes": [
+    "MAS consumes the OPL physical Stage Folder Kernel as the primary stage artifact truth when present.",
+    "stage_artifact_index remains a refs-only derived projection and cannot promote file presence, provider completion, or stale legacy outputs into current progress."
+  ]
+}

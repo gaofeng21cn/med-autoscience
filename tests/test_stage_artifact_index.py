@@ -88,6 +88,140 @@ def _write_stage_native_contract(
     )
 
 
+def _write_opl_physical_stage_attempt(
+    state_root: Path,
+    *,
+    study_id: str,
+    stage_id: str,
+    attempt_id: str,
+    output_ref: str,
+) -> dict[str, str]:
+    deliverable_root = (
+        state_root
+        / "runtime-state"
+        / "domains"
+        / "med-autoscience"
+        / "deliverables"
+        / "mas-paper-study"
+        / study_id
+        / "paper-study"
+    )
+    stage_root = deliverable_root / "stages" / stage_id
+    attempt_root = stage_root / "attempts" / attempt_id
+    for child in ("inputs", "outputs", "evidence", "receipts"):
+        (attempt_root / child).mkdir(parents=True, exist_ok=True)
+    _write_json(
+        deliverable_root / "deliverable.json",
+        {
+            "surface_kind": "opl_stage_artifact_deliverable",
+            "domain_id": "med-autoscience",
+            "program_id": "mas-paper-study",
+            "topic_id": study_id,
+            "deliverable_id": "paper-study",
+        },
+    )
+    _write_json(
+        deliverable_root / "current.json",
+        {
+            "surface_kind": "opl_stage_artifact_runtime_current",
+            "locator": {
+                "domain_id": "med-autoscience",
+                "program_id": "mas-paper-study",
+                "topic_id": study_id,
+                "deliverable_id": "paper-study",
+            },
+            "current_stage": {
+                "stage_id": stage_id,
+                "status": "success",
+                "latest_attempt_id": attempt_id,
+            },
+        },
+    )
+    _write_json(
+        stage_root / "stage.json",
+        {
+            "surface_kind": "opl_stage_artifact_stage",
+            "stage_id": stage_id,
+        },
+    )
+    (stage_root / "latest").write_text(f"{attempt_id}\n", encoding="utf-8")
+    _write_json(
+        attempt_root / "attempt.json",
+        {
+            "surface_kind": "opl_stage_artifact_attempt",
+            "stage_id": stage_id,
+            "attempt_id": attempt_id,
+        },
+    )
+    (attempt_root / "outputs" / output_ref).write_text("artifact\n", encoding="utf-8")
+    _write_json(
+        attempt_root / "receipts" / "owner-receipt.json",
+        {
+            "receipt_ref": f"mas-owner-receipt:{stage_id}:{attempt_id}",
+        },
+    )
+    _write_json(
+        attempt_root / "manifest.json",
+        {
+            "surface_kind": "opl_stage_artifact_manifest",
+            "manifest_version": "stage-artifact-manifest.v1",
+            "stage_id": stage_id,
+            "attempt_id": attempt_id,
+            "terminal_status": "success",
+            "required_outputs": [output_ref],
+            "present_outputs": [output_ref],
+            "output_hashes": [
+                {
+                    "path": output_ref,
+                    "sha256": "0" * 64,
+                    "kind": "output",
+                }
+            ],
+            "evidence_hashes": [],
+            "receipt_hashes": [
+                {
+                    "path": "owner-receipt.json",
+                    "sha256": "1" * 64,
+                    "kind": "receipt",
+                }
+            ],
+            "owner_receipt_refs": [f"mas-owner-receipt:{stage_id}:{attempt_id}"],
+            "typed_blocker_refs": [],
+            "decision_receipt_refs": [],
+        },
+    )
+    lineage_root = deliverable_root / "lineage"
+    lineage_root.mkdir(parents=True, exist_ok=True)
+    (lineage_root / "events.jsonl").write_text(
+        json.dumps(
+            {
+                "surface_kind": "opl_stage_artifact_lineage_event",
+                "event_kind": "attempt_committed",
+                "stage_id": stage_id,
+                "attempt_id": attempt_id,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_json(
+        lineage_root / "graph.json",
+        {
+            "surface_kind": "opl_stage_artifact_lineage_graph",
+            "nodes": [{"stage_id": stage_id, "attempt_id": attempt_id}],
+        },
+    )
+    return {
+        "deliverable_root": str(deliverable_root),
+        "stage_root": str(stage_root),
+        "attempt_root": str(attempt_root),
+        "manifest_ref": str(attempt_root / "manifest.json"),
+        "receipt_ref": str(attempt_root / "receipts" / "owner-receipt.json"),
+        "current_pointer_ref": str(deliverable_root / "current.json"),
+        "latest_pointer_ref": str(stage_root / "latest"),
+    }
+
+
 def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tmp_path: Path) -> None:
     study_root = tmp_path / "studies" / "001-risk"
     study_root.mkdir(parents=True)
@@ -101,6 +235,15 @@ def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tm
     assert index["stage_model"] == "paper_study_artifact_stage_pack"
     assert index["domain_stage_pack_ref"] == PAPER_STUDY_STAGE_PACK_REF
     assert index["artifact_native_contract_ref"] == "mas-opl-stage-native-artifact-contract.v1"
+    assert index["physical_stage_folder_kernel"]["contract_ref"] == (
+        "contracts/opl-framework/stage-artifact-runtime-contract.json"
+    )
+    assert index["physical_stage_folder_kernel"]["locator"] == {
+        "domain_id": "med-autoscience",
+        "program_id": "mas-paper-study",
+        "topic_id": "001-risk",
+        "deliverable_id": "paper-study",
+    }
     assert tuple(index["authority_boundary"]["mas_authority_functions"]) == EXPECTED_AUTHORITY_FUNCTIONS
     assert index["authority_boundary"]["artifact_first_can_determine_stage_progress"] is True
     assert index["authority_boundary"]["can_authorize_quality_verdict"] is False
@@ -142,6 +285,76 @@ def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tm
     assert study_intake["artifact_classification"]["status"] == "missing"
     assert study_intake["next_missing_surface"] == study_intake["required_output_refs"][0]["ref"]
     assert study_intake["freshness"]["status"] == "red_missing"
+
+
+def test_stage_artifact_index_consumes_opl_physical_stage_folder_kernel(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    physical = _write_opl_physical_stage_attempt(
+        tmp_path / "opl-state",
+        study_id="001-risk",
+        stage_id="01-study_intake",
+        attempt_id="attempt-001",
+        output_ref="study_truth_snapshot.json",
+    )
+    _write_json(
+        study_root / "artifacts" / "stage_outputs" / "scout" / "route_recommendation.json",
+        {"route": "baseline"},
+    )
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+
+    index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+
+    assert index["stage_artifact_runtime_contract_ref"] == (
+        "contracts/opl-framework/stage-artifact-runtime-contract.json"
+    )
+    assert index["physical_stage_folder_kernel"]["status"] == "observed"
+    assert index["physical_stage_folder_kernel"]["locator"] == {
+        "domain_id": "med-autoscience",
+        "program_id": "mas-paper-study",
+        "topic_id": "001-risk",
+        "deliverable_id": "paper-study",
+    }
+    assert index["physical_stage_folder_kernel"]["deliverable_root"] == physical["deliverable_root"]
+    study_intake = index["stages"][0]
+    assert study_intake["physical_stage_folder_kernel"]["status"] == "observed"
+    assert study_intake["stage_folder_contract"]["source_of_truth"] == "opl_physical_stage_folder_kernel"
+    assert study_intake["stage_folder_contract"]["stage_folder_ref"] == physical["stage_root"]
+    assert study_intake["stage_folder_contract"]["attempt_root"] == physical["attempt_root"]
+    assert study_intake["stage_folder_contract"]["current_pointer_ref"] == physical["current_pointer_ref"]
+    assert study_intake["stage_folder_contract"]["latest_pointer_ref"] == physical["latest_pointer_ref"]
+    assert study_intake["manifest_requirements"]["ref"] == physical["manifest_ref"]
+    assert study_intake["receipt_requirements"]["ref"] == physical["receipt_ref"]
+    assert study_intake["artifact_classification"]["source_of_truth"] == (
+        "opl_physical_stage_folder_kernel"
+    )
+    assert study_intake["artifact_classification"]["current"] == ["study_truth_snapshot.json"]
+    assert study_intake["artifact_classification"]["manifest_hash_refs"] == [
+        {
+            "kind": "output",
+            "path": "study_truth_snapshot.json",
+            "sha256": "0" * 64,
+        }
+    ]
+    assert study_intake["artifact_classification"]["owner_receipt_refs"] == [
+        "mas-owner-receipt:01-study_intake:attempt-001"
+    ]
+    assert study_intake["artifact_classification"]["conformance_refs"] == {
+        "current_pointer_ref": physical["current_pointer_ref"],
+        "latest_pointer_ref": physical["latest_pointer_ref"],
+        "manifest_ref": physical["manifest_ref"],
+        "lineage_events_ref": str(Path(physical["deliverable_root"]) / "lineage" / "events.jsonl"),
+        "lineage_graph_ref": str(Path(physical["deliverable_root"]) / "lineage" / "graph.json"),
+    }
+    assert study_intake["current_pointer"]["pointer_ref"] == physical["current_pointer_ref"]
+    assert study_intake["current_pointer"]["attempt_id"] == "attempt-001"
+    assert study_intake["legacy_observed_artifact_refs"][0]["classification"] == (
+        "migration_historical_declared_ref"
+    )
+    assert study_intake["legacy_observed_artifact_refs"][0]["counts_as_current_artifact_delta"] is False
 
 
 def test_stage_artifact_index_exposes_legacy_taxonomy_migration_without_dual_current_truth(

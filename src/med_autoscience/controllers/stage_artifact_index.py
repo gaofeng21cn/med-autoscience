@@ -12,6 +12,10 @@ from med_autoscience.controllers.opl_artifact_operating_contract import (
     operating_contract_projection,
     promotion_protocol_steps,
 )
+from med_autoscience.controllers.opl_physical_stage_kernel import (
+    STAGE_ARTIFACT_RUNTIME_CONTRACT_REF,
+    physical_stage_kernel_projection,
+)
 ALLOWED_ARTIFACT_STATUSES = (
     "missing",
     "missing_manifest_or_receipt",
@@ -44,6 +48,11 @@ def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, 
     stage_specs = _paper_study_stage_specs(domain_stage_pack)
     legacy_taxonomy_migration = _legacy_taxonomy_migration(domain_stage_pack)
     legacy_mappings_by_stage = _legacy_mappings_by_stage(legacy_taxonomy_migration)
+    physical_kernel = physical_stage_kernel_projection(
+        study_id=str(study_id),
+        stage_ids=tuple(str(stage["stage_id"]) for stage in stage_specs),
+        domain_stage_pack=domain_stage_pack,
+    )
     stages = [
         _build_stage_artifact_state(
             stage_spec=stage_spec,
@@ -52,6 +61,7 @@ def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, 
             operating_contract=operating_projection,
             promotion_protocol=promotion_protocol,
             consumability_gate=consumability_gate,
+            physical_stage_kernel=_stage_physical_kernel(physical_kernel, str(stage_spec["stage_id"])),
         )
         for stage_spec in stage_specs
     ]
@@ -62,10 +72,12 @@ def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, 
         "surface_kind": "stage_artifact_index",
         "stage_model": str(domain_stage_pack["stage_model"]),
         "domain_stage_pack_ref": _PAPER_STUDY_STAGE_PACK_REF,
+        "stage_artifact_runtime_contract_ref": STAGE_ARTIFACT_RUNTIME_CONTRACT_REF,
         "study_id": str(study_id),
         "study_root": str(resolved_study_root),
         "allowed_artifact_statuses": list(ALLOWED_ARTIFACT_STATUSES),
         "artifact_native_contract_ref": _STAGE_NATIVE_ARTIFACT_CONTRACT_REF,
+        "physical_stage_folder_kernel": physical_kernel,
         "operating_contract": operating_projection,
         "promotion_protocol": promotion_protocol,
         "consumability_gate": consumability_gate,
@@ -80,6 +92,17 @@ def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, 
     }
 
 
+def _stage_physical_kernel(
+    physical_kernel: Mapping[str, Any],
+    stage_id: str,
+) -> dict[str, Any]:
+    stages = physical_kernel.get("stages")
+    if not isinstance(stages, Mapping):
+        return {"status": "missing", "stage_id": stage_id}
+    stage = stages.get(stage_id)
+    return dict(stage) if isinstance(stage, Mapping) else {"status": "missing", "stage_id": stage_id}
+
+
 def _build_stage_artifact_state(
     *,
     stage_spec: Mapping[str, Any],
@@ -88,9 +111,10 @@ def _build_stage_artifact_state(
     operating_contract: Mapping[str, Any],
     promotion_protocol: list[str],
     consumability_gate: Mapping[str, Any],
+    physical_stage_kernel: Mapping[str, Any],
 ) -> dict[str, Any]:
     stage_id = str(stage_spec["stage_id"])
-    stage_folder_contract = _stage_folder_contract(stage_id)
+    stage_folder_contract = _stage_folder_contract(stage_id, physical_stage_kernel=physical_stage_kernel)
     manifest_requirements = _manifest_requirements(stage_folder_contract)
     receipt_requirements = _receipt_requirements(stage_folder_contract)
     required_refs = [
@@ -126,7 +150,8 @@ def _build_stage_artifact_state(
             "ref": str(item["ref"]),
             "path": str(study_root / str(item["ref"])),
             "body_included": False,
-            "classification": "historical",
+            "classification": "migration_historical_declared_ref",
+            "projection_role": "migration_historical_declared_ref",
             "migration_semantics": "tombstone_backfilled_current_pointer",
             "workbench_display_current_truth": "paper_study_stage_pack",
             "legacy_route_is_current_truth": False,
@@ -144,6 +169,7 @@ def _build_stage_artifact_state(
         required_refs=required_refs,
         legacy_observed_refs=declared_observed_refs,
         study_root=study_root,
+        physical_stage_kernel=physical_stage_kernel,
     )
     observed_refs = [
         {
@@ -188,6 +214,7 @@ def _build_stage_artifact_state(
         "observed_artifact_refs": observed_refs,
         "legacy_observed_artifact_refs": legacy_observed_refs,
         "artifact_classification": artifact_classification,
+        "physical_stage_folder_kernel": dict(physical_stage_kernel),
         "current_pointer": current_pointer,
         "consumability_gate": _stage_consumability_gate(
             consumability_gate=consumability_gate,
@@ -202,11 +229,31 @@ def _build_stage_artifact_state(
     }
 
 
-def _stage_folder_contract(stage_id: str) -> dict[str, Any]:
+def _stage_folder_contract(
+    stage_id: str,
+    *,
+    physical_stage_kernel: Mapping[str, Any],
+) -> dict[str, Any]:
+    if physical_stage_kernel.get("status") == "observed":
+        return {
+            "surface_kind": "stage_folder_contract",
+            "contract_ref": f"{STAGE_ARTIFACT_RUNTIME_CONTRACT_REF}#/state_root_layout",
+            "source_of_truth": "opl_physical_stage_folder_kernel",
+            "stage_folder_ref": str(physical_stage_kernel["stage_folder_ref"]),
+            "attempt_root": str(physical_stage_kernel["attempt_root"]),
+            "manifest_ref": str(physical_stage_kernel["manifest_ref"]),
+            "receipt_ref": str(physical_stage_kernel["receipt_ref"]),
+            "current_pointer_ref": str(physical_stage_kernel["current_pointer_ref"]),
+            "latest_pointer_ref": str(physical_stage_kernel["latest_pointer_ref"]),
+            "legacy_declared_refs_fallback": False,
+            "body_included": False,
+            "authority_boundary": _authority_boundary(),
+        }
     stage_folder_ref = f"artifacts/stage_outputs/{stage_id}"
     return {
         "surface_kind": "stage_folder_contract",
         "contract_ref": f"{_STAGE_NATIVE_ARTIFACT_CONTRACT_REF}#/stage_folder",
+        "source_of_truth": "mas_declared_stage_artifact_projection",
         "stage_folder_ref": stage_folder_ref,
         "manifest_ref": f"{stage_folder_ref}/{_MANIFEST_FILENAME}",
         "receipt_ref": f"{stage_folder_ref}/{_RECEIPT_FILENAME}",
@@ -399,7 +446,14 @@ def _artifact_classification(
     required_refs: list[dict[str, Any]],
     legacy_observed_refs: list[dict[str, Any]],
     study_root: Path,
+    physical_stage_kernel: Mapping[str, Any],
 ) -> dict[str, Any]:
+    if physical_stage_kernel.get("status") == "observed":
+        return _physical_artifact_classification(
+            stage_id=stage_id,
+            stage_folder_contract=stage_folder_contract,
+            physical_stage_kernel=physical_stage_kernel,
+        )
     required = [str(item["ref"]) for item in required_refs]
     legacy_observed = [str(item["ref"]) for item in legacy_observed_refs]
     manifest_ref = str(manifest_requirements["ref"])
@@ -482,6 +536,56 @@ def _artifact_classification(
             "receipt_accepted": receipt_accepted,
         },
         "legacy_declared_refs_fallback": True,
+        "source_of_truth": "mas_declared_stage_artifact_projection",
+        "manifest_hash_refs": [],
+        "evidence_hash_refs": [],
+        "receipt_hash_refs": [],
+        "owner_receipt_refs": [],
+        "typed_blocker_refs": [],
+        "decision_receipt_refs": [],
+        "conformance_refs": {},
+        "body_included": False,
+    }
+
+
+def _physical_artifact_classification(
+    *,
+    stage_id: str,
+    stage_folder_contract: Mapping[str, Any],
+    physical_stage_kernel: Mapping[str, Any],
+) -> dict[str, Any]:
+    current = sorted(str(item) for item in physical_stage_kernel.get("current_outputs") or [])
+    missing_outputs = sorted(str(item) for item in physical_stage_kernel.get("required_outputs") or [] if str(item) not in set(current))
+    status = "current" if current and not missing_outputs else "missing"
+    return {
+        "surface_kind": "stage_artifact_classification",
+        "contract_ref": f"{STAGE_ARTIFACT_RUNTIME_CONTRACT_REF}#/read_model_semantics",
+        "source_of_truth": "opl_physical_stage_folder_kernel",
+        "status": status,
+        "current": current,
+        "historical": [],
+        "missing_manifest_or_receipt": [],
+        "orphan": [],
+        "broken": [],
+        "missing": missing_outputs,
+        "fail_closed": status != "current",
+        "fail_closed_reason": None if status == "current" else "missing_physical_stage_output",
+        "manifest_ref": str(stage_folder_contract["manifest_ref"]),
+        "receipt_ref": str(stage_folder_contract["receipt_ref"]),
+        "current_pointer_basis": {
+            "existing_artifacts": bool(current),
+            "manifest_valid": bool(physical_stage_kernel.get("manifest_ref")),
+            "receipt_accepted": bool(physical_stage_kernel.get("owner_receipt_refs")),
+        },
+        "latest_attempt_id": physical_stage_kernel.get("latest_attempt_id"),
+        "legacy_declared_refs_fallback": False,
+        "manifest_hash_refs": list(physical_stage_kernel.get("manifest_hash_refs") or []),
+        "evidence_hash_refs": list(physical_stage_kernel.get("evidence_hash_refs") or []),
+        "receipt_hash_refs": list(physical_stage_kernel.get("receipt_hash_refs") or []),
+        "owner_receipt_refs": list(physical_stage_kernel.get("owner_receipt_refs") or []),
+        "typed_blocker_refs": list(physical_stage_kernel.get("typed_blocker_refs") or []),
+        "decision_receipt_refs": list(physical_stage_kernel.get("decision_receipt_refs") or []),
+        "conformance_refs": dict(physical_stage_kernel.get("conformance_refs") or {}),
         "body_included": False,
     }
 
@@ -726,7 +830,11 @@ def _current_pointer(
     return {
         "surface_kind": "stage_artifact_current_pointer_projection",
         "contract_ref": f"{OPL_ARTIFACT_OPERATING_CONTRACT_REF}#/current_pointer",
-        "pointer_ref": f"{stage_folder_contract['stage_folder_ref']}/current_pointer.json",
+        "pointer_ref": str(
+            stage_folder_contract.get("current_pointer_ref")
+            or f"{stage_folder_contract['stage_folder_ref']}/current_pointer.json"
+        ),
+        "attempt_id": artifact_classification.get("latest_attempt_id"),
         "basis": basis,
         "progress_basis": list(operating_contract["progress_basis"]),
         "promotion_protocol": list(promotion_protocol),

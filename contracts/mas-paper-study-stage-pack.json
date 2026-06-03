@@ -11,7 +11,39 @@
     "artifact_refs_are_locators_only": true,
     "artifact_role_is_interface": true,
     "file_name_is_not_interface": true,
-    "workbench_must_not_display_two_current_truths": true
+    "workbench_must_not_display_two_current_truths": true,
+    "physical_stage_folder_kernel_source": "contracts/opl-framework/stage-artifact-runtime-contract.json",
+    "legacy_declared_refs_role": "migration_historical_projection_only"
+  },
+  "physical_stage_folder_kernel": {
+    "surface_kind": "mas_opl_physical_stage_folder_kernel_adoption",
+    "contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
+    "source_of_truth": "OPL physical Stage Folder Kernel",
+    "locator": {
+      "domain_id": "med-autoscience",
+      "program_id": "mas-paper-study",
+      "topic_id_template": "{study_id}",
+      "deliverable_id": "paper-study"
+    },
+    "projection_refs": [
+      "deliverable_root",
+      "stage_folder_ref",
+      "attempt_root",
+      "current_pointer_ref",
+      "latest_pointer_ref",
+      "manifest_ref",
+      "receipt_ref",
+      "manifest_hash_refs",
+      "owner_receipt_refs",
+      "conformance_refs"
+    ],
+    "legacy_declared_refs_fallback": "migration_historical_projection_only",
+    "body_included": false,
+    "authority_boundary": {
+      "opl_can_write_mas_truth": false,
+      "opl_can_create_mas_owner_receipt": false,
+      "mas_keeps_domain_authority": true
+    }
   },
   "authority_boundary": {
     "mas_authority_functions": [
