@@ -52,10 +52,6 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     runtime_health = _mapping(payload.get("runtime_health_snapshot"))
     next_forced_delta = _mapping(payload.get("next_forced_delta"))
     stage_artifact_action = _current_action_from_stage_artifact_index(payload)
-    current_action = stage_artifact_action or _mapping(payload.get("current_executable_owner_action")) or _mapping(
-        build_current_executable_owner_action(payload)
-    )
-    artifact_first_owner_action = _artifact_first_owner_action(current_action)
     progress_state = _mapping(payload.get("progress_first_sprint_state"))
     latest_terminal_stage_log = _mapping(handoff.get("latest_terminal_stage_log"))
     paper_stage_log = _mapping(latest_terminal_stage_log.get("paper_stage_log"))
@@ -81,12 +77,31 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     gate_clearing_dispatch_consumption = _gate_clearing_batch_dispatch_consumption(payload)
     receipt_consumed = _transition_receipt_consumed(domain_transition) or gate_clearing_dispatch_consumption is not None
     handoff_owner_action = _first_current_action_queue_item(handoff.get("action_queue"))
+    terminal_closeout_blocker = _terminal_closeout_typed_blocker_projection(
+        latest_terminal_stage_log=latest_terminal_stage_log,
+        paper_stage_log=paper_stage_log,
+    )
+    raw_typed_blocker = (
+        _mapping(execution.get("typed_blocker"))
+        or _mapping(domain_transition.get("typed_blocker"))
+        or terminal_closeout_blocker
+    )
+    artifact_first_supersedes_blocker = bool(stage_artifact_action) and (
+        not raw_typed_blocker or _stage_artifact_index_has_precedence_evidence(payload.get("stage_artifact_index"))
+    )
+    effective_stage_artifact_action = stage_artifact_action if artifact_first_supersedes_blocker else {}
+    current_action = (
+        effective_stage_artifact_action
+        or _mapping(payload.get("current_executable_owner_action"))
+        or _mapping(build_current_executable_owner_action({**payload, "stage_artifact_index": {}}))
+    )
+    artifact_first_owner_action = _artifact_first_owner_action(current_action)
     next_work_unit = (
         hydration_work_unit
         or _work_unit_from_current_action(current_action)
         or _work_unit_from_action(handoff_owner_action)
         or (
-            _work_unit_projection(domain_transition.get("next_work_unit"))
+            _work_unit_id(domain_transition.get("next_work_unit"))
             if transition_consumed_owner_action and gate_clearing_dispatch_consumption is None
             else None
         )
@@ -95,22 +110,16 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _work_unit_from_action_queue(handoff.get("action_queue"))
         or _work_unit_projection(next_forced_delta.get("work_unit_id"))
     )
-    terminal_closeout_blocker = _terminal_closeout_typed_blocker_projection(
-        latest_terminal_stage_log=latest_terminal_stage_log,
-        paper_stage_log=paper_stage_log,
-    )
     typed_blocker = (
         {}
-        if artifact_first_owner_action
+        if artifact_first_supersedes_blocker
         or handoff_owner_action is not None
         or (
             transition_consumed_owner_action
             and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition)
             and gate_clearing_dispatch_consumption is None
         )
-        else _mapping(execution.get("typed_blocker"))
-        or _mapping(domain_transition.get("typed_blocker"))
-        or terminal_closeout_blocker
+        else raw_typed_blocker
     )
     progress_delta_classification = (
         _text(payload.get("progress_delta_classification"))
@@ -894,6 +903,17 @@ def _running_provider_attempt_ref(
     if running_provider_attempt is not True:
         return None
     return _text(handoff.get(key))
+
+
+def _stage_artifact_index_has_precedence_evidence(value: object) -> bool:
+    index = _mapping(value)
+    if _sequence(index.get("stale_platform_repairs")):
+        return True
+    for stage in _sequence(index.get("stages")):
+        state = _mapping(stage)
+        if _sequence(state.get("observed_artifact_refs")):
+            return True
+    return False
 
 
 def _stale_active_run_id(

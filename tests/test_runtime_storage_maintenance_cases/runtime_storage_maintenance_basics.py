@@ -307,5 +307,3 @@ def test_audit_workspace_storage_apply_uses_actual_runtime_release_for_estimate(
     assert result["summary"]["runtime_actual_release_bytes"] == 0
     assert study_report["runtime"]["estimated_release_bytes"] == 0
     assert study_report["actual_runtime_release_bytes"] == 0
-
-
