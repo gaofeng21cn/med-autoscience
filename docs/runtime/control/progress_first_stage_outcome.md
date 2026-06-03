@@ -72,44 +72,58 @@ preflight 只保留以下 hard gates：
 
 ## DM002 / DM003 stable verification commands
 
-以下命令只读或 MAS controller-authorized；运行前先确认 profile 指向 DM-CVD workspace，不要手写 DM-CVD workspace truth。
+以下命令只读或 MAS controller-authorized；运行前先确认 profile 指向 DM-CVD workspace，不要手写 DM-CVD workspace truth。若 workspace root 下没有已持久化 profile，先用临时 profile 运行只读 smoke；临时 profile 只描述 workspace 路径，不写 study truth、runtime-owned state、paper、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 package。
 
 ```bash
 rtk git status --short --branch
 ```
 
 ```bash
+DM_CVD_ROOT=/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk
+DM_CVD_PROFILE="$(mktemp "${TMPDIR:-/tmp}/dm-cvd-mas-profile.XXXXXX.toml")"
+cat >"${DM_CVD_PROFILE}" <<'EOF'
+name = "dm-cvd-mortality-risk-workspace"
+workspace_root = "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk"
+runtime_root = "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests"
+studies_root = "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies"
+portfolio_root = "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/portfolio"
+default_publication_profile = "general_medical_journal"
+default_citation_style = "AMA"
+enable_medical_overlay = true
+EOF
+```
+
+```bash
 rtk scripts/run-python-clean.sh -m med_autoscience.cli study progress \
-  --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/med-autoscience-profile.toml \
+  --profile "${DM_CVD_PROFILE}" \
   --study-id 002-dm-china-us-mortality-attribution \
   --format json
 ```
 
 ```bash
 rtk scripts/run-python-clean.sh -m med_autoscience.cli study progress \
-  --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/med-autoscience-profile.toml \
+  --profile "${DM_CVD_PROFILE}" \
   --study-id 003-dpcc-primary-care-phenotype-treatment-gap \
   --format json
 ```
 
 ```bash
 rtk scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic \
-  --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/med-autoscience-profile.toml \
+  --profile "${DM_CVD_PROFILE}" \
   --studies 002-dm-china-us-mortality-attribution 003-dpcc-primary-care-phenotype-treatment-gap \
   --request-opl-stage-attempts \
-  --request-opl-owner-route-reconcile \
-  --dry-run \
-  --format json
+  --dry-run
 ```
+
+上述 dry-run 是只读 admission/status smoke。`--request-opl-owner-route-reconcile` 是安全推进 tick，CLI 要求显式 `--apply`，避免 operator 把会写 refs-only reconcile/materialize/dispatch surface 的动作误当成纯只读检查。
 
 ```bash
 rtk scripts/run-python-clean.sh -m med_autoscience.cli runtime domain-health-diagnostic \
-  --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/med-autoscience-profile.toml \
+  --profile "${DM_CVD_PROFILE}" \
   --studies 002-dm-china-us-mortality-attribution 003-dpcc-primary-care-phenotype-treatment-gap \
   --request-opl-stage-attempts \
   --request-opl-owner-route-reconcile \
-  --apply \
-  --format json
+  --apply
 ```
 
 Use `--apply` only when the lane is explicitly allowed to drive MAS controller refs-only owner-route reconcile/materialize/dispatch. It must not write runtime-owned study truth, canonical paper body, `publication_eval/latest.json`, `controller_decisions/latest.json`, submission/current package, memory body or artifact body outside MAS owner-authorized surfaces.
@@ -129,4 +143,3 @@ When validating a docs-only change in this repo, use documentation review plus g
 - 用 broad recursive scan、mtime、旧 request lifecycle、旧 generated_at、stale consumer dispatch 或旧 package freshness proof 覆盖当前 owner/work-unit currentness。
 - 手工写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或 submission package 来关闭 currentness 问题。
 - 把 repo-side docs/code fix landed 推断成 live study 已恢复。每次状态判断都必须重新读取 live study/runtime surfaces。
-
