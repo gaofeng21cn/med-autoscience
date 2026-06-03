@@ -32,8 +32,34 @@ def test_study_progress_consumes_stage_artifact_index_projection(monkeypatch, tm
             "stages": [
                 {
                     "stage_id": "write",
-                    "artifact_refs": ["paper/current_draft.md"],
-                    "owner_receipt_refs": ["artifacts/owner_receipts/write/latest.json"],
+                    "stage_progress_status": "artifact_contract_required",
+                    "required_output_refs": [
+                        {
+                            "role": "canonical_stage_output",
+                            "ref": "paper/current_draft.md",
+                        }
+                    ],
+                    "artifact_classification": {
+                        "missing": ["tables/subgroup_sensitivity.csv"],
+                        "owner_receipt_refs": ["artifacts/owner_receipts/write/latest.json"],
+                        "fail_closed_reason": "missing_required_output",
+                        "semantic_validation": {
+                            "status": "missing_domain_receipt",
+                        },
+                        "consumability": {
+                            "status": "blocked",
+                            "failed_checks": ["domain_validation"],
+                        },
+                        "lineage": {
+                            "status": "observed",
+                        },
+                        "retention": {
+                            "status": "covered",
+                        },
+                    },
+                    "current_pointer": {
+                        "promotion_state": "receipt_required",
+                    },
                 }
             ],
         }
@@ -65,11 +91,59 @@ def test_study_progress_consumes_stage_artifact_index_projection(monkeypatch, tm
                 "reason": "superseded_by_current_stage_artifact",
             }
         ],
-        "stages": [
-            {
-                "stage_id": "write",
-                "artifact_refs": ["paper/current_draft.md"],
-                "owner_receipt_refs": ["artifacts/owner_receipts/write/latest.json"],
-            }
-        ],
+            "stages": [
+                {
+                    "stage_id": "write",
+                    "stage_progress_status": "artifact_contract_required",
+                    "required_output_refs": [
+                        {
+                            "role": "canonical_stage_output",
+                            "ref": "paper/current_draft.md",
+                        }
+                    ],
+                    "artifact_classification": {
+                        "missing": ["tables/subgroup_sensitivity.csv"],
+                        "owner_receipt_refs": ["artifacts/owner_receipts/write/latest.json"],
+                        "fail_closed_reason": "missing_required_output",
+                        "semantic_validation": {
+                            "status": "missing_domain_receipt",
+                        },
+                        "consumability": {
+                            "status": "blocked",
+                            "failed_checks": ["domain_validation"],
+                        },
+                        "lineage": {
+                            "status": "observed",
+                        },
+                        "retention": {
+                            "status": "covered",
+                        },
+                    },
+                    "current_pointer": {
+                        "promotion_state": "receipt_required",
+                    },
+                }
+            ],
+        }
+    assert result["stage_kernel_projection"]["surface_kind"] == "stage_kernel_projection"
+    assert result["stage_kernel_projection"]["current_stage"] == "write"
+    assert result["stage_kernel_projection"]["artifact_roles"] == [
+        {
+            "role": "canonical_stage_output",
+            "ref": "paper/current_draft.md",
+        }
+    ]
+    assert result["stage_kernel_projection"]["missing_outputs"] == [
+        "tables/subgroup_sensitivity.csv"
+    ]
+    assert result["stage_kernel_projection"]["accepted_receipts"] == [
+        "artifacts/owner_receipts/write/latest.json"
+    ]
+    assert result["stage_kernel_projection"]["blocker"] == {
+        "blocker_id": "missing_required_output",
+        "stage_id": "write",
+        "failed_checks": ["domain_validation"],
+        "semantic_validation_status": "missing_domain_receipt",
+        "consumability_status": "blocked",
+        "opl_can_override": False,
     }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import med_autoscience.controllers.autonomy_ai_doctor as autonomy_ai_doctor
 import med_autoscience.controllers.open_auto_research_projection as open_auto_research_projection
@@ -25,6 +25,7 @@ from .progress_first_projection import build_progress_first_projection
 from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .research_pack_progress_projection import build_research_pack_progress_summary_projection
 from .shared import SCHEMA_VERSION, _mapping_copy, _non_empty_text
+from .stage_kernel_projection import stage_kernel_projection_from_artifact_index
 from .user_visible_projection import build_user_visible_projection
 
 
@@ -680,6 +681,9 @@ def assemble_study_progress_payload(
     }
     if stage_artifact_index is not None:
         payload["stage_artifact_index"] = dict(stage_artifact_index)
+        payload["stage_kernel_projection"] = stage_kernel_projection_from_artifact_index(
+            stage_artifact_index
+        )
     payload.update(build_progress_first_projection(payload))
     payload["production_blocker_impact"] = build_production_blocker_impact_projection(
         payload,

@@ -17,8 +17,13 @@ def physical_stage_kernel_projection(
     locator = _locator(study_id=study_id, domain_stage_pack=domain_stage_pack)
     state_root = _opl_state_root()
     deliverable_root = _deliverable_root(state_root=state_root, locator=locator) if state_root else None
+    current_pointer = _current_pointer(deliverable_root=deliverable_root)
     stages = {
-        stage_id: _stage_projection(deliverable_root=deliverable_root, stage_id=stage_id)
+        stage_id: _stage_projection(
+            deliverable_root=deliverable_root,
+            stage_id=stage_id,
+            current_pointer=current_pointer,
+        )
         for stage_id in stage_ids
     }
     observed = any(stage["status"] == "observed" for stage in stages.values())
@@ -31,6 +36,7 @@ def physical_stage_kernel_projection(
         "state_root": str(state_root) if state_root else None,
         "deliverable_root": str(deliverable_root) if deliverable_root else None,
         "current_pointer_ref": str(deliverable_root / "current.json") if deliverable_root else None,
+        "current_pointer": current_pointer,
         "body_included": False,
         "authority_boundary": {
             "opl_can_write_mas_truth": False,
@@ -63,7 +69,21 @@ def physical_artifact_classification(
         for item in physical_stage_kernel.get("required_outputs") or []
         if str(item) not in set(current)
     )
-    status = "current" if current and not missing_outputs else "missing"
+    promotion = _mapping(physical_stage_kernel.get("promotion"))
+    semantic_validation = _mapping(physical_stage_kernel.get("semantic_validation"))
+    consumability = _mapping(physical_stage_kernel.get("consumability"))
+    lineage = _mapping(physical_stage_kernel.get("lineage"))
+    retention = _mapping(physical_stage_kernel.get("retention"))
+    pointer_current = promotion.get("state") == "current_pointer_promoted"
+    semantically_accepted = semantic_validation.get("status") == "accepted"
+    consumable = consumability.get("status") == "passed"
+    status = "current" if current and not missing_outputs and pointer_current and semantically_accepted and consumable else "missing"
+    fail_closed_reason = _physical_fail_closed_reason(
+        missing_outputs=missing_outputs,
+        promotion=promotion,
+        semantic_validation=semantic_validation,
+        consumability=consumability,
+    )
     return {
         "surface_kind": "stage_artifact_classification",
         "contract_ref": f"{STAGE_ARTIFACT_RUNTIME_CONTRACT_REF}#/read_model_semantics",
@@ -76,15 +96,23 @@ def physical_artifact_classification(
         "broken": [],
         "missing": missing_outputs,
         "fail_closed": status != "current",
-        "fail_closed_reason": None if status == "current" else "missing_physical_stage_output",
+        "fail_closed_reason": None if status == "current" else fail_closed_reason,
         "manifest_ref": str(stage_folder_contract["manifest_ref"]),
         "receipt_ref": str(stage_folder_contract["receipt_ref"]),
         "current_pointer_basis": {
             "existing_artifacts": bool(current),
             "manifest_valid": bool(physical_stage_kernel.get("manifest_ref")),
             "receipt_accepted": bool(physical_stage_kernel.get("owner_receipt_refs")),
+            "current_pointer_promoted": pointer_current,
+            "semantic_receipt_valid": semantically_accepted,
+            "consumability_passed": consumable,
         },
         "latest_attempt_id": physical_stage_kernel.get("latest_attempt_id"),
+        "promotion": promotion,
+        "semantic_validation": semantic_validation,
+        "consumability": consumability,
+        "lineage": lineage,
+        "retention": retention,
         "legacy_declared_refs_fallback": False,
         "manifest_hash_refs": list(physical_stage_kernel.get("manifest_hash_refs") or []),
         "evidence_hash_refs": list(physical_stage_kernel.get("evidence_hash_refs") or []),
@@ -97,7 +125,12 @@ def physical_artifact_classification(
     }
 
 
-def _stage_projection(*, deliverable_root: Path | None, stage_id: str) -> dict[str, Any]:
+def _stage_projection(
+    *,
+    deliverable_root: Path | None,
+    stage_id: str,
+    current_pointer: Mapping[str, Any],
+) -> dict[str, Any]:
     if deliverable_root is None:
         return _missing_stage(stage_id=stage_id, reason="missing_opl_state_dir")
     stage_root = _stage_root(deliverable_root=deliverable_root, stage_id=stage_id)
@@ -110,40 +143,300 @@ def _stage_projection(*, deliverable_root: Path | None, stage_id: str) -> dict[s
         return _missing_stage(stage_id=stage_id, reason="missing_latest_attempt")
     manifest_ref = attempt_root / "manifest.json"
     manifest = _read_json(manifest_ref)
+    stage_ref = stage_root / "stage.json"
+    attempt_ref = attempt_root / "attempt.json"
     manifest_hash_refs = _hash_refs(manifest.get("output_hashes") if manifest else None)
     evidence_hash_refs = _hash_refs(manifest.get("evidence_hashes") if manifest else None)
     receipt_hash_refs = _hash_refs(manifest.get("receipt_hashes") if manifest else None)
     owner_receipt_refs = _text_list(manifest.get("owner_receipt_refs") if manifest else None)
+    typed_blocker_refs = _text_list(manifest.get("typed_blocker_refs") if manifest else None)
+    decision_receipt_refs = _text_list(manifest.get("decision_receipt_refs") if manifest else None)
     receipt_file_ref = _first_receipt_file(attempt_root / "receipts")
     lineage_events = deliverable_root / "lineage" / "events.jsonl"
     lineage_graph = deliverable_root / "lineage" / "graph.json"
+    required_outputs = _text_list(manifest.get("required_outputs") if manifest else None)
+    present_outputs = _text_list(manifest.get("present_outputs") if manifest else None)
+    restore_refs = _text_list(manifest.get("restore_refs") if manifest else None)
+    retention_refs = _text_list(manifest.get("retention_refs") if manifest else None)
+    promotion = _promotion_projection(
+        stage_id=stage_id,
+        latest_attempt_id=latest_attempt_id,
+        current_pointer=current_pointer,
+        required_outputs=required_outputs,
+        present_outputs=present_outputs,
+        manifest_ref=manifest_ref,
+        owner_receipt_refs=owner_receipt_refs,
+    )
+    semantic_validation = _semantic_validation_projection(
+        stage_id=stage_id,
+        owner_receipt_refs=owner_receipt_refs,
+        typed_blocker_refs=typed_blocker_refs,
+        decision_receipt_refs=decision_receipt_refs,
+    )
+    lineage = _lineage_projection(
+        lineage_events=lineage_events,
+        lineage_graph=lineage_graph,
+        manifest_ref=manifest_ref,
+        owner_receipt_refs=owner_receipt_refs,
+    )
+    retention = _retention_projection(
+        restore_refs=restore_refs,
+        retention_refs=retention_refs,
+        manifest_hash_refs=manifest_hash_refs,
+    )
+    consumability = _consumability_projection(
+        required_outputs=required_outputs,
+        present_outputs=present_outputs,
+        manifest_hash_refs=manifest_hash_refs,
+        owner_receipt_refs=owner_receipt_refs,
+        promotion=promotion,
+        semantic_validation=semantic_validation,
+        lineage=lineage,
+        retention=retention,
+    )
     return {
         "surface_kind": "mas_opl_physical_stage_folder_projection",
         "stage_id": stage_id,
         "status": "observed",
         "stage_folder_ref": str(stage_root),
+        "stage_json_ref": str(stage_ref),
         "attempt_root": str(attempt_root),
+        "attempt_json_ref": str(attempt_ref),
         "latest_attempt_id": latest_attempt_id,
         "latest_pointer_ref": str(latest_pointer),
         "current_pointer_ref": str(deliverable_root / "current.json"),
         "manifest_ref": str(manifest_ref),
         "receipt_ref": str(receipt_file_ref) if receipt_file_ref else None,
-        "current_outputs": _text_list(manifest.get("present_outputs") if manifest else None),
-        "required_outputs": _text_list(manifest.get("required_outputs") if manifest else None),
+        "current_outputs": present_outputs,
+        "required_outputs": required_outputs,
         "manifest_hash_refs": manifest_hash_refs,
         "evidence_hash_refs": evidence_hash_refs,
         "receipt_hash_refs": receipt_hash_refs,
         "owner_receipt_refs": owner_receipt_refs,
-        "typed_blocker_refs": _text_list(manifest.get("typed_blocker_refs") if manifest else None),
-        "decision_receipt_refs": _text_list(manifest.get("decision_receipt_refs") if manifest else None),
+        "typed_blocker_refs": typed_blocker_refs,
+        "decision_receipt_refs": decision_receipt_refs,
+        "restore_refs": restore_refs,
+        "retention_refs": retention_refs,
+        "promotion": promotion,
+        "semantic_validation": semantic_validation,
+        "consumability": consumability,
+        "lineage": lineage,
+        "retention": retention,
         "conformance_refs": {
             "current_pointer_ref": str(deliverable_root / "current.json"),
             "latest_pointer_ref": str(latest_pointer),
+            "stage_json_ref": str(stage_ref),
+            "attempt_json_ref": str(attempt_ref),
             "manifest_ref": str(manifest_ref),
             "lineage_events_ref": str(lineage_events),
             "lineage_graph_ref": str(lineage_graph),
         },
         "body_included": False,
+    }
+
+
+def _current_pointer(*, deliverable_root: Path | None) -> dict[str, Any]:
+    if deliverable_root is None:
+        return {
+            "status": "missing",
+            "missing_reason": "missing_deliverable_root",
+            "body_included": False,
+        }
+    pointer_ref = deliverable_root / "current.json"
+    payload = _read_json(pointer_ref)
+    if payload is None:
+        return {
+            "status": "missing",
+            "pointer_ref": str(pointer_ref),
+            "missing_reason": "missing_current_pointer",
+            "body_included": False,
+        }
+    current_stage = _mapping(payload.get("current_stage"))
+    return {
+        "status": "observed",
+        "pointer_ref": str(pointer_ref),
+        "stage_id": _text(current_stage.get("stage_id")),
+        "stage_status": _text(current_stage.get("status")),
+        "latest_attempt_id": _text(current_stage.get("latest_attempt_id")),
+        "body_included": False,
+    }
+
+
+def _promotion_projection(
+    *,
+    stage_id: str,
+    latest_attempt_id: str,
+    current_pointer: Mapping[str, Any],
+    required_outputs: list[str],
+    present_outputs: list[str],
+    manifest_ref: Path,
+    owner_receipt_refs: list[str],
+) -> dict[str, Any]:
+    missing_outputs = [item for item in required_outputs if item not in set(present_outputs)]
+    pointer_stage_matches = _text(current_pointer.get("stage_id")) == stage_id
+    pointer_attempt_matches = _text(current_pointer.get("latest_attempt_id")) == latest_attempt_id
+    pointer_status = _text(current_pointer.get("stage_status"))
+    if missing_outputs:
+        state = "attempt_output_required"
+    elif not manifest_ref.exists():
+        state = "manifest_required"
+    elif not owner_receipt_refs:
+        state = "receipt_required"
+    elif not pointer_stage_matches or not pointer_attempt_matches:
+        state = "current_pointer_stale"
+    elif pointer_status not in {"success", "blocked", "skipped", "deferred"}:
+        state = "current_pointer_invalid_status"
+    else:
+        state = "current_pointer_promoted"
+    return {
+        "surface_kind": "opl_stage_current_pointer_promotion_projection",
+        "state": state,
+        "pointer_ref": _text(current_pointer.get("pointer_ref")),
+        "pointer_stage_matches": pointer_stage_matches,
+        "pointer_attempt_matches": pointer_attempt_matches,
+        "pointer_terminal_status": pointer_status,
+        "latest_attempt_id": latest_attempt_id,
+        "missing_outputs": missing_outputs,
+        "body_included": False,
+    }
+
+
+def _semantic_validation_projection(
+    *,
+    stage_id: str,
+    owner_receipt_refs: list[str],
+    typed_blocker_refs: list[str],
+    decision_receipt_refs: list[str],
+) -> dict[str, Any]:
+    if typed_blocker_refs:
+        status = "blocked"
+        missing: list[str] = []
+    else:
+        missing = []
+        if not owner_receipt_refs:
+            missing.append("owner_receipt_refs")
+        if _domain_receipt_required(stage_id) and not decision_receipt_refs:
+            missing.append("domain_decision_receipt_refs")
+        status = "accepted" if not missing else "missing_domain_receipt"
+    return {
+        "surface_kind": "mas_stage_semantic_receipt_validation",
+        "status": status,
+        "owner_receipt_refs": owner_receipt_refs,
+        "typed_blocker_refs": typed_blocker_refs,
+        "decision_receipt_refs": decision_receipt_refs,
+        "missing": missing,
+        "domain_validation_owner": "MedAutoScience",
+        "manifest_validity_is_semantic_receipt_validity": False,
+        "body_included": False,
+    }
+
+
+def _consumability_projection(
+    *,
+    required_outputs: list[str],
+    present_outputs: list[str],
+    manifest_hash_refs: list[dict[str, str]],
+    owner_receipt_refs: list[str],
+    promotion: Mapping[str, Any],
+    semantic_validation: Mapping[str, Any],
+    lineage: Mapping[str, Any],
+    retention: Mapping[str, Any],
+) -> dict[str, Any]:
+    checks = {
+        "role": bool(required_outputs),
+        "hash": bool(manifest_hash_refs),
+        "source": bool(present_outputs),
+        "current_truth": promotion.get("state") == "current_pointer_promoted",
+        "receipt_authority": bool(owner_receipt_refs),
+        "lineage": lineage.get("status") == "observed",
+        "retention_restore": retention.get("status") == "covered",
+        "domain_validation": semantic_validation.get("status") == "accepted",
+    }
+    failed = [name for name, passed in checks.items() if not passed]
+    return {
+        "surface_kind": "stage_artifact_consumability_projection",
+        "status": "passed" if not failed else "blocked",
+        "checks": checks,
+        "failed_checks": failed,
+        "body_included": False,
+    }
+
+
+def _lineage_projection(
+    *,
+    lineage_events: Path,
+    lineage_graph: Path,
+    manifest_ref: Path,
+    owner_receipt_refs: list[str],
+) -> dict[str, Any]:
+    missing = []
+    if not lineage_events.exists():
+        missing.append("lineage_events")
+    if not lineage_graph.exists():
+        missing.append("lineage_graph")
+    if not manifest_ref.exists():
+        missing.append("manifest")
+    if not owner_receipt_refs:
+        missing.append("owner_receipt_refs")
+    return {
+        "surface_kind": "stage_artifact_lineage_projection",
+        "status": "observed" if not missing else "missing",
+        "lineage_events_ref": str(lineage_events),
+        "lineage_graph_ref": str(lineage_graph),
+        "missing": missing,
+        "event_model": "stage_attempt_manifest_receipt_current_pointer",
+        "body_included": False,
+    }
+
+
+def _retention_projection(
+    *,
+    restore_refs: list[str],
+    retention_refs: list[str],
+    manifest_hash_refs: list[dict[str, str]],
+) -> dict[str, Any]:
+    covered = bool(manifest_hash_refs) and (bool(restore_refs) or bool(retention_refs))
+    return {
+        "surface_kind": "stage_artifact_retention_restore_projection",
+        "status": "covered" if covered else "restore_contract_required",
+        "restore_refs": restore_refs,
+        "retention_refs": retention_refs,
+        "hash_refs_present": bool(manifest_hash_refs),
+        "cleanup_authorized": False,
+        "required_before_cleanup": True,
+        "body_included": False,
+    }
+
+
+def _physical_fail_closed_reason(
+    *,
+    missing_outputs: list[str],
+    promotion: Mapping[str, Any],
+    semantic_validation: Mapping[str, Any],
+    consumability: Mapping[str, Any],
+) -> str:
+    if missing_outputs:
+        return "missing_physical_stage_output"
+    promotion_state = _text(promotion.get("state"))
+    if promotion_state != "current_pointer_promoted":
+        return promotion_state or "current_pointer_not_promoted"
+    semantic_status = _text(semantic_validation.get("status"))
+    if semantic_status != "accepted":
+        return semantic_status or "semantic_receipt_not_accepted"
+    failed_checks = _text_list(consumability.get("failed_checks"))
+    if failed_checks:
+        return "consumability_gate_failed:" + ",".join(failed_checks)
+    return "physical_stage_kernel_not_current"
+
+
+def _domain_receipt_required(stage_id: str) -> bool:
+    return stage_id in {
+        "01-study_intake",
+        "03-data_asset_and_cohort_build",
+        "05-evidence_synthesis",
+        "06-manuscript_authoring",
+        "07-independent_review_and_revision",
+        "08-publication_package_handoff",
     }
 
 
@@ -235,6 +528,17 @@ def _text_list(value: object) -> list[str]:
     if not isinstance(value, list | tuple | set):
         return []
     return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text or None
 
 
 def _hash_refs(value: object) -> list[dict[str, str]]:

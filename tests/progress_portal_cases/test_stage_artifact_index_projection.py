@@ -41,6 +41,11 @@ def _stage_kernel_projection() -> dict[str, object]:
         ],
         "missing_outputs": ["tables/subgroup_sensitivity.csv"],
         "accepted_receipts": ["artifacts/owner_receipts/write/latest.json"],
+        "semantic_validation": {},
+        "consumability": {},
+        "lineage": {},
+        "retention": {},
+        "current_pointer": {},
         "blocker": {
             "blocker_id": "subgroup_sensitivity_missing",
             "owner": "writer",
@@ -119,6 +124,11 @@ def test_progress_portal_workbench_projects_stage_operating_layer_for_selected_s
         ],
         "missing_outputs": ["tables/subgroup_sensitivity.csv"],
         "accepted_receipts": ["artifacts/owner_receipts/write/latest.json"],
+        "semantic_validation": {},
+        "consumability": {},
+        "lineage": {},
+        "retention": {},
+        "current_pointer": {},
         "blocker": {
             "blocker_id": "subgroup_sensitivity_missing",
             "owner": "writer",

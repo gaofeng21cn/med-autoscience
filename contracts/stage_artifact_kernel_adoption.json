@@ -31,7 +31,58 @@
   "kernel_refs": {
     "physical_stage_folder_source_of_truth": true,
     "derived_index_rebuildable": true,
-    "manifest_receipt_hash_required": true
+    "manifest_receipt_hash_required": true,
+    "current_pointer_promotion_required": true,
+    "semantic_receipt_validation_required": true,
+    "consumability_gate_required": true,
+    "lineage_event_refs_required": true,
+    "retention_restore_refs_required": true
+  },
+  "current_pointer_promotion_model": {
+    "ordered_steps": [
+      "attempt_output",
+      "manifest_valid",
+      "receipt_accepted",
+      "domain_decision_receipt_valid",
+      "current_pointer_promoted",
+      "projection_rebuilt"
+    ],
+    "fail_closed_states": [
+      "attempt_output_required",
+      "manifest_required",
+      "receipt_required",
+      "current_pointer_stale",
+      "current_pointer_invalid_status",
+      "missing_domain_receipt",
+      "consumability_gate_failed"
+    ],
+    "current_pointer_is_read_from_physical_kernel": true,
+    "derived_projection_cannot_promote_pointer": true
+  },
+  "semantic_consumability_gate": {
+    "semantic_receipt_sources": [
+      "owner_receipt_refs",
+      "decision_receipt_refs",
+      "typed_blocker_refs"
+    ],
+    "required_consumability_checks": [
+      "role",
+      "hash",
+      "source",
+      "current_truth",
+      "receipt_authority",
+      "lineage",
+      "retention_restore",
+      "domain_validation"
+    ],
+    "manifest_validity_is_semantic_receipt_validity": false,
+    "typed_blocker_is_domain_outcome_not_runtime_failure": true
+  },
+  "lineage_retention_binding": {
+    "lineage_event_model": "stage_attempt_manifest_receipt_current_pointer",
+    "restore_contract_required_before_cleanup": true,
+    "cleanup_authorized_by_projection": false,
+    "current_pointer_to_orphan_artifact_is_forbidden": true
   },
   "domain_pack_binding": {
     "accepted_source_refs": [

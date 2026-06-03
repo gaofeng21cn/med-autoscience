@@ -187,7 +187,9 @@ def _write_opl_physical_stage_attempt(
             ],
             "owner_receipt_refs": [f"mas-owner-receipt:{stage_id}:{attempt_id}"],
             "typed_blocker_refs": [],
-            "decision_receipt_refs": [],
+            "decision_receipt_refs": [f"mas-domain-decision:{stage_id}:{attempt_id}"],
+            "restore_refs": [f"restore-index:{stage_id}:{attempt_id}"],
+            "retention_refs": [f"retention-ledger:{stage_id}:{attempt_id}"],
         },
     )
     lineage_root = deliverable_root / "lineage"
@@ -345,16 +347,106 @@ def test_stage_artifact_index_consumes_opl_physical_stage_folder_kernel(
     assert study_intake["artifact_classification"]["conformance_refs"] == {
         "current_pointer_ref": physical["current_pointer_ref"],
         "latest_pointer_ref": physical["latest_pointer_ref"],
+        "stage_json_ref": str(Path(physical["stage_root"]) / "stage.json"),
+        "attempt_json_ref": str(Path(physical["attempt_root"]) / "attempt.json"),
         "manifest_ref": physical["manifest_ref"],
         "lineage_events_ref": str(Path(physical["deliverable_root"]) / "lineage" / "events.jsonl"),
         "lineage_graph_ref": str(Path(physical["deliverable_root"]) / "lineage" / "graph.json"),
     }
+    assert study_intake["artifact_classification"]["promotion"]["state"] == (
+        "current_pointer_promoted"
+    )
+    assert study_intake["artifact_classification"]["semantic_validation"]["status"] == "accepted"
+    assert study_intake["artifact_classification"]["consumability"]["status"] == "passed"
+    assert study_intake["artifact_classification"]["lineage"]["status"] == "observed"
+    assert study_intake["artifact_classification"]["retention"]["status"] == "covered"
     assert study_intake["current_pointer"]["pointer_ref"] == physical["current_pointer_ref"]
     assert study_intake["current_pointer"]["attempt_id"] == "attempt-001"
     assert study_intake["legacy_observed_artifact_refs"][0]["classification"] == (
         "migration_historical_declared_ref"
     )
     assert study_intake["legacy_observed_artifact_refs"][0]["counts_as_current_artifact_delta"] is False
+
+
+def test_stage_artifact_index_rejects_physical_stage_without_current_pointer_promotion(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    physical = _write_opl_physical_stage_attempt(
+        tmp_path / "opl-state",
+        study_id="001-risk",
+        stage_id="01-study_intake",
+        attempt_id="attempt-001",
+        output_ref="study_truth_snapshot.json",
+    )
+    _write_json(
+        Path(physical["current_pointer_ref"]),
+        {
+            "surface_kind": "opl_stage_artifact_runtime_current",
+            "current_stage": {
+                "stage_id": "01-study_intake",
+                "status": "success",
+                "latest_attempt_id": "stale-attempt",
+            },
+        },
+    )
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+
+    index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+
+    study_intake = index["stages"][0]
+    assert study_intake["artifact_classification"]["status"] == "missing"
+    assert study_intake["artifact_classification"]["fail_closed"] is True
+    assert study_intake["artifact_classification"]["promotion"]["state"] == (
+        "current_pointer_stale"
+    )
+    assert study_intake["artifact_classification"]["fail_closed_reason"] == (
+        "current_pointer_stale"
+    )
+    assert study_intake["observed_artifact_refs"] == []
+
+
+def test_stage_artifact_index_rejects_physical_stage_without_domain_receipt_or_retention(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    physical = _write_opl_physical_stage_attempt(
+        tmp_path / "opl-state",
+        study_id="001-risk",
+        stage_id="01-study_intake",
+        attempt_id="attempt-001",
+        output_ref="study_truth_snapshot.json",
+    )
+    manifest_path = Path(physical["manifest_ref"])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["decision_receipt_refs"] = []
+    manifest["restore_refs"] = []
+    manifest["retention_refs"] = []
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+
+    index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+
+    study_intake = index["stages"][0]
+    assert study_intake["artifact_classification"]["status"] == "missing"
+    assert study_intake["artifact_classification"]["promotion"]["state"] == (
+        "current_pointer_promoted"
+    )
+    assert study_intake["artifact_classification"]["semantic_validation"]["status"] == (
+        "missing_domain_receipt"
+    )
+    assert study_intake["artifact_classification"]["retention"]["status"] == (
+        "restore_contract_required"
+    )
+    assert study_intake["artifact_classification"]["consumability"]["failed_checks"] == [
+        "retention_restore",
+        "domain_validation",
+    ]
+    assert study_intake["observed_artifact_refs"] == []
 
 
 def test_stage_artifact_index_exposes_legacy_taxonomy_migration_without_dual_current_truth(

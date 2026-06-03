@@ -14,6 +14,7 @@ from med_autoscience.controllers.opl_artifact_operating_contract import (
 )
 from med_autoscience.controllers.opl_physical_stage_kernel import (
     STAGE_ARTIFACT_RUNTIME_CONTRACT_REF,
+    physical_artifact_classification,
     physical_stage_kernel_projection,
 )
 ALLOWED_ARTIFACT_STATUSES = (
@@ -449,8 +450,8 @@ def _artifact_classification(
     physical_stage_kernel: Mapping[str, Any],
 ) -> dict[str, Any]:
     if physical_stage_kernel.get("status") == "observed":
-        return _physical_artifact_classification(
-            stage_id=stage_id,
+        del stage_id
+        return physical_artifact_classification(
             stage_folder_contract=stage_folder_contract,
             physical_stage_kernel=physical_stage_kernel,
         )
@@ -544,48 +545,6 @@ def _artifact_classification(
         "typed_blocker_refs": [],
         "decision_receipt_refs": [],
         "conformance_refs": {},
-        "body_included": False,
-    }
-
-
-def _physical_artifact_classification(
-    *,
-    stage_id: str,
-    stage_folder_contract: Mapping[str, Any],
-    physical_stage_kernel: Mapping[str, Any],
-) -> dict[str, Any]:
-    current = sorted(str(item) for item in physical_stage_kernel.get("current_outputs") or [])
-    missing_outputs = sorted(str(item) for item in physical_stage_kernel.get("required_outputs") or [] if str(item) not in set(current))
-    status = "current" if current and not missing_outputs else "missing"
-    return {
-        "surface_kind": "stage_artifact_classification",
-        "contract_ref": f"{STAGE_ARTIFACT_RUNTIME_CONTRACT_REF}#/read_model_semantics",
-        "source_of_truth": "opl_physical_stage_folder_kernel",
-        "status": status,
-        "current": current,
-        "historical": [],
-        "missing_manifest_or_receipt": [],
-        "orphan": [],
-        "broken": [],
-        "missing": missing_outputs,
-        "fail_closed": status != "current",
-        "fail_closed_reason": None if status == "current" else "missing_physical_stage_output",
-        "manifest_ref": str(stage_folder_contract["manifest_ref"]),
-        "receipt_ref": str(stage_folder_contract["receipt_ref"]),
-        "current_pointer_basis": {
-            "existing_artifacts": bool(current),
-            "manifest_valid": bool(physical_stage_kernel.get("manifest_ref")),
-            "receipt_accepted": bool(physical_stage_kernel.get("owner_receipt_refs")),
-        },
-        "latest_attempt_id": physical_stage_kernel.get("latest_attempt_id"),
-        "legacy_declared_refs_fallback": False,
-        "manifest_hash_refs": list(physical_stage_kernel.get("manifest_hash_refs") or []),
-        "evidence_hash_refs": list(physical_stage_kernel.get("evidence_hash_refs") or []),
-        "receipt_hash_refs": list(physical_stage_kernel.get("receipt_hash_refs") or []),
-        "owner_receipt_refs": list(physical_stage_kernel.get("owner_receipt_refs") or []),
-        "typed_blocker_refs": list(physical_stage_kernel.get("typed_blocker_refs") or []),
-        "decision_receipt_refs": list(physical_stage_kernel.get("decision_receipt_refs") or []),
-        "conformance_refs": dict(physical_stage_kernel.get("conformance_refs") or {}),
         "body_included": False,
     }
 
