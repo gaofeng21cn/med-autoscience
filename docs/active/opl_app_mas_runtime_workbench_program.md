@@ -33,12 +33,15 @@ MAS 已具备相关 repo surface：
 | `mas_opl_runtime_workbench_projection` | `landed_read_only_projection` | App-facing projection gate，登记在 `contracts/test-lane-manifest.json` |
 | paper route lens | `landed_refs_only_projection` | 每篇 paper/study 暴露 current route、route attempts、owner receipt refs、typed blocker refs、reviewer/gate refs、artifact/source/workspace refs 和 next route/action refs；不携带 manuscript/artifact body，不声明 publication ready |
 | Stage Deliverable Review / Index projection | `landed_read_only_locator_projection` | 展示 latest review page、deliverable index、freshness、claim impact、human annotation、next owner 和 blocker；不写 MAS truth |
+| `stage_artifact_index` workbench projection | `artifact_first_mvp_required_read_only_projection` | OPL App workbench 必须把每个 stage 的 artifact refs、latest review page/index refs、owner receipt、freshness、next owner、typed blocker 或 human gate 作为主 drilldown；它只展示 MAS/product-entry/exported refs，不写 artifact body、study truth、quality verdict 或 publication readiness |
 | OPL provider attempt/readiness refs | `provider_readiness_projection_ready` | OPL production proof 可被 MAS product-entry / domain projection ingestion 投影为 provider available；App 只能展示 provider refs 和 typed blocker |
 | publication-route memory refs | `body_free_grouping_review_projection_ready` | 展示 consumed refs、writeback receipt refs、freshness、rejected reason、workspace/stage/route family/status grouping 和 stale/deprecated review summary；不展示 memory body，不接受 writeback |
 
 剩余产品缺口不是“旧 P1 文档里的所有功能都要做”。当前缺口是把这些现有 MAS projection、Stage Review locator、publication-route memory refs / grouping / review summary、provider readiness refs 和 owner-route handoff refs 变成 OPL App 里的主用户运行面；MAS local Progress Portal 只保留 read-only diagnostic / evidence projection，旧 Live Console 只作为 history/provenance 读取。
 
 P1 的当前规划状态来自 [MAS Current Development Lines](./current-development-lines.md)。P1 只承担 `functional_follow_through_gate`：把已经存在的 MAS / OPL refs、receipts、blockers 和 action boundaries 产品化。真实 provider-hosted paper progress 仍归 P0 / P2 owner surfaces；P1 不用 UI 状态、provider completion 或 queue status 宣布论文进展。
+
+Workbench 的 MVP 必须按 artifact-first 呈现：用户打开 paper line 时，首先能看到 `stage_artifact_index` / Stage Deliverable Index 指向的 stage artifact refs、latest review page、freshness、claim / paper asset impact、owner receipt、next owner 和 blocker。typed closeout、read-model/currentness、evidence-tail 和 provider liveness 作为同页审计与调度证据展示，用于解释为什么可继续、为什么等待 provider、为什么 route back 或为什么 blocked；它们不能替代 artifact refs，也不能让 App 写 MAS truth。
 
 ## 活跃内容 Lane
 
@@ -47,7 +50,7 @@ P1 的当前规划状态来自 [MAS Current Development Lines](./current-develop
 | `P1.1` | `read_only_study_workbench` | OPL App-native MAS study drilldown，展示 status、next owner、blocker、route/decision trail、artifacts、source refs，并可并列展示 OPL `current_control_state` 的 runtime drilldown refs。 | terminal input、runtime apply、publication readiness decision |
 | `P1.2` | `owner_route_handoff_transport` | pause/resume/stop/reconcile UI 展示 domain-handler / OPL owner-route handoff refs、拒绝原因和 next owner。 | 直接写 MAS runtime SQLite、controller decisions、publication eval、current package、ledger 或 terminal command file |
 | `P1.3` | `runtime_drilldown_join` | App 只读并列展示 OPL `current_control_state` / provider attempt drilldown refs；MAS 不提供 terminal attach owner gate。 | 恢复旧 MDS WebSocket owner、MAS terminal input/resize/detach、或用 chat 伪装 terminal input |
-| `P1.4` | `stage_review_and_memory_drilldown` | 将 Stage Deliverable Review / Index 与 publication-route memory body-free refs 分组展示：latest review page、claim impact、paper asset delta、freshness、human annotation、consumed/writeback refs、rejected reason、operator grouping、stale/deprecated review summary。 | 把人工注释、memory refs 或 review page 变成 quality verdict / publication readiness |
+| `P1.4` | `stage_review_and_memory_drilldown` | 将 `stage_artifact_index`、Stage Deliverable Review / Index 与 publication-route memory body-free refs 分组展示：stage artifact refs、latest review page、claim impact、paper asset delta、freshness、human annotation、consumed/writeback refs、rejected reason、operator grouping、stale/deprecated review summary。 | 把 artifact refs、人工注释、memory refs 或 review page 变成 quality verdict / publication readiness；写 artifact body 或 MAS truth |
 | `P1.5` | `provider_workbench_join` | 在 OPL production proof ingestion 已可用的基础上，把 MAS study workbench 与 OPL provider readiness、family queue、approval transport、stage attempt status、typed blocker 和 domain activity soak refs 合并显示。 | 把 provider attempt completion 或 production residency proof 当成 paper progress |
 
 这些 lane 可以独立推进。后续 patch 可以只触碰一个 lane，只要它改善内容级结果并保持 owner 边界。
@@ -56,6 +59,7 @@ P1 的当前规划状态来自 [MAS Current Development Lines](./current-develop
 
 | workbench gate | gate class | current planning status | done evidence |
 | --- | --- | --- | --- |
+| `stage_artifact_index_drilldown` | `functional_follow_through_gate` | `required_mvp; projection_landed_app_polish_pending` | OPL App / Workbench 展示 `stage_artifact_index` / Stage Deliverable Index 的 artifact refs、latest review page、owner receipt、freshness、next owner、human gate 和 typed blocker；不写 MAS truth、不展示 artifact body。 |
 | `stage_review_and_memory_drilldown` | `functional_follow_through_gate` | `implemented_read_model; app_polish_pending` | OPL App / Workbench 展示 latest review page、stage index、claim impact、freshness、memory consumed/writeback refs、rejected reason、operator grouping、review summary 和 typed blocker；不写 MAS truth。 |
 | `owner_route_handoff_transport` | `functional_follow_through_gate` | `planned; domain-handler handoff refs landed` | Pause/resume/stop/reconcile 意图返回 domain-handler / OPL owner-route handoff refs、refusal reason 和 next owner；App 不写 runtime SQLite、controller decision、publication eval 或 package。 |
 | `runtime_drilldown_join` | `functional_follow_through_gate` | `planned; OPL current_control_state owner` | App 只读展示 OPL provider/attempt/runtime drilldown refs；MAS 不写 terminal command queue，也不维护 terminal owner gate。 |
@@ -68,6 +72,7 @@ MAS 生产或持有：
 - study truth、publication judgment、paper/package authority、quality verdict、owner route、owner-route handoff refs、source refs 和 forbidden-write rules；
 - `mas_opl_runtime_workbench_projection`，它是 App-facing projection，不是第二 truth source；
 - `paper_route_lens` 是 `mas_opl_runtime_workbench_projection.studies[*]` 与 `reference_projection.lanes.paper_route_lens` 下的 refs-only 子面；字段固定为 `current_route`、`route_attempts`、`route_attempt_counts`、`owner_receipt_refs`、`typed_blocker_refs`、`reviewer_gate_refs`、`artifact_refs`、`source_refs`、`workspace_refs`、`next_route_refs` 和 `next_action_refs`，并固定 `body_included=false`、`claims_publication_ready=false`；
+- `stage_artifact_index` / Stage Deliverable Index 的 refs-only workbench projection；字段应覆盖 stage artifact refs、latest review/index refs、owner receipt refs、freshness、next owner/action refs、typed blocker refs、human gate refs 和 provider liveness refs，并固定 `body_included=false`、`writes_mas_truth=false`、`claims_publication_ready=false`；
 - local Progress Portal read-only diagnostic artifacts；retired Live Console history/provenance refs。
 
 OPL App / OPL Runtime Manager 持有：
@@ -76,7 +81,7 @@ OPL App / OPL Runtime Manager 持有：
 - typed MAS owner-route request 的 transport，以及 MAS typed handoff / receipt 的展示；
 - provider/runtime queue context、OPL production proof state、managed-state freshness、typed blocker 和 domain activity soak refs。
 
-P1 禁止写入：study truth、publication eval、controller decisions、runtime lifecycle SQLite、terminal command files、current package、submission package、evidence ledger、review ledger。
+P1 禁止写入：study truth、publication eval、controller decisions、runtime lifecycle SQLite、terminal command files、current package、submission package、evidence ledger、review ledger、stage artifact body、canonical paper body。
 
 ## 优先级调整
 

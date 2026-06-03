@@ -31,6 +31,8 @@ Stage card
 
 这条链路的核心原则是：OPL 承载 stage attempt、queue、wakeup、retry/dead-letter、human gate transport、receipt 和 projection；MAS 持有医学研究路线、证据、质量、publication verdict、artifact authority 和 owner route。这里的 `verdict` 必须是 AI-first stage quality gate 的审阅结果，不是脚本函数的直接返回值。程序只能校验 reviewer record / quality pack output / evidence refs 的完整性，持久化 durable surface，签发 owner receipt 或 typed blocker，并阻止 OPL/App/provider 越权写 MAS truth。
 
+Artifact-first MVP 是当前推进核心。每个非终局 stage attempt 首先要产出、定位或更新可接力的 stage artifact refs，并把它们汇入 `stage_artifact_index` / Stage Deliverable Index 级 projection；只有这个 artifact refs 链条存在，后续 typed closeout、owner receipt、AI reviewer recheck、gate replay、route-back、human gate 或 stop-loss 才有可审阅对象。typed closeout、read-model/currentness hygiene、evidence-tail 分类和 provider liveness 仍然重要，但它们是增强、审计和调度层：用于证明 artifact delta 可消费、阻止重复 dispatch、暴露 blocker、安排 provider admission 或解释 no-progress，不得替代 artifact-first MVP 本身，也不得被写成 publication readiness、submission readiness 或 MAS truth。
+
 ## 理想形态
 
 理想状态下，MAS 的每个 stage 都应满足同一组形式要求。
@@ -45,6 +47,7 @@ Stage card
 | `closeout` | 每个能产生 reusable lesson、failed path、route impact、citation gap 或 reviewer lesson 的 stage 都有 `stage_memory_closeout_packet` 和 router receipt 规则。 |
 | `deliverable review page` | 每个 stage 的最终人读交付物统一收敛成一页 `Stage Deliverable Review Page`，供论文人工审阅者判断该 stage 是否能进入下一步；它是可选人工审阅记录，不是默认卡点。 |
 | `deliverable index` | 每条 paper line 有一个 `Stage Deliverable Index`，按 stage 列出最新 review page、源 artifact refs、owner receipt、freshness、人工判断状态和下一步；索引只做 locator/projection，不改 MAS truth。 |
+| `stage_artifact_index` | Artifact-first MVP 的工作台级只读索引，按 stage 暴露最新 artifact refs、stage review page、owner receipt、freshness、next owner 和 blocker；它可以由 Stage Deliverable Index / product-entry descriptor 派生，但不能接受 App/UI 写回。 |
 | `quality gate` | 每个 stage 都有医学、统计、证据、写作或投稿质控 rubric；ready / done / pass 只能由 AI-first reviewer / quality-pack record、evidence refs、reviewer OS trace、route-back reason 或 typed blocker 支撑。代码不得用规则、regex、固定分支或普通脚本直接替代医学 judgment。 |
 | `artifact locator` | repo 只保存 contract、prompt、policy、schema、Markdown memory body、seed index 和 locator；真实 workspace artifact body 留在 workspace/runtime root。 |
 | `OPL projection` | OPL 只消费 descriptor、refs、freshness、attempt receipt 和 source locator；不生成医学 truth、不接受 memory writeback、不授权 publication readiness。 |
@@ -97,6 +100,8 @@ stage quality pack 现在还必须声明 contract maturity，而不是只声明 
 - `human stage surface`：主 stage 已有独立 stage skill 或等价人读面，新增或修改 stage/prompt/skill 时必须继续消费 machine-derived route、knowledge、quality、tool、closeout 和 OPL boundary refs。
 - `review / memory / workbench projection`：Stage Deliverable Review Page / Index、publication-route memory inventory 和 workbench reference projection 只暴露 refs、freshness、receipt、blocker 和 optional human annotation；它们不写 MAS truth、不接受 memory body、不授权 publication readiness。
 - `runtime / legacy boundary`：provider residency、guarded apply、legacy active-path tombstone 和 no-default-caller proof 只证明框架可承载 MAS refs / blockers 或旧面已进入 history/provenance；真实 paper-line provider apply、domain activity soak、human gate/resume 和 receipt scaleout 仍是 evidence gate。
+
+当前执行优先级按 artifact-first 读取：先让 stage attempt 形成可定位、可审阅、可传递的 artifact refs 和 `stage_artifact_index` 更新，再用 typed closeout / read-model / currentness / evidence-tail / provider liveness 证明这些 refs 是否可消费、是否需要下一 owner、是否进入 blocker 或是否等待 provider。若本轮只补齐 telemetry、currentness、receipt reconcile、provider liveness 或 projection 字段，而没有新的 artifact refs、owner delta、stable typed blocker、human gate、route-back 或 stop-loss，它应继续记为 platform repair / observability，不应升级为 stage artifact MVP 完成。
 
 当前缺口：
 
