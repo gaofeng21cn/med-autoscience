@@ -477,6 +477,10 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
     assert Path(compaction["archive_ref"]["archive_path"]).is_file()
     assert Path(compaction["source_manifest_path"]).is_file()
     assert Path(compaction["restore_proof_path"]).is_file()
+    assert "/artifacts/runtime/runtime_storage_maintenance/restore_proof_archives/" in compaction["archive_ref"][
+        "archive_path"
+    ]
+    assert "/.ds/restore_proof_archives/" not in compaction["archive_ref"]["archive_path"]
     assert sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file()) < file_count_before
 
     db_path = quest_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
@@ -580,15 +584,17 @@ def test_audit_workspace_storage_restore_proof_compaction_can_include_parked_con
     assert not payload.exists()
 
 
-def test_audit_workspace_storage_restore_proof_compaction_can_include_operator_confirmed_parked_active(
+@pytest.mark.parametrize("status", ["active", "waiting_for_user"])
+def test_audit_workspace_storage_restore_proof_compaction_can_include_operator_confirmed_parked_runtime(
     tmp_path: Path,
+    status: str,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = make_profile(tmp_path)
     study_id = "001-stale-active"
     _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
     quest_root = profile.runtime_root / study_id
-    _write_quest(quest_root, quest_id=study_id, status="active", active_run_id=None)
+    _write_quest(quest_root, quest_id=study_id, status=status, active_run_id=None)
     payload = quest_root / ".ds" / "runs" / "run-001" / "stdout.jsonl"
     payload.parent.mkdir(parents=True, exist_ok=True)
     payload.write_text("operator confirmed parked payload\n" * 4096, encoding="utf-8")
@@ -609,6 +615,70 @@ def test_audit_workspace_storage_restore_proof_compaction_can_include_operator_c
     assert compaction["status"] == "compacted"
     assert compaction["restore_proof"]["status"] == "verified"
     assert not payload.exists()
+
+
+def test_audit_workspace_storage_restore_proof_compaction_shards_codex_homes(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    study_id = "004-sharded-codex-homes"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_quest(quest_root, quest_id=study_id, status="waiting_for_user")
+    payload_paths = [
+        quest_root / ".ds" / "codex_homes" / "mas-run-a" / ".codex" / "sessions" / "rollout-a.jsonl",
+        quest_root / ".ds" / "codex_homes" / "mas-run-b" / ".cache" / "runtime-cache.bin",
+    ]
+    for path in payload_paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"{path.name}\n" * 4096, encoding="utf-8")
+
+    result = module.audit_workspace_storage(
+        profile=profile,
+        study_id=study_id,
+        all_studies=False,
+        apply=True,
+        restore_proof_compaction=True,
+        include_operator_confirmed_parked_active=True,
+        restore_proof_buckets=("codex_homes",),
+    )
+
+    study_report = result["categories"]["runtime"]["studies"][0]
+    compaction = study_report["apply_result"]["restore_proof_compaction"]
+    archive_refs = compaction["archive_refs"]
+
+    assert study_report["status"] == "applied"
+    assert compaction["status"] == "compacted"
+    assert compaction["archive_ref"] is None
+    assert compaction["archive_ref_count"] == 2
+    assert len(compaction["shards"]) == 2
+    assert len(compaction["restore_proofs"]) == 2
+    assert {proof["status"] for proof in compaction["restore_proofs"]} == {"verified"}
+    assert all(
+        "/artifacts/runtime/runtime_storage_maintenance/restore_proof_archives/" in ref["archive_path"]
+        for ref in archive_refs
+    )
+    assert all(Path(ref["archive_path"]).is_file() for ref in archive_refs)
+    assert not (quest_root / ".ds" / "codex_homes" / "mas-run-a").exists()
+    assert not (quest_root / ".ds" / "codex_homes" / "mas-run-b").exists()
+    assert study_report["apply_result"]["domain_authority_archive_ref_index"]["indexed_count"] == 2
+    assert study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]["indexed_count"] == 2
+
+    db_path = quest_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    with sqlite3.connect(db_path) as conn:
+        quest_ref_count = conn.execute(
+            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
+            (str(quest_root.resolve()),),
+        ).fetchone()[0]
+    workspace_db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    with sqlite3.connect(workspace_db_path) as conn:
+        workspace_ref_count = conn.execute(
+            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
+            (str(quest_root.resolve()),),
+        ).fetchone()[0]
+    assert quest_ref_count == 2
+    assert workspace_ref_count == 2
 
 
 def test_audit_workspace_storage_restore_proof_compaction_can_explicitly_compact_cold_archive_bucket(
@@ -650,7 +720,8 @@ def test_audit_workspace_storage_restore_proof_compaction_can_explicitly_compact
     assert compaction["source_buckets"] == ["cold_archive"]
     assert compaction["restore_proof"]["status"] == "verified"
     assert archive_path.is_file()
-    assert "/.ds/restore_proof_archives/" in archive_path.as_posix()
+    assert "/artifacts/runtime/runtime_storage_maintenance/restore_proof_archives/" in archive_path.as_posix()
+    assert "/.ds/restore_proof_archives/" not in archive_path.as_posix()
     assert not (quest_root / ".ds" / "cold_archive").exists()
     assert sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file()) < file_count_before
 

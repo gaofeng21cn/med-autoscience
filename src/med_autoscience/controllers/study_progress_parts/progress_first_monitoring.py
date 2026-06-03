@@ -49,6 +49,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     current_action = _mapping(payload.get("current_executable_owner_action")) or _mapping(
         build_current_executable_owner_action(payload)
     )
+    artifact_first_owner_action = _artifact_first_owner_action(current_action)
     progress_state = _mapping(payload.get("progress_first_sprint_state"))
     latest_terminal_stage_log = _mapping(handoff.get("latest_terminal_stage_log"))
     paper_stage_log = _mapping(latest_terminal_stage_log.get("paper_stage_log"))
@@ -94,7 +95,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     typed_blocker = (
         {}
-        if handoff_owner_action is not None
+        if artifact_first_owner_action
+        or handoff_owner_action is not None
         or (
             transition_consumed_owner_action
             and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition)
@@ -119,7 +121,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     current_blockers = (
         []
         if (
-            handoff_owner_action is not None
+            artifact_first_owner_action
+            or handoff_owner_action is not None
             or (transition_consumed_owner_action and gate_clearing_dispatch_consumption is None)
         )
         and not typed_blocker
@@ -127,7 +130,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     state_kind = (
         "executable_owner_action"
-        if handoff_owner_action is not None
+        if artifact_first_owner_action
+        or handoff_owner_action is not None
         or (transition_consumed_owner_action and gate_clearing_dispatch_consumption is None)
         else _text(execution.get("state_kind"))
     )
@@ -324,6 +328,10 @@ def _transition_consumed_owner_action(domain_transition: Mapping[str, Any]) -> b
         or _text(domain_transition.get("controller_action")) is not None
         or _work_unit_projection(domain_transition.get("next_work_unit")) is not None
     )
+
+
+def _artifact_first_owner_action(current_action: Mapping[str, Any]) -> bool:
+    return _text(current_action.get("source")) == "stage_artifact_index.next_owner_action"
 
 
 def _transition_receipt_consumed(domain_transition: Mapping[str, Any]) -> bool:
@@ -788,8 +796,13 @@ def _work_unit_from_action(action: Mapping[str, Any] | None) -> dict[str, Any] |
     return None
 
 
-def _work_unit_from_current_action(action: Mapping[str, Any]) -> str | None:
-    return _text(action.get("work_unit_id"))
+def _work_unit_from_current_action(action: Mapping[str, Any]) -> dict[str, Any] | str | None:
+    work_unit_id = _text(action.get("work_unit_id"))
+    if work_unit_id is None:
+        return None
+    if _artifact_first_owner_action(action):
+        return {"unit_id": work_unit_id}
+    return work_unit_id
 
 
 def _work_unit_projection(value: object) -> dict[str, Any] | str | None:

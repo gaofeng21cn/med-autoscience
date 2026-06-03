@@ -624,3 +624,146 @@ def test_current_owner_handoff_decision_uses_current_executable_owner_action_nex
     assert result["user_visible_projection"]["next_system_action"] == result["next_system_action"]
     assert result["user_visible_projection"]["next_owner"] == "finalize"
     assert result["status_narration_contract"]["next_step"] == result["next_system_action"]
+
+
+def test_progress_first_monitoring_derives_owner_action_from_stage_artifact_index_before_stale_blocker() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "stage_artifact_index": {
+                "surface_kind": "stage_artifact_index",
+                "current_stage": "review_and_quality_gate",
+                "next_owner_action": {
+                    "next_owner": "finalize",
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "required_delta_kind": "quality_gate_replay_after_artifact_delta",
+                    "target_surface": {
+                        "ref_kind": "route_obligation",
+                        "route_target": "finalize",
+                        "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                    },
+                    "target_surface_specificity": "explicit_owner_route_target",
+                    "acceptance_refs": [
+                        "studies/003-dm/paper/review/story_surface_delta_20260603.json"
+                    ],
+                },
+                "stale_platform_repairs": [
+                    {
+                        "surface": "current_execution_envelope.typed_blocker",
+                        "reason_code": "progress_first_owner_redrive_budget_exhausted",
+                    }
+                ],
+                "stages": [
+                    {
+                        "stage_id": "review_and_quality_gate",
+                        "artifact_delta": {"status": "fresh"},
+                    }
+                ],
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_id": "progress_first_owner_redrive_budget_exhausted",
+                    "owner": "platform_repair",
+                    "work_unit_id": "stale_read_model_reconcile",
+                },
+            },
+            "domain_transition": {
+                "typed_blocker": {
+                    "blocker_id": "progress_first_owner_redrive_budget_exhausted",
+                    "owner": "platform_repair",
+                }
+            },
+        }
+    )
+
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["next_owner"] == "finalize"
+    assert monitoring["controller_action"] == "run_gate_clearing_batch"
+    assert monitoring["next_work_unit"]["unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    action = monitoring["current_executable_owner_action"]
+    assert action["source"] == "stage_artifact_index.next_owner_action"
+    assert action["artifact_first_precedence"]["stale_platform_repairs_superseded"] is True
+    assert monitoring["typed_blocker"] is None
+    assert monitoring["current_blockers"] == []
+    assert monitoring["owner_action_admission"]["admission_requested"] is True
+
+
+def test_progress_first_monitoring_keeps_running_provider_liveness_from_overriding_artifact_owner_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "stage_artifact_index": {
+                "surface_kind": "stage_artifact_index",
+                "current_stage": "review_and_quality_gate",
+                "next_owner_action": {
+                    "next_owner": "finalize",
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                },
+                "stale_platform_repairs": [],
+                "stages": [],
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": True,
+                "next_owner": "ai_reviewer",
+                "active_stage_attempt_id": "sat-running",
+                "active_workflow_id": "wf-running",
+            },
+        }
+    )
+
+    assert monitoring["running_provider_attempt"] is True
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["next_owner"] == "finalize"
+    assert monitoring["controller_action"] == "run_gate_clearing_batch"
+    admission = monitoring["owner_action_admission"]
+    assert admission["provider_attempt_running_proven"] is True
+    assert admission["provider_attempt_owner"] == "ai_reviewer"
+
+
+def test_progress_first_monitoring_does_not_let_quality_gate_blocker_hide_artifact_next_owner_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "stage_artifact_index": {
+                "surface_kind": "stage_artifact_index",
+                "current_stage": "review_and_quality_gate",
+                "next_owner_action": {
+                    "next_owner": "write",
+                    "work_unit_id": "medical_prose_write_repair_after_reviewer_blocker",
+                    "allowed_actions": ["run_quality_repair_batch"],
+                    "required_delta_kind": "paper_artifact_delta_before_gate_replay",
+                },
+                "stale_platform_repairs": [],
+                "stages": [],
+            },
+            "domain_transition": {
+                "typed_blocker": {
+                    "blocker_id": "quality_gate_blocked",
+                    "owner": "ai_reviewer",
+                    "work_unit_id": "stale_quality_gate_replay",
+                }
+            },
+        }
+    )
+
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["next_owner"] == "write"
+    assert monitoring["controller_action"] == "run_quality_repair_batch"
+    assert monitoring["typed_blocker"] is None
+    assert monitoring["current_blockers"] == []
+    assert monitoring["owner_action_admission"]["admission_requested"] is True

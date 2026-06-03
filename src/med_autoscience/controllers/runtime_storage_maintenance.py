@@ -115,20 +115,45 @@ def _directory_size_bytes(path: Path) -> int:
     return total
 
 
-def _size_summary(quest_root: Path, *, buckets: Iterable[str] | None = None) -> dict[str, Any]:
+def _size_summary(
+    quest_root: Path,
+    *,
+    buckets: Iterable[str] | None = None,
+    lightweight_buckets: Iterable[str] | None = None,
+) -> dict[str, Any]:
     ds_root = quest_root / ".ds"
     bucket_summaries: dict[str, Any] = {}
+    lightweight_bucket_names = {str(bucket) for bucket in (lightweight_buckets or [])}
     for bucket_name in _restore_proof_buckets(buckets):
         bucket_path = ds_root / bucket_name
-        bucket_summaries[bucket_name] = {
-            "path": str(bucket_path),
-            "bytes": _directory_size_bytes(bucket_path),
-        }
+        if bucket_name in lightweight_bucket_names:
+            bucket_summaries[bucket_name] = {
+                "path": str(bucket_path),
+                "bytes": None,
+                "lightweight": True,
+                "entry_count": _top_level_entry_count(bucket_path),
+            }
+        else:
+            bucket_summaries[bucket_name] = {
+                "path": str(bucket_path),
+                "bytes": _directory_size_bytes(bucket_path),
+            }
+    total_bytes = None if lightweight_bucket_names else _directory_size_bytes(ds_root)
     return {
         "root": str(ds_root),
-        "total_bytes": _directory_size_bytes(ds_root),
+        "total_bytes": total_bytes,
+        "lightweight_buckets": sorted(lightweight_bucket_names),
         "buckets": bucket_summaries,
     }
+
+
+def _top_level_entry_count(path: Path) -> int:
+    if not path.exists() or not path.is_dir():
+        return 0
+    try:
+        return sum(1 for _ in path.iterdir())
+    except OSError:
+        return 0
 
 
 def _restore_proof_buckets(buckets: Iterable[str] | None) -> tuple[str, ...]:
@@ -410,7 +435,12 @@ def audit_workspace_storage(
             if cache_scan_roots is not None:
                 cache_scan_roots.extend([resolved_study_root, quest_root])
             snapshot = _quest_runtime_snapshot(quest_root)
-            size_before = _size_summary(quest_root, buckets=selected_restore_proof_buckets)
+            lightweight_buckets = selected_restore_proof_buckets if restore_proof_compaction else ()
+            size_before = _size_summary(
+                quest_root,
+                buckets=selected_restore_proof_buckets,
+                lightweight_buckets=lightweight_buckets,
+            )
             candidate = _runtime_candidate(quest_root=quest_root, snapshot=snapshot, size_summary=size_before)
             if restore_proof_compaction:
                 candidate = restore_proof_compaction_candidate(
@@ -465,8 +495,18 @@ def audit_workspace_storage(
                 )
                 if workspace_archive_index:
                     apply_result["runtime_lifecycle_workspace_archive_index"] = workspace_archive_index
-            size_after = _size_summary(quest_root, buckets=selected_restore_proof_buckets)
-            actual_runtime_release_bytes = _actual_release_bytes(size_before, size_after) if apply else 0
+            size_after = _size_summary(
+                quest_root,
+                buckets=selected_restore_proof_buckets,
+                lightweight_buckets=lightweight_buckets,
+            )
+            actual_runtime_release_bytes = (
+                _restore_proof_actual_release_bytes(apply_result)
+                if apply and restore_proof_compaction
+                else _actual_release_bytes(size_before, size_after)
+                if apply
+                else 0
+            )
             runtime_report = dict(candidate)
             runtime_estimated_release_bytes_for_report = (
                 actual_runtime_release_bytes
@@ -624,14 +664,29 @@ def _record_workspace_archive_ref(
     if not isinstance(apply_result, Mapping):
         return {}
     compaction = _mapping(apply_result.get("restore_proof_compaction"))
-    archive_ref = compaction.get("archive_ref")
-    if not isinstance(archive_ref, Mapping):
+    archive_refs = _archive_refs_from_compaction(compaction)
+    if not archive_refs:
         return {}
-    return domain_authority_refs_index.record_archive_ref(
-        quest_root=quest_root,
-        archive_ref=archive_ref,
-        db_path=domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root),
-    )
+    indexed_results = [
+        domain_authority_refs_index.record_archive_ref(
+            quest_root=quest_root,
+            archive_ref=archive_ref,
+            db_path=domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root),
+        )
+        for archive_ref in archive_refs
+    ]
+    result = dict(indexed_results[-1])
+    result["indexed_count"] = len(indexed_results)
+    result["indexed_results"] = indexed_results
+    return result
+
+
+def _archive_refs_from_compaction(compaction: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    archive_refs = compaction.get("archive_refs")
+    if isinstance(archive_refs, list):
+        return [archive_ref for archive_ref in archive_refs if isinstance(archive_ref, Mapping)]
+    archive_ref = compaction.get("archive_ref")
+    return [archive_ref] if isinstance(archive_ref, Mapping) else []
 
 
 def maintain_runtime_storage(
@@ -692,7 +747,12 @@ def maintain_runtime_storage(
         ),
     }
     result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
-    result["size_before"] = _size_summary(resolved_quest_root, buckets=selected_restore_proof_buckets)
+    lightweight_buckets = selected_restore_proof_buckets if restore_proof_compaction else ()
+    result["size_before"] = _size_summary(
+        resolved_quest_root,
+        buckets=selected_restore_proof_buckets,
+        lightweight_buckets=lightweight_buckets,
+    )
 
     if not result["quest_runtime_before"]["quest_exists"]:
         result["status"] = "blocked_missing_quest_root"
@@ -722,12 +782,18 @@ def maintain_runtime_storage(
                 buckets=selected_restore_proof_buckets,
             )
             result["restore_proof_compaction"] = compaction_result
-            archive_ref = compaction_result.get("archive_ref")
-            if isinstance(archive_ref, Mapping):
-                result["domain_authority_archive_ref_index"] = domain_authority_refs_index.record_archive_ref(
-                    quest_root=resolved_quest_root,
-                    archive_ref=archive_ref,
-                )
+            archive_refs = _archive_refs_from_compaction(compaction_result)
+            if archive_refs:
+                indexed_results = [
+                    domain_authority_refs_index.record_archive_ref(
+                        quest_root=resolved_quest_root,
+                        archive_ref=archive_ref,
+                    )
+                    for archive_ref in archive_refs
+                ]
+                result["domain_authority_archive_ref_index"] = dict(indexed_results[-1])
+                result["domain_authority_archive_ref_index"]["indexed_count"] = len(indexed_results)
+                result["domain_authority_archive_ref_index"]["indexed_results"] = indexed_results
             status = str(compaction_result.get("status") or "")
             if status in {"compacted", "nothing_to_archive"}:
                 result["status"] = "maintained"
@@ -781,7 +847,11 @@ def maintain_runtime_storage(
                 result["summary"] = "runtime storage maintenance 已完成。"
 
     result["quest_runtime_after"] = _quest_runtime_snapshot(resolved_quest_root)
-    result["size_after"] = _size_summary(resolved_quest_root, buckets=selected_restore_proof_buckets)
+    result["size_after"] = _size_summary(
+        resolved_quest_root,
+        buckets=selected_restore_proof_buckets,
+        lightweight_buckets=lightweight_buckets,
+    )
     report_path = _timestamped_report_path(resolved_study_root, recorded_at)
     latest_report_path = _latest_report_path(resolved_study_root)
     result["report_path"] = str(report_path)

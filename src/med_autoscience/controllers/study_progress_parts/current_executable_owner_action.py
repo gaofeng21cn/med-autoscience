@@ -9,6 +9,9 @@ SURFACE_KIND = "current_executable_owner_action"
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    artifact_action = _from_stage_artifact_index(payload)
+    if artifact_action is not None:
+        return artifact_action
     next_forced_delta = _mapping_copy(payload.get("next_forced_delta"))
     owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
     owner = _non_empty_text(owner_action.get("next_owner")) or _non_empty_text(
@@ -55,6 +58,45 @@ def owner_action_next_step(action: Mapping[str, Any]) -> str | None:
     return f"等待 {owner_text} {action_text}{work_unit_text}，产出 owner receipt、typed blocker 或下一 owner handoff。"
 
 
+def _from_stage_artifact_index(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    index = _mapping_copy(payload.get("stage_artifact_index"))
+    if _non_empty_text(index.get("surface_kind")) != "stage_artifact_index":
+        return None
+    owner_action = _mapping_copy(index.get("next_owner_action"))
+    owner = _non_empty_text(owner_action.get("next_owner"))
+    work_unit_id = _non_empty_text(owner_action.get("work_unit_id"))
+    allowed_actions = _text_items(owner_action.get("allowed_actions"))
+    if owner is None and work_unit_id is None and not allowed_actions:
+        return None
+    stale_platform_repairs = _mapping_items(index.get("stale_platform_repairs"))
+    return _compact(
+        {
+            "surface_kind": SURFACE_KIND,
+            "schema_version": 1,
+            "status": "ready",
+            "source": "stage_artifact_index.next_owner_action",
+            "next_owner": owner,
+            "work_unit_id": work_unit_id,
+            "allowed_actions": allowed_actions,
+            "owner_receipt_required": owner_action.get("owner_receipt_required") is not False,
+            "required_delta_kind": _non_empty_text(owner_action.get("required_delta_kind")),
+            "target_surface": _mapping_copy(owner_action.get("target_surface")) or None,
+            "target_surface_specificity": _non_empty_text(
+                owner_action.get("target_surface_specificity")
+            ),
+            "acceptance_refs": _text_items(owner_action.get("acceptance_refs")),
+            "artifact_first_precedence": {
+                "surface_kind": "stage_artifact_index",
+                "current_stage": _non_empty_text(index.get("current_stage")),
+                "stale_platform_repairs_superseded": bool(stale_platform_repairs),
+                "stale_platform_repairs": stale_platform_repairs,
+                "stage_count": len(_mapping_items(index.get("stages"))),
+            },
+            "authority_boundary": _authority_boundary(),
+        }
+    )
+
+
 def _from_domain_transition(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     transition = _mapping_copy(payload.get("domain_transition"))
     next_work_unit = _mapping_copy(transition.get("next_work_unit"))
@@ -76,6 +118,12 @@ def _from_domain_transition(payload: Mapping[str, Any]) -> dict[str, Any] | None
             "authority_boundary": _authority_boundary(),
         }
     )
+
+
+def _mapping_items(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list | tuple):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
 
 
 def _authority_boundary() -> dict[str, bool]:
