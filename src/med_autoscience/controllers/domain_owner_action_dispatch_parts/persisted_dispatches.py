@@ -519,16 +519,13 @@ def _current_owner_route_from_scan(
     if consumed_transition_route is not None:
         return consumed_transition_route
     route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
+    if _dispatch_matches_current_route(dispatch=dispatch, current_route=route):
+        return route
+    action_route = _current_action_queue_owner_route(current_study, dispatch=dispatch)
+    if action_route is not None:
+        return action_route
     if route:
         return route
-    action_type = _text(dispatch.get("action_type"))
-    for action in current_study.get("action_queue") or []:
-        payload = _mapping(action)
-        if _text(payload.get("action_type")) != action_type:
-            continue
-        route = owner_route_part.ensure_owner_route_v2(_mapping(payload.get("owner_route")))
-        if route:
-            return route
     return None
 
 
@@ -543,14 +540,19 @@ def current_owner_route_from_scan_payload(
         )
         if consumed_transition_route is not None:
             return consumed_transition_route, "consumed_transition_gate_replay"
-    route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
-    if route:
-        return route, "scan_latest"
     if dispatch is None:
+        route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
+        if route:
+            return route, "scan_latest"
         return None, None
+    route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
+    if _dispatch_matches_current_route(dispatch=dispatch, current_route=route):
+        return route, "scan_latest"
     action_route = _current_action_queue_owner_route(current_study, dispatch=dispatch)
     if action_route is not None:
         return action_route, "scan_action_queue"
+    if route:
+        return route, "scan_latest"
     return None, None
 
 
