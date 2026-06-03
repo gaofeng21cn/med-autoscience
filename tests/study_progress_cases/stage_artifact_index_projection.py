@@ -42,7 +42,16 @@ def test_study_progress_consumes_stage_artifact_index_projection(monkeypatch, tm
                     "artifact_classification": {
                         "missing": ["tables/subgroup_sensitivity.csv"],
                         "owner_receipt_refs": ["artifacts/owner_receipts/write/latest.json"],
+                        "decision_receipt_refs": ["artifacts/owner_receipts/write/decision.json"],
                         "fail_closed_reason": "missing_required_output",
+                        "latest_attempt_id": "attempt-001",
+                        "promotion": {
+                            "state": "receipt_required",
+                            "pointer_stage_matches": True,
+                            "pointer_attempt_matches": True,
+                            "pointer_terminal_status": "success",
+                            "latest_attempt_id": "attempt-001",
+                        },
                         "semantic_validation": {
                             "status": "missing_domain_receipt",
                         },
@@ -52,13 +61,20 @@ def test_study_progress_consumes_stage_artifact_index_projection(monkeypatch, tm
                         },
                         "lineage": {
                             "status": "observed",
+                            "lineage_events_ref": "lineage/events.jsonl",
+                            "lineage_graph_ref": "lineage/graph.json",
                         },
                         "retention": {
                             "status": "covered",
+                            "restore_refs": ["restore/proof.json"],
+                            "retention_refs": ["retention/policy.json"],
                         },
                     },
                     "current_pointer": {
-                        "promotion_state": "receipt_required",
+                        "stage_id": "write",
+                        "attempt_id": "attempt-001",
+                        "terminal_status": "success",
+                        "artifact_refs": ["paper/current_draft.md"],
                     },
                 }
             ],
@@ -104,7 +120,16 @@ def test_study_progress_consumes_stage_artifact_index_projection(monkeypatch, tm
                     "artifact_classification": {
                         "missing": ["tables/subgroup_sensitivity.csv"],
                         "owner_receipt_refs": ["artifacts/owner_receipts/write/latest.json"],
+                        "decision_receipt_refs": ["artifacts/owner_receipts/write/decision.json"],
                         "fail_closed_reason": "missing_required_output",
+                        "latest_attempt_id": "attempt-001",
+                        "promotion": {
+                            "state": "receipt_required",
+                            "pointer_stage_matches": True,
+                            "pointer_attempt_matches": True,
+                            "pointer_terminal_status": "success",
+                            "latest_attempt_id": "attempt-001",
+                        },
                         "semantic_validation": {
                             "status": "missing_domain_receipt",
                         },
@@ -114,13 +139,20 @@ def test_study_progress_consumes_stage_artifact_index_projection(monkeypatch, tm
                         },
                         "lineage": {
                             "status": "observed",
+                            "lineage_events_ref": "lineage/events.jsonl",
+                            "lineage_graph_ref": "lineage/graph.json",
                         },
                         "retention": {
                             "status": "covered",
+                            "restore_refs": ["restore/proof.json"],
+                            "retention_refs": ["retention/policy.json"],
                         },
                     },
                     "current_pointer": {
-                        "promotion_state": "receipt_required",
+                        "stage_id": "write",
+                        "attempt_id": "attempt-001",
+                        "terminal_status": "success",
+                        "artifact_refs": ["paper/current_draft.md"],
                     },
                 }
             ],
@@ -147,3 +179,23 @@ def test_study_progress_consumes_stage_artifact_index_projection(monkeypatch, tm
         "consumability_status": "blocked",
         "opl_can_override": False,
     }
+    assert result["stage_kernel_projection"]["state_index"]["index_authority"] == (
+        "derived_refs_only_rebuildable_read_model"
+    )
+    assert result["stage_kernel_projection"]["state_index"]["sqlite_record_counts_as_stage_complete"] is False
+    assert result["stage_kernel_projection"]["state_index"]["derived_index_rebuildable"] is True
+    assert result["stage_kernel_projection"]["promotion"]["surface_kind"] == (
+        "opl_stage_current_pointer_promotion_audit"
+    )
+    assert result["stage_kernel_projection"]["promotion"]["fail_closed"] is True
+    assert "partial_commit" in result["stage_kernel_projection"]["promotion"]["fail_closed_reasons"]
+    assert result["stage_kernel_projection"]["promotion"]["authority_boundary"][
+        "writes_current_pointer"
+    ] is False
+    assert result["stage_kernel_projection"]["lineage_retention"]["surface_kind"] == (
+        "opl_stage_lineage_retention_drilldown"
+    )
+    assert result["stage_kernel_projection"]["lineage_retention"]["cleanup_authorized"] is False
+    assert result["stage_kernel_projection"]["lineage_retention"]["retention_restore_gate"][
+        "cleanup_authorized_by_projection"
+    ] is False

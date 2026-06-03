@@ -208,6 +208,27 @@ When validating a docs-only change in this repo, use documentation review plus g
   - This closeout does not declare any study publication ready, submission ready, or final paper quality ready.
   - DM002/DM003 live-study smoke remains read-only follow-through evidence, not a prerequisite for the repo-level artifact-first MVP integration.
 
+### Stage-Native Artifact Operating Layer closeout - 2026-06-04 repo integration
+
+- Scope:
+  - Updated docs: `docs/active/mas-ideal-state-gap-plan.md`, `docs/active/stage_surface_standardization_program.md`, `docs/runtime/control/progress_first_stage_outcome.md`.
+  - Updated contract: `contracts/stage_artifact_kernel_adoption.json`.
+  - Updated source/projection: state index kernel, semantic receipt validator, promotion audit helper, lineage / retention drilldown, study progress `stage_kernel_projection`, Progress Portal / Workbench `stage_operating_layer`.
+  - Explicit non-write surfaces: no live study truth, runtime-owned state, canonical paper body, `publication_eval/latest.json`, `controller_decisions/latest.json`, `paper/submission_minimal/`, `manuscript/current_package/`, memory body, artifact body, submission package, or OPL `current.json` was edited.
+- Operating-layer rule landed:
+  - `stage_artifact_index` remains a rebuildable derived locator projection.
+  - `stage_kernel_projection` is the primary Workbench progress source and now exposes `state_index`, `promotion`, and `lineage_retention` drilldowns.
+  - Semantic receipt validation is body-free and fail-closed; typed blocker is a domain outcome, not runtime failure.
+  - Promotion audit is read-only and cannot promote or rewrite current pointer.
+  - Lineage / retention drilldown never authorizes cleanup; cleanup / restore still needs owner-authorized receipt.
+  - Workbench cross-domain soak is display-only and cannot authorize MAS/MAG/OMA/RCA readiness or artifact mutation.
+- Verification evidence:
+  - `rtk scripts/run-pytest-clean.sh tests/test_opl_state_index_kernel.py tests/test_opl_stage_promotion_runtime.py tests/test_mas_stage_semantic_receipts.py tests/test_opl_stage_lineage_retention.py tests/study_progress_cases/stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_kernel_cross_domain_soak_projection.py tests/test_stage_artifact_kernel_adoption_contract.py -q` -> 25 passed.
+  - Full verification and final commit id are recorded by the main session after absorb / cleanup.
+- Residual risk / next owner:
+  - This closeout does not declare any study publication ready, submission ready, final paper quality ready, memory writeback success, artifact mutation authorization, or live provider long-soak completion.
+  - Remaining evidence tail is real paper-line owner delta, independent reviewer/auditor scaleout, live cross-domain soak, human gate / resume and owner-authorized artifact lifecycle apply.
+
 ## 错误路径
 
 不要再走以下路径：

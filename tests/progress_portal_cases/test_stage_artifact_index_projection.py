@@ -46,6 +46,24 @@ def _stage_kernel_projection() -> dict[str, object]:
         "lineage": {},
         "retention": {},
         "current_pointer": {},
+        "promotion": {
+            "surface_kind": "opl_stage_current_pointer_promotion_audit",
+            "status": "blocked",
+            "fail_closed": True,
+            "authority_boundary": {
+                "writes_current_pointer": False,
+            },
+        },
+        "lineage_retention": {
+            "surface_kind": "opl_stage_lineage_retention_drilldown",
+            "status": "blocked",
+            "cleanup_authorized": False,
+        },
+        "state_index": {
+            "status": "ready_for_opl_sidecar_ingest",
+            "row_count": 0,
+            "sqlite_record_counts_as_stage_complete": False,
+        },
         "blocker": {
             "blocker_id": "subgroup_sensitivity_missing",
             "owner": "writer",
@@ -129,6 +147,24 @@ def test_progress_portal_workbench_projects_stage_operating_layer_for_selected_s
         "lineage": {},
         "retention": {},
         "current_pointer": {},
+        "promotion": {
+            "surface_kind": "opl_stage_current_pointer_promotion_audit",
+            "status": "blocked",
+            "fail_closed": True,
+            "authority_boundary": {
+                "writes_current_pointer": False,
+            },
+        },
+        "lineage_retention": {
+            "surface_kind": "opl_stage_lineage_retention_drilldown",
+            "status": "blocked",
+            "cleanup_authorized": False,
+        },
+        "state_index": {
+            "status": "ready_for_opl_sidecar_ingest",
+            "row_count": 0,
+            "sqlite_record_counts_as_stage_complete": False,
+        },
         "blocker": {
             "blocker_id": "subgroup_sensitivity_missing",
             "owner": "writer",

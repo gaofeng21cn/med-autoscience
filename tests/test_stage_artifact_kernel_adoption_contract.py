@@ -106,3 +106,31 @@ def test_legacy_mas_sqlite_policy_remains_domain_authority_refs_not_generic_runt
     assert policy["mas_can_claim_generic_lifecycle_owner"] is False
     assert policy["mas_can_claim_generic_queue_owner"] is False
     assert policy["mas_can_claim_generic_read_model_owner"] is False
+
+
+def test_operating_layer_landed_surfaces_are_read_only_and_projected() -> None:
+    surfaces = _contract()["operating_layer_landed_surfaces"]
+
+    assert set(surfaces) == {
+        "state_index_kernel",
+        "semantic_receipt_validation",
+        "promotion_runtime_audit",
+        "lineage_retention_drilldown",
+        "workbench_cross_domain_soak",
+    }
+    assert surfaces["state_index_kernel"]["derived_index_rebuildable"] is True
+    assert surfaces["state_index_kernel"]["sqlite_record_counts_as_stage_complete"] is False
+    assert surfaces["semantic_receipt_validation"]["receipt_body_read"] is False
+    assert surfaces["semantic_receipt_validation"]["ready_claims_allowed"] is False
+    assert surfaces["promotion_runtime_audit"]["read_only"] is True
+    assert surfaces["promotion_runtime_audit"]["writes_current_pointer"] is False
+    assert surfaces["lineage_retention_drilldown"]["cleanup_authorized"] is False
+    assert surfaces["lineage_retention_drilldown"]["cleanup_authorized_by_projection"] is False
+    assert surfaces["workbench_cross_domain_soak"]["required_domain_lanes"] == [
+        "MAS",
+        "MAG",
+        "OMA",
+        "RCA",
+    ]
+    assert surfaces["workbench_cross_domain_soak"]["can_authorize_domain_readiness"] is False
+    assert surfaces["workbench_cross_domain_soak"]["can_authorize_artifact_mutation"] is False

@@ -23,6 +23,7 @@ from .stage_review import runtime_stage_review_summary
 PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
 PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "artifacts/runtime/progress_portal/studies/{study_id}/latest.json"
 STAGE_KERNEL_TRUTH_SOURCE = "stage_kernel_projection"
+REQUIRED_CROSS_DOMAIN_SOAK_LANES = ("MAS", "MAG", "OMA", "RCA")
 
 
 def build_runtime_workbench_projection(
@@ -531,10 +532,174 @@ def _stage_operating_layer_projection(progress: Mapping[str, Any]) -> dict[str, 
         "lineage": dict(_mapping(payload.get("lineage"))),
         "retention": dict(_mapping(payload.get("retention"))),
         "current_pointer": dict(_mapping(payload.get("current_pointer"))),
+        "promotion": dict(_mapping(payload.get("promotion"))),
+        "lineage_retention": dict(_mapping(payload.get("lineage_retention"))),
+        "state_index": dict(_mapping(payload.get("state_index"))),
         "blocker": dict(_mapping(payload.get("blocker"))),
         "next_owner": dict(_mapping(payload.get("next_owner"))),
         "provider_liveness": dict(_mapping(payload.get("provider_liveness"))),
+        **_cross_domain_soak_projection_entry(payload),
         "authority": _stage_operating_layer_authority(),
+    }
+
+
+def _cross_domain_soak_projection_entry(stage_kernel_projection: Mapping[str, Any]) -> dict[str, Any]:
+    projection = _cross_domain_soak_projection(
+        _mapping(stage_kernel_projection.get("cross_domain_soak"))
+    )
+    return {"cross_domain_soak": projection} if projection else {}
+
+
+def _cross_domain_soak_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
+    if not payload:
+        return {}
+    lanes = [_cross_domain_soak_lane(item) for item in _mapping_items(payload.get("lanes"))]
+    lanes = [lane for lane in lanes if lane["domain_id"] is not None]
+    lane_counts = _cross_domain_soak_lane_counts(lanes)
+    seen_domain_ids = {lane["domain_id"] for lane in lanes}
+    missing_required_lanes = [
+        lane_id for lane_id in REQUIRED_CROSS_DOMAIN_SOAK_LANES if lane_id not in seen_domain_ids
+    ]
+    return {
+        "surface_kind": "mas_opl_stage_kernel_cross_domain_soak_projection",
+        "schema_version": 1,
+        "status": _cross_domain_soak_status(lane_counts),
+        "display_role": "primary_stage_operating_layer_readiness_summary",
+        "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
+        "summary": _non_empty_text(payload.get("readiness_summary"))
+        or _non_empty_text(payload.get("summary")),
+        "required_domain_lanes": list(REQUIRED_CROSS_DOMAIN_SOAK_LANES),
+        "missing_required_lanes": missing_required_lanes,
+        "all_required_lanes_present": not missing_required_lanes,
+        "lane_counts": lane_counts,
+        "lanes": lanes,
+        "source_refs": _dedupe_refs(
+            [
+                *_projection_source_refs(payload),
+                *[ref for lane in lanes for ref in _string_list(lane.get("source_refs"))],
+            ]
+        ),
+        "authority_summary": _cross_domain_soak_authority_summary(),
+        "authority": _cross_domain_soak_authority(),
+    }
+
+
+def _cross_domain_soak_lane(value: Mapping[str, Any]) -> dict[str, Any]:
+    authority_owner = _first_non_empty_text(
+        value.get("authority_owner"),
+        value.get("domain_authority_owner"),
+    )
+    refs = _dedupe_refs(
+        [
+            *_projection_source_refs(value),
+            _non_empty_text(value.get("stage_folder_ref")),
+            _non_empty_text(value.get("app_workbench_ref")),
+            _non_empty_text(value.get("artifact_gallery_ref")),
+            _non_empty_text(value.get("stage_progress_log_ref")),
+        ]
+    )
+    return {
+        "domain_id": _non_empty_text(value.get("domain_id")),
+        "status": _cross_domain_soak_lane_status(value),
+        "readiness": _first_non_empty_text(value.get("readiness"), value.get("readiness_state")),
+        "authority_owner": authority_owner,
+        "authority_function": _non_empty_text(value.get("authority_function")),
+        "artifact_role": _non_empty_text(value.get("artifact_role")),
+        "human_gate_state": _non_empty_text(value.get("human_gate_state")),
+        "export_readiness": _non_empty_text(value.get("export_readiness")),
+        "stage_folder_ref": _non_empty_text(value.get("stage_folder_ref")),
+        "app_workbench_ref": _non_empty_text(value.get("app_workbench_ref")),
+        "artifact_gallery_ref": _non_empty_text(value.get("artifact_gallery_ref")),
+        "stage_progress_log_ref": _non_empty_text(value.get("stage_progress_log_ref")),
+        "artifact_delta_refs": _string_list(value.get("artifact_delta_refs")),
+        "next_owner": dict(_mapping(value.get("next_owner"))),
+        "typed_blocker": dict(_mapping(value.get("typed_blocker"))),
+        "source_refs": refs,
+        "authority": {
+            "domain_authority_owner": authority_owner,
+            "domain_authority_retained": authority_owner is not None,
+            "workbench_can_write_domain_truth": False,
+            "workbench_can_authorize_domain_readiness": False,
+            "workbench_can_mutate_artifact_body": False,
+        },
+    }
+
+
+def _cross_domain_soak_lane_status(value: Mapping[str, Any]) -> str:
+    status = _non_empty_text(value.get("status")) or _non_empty_text(value.get("lane_status"))
+    if status is not None:
+        return _normalize_cross_domain_soak_status(status)
+    if _mapping(value.get("typed_blocker")):
+        return "blocked"
+    if (
+        _string_list(value.get("artifact_delta_refs"))
+        and _non_empty_text(value.get("controller_freshness")) == "stale"
+    ):
+        return "stale_controller_with_artifact_delta"
+    if bool(value.get("running_provider_attempt")) is True or bool(value.get("active_stage_attempt")) is True:
+        return "running"
+    return "no_live_run"
+
+
+def _normalize_cross_domain_soak_status(status: str) -> str:
+    known_statuses = {
+        "blocked": "blocked",
+        "no-live-run": "no_live_run",
+        "no_live_run": "no_live_run",
+        "running": "running",
+        "stale-controller-with-artifact-delta": "stale_controller_with_artifact_delta",
+        "stale_controller_with_artifact_delta": "stale_controller_with_artifact_delta",
+    }
+    return known_statuses.get(status, status)
+
+
+def _cross_domain_soak_lane_counts(lanes: list[dict[str, Any]]) -> dict[str, int]:
+    counts = {
+        "total": len(lanes),
+        "running": 0,
+        "blocked": 0,
+        "stale_controller_with_artifact_delta": 0,
+        "no_live_run": 0,
+    }
+    for lane in lanes:
+        status = _non_empty_text(lane.get("status"))
+        if status in counts and status != "total":
+            counts[status] += 1
+    return counts
+
+
+def _cross_domain_soak_status(lane_counts: Mapping[str, int]) -> str:
+    if lane_counts.get("blocked", 0) > 0:
+        return "blocked"
+    if lane_counts.get("stale_controller_with_artifact_delta", 0) > 0:
+        return "stale_controller_with_artifact_delta"
+    if lane_counts.get("running", 0) > 0:
+        return "running"
+    return "no_live_run"
+
+
+def _cross_domain_soak_authority_summary() -> dict[str, Any]:
+    return {
+        "stage_kernel_owner": "one-person-lab",
+        "workbench_role": "read_only_projection",
+        "writes_domain_truth": False,
+        "writes_mas_truth": False,
+        "can_authorize_domain_readiness": False,
+        "can_authorize_artifact_mutation": False,
+        "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
+    }
+
+
+def _cross_domain_soak_authority() -> dict[str, Any]:
+    return {
+        "opl_role": "stage_kernel_cross_domain_soak_projection_consumer_only",
+        "writes_domain_truth": False,
+        "writes_mas_truth": False,
+        "claims_publication_ready": False,
+        "can_authorize_domain_readiness": False,
+        "can_authorize_artifact_mutation": False,
+        "can_write_artifact_body": False,
+        "current_truth_source": STAGE_KERNEL_TRUTH_SOURCE,
     }
 
 

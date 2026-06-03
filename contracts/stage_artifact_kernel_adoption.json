@@ -170,7 +170,11 @@
       "stage_artifact_index",
       "stage_kernel_projection",
       "mas_opl_runtime_workbench_projection",
-      "app_workbench_artifact_drilldown"
+      "app_workbench_artifact_drilldown",
+      "stage_kernel_projection.state_index",
+      "stage_kernel_projection.promotion",
+      "stage_kernel_projection.lineage_retention",
+      "mas_opl_runtime_workbench_projection.stage_operating_layer.cross_domain_soak"
     ],
     "file_presence_only_counts_as": "orphan_or_historical",
     "provider_completion_counts_as_progress": false,
@@ -193,6 +197,83 @@
   ],
   "notes": [
     "MAS consumes the OPL physical Stage Folder Kernel as the primary stage artifact truth when present.",
-    "stage_artifact_index remains a refs-only derived projection and cannot promote file presence, provider completion, or stale legacy outputs into current progress."
-  ]
+    "stage_artifact_index remains a refs-only derived projection and cannot promote file presence, provider completion, or stale legacy outputs into current progress.",
+    "2026-06-04 follow-through lands read-only state index, semantic receipt validation, promotion audit, lineage/retention drilldown, and cross-domain soak projection as operating-layer surfaces.",
+    "These operating-layer surfaces expose refs, blockers, fail-closed reasons, and read-only readiness summaries; they do not write MAS truth, current pointer, publication eval, controller decisions, artifact body, memory body, or paper package body."
+  ],
+  "operating_layer_landed_surfaces": {
+    "state_index_kernel": {
+      "surface_kind": "opl_state_index_kernel_rows_projection",
+      "implementation_ref": "src/med_autoscience/controllers/opl_state_index_kernel.py",
+      "projection_refs": [
+        "stage_kernel_projection.state_index",
+        "mas_opl_runtime_workbench_projection.stage_operating_layer.state_index"
+      ],
+      "derived_index_rebuildable": true,
+      "sqlite_record_counts_as_stage_complete": false,
+      "body_included": false
+    },
+    "semantic_receipt_validation": {
+      "surface_kind": "mas_stage_semantic_receipt_validation",
+      "implementation_ref": "src/med_autoscience/controllers/mas_stage_semantic_receipts.py",
+      "accepted_authority_types": [
+        "source_readiness",
+        "reviewer_quality",
+        "publication_gate",
+        "artifact_package_authority",
+        "memory_accept_reject",
+        "typed_blocker",
+        "medical_owner_receipt"
+      ],
+      "validation_scope": [
+        "receipt_ref",
+        "schema_refs",
+        "capability_refs",
+        "domain_semantic_refs"
+      ],
+      "receipt_body_read": false,
+      "ready_claims_allowed": false
+    },
+    "promotion_runtime_audit": {
+      "surface_kind": "opl_stage_current_pointer_promotion_audit",
+      "implementation_ref": "src/med_autoscience/controllers/opl_stage_promotion_runtime.py",
+      "projection_refs": [
+        "stage_kernel_projection.promotion",
+        "mas_opl_runtime_workbench_projection.stage_operating_layer.promotion"
+      ],
+      "read_only": true,
+      "writes_current_pointer": false,
+      "covers": [
+        "partial_commit",
+        "rollback_candidate",
+        "stale_pointer",
+        "orphan_output",
+        "historical_pointer_tombstone"
+      ]
+    },
+    "lineage_retention_drilldown": {
+      "surface_kind": "opl_stage_lineage_retention_drilldown",
+      "implementation_ref": "src/med_autoscience/controllers/opl_stage_lineage_retention.py",
+      "projection_refs": [
+        "stage_kernel_projection.lineage_retention",
+        "mas_opl_runtime_workbench_projection.stage_operating_layer.lineage_retention"
+      ],
+      "unified_event_model": "stage_attempt_manifest_receipt_current_pointer",
+      "cleanup_authorized": false,
+      "cleanup_authorized_by_projection": false
+    },
+    "workbench_cross_domain_soak": {
+      "surface_kind": "mas_opl_stage_kernel_cross_domain_soak_projection",
+      "implementation_ref": "src/med_autoscience/controllers/progress_portal_parts/runtime_workbench_projection.py",
+      "required_domain_lanes": [
+        "MAS",
+        "MAG",
+        "OMA",
+        "RCA"
+      ],
+      "workbench_role": "read_only_projection",
+      "can_authorize_domain_readiness": false,
+      "can_authorize_artifact_mutation": false
+    }
+  }
 }
