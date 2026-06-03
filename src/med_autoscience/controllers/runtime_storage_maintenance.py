@@ -366,6 +366,13 @@ def _actual_release_bytes(before: Mapping[str, Any], after: Mapping[str, Any]) -
     return max(0, int(before.get("total_bytes") or 0) - int(after.get("total_bytes") or 0))
 
 
+def _restore_proof_actual_release_bytes(apply_result: Mapping[str, Any] | None) -> int:
+    if not isinstance(apply_result, Mapping):
+        return 0
+    compaction = _mapping(apply_result.get("restore_proof_compaction"))
+    return int(compaction.get("actual_release_bytes") or 0)
+
+
 def _deleted_bytes_from_apply_result(report: Mapping[str, Any]) -> int:
     apply_result = report.get("apply_result")
     deleted_bytes = int(apply_result.get("deleted_bytes") or 0) if isinstance(apply_result, Mapping) else 0

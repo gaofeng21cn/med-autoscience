@@ -71,8 +71,13 @@ def maintain_quest_runtime_storage(
             report_mode="orphan_quest_runtime_storage_maintenance",
         ),
     }
+    lightweight_buckets = selected_restore_proof_buckets if restore_proof_compaction else ()
     result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
-    result["size_before"] = _size_summary(resolved_quest_root, buckets=selected_restore_proof_buckets)
+    result["size_before"] = _size_summary(
+        resolved_quest_root,
+        buckets=selected_restore_proof_buckets,
+        lightweight_buckets=lightweight_buckets,
+    )
 
     if not result["quest_runtime_before"]["quest_exists"]:
         result["status"] = "blocked_missing_quest_root"
@@ -111,7 +116,11 @@ def maintain_quest_runtime_storage(
         )
 
     result["quest_runtime_after"] = _quest_runtime_snapshot(resolved_quest_root)
-    result["size_after"] = _size_summary(resolved_quest_root, buckets=selected_restore_proof_buckets)
+    result["size_after"] = _size_summary(
+        resolved_quest_root,
+        buckets=selected_restore_proof_buckets,
+        lightweight_buckets=lightweight_buckets,
+    )
     report_path = _quest_runtime_maintenance_report_path(resolved_quest_root, recorded_at)
     latest_report_path = _quest_runtime_maintenance_latest_path(resolved_quest_root)
     result["report_path"] = str(report_path)
@@ -281,20 +290,45 @@ def _directory_size_bytes(path: Path) -> int:
     return total
 
 
-def _size_summary(quest_root: Path, *, buckets: Iterable[str] | None = None) -> dict[str, Any]:
+def _size_summary(
+    quest_root: Path,
+    *,
+    buckets: Iterable[str] | None = None,
+    lightweight_buckets: Iterable[str] | None = None,
+) -> dict[str, Any]:
     ds_root = quest_root / ".ds"
     bucket_summaries: dict[str, Any] = {}
+    lightweight_bucket_names = {str(bucket) for bucket in (lightweight_buckets or [])}
     for bucket_name in _restore_proof_buckets(buckets):
         bucket_path = ds_root / bucket_name
-        bucket_summaries[bucket_name] = {
-            "path": str(bucket_path),
-            "bytes": _directory_size_bytes(bucket_path),
-        }
+        if bucket_name in lightweight_bucket_names:
+            bucket_summaries[bucket_name] = {
+                "path": str(bucket_path),
+                "bytes": None,
+                "lightweight": True,
+                "entry_count": _top_level_entry_count(bucket_path),
+            }
+        else:
+            bucket_summaries[bucket_name] = {
+                "path": str(bucket_path),
+                "bytes": _directory_size_bytes(bucket_path),
+            }
+    total_bytes = None if lightweight_bucket_names else _directory_size_bytes(ds_root)
     return {
         "root": str(ds_root),
-        "total_bytes": _directory_size_bytes(ds_root),
+        "total_bytes": total_bytes,
+        "lightweight_buckets": sorted(lightweight_bucket_names),
         "buckets": bucket_summaries,
     }
+
+
+def _top_level_entry_count(path: Path) -> int:
+    if not path.exists() or not path.is_dir():
+        return 0
+    try:
+        return sum(1 for _ in path.iterdir())
+    except OSError:
+        return 0
 
 
 def _restore_proof_buckets(buckets: Iterable[str] | None) -> tuple[str, ...]:
