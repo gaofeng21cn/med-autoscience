@@ -349,6 +349,13 @@ def _execution_owner_route(
     )
     if request_route is not None:
         return request_route, "owner_request"
+    dispatch_route = _dispatch_owner_route(dispatch)
+    if (
+        _dispatch_uses_bridge_authority(dispatch)
+        and dispatch_route
+        and _owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is None
+    ):
+        return dispatch_route, "dispatch_owner_route_bridge"
     if _dispatch_uses_bridge_authority(dispatch):
         return None, "bridge_currentness_failed"
     scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)

@@ -120,6 +120,50 @@ def test_current_ai_reviewer_write_routeback_projects_same_line_write_handoff_wh
     assert transition["next_work_unit"]["unit_id"] == "manuscript_story_repair"
 
 
+def test_current_ai_reviewer_write_routeback_owner_route_has_explicit_target_surface(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.runtime_control import owner_route as owner_route_part
+
+    study_root = tmp_path / "study"
+    _write_json(
+        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
+        _current_ai_reviewer_route_back_eval(study_root),
+    )
+
+    action = domain_transition_recommended_action(
+        study_id="dm002",
+        study_root=study_root,
+        status_payload={"study_id": "dm002", "study_root": str(study_root)},
+        active_run_id=None,
+    )
+
+    route, actions = owner_route_part.route_and_decorate_actions(
+        study_id="dm002",
+        quest_id="dm002",
+        status={
+            "study_id": "dm002",
+            "study_root": str(study_root),
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-dm002",
+                "source_signature": "truth-snapshot-dm002",
+            },
+        },
+        progress={},
+        actions=[action],
+        blocked_reason=action["reason"],
+        next_owner=action["route_target"],
+        active_run_id=None,
+    )
+
+    assert route["target_surface"]["surface_ref"] == (
+        "canonical manuscript story-surface delta or "
+        "typed blocker:manuscript_story_surface_delta_missing"
+    )
+    assert route["target_surface_source"] == "owner_route.action_target_surface"
+    assert actions[0]["owner_route"]["target_surface"] == route["target_surface"]
+
+
 def test_gate_recheck_only_readiness_preempts_stale_write_routeback(tmp_path: Path) -> None:
     study_root = tmp_path / "study"
     publication_eval = _current_ai_reviewer_route_back_eval(study_root)

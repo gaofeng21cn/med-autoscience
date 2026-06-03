@@ -32,6 +32,149 @@ def _install_gate_clearing_executor(module, monkeypatch) -> dict[str, object]:
     return called
 
 
+def _install_quality_repair_executor(module, monkeypatch) -> dict[str, object]:
+    called: dict[str, object] = {}
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "ok": True,
+            "status": "executed",
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "controller_action_type": "run_quality_repair_batch",
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fake_run_quality_repair_batch,
+    )
+    return called
+
+
+def test_execute_dispatch_accepts_story_surface_materialization_bridge_owner_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    work_unit_fingerprint = (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+    materialized_route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    source_refs = dict(materialized_route.get("source_refs") or {})
+    source_refs.update(
+        {
+            "source_eval_id": "publication-eval::003::ai-reviewer-record::current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "bridge_authority": "domain_action_request_materializer_story_surface_bridge",
+            "bridged_from_owner_reason": "ai_reviewer_record_stale_after_current_manuscript",
+            "materialized_from_action_type": "return_to_ai_reviewer_workflow",
+            "materialized_work_unit_id": "medical_prose_write_repair",
+            "owner_route_currentness_basis": {
+                "source_eval_id": "publication-eval::003::ai-reviewer-record::current",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "truth_epoch": "truth-event-000022",
+                "runtime_health_epoch": "runtime-health-event-006348",
+            },
+        }
+    )
+    materialized_route.update(
+        {
+            "truth_epoch": "truth-event-000022",
+            "route_epoch": "truth-event-000022",
+            "runtime_health_epoch": "runtime-health-event-006348",
+            "source_fingerprint": "truth-snapshot::dm003-current",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "source_refs": source_refs,
+            "idempotency_key": "owner-route::dm003::write-story-surface-bridge",
+        }
+    )
+    materialized_route = module.owner_route_part.ensure_owner_route_v2(materialized_route)
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=materialized_route,
+    )
+    dispatch_payload["source_action"] = {
+        "action_type": "run_quality_repair_batch",
+        "controller_work_unit_id": work_unit_id,
+        "executable_work_unit": work_unit_id,
+        "materialization_decision": "story_surface_delta_or_typed_blocker_required",
+        "source_eval_id": "publication-eval::003::ai-reviewer-record::current",
+    }
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [
+                {
+                    **dispatch_payload,
+                    "refs": {"dispatch_path": str(dispatch_path)},
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "quest_root": str(profile.runtime_root / quest_id),
+        },
+    )
+    called = _install_quality_repair_executor(module, monkeypatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    execution = result["executions"][0]
+    assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] == "dispatch_owner_route_bridge"
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    route_context = called["authority_route_context"]["controller_route_context"]
+    assert route_context["source_eval_id"] == "publication-eval::003::ai-reviewer-record::current"
+
+
 def test_execute_dispatch_accepts_publication_owner_materialization_bridge(
     monkeypatch,
     tmp_path: Path,

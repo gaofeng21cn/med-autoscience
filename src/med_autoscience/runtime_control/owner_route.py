@@ -5,6 +5,10 @@ import json
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.controllers.default_executor_action_policy import (
+    request_output_surface_for_action_type,
+    request_output_target_surface_for_action_type,
+)
 from med_autoscience.runtime_control import decision_trace_ledger
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
@@ -134,6 +138,9 @@ def build_owner_route(
         },
         "currentness_digest_basis": currentness_digest_basis,
     }
+    if target_surface := _target_surface_from_actions(normalized_actions, allowed_actions):
+        route["target_surface"] = target_surface
+        route["target_surface_source"] = "owner_route.action_target_surface"
     route.update(trace_projection)
     _attach_decision_trace_source_refs(route)
     route["idempotency_key"] = _idempotency_key(
@@ -219,6 +226,12 @@ def ensure_owner_route_v2(route: Mapping[str, Any]) -> dict[str, Any]:
             "source_refs": source_refs,
         }
     )
+    if not _mapping(payload.get("target_surface")):
+        allowed_actions = [_text(item) for item in payload.get("allowed_actions") or []]
+        target_surface = _target_surface_from_actions([], [item for item in allowed_actions if item])
+        if target_surface:
+            payload["target_surface"] = target_surface
+            payload["target_surface_source"] = "owner_route.allowed_action_target_surface"
     trace_projection = decision_trace_ledger.decision_trace_projection(payload, source_refs)
     payload.update({key: value for key, value in trace_projection.items() if key not in payload})
     _attach_decision_trace_source_refs(payload)
@@ -266,6 +279,42 @@ def _legacy_currentness_source_refs(
     if runtime_health_epoch is not None:
         refs.setdefault("runtime_health_epoch", runtime_health_epoch)
     return refs
+
+
+def _target_surface_from_actions(
+    actions: list[Mapping[str, Any]],
+    allowed_actions: Iterable[str | None],
+) -> dict[str, Any] | None:
+    for action in actions:
+        explicit = _mapping(action.get("target_surface")) or _mapping(action.get("route_target_surface"))
+        if explicit:
+            return explicit
+        if target := _target_surface_for_action_type(_text(action.get("controller_action_type"))):
+            return target
+        if target := _target_surface_for_action_type(_text(action.get("action_type"))):
+            return target
+    for action_type in allowed_actions:
+        if target := _target_surface_for_action_type(_text(action_type)):
+            return target
+    return None
+
+
+def _target_surface_for_action_type(action_type: str | None) -> dict[str, Any] | None:
+    if not action_type:
+        return None
+    explicit = request_output_target_surface_for_action_type(action_type)
+    if explicit is not None:
+        return explicit
+    output_surface = request_output_surface_for_action_type(action_type)
+    if not output_surface:
+        return None
+    return {
+        "surface": "owner_action_output_target_surface",
+        "schema_version": 1,
+        "action_type": action_type,
+        "surface_ref": output_surface,
+        "source": "default_executor_action_policy.request_output_surface",
+    }
 
 
 def route_and_decorate_actions(
