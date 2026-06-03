@@ -1,0 +1,108 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+
+pytestmark = pytest.mark.meta
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _contract() -> dict[str, object]:
+    return json.loads((REPO_ROOT / "contracts/stage_artifact_kernel_adoption.json").read_text(encoding="utf-8"))
+
+
+def test_stage_artifact_kernel_adoption_declares_physical_stage_folder_truth() -> None:
+    contract = _contract()
+
+    assert contract["surface_kind"] == "opl_stage_artifact_kernel_adoption"
+    assert contract["domain_id"] == "med-autoscience"
+    assert contract["kernel_contract_ref"] == "contracts/opl-framework/stage-artifact-runtime-contract.json"
+    assert contract["kernel_refs"]["physical_stage_folder_source_of_truth"] is True
+    assert contract["kernel_refs"]["derived_index_rebuildable"] is True
+    assert contract["projection_boundary"]["derived_index_authority"] == "rebuildable_projection_not_primary_truth"
+    assert contract["projection_boundary"]["file_presence_only_counts_as"] == "orphan_or_historical"
+    assert contract["projection_boundary"]["provider_completion_counts_as_progress"] is False
+    assert contract["authority_boundary"]["opl_can_write_domain_truth"] is False
+    assert contract["authority_boundary"]["opl_can_mutate_domain_artifact_body"] is False
+
+
+def test_state_index_kernel_adoption_keeps_sqlite_refs_only_and_rebuildable() -> None:
+    adoption = _contract()["state_index_kernel_adoption"]
+
+    assert adoption["surface_kind"] == "opl_state_index_kernel_sqlite_sidecar_adoption"
+    assert adoption["state_index_kernel_owner"] == "one-person-lab"
+    assert adoption["sqlite_sidecar_owner"] == "one-person-lab"
+    assert adoption["mas_role"] == "primary_small_file_compaction_candidate_and_refs_only_index_source"
+    assert adoption["index_authority"] == "derived_refs_only_rebuildable_read_model"
+    assert adoption["source_of_truth"] == (
+        "physical_stage_folder_files_mas_owned_truth_files_and_domain_owner_receipts"
+    )
+    assert adoption["derived_index_rebuildable"] is True
+    assert adoption["small_file_compaction_target"] is True
+    assert "legacy_ds_runtime_mirrors" in adoption["compaction_targets"]
+    assert "operator_read_model_projection" in adoption["compaction_targets"]
+
+    assert adoption["allowed_sqlite_payload_roles"] == [
+        "ref",
+        "locator",
+        "cursor",
+        "checksum",
+        "content_hash",
+        "source_fingerprint",
+        "idempotency_key",
+        "receipt_ref",
+        "typed_blocker_ref",
+        "restore_proof_ref",
+        "bounded_preview_hash",
+    ]
+
+
+def test_state_index_kernel_adoption_forbids_domain_body_and_verdict_payloads() -> None:
+    adoption = _contract()["state_index_kernel_adoption"]
+    forbidden = set(adoption["forbidden_sqlite_payloads"])
+    boundary = adoption["authority_boundary"]
+
+    assert {
+        "study_truth_body",
+        "publication_eval_body",
+        "controller_decision_body",
+        "manuscript_body",
+        "paper_package_body",
+        "evidence_ledger_body",
+        "review_ledger_body",
+        "memory_body",
+        "artifact_body",
+        "publication_quality_verdict_body",
+        "artifact_authority_verdict_body",
+        "owner_receipt_authority",
+    } <= forbidden
+
+    assert boundary["mas_can_write_opl_state_index_kernel"] is False
+    assert boundary["mas_can_own_generic_sqlite_sidecar"] is False
+    assert boundary["opl_can_write_mas_study_truth"] is False
+    assert boundary["opl_can_write_publication_eval"] is False
+    assert boundary["opl_can_write_controller_decision"] is False
+    assert boundary["opl_can_write_manuscript_body"] is False
+    assert boundary["opl_can_write_memory_body"] is False
+    assert boundary["opl_can_write_artifact_body"] is False
+    assert boundary["opl_can_authorize_publication_quality"] is False
+    assert boundary["opl_can_authorize_artifact_mutation"] is False
+    assert boundary["sqlite_record_counts_as_stage_complete"] is False
+
+
+def test_legacy_mas_sqlite_policy_remains_domain_authority_refs_not_generic_runtime() -> None:
+    policy = _contract()["state_index_kernel_adoption"]["legacy_mas_sqlite_policy"]
+
+    assert policy["domain_authority_refs_sqlite_role"] == "refs_only_domain_authority_index_adapter"
+    assert policy["runtime_lifecycle_sqlite_role"] == (
+        "retired_or_domain_authority_refs_provenance_not_generic_lifecycle_owner"
+    )
+    assert policy["paper_work_unit_outbox_role"] == "domain_work_unit_identity_and_receipt_refs_only"
+    assert policy["mas_can_claim_generic_persistence_engine"] is False
+    assert policy["mas_can_claim_generic_lifecycle_owner"] is False
+    assert policy["mas_can_claim_generic_queue_owner"] is False
+    assert policy["mas_can_claim_generic_read_model_owner"] is False

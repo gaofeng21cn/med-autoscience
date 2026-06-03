@@ -38,6 +38,76 @@
     "lineage_event_refs_required": true,
     "retention_restore_refs_required": true
   },
+  "state_index_kernel_adoption": {
+    "surface_kind": "opl_state_index_kernel_sqlite_sidecar_adoption",
+    "version": "opl-state-index-kernel-sqlite-sidecar-adoption.v1",
+    "state_index_kernel_owner": "one-person-lab",
+    "sqlite_sidecar_owner": "one-person-lab",
+    "mas_role": "primary_small_file_compaction_candidate_and_refs_only_index_source",
+    "index_authority": "derived_refs_only_rebuildable_read_model",
+    "source_of_truth": "physical_stage_folder_files_mas_owned_truth_files_and_domain_owner_receipts",
+    "derived_index_rebuildable": true,
+    "small_file_compaction_target": true,
+    "compaction_targets": [
+      "legacy_ds_runtime_mirrors",
+      "runtime_lifecycle_refs",
+      "paper_work_unit_receipt_refs",
+      "owner_route_receipt_refs",
+      "dispatch_receipt_refs",
+      "artifact_locator_refs",
+      "retention_restore_refs",
+      "operator_read_model_projection"
+    ],
+    "allowed_sqlite_payload_roles": [
+      "ref",
+      "locator",
+      "cursor",
+      "checksum",
+      "content_hash",
+      "source_fingerprint",
+      "idempotency_key",
+      "receipt_ref",
+      "typed_blocker_ref",
+      "restore_proof_ref",
+      "bounded_preview_hash"
+    ],
+    "forbidden_sqlite_payloads": [
+      "study_truth_body",
+      "publication_eval_body",
+      "controller_decision_body",
+      "manuscript_body",
+      "paper_package_body",
+      "evidence_ledger_body",
+      "review_ledger_body",
+      "memory_body",
+      "artifact_body",
+      "publication_quality_verdict_body",
+      "artifact_authority_verdict_body",
+      "owner_receipt_authority"
+    ],
+    "legacy_mas_sqlite_policy": {
+      "domain_authority_refs_sqlite_role": "refs_only_domain_authority_index_adapter",
+      "runtime_lifecycle_sqlite_role": "retired_or_domain_authority_refs_provenance_not_generic_lifecycle_owner",
+      "paper_work_unit_outbox_role": "domain_work_unit_identity_and_receipt_refs_only",
+      "mas_can_claim_generic_persistence_engine": false,
+      "mas_can_claim_generic_lifecycle_owner": false,
+      "mas_can_claim_generic_queue_owner": false,
+      "mas_can_claim_generic_read_model_owner": false
+    },
+    "authority_boundary": {
+      "mas_can_write_opl_state_index_kernel": false,
+      "mas_can_own_generic_sqlite_sidecar": false,
+      "opl_can_write_mas_study_truth": false,
+      "opl_can_write_publication_eval": false,
+      "opl_can_write_controller_decision": false,
+      "opl_can_write_manuscript_body": false,
+      "opl_can_write_memory_body": false,
+      "opl_can_write_artifact_body": false,
+      "opl_can_authorize_publication_quality": false,
+      "opl_can_authorize_artifact_mutation": false,
+      "sqlite_record_counts_as_stage_complete": false
+    }
+  },
   "current_pointer_promotion_model": {
     "ordered_steps": [
       "attempt_output",
