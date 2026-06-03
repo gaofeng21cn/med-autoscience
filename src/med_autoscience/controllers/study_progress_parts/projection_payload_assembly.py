@@ -561,6 +561,7 @@ def assemble_study_progress_payload(
     ai_doctor_state: dict[str, Any],
     repair_recommendation: dict[str, Any],
     ai_repair_lifecycle: dict[str, Any] | None,
+    stage_artifact_index: dict[str, Any] | None,
     autonomous_runtime_notice: dict[str, Any],
     execution_owner_guard: dict[str, Any],
     supervisor_tick_audit: dict[str, Any],
@@ -677,6 +678,8 @@ def assemble_study_progress_payload(
         "research_pack_progress_summary": research_pack_progress_summary,
         "refs": refs,
     }
+    if stage_artifact_index is not None:
+        payload["stage_artifact_index"] = dict(stage_artifact_index)
     payload.update(build_progress_first_projection(payload))
     payload["production_blocker_impact"] = build_production_blocker_impact_projection(
         payload,

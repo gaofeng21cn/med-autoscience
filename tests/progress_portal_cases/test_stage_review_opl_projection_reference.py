@@ -36,6 +36,7 @@ def test_progress_portal_opl_projection_fails_closed_when_reference_proofs_are_m
         "memory_receipt",
         "runtime_owner_route_handoffs",
         "progress_first",
+        "stage_artifact_index",
         "paper_route_lens",
     ]
     assert reference["typed_blockers"][0]["blocker_id"] == "provider_attempt_proof_missing"

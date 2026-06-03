@@ -31,12 +31,17 @@ from .agent_pack_refs import (
 )
 from .adoption_ref_payload import empty_payload, payload_from_authority_refs
 from . import hypothesis_portfolio_pack
+from .family_stage_artifact_index_projection import (
+    STAGE_ARTIFACT_INDEX_PROJECTION_REF,
+    stage_artifact_index_projection_descriptor,
+)
 from .progress_first_policies import PROGRESS_DELTA_POLICY, TYPED_BLOCKER_LINEAGE_POLICY
 from .stage_throughput_contracts import (
     human_gate_progress_evidence_contract,
     minimum_forward_delta_contract,
     route_obligation_lens,
 )
+from .user_stage_log_contract import USER_STAGE_LOG_CONTRACT
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 from med_autoscience.runtime_protocol.domain_authority_refs_index import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
@@ -73,51 +78,6 @@ FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "paper/manuscript/current_package",
     "current_package.zip",
 )
-
-USER_STAGE_LOG_REQUIRED_FIELDS = (
-    "stage_name",
-    "problem_summary",
-    "stage_goal",
-    "stage_work_done",
-    "changed_stage_surfaces",
-    "outcome",
-    "remaining_blockers",
-    "evidence_refs",
-)
-
-USER_STAGE_LOG_CONTRACT = {
-    "surface_kind": "opl_standard_agent_user_stage_log_contract",
-    "version": "standard-user-stage-log.v1",
-    "owner": "one-person-lab",
-    "standard_agent_requirement": (
-        "domain_stage_closeout_must_return_user_readable_stage_semantics_or_typed_blocker"
-    ),
-    "opl_projection_surface": "stage_progress_log.user_stage_log",
-    "domain_semantic_sources": [
-        "typed_closeout_packet.user_stage_log",
-        "typed_closeout_packet.paper_stage_log",
-        "typed_closeout_packet.stage_log_summary",
-        "route_impact.user_stage_log",
-        "route_impact.paper_stage_log",
-        "route_impact.stage_log_summary",
-    ],
-    "required_domain_semantic_fields": list(USER_STAGE_LOG_REQUIRED_FIELDS),
-    "mas_paper_alias_fields": {
-        "stage_work_done_alias": "paper_work_done",
-        "changed_stage_surfaces_alias": "changed_paper_surfaces",
-    },
-    "required_observability_fields": ["duration", "token_usage", "cost"],
-    "missing_semantics_policy": "typed_blocker_or_missing_domain_semantic_summary_no_opl_inference",
-    "token_policy": "observed_or_explicit_missing_null_no_zero_fill",
-    "authority_boundary": {
-        "opl_can_infer_domain_semantics": False,
-        "opl_can_read_artifact_body": False,
-        "opl_can_write_domain_truth": False,
-        "opl_can_authorize_quality_or_export": False,
-        "provider_completion_can_claim_stage_semantics_complete": False,
-        "mas_retains_publication_quality_authority": True,
-    },
-}
 
 FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
     {
@@ -260,6 +220,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             ),
             "stage_skill_surface_projection_source": STAGE_SKILL_SURFACE_PROJECTION_REF,
             "stage_deliverable_index_contract_source": STAGE_DELIVERABLE_INDEX_CONTRACT_REF,
+            "stage_artifact_index_projection_source": STAGE_ARTIFACT_INDEX_PROJECTION_REF,
             "packet_contract_surfaces": packet_surfaces,
             "quality_pack_contract_surfaces": list(stage_quality_contract.QUALITY_PACK_CONTRACT_SURFACES),
             "stage_knowledge_root": str(stage_knowledge_contract.STAGE_KNOWLEDGE_ROOT),
@@ -310,6 +271,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "can_promote_memory_to_evidence": False,
         },
         "stage_deliverable_index": stage_deliverable_index,
+        "stage_artifact_index_projection": stage_artifact_index_projection_descriptor(),
         "quality_pack_contract": stage_quality_contract.build_stage_quality_pack_projection(),
         "stage_skill_surface_projection": (
             stage_skill_surface_projection.build_stage_skill_surface_projection()

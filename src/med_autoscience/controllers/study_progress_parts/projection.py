@@ -13,6 +13,7 @@ from med_autoscience.controllers import (
     outer_supervision_slo,
     study_truth_kernel,
 )
+from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
 from .delivery_inspection import (
     attach_delivery_inspection_projection as _attach_delivery_inspection_projection,
     read_delivery_inspection_projection as _read_delivery_inspection_projection,
@@ -115,6 +116,21 @@ def _current_redrive_top_level_next_action(payload: dict[str, Any]) -> str | Non
         or _route_repair_summary(route_repair)
         or _non_empty_text(next_work_unit.get("unit_id"))
     )
+
+
+def _stage_artifact_index_projection(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+) -> dict[str, Any] | None:
+    del profile
+    payload = build_stage_artifact_index(study_id=study_id, study_root=study_root)
+    if not isinstance(payload, dict):
+        return None
+    if _non_empty_text(payload.get("surface_kind")) != "stage_artifact_index":
+        return None
+    return dict(payload)
 
 
 def build_study_progress_projection(
@@ -818,6 +834,11 @@ def build_study_progress_projection(
         if ai_reviewer_request_lifecycle is not None
         else None
     )
+    stage_artifact_index_projection = _stage_artifact_index_projection(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+    )
     payload = assemble_study_progress_payload(
         generated_at=generated_at,
         study_id=resolved_study_id,
@@ -889,6 +910,7 @@ def build_study_progress_projection(
         ai_doctor_state=ai_doctor_state,
         repair_recommendation=repair_recommendation,
         ai_repair_lifecycle=ai_repair_lifecycle,
+        stage_artifact_index=stage_artifact_index_projection,
         autonomous_runtime_notice=autonomous_runtime_notice,
         execution_owner_guard=execution_owner_guard,
         supervisor_tick_audit=supervisor_tick_audit,

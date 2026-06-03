@@ -185,6 +185,7 @@ def _selected_workbench_study(
         paper_route_lens=paper_route_lens,
     )
     progress_first = build_progress_first_operator_projection(progress)
+    stage_artifact_index = _stage_artifact_index_projection(progress)
     return {
         "study_id": study_id,
         "display_title": study_id,
@@ -205,6 +206,7 @@ def _selected_workbench_study(
         "actions": _workbench_actions(),
         "workbench": dict(study_workbench),
         "stage_review": stage_review,
+        **({"stage_artifact_index": stage_artifact_index} if stage_artifact_index else {}),
         "progress_first": progress_first,
         "paper_route_lens": paper_route_lens,
         "reference_projection": reference_projection,
@@ -225,6 +227,7 @@ def _reference_projection(
     freshness_lane = _freshness_lane(freshness=freshness, stage_review=stage_review)
     runtime_owner_route_handoffs = _runtime_owner_route_handoff_lane(progress=progress, runtime=runtime)
     progress_first = build_progress_first_operator_projection(progress)
+    stage_artifact_index = _stage_artifact_index_lane(progress)
     lanes = {
         "provider_attempt": provider_attempt,
         "guarded_apply": guarded_apply,
@@ -233,6 +236,7 @@ def _reference_projection(
         "freshness": freshness_lane,
         "runtime_owner_route_handoffs": runtime_owner_route_handoffs,
         "progress_first": progress_first,
+        "stage_artifact_index": stage_artifact_index,
         "paper_route_lens": dict(paper_route_lens),
     }
     return {
@@ -456,6 +460,34 @@ def _runtime_owner_route_handoff_lane(
     }
 
 
+def _stage_artifact_index_projection(progress: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _mapping(progress.get("stage_artifact_index"))
+    if _non_empty_text(payload.get("surface_kind")) != "stage_artifact_index":
+        return {}
+    return dict(payload)
+
+
+def _stage_artifact_index_lane(progress: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _stage_artifact_index_projection(progress)
+    if not payload:
+        return _pending_lane(
+            lane_id="stage_artifact_index",
+            summary="等待 MAS stage_artifact_index projection；OPL App 只能显示 pending lane。",
+            required_surface="stage_artifact_index",
+        )
+    return {
+        "lane_id": "stage_artifact_index",
+        "status": "observed",
+        "surface_kind": "stage_artifact_index",
+        "current_stage": _non_empty_text(payload.get("current_stage")),
+        "next_owner_action": dict(_mapping(payload.get("next_owner_action"))),
+        "stale_platform_repairs": [dict(item) for item in payload.get("stale_platform_repairs") or [] if isinstance(item, Mapping)],
+        "stage_count": len([item for item in payload.get("stages") or [] if isinstance(item, Mapping)]),
+        "stages": [dict(item) for item in payload.get("stages") or [] if isinstance(item, Mapping)],
+        "authority": _workbench_projection_authority(),
+    }
+
+
 def _typed_blocker_lane(
     *,
     lane_id: str,
@@ -508,6 +540,18 @@ def _owner_route_handoff_policy() -> dict[str, Any]:
         "can_authorize_quality_verdict": False,
         "can_authorize_publication_readiness": False,
         "can_authorize_artifact_mutation": False,
+    }
+
+
+def _workbench_projection_authority() -> dict[str, Any]:
+    return {
+        "opl_role": "workbench_projection_consumer_only",
+        "writes_mas_truth": False,
+        "body_free": True,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_artifact_mutation": False,
+        "can_write_memory_body": False,
     }
 
 

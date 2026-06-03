@@ -49,6 +49,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["source_refs"]["stage_deliverable_index_contract_source"] == (
         "med_autoscience.stage_surface_contract.build_stage_surface_contract"
     )
+    assert descriptor["source_refs"]["stage_artifact_index_projection_source"] == (
+        "med_autoscience.controllers.stage_artifact_index.build_stage_artifact_index"
+    )
     assert descriptor["source_refs"]["packet_contract_surfaces"] == list(stage_contract["packet_contracts"])
     assert descriptor["source_refs"]["quality_pack_contract_surfaces"] == [
         "mas_stage_quality_pack_contract",
@@ -145,6 +148,30 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["stage_deliverable_index"]["review_page_policy"]["freshness_signal_policy"][
         "freshness_signal_can_authorize_submission_readiness"
     ] is False
+    assert descriptor["stage_artifact_index_projection"] == {
+        "surface_kind": "stage_artifact_index_projection_descriptor",
+        "projection_surface_kind": "stage_artifact_index",
+        "builder_ref": "med_autoscience.controllers.stage_artifact_index.build_stage_artifact_index",
+        "payload_fields": [
+            "surface_kind",
+            "current_stage",
+            "next_owner_action",
+            "stale_platform_repairs",
+            "stages",
+        ],
+        "consumer_surfaces": [
+            "study_progress.stage_artifact_index",
+            "mas_opl_runtime_workbench_projection.studies[*].stage_artifact_index",
+            "mas_opl_workbench_reference_projection.lanes.stage_artifact_index",
+        ],
+        "authority_boundary": {
+            "opl_role": "projection_consumer_only",
+            "writes_mas_truth": False,
+            "can_authorize_artifact_authority": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+        },
+    }
     quality_pack_contract = stage_quality_contract.build_stage_quality_pack_contract()
     assert descriptor["quality_pack_contract"] == {
         "surface_kind": "stage_quality_pack_projection",
