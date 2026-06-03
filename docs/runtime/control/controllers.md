@@ -122,10 +122,13 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 对应稳定技术说明见：
 
 - `docs/runtime/control/study_runtime_orchestration.md`
+- `docs/runtime/control/progress_first_stage_outcome.md`
 
 ## Progress-First current contract
 
 Progress-First 当前合同采用 closeout-first 口径：每个非终局 controller / owner-route / domain-handler attempt 必须先形成可消费的 typed closeout refs，再由 MAS owner surface 判断它是论文进度、单一下一个 owner blocker、human gate、stop-loss，还是 stable typed blocker。typed blocker 必须保留 blocker lineage，包括 current owner、work unit、source/runtime/truth currentness refs、forbidden-write proof 或 no-progress reason；它可以关闭本轮不可执行状态，但不能被写成 paper ready、publication ready、submission ready 或 artifact/package authority。
+
+非终局 controller / owner-route / domain-handler stage 的 operator outcome 只能投影为 `running`、`ready_for_owner_action`、`waiting_human`、`blocked_with_typed_owner`、`terminal_success` 或 `terminal_stop_loss`。`receipt_consumed`、read-model currentness hygiene、telemetry completeness、Portal wording、provider handoff written 或 diagnostic explanation 都不是 stage outcome；它们必须继续解析到上述六类之一。详细 operator runbook、hard gates 和 DM002/DM003 live verification commands 见 `docs/runtime/control/progress_first_stage_outcome.md`。
 
 currentness resolver、owner-route read-model、`study_progress` / `progress_projection` 只能消费 MAS owner surface：controller decision、owner receipt、AI reviewer / publication eval currentness、repair / gate / delivery controller evidence、typed closeout refs、stable typed blocker refs、human gate refs 和 OPL provider refs 的 MAS-owned projection。OPL provider completion、queue 状态、retry/dead-letter、platform liveness 修复、manifest refresh、read-model refresh 或 currentness resolver 修复只属于 transport / platform repair evidence；除非同一 MAS owner chain 还产出 canonical paper / evidence / review / gate follow-through delta 或 stable owner blocker，否则不得记为论文推进。
 
