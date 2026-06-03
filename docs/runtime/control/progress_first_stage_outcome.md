@@ -177,6 +177,34 @@ When validating a docs-only change in this repo, use documentation review plus g
   - <main session fill>
 ```
 
+### Artifact-first MVP closeout - 2026-06-03 repo integration
+
+- Scope:
+  - Updated docs: `docs/active/stage_surface_standardization_program.md`, `docs/runtime/control/progress_first_stage_outcome.md`, `docs/active/opl_app_mas_runtime_workbench_program.md`.
+  - Source-of-truth surfaces read: `agent/stages/stage_route_contract.yaml`, `contracts/stage_control_plane.json`, progress-first controller/projection tests.
+  - Explicit non-write surfaces: no live study truth, runtime-owned state, canonical paper body, `publication_eval/latest.json`, `controller_decisions/latest.json`, `paper/submission_minimal/`, `manuscript/current_package/`, or submission package was edited.
+- Artifact-first rule landed:
+  - Stage artifact refs / `stage_artifact_index` are the MVP progress core and are projected into study progress, Progress Portal, and OPL domain-pack workbench descriptors.
+  - typed closeout / read-model / currentness / evidence-tail / provider liveness are enhancement, audit, or scheduling layers.
+  - OPL App / workbench surfaces display refs-only stage artifacts and cannot write MAS truth, publication readiness, quality verdict, paper body, or package outputs.
+- Landed commits:
+  - `1878effb` Add artifact-first stage index kernel.
+  - `43e80918` Prioritize artifact-first owner actions in progress monitoring.
+  - `792b2230` Project artifact-first stage index to workbench surfaces.
+  - `49d43aa3` Document artifact-first MVP runtime rules.
+  - Integration cleanup commit keeps line-budget gates green by moving runtime storage maintenance tests to a cases module and extracting artifact-first monitoring helpers.
+- Verification evidence:
+  - `rtk scripts/run-pytest-clean.sh tests/test_stage_artifact_index.py -q` -> 4 passed.
+  - `rtk scripts/run-pytest-clean.sh tests/study_progress_cases/current_executable_owner_action.py -q` -> 18 passed.
+  - `rtk scripts/run-pytest-clean.sh tests/study_progress_cases/stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_artifact_index_projection.py tests/progress_portal_cases/test_stage_review_opl_projection_reference.py -q` -> 5 passed.
+  - `rtk scripts/run-pytest-clean.sh tests/test_product_entry.py -q -k stage_control_plane_descriptor` -> 1 passed, 105 deselected.
+  - `rtk scripts/run-pytest-clean.sh tests/test_runtime_storage_maintenance.py -q` -> 31 passed.
+  - `rtk make test-meta` -> 282 passed, 4192 deselected.
+  - `rtk scripts/verify.sh` -> repo hygiene audit passed; smoke entrypoints / line budget 4 passed.
+- Residual risk / next owner:
+  - This closeout does not declare any study publication ready, submission ready, or final paper quality ready.
+  - DM002/DM003 live-study smoke remains read-only follow-through evidence, not a prerequisite for the repo-level artifact-first MVP integration.
+
 ## 错误路径
 
 不要再走以下路径：
