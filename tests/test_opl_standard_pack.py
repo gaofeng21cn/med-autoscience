@@ -175,6 +175,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["pack_compiler_input"]["src_must_not_be_canonical_semantic_pack"] is True
     required_paths = generated["pack_compiler_input"]["required_domain_pack_paths"]
     assert "agent/stages/stage_route_contract.yaml" in required_paths
+    assert "agent/knowledge/hypothesis_portfolio_evidence_pack.md" in required_paths
     assert set(AGENT_PROMPT_REFS.values()) <= set(required_paths)
     assert all(str(path).startswith("agent/") for path in required_paths)
     for path in required_paths:
@@ -219,6 +220,37 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "source_readiness_stage_gate_boundary",
     ]
     assert generated["pack_compiler_input"]["requires_ai_first_record"] is True
+    hypothesis_pack = generated["pack_compiler_input"][
+        "hypothesis_portfolio_evidence_pack_contract"
+    ]
+    assert hypothesis_pack["owner"] == "MedAutoScience"
+    assert hypothesis_pack["knowledge_ref"] == (
+        "agent/knowledge/hypothesis_portfolio_evidence_pack.md"
+    )
+    assert {
+        "hypothesis_candidate_ref",
+        "assumption_ref",
+        "sub_assumption_ref",
+        "supporting_evidence_ref",
+        "contradicting_evidence_ref",
+        "novelty_ref",
+        "source_provenance_ref",
+        "testability_ref",
+        "safety_risk_ref",
+        "negative_failed_path_ref",
+        "independent_reviewer_or_auditor_receipt_ref",
+        "human_gate_receipt_ref",
+    } <= set(hypothesis_pack["candidate_required_ref_families"])
+    assert {"ranking_ref", "proximity_ref"} <= set(hypothesis_pack["advisory_ref_families"])
+    assert hypothesis_pack["authority_boundary"]["ranking_and_proximity_authority"] == (
+        "advisory_only"
+    )
+    assert hypothesis_pack["authority_boundary"]["opl_can_write_hypothesis_truth"] is False
+    assert hypothesis_pack["authority_boundary"]["opl_can_authorize_route_by_ranking"] is False
+    assert (
+        hypothesis_pack["authority_boundary"]["opl_can_close_independent_review_gate"]
+        is False
+    )
     independent_policy = generated["pack_compiler_input"][
         "independent_executor_reviewer_agent_policy"
     ]

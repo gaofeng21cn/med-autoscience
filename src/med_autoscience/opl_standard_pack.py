@@ -21,6 +21,9 @@ from med_autoscience.opl_domain_pack.family_adoption import (
     build_domain_memory_descriptor,
     build_family_stage_control_plane,
 )
+from med_autoscience.opl_domain_pack.hypothesis_portfolio_pack import (
+    build_hypothesis_portfolio_evidence_pack_contract,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -192,6 +195,7 @@ DECLARATIVE_DOMAIN_PACK = [
     "stage_policies",
     "domain_skill_policies",
     "knowledge_refs",
+    "hypothesis_portfolio_evidence_pack_refs",
     "stage_descriptors",
     "action_catalog",
     "domain_transition_table",
@@ -534,6 +538,9 @@ def _pack_compiler_input() -> dict[str, Any]:
             "program_output": "provenance_currentness_schema_receipt_or_typed_blocker",
             "self_review_closes_gate": False,
         },
+        "hypothesis_portfolio_evidence_pack_contract": (
+            build_hypothesis_portfolio_evidence_pack_contract()
+        ),
         "boundary_ids": MINIMAL_AUTHORITY_FUNCTIONS[:5],
         "stage_quality_gate_boundaries": STAGE_QUALITY_GATE_BOUNDARIES,
         "forbidden_mechanical_decision_surfaces": FORBIDDEN_MECHANICAL_DECISION_SURFACES,

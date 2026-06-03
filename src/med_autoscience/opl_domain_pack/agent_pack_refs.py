@@ -23,6 +23,7 @@ AGENT_QUALITY_GATE_REFS: tuple[str, ...] = (
 )
 AGENT_KNOWLEDGE_REFS: tuple[str, ...] = (
     "agent/knowledge/medical_research_truth.md",
+    "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
     "agent/knowledge/publication_route_memory.md",
     "agent/knowledge/source_readiness_and_artifact_authority.md",
 )
