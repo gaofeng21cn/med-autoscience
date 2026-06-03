@@ -12,11 +12,6 @@ from med_autoscience.controllers.opl_artifact_operating_contract import (
     operating_contract_projection,
     promotion_protocol_steps,
 )
-from med_autoscience.stage_surface_contract import (
-    MAIN_STAGE_ROUTE_IDS,
-    build_stage_surface_contract,
-)
-
 ALLOWED_ARTIFACT_STATUSES = (
     "missing",
     "missing_manifest_or_receipt",
@@ -32,111 +27,41 @@ _STATUS_MISSING_CONTRACT = "missing_manifest_or_receipt"
 _STATUS_PARTIAL = "partial"
 _STATUS_DELTA = "artifact_delta_present"
 _STAGE_NATIVE_ARTIFACT_CONTRACT_REF = "mas-opl-stage-native-artifact-contract.v1"
+_PAPER_STUDY_STAGE_PACK_REF = "contracts/mas-paper-study-stage-pack.json"
+_PAPER_STUDY_STAGE_PACK_ROOT = Path(__file__).resolve().parents[3]
 _MANIFEST_FILENAME = "stage_artifact_manifest.json"
 _RECEIPT_FILENAME = "owner_receipt.json"
-
-_STAGE_OUTPUT_SURFACES: dict[str, tuple[tuple[str, str], ...]] = {
-    "scout": (
-        ("scout_note", "artifacts/stage_outputs/scout/scout_note.md"),
-        ("literature_scout_os", "artifacts/stage_outputs/scout/literature_scout_os.json"),
-        ("route_recommendation", "artifacts/stage_outputs/scout/route_recommendation.json"),
-        ("open_questions", "artifacts/stage_outputs/scout/open_questions.json"),
-    ),
-    "idea": (
-        ("line_selection_note", "artifacts/stage_outputs/idea/line_selection_note.md"),
-        ("study_line_scorecard", "artifacts/stage_outputs/idea/study_line_scorecard.json"),
-        ("next_route_recommendation", "artifacts/stage_outputs/idea/next_route_recommendation.json"),
-        ("claim_sketch", "artifacts/stage_outputs/idea/claim_sketch.md"),
-    ),
-    "baseline": (
-        ("baseline_artifact_set", "artifacts/stage_outputs/baseline/baseline_artifact_set.json"),
-        ("baseline_summary", "artifacts/stage_outputs/baseline/baseline_summary.md"),
-        (
-            "next_route_recommendation",
-            "artifacts/stage_outputs/baseline/next_route_recommendation.json",
-        ),
-    ),
-    "experiment": (
-        ("primary_result_artifact_set", "artifacts/stage_outputs/experiment/primary_result.json"),
-        ("experiment_summary", "artifacts/stage_outputs/experiment/experiment_summary.md"),
-        (
-            "next_route_recommendation",
-            "artifacts/stage_outputs/experiment/next_route_recommendation.json",
-        ),
-    ),
-    "analysis-campaign": (
-        (
-            "analysis_campaign_summary",
-            "artifacts/stage_outputs/analysis-campaign/analysis_campaign_summary.md",
-        ),
-        (
-            "bounded_analysis_candidate_board",
-            "artifacts/stage_outputs/analysis-campaign/bounded_analysis_candidate_board.json",
-        ),
-        ("evidence_refs", "paper/evidence_ledger.json"),
-        ("remaining_gaps", "artifacts/stage_outputs/analysis-campaign/remaining_gaps.json"),
-    ),
-    "write": (
-        ("manuscript_draft", "artifacts/stage_outputs/write/manuscript_draft.json"),
-        ("canonical_draft", "paper/draft.md"),
-        ("claim_evidence_map", "paper/claim_evidence_map.json"),
-        ("reviewer_first_pass_note", "paper/review/reviewer_first_pass.md"),
-        ("first_draft_quality_note", "artifacts/stage_outputs/write/first_draft_quality_note.md"),
-    ),
-    "review": (
-        ("reviewer_action_matrix", "artifacts/stage_outputs/review/reviewer_action_matrix.json"),
-        ("review_record", "paper/review/review_ledger.json"),
-        ("publication_eval", "artifacts/publication_eval/latest.json"),
-    ),
-    "finalize": (
-        ("publication_eval", "artifacts/publication_eval/latest.json"),
-        ("controller_decision", "artifacts/controller_decisions/latest.json"),
-        ("package_freshness_proof", "artifacts/stage_outputs/finalize/package_freshness_proof.json"),
-        ("declarations", "artifacts/stage_outputs/finalize/declarations.json"),
-    ),
-    "decision": (
-        ("decision_memo", "artifacts/stage_outputs/decision/decision_memo.md"),
-        ("stop_loss_or_go_record", "artifacts/stage_outputs/decision/stop_loss_or_go_record.json"),
-    ),
-    "journal-resolution": (
-        (
-            "journal_resolution_record",
-            "artifacts/stage_outputs/journal-resolution/journal_resolution_record.json",
-        ),
-        ("journal_guideline_refs", "artifacts/stage_outputs/journal-resolution/guideline_refs.json"),
-    ),
-}
 
 
 def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, Any]:
     resolved_study_root = study_root.expanduser().resolve()
-    stage_contract = build_stage_surface_contract()
     operating_contract = load_opl_artifact_operating_contract()
     operating_projection = operating_contract_projection(operating_contract)
     promotion_protocol = promotion_protocol_steps(operating_contract)
     consumability_gate = consumability_gate_projection(operating_contract)
     current_pointer_contract = current_pointer_contract_projection(operating_contract)
-    cards_by_stage = {
-        str(card["route_id"]): card
-        for card in stage_contract["stage_cards"]
-        if isinstance(card, Mapping)
-    }
+    domain_stage_pack = _load_paper_study_stage_pack()
+    stage_specs = _paper_study_stage_specs(domain_stage_pack)
+    legacy_taxonomy_migration = _legacy_taxonomy_migration(domain_stage_pack)
+    legacy_mappings_by_stage = _legacy_mappings_by_stage(legacy_taxonomy_migration)
     stages = [
         _build_stage_artifact_state(
-            stage_id=stage_id,
-            stage_card=cards_by_stage[stage_id],
+            stage_spec=stage_spec,
+            legacy_stage_mappings=legacy_mappings_by_stage.get(str(stage_spec["stage_id"]), ()),
             study_root=resolved_study_root,
             operating_contract=operating_projection,
             promotion_protocol=promotion_protocol,
             consumability_gate=consumability_gate,
         )
-        for stage_id in MAIN_STAGE_ROUTE_IDS
+        for stage_spec in stage_specs
     ]
     current_stage = _current_stage(stages)
     stale_platform_repairs = _stale_platform_repairs(study_root=resolved_study_root, stages=stages)
     return {
         "schema_version": 1,
         "surface_kind": "stage_artifact_index",
+        "stage_model": str(domain_stage_pack["stage_model"]),
+        "domain_stage_pack_ref": _PAPER_STUDY_STAGE_PACK_REF,
         "study_id": str(study_id),
         "study_root": str(resolved_study_root),
         "allowed_artifact_statuses": list(ALLOWED_ARTIFACT_STATUSES),
@@ -146,6 +71,7 @@ def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, 
         "consumability_gate": consumability_gate,
         "current_pointer_contract": current_pointer_contract,
         "authority_boundary": _authority_boundary(),
+        "legacy_taxonomy_migration": legacy_taxonomy_migration,
         "current_stage": _current_stage_projection(current_stage),
         "next_owner_action": _next_owner_action(current_stage),
         "provider_liveness": _provider_liveness(study_root=resolved_study_root),
@@ -156,13 +82,14 @@ def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, 
 
 def _build_stage_artifact_state(
     *,
-    stage_id: str,
-    stage_card: Mapping[str, Any],
+    stage_spec: Mapping[str, Any],
+    legacy_stage_mappings: tuple[Mapping[str, Any], ...],
     study_root: Path,
     operating_contract: Mapping[str, Any],
     promotion_protocol: list[str],
     consumability_gate: Mapping[str, Any],
 ) -> dict[str, Any]:
+    stage_id = str(stage_spec["stage_id"])
     stage_folder_contract = _stage_folder_contract(stage_id)
     manifest_requirements = _manifest_requirements(stage_folder_contract)
     receipt_requirements = _receipt_requirements(stage_folder_contract)
@@ -170,30 +97,52 @@ def _build_stage_artifact_state(
         {
             "role": role,
             "ref": ref,
-            "source": "stage_artifact_index_declared_output",
+            "source": "mas_paper_study_stage_pack_stable_role",
+            "role_contract_ref": role_contract_ref,
+            "interface_is_artifact_role": True,
+            "ref_is_locator_only": True,
             "body_included": False,
             "native_contract_required": True,
         }
-        for role, ref in _required_output_surfaces(stage_id)
+        for role, ref, role_contract_ref in _required_output_surfaces(stage_spec)
     ]
-    legacy_observed_refs = [
+    current_declared_observed_refs = [
         {
             "role": item["role"],
             "ref": item["ref"],
             "path": str(study_root / str(item["ref"])),
             "body_included": False,
-            "classification": "historical",
+            "classification": "declared_current_stage_role",
+            "counts_as_current_artifact_delta": False,
         }
         for item in required_refs
         if (study_root / str(item["ref"])).exists()
     ]
+    legacy_observed_refs = [
+        {
+            "legacy_route_id": str(item["legacy_route_id"]),
+            "role": str(item["role"]),
+            "target_role": str(item["target_role"]),
+            "ref": str(item["ref"]),
+            "path": str(study_root / str(item["ref"])),
+            "body_included": False,
+            "classification": "historical",
+            "migration_semantics": "tombstone_backfilled_current_pointer",
+            "workbench_display_current_truth": "paper_study_stage_pack",
+            "legacy_route_is_current_truth": False,
+            "counts_as_current_artifact_delta": False,
+        }
+        for item in _legacy_role_refs_for_stage(legacy_stage_mappings)
+        if (study_root / str(item["ref"])).exists()
+    ]
+    declared_observed_refs = current_declared_observed_refs + legacy_observed_refs
     artifact_classification = _artifact_classification(
         stage_id=stage_id,
         stage_folder_contract=stage_folder_contract,
         manifest_requirements=manifest_requirements,
         receipt_requirements=receipt_requirements,
         required_refs=required_refs,
-        legacy_observed_refs=legacy_observed_refs,
+        legacy_observed_refs=declared_observed_refs,
         study_root=study_root,
     )
     observed_refs = [
@@ -229,7 +178,8 @@ def _build_stage_artifact_state(
     return {
         "surface_kind": "stage_artifact_state",
         "stage_id": stage_id,
-        "display_name": str(stage_card.get("display_name") or stage_id),
+        "display_name": str(stage_spec.get("display_name") or stage_id),
+        "domain_stage_pack_ref": _PAPER_STUDY_STAGE_PACK_REF,
         "artifact_native_contract_ref": _STAGE_NATIVE_ARTIFACT_CONTRACT_REF,
         "stage_folder_contract": stage_folder_contract,
         "manifest_requirements": manifest_requirements,
@@ -247,7 +197,7 @@ def _build_stage_artifact_state(
         "freshness": _freshness(artifact_status),
         "stage_progress_status": _stage_progress_status(artifact_status),
         "next_missing_surface": next_missing,
-        "next_routes": list(stage_card.get("next_routes") or ()),
+        "next_routes": list(stage_spec.get("next_stage_ids") or ()),
         "authority_boundary": _authority_boundary(),
     }
 
@@ -295,6 +245,149 @@ def _receipt_requirements(stage_folder_contract: Mapping[str, Any]) -> dict[str,
         "artifact_refs_must_cover_required_outputs": True,
         "body_included": False,
     }
+
+
+def _load_paper_study_stage_pack() -> dict[str, Any]:
+    path = _PAPER_STUDY_STAGE_PACK_ROOT / _PAPER_STUDY_STAGE_PACK_REF
+    payload = _read_contract_json(path)
+    if payload is None or payload.get("_invalid_json") is True:
+        raise ValueError(f"invalid paper/study stage pack contract: {_PAPER_STUDY_STAGE_PACK_REF}")
+    _validate_paper_study_stage_pack(payload)
+    return payload
+
+
+def _validate_paper_study_stage_pack(payload: Mapping[str, Any]) -> None:
+    if payload.get("surface_kind") != "mas_paper_study_stage_pack":
+        raise ValueError("paper/study stage pack surface_kind mismatch")
+    stages = payload.get("stages")
+    if not isinstance(stages, list) or len(stages) != 8:
+        raise ValueError("paper/study stage pack must declare exactly 8 stages")
+    seen_stage_ids: set[str] = set()
+    for stage in stages:
+        if not isinstance(stage, Mapping):
+            raise ValueError("paper/study stage entries must be mappings")
+        stage_id = _text(stage.get("stage_id"))
+        if stage_id is None:
+            raise ValueError("paper/study stage entry missing stage_id")
+        if stage_id in seen_stage_ids:
+            raise ValueError(f"duplicate paper/study stage_id: {stage_id}")
+        seen_stage_ids.add(stage_id)
+        roles = stage.get("stable_artifact_roles")
+        if not isinstance(roles, list) or not roles:
+            raise ValueError(f"paper/study stage {stage_id} must declare stable artifact roles")
+        for role in roles:
+            if not isinstance(role, Mapping) or _text(role.get("role")) is None:
+                raise ValueError(f"paper/study stage {stage_id} has invalid artifact role")
+            if _text(role.get("artifact_ref")) is None:
+                raise ValueError(f"paper/study stage {stage_id} has invalid artifact ref")
+    boundary = payload.get("authority_boundary")
+    if not isinstance(boundary, Mapping):
+        raise ValueError("paper/study stage pack missing authority boundary")
+    functions = _text_list(boundary.get("mas_authority_functions"))
+    if functions != _mas_authority_functions():
+        raise ValueError("paper/study stage pack authority functions mismatch")
+    migration = payload.get("legacy_taxonomy_migration")
+    if not isinstance(migration, Mapping):
+        raise ValueError("paper/study stage pack missing legacy taxonomy migration")
+
+
+def _paper_study_stage_specs(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
+    return tuple(stage for stage in payload["stages"] if isinstance(stage, Mapping))
+
+
+def _legacy_taxonomy_migration(payload: Mapping[str, Any]) -> dict[str, Any]:
+    migration = payload["legacy_taxonomy_migration"]
+    if not isinstance(migration, Mapping):
+        raise ValueError("legacy taxonomy migration must be a mapping")
+    mappings = [
+        _legacy_mapping_projection(item)
+        for item in _mapping_items(migration.get("mappings"))
+    ]
+    role_mapping: dict[str, list[dict[str, str]]] = {}
+    for item in mappings:
+        stage_id = str(item["target_stage_id"])
+        stage_roles = role_mapping.setdefault(stage_id, [])
+        for role in item["legacy_artifact_roles"]:
+            stage_roles.append(
+                {
+                    "legacy_route_id": str(item["legacy_route_id"]),
+                    "legacy_role": str(role["role"]),
+                    "legacy_ref": str(role["ref"]),
+                    "target_role": str(role["target_role"]),
+                }
+            )
+    policy = migration.get("current_truth_policy")
+    if not isinstance(policy, Mapping):
+        policy = {}
+    return {
+        "surface_kind": str(migration.get("surface_kind") or "mas_paper_study_legacy_taxonomy_migration"),
+        "status": str(migration.get("status") or "migration_manifest"),
+        "contract_ref": f"{_PAPER_STUDY_STAGE_PACK_REF}#/legacy_taxonomy_migration",
+        "current_truth_policy": {
+            "workbench_must_not_display_two_current_truths": bool(
+                policy.get("workbench_must_not_display_two_current_truths", True)
+            ),
+            "legacy_route_is_current_truth": bool(policy.get("legacy_route_is_current_truth", False)),
+            "current_truth_surface": str(policy.get("current_truth_surface") or "paper_study_stage_pack"),
+            "legacy_semantics": str(
+                policy.get("legacy_semantics") or "tombstone_backfilled_current_pointer"
+            ),
+        },
+        "mappings": mappings,
+        "role_mapping": role_mapping,
+        "body_included": False,
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def _legacy_mapping_projection(value: Mapping[str, Any]) -> dict[str, Any]:
+    legacy_route_id = _required_text(value.get("legacy_route_id"), "legacy_route_id")
+    target_stage_id = _required_text(value.get("target_stage_id"), "target_stage_id")
+    return {
+        "legacy_route_id": legacy_route_id,
+        "target_stage_id": target_stage_id,
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": False,
+        "legacy_artifact_roles": [
+            {
+                "role": _required_text(role.get("role"), "role"),
+                "ref": _required_text(role.get("ref"), "ref"),
+                "target_role": _required_text(role.get("target_role"), "target_role"),
+            }
+            for role in _mapping_items(value.get("legacy_artifact_roles"))
+        ],
+    }
+
+
+def _legacy_mappings_by_stage(
+    legacy_taxonomy_migration: Mapping[str, Any],
+) -> dict[str, tuple[Mapping[str, Any], ...]]:
+    by_stage: dict[str, list[Mapping[str, Any]]] = {}
+    for item in _mapping_items(legacy_taxonomy_migration.get("mappings")):
+        stage_id = _text(item.get("target_stage_id"))
+        if stage_id is None:
+            continue
+        by_stage.setdefault(stage_id, []).append(item)
+    return {stage_id: tuple(items) for stage_id, items in by_stage.items()}
+
+
+def _legacy_role_refs_for_stage(
+    legacy_stage_mappings: tuple[Mapping[str, Any], ...],
+) -> tuple[dict[str, str], ...]:
+    refs: list[dict[str, str]] = []
+    for mapping in legacy_stage_mappings:
+        legacy_route_id = _required_text(mapping.get("legacy_route_id"), "legacy_route_id")
+        for role in _mapping_items(mapping.get("legacy_artifact_roles")):
+            refs.append(
+                {
+                    "legacy_route_id": legacy_route_id,
+                    "role": _required_text(role.get("role"), "role"),
+                    "target_role": _required_text(role.get("target_role"), "target_role"),
+                    "ref": _required_text(role.get("ref"), "ref"),
+                }
+            )
+    return tuple(refs)
 
 
 def _artifact_classification(
@@ -540,11 +633,17 @@ def _fail_closed_reason(
     return status
 
 
-def _required_output_surfaces(stage_id: str) -> tuple[tuple[str, str], ...]:
-    return _STAGE_OUTPUT_SURFACES.get(
-        stage_id,
-        ((f"{stage_id}_stage_output", f"artifacts/stage_outputs/{stage_id}/latest.json"),),
-    )
+def _required_output_surfaces(stage_spec: Mapping[str, Any]) -> tuple[tuple[str, str, str], ...]:
+    stage_id = _required_text(stage_spec.get("stage_id"), "stage_id")
+    surfaces: list[tuple[str, str, str]] = []
+    for index, item in enumerate(_mapping_items(stage_spec.get("stable_artifact_roles"))):
+        role = _required_text(item.get("role"), "role")
+        ref = _required_text(item.get("artifact_ref"), "artifact_ref")
+        role_contract_ref = (
+            f"{_PAPER_STUDY_STAGE_PACK_REF}#/stages/{stage_id}/stable_artifact_roles/{index}"
+        )
+        surfaces.append((role, ref, role_contract_ref))
+    return tuple(surfaces)
 
 
 def _artifact_status(*, required_refs: list[dict[str, Any]], observed_refs: list[dict[str, Any]]) -> str:
@@ -710,13 +809,18 @@ def _current_stage_projection(stage: Mapping[str, Any]) -> dict[str, Any]:
 def _next_owner_action(stage: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "owner": stage["stage_id"],
+        "next_owner": stage["stage_id"],
         "action_type": "materialize_stage_artifact_delta",
+        "allowed_actions": ["materialize_stage_artifact_delta"],
+        "required_delta_kind": "stage_artifact_delta",
         "required_output_surface": stage["next_missing_surface"],
         "artifact_native_contract_ref": stage["artifact_native_contract_ref"],
+        "domain_stage_pack_ref": stage["domain_stage_pack_ref"],
         "manifest_ref": stage["manifest_requirements"]["ref"],
         "receipt_ref": stage["receipt_requirements"]["ref"],
         "authority_boundary": _authority_boundary(),
         "artifact_first_authority": True,
+        "owner_receipt_required": True,
         "can_authorize_quality_verdict": False,
         "can_authorize_submission_readiness": False,
     }
@@ -759,8 +863,9 @@ def _stale_platform_repairs(*, study_root: Path, stages: list[dict[str, Any]]) -
     ]
 
 
-def _authority_boundary() -> dict[str, bool]:
+def _authority_boundary() -> dict[str, Any]:
     return {
+        "mas_authority_functions": _mas_authority_functions(),
         "artifact_first_can_determine_stage_progress": True,
         "can_write_mas_truth": False,
         "can_authorize_quality_verdict": False,
@@ -768,6 +873,53 @@ def _authority_boundary() -> dict[str, bool]:
         "can_authorize_submission_readiness": False,
         "provider_completion_is_paper_progress": False,
     }
+
+
+def _mas_authority_functions() -> list[str]:
+    return [
+        "study_truth",
+        "source_readiness",
+        "reviewer_quality",
+        "publication_gate",
+        "artifact_package_authority",
+        "memory_accept_reject",
+        "typed_blocker",
+        "medical_owner_receipt",
+    ]
+
+
+def _mapping_items(value: object) -> tuple[Mapping[str, Any], ...]:
+    if not isinstance(value, list | tuple):
+        return ()
+    return tuple(item for item in value if isinstance(item, Mapping))
+
+
+def _required_text(value: object, field: str) -> str:
+    text = _text(value)
+    if text is None:
+        raise ValueError(f"missing required text field: {field}")
+    return text
+
+
+def _text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text or None
+
+
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _text(item)
+        if text is not None:
+            result.append(text)
+    return result
 
 
 __all__ = [

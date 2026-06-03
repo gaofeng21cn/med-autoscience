@@ -1,0 +1,497 @@
+{
+  "surface_kind": "mas_paper_study_stage_pack",
+  "schema_version": 1,
+  "pack_id": "mas-paper-study-domain-authority-stage-pack",
+  "version": "mas-paper-study-stage-pack.v1",
+  "stage_model": "paper_study_artifact_stage_pack",
+  "current_truth_surface": "paper_study_stage_pack",
+  "machine_boundary": {
+    "role": "declarative_domain_pack_and_migration_manifest",
+    "physical_study_file_migration_required": false,
+    "artifact_refs_are_locators_only": true,
+    "artifact_role_is_interface": true,
+    "file_name_is_not_interface": true,
+    "workbench_must_not_display_two_current_truths": true
+  },
+  "authority_boundary": {
+    "mas_authority_functions": [
+      "study_truth",
+      "source_readiness",
+      "reviewer_quality",
+      "publication_gate",
+      "artifact_package_authority",
+      "memory_accept_reject",
+      "typed_blocker",
+      "medical_owner_receipt"
+    ],
+    "opl_allowed": [
+      "projection",
+      "dispatch",
+      "read_refs"
+    ],
+    "opl_forbidden": [
+      "write_study_truth",
+      "authorize_source_readiness",
+      "authorize_reviewer_quality",
+      "authorize_publication_gate",
+      "authorize_artifact_package",
+      "accept_or_reject_memory",
+      "sign_medical_owner_receipt",
+      "replace_typed_blocker"
+    ],
+    "artifact_first_can_determine_stage_progress": true,
+    "can_write_mas_truth": false,
+    "can_authorize_quality_verdict": false,
+    "can_authorize_publication_readiness": false,
+    "can_authorize_submission_readiness": false,
+    "provider_completion_is_paper_progress": false
+  },
+  "stages": [
+    {
+      "stage_id": "01-study_intake",
+      "display_name": "Study Intake",
+      "purpose": "Freeze the study question, source boundary, owner route, and first MAS-owned receipt surface.",
+      "next_stage_ids": [
+        "02-protocol_and_analysis_plan"
+      ],
+      "stable_artifact_roles": [
+        {
+          "role": "study_truth_snapshot",
+          "artifact_ref": "artifacts/stage_outputs/01-study_intake/study_truth_snapshot.json"
+        },
+        {
+          "role": "source_readiness_assessment",
+          "artifact_ref": "artifacts/stage_outputs/01-study_intake/source_readiness_assessment.json"
+        },
+        {
+          "role": "study_intake_owner_receipt",
+          "artifact_ref": "artifacts/stage_outputs/01-study_intake/study_intake_owner_receipt.json"
+        }
+      ]
+    },
+    {
+      "stage_id": "02-protocol_and_analysis_plan",
+      "display_name": "Protocol And Analysis Plan",
+      "purpose": "Materialize the protocol, endpoint/cohort lock, and statistical analysis plan before data or compute work.",
+      "next_stage_ids": [
+        "03-data_asset_and_cohort_build"
+      ],
+      "stable_artifact_roles": [
+        {
+          "role": "protocol_specification",
+          "artifact_ref": "artifacts/stage_outputs/02-protocol_and_analysis_plan/protocol_specification.json"
+        },
+        {
+          "role": "statistical_analysis_plan",
+          "artifact_ref": "artifacts/stage_outputs/02-protocol_and_analysis_plan/statistical_analysis_plan.json"
+        },
+        {
+          "role": "protocol_owner_receipt",
+          "artifact_ref": "artifacts/stage_outputs/02-protocol_and_analysis_plan/protocol_owner_receipt.json"
+        }
+      ]
+    },
+    {
+      "stage_id": "03-data_asset_and_cohort_build",
+      "display_name": "Data Asset And Cohort Build",
+      "purpose": "Lock data assets, cohort construction, inclusion/exclusion, and source-readiness receipt refs.",
+      "next_stage_ids": [
+        "04-analysis_execution"
+      ],
+      "stable_artifact_roles": [
+        {
+          "role": "data_asset_manifest",
+          "artifact_ref": "artifacts/stage_outputs/03-data_asset_and_cohort_build/data_asset_manifest.json"
+        },
+        {
+          "role": "cohort_definition_lock",
+          "artifact_ref": "artifacts/stage_outputs/03-data_asset_and_cohort_build/cohort_definition_lock.json"
+        },
+        {
+          "role": "source_readiness_receipt",
+          "artifact_ref": "artifacts/stage_outputs/03-data_asset_and_cohort_build/source_readiness_receipt.json"
+        }
+      ]
+    },
+    {
+      "stage_id": "04-analysis_execution",
+      "display_name": "Analysis Execution",
+      "purpose": "Run and record reproducible analysis execution against the locked protocol and cohort boundary.",
+      "next_stage_ids": [
+        "05-evidence_synthesis"
+      ],
+      "stable_artifact_roles": [
+        {
+          "role": "analysis_run_record",
+          "artifact_ref": "artifacts/stage_outputs/04-analysis_execution/analysis_run_record.json"
+        },
+        {
+          "role": "primary_results_artifact_set",
+          "artifact_ref": "artifacts/stage_outputs/04-analysis_execution/primary_results_artifact_set.json"
+        },
+        {
+          "role": "reproducibility_lineage",
+          "artifact_ref": "artifacts/stage_outputs/04-analysis_execution/reproducibility_lineage.json"
+        }
+      ]
+    },
+    {
+      "stage_id": "05-evidence_synthesis",
+      "display_name": "Evidence Synthesis",
+      "purpose": "Synthesize claim evidence, route memory decisions, and remaining gaps before authoring.",
+      "next_stage_ids": [
+        "06-manuscript_authoring"
+      ],
+      "stable_artifact_roles": [
+        {
+          "role": "evidence_synthesis_matrix",
+          "artifact_ref": "artifacts/stage_outputs/05-evidence_synthesis/evidence_synthesis_matrix.json"
+        },
+        {
+          "role": "claim_evidence_map",
+          "artifact_ref": "artifacts/stage_outputs/05-evidence_synthesis/claim_evidence_map.json"
+        },
+        {
+          "role": "memory_accept_reject_receipts",
+          "artifact_ref": "artifacts/stage_outputs/05-evidence_synthesis/memory_accept_reject_receipts.json"
+        }
+      ]
+    },
+    {
+      "stage_id": "06-manuscript_authoring",
+      "display_name": "Manuscript Authoring",
+      "purpose": "Produce manuscript/package refs and artifact authority receipts without making file names the interface.",
+      "next_stage_ids": [
+        "07-independent_review_and_revision"
+      ],
+      "stable_artifact_roles": [
+        {
+          "role": "manuscript_draft_package",
+          "artifact_ref": "artifacts/stage_outputs/06-manuscript_authoring/manuscript_draft_package.json"
+        },
+        {
+          "role": "manuscript_claim_trace",
+          "artifact_ref": "artifacts/stage_outputs/06-manuscript_authoring/manuscript_claim_trace.json"
+        },
+        {
+          "role": "artifact_package_authority_receipt",
+          "artifact_ref": "artifacts/stage_outputs/06-manuscript_authoring/artifact_package_authority_receipt.json"
+        }
+      ]
+    },
+    {
+      "stage_id": "07-independent_review_and_revision",
+      "display_name": "Independent Review And Revision",
+      "purpose": "Close independent reviewer/auditor quality records and revision action refs through separate invocation evidence.",
+      "next_stage_ids": [
+        "08-publication_package_handoff"
+      ],
+      "stable_artifact_roles": [
+        {
+          "role": "independent_reviewer_record",
+          "artifact_ref": "artifacts/stage_outputs/07-independent_review_and_revision/independent_reviewer_record.json"
+        },
+        {
+          "role": "revision_action_matrix",
+          "artifact_ref": "artifacts/stage_outputs/07-independent_review_and_revision/revision_action_matrix.json"
+        },
+        {
+          "role": "reviewer_quality_receipt",
+          "artifact_ref": "artifacts/stage_outputs/07-independent_review_and_revision/reviewer_quality_receipt.json"
+        }
+      ]
+    },
+    {
+      "stage_id": "08-publication_package_handoff",
+      "display_name": "Publication Package Handoff",
+      "purpose": "Materialize publication gate, package authority, and external handoff receipt refs.",
+      "next_stage_ids": [],
+      "stable_artifact_roles": [
+        {
+          "role": "publication_package_manifest",
+          "artifact_ref": "artifacts/stage_outputs/08-publication_package_handoff/publication_package_manifest.json"
+        },
+        {
+          "role": "publication_gate_receipt",
+          "artifact_ref": "artifacts/stage_outputs/08-publication_package_handoff/publication_gate_receipt.json"
+        },
+        {
+          "role": "handoff_owner_receipt",
+          "artifact_ref": "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json"
+        }
+      ]
+    }
+  ],
+  "legacy_taxonomy_migration": {
+    "surface_kind": "mas_paper_study_legacy_taxonomy_migration",
+    "status": "migration_manifest",
+    "current_truth_policy": {
+      "workbench_must_not_display_two_current_truths": true,
+      "legacy_route_is_current_truth": false,
+      "current_truth_surface": "paper_study_stage_pack",
+      "legacy_semantics": "tombstone_backfilled_current_pointer"
+    },
+    "mappings": [
+      {
+        "legacy_route_id": "scout",
+        "target_stage_id": "01-study_intake",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "scout_note",
+            "ref": "artifacts/stage_outputs/scout/scout_note.md",
+            "target_role": "study_truth_snapshot"
+          },
+          {
+            "role": "literature_scout_os",
+            "ref": "artifacts/stage_outputs/scout/literature_scout_os.json",
+            "target_role": "source_readiness_assessment"
+          },
+          {
+            "role": "route_recommendation",
+            "ref": "artifacts/stage_outputs/scout/route_recommendation.json",
+            "target_role": "study_intake_owner_receipt"
+          },
+          {
+            "role": "open_questions",
+            "ref": "artifacts/stage_outputs/scout/open_questions.json",
+            "target_role": "study_truth_snapshot"
+          }
+        ]
+      },
+      {
+        "legacy_route_id": "idea",
+        "target_stage_id": "02-protocol_and_analysis_plan",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "line_selection_note",
+            "ref": "artifacts/stage_outputs/idea/line_selection_note.md",
+            "target_role": "protocol_specification"
+          },
+          {
+            "role": "study_line_scorecard",
+            "ref": "artifacts/stage_outputs/idea/study_line_scorecard.json",
+            "target_role": "protocol_specification"
+          },
+          {
+            "role": "next_route_recommendation",
+            "ref": "artifacts/stage_outputs/idea/next_route_recommendation.json",
+            "target_role": "protocol_owner_receipt"
+          },
+          {
+            "role": "claim_sketch",
+            "ref": "artifacts/stage_outputs/idea/claim_sketch.md",
+            "target_role": "statistical_analysis_plan"
+          }
+        ]
+      },
+      {
+        "legacy_route_id": "baseline",
+        "target_stage_id": "03-data_asset_and_cohort_build",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "baseline_artifact_set",
+            "ref": "artifacts/stage_outputs/baseline/baseline_artifact_set.json",
+            "target_role": "data_asset_manifest"
+          },
+          {
+            "role": "baseline_summary",
+            "ref": "artifacts/stage_outputs/baseline/baseline_summary.md",
+            "target_role": "cohort_definition_lock"
+          },
+          {
+            "role": "next_route_recommendation",
+            "ref": "artifacts/stage_outputs/baseline/next_route_recommendation.json",
+            "target_role": "source_readiness_receipt"
+          }
+        ]
+      },
+      {
+        "legacy_route_id": "experiment",
+        "target_stage_id": "04-analysis_execution",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "primary_result_artifact_set",
+            "ref": "artifacts/stage_outputs/experiment/primary_result.json",
+            "target_role": "primary_results_artifact_set"
+          },
+          {
+            "role": "experiment_summary",
+            "ref": "artifacts/stage_outputs/experiment/experiment_summary.md",
+            "target_role": "analysis_run_record"
+          },
+          {
+            "role": "next_route_recommendation",
+            "ref": "artifacts/stage_outputs/experiment/next_route_recommendation.json",
+            "target_role": "reproducibility_lineage"
+          }
+        ]
+      },
+      {
+        "legacy_route_id": "analysis-campaign",
+        "target_stage_id": "05-evidence_synthesis",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "analysis_campaign_summary",
+            "ref": "artifacts/stage_outputs/analysis-campaign/analysis_campaign_summary.md",
+            "target_role": "evidence_synthesis_matrix"
+          },
+          {
+            "role": "bounded_analysis_candidate_board",
+            "ref": "artifacts/stage_outputs/analysis-campaign/bounded_analysis_candidate_board.json",
+            "target_role": "claim_evidence_map"
+          },
+          {
+            "role": "evidence_refs",
+            "ref": "paper/evidence_ledger.json",
+            "target_role": "claim_evidence_map"
+          },
+          {
+            "role": "remaining_gaps",
+            "ref": "artifacts/stage_outputs/analysis-campaign/remaining_gaps.json",
+            "target_role": "memory_accept_reject_receipts"
+          }
+        ]
+      },
+      {
+        "legacy_route_id": "write",
+        "target_stage_id": "06-manuscript_authoring",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "manuscript_draft",
+            "ref": "artifacts/stage_outputs/write/manuscript_draft.json",
+            "target_role": "manuscript_draft_package"
+          },
+          {
+            "role": "canonical_draft",
+            "ref": "paper/draft.md",
+            "target_role": "manuscript_draft_package"
+          },
+          {
+            "role": "claim_evidence_map",
+            "ref": "paper/claim_evidence_map.json",
+            "target_role": "manuscript_claim_trace"
+          },
+          {
+            "role": "reviewer_first_pass_note",
+            "ref": "paper/review/reviewer_first_pass.md",
+            "target_role": "manuscript_claim_trace"
+          },
+          {
+            "role": "first_draft_quality_note",
+            "ref": "artifacts/stage_outputs/write/first_draft_quality_note.md",
+            "target_role": "artifact_package_authority_receipt"
+          }
+        ]
+      },
+      {
+        "legacy_route_id": "review",
+        "target_stage_id": "07-independent_review_and_revision",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "reviewer_action_matrix",
+            "ref": "artifacts/stage_outputs/review/reviewer_action_matrix.json",
+            "target_role": "revision_action_matrix"
+          },
+          {
+            "role": "review_record",
+            "ref": "paper/review/review_ledger.json",
+            "target_role": "independent_reviewer_record"
+          },
+          {
+            "role": "publication_eval",
+            "ref": "artifacts/publication_eval/latest.json",
+            "target_role": "reviewer_quality_receipt"
+          }
+        ]
+      },
+      {
+        "legacy_route_id": "finalize",
+        "target_stage_id": "08-publication_package_handoff",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "publication_eval",
+            "ref": "artifacts/publication_eval/latest.json",
+            "target_role": "publication_gate_receipt"
+          },
+          {
+            "role": "controller_decision",
+            "ref": "artifacts/controller_decisions/latest.json",
+            "target_role": "handoff_owner_receipt"
+          },
+          {
+            "role": "package_freshness_proof",
+            "ref": "artifacts/stage_outputs/finalize/package_freshness_proof.json",
+            "target_role": "publication_package_manifest"
+          },
+          {
+            "role": "declarations",
+            "ref": "artifacts/stage_outputs/finalize/declarations.json",
+            "target_role": "publication_package_manifest"
+          }
+        ]
+      },
+      {
+        "legacy_route_id": "decision",
+        "target_stage_id": "07-independent_review_and_revision",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "decision_memo",
+            "ref": "artifacts/stage_outputs/decision/decision_memo.md",
+            "target_role": "revision_action_matrix"
+          },
+          {
+            "role": "stop_loss_or_go_record",
+            "ref": "artifacts/stage_outputs/decision/stop_loss_or_go_record.json",
+            "target_role": "reviewer_quality_receipt"
+          }
+        ]
+      },
+      {
+        "legacy_route_id": "journal-resolution",
+        "target_stage_id": "08-publication_package_handoff",
+        "migration_semantics": "tombstone_backfilled_current_pointer",
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": false,
+        "legacy_artifact_roles": [
+          {
+            "role": "journal_resolution_record",
+            "ref": "artifacts/stage_outputs/journal-resolution/journal_resolution_record.json",
+            "target_role": "handoff_owner_receipt"
+          },
+          {
+            "role": "journal_guideline_refs",
+            "ref": "artifacts/stage_outputs/journal-resolution/guideline_refs.json",
+            "target_role": "publication_package_manifest"
+          }
+        ]
+      }
+    ]
+  }
+}
