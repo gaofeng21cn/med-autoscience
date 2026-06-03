@@ -78,9 +78,15 @@ if path_is_inside_checkout "${PYTHONPYCACHEPREFIX:-}"; then
   unset PYTHONPYCACHEPREFIX
 fi
 
+if [[ "${MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE:-0}" != "1" ]] || path_is_inside_checkout "${UV_CACHE_DIR:-}"; then
+  unset UV_CACHE_DIR
+fi
+
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-${tmp_root}/pycache}"
 export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-${tmp_root}/uv-cache}"
+mkdir -p "${UV_CACHE_DIR}"
 pythonpath_root="${MAS_CLEAN_RUNNER_SOURCE_ROOT:-${repo_root}}"
 export PYTHONPATH="${pythonpath_root}/src:${pythonpath_root}${PYTHONPATH:+:${PYTHONPATH}}"
 export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider -o cache_dir=${tmp_root}/pytest-cache"

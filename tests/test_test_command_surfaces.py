@@ -364,7 +364,10 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'repo_root="$(git rev-parse --show-toplevel)"' not in runner_script
     assert 'if path_is_inside_checkout "${UV_PROJECT_ENVIRONMENT:-}"; then' in runner_script
     assert 'if path_is_inside_checkout "${PYTHONPYCACHEPREFIX:-}"; then' in runner_script
+    assert 'if [[ "${MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE:-0}" != "1" ]] || path_is_inside_checkout "${UV_CACHE_DIR:-}"; then' in runner_script
     assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
+    assert 'export UV_CACHE_DIR="${UV_CACHE_DIR:-${tmp_root}/uv-cache}"' in runner_script
+    assert 'mkdir -p "${UV_CACHE_DIR}"' in runner_script
     assert 'uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)' in runner_script
     assert 'uv_sync_args+=(--extra analysis)' in runner_script
     assert 'UV_NO_SYNC=0 "${uv_sync_args[@]}"' in runner_script
@@ -480,6 +483,7 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
     (runner_tmp / "uv-sync.done").write_text("synced\n", encoding="utf-8")
     checkout_local_venv = REPO_ROOT / ".mas-clean-runner-sentinel-venv"
     checkout_local_pycache = REPO_ROOT / ".mas-clean-runner-sentinel-pycache"
+    checkout_local_uv_cache = REPO_ROOT / ".mas-clean-runner-sentinel-uv-cache"
 
     result = subprocess.run(
         [
@@ -489,6 +493,7 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
                 "import os, sys; "
                 "print(os.environ['UV_PROJECT_ENVIRONMENT']); "
                 "print(os.environ['PYTHONPYCACHEPREFIX']); "
+                "print(os.environ['UV_CACHE_DIR']); "
                 "print(sys.pycache_prefix)"
             ),
         ],
@@ -499,6 +504,7 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
             "MAS_CLEAN_RUNNER_TMP_ROOT": str(runner_tmp),
             "UV_PROJECT_ENVIRONMENT": str(checkout_local_venv),
             "PYTHONPYCACHEPREFIX": str(checkout_local_pycache),
+            "UV_CACHE_DIR": str(checkout_local_uv_cache),
         },
         check=False,
         capture_output=True,
@@ -510,10 +516,12 @@ def test_clean_python_runner_rejects_checkout_local_python_artifact_env(tmp_path
     assert lines == [
         str(fake_venv),
         str(runner_tmp / "pycache"),
+        str(runner_tmp / "uv-cache"),
         str(runner_tmp / "pycache"),
     ]
     assert not checkout_local_venv.exists()
     assert not checkout_local_pycache.exists()
+    assert not checkout_local_uv_cache.exists()
 
 
 def test_clean_python_runner_ignores_inherited_skip_sync_without_marker(tmp_path: Path) -> None:

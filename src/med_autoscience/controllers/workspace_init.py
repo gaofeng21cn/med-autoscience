@@ -295,6 +295,8 @@ def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
         existing_content = item.path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return "skip"
+    if existing_content == item.content:
+        return "skip"
     if legacy_managed_runtime_entry_reason(path=item.path, existing_content=existing_content) is not None:
         return "upgrade"
     if _is_generated_workspace_guidance_path(item.path) and existing_content != item.content:

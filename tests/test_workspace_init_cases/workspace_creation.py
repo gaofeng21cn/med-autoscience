@@ -579,3 +579,31 @@ def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path)
     assert 'name = "pituitary"' in profile_path.read_text(encoding="utf-8")
     assert str(agents_path) in third["overwritten_files"]
     assert "# pituitary Workspace Rules" in agents_path.read_text(encoding="utf-8")
+
+
+def test_init_workspace_does_not_report_current_generated_guidance_as_upgraded(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "current-guidance-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="current-guidance",
+        dry_run=False,
+        force=False,
+    )
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="current-guidance",
+        dry_run=False,
+        force=False,
+    )
+
+    current_guidance_paths = {
+        str(workspace_root / "README.md"),
+        str(workspace_root / "AGENTS.md"),
+        str(workspace_root / "WORKSPACE_AUTOSCIENCE_RULES.md"),
+        str(workspace_root / "ops" / "medautoscience" / "README.md"),
+        str(workspace_root / "ops" / "mas" / "README.md"),
+    }
+    assert current_guidance_paths.isdisjoint(result["upgraded_files"])

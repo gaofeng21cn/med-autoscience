@@ -36,8 +36,6 @@ from med_autoscience.profiles import WorkspaceProfile
 
 
 SCHEMA_VERSION = 1
-OWNER_PICKUP_OVERDUE_HOURS = 2
-DEVELOPER_SUPERVISOR_ATTENTION_HOURS = 6
 SUPERVISION_LATEST_RELATIVE_PATH = domain_route_contract.SUPERVISION_LATEST_RELATIVE_PATH
 SUPERVISION_HISTORY_RELATIVE_PATH = domain_route_contract.SUPERVISION_HISTORY_RELATIVE_PATH
 SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES = domain_route_contract.SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES
@@ -637,28 +635,22 @@ def _study_projection(
     if default_executor_execution_receipt_consumption:
         receipt_blocked_reason = _text(default_executor_execution_receipt_consumption.get("blocked_reason"))
         if _text(default_executor_execution_receipt_consumption.get("execution_status")) == "blocked" and receipt_blocked_reason:
-            if stale_redrive_resolution.superseded_by_current_delta(
+            restored = stale_redrive_resolution.restore_after_superseded_blocker(
+                study_id=study_id,
+                quest_id=resolved_quest_id,
+                status=status_payload,
                 progress=progress_payload,
+                actions=pre_receipt_actions,
                 receipt=default_executor_execution_receipt_consumption,
-            ):
-                default_executor_execution_receipt_consumption = stale_redrive_resolution.annotate_superseded_receipt(
-                    default_executor_execution_receipt_consumption
-                )
-                actions = pre_receipt_actions
-                blocked_reason = block_state["blocked_reason"] or why_not_applied
-                next_owner = block_state_next_owner
-                if next_owner is None and blocked_reason:
-                    next_owner = block_state_part.next_owner_for_blocked_reason(blocked_reason)
-                owner_route, actions = owner_route_part.route_and_decorate_actions(
-                    study_id=study_id,
-                    quest_id=resolved_quest_id,
-                    status=status_payload,
-                    progress=progress_payload,
-                    actions=actions,
-                    blocked_reason=blocked_reason,
-                    next_owner=next_owner,
-                    active_run_id=_active_run_id(status_payload, progress_payload),
-                )
+                block_state=block_state,
+                why_not_applied=why_not_applied,
+                block_state_next_owner=block_state_next_owner,
+                active_run_id=_active_run_id(status_payload, progress_payload),
+            )
+            if restored is not None:
+                default_executor_execution_receipt_consumption = restored["receipt"]
+                owner_route, actions = restored["owner_route"], restored["actions"]
+                blocked_reason, next_owner = restored["blocked_reason"], restored["next_owner"]
             else:
                 receipt_typed_blocker = _mapping(default_executor_execution_receipt_consumption.get("typed_blocker"))
                 why_not_applied = receipt_blocked_reason
