@@ -512,7 +512,7 @@ def _current_owner_route_from_scan(
     *,
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    consumed_transition_route = _matching_consumed_transition_gate_replay_route(
+    consumed_transition_route = _matching_consumed_transition_route(
         current_study=current_study,
         dispatch=dispatch,
     )
@@ -534,12 +534,13 @@ def current_owner_route_from_scan_payload(
 ) -> tuple[dict[str, Any] | None, str | None]:
     current_study = _scan_study(scan_payload, study_id)
     if dispatch is not None:
-        consumed_transition_route = _matching_consumed_transition_gate_replay_route(
+        consumed_transition_route = _matching_consumed_transition_route(
             current_study=current_study,
             dispatch=dispatch,
         )
         if consumed_transition_route is not None:
-            return consumed_transition_route, "consumed_transition_gate_replay"
+            basis = "consumed_transition_gate_replay" if _gate_replay_route(consumed_transition_route) else "consumed_transition_owner_action"
+            return consumed_transition_route, basis
     if dispatch is None:
         route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
         if route:
@@ -556,15 +557,19 @@ def current_owner_route_from_scan_payload(
     return None, None
 
 
-def _matching_consumed_transition_gate_replay_route(*, current_study: Mapping[str, Any], dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
+def _matching_consumed_transition_route(
+    *,
+    current_study: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
     route = _consumed_transition_owner_route(current_study)
-    if not _gate_replay_route(route):
+    if not route:
         return None
-    if not consumed_transition_currentness.gate_replay_matches_dispatch(dispatch=dispatch, route=route):
-        return None
-    if not owner_route_part.route_allows_action(action=dispatch, owner_route=route):
-        return None
-    return route
+    return consumed_transition_currentness.matching_route_for_dispatch(
+        dispatch=dispatch,
+        transition_route=route,
+        gate_replay=_gate_replay_route(route),
+    )
 
 
 def live_provider_attempt_owner_route_from_scan_payload(
@@ -658,17 +663,6 @@ def _current_action_queue_owner_route(
             continue
         return route
     return None
-
-
-def _dispatch_current_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
-    route = _dispatch_owner_route(dispatch)
-    if not route:
-        return None
-    if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=route):
-        return None
-    if not owner_route_part.route_allows_action(action=dispatch, owner_route=route):
-        return None
-    return route
 
 
 def _dispatch_stall_matches_scan(*, dispatch: Mapping[str, Any], current_study: Mapping[str, Any]) -> bool:
@@ -879,7 +873,7 @@ def _owner_request_current_against_scan(
         dispatch=dispatch,
     ) is not None:
         return True
-    consumed_transition_route = _matching_consumed_transition_gate_replay_route(
+    consumed_transition_route = _matching_consumed_transition_route(
         current_study=current_study,
         dispatch=dispatch,
     )

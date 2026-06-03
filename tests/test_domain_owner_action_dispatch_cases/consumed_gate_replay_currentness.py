@@ -13,10 +13,15 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 
 DM003_GATE_REPLAY_WORK_UNIT = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
 DM003_GATE_REPLAY_SOURCE_FINGERPRINT = "owner-route-source::c09d46113d9004aaa469c2ad"
+DM003_AI_REVIEWER_REEVAL_WORK_UNIT = "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
 
 
 def _dm003_gate_replay_fingerprint() -> str:
     return f"domain-transition::route_back_same_line::{DM003_GATE_REPLAY_WORK_UNIT}"
+
+
+def _dm003_ai_reviewer_reeval_fingerprint() -> str:
+    return f"domain-transition::ai_reviewer_re_eval::{DM003_AI_REVIEWER_REEVAL_WORK_UNIT}"
 
 
 def _dm003_gate_replay_route(*, study_id: str, quest_root: Path, source_fingerprint: str) -> dict[str, object]:
@@ -101,6 +106,57 @@ def _dm003_null_owner_route(*, study_id: str) -> dict[str, object]:
     }
 
 
+def _dm003_ai_reviewer_null_owner_route(*, study_id: str) -> dict[str, object]:
+    truth_epoch = "truth-event-000022-212df8cd1d3b2842"
+    runtime_health_epoch = "runtime-health-event-006348-b093abc70f3a3d8d"
+    return {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": truth_epoch,
+        "route_epoch": truth_epoch,
+        "runtime_health_epoch": runtime_health_epoch,
+        "work_unit_fingerprint": "truth-snapshot::8545ef2695c45d2372522362",
+        "source_fingerprint": "truth-snapshot::8545ef2695c45d2372522362",
+        "current_owner": "mas_controller",
+        "next_owner": None,
+        "owner_reason": None,
+        "failure_signature": None,
+        "allowed_actions": [],
+        "blocked_actions": [
+            "publication_gate_specificity_required",
+            "current_package_freshness_required",
+            "artifact_display_surface_materialization_required",
+            "return_to_ai_reviewer_workflow",
+            "canonical_paper_inputs_rehydrate_required",
+            "run_quality_repair_batch",
+            "run_gate_clearing_batch",
+        ],
+        "idempotency_key": f"owner-route::{study_id}::{truth_epoch}::none::none::37c8829f7dc12315",
+        "source_refs": {
+            "study_truth_epoch": truth_epoch,
+            "runtime_health_epoch": runtime_health_epoch,
+            "source_eval_id": (
+                "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                "ai-reviewer-record::20260602T184032Z"
+            ),
+            "work_unit_id": DM003_AI_REVIEWER_REEVAL_WORK_UNIT,
+            "work_unit_fingerprint": "truth-snapshot::8545ef2695c45d2372522362",
+            "owner_route_currentness_basis": {
+                "truth_epoch": truth_epoch,
+                "runtime_health_epoch": runtime_health_epoch,
+                "source_eval_id": (
+                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "ai-reviewer-record::20260602T184032Z"
+                ),
+                "work_unit_id": DM003_AI_REVIEWER_REEVAL_WORK_UNIT,
+                "work_unit_fingerprint": "truth-snapshot::8545ef2695c45d2372522362",
+            },
+        },
+    }
+
+
 def _dm003_consumed_gate_replay_study(
     *,
     study_id: str,
@@ -141,6 +197,48 @@ def _dm003_consumed_gate_replay_study(
     return payload
 
 
+def _dm003_consumed_ai_reviewer_reeval_study(
+    *,
+    study_id: str,
+    quest_root: Path,
+    owner_route: dict[str, object] | None = None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "current_stage": "publication_supervision",
+        "paper_stage": "review",
+        "domain_transition": {
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "owner": "ai_reviewer",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "next_work_unit": {
+                "unit_id": DM003_AI_REVIEWER_REEVAL_WORK_UNIT,
+                "lane": "review",
+                "summary": "Produce a current AI reviewer publication-eval record before dispatching the publication-eval workflow.",
+            },
+            "completion_receipt_consumption": {
+                "status": "consumed",
+                "eval_id": (
+                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "ai-reviewer-record::20260602T184032Z"
+                ),
+                "next_action": "honor_ai_reviewer_publication_eval_authority",
+                "receipt_kind": "ai_reviewer_publication_eval",
+                "receipt_ref": "artifacts/publication_eval/latest.json",
+                "work_unit_id": DM003_GATE_REPLAY_WORK_UNIT,
+                "work_unit_fingerprint": "truth-snapshot::5bf8654ba006ca61f52ee21e",
+            },
+        },
+    }
+    if owner_route is not None:
+        payload["owner_route"] = owner_route
+    return payload
+
+
 def _dm003_gate_replay_dispatch(profile, study_root: Path, *, source_fingerprint: str) -> dict[str, object]:
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_root = profile.runtime_root / study_id
@@ -163,6 +261,68 @@ def _dm003_gate_replay_dispatch(profile, study_root: Path, *, source_fingerprint
         / "consumer"
         / "default_executor_dispatches"
         / "run_gate_clearing_batch.json"
+    )
+    dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch_payload)
+    return dispatch_payload
+
+
+def _dm003_ai_reviewer_dispatch(profile, study_root: Path) -> dict[str, object]:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    route.update(
+        {
+            "quest_id": study_id,
+            "truth_epoch": "truth-event-000022-212df8cd1d3b2842",
+            "route_epoch": "truth-event-000022-212df8cd1d3b2842",
+            "runtime_health_epoch": "runtime-health-event-006348-b093abc70f3a3d8d",
+            "work_unit_fingerprint": _dm003_ai_reviewer_reeval_fingerprint(),
+            "source_fingerprint": "truth-snapshot::8545ef2695c45d2372522362",
+            "failure_signature": DM003_AI_REVIEWER_REEVAL_WORK_UNIT,
+            "owner_reason": DM003_AI_REVIEWER_REEVAL_WORK_UNIT,
+            "idempotency_key": f"owner-route::{study_id}::truth-event-000022::ai_reviewer::{DM003_AI_REVIEWER_REEVAL_WORK_UNIT}",
+            "source_refs": {
+                "source_eval_id": (
+                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "ai-reviewer-record::20260602T184032Z"
+                ),
+                "work_unit_id": DM003_AI_REVIEWER_REEVAL_WORK_UNIT,
+                "work_unit_fingerprint": _dm003_ai_reviewer_reeval_fingerprint(),
+                "runtime_health_epoch": "runtime-health-event-006348-b093abc70f3a3d8d",
+                "owner_route_currentness_basis": {
+                    "truth_epoch": "truth-event-000022-212df8cd1d3b2842",
+                    "runtime_health_epoch": "runtime-health-event-006348-b093abc70f3a3d8d",
+                    "source_eval_id": (
+                        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                        "ai-reviewer-record::20260602T184032Z"
+                    ),
+                    "work_unit_id": DM003_AI_REVIEWER_REEVAL_WORK_UNIT,
+                    "work_unit_fingerprint": _dm003_ai_reviewer_reeval_fingerprint(),
+                },
+            },
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=route,
+    )
+    dispatch_payload["prompt_contract"]["owner_route"] = route
+    dispatch_payload["prompt_contract"]["idempotency_key"] = route["idempotency_key"]
+    dispatch_payload["prompt_contract"]["repeat_suppression_key"] = route["work_unit_fingerprint"]
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
     )
     dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_json(dispatch_path, dispatch_payload)
@@ -197,6 +357,21 @@ def _install_gate_clearing_stub(module, monkeypatch) -> list[str]:
         "run_gate_clearing_batch",
         fake_run_gate_clearing_batch,
     )
+    return called
+
+
+def _install_ai_reviewer_stub(module, monkeypatch) -> list[str]:
+    called: list[str] = []
+
+    def fake_ai_reviewer_workflow(**kwargs) -> dict[str, object]:
+        called.append(str(kwargs["study_id"]))
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+        }
+
+    monkeypatch.setattr(module, "_execute_ai_reviewer_workflow", fake_ai_reviewer_workflow)
     return called
 
 
@@ -298,6 +473,52 @@ def test_execute_dispatch_selects_materialized_gate_replay_when_top_level_route_
     assert execution["owner_route"]["source_fingerprint"] == DM003_GATE_REPLAY_SOURCE_FINGERPRINT
     assert execution["execution_status"] == "executed"
     assert called == [str(study_root)]
+
+
+def test_execute_dispatch_selects_ai_reviewer_after_consumed_transition_when_action_queue_is_empty(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    dispatch_payload = _dm003_ai_reviewer_dispatch(profile, study_root)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                _dm003_consumed_ai_reviewer_reeval_study(
+                    study_id=study_id,
+                    quest_root=quest_root,
+                    owner_route=_dm003_ai_reviewer_null_owner_route(study_id=study_id),
+                )
+            ],
+        },
+    )
+    _write_consumer_latest(profile, dispatch_payload)
+    called = _install_ai_reviewer_stub(module, monkeypatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["action_type"] == "return_to_ai_reviewer_workflow"
+    assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] == "consumed_transition_owner_action"
+    assert execution["execution_status"] == "executed"
+    assert called == [study_id]
 
 
 def test_execute_dispatch_rejects_stale_materialized_gate_replay_after_consumed_transition(
