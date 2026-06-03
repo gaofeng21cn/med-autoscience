@@ -147,6 +147,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 write owner 已产出 `completed_for_write_owner_idempotent` 的 story-surface closeout，但 read-model 只扫描 `artifacts/supervision/consumer/default_executor_execution` 和 `stage_attempt_closeouts`，且只承认 draft/review-manuscript changed refs。结果同一 `consume_current_ai_reviewer_record_then_prose_gate_package_replay` 被重复重驱 15 次，最后变成 `progress_first_owner_redrive_budget_exhausted`，把时间耗在 receipt/reconcile 上。
 - 影响：Progress-first redrive budget 继续保留；真正缺少 story-surface delta 或 typed blocker 的 closeout 仍会 fail closed。已存在的 idempotent story-surface closeout 会推动下一 owner/gate/package follow-through，而不是重复 writer handoff。
 
+## 2026-06-03：redrive budget typed blocker 不能遮蔽已完成 deliverable delta
+
+- 决策：`study-state-matrix` 在同一 monitoring summary 中同时看到 `progress_first_owner_redrive_budget_exhausted` 与完整 terminal deliverable delta 时，必须把该 redrive blocker 视为 stale no-loop residue，而不是当前 typed blocker；投影应回到当前 owner action / follow-through 节奏。完整 delta 至少要求 terminal stage 明确 `progress_delta_classification=deliverable_progress`、存在 changed paper/stage surfaces、semantic completeness 已完成，并且 stage status/outcome 为 executed/completed/handoff-ready/idempotent-completed。
+- 决策：没有完整 deliverable delta、缺 typed closeout packet、缺 semantic closeout，或只有非可接力 closeout 的 redrive budget 仍保持 fail-closed typed blocker。该规则只解决 no-loop 保护与后续 owner action 的 read-model 优先级冲突，不放宽 redrive budget。
+- 理由：DM002 暴露出 writer owner 已记录 claim-evidence/evidence/review ledger 变化，AI reviewer record 也已消费，但 matrix 顶层仍把历史 `progress_first_owner_redrive_budget_exhausted` 作为当前瓶颈，导致 Progress-first 节奏停在机制 blocker 而不是继续进入 reviewer/gate follow-through。
+- 影响：这是 refs-only monitoring/read-model 修复，不写 study truth、runtime-owned surface、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续论文推进仍由 MAS/OPL owner path、AI reviewer、publication gate 与 package freshness proof 判定。
+
 ## 2026-06-01：Consumed owner receipt 必须立即投影当前 controller follow-through
 
 - 决策：`default_executor_execution_receipt_consumption` 成功消费上一 owner 的 executed receipt 后，owner-route read model 不得把 `actions=[]` 当成最终状态；必须重新读取当前 `controller_decisions/latest.json`，把仍然有效的 controller next work unit 投影为下一步 `executable_owner_action`，或保留具体 typed blocker。
