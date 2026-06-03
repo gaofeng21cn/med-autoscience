@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 from med_autoscience.cli_public_surface import GROUPED_COMMAND_PROGS
+from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
 from med_autoscience.cli_parts.study_action_commands import register_study_action_parsers
 from med_autoscience.figure_routes import supported_required_route_help
 
@@ -510,6 +511,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     backend_audit_parser = subparsers.add_parser("backend-audit")
     backend_audit_parser.add_argument("--profile", required=True)
     backend_audit_parser.add_argument("--refresh", action="store_true")
+    register_runtime_storage_parsers(subparsers)
 
     for command_name, prog in GROUPED_COMMAND_PROGS.items():
         choice = subparsers.choices.get(command_name)

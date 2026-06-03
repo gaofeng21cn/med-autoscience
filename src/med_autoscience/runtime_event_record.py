@@ -57,6 +57,12 @@ _OUTER_LOOP_INPUT_REQUIRED_KEYS = (
     "interaction_requires_user_input",
     "runtime_escalation_ref",
 )
+_RUNTIME_SNAPSHOT_OPTIONAL_KEYS = (
+    "continuation_policy",
+    "continuation_reason",
+    "interaction_action",
+    "interaction_requires_user_input",
+)
 
 
 def _normalize_runtime_snapshot(
@@ -67,7 +73,7 @@ def _normalize_runtime_snapshot(
 ) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise TypeError(f"runtime event record {field_name} must be a mapping")
-    normalized = dict(payload)
+    normalized = {key: payload.get(key) for key in (*required_keys, *_RUNTIME_SNAPSHOT_OPTIONAL_KEYS) if key in payload}
     missing = [key for key in required_keys if key not in normalized]
     if missing:
         raise ValueError(f"runtime event record {field_name} missing {', '.join(missing)}")

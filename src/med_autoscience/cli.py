@@ -23,6 +23,7 @@ from med_autoscience.profiles import load_profile, profile_to_dict
 from med_autoscience.cli_parts.authority_operations import handle_authority_operation_command
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
+from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_command
 from med_autoscience.cli_parts.study_action_commands import handle_study_action_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
@@ -77,6 +78,7 @@ agent_lab_medical_manuscript_quality = _LazyModuleProxy(
 paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("paper_autonomy_stability_evidence"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
+runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
 gate_clearing_batch = _LazyModuleProxy(lambda: _load_controller("gate_clearing_batch"))
@@ -355,6 +357,15 @@ def main(argv: list[str] | None = None) -> int:
         result = backend_audit.run_backend_audit(profile, refresh=bool(args.refresh))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+
+    runtime_storage_result = handle_runtime_storage_command(
+        args,
+        parser=parser,
+        runtime_storage_maintenance=runtime_storage_maintenance,
+        load_profile=load_profile,
+    )
+    if runtime_storage_result is not None:
+        return runtime_storage_result
 
     study_read_result = handle_study_read_command(
         args,

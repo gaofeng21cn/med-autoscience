@@ -50,12 +50,13 @@ _REQUIRED_SNAPSHOT_KEYS = (
     "active_interaction_id",
     "last_transition_at",
 )
+_SNAPSHOT_OPTIONAL_KEYS: tuple[str, ...] = ()
 
 
 def _normalize_snapshot(payload: Any, *, field_name: str) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise TypeError(f"native runtime event {field_name} must be a mapping")
-    normalized = dict(payload)
+    normalized = {key: payload.get(key) for key in (*_REQUIRED_SNAPSHOT_KEYS, *_SNAPSHOT_OPTIONAL_KEYS) if key in payload}
     missing = [key for key in _REQUIRED_SNAPSHOT_KEYS if key not in normalized]
     if missing:
         raise ValueError(f"native runtime event {field_name} missing {', '.join(missing)}")

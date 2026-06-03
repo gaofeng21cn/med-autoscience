@@ -11,6 +11,9 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts import backen
 from med_autoscience.controllers.runtime_storage_maintenance_parts.authority_boundary import (
     storage_refs_only_adapter_boundary,
 )
+from med_autoscience.controllers.runtime_storage_maintenance_parts.jsonl_slimming import (
+    slim_oversized_jsonl_files,
+)
 from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof_compaction import (
     compact_cold_runtime_buckets,
     restore_proof_compaction_blockers,
@@ -183,6 +186,14 @@ def _apply_backend_maintenance(
     head_lines: int,
     tail_lines: int,
 ) -> None:
+    jsonl_slimming_result = slim_oversized_jsonl_files(
+        quest_root=quest_root,
+        recorded_at=str(result["recorded_at"]),
+        threshold_mb=slim_jsonl_threshold_mb,
+        head_lines=head_lines,
+        tail_lines=tail_lines,
+    )
+    result["jsonl_slimming"] = jsonl_slimming_result
     backend_result = backend_maintenance.run_quest_storage_maintenance(
         profile=profile,
         quest_root=quest_root,
@@ -197,8 +208,12 @@ def _apply_backend_maintenance(
         tail_lines=tail_lines,
     )
     if backend_result is None:
-        result["status"] = "blocked_backend_unavailable"
-        result["summary"] = "med-deepscientist runtime storage maintenance 脚本当前不可用。"
+        if jsonl_slimming_result.get("status") == "slimmed":
+            result["status"] = "maintained"
+            result["summary"] = "orphan/legacy quest oversized runtime JSONL 已由 MAS refs-only maintenance 瘦身。"
+        else:
+            result["status"] = "blocked_backend_unavailable"
+            result["summary"] = "med-deepscientist runtime storage maintenance 脚本当前不可用。"
     else:
         result["maintenance"] = backend_result
         if backend_result.get("status") in {"backend_failed", "backend_output_invalid"}:
