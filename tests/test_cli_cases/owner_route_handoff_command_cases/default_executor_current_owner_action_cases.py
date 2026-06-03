@@ -413,6 +413,248 @@ def test_domain_handler_export_prefers_current_writer_handoff_over_stale_current
     assert tasks[0]["payload"]["next_executable_owner"] == "write"
 
 
+def test_domain_handler_export_retire_writer_handoff_after_current_reviewer_record_routes_to_gate_replay(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    source_eval_id = "publication-eval::003::ai-reviewer-record::20260602T184032Z"
+    publication_eval = {
+        **_ai_reviewer_blocking_eval(study_root),
+        "study_id": study_id,
+        "quest_id": study_id,
+        "eval_id": source_eval_id,
+        "recommended_actions": [
+            {
+                "action_id": "route-current-ai-reviewer-record-to-publication-gate-replay",
+                "action_type": "route_back_same_line",
+                "route_target": "finalize",
+                "work_unit_fingerprint": "truth-snapshot::gate-replay-current",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "finalize",
+                    "summary": "Replay publication gate against the current AI reviewer record.",
+                },
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"review_refs": ["review-ref:ledger"]})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claim_refs": ["claim-ref:main"]})
+
+    writer_work_unit_id = "medical_prose_write_repair"
+    stale_write_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason="manuscript_story_surface_delta_missing",
+        action_type="run_quality_repair_batch",
+        work_unit_id=writer_work_unit_id,
+        work_unit_fingerprint="publication-blockers::stale-writer-handoff",
+        runtime_health_epoch="runtime-health-event-007002-write",
+        blocked_actions=["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
+    )
+    dispatch_path = (
+        workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    writer_handoff = {
+        "surface": "default_executor_dispatch_request",
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_quality_repair_batch",
+        "action_id": f"quality-repair-writer-handoff::{study_id}::{source_eval_id}",
+        "dispatch_status": "ready",
+        "dispatch_authority": "quality_repair_batch_writer_handoff",
+        "next_executable_owner": "write",
+        "executor_kind": "codex_cli_default",
+        "consumer_mutation_scope": "executor_dispatch_request_only",
+        "owner_route": stale_write_route,
+        "prompt_contract": {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "next_executable_owner": "write",
+            "owner_route": stale_write_route,
+            "next_work_unit": {"unit_id": writer_work_unit_id, "owner": "write"},
+            "allowed_write_surfaces": ["paper/draft.md", "paper/build/review_manuscript.md"],
+            "forbidden_surfaces": [
+                "paper/current_package/**",
+                "manuscript/current_package/**",
+                "artifacts/publication_eval/latest.json",
+                "artifacts/controller_decisions/latest.json",
+            ],
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
+            "medical_claim_authoring_allowed": True,
+        },
+        "source_action": {
+            "surface": "quality_repair_batch",
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "source_eval_id": source_eval_id,
+        },
+        "refs": {
+            "dispatch_path": str(dispatch_path),
+            "source_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        },
+        "generated_at": "2026-06-02T20:13:13+00:00",
+    }
+    _write_json(dispatch_path, writer_handoff)
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "surface_kind": "quality_repair_batch",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "status": "handoff_ready",
+            "next_owner": "write",
+            "source_eval_id": source_eval_id,
+            "writer_worker_handoff": writer_handoff,
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "review_finding": {"source_eval_id": source_eval_id},
+                "repair_work_unit": {"unit_id": writer_work_unit_id},
+                "blockers": ["manuscript_story_surface_delta_missing"],
+                "manuscript_surface_hygiene": {
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                    "blockers": ["manuscript_story_surface_delta_missing"],
+                },
+            },
+        },
+    )
+    _write_json(
+        study_root / "paper" / "review" / "domain_stage_closeout_sat_story_delta_20260602T202258Z.json",
+        {
+            "surface_kind": "domain_stage_closeout_packet",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "status": "completed_for_write_owner_delta",
+            "route_outcome": "write_repair_delta_recorded",
+            "stage_attempt_id": "sat_story_delta",
+            "stage_packet_ref": f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": writer_work_unit_id,
+            "work_unit_fingerprint": "publication-blockers::stale-writer-handoff",
+            "owner_receipt": {
+                "status": "executed",
+                "owner": "write",
+                "typed_blocker": None,
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
+            "artifact_delta": {
+                "status": "materialized",
+                "meaningful_artifact_delta": True,
+                "story_surface_delta_present": True,
+                "changed_artifact_refs": [
+                    {"path": f"studies/{study_id}/paper/draft.md"},
+                    {"path": f"studies/{study_id}/paper/build/review_manuscript.md"},
+                ],
+                "manuscript_surface_hygiene": {
+                    "status": "clear",
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": True,
+                    "blockers": [],
+                },
+            },
+            "closeout_refs": [
+                f"studies/{study_id}/paper/review/domain_stage_closeout_sat_story_delta_20260602T202258Z.json",
+                f"studies/{study_id}/paper/draft.md",
+                f"studies/{study_id}/paper/build/review_manuscript.md",
+            ],
+        },
+    )
+    current_ai_work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    ai_route = _owner_route(
+        study_id=study_id,
+        next_owner="ai_reviewer",
+        owner_reason="ai_reviewer_record_stale_after_current_inputs",
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id=current_ai_work_unit_id,
+        work_unit_fingerprint="truth-snapshot::current-ai-reviewer-workflow",
+        runtime_health_epoch="runtime-health-event-007003-ai",
+        blocked_actions=["run_quality_repair_batch"],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="return_to_ai_reviewer_workflow.json",
+        action_type="return_to_ai_reviewer_workflow",
+        next_owner="ai_reviewer",
+        dispatch_authority="ai_reviewer_record_production_handoff",
+        generated_at="2026-06-02T20:30:00+00:00",
+        allowed_write_surfaces=[
+            "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        ],
+        owner_route=ai_route,
+    )
+    _write_json(
+        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface_kind": "opl_current_control_state",
+            "schema_version": 1,
+            "generated_at": "2026-06-02T20:35:00Z",
+            "studies": [],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "owner_route": {
+                        **ai_route,
+                        "currentness_contract": {
+                            "basis": {
+                                "owner_reason": "ai_reviewer_record_stale_after_current_inputs",
+                                "runtime_health_epoch": "runtime-health-event-007003-ai",
+                                "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                                "work_unit_fingerprint": "truth-snapshot::current-ai-reviewer-workflow",
+                                "work_unit_id": current_ai_work_unit_id,
+                            },
+                            "missing_required_fields": [],
+                        },
+                    },
+                    "controller_next_work_unit": {
+                        "unit_id": current_ai_work_unit_id,
+                        "owner": "ai_reviewer",
+                    },
+                    "consumption": {"state": "unconsumed"},
+                }
+            ],
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study = payload["studies"][0]
+    assert study["current_owner_action"]["action_type"] == "return_to_ai_reviewer_workflow"
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["return_to_ai_reviewer_workflow"]
+    assert tasks[0]["payload"]["work_unit_id"] == current_ai_work_unit_id
+
+
 def test_domain_handler_export_accepts_required_fields_currentness_basis_without_owner_reason(
     tmp_path: Path,
     capsys,

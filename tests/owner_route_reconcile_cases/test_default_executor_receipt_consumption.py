@@ -503,6 +503,121 @@ def test_scan_does_not_consume_quality_repair_receipt_without_story_surface_delt
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
 
 
+def test_consumes_provider_hosted_story_surface_closeout_when_stage_packet_route_missing_truth_epoch(
+    tmp_path: Path,
+) -> None:
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = tmp_path / "studies" / study_id
+    source_eval_id = f"publication-eval::{study_id}::ai-reviewer-record::20260602T184032Z"
+    work_unit_id = "medical_prose_write_repair"
+    work_unit_fingerprint = "publication-blockers::44f6dbc06c23c5fc"
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "truth_epoch": source_eval_id,
+        "route_epoch": f"quality-repair-writer-handoff::{study_id}::{source_eval_id}",
+        "runtime_health_epoch": None,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "source_fingerprint": work_unit_fingerprint,
+        "current_owner": "quality_repair_batch",
+        "next_owner": "write",
+        "owner_reason": "manuscript_story_surface_delta_missing",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "idempotency_key": f"quality-repair-writer-handoff::{study_id}::{work_unit_fingerprint}",
+        "source_refs": {
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+        },
+    }
+    dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "immutable/run_quality_repair_batch/dd76a2fe47b4c2bcc0771490.json"
+    )
+    _write_json(
+        tmp_path / dispatch_ref,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "quality_repair_batch_writer_handoff",
+            "next_executable_owner": "write",
+            "executor_kind": "codex_cli_default",
+            "owner_route": owner_route,
+            "prompt_contract": {
+                "owner_route": owner_route,
+            },
+        },
+    )
+    _write_json(
+        study_root / "paper" / "review" / "domain_stage_closeout_sat_story_delta_20260602T202258Z.json",
+        {
+            "surface_kind": "domain_stage_closeout_packet",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": "run_quality_repair_batch",
+            "status": "completed_for_write_owner_delta",
+            "route_outcome": "write_repair_delta_recorded",
+            "stage_attempt_id": "sat_story_delta",
+            "stage_packet_ref": dispatch_ref,
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "owner_receipt": {
+                "status": "executed",
+                "owner": "write",
+                "typed_blocker": None,
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
+            "artifact_delta": {
+                "status": "materialized",
+                "meaningful_artifact_delta": True,
+                "story_surface_delta_present": True,
+                "changed_artifact_refs": [
+                    {"path": f"studies/{study_id}/paper/draft.md"},
+                    {"path": f"studies/{study_id}/paper/build/review_manuscript.md"},
+                ],
+                "manuscript_surface_hygiene": {
+                    "status": "clear",
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": True,
+                    "blockers": [],
+                },
+            },
+            "closeout_refs": [
+                f"studies/{study_id}/paper/review/domain_stage_closeout_sat_story_delta_20260602T202258Z.json",
+                f"studies/{study_id}/paper/draft.md",
+                f"studies/{study_id}/paper/build/review_manuscript.md",
+            ],
+        },
+    )
+
+    receipt = default_executor_execution_receipt_consumption(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+
+    assert receipt["status"] == "consumed"
+    assert receipt["receipt_kind"] == "default_executor_execution"
+    assert receipt["receipt_ref"] == (
+        "paper/review/domain_stage_closeout_sat_story_delta_20260602T202258Z.json"
+    )
+    assert receipt["work_unit_id"] == work_unit_id
+    assert receipt["work_unit_fingerprint"] == work_unit_fingerprint
+    assert receipt["changed_artifact_ref_count"] == 2
+    assert receipt["next_action"] == "do_not_redrive_consumed_owner_route"
+
+
 def test_default_executor_nonconsumable_closeout_reports_missing_story_surface_delta(
     tmp_path: Path,
 ) -> None:

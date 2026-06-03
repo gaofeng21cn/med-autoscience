@@ -137,6 +137,9 @@ def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path
             "work_unit_id": _text(closeout.get("work_unit_id")),
             "owner_reason": _text(closeout.get("owner_reason")),
         }
+    stage_packet_route = _stage_closeout_stage_packet_owner_route(closeout=closeout, study_root=study_root)
+    if stage_packet_route and _stage_closeout_basis_missing_required_currentness(basis):
+        return stage_packet_route, "stage_packet_ref_recovered"
     if any(_text(basis.get(key)) for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason")):
         action_type = _text(closeout.get("action_type"))
         owner = (
@@ -170,10 +173,19 @@ def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path
                 "blocked_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
             },
         }, "embedded_currentness_basis"
-    stage_packet_route = _stage_closeout_stage_packet_owner_route(closeout=closeout, study_root=study_root)
     if stage_packet_route:
         return stage_packet_route, "stage_packet_ref_recovered"
     return {}, "missing"
+
+
+def _stage_closeout_basis_missing_required_currentness(basis: Mapping[str, Any]) -> bool:
+    if not basis:
+        return True
+    return not (
+        _text(basis.get("truth_epoch"))
+        and _text(basis.get("work_unit_fingerprint"))
+        and _text(basis.get("work_unit_id"))
+    )
 
 
 def _stage_closeout_default_owner(action_type: str | None) -> str | None:

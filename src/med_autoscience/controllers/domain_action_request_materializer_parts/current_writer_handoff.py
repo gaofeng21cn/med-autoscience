@@ -7,6 +7,9 @@ from typing import Any
 
 from med_autoscience.controllers.default_executor_action_policy import request_output_surface_for_action_type
 from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff as quality_repair_writer_handoff
+from med_autoscience.controllers.study_transition_receipt_consumption import (
+    default_executor_execution_receipt_consumption,
+)
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -33,7 +36,14 @@ def current_quality_repair_writer_handoff_action(
         handoff=handoff,
     ):
         return None
-    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(handoff.get("owner_route")))
+    raw_owner_route = _mapping(handoff.get("owner_route"))
+    if default_executor_execution_receipt_consumption(
+        study_root=profile.studies_root / study_id,
+        owner_route=raw_owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    ):
+        return None
+    owner_route = owner_route_part.ensure_owner_route_v2(raw_owner_route)
     request = quality_repair_writer_handoff.owner_request_from_handoff(handoff)
     source_action = _mapping(handoff.get("source_action"))
     prompt_contract = _mapping(handoff.get("prompt_contract"))

@@ -79,7 +79,13 @@ def default_executor_execution_receipt_consumption(
             and not missing_refs_typed_closeout_packet
         ):
             continue
-        if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered":
+        if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered" and not (
+            _recovered_stage_packet_currentness_consumable(
+                action_type=action_type,
+                owner_result=owner_result,
+                repair_evidence=repair_evidence,
+            )
+        ):
             continue
         if not execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
@@ -197,11 +203,18 @@ def default_executor_execution_nonconsumable_closeout(
             continue
         if not execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
-        recovered_stage_packet_currentness = (
-            _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered"
-        )
         owner_result = _mapping(execution.get("owner_result"))
         repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
+        recovered_stage_packet_currentness = (
+            _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered"
+            and not (
+                _recovered_stage_packet_currentness_consumable(
+                    action_type=action_type,
+                    owner_result=owner_result,
+                    repair_evidence=repair_evidence,
+                )
+            )
+        )
         dispatch_zero_execution_blocker = default_executor_dispatch_zero_execution_blocker(owner_result)
         if missing_refs_typed_closeout_packet:
             continue
@@ -510,6 +523,28 @@ def _mapping_list(value: object) -> list[Mapping[str, Any]]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, Mapping)]
+
+
+def _recovered_stage_packet_currentness_consumable(
+    *,
+    action_type: str,
+    owner_result: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+) -> bool:
+    if action_type != "run_quality_repair_batch":
+        return False
+    if owner_result.get("ok") is not True and _text(owner_result.get("status")) not in {"executed", "applied", "ok"}:
+        return False
+    return _quality_repair_story_surface_delta_present(repair_evidence)
+
+
+def _quality_repair_story_surface_delta_present(repair_evidence: Mapping[str, Any]) -> bool:
+    hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
+    return (
+        hygiene.get("story_surface_delta_required") is True
+        and hygiene.get("story_surface_delta_present") is True
+        and _text(hygiene.get("status")) in {"clear", "ready", "passed"}
+    )
 
 
 def _text_list(value: object) -> list[str]:
