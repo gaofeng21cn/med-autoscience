@@ -213,24 +213,39 @@ def test_audit_workspace_storage_restore_proof_compaction_shards_codex_homes(
 
     study_report = result["categories"]["runtime"]["studies"][0]
     compaction = study_report["apply_result"]["restore_proof_compaction"]
-    archive_refs = compaction["archive_refs"]
+    archive_refs_index = json.loads(Path(compaction["archive_refs_path"]).read_text(encoding="utf-8"))
+    archive_refs = archive_refs_index["archive_refs"]
 
     assert study_report["status"] == "applied"
     assert compaction["status"] == "compacted"
     assert compaction["archive_ref"] is None
     assert compaction["archive_ref_count"] == 2
-    assert len(compaction["shards"]) == 2
-    assert len(compaction["restore_proofs"]) == 2
-    assert {proof["status"] for proof in compaction["restore_proofs"]} == {"verified"}
+    assert compaction["archive_refs_inlined"] is False
+    assert "archive_refs" not in compaction
+    assert archive_refs_index["archive_ref_count"] == 2
+    assert compaction["shard_count"] == 2
+    assert compaction["shards_inlined"] is False
+    assert "shards" not in compaction
+    assert compaction["restore_proofs_inlined"] is False
+    assert "restore_proofs" not in compaction
+    assert len(compaction["archive_ref_samples"]) == 2
+    assert len(compaction["shard_samples"]) == 2
+    assert {proof["status"] for proof in compaction["restore_proof_samples"]} == {"verified"}
     assert all(
         "/artifacts/runtime/runtime_storage_maintenance/restore_proof_archives/" in ref["archive_path"]
         for ref in archive_refs
     )
     assert all(Path(ref["archive_path"]).is_file() for ref in archive_refs)
+    assert all(Path(ref["source_manifest_path"]).is_file() for ref in archive_refs)
+    assert all(Path(ref["restore_proof_path"]).is_file() for ref in archive_refs)
     assert not (quest_root / ".ds" / "codex_homes" / "mas-run-a").exists()
     assert not (quest_root / ".ds" / "codex_homes" / "mas-run-b").exists()
     assert study_report["apply_result"]["domain_authority_archive_ref_index"]["indexed_count"] == 2
+    assert study_report["apply_result"]["domain_authority_archive_ref_index"]["indexed_results_inlined"] is False
+    assert "indexed_results" not in study_report["apply_result"]["domain_authority_archive_ref_index"]
     assert study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]["indexed_count"] == 2
+    assert study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]["indexed_results_inlined"] is False
+    assert "indexed_results" not in study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]
 
     db_path = quest_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
     with sqlite3.connect(db_path) as conn:
@@ -362,6 +377,53 @@ def test_maintain_quest_runtime_storage_compacts_legacy_unbound_quest(
     assert compaction["restore_proof"]["status"] == "verified"
     assert not (quest_root / ".ds" / "runs").exists()
     assert Path(result["latest_report_path"]).is_file()
+
+
+def test_maintain_quest_runtime_storage_slims_sharded_codex_home_report(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    quest_root = profile.runtime_root / "legacy-codex-homes"
+    _write_quest(quest_root, quest_id="legacy-codex-homes", status="waiting_for_user")
+    payload_paths = [
+        quest_root / ".ds" / "codex_homes" / "mas-run-a" / ".codex" / "sessions" / "rollout-a.jsonl",
+        quest_root / ".ds" / "codex_homes" / "mas-run-b" / ".cache" / "runtime-cache.bin",
+        quest_root / ".ds" / "codex_homes" / "mas-run-c" / ".codex" / "sessions" / "rollout-c.jsonl",
+    ]
+    for path in payload_paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"{path.name}\n" * 4096, encoding="utf-8")
+
+    result = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+        restore_proof_compaction=True,
+        restore_proof_buckets=("codex_homes",),
+        include_operator_confirmed_parked_active=True,
+    )
+
+    compaction = result["restore_proof_compaction"]
+    archive_refs_index = json.loads(Path(compaction["archive_refs_path"]).read_text(encoding="utf-8"))
+    assert result["status"] == "maintained"
+    assert compaction["status"] == "compacted"
+    assert compaction["archive_ref_count"] == 3
+    assert compaction["archive_refs_inlined"] is False
+    assert "archive_refs" not in compaction
+    assert archive_refs_index["archive_ref_count"] == 3
+    assert all(Path(ref["archive_path"]).is_file() for ref in archive_refs_index["archive_refs"])
+    assert compaction["shard_count"] == 3
+    assert compaction["shards_inlined"] is False
+    assert "shards" not in compaction
+    assert compaction["restore_proofs_inlined"] is False
+    assert "restore_proofs" not in compaction
+    assert compaction["pruned_path_count"] == 3
+    assert compaction["pruned_paths_inlined"] is False
+    assert "pruned_paths" not in compaction
+    assert result["domain_authority_archive_ref_index"]["indexed_count"] == 3
+    assert result["domain_authority_archive_ref_index"]["indexed_results_inlined"] is False
+    assert "indexed_results" not in result["domain_authority_archive_ref_index"]
+    assert len(json.dumps(result, ensure_ascii=False)) < 30_000
 
 
 def test_audit_workspace_storage_restore_proof_compaction_archives_symlink_without_dereferencing(

@@ -15,6 +15,7 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.jsonl_slimmin
     slim_oversized_jsonl_files,
 )
 from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof_compaction import (
+    archive_refs_from_compaction_result,
     compact_cold_runtime_buckets,
     restore_proof_compaction_blockers,
 )
@@ -174,9 +175,7 @@ def _apply_restore_proof_compaction(
             )
             for archive_ref in archive_refs
         ]
-        result["domain_authority_archive_ref_index"] = dict(indexed_results[-1])
-        result["domain_authority_archive_ref_index"]["indexed_count"] = len(indexed_results)
-        result["domain_authority_archive_ref_index"]["indexed_results"] = indexed_results
+        result["domain_authority_archive_ref_index"] = _archive_ref_index_summary(indexed_results)
     status = str(compaction_result.get("status") or "")
     if status in {"compacted", "nothing_to_archive"}:
         result["status"] = "maintained"
@@ -187,11 +186,16 @@ def _apply_restore_proof_compaction(
 
 
 def _archive_refs_from_compaction(compaction: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    archive_refs = compaction.get("archive_refs")
-    if isinstance(archive_refs, list):
-        return [archive_ref for archive_ref in archive_refs if isinstance(archive_ref, Mapping)]
-    archive_ref = compaction.get("archive_ref")
-    return [archive_ref] if isinstance(archive_ref, Mapping) else []
+    return archive_refs_from_compaction_result(compaction)
+
+
+def _archive_ref_index_summary(indexed_results: list[Mapping[str, Any]]) -> dict[str, Any]:
+    if not indexed_results:
+        return {}
+    result = dict(indexed_results[-1])
+    result["indexed_count"] = len(indexed_results)
+    result["indexed_results_inlined"] = False
+    return result
 
 
 def _apply_backend_maintenance(

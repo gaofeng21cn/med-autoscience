@@ -16,6 +16,7 @@ SCHEMA_VERSION = 1
 COLD_RUNTIME_STATUSES = frozenset({"completed", "failed", "terminated"})
 PARKED_CONTROLLER_STOP_STATUSES = frozenset({"paused", "stopped"})
 OPERATOR_CONFIRMED_PARKED_ACTIVE_STATUSES = frozenset({"active", "waiting_for_user"})
+REPORT_SAMPLE_LIMIT = 5
 
 
 def compact_cold_runtime_buckets(
@@ -58,6 +59,17 @@ def compact_cold_runtime_buckets(
             source_paths=source_group["source_paths"],
         )
         if shard["status"] != "compacted":
+            archive_refs = [entry["archive_ref"] for entry in shards if isinstance(entry.get("archive_ref"), Mapping)]
+            source_manifest_paths = [*list(_shard_paths(shards, "source_manifest_path")), shard.get("source_manifest_path")]
+            restore_proof_paths = [*list(_shard_paths(shards, "restore_proof_path")), shard.get("restore_proof_path")]
+            pruned_paths = [path for entry in shards for path in list(entry.get("pruned_paths") or [])]
+            archive_refs_path = _write_archive_refs_index(
+                quest_root=resolved_quest_root,
+                quest_id=quest_id,
+                recorded_at=recorded_at,
+                slug=slug,
+                archive_refs=archive_refs,
+            )
             return {
                 "surface_kind": SURFACE_KIND,
                 "schema_version": SCHEMA_VERSION,
@@ -67,16 +79,23 @@ def compact_cold_runtime_buckets(
                 "source_buckets": list(selected_buckets),
                 "actual_release_bytes": 0,
                 "archive_ref": None,
-                "archive_refs": [entry["archive_ref"] for entry in shards if isinstance(entry.get("archive_ref"), Mapping)],
+                "archive_ref_count": len(archive_refs),
+                "archive_refs_path": str(archive_refs_path) if archive_refs_path is not None else None,
+                "archive_refs_inlined": False,
+                "archive_ref_samples": _archive_ref_samples(archive_refs),
                 "source_manifest_path": shard.get("source_manifest_path"),
-                "source_manifest_paths": [*list(_shard_paths(shards, "source_manifest_path")), shard.get("source_manifest_path")],
+                "source_manifest_path_summary": _path_summary(source_manifest_paths),
                 "restore_proof": shard.get("restore_proof"),
                 "restore_proof_path": shard.get("restore_proof_path"),
-                "restore_proof_paths": [*list(_shard_paths(shards, "restore_proof_path")), shard.get("restore_proof_path")],
-                "pruned_paths": [path for entry in shards for path in list(entry.get("pruned_paths") or [])],
+                "restore_proof_path_summary": _path_summary(restore_proof_paths),
+                "pruned_path_count": len(pruned_paths),
+                "pruned_paths_inlined": False,
+                "pruned_path_samples": _sample_values(pruned_paths),
                 "blockers": shard.get("blockers") or [{"reason": "restore_proof_failed"}],
-                "shards": shards,
-                "failed_shard": shard,
+                "shard_count": len(shards),
+                "shards_inlined": False,
+                "shard_samples": _sample_values([_shard_report_summary(entry) for entry in shards]),
+                "failed_shard": _shard_report_summary(shard),
             }
         shards.append(shard)
 
@@ -87,6 +106,47 @@ def compact_cold_runtime_buckets(
     files_before = sum(int(entry.get("files_before") or 0) for entry in shards)
     actual_release_bytes = sum(int(entry.get("actual_release_bytes") or 0) for entry in shards)
     pruned_paths = [path for entry in shards for path in list(entry.get("pruned_paths") or [])]
+    if len(shards) > 1:
+        archive_refs_path = _write_archive_refs_index(
+            quest_root=resolved_quest_root,
+            quest_id=quest_id,
+            recorded_at=recorded_at,
+            slug=slug,
+            archive_refs=archive_refs,
+        )
+        return {
+            "surface_kind": SURFACE_KIND,
+            "schema_version": SCHEMA_VERSION,
+            "status": "compacted",
+            "quest_id": quest_id,
+            "quest_root": str(resolved_quest_root),
+            "source_buckets": list(selected_buckets),
+            "archive_root": str(_archive_root(resolved_quest_root)),
+            "source_manifest_path": None,
+            "source_manifest_path_summary": _path_summary(source_manifest_paths),
+            "restore_proof_path": None,
+            "restore_proof_path_summary": _path_summary(restore_proof_paths),
+            "archive_ref": None,
+            "archive_ref_count": len(archive_refs),
+            "archive_refs_path": str(archive_refs_path) if archive_refs_path is not None else None,
+            "archive_refs_inlined": False,
+            "archive_ref_samples": _archive_ref_samples(archive_refs),
+            "restore_proof": None,
+            "restore_proofs_inlined": False,
+            "restore_proof_samples": _sample_values(
+                [entry.get("restore_proof") for entry in shards if isinstance(entry.get("restore_proof"), Mapping)]
+            ),
+            "bytes_before": bytes_before,
+            "files_before": files_before,
+            "actual_release_bytes": actual_release_bytes,
+            "pruned_path_count": len(pruned_paths),
+            "pruned_paths_inlined": False,
+            "pruned_path_samples": _sample_values(pruned_paths),
+            "blockers": [],
+            "shard_count": len(shards),
+            "shards_inlined": False,
+            "shard_samples": _sample_values([_shard_report_summary(entry) for entry in shards]),
+        }
     return {
         "surface_kind": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
@@ -94,6 +154,7 @@ def compact_cold_runtime_buckets(
         "quest_id": quest_id,
         "quest_root": str(resolved_quest_root),
         "source_buckets": list(selected_buckets),
+        "archive_root": str(_archive_root(resolved_quest_root)),
         "source_manifest_path": source_manifest_paths[0] if len(source_manifest_paths) == 1 else None,
         "source_manifest_paths": source_manifest_paths,
         "restore_proof_path": restore_proof_paths[0] if len(restore_proof_paths) == 1 else None,
@@ -162,6 +223,21 @@ def restore_proof_compaction_candidate(
     else:
         result["candidate_action"] = "restore-proof-compaction"
     return result
+
+
+def archive_refs_from_compaction_result(compaction: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    archive_refs = compaction.get("archive_refs")
+    if isinstance(archive_refs, list):
+        return [archive_ref for archive_ref in archive_refs if isinstance(archive_ref, Mapping)]
+    archive_refs_path = compaction.get("archive_refs_path")
+    if isinstance(archive_refs_path, str) and archive_refs_path.strip():
+        payload = json.loads(Path(archive_refs_path).expanduser().read_text(encoding="utf-8"))
+        indexed_refs = payload.get("archive_refs") if isinstance(payload, Mapping) else None
+        if isinstance(indexed_refs, list):
+            return [archive_ref for archive_ref in indexed_refs if isinstance(archive_ref, Mapping)]
+        return []
+    archive_ref = compaction.get("archive_ref")
+    return [archive_ref] if isinstance(archive_ref, Mapping) else []
 
 
 def _source_groups(*, ds_root: Path, selected_buckets: tuple[str, ...]) -> list[dict[str, Any]]:
@@ -326,6 +402,98 @@ def _restore_proof_summary(restore_proof: Mapping[str, Any]) -> dict[str, Any]:
         "verified_entries_inlined": False,
         "errors": restore_proof.get("errors") or [],
     }
+
+
+def _write_archive_refs_index(
+    *,
+    quest_root: Path,
+    quest_id: str,
+    recorded_at: str,
+    slug: str,
+    archive_refs: list[Mapping[str, Any]],
+) -> Path | None:
+    if not archive_refs:
+        return None
+    archive_root = _archive_root(quest_root)
+    archive_root.mkdir(parents=True, exist_ok=True)
+    path = archive_root / f"{_safe_artifact_id(quest_id)}-{slug}.archive_refs.json"
+    payload = {
+        "surface_kind": "runtime_restore_proof_archive_refs_index",
+        "schema_version": SCHEMA_VERSION,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "recorded_at": recorded_at,
+        "archive_ref_count": len(archive_refs),
+        "archive_refs": [dict(ref) for ref in archive_refs],
+    }
+    _write_json(path, payload)
+    return path
+
+
+def _path_summary(paths: Iterable[Any]) -> dict[str, Any]:
+    values = [str(path) for path in paths if isinstance(path, str) and path]
+    return {
+        "count": len(values),
+        "first": values[0] if values else None,
+        "last": values[-1] if values else None,
+        "samples": _sample_values(values),
+    }
+
+
+def _archive_ref_samples(archive_refs: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    samples: list[dict[str, Any]] = []
+    for ref in _sample_values([dict(ref) for ref in archive_refs]):
+        samples.append(
+            {
+                "archive_id": ref.get("archive_id"),
+                "archive_path": ref.get("archive_path"),
+                "source_manifest_path": ref.get("source_manifest_path"),
+                "restore_proof_path": ref.get("restore_proof_path"),
+                "bytes": ref.get("bytes"),
+                "source_file_count": ref.get("source_file_count"),
+            }
+        )
+    return samples
+
+
+def _shard_report_summary(shard: Mapping[str, Any]) -> dict[str, Any]:
+    archive_ref = shard.get("archive_ref") if isinstance(shard.get("archive_ref"), Mapping) else {}
+    restore_proof = shard.get("restore_proof") if isinstance(shard.get("restore_proof"), Mapping) else {}
+    pruned_paths = [str(path) for path in list(shard.get("pruned_paths") or []) if isinstance(path, str)]
+    return {
+        "surface_kind": shard.get("surface_kind"),
+        "schema_version": shard.get("schema_version"),
+        "status": shard.get("status"),
+        "quest_id": shard.get("quest_id"),
+        "group_id": shard.get("group_id"),
+        "group_index": shard.get("group_index"),
+        "group_count": shard.get("group_count"),
+        "source_manifest_path": shard.get("source_manifest_path"),
+        "restore_proof_path": shard.get("restore_proof_path"),
+        "archive_id": archive_ref.get("archive_id"),
+        "archive_path": archive_ref.get("archive_path"),
+        "restore_proof_status": restore_proof.get("status"),
+        "bytes_before": shard.get("bytes_before"),
+        "files_before": shard.get("files_before"),
+        "actual_release_bytes": shard.get("actual_release_bytes"),
+        "pruned_path_count": len(pruned_paths),
+        "pruned_path_samples": _sample_values(pruned_paths),
+        "blockers": shard.get("blockers") or [],
+    }
+
+
+def _sample_values(values: Iterable[Any], *, limit: int = REPORT_SAMPLE_LIMIT) -> list[Any]:
+    items = list(values)
+    if len(items) <= limit:
+        return items
+    head_count = max(1, limit // 2)
+    tail_count = max(1, limit - head_count)
+    sampled = [*items[:head_count], *items[-tail_count:]]
+    deduped: list[Any] = []
+    for item in sampled:
+        if item not in deduped:
+            deduped.append(item)
+    return deduped
 
 
 def _shard_paths(shards: Iterable[Mapping[str, Any]], key: str) -> Iterable[str]:
