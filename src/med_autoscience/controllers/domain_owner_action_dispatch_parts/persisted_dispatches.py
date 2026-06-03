@@ -14,6 +14,7 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 from . import owner_request_currentness
 from . import owner_request_paths
 from . import consumed_transition_currentness
+from . import consumed_default_executor_dispatch_filter
 from . import consumed_writer_handoff_filter
 from . import current_writer_handoff
 from . import persisted_handoff_selection
@@ -114,6 +115,11 @@ def selected_dispatches(
         study_id=study_id,
         dispatches=consumer_dispatches,
     )
+    consumer_dispatches = consumed_default_executor_dispatch_filter.without_consumed_default_executor_dispatches(
+        profile=profile,
+        study_id=study_id,
+        dispatches=consumer_dispatches,
+    )
     current_dispatches = runtime_current_dispatch_selection.current_dispatches_only(
         dispatches=consumer_dispatches,
         current_study=current_study,
@@ -130,16 +136,20 @@ def selected_dispatches(
             (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type"))): index
             for index, payload in enumerate(selected)
         }
-        for payload in consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
+        for payload in consumed_default_executor_dispatch_filter.without_consumed_default_executor_dispatches(
             profile=profile,
             study_id=study_id,
-            dispatches=explicit_action_dispatches(
+            dispatches=consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
                 profile=profile,
                 study_id=study_id,
-                action_types=tuple(sorted(supported_action_types)),
-                supported_action_types=supported_action_types,
-                dispatch_relative_root=dispatch_relative_root,
-                require_current_authority=True,
+                dispatches=explicit_action_dispatches(
+                    profile=profile,
+                    study_id=study_id,
+                    action_types=tuple(sorted(supported_action_types)),
+                    supported_action_types=supported_action_types,
+                    dispatch_relative_root=dispatch_relative_root,
+                    require_current_authority=True,
+                ),
             ),
         ):
             action_type = _text(payload.get("action_type")) or ""
@@ -228,16 +238,20 @@ def selected_dispatches(
         selected.append(payload)
         selected_keys.add(key)
         selected_by_key[key] = len(selected) - 1
-    for payload in consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
+    for payload in consumed_default_executor_dispatch_filter.without_consumed_default_executor_dispatches(
         profile=profile,
         study_id=study_id,
-        dispatches=explicit_action_dispatches(
+        dispatches=consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
             profile=profile,
             study_id=study_id,
-            action_types=action_types,
-            supported_action_types=supported_action_types,
-            dispatch_relative_root=dispatch_relative_root,
-            require_current_authority=True,
+            dispatches=explicit_action_dispatches(
+                profile=profile,
+                study_id=study_id,
+                action_types=action_types,
+                supported_action_types=supported_action_types,
+                dispatch_relative_root=dispatch_relative_root,
+                require_current_authority=True,
+            ),
         ),
     ):
         key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))

@@ -7,6 +7,7 @@ from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
     write_json as _write_json,
+    write_current_dispatch,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -300,6 +301,102 @@ def test_execute_dispatch_accepts_request_bound_writer_handoff_bridged_from_runt
     assert execution["execution_status"] == "handoff_ready"
     assert execution["owner_route_current"] is True
     assert execution["owner_route_basis"] == "bridged_writer_handoff"
+
+
+def test_execute_dispatch_does_not_redrive_consumed_quality_repair_dispatch(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
+    route.update(
+        {
+            "truth_epoch": "truth-event-000022",
+            "route_epoch": "truth-event-000022",
+            "runtime_health_epoch": "runtime-health-event-006348",
+            "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers",
+            "source_fingerprint": "truth-snapshot::dm003-current",
+            "source_refs": {
+                "source_eval_id": "publication-eval::dm003::current",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers",
+                "runtime_health_epoch": "runtime-health-event-006348",
+                "study_truth_epoch": "truth-event-000022",
+            },
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=route,
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_id,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "executed",
+                    "execution_id": "execution::dm003::run_quality_repair_batch::medical-prose",
+                    "idempotency_key": route["idempotency_key"],
+                    "current_owner_route": route,
+                    "prompt_contract": {"owner_route": route},
+                    "owner_result": {
+                        "status": "executed",
+                        "ok": True,
+                        "repair_execution_evidence": {
+                            "status": "progress_delta_candidate",
+                            "changed_artifact_refs": [
+                                {"path": str(study_root / "paper" / "draft.md")},
+                                {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
+                            ],
+                            "manuscript_surface_hygiene": {
+                                "story_surface_delta_required": True,
+                                "story_surface_delta_present": True,
+                            },
+                        },
+                    },
+                }
+            ],
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["execution_count"] == 0
+    assert result["per_study_execution_summary"][0]["selected_dispatch_count"] == 0
 
 
 def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_runtime_route(
