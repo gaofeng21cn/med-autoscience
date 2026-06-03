@@ -87,9 +87,14 @@ def test_execute_quality_repair_batch_uses_live_provider_attempt_dispatch_route_
                     "running_provider_attempt": True,
                     "opl_provider_attempt": {
                         "running_provider_attempt": True,
+                        "runtime_owner": "one-person-lab",
+                        "provider_attempt_owner": "one-person-lab",
+                        "queue_owner": "one-person-lab",
+                        "executor_kind": "codex_cli",
                         "active_run_id": "opl-stage-attempt://sat-live",
                         "active_stage_attempt_id": "sat-live",
                         "active_workflow_id": "wf-live",
+                        "attempt_lease_ref": "opl://stage-attempts/sat-live/leases/current",
                         "action_type": "run_quality_repair_batch",
                         "work_unit_id": "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass",
                         "dispatch_ref": (

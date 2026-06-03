@@ -96,6 +96,7 @@ def test_domain_handler_dispatch_executes_paper_repair_work_unit_inside_mas_owne
                 "profile": str(profile_path),
                 "study_id": "001-risk",
                 "quest_id": "quest-001",
+                "opl_execution_authorization": _opl_execution_authorization("quest-001"),
                 "repair_work_unit": {
                     "unit_id": "unit-1",
                     "work_unit_type": "text_repair",
@@ -172,6 +173,7 @@ def test_domain_handler_dispatch_routes_quality_repair_batch_callable_inside_mas
                 "profile": str(profile_path),
                 "study_id": "001-risk",
                 "quest_id": "quest-001",
+                "opl_execution_authorization": _opl_execution_authorization("quest-001"),
                 "repair_work_unit": {
                     "unit_id": "unit-quality-batch",
                     "work_unit_type": "text_repair",
@@ -265,6 +267,7 @@ def test_domain_handler_dispatch_accepts_quality_repair_writer_handoff_without_d
                 "profile": str(profile_path),
                 "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
                 "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "opl_execution_authorization": _opl_execution_authorization("003-dpcc"),
                 "repair_work_unit": {
                     "unit_id": "medical_prose_write_repair",
                     "work_unit_type": "text_repair",
@@ -387,6 +390,7 @@ def test_domain_handler_dispatch_fail_fast_blocks_unsupported_embedded_callable(
                 "profile": str(profile_path),
                 "study_id": "001-risk",
                 "quest_id": "quest-001",
+                "opl_execution_authorization": _opl_execution_authorization("quest-001"),
                 "repair_work_unit": {
                     "unit_id": "unit-unsupported-callable",
                     "work_unit_type": "text_repair",
@@ -448,6 +452,7 @@ def test_domain_handler_dispatch_replays_paper_repair_when_owner_capability_chan
             "profile": str(profile_path),
             "study_id": "001-risk",
             "quest_id": "quest-001",
+            "opl_execution_authorization": _opl_execution_authorization("quest-001"),
             "repair_work_unit": {
                 "unit_id": "unit-ai-reviewer",
                 "work_unit_type": "ai_reviewer_recheck",
@@ -561,16 +566,11 @@ def test_domain_handler_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_
 
     assert exit_code == 0
     assert payload["dispatch"]["action_type"] == "ai_reviewer_recheck_execute_dispatch"
-    assert payload["dispatch"]["result"]["executed_count"] == 1
-    assert calls == [
-        {
-            "profile": "nfpitnet",
-            "study_ids": ("001-risk",),
-            "action_types": ("return_to_ai_reviewer_workflow",),
-            "mode": "developer_apply_safe",
-            "apply": True,
-        }
-    ]
+    assert payload["dispatch"]["execution_policy"] == "opl_attempt_lease_or_receipt_required"
+    assert payload["stable_typed_blocker"] == "opl_execution_authorization_required"
+    assert payload["dispatch"]["result"]["execution_status"] == "blocked"
+    assert payload["dispatch"]["result"]["typed_blocker"] == "opl_execution_authorization_required"
+    assert calls == []
 
 
 def test_domain_handler_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
@@ -643,20 +643,15 @@ def test_domain_handler_dispatch_publication_aftercare_tasks_use_runtime_owner_c
     assert analysis_payload["dispatch"]["action_type"] == "domain_route_owner_handoff"
     assert analysis_payload["dispatch"]["execution_policy"] == "opl_route_hydration_stage_attempt_admission"
     assert reviewer_payload["dispatch"]["action_type"] == "ai_reviewer_recheck_execute_dispatch"
-    assert reviewer_payload["dispatch"]["execution_policy"] == "mas_owner_ai_reviewer_execute_dispatch"
+    assert reviewer_payload["dispatch"]["execution_policy"] == "opl_attempt_lease_or_receipt_required"
+    assert reviewer_payload["stable_typed_blocker"] == "opl_execution_authorization_required"
     assert analysis_payload["opl_attempt_admission_requested"] is True
     assert analysis_payload["opl_attempt_admission_status"] == "requested"
     assert analysis_payload["dispatch"]["result"]["surface"] == "domain_route_owner_handoff_admission"
     assert analysis_payload["dispatch"]["result"]["mas_executes_reconcile_apply"] is False
-    assert reviewer_calls == [
-        {
-            "profile": "nfpitnet",
-            "study_ids": ("DM002",),
-            "action_types": ("return_to_ai_reviewer_workflow",),
-            "mode": "developer_apply_safe",
-            "apply": True,
-        }
-    ]
+    assert reviewer_payload["dispatch"]["result"]["execution_status"] == "blocked"
+    assert reviewer_payload["dispatch"]["result"]["typed_blocker"] == "opl_execution_authorization_required"
+    assert reviewer_calls == []
     assert analysis_payload["authority_boundary"]["writes_domain_truth"] is False
     assert reviewer_payload["authority_boundary"]["writes_artifact_gate"] is False
     assert analysis_payload["forbidden_write_guard_proof"]["can_authorize_publication_quality"] is False

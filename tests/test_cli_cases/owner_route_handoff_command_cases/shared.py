@@ -18,6 +18,14 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _opl_execution_authorization(label: str) -> dict[str, object]:
+    return {
+        "owner": "one-person-lab",
+        "stage_attempt_id": f"stage-attempt::{label}",
+        "lease_id": f"lease::{label}",
+    }
+
+
 def _write_opl_production_proof(path: Path) -> None:
     checks = {
         "external_temporal_server_reachable": True,

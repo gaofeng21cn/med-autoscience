@@ -15,6 +15,10 @@ from .. import opl_provider_ready_adapter
 from .. import paper_repair_executor
 from .. import publication_aftercare
 from .. import real_paper_autonomy_soak_inventory
+from ..opl_execution_boundary import (
+    OPL_EXECUTION_AUTHORIZATION_BLOCKER,
+    first_trusted_opl_execution_authorization,
+)
 from ..ai_reviewer_story_provenance_guard import (
     AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON,
 )
@@ -32,6 +36,7 @@ STABLE_PAPER_REPAIR_TYPED_BLOCKERS = frozenset(
     {
         "authority_route_blocked",
         "unsupported_owner_callable_surface",
+        OPL_EXECUTION_AUTHORIZATION_BLOCKER,
         AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
         AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
         AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
@@ -177,8 +182,25 @@ def _execute_paper_repair(
         review_finding=_mapping(payload.get("review_finding")),
         authority_route_context=_mapping(payload.get("authority_route_context")) or None,
         route_context=_mapping(payload.get("route_context")) or None,
+        opl_execution_authorization=_opl_execution_authorization(task),
         apply=True,
     )
+
+
+def _opl_execution_authorization(task: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    payload = _mapping(task.get("payload"))
+    return first_trusted_opl_execution_authorization(
+        payload.get("opl_execution_authorization"),
+        payload.get("opl_provider_attempt"),
+        payload.get("stage_attempt"),
+        task.get("opl_execution_authorization"),
+        task.get("opl_provider_attempt"),
+        task.get("stage_attempt"),
+    )
+
+
+def _trusted_opl_execution_authorization(candidate: Mapping[str, Any] | None) -> bool:
+    return first_trusted_opl_execution_authorization(candidate) is not None
 
 
 def _canonical_paper_repair_quest_id(
@@ -211,9 +233,21 @@ def _execute_ai_reviewer_recheck(
     *,
     profile: WorkspaceProfile | None,
     study_id: str | None,
+    task: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     if profile is None:
         return None
+    authorization = _opl_execution_authorization(task)
+    if not _trusted_opl_execution_authorization(authorization):
+        return {
+            "surface": "domain_owner_action_dispatch",
+            "accepted": False,
+            "execution_status": "blocked",
+            "typed_blocker": "opl_execution_authorization_required",
+            "blocked_reason": "opl_execution_authorization_required",
+            "retryable": False,
+            "authority_boundary": "mas_ai_reviewer_recheck_requires_opl_attempt_lease_or_receipt",
+        }
     return domain_owner_action_dispatch.dispatch_domain_owner_actions(
         profile=profile,
         study_ids=(study_id,) if study_id else (),
@@ -316,7 +350,7 @@ def _apply_dispatch_action(
     if action_type == "paper_repair_executor_dispatch":
         return _with_paper_repair(receipt=receipt, profile=profile, study_id=study_id, task=task)
     if action_type == "ai_reviewer_recheck_execute_dispatch":
-        return _with_ai_reviewer_recheck(receipt=receipt, profile=profile, study_id=study_id)
+        return _with_ai_reviewer_recheck(receipt=receipt, profile=profile, study_id=study_id, task=task)
     if action_type == "paper_autonomy_guarded_apply":
         return _with_guarded_apply(
             receipt=receipt,
@@ -399,9 +433,15 @@ def _with_ai_reviewer_recheck(
     receipt: dict[str, Any],
     profile: WorkspaceProfile | None,
     study_id: str | None,
+    task: Mapping[str, Any],
 ) -> dict[str, Any]:
-    result = _execute_ai_reviewer_recheck(profile=profile, study_id=study_id)
-    receipt["dispatch"]["execution_policy"] = "mas_owner_ai_reviewer_execute_dispatch"
+    result = _execute_ai_reviewer_recheck(profile=profile, study_id=study_id, task=task)
+    if _mapping(result).get("accepted") is False:
+        receipt["accepted"] = True
+        receipt["stable_typed_blocker"] = _text(_mapping(result).get("typed_blocker")) or "opl_execution_authorization_required"
+        receipt["dispatch"]["execution_policy"] = "opl_attempt_lease_or_receipt_required"
+    else:
+        receipt["dispatch"]["execution_policy"] = "mas_owner_ai_reviewer_execute_dispatch"
     receipt["dispatch"]["result"] = result
     return receipt
 

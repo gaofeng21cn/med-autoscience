@@ -20,9 +20,11 @@ from .domain_owner_action_dispatch_parts import action_execution
 from .domain_owner_action_dispatch_parts import action_router
 from .domain_owner_action_dispatch_parts import controller_refresh
 from .domain_owner_action_dispatch_parts import current_writer_handoff
+from .domain_owner_action_dispatch_parts import developer_apply_gate
 from .domain_owner_action_dispatch_parts import dispatch_contract
 from .domain_owner_action_dispatch_parts import execution_summary
 from .domain_owner_action_dispatch_parts import output_readiness
+from .domain_owner_action_dispatch_parts import opl_execution_preflight
 from .domain_owner_action_dispatch_parts import paper_progress_stall_diagnostic
 from .domain_owner_action_dispatch_parts import persisted_dispatches
 from .domain_owner_action_dispatch_parts import record_only_handoff
@@ -30,7 +32,6 @@ from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
     FORBIDDEN_SURFACES,
-    SUPPORTED_MODE,
 )
 from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
 
@@ -185,17 +186,6 @@ def _resolve_study_ids(
         if any(dispatch_dir.glob("*.json")):
             resolved.append(study_id)
     return tuple(dict.fromkeys(resolved))
-
-
-def _github_block_reason(developer_mode_payload: Mapping[str, Any]) -> str | None:
-    if text := _text(developer_mode_payload.get("blocked_reason")):
-        return text
-    gate = _mapping(developer_mode_payload.get("github_user_gate"))
-    if text := _text(gate.get("reason")):
-        return text
-    if _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE:
-        return "developer_apply_safe_required"
-    return None
 
 
 def _contract_guard(dispatch: Mapping[str, Any]) -> tuple[bool, str | None]:
@@ -492,10 +482,7 @@ def refresh_controller_decisions_for_current_publication_eval(
         scheduler_owner="controller_decision_refresh",
     )
     developer_mode_payload = developer_mode.to_dict()
-    if apply and (
-        _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE
-        or developer_mode_payload.get("safe_actions_enabled") is not True
-    ):
+    if apply and developer_apply_gate.blocked(developer_mode_payload):
         return {
             "surface": "domain_owner_action_controller_decision_refresh",
             "schema_version": SCHEMA_VERSION,
@@ -512,7 +499,7 @@ def refresh_controller_decisions_for_current_publication_eval(
             "refreshes": [
                 {
                     "refresh_status": "blocked",
-                    "blocked_reason": _github_block_reason(developer_mode_payload) or "developer_apply_safe_required",
+                    "blocked_reason": developer_apply_gate.block_reason(developer_mode_payload) or "developer_apply_safe_required",
                 }
             ],
         }
@@ -618,6 +605,8 @@ def _execute_dispatch(
         guard_reason=guard_reason,
         owner_route_block_reason=owner_route_block_reason,
         current_route=current_route,
+        owner_route_basis=owner_route_basis,
+        current_study=current_study,
         stall_block_reason=stall_block_reason,
         closeout_block_reason=closeout_block_reason,
         repeat_guard=repeat_guard,
@@ -666,6 +655,8 @@ def _dispatch_pre_execution_block(
     guard_reason: str | None,
     owner_route_block_reason: str | None,
     current_route: Mapping[str, Any] | None,
+    owner_route_basis: str | None,
+    current_study: Mapping[str, Any],
     stall_block_reason: str | None,
     closeout_block_reason: str | None,
     repeat_guard: Mapping[str, Any],
@@ -726,15 +717,20 @@ def _dispatch_pre_execution_block(
             "repeat_suppressed": True,
             "why_not_applied": repeat_suppression.REPEAT_SUPPRESSED_REASON,
         }
-    if apply and (
-        _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE
-        or developer_mode_payload.get("safe_actions_enabled") is not True
-    ):
+    if apply and developer_apply_gate.blocked(developer_mode_payload):
         return {
             "execution_status": "blocked",
-            "blocked_reason": _github_block_reason(developer_mode_payload) or "developer_apply_safe_required",
+            "blocked_reason": developer_apply_gate.block_reason(developer_mode_payload) or "developer_apply_safe_required",
             "owner_callable_surface": None,
         }
+    if apply:
+        opl_block = opl_execution_preflight.block_if_missing_authorization(
+            dispatch=dispatch,
+            owner_route_basis=owner_route_basis,
+            current_study=current_study,
+        )
+        if opl_block is not None:
+            return opl_block
     return None
 
 

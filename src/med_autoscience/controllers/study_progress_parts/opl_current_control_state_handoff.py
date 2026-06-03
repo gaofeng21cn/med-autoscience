@@ -723,6 +723,9 @@ def opl_current_control_state_study_handoff_projection(
             if "running_provider_attempt" in matching
             else False
         ),
+        "runtime_owner": "one-person-lab" if matching.get("running_provider_attempt") is True else None,
+        "provider_attempt_owner": "one-person-lab" if matching.get("running_provider_attempt") is True else None,
+        "queue_owner": "one-person-lab" if matching.get("running_provider_attempt") is True else None,
         "runtime_health": _copy_mapping_keys(
             matching.get("runtime_health"),
             ("health_status", "runtime_liveness_status", "summary", "blocked_reason"),
@@ -838,6 +841,9 @@ def opl_current_control_state_live_attempt_handoff_projection(
         "active_stage_attempt_id": _non_empty_text(runtime_liveness_audit.get("active_stage_attempt_id")),
         "active_workflow_id": _non_empty_text(runtime_liveness_audit.get("active_workflow_id")),
         "running_provider_attempt": bool(runtime_liveness_audit.get("running_provider_attempt")),
+        "runtime_owner": "one-person-lab" if runtime_liveness_audit.get("running_provider_attempt") is True else None,
+        "provider_attempt_owner": "one-person-lab" if runtime_liveness_audit.get("running_provider_attempt") is True else None,
+        "queue_owner": "one-person-lab" if runtime_liveness_audit.get("running_provider_attempt") is True else None,
         "runtime_health": runtime_health,
         "artifact_delta": {},
         "gate_specificity": {},

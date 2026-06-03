@@ -34,6 +34,14 @@ def _work_unit(work_unit_type: str, *, unit_id: str = "unit-1") -> dict[str, obj
     return unit
 
 
+def _opl_auth(label: str = "test") -> dict[str, object]:
+    return {
+        "owner": "one-person-lab",
+        "stage_attempt_id": f"stage-attempt::{label}",
+        "lease_id": f"lease::{label}",
+    }
+
+
 def test_paper_repair_executor_executes_text_repair_on_canonical_sources(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
@@ -47,6 +55,7 @@ def test_paper_repair_executor_executes_text_repair_on_canonical_sources(tmp_pat
         quest_id="quest-001",
         study_root=study_root,
         repair_work_unit=_work_unit("text_repair"),
+        opl_execution_authorization=_opl_auth("text-repair"),
         apply=True,
     )
 
@@ -87,6 +96,7 @@ def test_paper_repair_executor_downgrades_claim_and_updates_evidence_ledger(tmp_
                 "reason": "negative_result_cannot_support_original_claim",
             },
         },
+        opl_execution_authorization=_opl_auth("claim-downgrade"),
         apply=True,
     )
 
@@ -105,6 +115,7 @@ def test_paper_repair_executor_returns_typed_blocker_for_missing_owner_surface(t
         quest_id="quest-003",
         study_root=tmp_path / "workspace" / "studies" / "003-risk",
         repair_work_unit=_work_unit("display_rebuild"),
+        opl_execution_authorization=_opl_auth("display-blocker"),
         apply=True,
     )
 
@@ -129,6 +140,7 @@ def test_paper_repair_executor_blocks_unstructured_text_repair(tmp_path: Path) -
         quest_id="quest-003b",
         study_root=study_root,
         repair_work_unit=work_unit,
+        opl_execution_authorization=_opl_auth("unstructured-text"),
         apply=True,
     )
 
@@ -176,6 +188,7 @@ def test_paper_repair_executor_routes_quality_repair_batch_callable_without_stru
         quest_id="quest-005",
         study_root=study_root,
         repair_work_unit=work_unit,
+        opl_execution_authorization=_opl_auth("quality-batch"),
         apply=True,
     )
 
@@ -251,6 +264,7 @@ def test_paper_repair_executor_accepts_quality_repair_writer_handoff_without_ter
         quest_id="quest-005",
         study_root=study_root,
         repair_work_unit=work_unit,
+        opl_execution_authorization=_opl_auth("quality-handoff"),
         apply=True,
     )
 
@@ -303,6 +317,7 @@ def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
                 "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
             ),
         },
+        opl_execution_authorization=_opl_auth("ai-reviewer"),
         apply=True,
     )
 
@@ -394,6 +409,7 @@ def test_paper_repair_executor_ai_reviewer_handoff_preserves_runtime_health_epoc
         study_root=study_root,
         repair_work_unit=work_unit,
         authority_route_context=route_context,
+        opl_execution_authorization=_opl_auth("ai-reviewer-currentness"),
         apply=True,
     )
 
@@ -514,6 +530,7 @@ def test_paper_repair_executor_ai_reviewer_callable_materializes_dispatch_before
                 "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
             ),
         },
+        opl_execution_authorization=_opl_auth("ai-reviewer-inline"),
         apply=True,
     )
 
@@ -596,6 +613,7 @@ def test_paper_repair_executor_ai_reviewer_handoff_uses_work_unit_owner_route_ru
         quest_id=quest_id,
         study_root=study_root,
         repair_work_unit=work_unit,
+        opl_execution_authorization=_opl_auth("ai-reviewer-owner-route"),
         apply=True,
     )
 
@@ -654,6 +672,7 @@ def test_paper_repair_executor_preserves_ai_reviewer_dispatch_blocked_reason(
                 "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
             ),
         },
+        opl_execution_authorization=_opl_auth("ai-reviewer-blocked"),
         apply=True,
     )
 
@@ -704,6 +723,7 @@ def test_paper_repair_executor_marks_stale_owner_route_blocker_non_retryable(
                 "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
             ),
         },
+        opl_execution_authorization=_opl_auth("ai-reviewer-stale"),
         apply=True,
     )
 
@@ -757,6 +777,7 @@ def test_paper_repair_executor_preserves_ai_reviewer_repeat_suppressed_reason(
                 "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
             ),
         },
+        opl_execution_authorization=_opl_auth("ai-reviewer-repeat"),
         apply=True,
     )
 
@@ -764,6 +785,72 @@ def test_paper_repair_executor_preserves_ai_reviewer_repeat_suppressed_reason(
     assert result["execution_status"] == "blocked"
     assert result["typed_blocker"] == "repeat_suppressed"
     assert result["owner_result"]["repeat_suppressed_count"] == 1
+
+
+def test_paper_repair_executor_blocks_apply_without_opl_execution_authorization(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "006f-no-opl-auth"
+    manuscript = study_root / "paper" / "draft.md"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+
+    result = module.dispatch_repair_work_unit(
+        study_id="006f-no-opl-auth",
+        quest_id="quest-006f",
+        study_root=study_root,
+        repair_work_unit=_work_unit("text_repair"),
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    assert result["execution_status"] == "blocked"
+    assert result["typed_blocker"] == "opl_execution_authorization_required"
+    assert result["retryable"] is False
+    assert manuscript.read_text(encoding="utf-8") == "The original claim is supported.\n"
+
+
+def test_paper_repair_executor_blocks_running_flag_without_opl_ref(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "006g-running-flag-only"
+    manuscript = study_root / "paper" / "draft.md"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+
+    result = module.dispatch_repair_work_unit(
+        study_id="006g-running-flag-only",
+        quest_id="quest-006g",
+        study_root=study_root,
+        repair_work_unit=_work_unit("text_repair"),
+        opl_execution_authorization={"running_provider_attempt": True},
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    assert result["execution_status"] == "blocked"
+    assert result["typed_blocker"] == "opl_execution_authorization_required"
+    assert manuscript.read_text(encoding="utf-8") == "The original claim is supported.\n"
+
+
+def test_paper_repair_executor_blocks_stage_ref_without_opl_owner(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    study_root = tmp_path / "workspace" / "studies" / "006h-stage-ref-no-opl-owner"
+    manuscript = study_root / "paper" / "draft.md"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+
+    result = module.dispatch_repair_work_unit(
+        study_id="006h-stage-ref-no-opl-owner",
+        quest_id="quest-006h",
+        study_root=study_root,
+        repair_work_unit=_work_unit("text_repair"),
+        opl_execution_authorization={"stage_attempt_id": "stage-attempt::unowned"},
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    assert result["execution_status"] == "blocked"
+    assert result["typed_blocker"] == "opl_execution_authorization_required"
+    assert manuscript.read_text(encoding="utf-8") == "The original claim is supported.\n"
 
 
 def test_paper_repair_executor_dry_run_does_not_write(tmp_path: Path) -> None:

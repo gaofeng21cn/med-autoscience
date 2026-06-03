@@ -70,6 +70,11 @@ def dispatch(
         "next_executable_owner": owner,
         "required_output_surface": required_output_surface,
         "owner_route": route,
+        "opl_execution_authorization": {
+            "owner": "one-person-lab",
+            "stage_attempt_id": f"stage-attempt::{study_id}::{action_type}",
+            "lease_id": f"lease::{study_id}::{action_type}",
+        },
         "prompt_contract": {
             "study_id": study_id,
             "quest_id": f"quest-{study_id}",
@@ -77,6 +82,11 @@ def dispatch(
             "next_executable_owner": owner,
             "required_output_surface": required_output_surface,
             "owner_route": route,
+            "opl_execution_authorization": {
+                "owner": "one-person-lab",
+                "stage_attempt_id": f"stage-attempt::{study_id}::{action_type}",
+                "lease_id": f"lease::{study_id}::{action_type}",
+            },
             "idempotency_key": route["idempotency_key"],
             "prompt_budget": {"max_prompt_tokens": 6000},
             "compact_evidence_packet_ref": f"artifacts/supervision/compact_evidence_packets/{action_type}.json",

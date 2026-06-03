@@ -40,6 +40,7 @@ def test_domain_handler_dispatch_routes_embedded_ai_reviewer_callable_inside_mas
                 "profile": str(profile_path),
                 "study_id": "001-risk",
                 "quest_id": "quest-001",
+                "opl_execution_authorization": _opl_execution_authorization("quest-001"),
                 "repair_work_unit": {
                     "unit_id": "unit-ai-reviewer",
                     "work_unit_type": "ai_reviewer_recheck",
@@ -120,6 +121,7 @@ def test_domain_handler_dispatch_preserves_embedded_ai_reviewer_callable_blocker
                 "profile": str(profile_path),
                 "study_id": "001-risk",
                 "quest_id": "quest-001",
+                "opl_execution_authorization": _opl_execution_authorization("quest-001"),
                 "repair_work_unit": {
                     "unit_id": "unit-ai-reviewer-blocked",
                     "work_unit_type": "ai_reviewer_recheck",
