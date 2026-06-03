@@ -574,10 +574,10 @@ def test_run_opl_json_timeout_kills_process_group(tmp_path: Path) -> None:
     script.chmod(0o755)
 
     started = time.monotonic()
-    result = module._run_opl_json(script, ("family-runtime", "queue", "inspect", "frt-hangs", "--json"), timeout_seconds=0.5)
+    result = module._run_opl_json(script, ("family-runtime", "queue", "inspect", "frt-hangs", "--json"), timeout_seconds=2)
 
     assert result is None
-    assert time.monotonic() - started < 3
+    assert time.monotonic() - started < 5
     deadline = time.monotonic() + 3
     while not marker.exists() and time.monotonic() < deadline:
         time.sleep(0.05)

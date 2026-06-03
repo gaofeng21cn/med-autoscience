@@ -24,6 +24,8 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 - [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)
 - [Docs lifecycle governance closeout 2026-05-20](../history/program/docs_lifecycle_governance_closeout_2026_05_20.md)
 - [MAS 状态与 Contract 收薄折返记录 2026-05-29](../history/program/mas-state-contract-thinning-foldback-record-2026-05-29.md)
+- [Progress-first Stage 推进吞吐审计 2026-06-01](../history/program/progress_first_stage_throughput_audit_2026_06_01.md)
+- [Docs lifecycle governance closeout 2026-06-03](../history/program/docs_lifecycle_governance_closeout_2026_06_03.md)
 
 ## 当前 active 层次
 
@@ -41,7 +43,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 
 实际开发按内容块推进，不按整份旧文档推进。P0/P1/P2/P3/P3a 的完整旧记录已经归档；当前 active owner 文档只保留当前 owner 边界、gate 分类和仍可执行的内容线。旧 full record、旧 board、旧 activation package、dated follow-through 和命令流水只作为 history provenance 读取。
 
-active 文档不得继续追加历史增量长清单。若需要记录 proof、receipt、分支名、测试输出或 closeout 过程，写入 `docs/history/program/` 或对应 history 目录；active 层只保留当前 gate 是否仍 open、谁负责、下一条验证命令类别和不能误写的边界。
+active 文档不得继续追加历史增量长清单。若需要记录 proof、receipt、分支名、测试输出、OPL worklist 数字、same-day follow-through 或 closeout 过程，写入 `docs/history/program/` 或对应 history 目录；active 层只保留当前 gate 是否仍 open、谁负责、下一条验证命令类别和不能误写的边界。
 
 ## 放置规则
 

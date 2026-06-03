@@ -4,8 +4,8 @@ Status: `read_model_landed_same_tick_pump_and_delta_tail_pending`
 Date: `2026-06-01`
 Owner: `MedAutoScience`
 Purpose: `progress_first_stage_throughput_audit`
-State: `active_support`
-Machine boundary: 本文是人读系统排查记录。机器真相继续归 `contracts/stage_control_plane.json`、`agent/stages/stage_route_contract.yaml`、`contracts/action_catalog.json`、product-entry manifest、domain-handler receipt、`study_progress` / `study_state_matrix` read-model、OPL current-control-state、真实 workspace owner receipt / typed blocker / artifact / memory / reviewer refs。
+State: `history_provenance`
+Machine boundary: 本文是人读历史系统排查记录。机器真相继续归 `contracts/stage_control_plane.json`、`agent/stages/stage_route_contract.yaml`、`contracts/action_catalog.json`、product-entry manifest、domain-handler receipt、`study_progress` / `study_state_matrix` read-model、OPL current-control-state、真实 workspace owner receipt / typed blocker / artifact / memory / reviewer refs。当前 throughput owner、gap 和下一步回到 active gap plan、current development lines、runtime contracts 和 fresh read-model。
 
 ## 结论
 

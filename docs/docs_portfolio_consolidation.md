@@ -16,6 +16,14 @@ MAS 采用 OPL-family canonical docs taxonomy：
 
 这个目录集合按长期职责保留，不按当前文件数量决定。`product/public/source/specs` 当前可以较薄，但必须在 README 或 owner 文档中说明进入条件和不进入条件。
 
+2026-06-03 生命周期清理后的当前收口口径：
+
+- `docs/status.md` 只保留 current-state 摘要和最近一次已记录 live audit 的结论，不保存 same-day receipt/worklist ledger。
+- `docs/active/mas-ideal-state-gap-plan.md` 是唯一 active gap / completion plan，只维护功能/结构 gap、production evidence tail、近期完善顺序和禁止误写口径。
+- `docs/active/current-development-lines.md` 只维护内容线索引，不承担第二 backlog。
+- dated closeout、attempt id、receipt id、OPL worklist 数字、命令流水、旧 phase checklist、same-day follow-through 和 proof 过程归 `docs/history/**`、runtime ledger、真实 workspace receipt 或提交历史。
+- 本轮逐类审计与清理 closeout 见 [Docs lifecycle governance closeout 2026-06-03](./history/program/docs_lifecycle_governance_closeout_2026_06_03.md)。
+
 ## 生命周期原则
 
 - 主文档只记录最新情况：当前定位、当前边界、当前功能/结构差距、测试/证据差距、完善顺序和禁止误写口径。
@@ -26,6 +34,7 @@ MAS 采用 OPL-family canonical docs taxonomy：
 - `docs/decisions.md` 保留决策日期日志；不要为了压缩过程流水而改写 decisions 的历史记录。
 - dated specs、dated closeout 和历史 full record 不能直接作为 current truth；当前 truth 必须由核心五件套、当前 owner doc、machine-readable contract 或 runtime/controller surface 承载。
 - `docs/status.md` 只维护当前状态摘要，不承载 dated follow-up ledger；执行顺序只在 `docs/active/current-development-lines.md` 维护；program 文档组合只在 `docs/active/program_portfolio_consolidation.md` 维护。2026-05-20 这轮收敛记录见 [Docs lifecycle governance closeout 2026-05-20](./history/program/docs_lifecycle_governance_closeout_2026_05_20.md)。
+- `docs/status.md` 允许记录“最近一次已记录 live audit”的 compact summary，但不得继续追加 dated receipt id、stage attempt id、OPL worklist 计数、record/verify URL 或长 follow-through 段落。需要保留过程证据时，写入 `docs/history/program/` 或对应 history 目录。
 - OPL doc doctor 只作为预检信号：它可以提示缺少 lifecycle header、旧词汇或 active/history 边界风险，但不能直接变成执行清单。每条 warning 都必须回到 live source、contracts、tests、CLI/read-model、runtime receipt/blocker 或 canonical docs 证明后，才决定是更新 current owner 文档、折回 history/tombstone，还是保留为历史/决策语境。
 
 ## 与 OPL 的分层
