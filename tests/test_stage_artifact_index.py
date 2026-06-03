@@ -161,6 +161,119 @@ def test_stage_artifact_index_counts_manifest_receipt_and_required_outputs_as_cu
     assert index["next_owner_action"]["owner"] == "idea"
 
 
+def test_stage_artifact_index_projects_opl_artifact_operating_contract_fields(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "001-risk"
+    scout_refs = [
+        "artifacts/stage_outputs/scout/scout_note.md",
+        "artifacts/stage_outputs/scout/literature_scout_os.json",
+        "artifacts/stage_outputs/scout/route_recommendation.json",
+        "artifacts/stage_outputs/scout/open_questions.json",
+    ]
+    for ref in scout_refs:
+        if ref.endswith(".json"):
+            _write_json(study_root / ref, {"status": "ready"})
+        else:
+            _write_text(study_root / ref)
+    _write_stage_native_contract(study_root, stage_id="scout", refs=scout_refs)
+
+    index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+
+    assert index["operating_contract"] == {
+        "contract_ref": "contracts/opl-framework/artifact-operating-contract.json",
+        "contract_id": "opl-artifact-operating-contract.v1",
+        "version": 1,
+        "progress_basis": [
+            "current_pointer",
+            "accepted_receipt",
+            "valid_manifest",
+            "existing_artifacts",
+        ],
+        "manifest_validity_is_semantic_receipt_validity": False,
+        "controller_read_model_currentness_role": "repair_projection_diagnostic_only",
+    }
+    assert index["promotion_protocol"] == [
+        "attempt_output",
+        "manifest_valid",
+        "receipt_accepted",
+        "current_pointer_promoted",
+        "projection_rebuilt",
+    ]
+    assert index["consumability_gate"]["required_checks"] == [
+        "role",
+        "hash",
+        "source",
+        "current_truth",
+        "receipt_authority",
+        "lineage",
+        "retention_restore",
+        "domain_validation",
+    ]
+    scout = index["stages"][0]
+    assert scout["current_pointer"]["promotion_state"] == "current_pointer_promoted"
+    assert scout["current_pointer"]["basis"] == {
+        "existing_artifacts": True,
+        "manifest_valid": True,
+        "receipt_accepted": True,
+    }
+    assert scout["consumability_gate"]["status"] == "ready_for_consumability_validation"
+    assert scout["consumability_gate"]["checks"]["retention_restore"]["required_before_cleanup"] is True
+    assert scout["consumability_gate"]["checks"]["domain_validation"]["authority"] == (
+        "mas_domain_owner"
+    )
+
+
+def test_stage_artifact_index_does_not_promote_current_pointer_from_manifest_validity_only(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "001-risk"
+    scout_refs = [
+        "artifacts/stage_outputs/scout/scout_note.md",
+        "artifacts/stage_outputs/scout/literature_scout_os.json",
+        "artifacts/stage_outputs/scout/route_recommendation.json",
+        "artifacts/stage_outputs/scout/open_questions.json",
+    ]
+    for ref in scout_refs:
+        if ref.endswith(".json"):
+            _write_json(study_root / ref, {"status": "ready"})
+        else:
+            _write_text(study_root / ref)
+    base = study_root / "artifacts" / "stage_outputs" / "scout"
+    _write_json(
+        base / "stage_artifact_manifest.json",
+        {
+            "surface_kind": "stage_artifact_manifest",
+            "schema_version": 1,
+            "stage_id": "scout",
+            "artifact_refs": scout_refs,
+        },
+    )
+    _write_json(
+        base / "owner_receipt.json",
+        {
+            "surface_kind": "stage_artifact_owner_receipt",
+            "schema_version": 1,
+            "stage_id": "scout",
+            "receipt_kind": "stage_artifact_delta",
+            "artifact_refs": scout_refs,
+        },
+    )
+
+    index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+
+    scout = index["stages"][0]
+    assert scout["artifact_classification"]["status"] == "broken"
+    assert scout["current_pointer"]["basis"] == {
+        "existing_artifacts": True,
+        "manifest_valid": True,
+        "receipt_accepted": False,
+    }
+    assert scout["current_pointer"]["promotion_state"] == "receipt_required"
+    assert scout["current_pointer"]["manifest_validity_is_semantic_receipt_validity"] is False
+    assert scout["consumability_gate"]["status"] == "blocked"
+
+
 def test_stage_artifact_index_classifies_uncontracted_stage_file_as_orphan(
     tmp_path: Path,
 ) -> None:

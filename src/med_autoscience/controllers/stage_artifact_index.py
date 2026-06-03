@@ -4,6 +4,14 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers.opl_artifact_operating_contract import (
+    CONTRACT_REF as OPL_ARTIFACT_OPERATING_CONTRACT_REF,
+    consumability_gate_projection,
+    current_pointer_contract_projection,
+    load_opl_artifact_operating_contract,
+    operating_contract_projection,
+    promotion_protocol_steps,
+)
 from med_autoscience.stage_surface_contract import (
     MAIN_STAGE_ROUTE_IDS,
     build_stage_surface_contract,
@@ -103,6 +111,11 @@ _STAGE_OUTPUT_SURFACES: dict[str, tuple[tuple[str, str], ...]] = {
 def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, Any]:
     resolved_study_root = study_root.expanduser().resolve()
     stage_contract = build_stage_surface_contract()
+    operating_contract = load_opl_artifact_operating_contract()
+    operating_projection = operating_contract_projection(operating_contract)
+    promotion_protocol = promotion_protocol_steps(operating_contract)
+    consumability_gate = consumability_gate_projection(operating_contract)
+    current_pointer_contract = current_pointer_contract_projection(operating_contract)
     cards_by_stage = {
         str(card["route_id"]): card
         for card in stage_contract["stage_cards"]
@@ -113,6 +126,9 @@ def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, 
             stage_id=stage_id,
             stage_card=cards_by_stage[stage_id],
             study_root=resolved_study_root,
+            operating_contract=operating_projection,
+            promotion_protocol=promotion_protocol,
+            consumability_gate=consumability_gate,
         )
         for stage_id in MAIN_STAGE_ROUTE_IDS
     ]
@@ -125,6 +141,10 @@ def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, 
         "study_root": str(resolved_study_root),
         "allowed_artifact_statuses": list(ALLOWED_ARTIFACT_STATUSES),
         "artifact_native_contract_ref": _STAGE_NATIVE_ARTIFACT_CONTRACT_REF,
+        "operating_contract": operating_projection,
+        "promotion_protocol": promotion_protocol,
+        "consumability_gate": consumability_gate,
+        "current_pointer_contract": current_pointer_contract,
         "authority_boundary": _authority_boundary(),
         "current_stage": _current_stage_projection(current_stage),
         "next_owner_action": _next_owner_action(current_stage),
@@ -139,6 +159,9 @@ def _build_stage_artifact_state(
     stage_id: str,
     stage_card: Mapping[str, Any],
     study_root: Path,
+    operating_contract: Mapping[str, Any],
+    promotion_protocol: list[str],
+    consumability_gate: Mapping[str, Any],
 ) -> dict[str, Any]:
     stage_folder_contract = _stage_folder_contract(stage_id)
     manifest_requirements = _manifest_requirements(stage_folder_contract)
@@ -197,6 +220,12 @@ def _build_stage_artifact_state(
     ):
         artifact_status = "blocked_by_required_artifact"
     next_missing = _next_missing_surface(required_refs=required_refs, observed_refs=observed_refs)
+    current_pointer = _current_pointer(
+        stage_folder_contract=stage_folder_contract,
+        artifact_classification=artifact_classification,
+        operating_contract=operating_contract,
+        promotion_protocol=promotion_protocol,
+    )
     return {
         "surface_kind": "stage_artifact_state",
         "stage_id": stage_id,
@@ -209,6 +238,11 @@ def _build_stage_artifact_state(
         "observed_artifact_refs": observed_refs,
         "legacy_observed_artifact_refs": legacy_observed_refs,
         "artifact_classification": artifact_classification,
+        "current_pointer": current_pointer,
+        "consumability_gate": _stage_consumability_gate(
+            consumability_gate=consumability_gate,
+            current_pointer=current_pointer,
+        ),
         "artifact_status": artifact_status,
         "freshness": _freshness(artifact_status),
         "stage_progress_status": _stage_progress_status(artifact_status),
@@ -296,8 +330,28 @@ def _artifact_classification(
         contract_refs=[manifest_ref, receipt_ref],
         study_root=study_root,
     )
-    contract_complete = not missing_contract_refs and not broken and not orphan
-    current = sorted(required) if contract_complete and set(required).issubset(legacy_observed) else []
+    existing_artifacts = set(required).issubset(legacy_observed)
+    manifest_valid = _contract_payload_valid(
+        stage_id=stage_id,
+        required_refs=required,
+        payload=manifest,
+        required_fields=("surface_kind", "schema_version", "stage_id", "artifact_refs"),
+    )
+    receipt_accepted = _contract_payload_valid(
+        stage_id=stage_id,
+        required_refs=required,
+        payload=receipt,
+        required_fields=(
+            "surface_kind",
+            "schema_version",
+            "stage_id",
+            "owner",
+            "receipt_kind",
+            "artifact_refs",
+        ),
+    )
+    contract_complete = existing_artifacts and manifest_valid and receipt_accepted and not orphan
+    current = sorted(required) if contract_complete else []
     historical = sorted(ref for ref in legacy_observed if ref not in current)
     missing_outputs = sorted(ref for ref in required if ref not in legacy_observed)
     missing_manifest_or_receipt = sorted(historical) if missing_contract_refs else []
@@ -329,6 +383,11 @@ def _artifact_classification(
         ),
         "manifest_ref": manifest_ref,
         "receipt_ref": receipt_ref,
+        "current_pointer_basis": {
+            "existing_artifacts": existing_artifacts,
+            "manifest_valid": manifest_valid,
+            "receipt_accepted": receipt_accepted,
+        },
         "legacy_declared_refs_fallback": True,
         "body_included": False,
     }
@@ -385,6 +444,23 @@ def _broken_contract_refs(
                 }
             )
     return broken
+
+
+def _contract_payload_valid(
+    *,
+    stage_id: str,
+    required_refs: list[str],
+    payload: Mapping[str, Any] | None,
+    required_fields: tuple[str, ...],
+) -> bool:
+    if payload is None or payload.get("_invalid_json") is True:
+        return False
+    if any(field not in payload for field in required_fields):
+        return False
+    if str(payload.get("stage_id")) != stage_id:
+        return False
+    artifact_refs = _artifact_ref_set(payload.get("artifact_refs"))
+    return all(required_ref in artifact_refs for required_ref in required_refs)
 
 
 def _artifact_ref_set(value: object) -> set[str]:
@@ -534,6 +610,71 @@ def _next_missing_surface(
         if ref not in observed:
             return ref
     return None
+
+
+def _current_pointer(
+    *,
+    stage_folder_contract: Mapping[str, Any],
+    artifact_classification: Mapping[str, Any],
+    operating_contract: Mapping[str, Any],
+    promotion_protocol: list[str],
+) -> dict[str, Any]:
+    basis = dict(artifact_classification["current_pointer_basis"])
+    promotion_state = _current_pointer_promotion_state(
+        basis=basis,
+        classification_status=str(artifact_classification["status"]),
+    )
+    return {
+        "surface_kind": "stage_artifact_current_pointer_projection",
+        "contract_ref": f"{OPL_ARTIFACT_OPERATING_CONTRACT_REF}#/current_pointer",
+        "pointer_ref": f"{stage_folder_contract['stage_folder_ref']}/current_pointer.json",
+        "basis": basis,
+        "progress_basis": list(operating_contract["progress_basis"]),
+        "promotion_protocol": list(promotion_protocol),
+        "promotion_state": promotion_state,
+        "projection_rebuild_required": promotion_state == "current_pointer_promoted",
+        "manifest_validity_is_semantic_receipt_validity": operating_contract[
+            "manifest_validity_is_semantic_receipt_validity"
+        ],
+        "controller_read_model_currentness_role": operating_contract[
+            "controller_read_model_currentness_role"
+        ],
+        "body_included": False,
+    }
+
+
+def _current_pointer_promotion_state(
+    *,
+    basis: Mapping[str, Any],
+    classification_status: str,
+) -> str:
+    if basis.get("existing_artifacts") is not True:
+        return "attempt_output_required"
+    if basis.get("manifest_valid") is not True:
+        return "manifest_required"
+    if basis.get("receipt_accepted") is not True:
+        return "receipt_required"
+    if classification_status != "current":
+        return "projection_blocked"
+    return "current_pointer_promoted"
+
+
+def _stage_consumability_gate(
+    *,
+    consumability_gate: Mapping[str, Any],
+    current_pointer: Mapping[str, Any],
+) -> dict[str, Any]:
+    status = (
+        "ready_for_consumability_validation"
+        if current_pointer["promotion_state"] == "current_pointer_promoted"
+        else "blocked"
+    )
+    return {
+        **dict(consumability_gate),
+        "status": status,
+        "blocked_reason": None if status != "blocked" else current_pointer["promotion_state"],
+        "current_pointer_promotion_state": current_pointer["promotion_state"],
+    }
 
 
 def _current_stage(stages: list[dict[str, Any]]) -> dict[str, Any]:
