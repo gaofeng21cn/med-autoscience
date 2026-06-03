@@ -83,6 +83,42 @@ def merge_current_execution_envelopes(
     return envelopes
 
 
+def previous_action_ids(previous_payload: Mapping[str, Any] | None) -> set[str]:
+    return {
+        action_id
+        for action in _mapping(previous_payload).get("action_queue") or []
+        if isinstance(action, Mapping)
+        and (action_id := _text(action.get("action_id"))) is not None
+    }
+
+
+def scanned_action_queue(studies: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {"study_id": study["study_id"], **action}
+        for study in studies
+        for action in study.get("action_queue", [])
+        if isinstance(action, Mapping)
+    ]
+
+
+def attach_scan_delta(*, studies: list[dict[str, Any]], previous_action_ids: set[str]) -> None:
+    for study in studies:
+        study_actions = [
+            action
+            for action in study.get("action_queue", [])
+            if isinstance(action, Mapping) and _text(action.get("action_id")) is not None
+        ]
+        queue_slo = _mapping(study.get("queue_slo"))
+        study["scan_delta"] = {
+            "previous_scan_seen": any(_text(action.get("action_id")) in previous_action_ids for action in study_actions),
+            "new_action_count": sum(_text(action.get("action_id")) not in previous_action_ids for action in study_actions),
+            "owner_pickup_overdue_count": int(queue_slo.get("owner_pickup_overdue_count") or 0),
+            "developer_supervisor_attention_required_count": int(
+                queue_slo.get("developer_supervisor_attention_required_count") or 0
+            ),
+        }
+
+
 def build_scan_domain_routes_payload(
     *,
     schema_version: int,
@@ -197,7 +233,10 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "build_scan_domain_routes_payload",
+    "attach_scan_delta",
     "merge_current_execution_envelopes",
     "merge_previous_unscanned_study_handoff",
     "persist_scan_domain_routes_payload",
+    "previous_action_ids",
+    "scanned_action_queue",
 ]

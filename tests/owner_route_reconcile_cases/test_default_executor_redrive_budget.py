@@ -671,3 +671,161 @@ def test_scan_routes_repeated_nonconsumable_quality_repair_to_mechanism_owner(
     assert study["default_executor_execution_receipt_consumption"]["typed_blocker"]["next_escalation"] == (
         "mechanism_repair_owner"
     )
+
+
+def test_scan_routes_stale_redrive_blocker_after_deliverable_delta_keeps_owner_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::current-inputs::after-delta",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "recommended_actions": [
+            {
+                "action_id": "route-back-current-write-after-delta",
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::current-write-after-delta",
+                "next_work_unit": {
+                    "unit_id": "consume_current_inputs_ai_reviewer_record_then_gate_replay",
+                    "lane": "write",
+                },
+            }
+        ],
+    }
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(publication_eval_path, publication_eval)
+    truth_snapshot = {
+        "truth_epoch": "truth-event-000035-after-delta",
+        "source_signature": "truth-snapshot::after-deliverable-delta",
+    }
+    status = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(profile.runtime_root / study_id),
+        "quest_status": "active",
+        "active_run_id": None,
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-event-after-delta",
+            "canonical_runtime_action": "recover_runtime",
+            "attempt_state": "recovering",
+            "blocking_reasons": ["quest_marked_running_but_no_live_session"],
+        },
+        "publication_eval": publication_eval,
+        "study_truth_snapshot": truth_snapshot,
+        "domain_transition": {
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "controller_action": "request_opl_stage_attempt",
+            "owner": "write",
+            "next_work_unit": {
+                "unit_id": "consume_current_inputs_ai_reviewer_record_then_gate_replay",
+                "lane": "write",
+            },
+            "typed_blocker": None,
+        },
+    }
+    progress = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(profile.runtime_root / study_id),
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(publication_eval_path)},
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "study_truth_snapshot": truth_snapshot,
+        "progress_first_monitoring_summary": {
+            "surface": "progress_first_monitoring_summary",
+            "schema_version": 1,
+            "authority": "refs_only_observability",
+            "study_id": study_id,
+            "running_provider_attempt": False,
+            "execution_state_kind": "typed_blocker",
+            "owner_action_current": True,
+            "next_owner": "write",
+            "route_target": "review",
+            "controller_action": "run_quality_repair_batch",
+            "next_work_unit": {
+                "unit_id": "consume_current_inputs_ai_reviewer_record_then_gate_replay",
+                "lane": "review",
+            },
+            "typed_blocker": {
+                "blocker_type": "progress_first_owner_redrive_budget_exhausted",
+                "owner": "med-autoscience",
+            },
+            "current_blockers": ["progress_first_owner_redrive_budget_exhausted"],
+            "latest_terminal_stage": {
+                "stage_id": "domain_owner/default-executor-dispatch",
+                "action_type": "run_quality_repair_batch",
+                "status": "executed",
+                "stage_name": "consume_current_inputs_ai_reviewer_record_then_gate_replay",
+                "problem_summary": "run_quality_repair_batch produced manuscript review ledgers.",
+                "stage_goal": "Produce canonical manuscript story-surface delta.",
+                "outcome": "executed",
+                "progress_delta_classification": "deliverable_progress",
+                "stage_work_done": ["Updated the evidence ledger."],
+                "changed_stage_surfaces": [
+                    str(study_root / "paper" / "claim_evidence_map.json"),
+                    str(study_root / "paper" / "evidence_ledger.json"),
+                    str(study_root / "paper" / "review" / "review_ledger.json"),
+                ],
+                "changed_paper_surfaces": [
+                    str(study_root / "paper" / "claim_evidence_map.json"),
+                    str(study_root / "paper" / "evidence_ledger.json"),
+                    str(study_root / "paper" / "review" / "review_ledger.json"),
+                ],
+                "remaining_blockers": [],
+                "evidence_refs": [
+                    "artifacts/controller/quality_repair_batch/latest.json",
+                    "artifacts/publication_eval/latest.json",
+                ],
+                "semantic_completeness": {"status": "complete", "missing_fields": []},
+                "terminal_closeout_semantic_completeness": {
+                    "status": "complete",
+                    "progress_delta_classification": "deliverable_progress",
+                },
+            },
+        },
+    }
+    monkeypatch.setattr(scan, "_read_study_projection_inputs", lambda **_: (status, progress, study_id, publication_eval))
+    before_receipt = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+    )
+    owner_route = before_receipt["studies"][0]["action_queue"][0]["owner_route"]
+    _write_repeated_nonconsumable_execution(study_root, owner_route)
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    receipt = study["default_executor_execution_receipt_consumption"]
+    assert receipt["blocked_reason"] == "progress_first_owner_redrive_budget_exhausted"
+    assert receipt["stale_blocker_resolution"]["status"] == "superseded"
+    assert study["blocked_reason"] != "progress_first_owner_redrive_budget_exhausted"
+    assert study["next_owner"] == "write"
+    assert [item["action_type"] for item in study["action_queue"]] == ["run_quality_repair_batch"]
+    assert study["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+    assert study["current_execution_envelope"]["typed_blocker"] is None

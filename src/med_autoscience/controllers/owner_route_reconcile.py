@@ -21,6 +21,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import projection_e
 from med_autoscience.controllers.owner_route_reconcile_parts import publication_gate_actions, queue_slo
 from med_autoscience.controllers.owner_route_reconcile_parts import repo_write_policy, request_packets
 from med_autoscience.controllers.owner_route_reconcile_parts import runtime_facts, scan_output, status_projection
+from med_autoscience.controllers.owner_route_reconcile_parts import stale_redrive_resolution
 from med_autoscience.controllers.owner_route_reconcile_parts import story_surface_delta_actions, study_identity
 from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_parking
 from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_projection, workspace_daemon
@@ -616,6 +617,7 @@ def _study_projection(
         next_owner = block_state_next_owner
         if next_owner is None and blocked_reason:
             next_owner = block_state_part.next_owner_for_blocked_reason(blocked_reason)
+    pre_receipt_actions = [dict(action) for action in actions]
     owner_route, actions, default_executor_execution_receipt_consumption = (
         default_executor_receipts.route_and_consume_current_execution_receipt(
             study_id=study_id,
@@ -640,12 +642,35 @@ def _study_projection(
     if default_executor_execution_receipt_consumption:
         receipt_blocked_reason = _text(default_executor_execution_receipt_consumption.get("blocked_reason"))
         if _text(default_executor_execution_receipt_consumption.get("execution_status")) == "blocked" and receipt_blocked_reason:
-            receipt_typed_blocker = _mapping(default_executor_execution_receipt_consumption.get("typed_blocker"))
-            why_not_applied = receipt_blocked_reason
-            blocked_reason = receipt_blocked_reason
-            next_owner = _text(receipt_typed_blocker.get("next_owner")) or block_state_part.next_owner_for_blocked_reason(
-                receipt_blocked_reason
-            )
+            if stale_redrive_resolution.superseded_by_current_delta(
+                progress=progress_payload,
+                receipt=default_executor_execution_receipt_consumption,
+            ):
+                default_executor_execution_receipt_consumption = stale_redrive_resolution.annotate_superseded_receipt(
+                    default_executor_execution_receipt_consumption
+                )
+                actions = pre_receipt_actions
+                blocked_reason = block_state["blocked_reason"] or why_not_applied
+                next_owner = block_state_next_owner
+                if next_owner is None and blocked_reason:
+                    next_owner = block_state_part.next_owner_for_blocked_reason(blocked_reason)
+                owner_route, actions = owner_route_part.route_and_decorate_actions(
+                    study_id=study_id,
+                    quest_id=resolved_quest_id,
+                    status=status_payload,
+                    progress=progress_payload,
+                    actions=actions,
+                    blocked_reason=blocked_reason,
+                    next_owner=next_owner,
+                    active_run_id=_active_run_id(status_payload, progress_payload),
+                )
+            else:
+                receipt_typed_blocker = _mapping(default_executor_execution_receipt_consumption.get("typed_blocker"))
+                why_not_applied = receipt_blocked_reason
+                blocked_reason = receipt_blocked_reason
+                next_owner = _text(receipt_typed_blocker.get("next_owner")) or block_state_part.next_owner_for_blocked_reason(
+                    receipt_blocked_reason
+                )
         else:
             why_not_applied = None
             blocked_reason = None
@@ -869,12 +894,7 @@ def scan_domain_routes(
     latest_path = _latest_path(profile)
     history_path = _history_path(profile)
     previous_payload = _read_json_object(latest_path)
-    previous_action_ids = {
-        _text(action.get("action_id"))
-        for action in (_mapping(previous_payload).get("action_queue") if previous_payload is not None else []) or []
-        if isinstance(action, Mapping)
-    }
-    previous_action_ids.discard(None)
+    previous_action_ids = scan_output.previous_action_ids(previous_payload)
     provider_readiness = opl_provider_attempts.current_provider_readiness(
         timeout_seconds=provider_readiness_timeout_seconds
     )
@@ -911,26 +931,8 @@ def scan_domain_routes(
         previous_payload=previous_payload,
         generated_at=generated_at,
     )
-    scanned_action_queue = [
-        {"study_id": study["study_id"], **action}
-        for study in studies
-        for action in study.get("action_queue", [])
-        if isinstance(action, Mapping)
-    ]
-    for study in studies:
-        study_actions = [
-            action
-            for action in study.get("action_queue", [])
-            if isinstance(action, Mapping) and _text(action.get("action_id")) is not None
-        ]
-        study["scan_delta"] = {
-            "previous_scan_seen": any(_text(action.get("action_id")) in previous_action_ids for action in study_actions),
-            "new_action_count": sum(_text(action.get("action_id")) not in previous_action_ids for action in study_actions),
-            "owner_pickup_overdue_count": int(_mapping(study.get("queue_slo")).get("owner_pickup_overdue_count") or 0),
-            "developer_supervisor_attention_required_count": int(
-                _mapping(study.get("queue_slo")).get("developer_supervisor_attention_required_count") or 0
-            ),
-        }
+    scanned_action_queue = scan_output.scanned_action_queue(studies)
+    scan_output.attach_scan_delta(studies=studies, previous_action_ids=previous_action_ids)
     if persist_surfaces:
         output_studies, action_queue = scan_output.merge_previous_unscanned_study_handoff(
             previous_payload=previous_payload,
