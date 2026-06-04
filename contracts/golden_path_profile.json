@@ -1,0 +1,67 @@
+{
+  "surface_kind": "opl_golden_path_profile",
+  "schema_version": "golden-path-profile.v1",
+  "profile_id": "med-autoscience.golden-path",
+  "domain": "med-autoscience",
+  "owner": "MedAutoScience",
+  "domain_id": "med-autoscience",
+  "state": "advisory_current_contract",
+  "profile_role": "medical_research_foundry_agent_golden_path_profile",
+  "purpose": "Med Auto Science golden path for OPL-hosted Foundry Agent execution under current_owner_delta and AI-first medical research quality gates.",
+  "machine_boundary": "This profile describes the ordinary default path and hidden variant policy. It does not declare paper closure, publication ready, domain ready, quality ready, artifact ready, current_package update, or production ready.",
+  "default_executor": "codex_cli",
+  "default_outer_loop": "current_owner_delta",
+  "stage_attempt_strategy": "cognitive_kernel_stage_internal",
+  "stage_control_plane_ref": "contracts/stage_control_plane.json",
+  "pack_compiler_input_ref": "contracts/pack_compiler_input.json",
+  "stage_route_contract_ref": "agent/stages/stage_route_contract.yaml",
+  "stage_native_semantic_pack_ref": "agent/stages/stage_native_semantic_pack.yaml",
+  "ordinary_path": {
+    "path_id": "med-autoscience_ordinary_default",
+    "path_role": "ordinary_default",
+    "stage_refs": [
+      "direction_and_route_selection"
+    ]
+  },
+  "explicit_variants": [],
+  "default_surface_policy": {
+    "ordinary_route_count": 1,
+    "variants_hidden_by_default": true,
+    "raw_evidence_hidden_by_default": true
+  },
+  "authority_boundary": {
+    "ordinary_path_count_must_be_one": true,
+    "variant_can_be_default_without_explicit_selection": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_authorize_domain_ready": false,
+    "opl_can_authorize_quality_verdict": false,
+    "opl_can_mutate_artifact_body": false
+  },
+  "golden_path_steps": [
+    "hydrate_current_owner_delta",
+    "run_stage_attempt_with_declared_prompt_skill_knowledge_quality_refs",
+    "produce_medical_research_artifact_delta_or_route_decision",
+    "ground_review_in_source_refs_and_evidence_refs",
+    "record_independent_reviewer_or_owner_receipt_typed_blocker_human_gate_or_route_back_ref",
+    "project_refs_only_status_to_opl_and_app"
+  ],
+  "required_closeout_refs": [
+    "stage_artifact_unit_ref",
+    "owner_receipt_ref_or_typed_blocker_ref",
+    "independent_reviewer_receipt_ref_or_route_back_ref",
+    "current_owner_delta_ref"
+  ],
+  "stop_loss_policy": {
+    "missing_study_truth": "return_typed_blocker_ref",
+    "missing_independent_reviewer_or_human_authority": "return_human_gate_ref_or_typed_blocker_ref",
+    "failed_publication_or_evidence_gate": "return_route_back_ref_or_typed_blocker_ref",
+    "forbidden_write_requested": "return_typed_blocker_ref"
+  },
+  "forbidden_claims": [
+    "descriptor_ready_means_domain_ready",
+    "provider_completion_means_publication_ready",
+    "generated_surface_ready_means_paper_closed",
+    "same_attempt_self_review_closes_quality_gate",
+    "tool_catalog_prescribes_executor_sequence"
+  ]
+}
