@@ -445,9 +445,14 @@ def _receipt_payload(
     generated_at: str,
 ) -> dict[str, Any]:
     source_fingerprint = _fingerprint(
-        source_ref
-        for role_result in role_results
-        for source_ref in role_result["source_refs"]
+        [
+            {
+                "role": role_result["role"],
+                "artifact_ref": role_result["artifact_ref"],
+                "source_refs": role_result["source_refs"],
+            }
+            for role_result in role_results
+        ]
     )
     receipt_id = f"stage-artifact-delta:{study_id}:{stage_id}:{source_fingerprint[:16]}"
     return {

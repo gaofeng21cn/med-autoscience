@@ -91,6 +91,7 @@ def _apply_live_quest_status_decision(
     task_intake_releases_manual_finish_parking: bool,
     task_intake_yields_to_submission_closeout: bool,
     reviewer_revision_open_blockers_release_manual_finish_parking: bool,
+    explicit_resume_releases_pause_gate: bool,
     finalize_result: Callable[[], ProgressProjectionStatus],
 ) -> ProgressProjectionStatus:
     audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
@@ -101,12 +102,15 @@ def _apply_live_quest_status_decision(
     )
     publication_gate_redrive_reason = _publication_gate_domain_redrive_reason(result)
     domain_redrive_reason = publication_gate_redrive_reason or _domain_transition_runtime_redrive_reason(result)
-    if _user_pause_contract_without_live_worker(
-        result,
-        audit_status=audit_status,
-    ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
-        result,
-        audit_status=audit_status,
+    if not explicit_resume_releases_pause_gate and (
+        _user_pause_contract_without_live_worker(
+            result,
+            audit_status=audit_status,
+        )
+        or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
+            result,
+            audit_status=audit_status,
+        )
     ):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
@@ -319,15 +323,20 @@ def _apply_resumable_quest_status_decision(
     task_intake_releases_manual_finish_parking: bool,
     submission_metadata_only_manual_finish: bool,
     bundle_only_manual_finish: bool,
+    explicit_resume_releases_pause_gate: bool,
     finalize_result: Callable[[], ProgressProjectionStatus],
 ) -> ProgressProjectionStatus:
-    if _user_pause_contract_without_live_worker(
-        result,
-    ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
-        result
-    ) or (
-        _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result)
-        and not task_intake_releases_bare_paused_parking
+    if not explicit_resume_releases_pause_gate and (
+        _user_pause_contract_without_live_worker(
+            result,
+        )
+        or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
+            result
+        )
+        or (
+            _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result)
+            and not task_intake_releases_bare_paused_parking
+        )
     ):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
@@ -336,13 +345,17 @@ def _apply_resumable_quest_status_decision(
         return finalize_result()
     if quest_status not in _RESUMABLE_QUEST_STATUSES:
         return finalize_result()
-    if _user_pause_contract_without_live_worker(
-        result,
-    ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
-        result
-    ) or (
-        _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result)
-        and not task_intake_releases_bare_paused_parking
+    if not explicit_resume_releases_pause_gate and (
+        _user_pause_contract_without_live_worker(
+            result,
+        )
+        or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
+            result
+        )
+        or (
+            _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result)
+            and not task_intake_releases_bare_paused_parking
+        )
     ):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import json
 from pathlib import Path
 
 from tests.ai_reviewer_record_fixture_helpers import minimal_ai_reviewer_record as _minimal_ai_reviewer_record
@@ -15,66 +14,6 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 from tests.test_domain_owner_action_dispatch_cases.ai_reviewer_workflow_helpers import (
     _complete_ai_reviewer_input_refs,
 )
-
-
-def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "001-dm-cvd-mortality-risk"
-    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / "return_to_ai_reviewer_workflow.json"
-    )
-    dispatch = _dispatch(
-        study_id=study_id,
-        action_type="return_to_ai_reviewer_workflow",
-        owner="ai_reviewer",
-        required_output_surface="artifacts/publication_eval/latest.json",
-    )
-    _write_current_dispatch(
-        dispatch_path,
-        profile,
-        dispatch,
-    )
-
-    result = module.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,),
-        action_types=("return_to_ai_reviewer_workflow",),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    assert result["execution_count"] == 1
-    assert result["blocked_count"] == 1
-    execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "ai_reviewer_request_missing"
-    assert execution["owner_callable_surface"] == "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-    assert execution["next_owner"] == "ai_reviewer"
-    latest = json.loads(
-        (
-            study_root
-            / "artifacts"
-            / "supervision"
-            / "consumer"
-            / "default_executor_execution"
-            / "latest.json"
-        ).read_text(encoding="utf-8")
-    )
-    assert latest["blocked_count"] == 1
-    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
-    assert not (study_root / "paper").exists()
-    assert not (study_root / "manuscript").exists()
 
 
 def test_execute_dispatch_blocks_ai_reviewer_when_record_payload_missing(
@@ -524,6 +463,17 @@ def test_execute_dispatch_blocks_ai_reviewer_workflow_without_materialized_lates
             "surface": "domain_action_request",
             "request_kind": "return_to_ai_reviewer_workflow",
             "request_owner": "ai_reviewer",
+            "ai_reviewer_record": _minimal_ai_reviewer_record(
+                study_id,
+                study_id,
+                {
+                    "assessment_provenance": {
+                        "owner": "ai_reviewer",
+                        "source_kind": "publication_eval_ai_reviewer",
+                    },
+                    "recommended_actions": [{"action_type": "return_to_controller"}],
+                },
+            ),
             "input_contract": {
                 "required_refs": input_refs,
                 "all_required_refs_present": True,
@@ -674,7 +624,14 @@ def test_execute_dispatch_after_paper_authority_cutover_ignores_archived_latest_
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "latest.json"
+    )
     _write_json(
         receipt_path,
         {

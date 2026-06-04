@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timezone
+from datetime import datetime, timezone
 
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .domain_transition_arbitration import *  # noqa: F403
@@ -14,10 +14,71 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .supervisor_state_overrides import *  # noqa: F403
 
 from . import publication_and_submission as _publication_and_submission
+from med_autoscience.controllers import study_truth_kernel
 from med_autoscience.controllers.owner_route_reconcile_parts import opl_provider_attempts
+from med_autoscience.runtime_protocol import quest_state as quest_state_protocol
 
 _OPL_CURRENT_CONTROL_STATE_STALE_AFTER_SECONDS = 10 * 60
 _OPL_TERMINAL_SUCCESS_STATES = {"succeeded"}
+
+
+def _parsed_utc_datetime(value: object) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _pause_barrier_recorded_at(runtime_state: dict[str, object]) -> datetime | None:
+    candidates: list[datetime] = []
+    for key in ("last_manual_pause", "manual_hold", "human_takeover_contract"):
+        value = runtime_state.get(key)
+        if isinstance(value, dict):
+            parsed = _parsed_utc_datetime(value.get("recorded_at") or value.get("created_at"))
+            if parsed is not None:
+                candidates.append(parsed)
+    continuation_reason = str(runtime_state.get("continuation_reason") or "").strip()
+    if continuation_reason == "quest_waiting_for_explicit_wakeup_after_manual_hold":
+        parsed = _parsed_utc_datetime(runtime_state.get("continuation_updated_at") or runtime_state.get("updated_at"))
+        if parsed is not None:
+            candidates.append(parsed)
+    return max(candidates) if candidates else None
+
+
+def _truth_explicit_resume_releases_pause_gate(
+    *,
+    study_root: Path,
+    quest_root: Path,
+    study_id: str,
+) -> bool:
+    snapshot = study_truth_kernel.rebuild_truth_snapshot(study_root=study_root, study_id=study_id)
+    if str(snapshot.get("canonical_next_action") or "").strip() not in {
+        "resume_same_study_line",
+        "resume_runtime",
+        "relaunch_same_study_line",
+    }:
+        return False
+    refs = snapshot.get("dominant_authority_refs")
+    if not isinstance(refs, list) or not refs:
+        return False
+    latest_ref = refs[0]
+    if not isinstance(latest_ref, dict):
+        return False
+    if str(latest_ref.get("event_type") or "").strip() != "explicit_resume":
+        return False
+    resume_at = _parsed_utc_datetime(latest_ref.get("recorded_at"))
+    pause_at = _pause_barrier_recorded_at(quest_state_protocol.load_runtime_state(quest_root))
+    if pause_at is None:
+        return True
+    return resume_at is not None and resume_at >= pause_at
 
 
 def _status_state(
@@ -150,6 +211,11 @@ def _status_state(
     task_intake_releases_bare_paused_parking = (
         task_intake_releases_manual_finish_parking
         and not task_intake_yields_to_submission_closeout
+    )
+    explicit_resume_releases_pause_gate = _truth_explicit_resume_releases_pause_gate(
+        study_root=study_root,
+        quest_root=quest_root,
+        study_id=study_id,
     )
     _record_continuation_state_if_present(
         status=result,
@@ -412,6 +478,7 @@ def _status_state(
             reviewer_revision_open_blockers_release_manual_finish_parking=(
                 reviewer_revision_open_blockers_release_manual_finish_parking
             ),
+            explicit_resume_releases_pause_gate=explicit_resume_releases_pause_gate,
             finalize_result=_finalize_result,
         )
 
@@ -435,6 +502,7 @@ def _status_state(
             task_intake_releases_manual_finish_parking=task_intake_releases_manual_finish_parking,
             submission_metadata_only_manual_finish=submission_metadata_only_manual_finish,
             bundle_only_manual_finish=bundle_only_manual_finish,
+            explicit_resume_releases_pause_gate=explicit_resume_releases_pause_gate,
             finalize_result=_finalize_result,
         )
 

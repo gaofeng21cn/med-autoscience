@@ -58,6 +58,14 @@ def launch_study(
         explicit_user_wakeup=explicit_user_wakeup,
     )
     if explicit_wakeup_receipt is not None:
+        runtime_status = _serialize_runtime_status(
+            domain_status_projection.progress_projection(
+                profile=profile,
+                study_id=resolved_study_id,
+                study_root=resolved_study_root,
+                entry_mode=None,
+            )
+        )
         runtime_status["study_truth_snapshot"] = explicit_wakeup_receipt["snapshot"]
     runtime_status["product_entry_launch_policy"] = {
         "status": "opl_attempt_admission_required",

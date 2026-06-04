@@ -24,6 +24,7 @@ RUNTIME_RECOVERY_ACTIONS = frozenset(
         "request_opl_stage_attempt_relaunch",
     }
 )
+AI_REVIEWER_WORKFLOW_ACTION = "return_to_ai_reviewer_workflow"
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -78,7 +79,7 @@ def _route_action_for_tick_request(tick_request: Mapping[str, Any]) -> str | Non
     action_type = _non_empty_text(_first_controller_action(tick_request).get("action_type"))
     if action_type in RUNTIME_RECOVERY_ACTIONS:
         return "runtime_recovery"
-    if action_type == "run_quality_repair_batch":
+    if action_type in {"run_quality_repair_batch", AI_REVIEWER_WORKFLOW_ACTION}:
         return "paper_write"
     if action_type != "run_gate_clearing_batch":
         return None
@@ -96,6 +97,7 @@ def _controller_route_context(tick_request: Mapping[str, Any]) -> dict[str, Any]
     control_surface = {
         "run_gate_clearing_batch": "gate_clearing_batch",
         "run_quality_repair_batch": "quality_repair_batch",
+        AI_REVIEWER_WORKFLOW_ACTION: "ai_reviewer_workflow",
     }.get(action_type)
     if control_surface is None:
         return None

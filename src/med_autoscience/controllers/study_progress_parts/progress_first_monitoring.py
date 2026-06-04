@@ -14,7 +14,9 @@ from .owner_action_admission import build_owner_action_admission_projection
 from .progress_first_monitoring_parts.artifact_first import (
     artifact_first_owner_action as _artifact_first_owner_action,
     current_action_from_stage_artifact_index as _current_action_from_stage_artifact_index,
+    stage_artifact_index_has_precedence_evidence as _stage_artifact_index_has_precedence_evidence,
     stage_artifact_index_monitoring_projection as _stage_artifact_index_monitoring_projection,
+    terminal_publication_gate_action as _terminal_publication_gate_action,
 )
 
 
@@ -86,13 +88,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _mapping(domain_transition.get("typed_blocker"))
         or terminal_closeout_blocker
     )
-    terminal_publication_gate_action = (
-        stage_artifact_action.get("terminal_publication_handoff") is True
-        or stage_artifact_action.get("action_type") == "publication_handoff_owner_gate"
-        or stage_artifact_action.get("required_delta_kind")
-        == "publication_handoff_owner_receipt_or_typed_blocker"
-    )
-    artifact_first_supersedes_blocker = bool(stage_artifact_action) and not terminal_publication_gate_action and (
+    artifact_first_supersedes_blocker = bool(stage_artifact_action) and not _terminal_publication_gate_action(stage_artifact_action) and (
         not raw_typed_blocker
         or _stage_artifact_index_has_precedence_evidence(
             payload.get("stage_artifact_index"),
@@ -917,39 +913,6 @@ def _running_provider_attempt_ref(
     if running_provider_attempt is not True:
         return None
     return _text(handoff.get(key))
-
-
-def _stage_artifact_index_has_precedence_evidence(
-    value: object,
-    *,
-    typed_blocker: Mapping[str, Any],
-) -> bool:
-    index = _mapping(value)
-    if _sequence(index.get("stale_platform_repairs")):
-        return True
-    if _typed_blocker_is_runtime_or_platform_repair(typed_blocker):
-        return False
-    for stage in _sequence(index.get("stages")):
-        state = _mapping(stage)
-        if _sequence(state.get("observed_artifact_refs")):
-            return True
-    return False
-
-
-def _typed_blocker_is_runtime_or_platform_repair(typed_blocker: Mapping[str, Any]) -> bool:
-    haystack = " ".join(
-        value
-        for value in (
-            _text(typed_blocker.get("blocker_id")),
-            _text(typed_blocker.get("blocker_type")),
-            _text(typed_blocker.get("reason")),
-            _text(typed_blocker.get("reason_code")),
-            _text(typed_blocker.get("owner")),
-            _text(typed_blocker.get("work_unit_id")),
-        )
-        if value
-    )
-    return any(marker in haystack for marker in ("runtime", "platform_repair", "read_model_reconcile"))
 
 
 def _stale_active_run_id(

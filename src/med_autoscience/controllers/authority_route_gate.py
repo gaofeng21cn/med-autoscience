@@ -54,6 +54,18 @@ _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS = frozenset(
 _PUBLICATION_GATE_REPLAY_ALLOWED_ACTIONS = frozenset(
     {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
 )
+_AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS = frozenset(
+    {
+        "ai_reviewer_recheck",
+        "ai_reviewer_medical_prose_quality_review",
+    }
+)
+_UPSTREAM_QUALITY_AUTHORITY_WORK_UNIT_IDS = frozenset(
+    {
+        *UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+        *_AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS,
+    }
+)
 
 _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "analysis_claim_evidence_repair": frozenset({"paper_write"}),
@@ -76,6 +88,10 @@ _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "medical_prose_quality_analysis_source_documentation_repair": frozenset({"paper_write"}),
     "medical_prose_write_repair": frozenset({"paper_write"}),
     **{
+        work_unit_id: frozenset({"paper_write"})
+        for work_unit_id in _AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS
+    },
+    **{
         work_unit_id: _PUBLICATION_GATE_REPLAY_ALLOWED_ACTIONS
         for work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
     },
@@ -91,10 +107,12 @@ _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "treatment_gap_reporting_repair": frozenset({"paper_write"}),
 }
 _CONTROLLER_ROUTE_ACTION_TYPES = {
+    "return_to_ai_reviewer_workflow",
     "run_gate_clearing_batch",
     "run_quality_repair_batch",
 }
 _CONTROLLER_ROUTE_SURFACES = {
+    "ai_reviewer_workflow",
     "gate_clearing_batch",
     "quality_repair_batch",
 }
@@ -349,7 +367,7 @@ def _controller_route_is_upstream_publishability_repair(
 ) -> bool:
     return (
         action == "paper_write"
-        and _text(controller_route_gate.get("work_unit_id")) in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+        and _text(controller_route_gate.get("work_unit_id")) in _UPSTREAM_QUALITY_AUTHORITY_WORK_UNIT_IDS
     )
 
 
