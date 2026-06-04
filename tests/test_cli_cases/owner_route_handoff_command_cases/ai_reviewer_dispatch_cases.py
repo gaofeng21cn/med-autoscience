@@ -201,6 +201,9 @@ def test_domain_handler_dispatch_preserves_ai_reviewer_record_production_handoff
                 "profile": str(profile_path),
                 "study_id": "002-dm-china-us-mortality-attribution",
                 "quest_id": "002-dm-china-us-mortality-attribution",
+                "opl_execution_authorization": _opl_execution_authorization(
+                    "002-dm-china-us-mortality-attribution"
+                ),
                 "repair_work_unit": {
                     "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
                     "work_unit_type": "ai_reviewer_recheck",

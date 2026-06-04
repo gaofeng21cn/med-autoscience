@@ -38,6 +38,7 @@ def test_domain_handler_dispatch_records_quality_repair_authority_gate_as_stable
                 "profile": str(profile_path),
                 "study_id": "001-risk",
                 "quest_id": "quest-001",
+                "opl_execution_authorization": _opl_execution_authorization("quest-001"),
                 "repair_work_unit": {
                     "unit_id": "unit-quality-batch-authority-blocked",
                     "work_unit_type": "text_repair",

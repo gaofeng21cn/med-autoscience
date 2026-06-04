@@ -350,6 +350,9 @@ def test_domain_handler_dispatch_prefers_runtime_binding_quest_id_for_quality_re
             "payload": {
                 "profile": str(profile_path),
                 "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "opl_execution_authorization": _opl_execution_authorization(
+                    "003-dpcc-primary-care-phenotype-treatment-gap"
+                ),
                 "repair_work_unit": {
                     "unit_id": "quality_repair_batch",
                     "work_unit_type": "text_repair",

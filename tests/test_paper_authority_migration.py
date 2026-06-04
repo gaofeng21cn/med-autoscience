@@ -12,6 +12,28 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _cutover_latest_path(study_root: Path) -> Path:
+    return (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "latest.json"
+    )
+
+
+def _stage_native_body_root(study_root: Path) -> Path:
+    return (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+    )
+
+
 def test_paper_authority_clean_migration_dry_run_lists_active_authority_surfaces(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
     profile = make_profile(tmp_path)
@@ -36,7 +58,7 @@ def test_paper_authority_clean_migration_dry_run_lists_active_authority_surfaces
 
     study = report["studies"][0]
     assert report["mode"] == "dry_run"
-    assert report["authority_boundary"]["legacy_reader_normalization"] is False
+    assert report["authority_boundary"]["legacy_reader_normalization"] is True
     assert study["cutover_required"] is True
     assert {
         item["surface_id"]
@@ -49,7 +71,7 @@ def test_paper_authority_clean_migration_dry_run_lists_active_authority_surfaces
         "manuscript_current_package_zip",
     }
     assert (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
-    assert not (study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json").exists()
+    assert not _cutover_latest_path(study_root).exists()
 
 
 def test_paper_authority_clean_migration_apply_archives_active_surfaces_and_requests_ai_reviewer(
@@ -61,6 +83,11 @@ def test_paper_authority_clean_migration_apply_archives_active_surfaces_and_requ
     _write_profile(profile_path, profile)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    write_text(study_root / "paper" / "draft.md", "# Draft\n")
+    write_text(study_root / "paper" / "evidence_ledger.json", "{}\n")
+    write_text(study_root / "paper" / "review" / "review_ledger.json", "{}\n")
+    write_text(study_root / "paper" / "claim_evidence_map.json", "{}\n")
+    write_text(study_root / "paper" / "medical_manuscript_blueprint.json", "{}\n")
     _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"legacy": True})
     _write_json(study_root / "artifacts" / "controller_decisions" / "latest.json", {"legacy": True})
     _write_json(
@@ -76,10 +103,11 @@ def test_paper_authority_clean_migration_apply_archives_active_surfaces_and_requ
         apply=True,
     )
 
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = _cutover_latest_path(study_root)
     request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     request = json.loads(request_path.read_text(encoding="utf-8"))
+    request_refs = request["input_contract"]["required_refs"]
 
     assert report["mode"] == "apply"
     assert report["next_required_actions"] == [
@@ -90,14 +118,22 @@ def test_paper_authority_clean_migration_apply_archives_active_surfaces_and_requ
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json").exists()
-    assert not (study_root / "manuscript" / "current_package").exists()
-    assert not (study_root / "manuscript" / "current_package.zip").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "manuscript").exists()
+    assert (_stage_native_body_root(study_root) / "paper" / "draft.md").exists()
+    assert (_stage_native_body_root(study_root) / "manuscript" / "current_package" / "manuscript_submission.md").exists()
     assert receipt["status"] == "awaiting_new_mas_authority"
     assert receipt["authority_boundary"]["quality_verdict_written"] is False
+    assert receipt["stage_native_body_authority_root"] == str(_stage_native_body_root(study_root))
     assert request["request_kind"] == "return_to_ai_reviewer_workflow"
     assert request["source_surface"] == "paper_authority_clean_migration"
     assert request["required_output"]["writer"] == "ai_reviewer_publication_eval_workflow"
     assert request["paper_authority_cutover_ref"] == str(receipt_path)
+    assert request["stage_native_body_authority_root"] == str(_stage_native_body_root(study_root))
+    assert request_refs["manuscript"]["path"] == str((_stage_native_body_root(study_root) / "paper" / "draft.md").resolve())
+    assert request_refs["evidence_ledger"]["path"] == str(
+        (_stage_native_body_root(study_root) / "paper" / "evidence_ledger.json").resolve()
+    )
     assert all(Path(item["archive_path"]).exists() for item in receipt["archived_surfaces"])
 
 
@@ -127,9 +163,47 @@ def test_paper_authority_clean_migration_ignores_noncanonical_study_residue(
             "study_id": "paper-run-dfcc79d2",
             "path": str(residue_root.resolve()),
             "reason": "paper_authority_surface_without_study_marker",
-            "surface_ids": ["manuscript_current_package"],
+            "surface_ids": ["manuscript_body_root", "manuscript_current_package"],
         }
     ]
+
+
+def test_paper_authority_clean_migration_apply_moves_noncanonical_residue_to_stage_native_archive(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_study(profile.workspace_root, study_id, quest_id=study_id)
+    residue_root = profile.studies_root / "paper-run-dfcc79d2"
+    write_text(residue_root / "manuscript" / "current_package" / "manuscript_submission.md", "# Residue\n")
+
+    report = module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+
+    residue_receipt_path = (
+        profile.workspace_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "noncanonical_paper_authority_residue"
+        / "latest.json"
+    )
+    residue_receipt = json.loads(residue_receipt_path.read_text(encoding="utf-8"))
+    migrated_path = Path(report["post_apply"]["noncanonical_residue_migrations"][0]["stage_native_archive_path"])
+
+    assert not residue_root.exists()
+    assert migrated_path.exists()
+    assert (migrated_path / "manuscript" / "current_package" / "manuscript_submission.md").exists()
+    assert report["post_apply"]["noncanonical_residue_migration_count"] == 1
+    assert report["noncanonical_paper_authority_residue_dirs"] == []
+    assert residue_receipt["migration_count"] == 1
+    assert residue_receipt["authority_boundary"]["study_truth_created"] is False
 
 
 def test_paper_authority_clean_migration_rejects_selected_noncanonical_residue(
@@ -185,9 +259,7 @@ def test_mark_cutover_new_mas_authority_established_closes_pending_cutover(tmp_p
     )
 
     receipt = json.loads(
-        (study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json").read_text(
-            encoding="utf-8"
-        )
+        _cutover_latest_path(study_root).read_text(encoding="utf-8")
     )
     assert updated is not None
     assert receipt["status"] == "new_mas_authority_established"
@@ -337,9 +409,7 @@ def test_paper_authority_clean_migration_apply_is_idempotent_after_new_mas_autho
     )
 
     receipt = json.loads(
-        (study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json").read_text(
-            encoding="utf-8"
-        )
+        _cutover_latest_path(study_root).read_text(encoding="utf-8")
     )
     active_eval = json.loads(
         (study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8")
@@ -629,9 +699,7 @@ def test_mark_cutover_refreshes_stale_new_mas_authority_receipt_after_reviewer_r
     )
 
     receipt = json.loads(
-        (study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json").read_text(
-            encoding="utf-8"
-        )
+        _cutover_latest_path(study_root).read_text(encoding="utf-8")
     )
     assert updated is not None
     assert receipt["status"] == "new_mas_authority_established"

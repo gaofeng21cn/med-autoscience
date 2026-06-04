@@ -874,6 +874,29 @@ def _current_stage_projection(stage: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _next_owner_action(stage: Mapping[str, Any]) -> dict[str, Any]:
+    if stage["stage_id"] == "08-publication_package_handoff" and stage["artifact_status"] == _STATUS_DELTA:
+        return {
+            "owner": stage["stage_id"],
+            "next_owner": "publication_gate_owner",
+            "action_type": "publication_handoff_owner_gate",
+            "allowed_actions": ["publication_handoff_owner_gate"],
+            "required_delta_kind": "publication_handoff_owner_receipt_or_typed_blocker",
+            "work_unit_id": "publication_handoff_owner_gate",
+            "required_output_surface": None,
+            "artifact_native_contract_ref": stage["artifact_native_contract_ref"],
+            "domain_stage_pack_ref": stage["domain_stage_pack_ref"],
+            "manifest_ref": stage["manifest_requirements"]["ref"],
+            "receipt_ref": stage["receipt_requirements"]["ref"],
+            "authority_boundary": _authority_boundary(),
+            "artifact_first_authority": True,
+            "terminal_publication_handoff": True,
+            "owner_receipt_required": True,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_publication_readiness": False,
+            "can_authorize_submission_readiness": False,
+        }
+    if stage["artifact_status"] == _STATUS_DELTA and stage["next_missing_surface"] is None:
+        return {}
     return {
         "owner": stage["stage_id"],
         "next_owner": stage["stage_id"],

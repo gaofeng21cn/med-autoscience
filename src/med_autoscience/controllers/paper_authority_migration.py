@@ -15,8 +15,17 @@ from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
 SURFACE_KIND = "paper_authority_clean_migration"
-MIGRATION_ROOT_RELPATH = Path("artifacts") / "migration" / "paper_authority_cutover"
+MIGRATION_ROOT_RELPATH = Path("artifacts") / "stage_outputs" / "_body_authority" / "paper_authority_cutover"
 HISTORY_ROOT_RELPATH = MIGRATION_ROOT_RELPATH / "history"
+BODY_ROOT_RELPATH = MIGRATION_ROOT_RELPATH / "current_body"
+NONCANONICAL_RESIDUE_ROOT_RELPATH = (
+    Path("artifacts") / "stage_outputs" / "_body_authority" / "noncanonical_paper_authority_residue"
+)
+NONCANONICAL_RESIDUE_HISTORY_ROOT_RELPATH = NONCANONICAL_RESIDUE_ROOT_RELPATH / "history"
+LEGACY_BODY_SURFACES = (
+    ("paper_body_root", Path("paper"), "canonical_body_authority"),
+    ("manuscript_body_root", Path("manuscript"), "human_handoff_body_authority"),
+)
 ACTIVE_SURFACES = (
     ("publication_eval_latest", Path("artifacts/publication_eval/latest.json"), "quality_authority"),
     (
@@ -46,6 +55,25 @@ ACTIVE_SURFACES = (
     ("manuscript_current_package", Path("manuscript/current_package"), "artifact_authority"),
     ("manuscript_current_package_zip", Path("manuscript/current_package.zip"), "artifact_authority"),
 )
+PAPER_BODY_REF_SURFACES = {
+    "manuscript": (
+        Path("paper/draft.md"),
+        Path("paper/manuscript.md"),
+        Path("paper/build/review_manuscript.md"),
+    ),
+    "evidence_ledger": (Path("paper/evidence_ledger.json"),),
+    "review_ledger": (
+        Path("paper/review/review_ledger.json"),
+        Path("paper/review_ledger.json"),
+    ),
+    "medical_manuscript_blueprint": (Path("paper/medical_manuscript_blueprint.json"),),
+    "claim_evidence_map": (Path("paper/claim_evidence_map.json"),),
+    "medical_prose_review": (
+        Path("artifacts/publication_eval/medical_prose_review.json"),
+        Path("paper/medical_prose_review.json"),
+        Path("paper/review/medical_prose_review.json"),
+    ),
+}
 
 
 def run_paper_authority_clean_migration(
@@ -75,7 +103,7 @@ def run_paper_authority_clean_migration(
         "profile_path": str(resolved_profile_path),
         "workspace_root": str(profile.workspace_root.expanduser().resolve()),
         "authority_boundary": {
-            "legacy_reader_normalization": False,
+            "legacy_reader_normalization": True,
             "paper_content_mutation": False,
             "canonical_paper_mutation": False,
             "quality_verdict_written": False,
@@ -101,10 +129,18 @@ def run_paper_authority_clean_migration(
         for study in studies:
             if study["cutover_required"]:
                 _apply_study_cutover(profile=profile, study_plan=study, recorded_at=recorded_at)
+        residue_migrations = _apply_noncanonical_residue_cutover(
+            profile=profile,
+            residue_dirs=noncanonical_residue_dirs,
+            recorded_at=recorded_at,
+        )
         report["studies"] = [
             _study_plan(profile=profile, study_id=study_id, recorded_at=recorded_at)
             for study_id in selected_study_ids
         ]
+        report["noncanonical_paper_authority_residue_dirs"] = _discover_noncanonical_paper_authority_residue_dirs(
+            profile
+        )
         report["next_required_actions"] = _workspace_next_actions(report["studies"])
         report["post_apply"] = {
             "active_surface_count": sum(len(study["active_surfaces"]) for study in report["studies"]),
@@ -114,12 +150,62 @@ def run_paper_authority_clean_migration(
                 for study in report["studies"]
                 if study["ai_reviewer_request"]["exists"]
             ),
+            "noncanonical_residue_migration_count": len(residue_migrations),
+            "noncanonical_residue_migrations": residue_migrations,
         }
     return report
 
 
 def paper_authority_cutover_latest_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / MIGRATION_ROOT_RELPATH / "latest.json"
+
+
+def stage_native_body_authority_root(*, study_root: Path) -> Path:
+    return Path(study_root).expanduser().resolve() / BODY_ROOT_RELPATH
+
+
+def resolve_body_authority_ref(*, study_root: Path, relative_path: Path) -> Path:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    direct = resolved_study_root / relative_path
+    if direct.exists():
+        return direct.resolve()
+    staged = resolved_study_root / BODY_ROOT_RELPATH / relative_path
+    return staged.resolve()
+
+
+def paper_body_ref_payloads(*, study_root: Path) -> dict[str, dict[str, Any]]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    payloads: dict[str, dict[str, Any]] = {}
+    for surface, candidates in PAPER_BODY_REF_SURFACES.items():
+        if surface == "medical_prose_review":
+            selected = _first_existing_body_ref(
+                study_root=resolved_study_root,
+                candidates=candidates,
+            )
+        else:
+            selected = _first_existing_body_ref(
+                study_root=resolved_study_root,
+                candidates=candidates,
+                prefer_stage_native=True,
+            )
+        if selected is None:
+            selected = candidates[0]
+        path = resolve_body_authority_ref(study_root=resolved_study_root, relative_path=selected)
+        try:
+            relative_path = path.relative_to(resolved_study_root).as_posix()
+        except ValueError:
+            relative_path = str(path)
+        payloads[surface] = {
+            "surface": surface,
+            "relative_path": relative_path,
+            "path": str(path),
+            "required": True,
+            "present": path.exists(),
+            "valid": path.exists(),
+            "authority_root": str(stage_native_body_authority_root(study_root=resolved_study_root)),
+            "authority_surface": SURFACE_KIND,
+        }
+    return payloads
 
 
 def read_paper_authority_cutover(*, study_root: Path) -> dict[str, Any] | None:
@@ -203,6 +289,7 @@ def cutover_publication_eval_payload(*, study_root: Path) -> dict[str, Any] | No
         "gaps": [],
         "recommended_actions": [],
         "cutover_receipt_ref": str(paper_authority_cutover_latest_path(study_root=resolved_study_root)),
+        "stage_native_body_authority_root": str(stage_native_body_authority_root(study_root=resolved_study_root)),
     }
 
 
@@ -268,7 +355,7 @@ def _discover_noncanonical_paper_authority_residue_dirs(profile: WorkspaceProfil
             continue
         surface_ids = [
             surface_id
-            for surface_id, relpath, _ in ACTIVE_SURFACES
+            for surface_id, relpath, _ in (*LEGACY_BODY_SURFACES, *ACTIVE_SURFACES)
             if (study_root / relpath).exists()
         ]
         if not surface_ids:
@@ -296,7 +383,7 @@ def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -
     )
     authority_stale = receipt_status == "new_mas_authority_established" and not authority_current
     active_surfaces = (
-        []
+        _legacy_body_surface_items(study_root=study_root)
         if receipt_status == "new_mas_authority_established"
         else _active_surface_items(study_root=study_root, receipt_status=receipt_status)
     )
@@ -326,29 +413,62 @@ def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -
 
 def _active_surface_items(*, study_root: Path, receipt_status: str | None = None) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
+    items.extend(_legacy_body_surface_items(study_root=study_root))
     for surface_id, relpath, authority_role in ACTIVE_SURFACES:
-        path = study_root / relpath
-        if not path.exists():
-            continue
         if (
             surface_id == "publication_eval_latest"
             and receipt_status == "awaiting_new_mas_authority"
-            and _publication_eval_is_clean_migration_pending_surface(path)
+            and _publication_eval_is_clean_migration_pending_surface(study_root / relpath)
         ):
             continue
-        items.append(
-            {
-                "surface_id": surface_id,
-                "relative_path": relpath.as_posix(),
-                "path": str(path),
-                "kind": "directory" if path.is_dir() else "file",
-                "authority_role": authority_role,
-                "size_bytes": _surface_size(path),
-                "sha256": _sha256(path) if path.is_file() else None,
-                "candidate_action": "archive_as_provenance_only",
-            }
+        item = _surface_item(
+            study_root=study_root,
+            surface_id=surface_id,
+            relpath=relpath,
+            authority_role=authority_role,
+            candidate_action="archive_as_provenance_only",
         )
+        if item is not None:
+            items.append(item)
     return items
+
+
+def _legacy_body_surface_items(*, study_root: Path) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for surface_id, relpath, authority_role in LEGACY_BODY_SURFACES:
+        item = _surface_item(
+            study_root=study_root,
+            surface_id=surface_id,
+            relpath=relpath,
+            authority_role=authority_role,
+            candidate_action="move_to_stage_native_body_authority",
+        )
+        if item is not None:
+            items.append(item)
+    return items
+
+
+def _surface_item(
+    *,
+    study_root: Path,
+    surface_id: str,
+    relpath: Path,
+    authority_role: str,
+    candidate_action: str,
+) -> dict[str, Any] | None:
+    path = study_root / relpath
+    if not path.exists():
+        return None
+    return {
+        "surface_id": surface_id,
+        "relative_path": relpath.as_posix(),
+        "path": str(path),
+        "kind": "directory" if path.is_dir() else "file",
+        "authority_role": authority_role,
+        "size_bytes": _surface_size(path),
+        "sha256": _sha256(path) if path.is_file() else None,
+        "candidate_action": candidate_action,
+    }
 
 
 def _publication_eval_is_clean_migration_pending_surface(path: Path) -> bool:
@@ -434,12 +554,15 @@ def _apply_study_cutover(*, profile: WorkspaceProfile, study_plan: Mapping[str, 
         source = study_root / relpath
         if not source.exists():
             continue
-        destination = archive_root / relpath
+        if str(item.get("candidate_action") or "") == "move_to_stage_native_body_authority":
+            destination = study_root / BODY_ROOT_RELPATH / relpath
+        else:
+            destination = archive_root / relpath
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
             raise FileExistsError(f"paper authority archive destination already exists: {destination}")
         shutil.move(str(source), str(destination))
-        archived.append({**dict(item), "archive_path": str(destination)})
+        archived.append({**dict(item), "archive_path": str(destination), "stage_native_path": str(destination)})
     receipt = _receipt_payload(
         profile=profile,
         study_root=study_root,
@@ -471,19 +594,16 @@ def _receipt_payload(
         "study_root": str(study_root),
         "archive_root": str(archive_root),
         "authority_boundary": {
-            "legacy_reader_normalization": False,
+            "legacy_reader_normalization": True,
             "paper_content_mutation": False,
             "canonical_paper_mutation": False,
             "quality_verdict_written": False,
             "submission_package_regenerated": False,
             "active_truth_surfaces_archived": True,
         },
+        "stage_native_body_authority_root": str(stage_native_body_authority_root(study_root=study_root)),
         "archived_surfaces": archived,
-        "retained_input_surfaces": [
-            "artifacts/publication_eval/medical_prose_review.json",
-            "artifacts/publication_eval/medical_prose_review_request.json",
-            "paper/",
-        ],
+        "retained_input_surfaces": _retained_input_surfaces(study_root=study_root),
         "legacy_artifacts_role": "provenance_only",
         "required_next_actions": _study_next_actions(active_surfaces=archived, receipt=None),
     }
@@ -506,6 +626,7 @@ def _write_cutover_receipt(*, study_root: Path, receipt: Mapping[str, Any], reco
 
 def _materialize_ai_reviewer_request(*, study_root: Path, receipt: Mapping[str, Any]) -> None:
     input_refs = domain_action_request_lifecycle.default_ai_reviewer_request_input_refs(study_root=study_root)
+    input_refs.update(paper_body_ref_payloads(study_root=study_root))
     input_refs["publication_gate_projection"] = {
         "surface": "publication_gate_projection",
         "path": str(study_root / MIGRATION_ROOT_RELPATH / "latest.json"),
@@ -529,12 +650,84 @@ def _materialize_ai_reviewer_request(*, study_root: Path, receipt: Mapping[str, 
         input_refs=input_refs,
     )
     packet["paper_authority_cutover_ref"] = str(study_root / MIGRATION_ROOT_RELPATH / "latest.json")
+    packet["stage_native_body_authority_root"] = str(stage_native_body_authority_root(study_root=study_root))
     packet["target_assessment_owner"] = "ai_reviewer"
     packet["may_authorize_quality_gate"] = False
     domain_action_request_lifecycle.materialize_ai_reviewer_request(
         study_root=study_root,
         packet=packet,
     )
+
+
+def _apply_noncanonical_residue_cutover(
+    *,
+    profile: WorkspaceProfile,
+    residue_dirs: list[dict[str, Any]],
+    recorded_at: str,
+) -> list[dict[str, Any]]:
+    migrations: list[dict[str, Any]] = []
+    if not residue_dirs:
+        return migrations
+    workspace_root = profile.workspace_root.expanduser().resolve()
+    history_root = workspace_root / NONCANONICAL_RESIDUE_HISTORY_ROOT_RELPATH / _history_stamp(recorded_at)
+    for residue in residue_dirs:
+        source = Path(str(residue["path"])).expanduser().resolve()
+        if not source.exists():
+            continue
+        destination = history_root / source.name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists():
+            raise FileExistsError(f"noncanonical paper residue destination already exists: {destination}")
+        shutil.move(str(source), str(destination))
+        migrations.append(
+            {
+                "study_id": str(residue["study_id"]),
+                "source_path": str(source),
+                "stage_native_archive_path": str(destination),
+                "surface_ids": list(residue.get("surface_ids") or ()),
+                "reason": "noncanonical_paper_authority_surface_without_study_marker",
+            }
+        )
+    if migrations:
+        _write_noncanonical_residue_receipt(
+            workspace_root=workspace_root,
+            recorded_at=recorded_at,
+            migrations=migrations,
+        )
+    return migrations
+
+
+def _write_noncanonical_residue_receipt(
+    *,
+    workspace_root: Path,
+    recorded_at: str,
+    migrations: list[dict[str, Any]],
+) -> None:
+    root = workspace_root / NONCANONICAL_RESIDUE_ROOT_RELPATH
+    history_root = workspace_root / NONCANONICAL_RESIDUE_HISTORY_ROOT_RELPATH
+    latest_path = root / "latest.json"
+    history_path = history_root / f"{_history_stamp(recorded_at)}.json"
+    payload = {
+        "schema_version": 1,
+        "surface_kind": "noncanonical_paper_authority_residue_migration",
+        "recorded_at": recorded_at,
+        "workspace_root": str(workspace_root),
+        "status": "migrated_to_stage_native_body_authority_archive",
+        "migration_count": len(migrations),
+        "migrations": migrations,
+        "authority_boundary": {
+            "study_truth_created": False,
+            "paper_content_mutation": False,
+            "canonical_paper_mutation": False,
+            "quality_verdict_written": False,
+        },
+        "latest_path": str(latest_path),
+        "history_path": str(history_path),
+    }
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    history_path.write_text(_json_dumps(payload), encoding="utf-8")
+    latest_path.write_text(_json_dumps(payload), encoding="utf-8")
 
 
 def _study_next_actions(*, active_surfaces: list[Mapping[str, Any]], receipt: Mapping[str, Any] | None) -> list[str]:
@@ -563,6 +756,37 @@ def _workspace_next_actions(studies: list[Mapping[str, Any]]) -> list[str]:
 
 def _archive_root(*, study_root: Path, recorded_at: str) -> Path:
     return study_root / HISTORY_ROOT_RELPATH / _history_stamp(recorded_at) / "active_surfaces"
+
+
+def _retained_input_surfaces(*, study_root: Path) -> list[str]:
+    refs = paper_body_ref_payloads(study_root=study_root)
+    retained = [
+        "artifacts/publication_eval/medical_prose_review.json",
+        "artifacts/publication_eval/medical_prose_review_request.json",
+    ]
+    for payload in refs.values():
+        relative_path = _text(payload.get("relative_path"))
+        if relative_path and relative_path not in retained:
+            retained.append(relative_path)
+    return retained
+
+
+def _first_existing_body_ref(
+    *,
+    study_root: Path,
+    candidates: tuple[Path, ...],
+    prefer_stage_native: bool = False,
+) -> Path | None:
+    roots = (
+        (study_root / BODY_ROOT_RELPATH, study_root)
+        if prefer_stage_native
+        else (study_root, study_root / BODY_ROOT_RELPATH)
+    )
+    for root in roots:
+        for candidate in candidates:
+            if (root / candidate).exists():
+                return candidate
+    return None
 
 
 def _surface_size(path: Path) -> int:
@@ -614,6 +838,9 @@ __all__ = [
     "mark_cutover_new_mas_authority_established",
     "new_mas_authority_eval_current",
     "paper_authority_cutover_latest_path",
+    "paper_body_ref_payloads",
     "read_paper_authority_cutover",
+    "resolve_body_authority_ref",
     "run_paper_authority_clean_migration",
+    "stage_native_body_authority_root",
 ]

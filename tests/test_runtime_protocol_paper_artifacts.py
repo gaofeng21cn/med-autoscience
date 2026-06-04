@@ -163,6 +163,32 @@ def test_resolve_latest_paper_root_prefers_complete_bound_study_canonical_paper_
     assert result == study_paper_root.resolve()
 
 
+def test_resolve_latest_paper_root_prefers_stage_native_bound_study_body(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "runtime" / "quests" / "q001"
+    study_root = workspace_root / "studies" / "q001"
+    stage_native_paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: q001\nstudy_id: q001\n", encoding="utf-8")
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: q001\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text("quest_id: q001\n", encoding="utf-8")
+    write_complete_canonical_study_paper_surface(stage_native_paper_root, paper_branch="paper/main")
+
+    result = resolve_latest_paper_root(quest_root)
+
+    assert result == stage_native_paper_root.resolve()
+
+
 def test_resolve_paper_bundle_and_submission_minimal_manifest(tmp_path: Path) -> None:
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     paper_bundle_manifest = quest_root / "paper" / "paper_bundle_manifest.json"

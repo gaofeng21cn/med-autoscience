@@ -25,6 +25,13 @@ AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES = (
     Path("paper/medical_prose_review.json"),
     Path("paper/review/medical_prose_review.json"),
 )
+_STAGE_NATIVE_BODY_ROOT_RELPATH = (
+    Path("artifacts")
+    / "stage_outputs"
+    / "_body_authority"
+    / "paper_authority_cutover"
+    / "current_body"
+)
 
 
 def default_ai_reviewer_request_input_refs(*, study_root: str | Path) -> dict[str, Any]:
@@ -176,10 +183,14 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 
 def _ref_payload(*, study_root: Path, surface: str, relative_path: Path) -> dict[str, Any]:
-    path = (study_root / relative_path).resolve()
+    path = _resolve_authority_ref(study_root=study_root, relative_path=relative_path)
+    try:
+        resolved_relative_path = path.relative_to(study_root).as_posix()
+    except ValueError:
+        resolved_relative_path = relative_path.as_posix()
     return {
         "surface": surface,
-        "relative_path": relative_path.as_posix(),
+        "relative_path": resolved_relative_path,
         "path": str(path),
         "required": True,
         "present": path.exists(),
@@ -188,10 +199,18 @@ def _ref_payload(*, study_root: Path, surface: str, relative_path: Path) -> dict
 
 
 def _first_existing_relative_path(*, study_root: Path, candidates: tuple[Path, ...]) -> Path:
-    for candidate in candidates:
-        if (study_root / candidate).exists():
-            return candidate
+    for root in (study_root / _STAGE_NATIVE_BODY_ROOT_RELPATH, study_root):
+        for candidate in candidates:
+            if (root / candidate).exists():
+                return candidate
     return candidates[0]
+
+
+def _resolve_authority_ref(*, study_root: Path, relative_path: Path) -> Path:
+    staged = study_root / _STAGE_NATIVE_BODY_ROOT_RELPATH / relative_path
+    if staged.exists():
+        return staged.resolve()
+    return (study_root / relative_path).resolve()
 
 
 def _ref_has_target(ref: Mapping[str, Any]) -> bool:
@@ -207,6 +226,15 @@ def _candidate_ref_paths(*, study_root: Path, ref: Mapping[str, Any]) -> list[Pa
         candidate = Path(target).expanduser()
         if not candidate.is_absolute():
             candidate = study_root / candidate
+        if not candidate.exists():
+            try:
+                legacy_relative_path = candidate.resolve().relative_to(study_root.resolve())
+            except ValueError:
+                legacy_relative_path = None
+            if legacy_relative_path is not None:
+                staged = study_root / _STAGE_NATIVE_BODY_ROOT_RELPATH / legacy_relative_path
+                if staged.exists():
+                    candidate = staged
         paths.append(candidate.resolve())
     return paths
 

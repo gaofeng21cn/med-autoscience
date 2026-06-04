@@ -28,6 +28,14 @@ _CANONICAL_STUDY_PAPER_REQUIRED_SURFACES = (
     "figures/figure_catalog.json",
     "tables/table_catalog.json",
 )
+_STAGE_NATIVE_BODY_PAPER_ROOT_RELPATH = (
+    Path("artifacts")
+    / "stage_outputs"
+    / "_body_authority"
+    / "paper_authority_cutover"
+    / "current_body"
+    / "paper"
+)
 
 
 def _resolve_path(path: Path) -> Path:
@@ -165,18 +173,28 @@ def _resolve_bound_study_paper_bundle_manifest_by_branch(
     if binding is None:
         return None
     _, study_root = binding
-    candidate = study_root / "paper" / "paper_bundle_manifest.json"
-    if not candidate.exists():
-        return None
-    payload = _load_json_mapping(candidate)
-    candidate_branch = _bundle_manifest_branch(payload)
-    if candidate_branch != paper_branch:
-        return None
-    return candidate.resolve()
+    for paper_root in _bound_study_paper_roots(study_root):
+        candidate = paper_root / "paper_bundle_manifest.json"
+        if not candidate.exists():
+            continue
+        payload = _load_json_mapping(candidate)
+        candidate_branch = _bundle_manifest_branch(payload)
+        if candidate_branch != paper_branch:
+            continue
+        return candidate.resolve()
+    return None
 
 
 def _is_complete_bound_study_canonical_paper_root(paper_root: Path) -> bool:
     return all((paper_root / relpath).exists() for relpath in _CANONICAL_STUDY_PAPER_REQUIRED_SURFACES)
+
+
+def _bound_study_paper_roots(study_root: Path) -> tuple[Path, ...]:
+    resolved_study_root = _resolve_path(study_root)
+    return (
+        resolved_study_root / _STAGE_NATIVE_BODY_PAPER_ROOT_RELPATH,
+        resolved_study_root / "paper",
+    )
 
 
 def _resolve_complete_bound_study_paper_bundle_manifest(quest_root: Path) -> Path | None:
@@ -187,11 +205,12 @@ def _resolve_complete_bound_study_paper_bundle_manifest(quest_root: Path) -> Pat
     if binding is None:
         return None
     _, study_root = binding
-    paper_root = study_root / "paper"
-    candidate = paper_root / "paper_bundle_manifest.json"
-    if not candidate.exists() or not _is_complete_bound_study_canonical_paper_root(paper_root):
-        return None
-    return candidate.resolve()
+    for paper_root in _bound_study_paper_roots(study_root):
+        candidate = paper_root / "paper_bundle_manifest.json"
+        if not candidate.exists() or not _is_complete_bound_study_canonical_paper_root(paper_root):
+            continue
+        return candidate.resolve()
+    return None
 
 
 def _prefer_newer_bound_study_manifest(

@@ -7,7 +7,8 @@
   "current_truth_surface": "paper_study_stage_pack",
   "machine_boundary": {
     "role": "declarative_domain_pack_and_migration_manifest",
-    "physical_study_file_migration_required": false,
+    "physical_study_file_migration_required": true,
+    "physical_study_file_migration_target": "artifacts/stage_outputs/_body_authority/paper_authority_cutover",
     "artifact_refs_are_locators_only": true,
     "artifact_role_is_interface": true,
     "file_name_is_not_interface": true,
@@ -236,7 +237,47 @@
     {
       "stage_id": "08-publication_package_handoff",
       "display_name": "Publication Package Handoff",
-      "purpose": "Materialize publication gate, package authority, and external handoff receipt refs.",
+      "purpose": "Turn the reviewed manuscript, evidence, package, and gate refs into a publication handoff decision: ready-for-human-submission, human-gate, route-back, or typed blocker.",
+      "done_definition": {
+        "publication_ready_claim_requires": [
+          "AI reviewer-backed publication_eval/latest.json is current against the manuscript, evidence ledger, claim map, and review ledger refs",
+          "publication gate receipt is current against the same AI reviewer eval and package manifest refs",
+          "publication package manifest points to current package/source refs and carries freshness proof",
+          "handoff owner receipt records the terminal route and next owner without counting downstream-only bundle work as a current blocker"
+        ],
+        "valid_terminal_outcomes": [
+          "ready_for_human_submission_handoff",
+          "human_gate_required",
+          "route_back_with_concrete_owner_action",
+          "typed_blocker_or_stop_loss"
+        ],
+        "not_done_if": [
+          "AI reviewer request is still pending or stale",
+          "publication gate was not rerun against the latest AI reviewer record",
+          "package freshness/currentness proof is missing",
+          "handoff owner receipt is absent or names no concrete next owner/action"
+        ]
+      },
+      "quality_gate": {
+        "publication_ready_authority": "AI reviewer eval plus publication gate must both be current and agree that publication handoff is allowed",
+        "package_authority": "artifact package authority must expose refs, freshness proof, and handoff manifest without storing duplicate body copies in the stage index",
+        "failure_policy": "return typed blocker or route-back receipt; do not claim publication readiness from partial package refs"
+      },
+      "advance_gate": {
+        "terminal_stage": true,
+        "completion_signal": "handoff_owner_receipt",
+        "accepted_completion_statuses": [
+          "ready_for_human_submission_handoff",
+          "human_gate_required",
+          "route_back_with_concrete_owner_action",
+          "typed_blocker_or_stop_loss"
+        ],
+        "downstream_only_work": [
+          "human submission metadata",
+          "journal portal upload",
+          "post-handoff package proofing"
+        ]
+      },
       "next_stage_ids": [],
       "stable_artifact_roles": [
         {

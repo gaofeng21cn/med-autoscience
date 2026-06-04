@@ -37,6 +37,11 @@ def build_clean_migration_request_record(
     evidence_ref = refs.get("evidence_ledger") or str(study_root / "paper" / "evidence_ledger.json")
     review_ref = refs.get("review_ledger") or str(study_root / "paper" / "review" / "review_ledger.json")
     charter_ref = refs.get("study_charter") or str(study_root / "artifacts" / "controller" / "study_charter.json")
+    cutover_ref = refs.get("publication_gate_projection") or str(
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
+    )
+    paper_root_ref = _paper_root_ref(manuscript_ref=manuscript_ref)
+    submission_minimal_ref = _join_ref(paper_root_ref, "submission_minimal/submission_manifest.json")
     eval_id = f"publication-eval::{study_id}::{quest_id}::{emitted_at}"
     quality_assessment = _quality_assessment(
         manuscript_ref=manuscript_ref,
@@ -65,12 +70,12 @@ def build_clean_migration_request_record(
             "publication_objective": "Re-establish publication authority after clean paper-authority migration.",
         },
         "runtime_context_refs": {
-            "runtime_escalation_ref": str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"),
+            "runtime_escalation_ref": cutover_ref,
             "main_result_ref": evidence_ref,
         },
         "delivery_context_refs": {
-            "paper_root_ref": str(study_root / "paper"),
-            "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+            "paper_root_ref": paper_root_ref,
+            "submission_minimal_ref": submission_minimal_ref,
         },
         "assessment_provenance": {
             "owner": "ai_reviewer",
@@ -93,9 +98,7 @@ def build_clean_migration_request_record(
                 "gap_type": "delivery",
                 "severity": "must_fix",
                 "summary": "Legacy publication and delivery authority surfaces were archived; new MAS owners must rebuild them.",
-                "evidence_refs": [
-                    str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json")
-                ],
+                "evidence_refs": [cutover_ref],
             }
         ],
         "recommended_actions": [
@@ -104,9 +107,7 @@ def build_clean_migration_request_record(
                 "action_type": "return_to_controller",
                 "priority": "now",
                 "reason": "After AI reviewer writeback, rerun publication gate and delivery sync.",
-                "evidence_refs": [
-                    str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json")
-                ],
+                "evidence_refs": [cutover_ref],
                 "requires_controller_decision": True,
             }
         ],
@@ -114,6 +115,7 @@ def build_clean_migration_request_record(
         "reviewer_operating_system": _reviewer_operating_system(
             eval_id=eval_id,
             study_root=study_root,
+            refs=refs,
             manuscript_ref=manuscript_ref,
             evidence_ref=evidence_ref,
             review_ref=review_ref,
@@ -163,10 +165,25 @@ def _quality_assessment(
     }
 
 
+def _paper_root_ref(*, manuscript_ref: str) -> str:
+    manuscript_path = Path(manuscript_ref).expanduser()
+    if manuscript_path.name in {"draft.md", "manuscript.md"}:
+        return str(manuscript_path.parent)
+    if manuscript_path.name == "review_manuscript.md" and manuscript_path.parent.name == "build":
+        return str(manuscript_path.parent.parent)
+    return str(manuscript_path.parent)
+
+
+def _join_ref(root_ref: str, relative_path: str) -> str:
+    root = Path(root_ref).expanduser()
+    return str(root / relative_path)
+
+
 def _reviewer_operating_system(
     *,
     eval_id: str,
     study_root: Path,
+    refs: Mapping[str, str | None],
     manuscript_ref: str,
     evidence_ref: str,
     review_ref: str,
@@ -174,7 +191,16 @@ def _reviewer_operating_system(
     quality_assessment: Mapping[str, Any],
     future_facing_limitations_plan: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    claim_evidence_ref = str(study_root / "paper" / "claim_evidence_map.json")
+    claim_evidence_ref = refs.get("claim_evidence_map") or str(study_root / "paper" / "claim_evidence_map.json")
+    blueprint_ref = refs.get("medical_manuscript_blueprint") or str(
+        study_root / "paper" / "medical_manuscript_blueprint.json"
+    )
+    medical_prose_review_ref = refs.get("medical_prose_review") or str(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    )
+    publication_gate_projection_ref = refs.get("publication_gate_projection") or str(
+        study_root / "artifacts" / "publication_eval" / "latest.json"
+    )
     request_digest = "sha256:" + _sha256_text(
         "|".join(["paper_authority_clean_migration", manuscript_ref, evidence_ref, review_ref, charter_ref])
     )
@@ -193,10 +219,10 @@ def _reviewer_operating_system(
             "study_charter": charter_ref,
             "evidence_ledger": evidence_ref,
             "review_ledger": review_ref,
-            "medical_manuscript_blueprint": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+            "medical_manuscript_blueprint": blueprint_ref,
             "claim_evidence_map": claim_evidence_ref,
-            "medical_prose_review": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
-            "publication_gate_projection": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "medical_prose_review": medical_prose_review_ref,
+            "publication_gate_projection": publication_gate_projection_ref,
         },
         "rubric_scores": {
             dimension: {

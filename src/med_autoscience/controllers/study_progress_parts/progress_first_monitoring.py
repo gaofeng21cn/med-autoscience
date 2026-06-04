@@ -86,13 +86,26 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _mapping(domain_transition.get("typed_blocker"))
         or terminal_closeout_blocker
     )
-    artifact_first_supersedes_blocker = bool(stage_artifact_action) and (
-        not raw_typed_blocker or _stage_artifact_index_has_precedence_evidence(payload.get("stage_artifact_index"))
+    terminal_publication_gate_action = (
+        stage_artifact_action.get("terminal_publication_handoff") is True
+        or stage_artifact_action.get("action_type") == "publication_handoff_owner_gate"
+        or stage_artifact_action.get("required_delta_kind")
+        == "publication_handoff_owner_receipt_or_typed_blocker"
     )
+    artifact_first_supersedes_blocker = bool(stage_artifact_action) and not terminal_publication_gate_action and (
+        not raw_typed_blocker
+        or _stage_artifact_index_has_precedence_evidence(
+            payload.get("stage_artifact_index"),
+            typed_blocker=raw_typed_blocker,
+        )
+    )
+    payload_current_action = _mapping(payload.get("current_executable_owner_action"))
+    if _artifact_first_owner_action(payload_current_action) and not artifact_first_supersedes_blocker:
+        payload_current_action = {}
     effective_stage_artifact_action = stage_artifact_action if artifact_first_supersedes_blocker else {}
     current_action = (
         effective_stage_artifact_action
-        or _mapping(payload.get("current_executable_owner_action"))
+        or payload_current_action
         or _mapping(build_current_executable_owner_action({**payload, "stage_artifact_index": {}}))
     )
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
@@ -194,6 +207,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             )
             or _text(execution.get("owner"))
             or _text(domain_transition.get("owner"))
+            or _text(typed_blocker.get("owner"))
             or _text(handoff.get("next_owner"))
             or _text(progress_state.get("next_owner"))
         ),
@@ -905,15 +919,37 @@ def _running_provider_attempt_ref(
     return _text(handoff.get(key))
 
 
-def _stage_artifact_index_has_precedence_evidence(value: object) -> bool:
+def _stage_artifact_index_has_precedence_evidence(
+    value: object,
+    *,
+    typed_blocker: Mapping[str, Any],
+) -> bool:
     index = _mapping(value)
     if _sequence(index.get("stale_platform_repairs")):
         return True
+    if _typed_blocker_is_runtime_or_platform_repair(typed_blocker):
+        return False
     for stage in _sequence(index.get("stages")):
         state = _mapping(stage)
         if _sequence(state.get("observed_artifact_refs")):
             return True
     return False
+
+
+def _typed_blocker_is_runtime_or_platform_repair(typed_blocker: Mapping[str, Any]) -> bool:
+    haystack = " ".join(
+        value
+        for value in (
+            _text(typed_blocker.get("blocker_id")),
+            _text(typed_blocker.get("blocker_type")),
+            _text(typed_blocker.get("reason")),
+            _text(typed_blocker.get("reason_code")),
+            _text(typed_blocker.get("owner")),
+            _text(typed_blocker.get("work_unit_id")),
+        )
+        if value
+    )
+    return any(marker in haystack for marker in ("runtime", "platform_repair", "read_model_reconcile"))
 
 
 def _stale_active_run_id(

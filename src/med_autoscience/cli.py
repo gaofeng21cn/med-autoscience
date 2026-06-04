@@ -68,6 +68,7 @@ display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("dis
 delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspector"))
 domain_action_request_materializer = _LazyModuleProxy(lambda: _load_controller("domain_action_request_materializer"))
 domain_owner_action_dispatch = _LazyModuleProxy(lambda: _load_controller("domain_owner_action_dispatch"))
+stage_artifact_materializer = _LazyModuleProxy(lambda: _load_controller("stage_artifact_materializer"))
 owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
@@ -422,6 +423,35 @@ def main(argv: list[str] | None = None) -> int:
             apply=bool(args.apply),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "stage-artifact-materialize":
+        profile = load_profile(args.profile)
+        results = []
+        for study_id in tuple(args.studies or ()):
+            results.append(
+                stage_artifact_materializer.materialize_stage_artifact_delta(
+                    study_id=study_id,
+                    study_root=profile.studies_root / study_id,
+                    workspace_root=profile.workspace_root,
+                    stage_ids=tuple(args.stage_ids or ()),
+                    apply=bool(args.apply),
+                )
+            )
+        print(
+            json.dumps(
+                {
+                    "surface_kind": "stage_artifact_materialize_command",
+                    "schema_version": 1,
+                    "profile": profile.name,
+                    "study_count": len(results),
+                    "apply": bool(args.apply),
+                    "results": results,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
 
     if args.command == "medical-paper-readiness-owner-blocker":

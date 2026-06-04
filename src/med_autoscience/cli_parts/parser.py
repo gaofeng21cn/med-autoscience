@@ -188,6 +188,14 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_owner_refresh_controller_decisions_apply.add_argument("--dry-run", action="store_true")
     domain_owner_refresh_controller_decisions_apply.add_argument("--apply", action="store_true")
 
+    stage_artifact_materialize_parser = subparsers.add_parser("stage-artifact-materialize")
+    stage_artifact_materialize_parser.add_argument("--profile", required=True)
+    stage_artifact_materialize_parser.add_argument("--studies", nargs="+", required=True)
+    stage_artifact_materialize_parser.add_argument("--stage-id", action="append", dest="stage_ids")
+    stage_artifact_materialize_mode = stage_artifact_materialize_parser.add_mutually_exclusive_group(required=True)
+    stage_artifact_materialize_mode.add_argument("--dry-run", action="store_true")
+    stage_artifact_materialize_mode.add_argument("--apply", action="store_true")
+
     readiness_owner_blocker_parser = subparsers.add_parser("medical-paper-readiness-owner-blocker")
     readiness_owner_blocker_parser.add_argument("--study-root", required=True)
     readiness_owner_blocker_parser.add_argument("--source", default="cli")

@@ -7,6 +7,10 @@ from med_autoscience.controllers.stage_artifact_index import (
     ALLOWED_ARTIFACT_STATUSES,
     build_stage_artifact_index,
 )
+from med_autoscience.controllers.stage_artifact_materializer import (
+    materialize_stage_artifact_delta,
+)
+from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 PAPER_STUDY_STAGE_PACK_REF = "contracts/mas-paper-study-stage-pack.json"
 EXPECTED_PAPER_STUDY_STAGE_IDS = (
@@ -258,6 +262,11 @@ def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tm
     assert index["next_owner_action"]["next_owner"] == "01-study_intake"
     assert index["next_owner_action"]["action_type"] == "materialize_stage_artifact_delta"
     assert index["next_owner_action"]["required_output_surface"]
+    assert index["next_owner_action"]["artifact_native_contract_ref"] == (
+        "mas-opl-stage-native-artifact-contract.v1"
+    )
+    assert index["next_owner_action"]["manifest_ref"].endswith("/stage_artifact_manifest.json")
+    assert index["next_owner_action"]["receipt_ref"].endswith("/owner_receipt.json")
     assert set(index["allowed_artifact_statuses"]) == set(ALLOWED_ARTIFACT_STATUSES)
     assert [stage["stage_id"] for stage in index["stages"]] == list(EXPECTED_PAPER_STUDY_STAGE_IDS)
 
@@ -287,6 +296,31 @@ def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tm
     assert study_intake["artifact_classification"]["status"] == "missing"
     assert study_intake["next_missing_surface"] == study_intake["required_output_refs"][0]["ref"]
     assert study_intake["freshness"]["status"] == "red_missing"
+
+
+def test_paper_study_stage_pack_defines_publication_handoff_done_gate() -> None:
+    stage_pack_path = Path(__file__).resolve().parents[1] / PAPER_STUDY_STAGE_PACK_REF
+    stage_pack = json.loads(stage_pack_path.read_text(encoding="utf-8"))
+    terminal_stage = next(
+        stage
+        for stage in stage_pack["stages"]
+        if stage["stage_id"] == "08-publication_package_handoff"
+    )
+
+    assert stage_pack["machine_boundary"]["physical_study_file_migration_required"] is True
+    assert stage_pack["machine_boundary"]["physical_study_file_migration_target"] == (
+        "artifacts/stage_outputs/_body_authority/paper_authority_cutover"
+    )
+    assert terminal_stage["done_definition"]["publication_ready_claim_requires"]
+    assert terminal_stage["done_definition"]["valid_terminal_outcomes"] == [
+        "ready_for_human_submission_handoff",
+        "human_gate_required",
+        "route_back_with_concrete_owner_action",
+        "typed_blocker_or_stop_loss",
+    ]
+    assert terminal_stage["quality_gate"]["publication_ready_authority"]
+    assert terminal_stage["advance_gate"]["terminal_stage"] is True
+    assert terminal_stage["advance_gate"]["completion_signal"] == "handoff_owner_receipt"
 
 
 def test_stage_artifact_index_consumes_opl_physical_stage_folder_kernel(
@@ -575,6 +609,190 @@ def test_stage_artifact_index_counts_manifest_receipt_and_required_outputs_as_cu
     assert study_intake["next_missing_surface"] is None
     assert index["current_stage"]["stage_id"] == "02-protocol_and_analysis_plan"
     assert index["next_owner_action"]["owner"] == "02-protocol_and_analysis_plan"
+
+
+def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying_legacy_bodies(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    _write_json(study_root / "study.yaml", {"study_id": "001-risk", "title": "Risk"})
+    _write_text(study_root / "brief.md", "question\n")
+    _write_text(study_root / "protocol.md", "protocol\n")
+    _write_json(study_root / "data_input" / "dataset_manifest.yaml", {"datasets": []})
+    _write_json(study_root / "paper" / "baseline_inventory.json", {"status": "ready"})
+    _write_json(study_root / "paper" / "evidence_ledger.json", {"claims": []})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claims": []})
+    _write_text(study_root / "paper" / "draft.md", "draft\n")
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"verdict": {}})
+    _write_json(study_root / "artifacts" / "controller_decisions" / "latest.json", {"decision": "continue"})
+
+    before = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+    assert before["current_stage"]["stage_id"] == "01-study_intake"
+    assert before["stages"][0]["artifact_status"] == "missing"
+
+    result = materialize_stage_artifact_delta(
+        study_id="001-risk",
+        study_root=study_root,
+        workspace_root=workspace_root,
+        apply=True,
+    )
+
+    assert result["status"] == "materialized"
+    assert result["body_policy"] == {
+        "refs_only": True,
+        "legacy_body_copied": False,
+        "paper_or_package_mutated": False,
+        "publication_truth_mutated": False,
+    }
+    assert result["materialized_stage_count"] == 8
+    assert result["stages"][0]["stage_id"] == "01-study_intake"
+    assert result["stages"][0]["status"] == "materialized"
+
+    after = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+    assert after["current_stage"]["stage_id"] == "08-publication_package_handoff"
+    assert after["stages"][0]["artifact_status"] == "artifact_delta_present"
+    assert after["stages"][-1]["artifact_status"] == "artifact_delta_present"
+    assert after["next_owner_action"]["action_type"] == "publication_handoff_owner_gate"
+    assert after["next_owner_action"]["required_delta_kind"] == (
+        "publication_handoff_owner_receipt_or_typed_blocker"
+    )
+    assert after["stages"][0]["artifact_classification"]["current"] == sorted(STUDY_INTAKE_REFS)
+    first_ref_path = study_root / STUDY_INTAKE_REFS[0]
+    first_ref = json.loads(first_ref_path.read_text(encoding="utf-8"))
+    assert first_ref["surface_kind"] == "stage_artifact_ref_bundle"
+    assert first_ref["body_included"] is False
+    assert first_ref["legacy_body_copied"] is False
+    assert first_ref["source_refs"]
+    assert all("content" not in item for item in first_ref["source_refs"])
+
+    manifest = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "stage_outputs"
+            / "01-study_intake"
+            / "stage_artifact_manifest.json"
+        ).read_text(encoding="utf-8")
+    )
+    receipt = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "stage_outputs"
+            / "01-study_intake"
+            / "owner_receipt.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert manifest["artifact_refs"] == STUDY_INTAKE_REFS
+    assert manifest["source_artifact_refs_are_locators_only"] is True
+    assert receipt["receipt_kind"] == "stage_artifact_delta"
+    assert receipt["owner"] == "med-autoscience"
+    assert receipt["can_authorize_publication_ready"] is False
+    assert receipt["can_authorize_submission_ready"] is False
+
+    sqlite_path = domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root)
+    inspection = domain_authority_refs_index.inspect_authority_refs_index(sqlite_path)
+    assert inspection["status"] == "ready"
+    assert inspection["tables"]["paper_work_unit_receipts"] == 8
+
+
+def test_stage_artifact_materializer_keeps_terminal_publication_handoff_gate_open(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    _write_json(study_root / "study.yaml", {"study_id": "001-risk", "title": "Risk"})
+    _write_text(study_root / "brief.md", "question\n")
+
+    result = materialize_stage_artifact_delta(
+        study_id="001-risk",
+        study_root=study_root,
+        workspace_root=workspace_root,
+        apply=True,
+    )
+
+    terminal = result["stages"][-1]
+    assert terminal["stage_id"] == "08-publication_package_handoff"
+    assert terminal["stage_closeout"] == {
+        "minimum_durable_output_present": True,
+        "owner_receipt_present": True,
+        "nonterminal_stage_can_advance": False,
+        "publishability_required_for_stage_advance": True,
+        "submission_readiness_required_for_stage_advance": True,
+        "terminal_publication_handoff": True,
+    }
+
+    index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+    assert index["current_stage"]["stage_id"] == "08-publication_package_handoff"
+    assert index["next_owner_action"]["action_type"] == "publication_handoff_owner_gate"
+    assert index["next_owner_action"]["required_delta_kind"] == (
+        "publication_handoff_owner_receipt_or_typed_blocker"
+    )
+    assert index["next_owner_action"]["can_authorize_publication_readiness"] is False
+    assert index["next_owner_action"]["can_authorize_submission_readiness"] is False
+
+
+def test_stage_artifact_materializer_nonterminal_stage_closeout_does_not_require_publishability(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_json(study_root / "study.yaml", {"study_id": "001-risk"})
+    _write_text(study_root / "brief.md", "question\n")
+
+    result = materialize_stage_artifact_delta(
+        study_id="001-risk",
+        study_root=study_root,
+        workspace_root=tmp_path / "workspace",
+        stage_ids=("01-study_intake",),
+        apply=True,
+    )
+
+    receipt_ref = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "01-study_intake"
+        / "owner_receipt.json"
+    )
+    receipt = json.loads(receipt_ref.read_text(encoding="utf-8"))
+    assert result["stages"][0]["stage_closeout"] == {
+        "minimum_durable_output_present": True,
+        "owner_receipt_present": True,
+        "nonterminal_stage_can_advance": True,
+        "publishability_required_for_stage_advance": False,
+        "submission_readiness_required_for_stage_advance": False,
+        "terminal_publication_handoff": False,
+    }
+    assert receipt["stage_closeout"] == result["stages"][0]["stage_closeout"]
+
+    index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
+    assert index["current_stage"]["stage_id"] == "02-protocol_and_analysis_plan"
+    assert index["stages"][0]["artifact_status"] == "artifact_delta_present"
+
+
+def test_stage_artifact_materializer_bounds_directory_source_ref_sampling(tmp_path: Path) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_json(study_root / "study.yaml", {"study_id": "001-risk"})
+    intake_root = study_root / "artifacts" / "intake"
+    for index in range(75):
+        _write_text(intake_root / f"source-{index:03d}.json", "{}\n")
+
+    result = materialize_stage_artifact_delta(
+        study_id="001-risk",
+        study_root=study_root,
+        workspace_root=tmp_path / "workspace",
+        stage_ids=("01-study_intake",),
+        apply=True,
+    )
+
+    source_readiness = next(
+        bundle
+        for bundle in result["stages"][0]["role_bundles"]
+        if bundle["role"] == "source_readiness_assessment"
+    )
+    assert len(source_readiness["source_refs"]) == 20
+    assert all(item["body_included"] is False for item in source_readiness["source_refs"])
 
 
 def test_stage_artifact_index_projects_opl_artifact_operating_contract_fields(
