@@ -500,7 +500,7 @@ def _canonical_ai_reviewer_ref_paths(*, study_root: Path) -> dict[str, Path]:
         "evidence_ledger": study_root / "paper" / "evidence_ledger.json",
         "review_ledger": study_root / "paper" / "review" / "review_ledger.json",
         "study_charter": study_root / "artifacts" / "controller" / "study_charter.json",
-        "medical_manuscript_blueprint": medical_manuscript_blueprint.stable_medical_manuscript_blueprint_path(
+        "medical_manuscript_blueprint": medical_manuscript_blueprint.current_medical_manuscript_blueprint_path(
             study_root=study_root
         ),
         "claim_evidence_map": study_root / "paper" / "claim_evidence_map.json",

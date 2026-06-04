@@ -82,7 +82,7 @@ if [[ "${MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE:-0}" != "1" ]] || path_is_inside_che
   unset UV_CACHE_DIR
 fi
 
-default_uv_cache_dir="${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR:-${HOME}/Library/Caches/med-autoscience/uv-cache}"
+default_uv_cache_dir="${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR:-${tmp_root}/uv-cache}"
 if path_is_inside_checkout "${default_uv_cache_dir}"; then
   echo "run-python-clean.sh: default uv cache must be outside the checkout: ${default_uv_cache_dir}" >&2
   exit 2

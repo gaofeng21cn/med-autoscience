@@ -15,6 +15,7 @@ __all__ = [
     "STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_RELATIVE_PATH",
     "STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH",
     "build_medical_manuscript_blueprint",
+    "current_medical_manuscript_blueprint_path",
     "materialize_medical_manuscript_blueprint",
     "read_medical_manuscript_blueprint",
     "resolve_medical_manuscript_blueprint_ref",
@@ -65,7 +66,11 @@ _REQUIRED_TOP_LEVEL_FIELDS = (
 
 
 def stable_medical_manuscript_blueprint_path(*, study_root: Path) -> Path:
-    legacy_path = _legacy_medical_manuscript_blueprint_path(study_root=study_root)
+    return _legacy_medical_manuscript_blueprint_path(study_root=study_root)
+
+
+def current_medical_manuscript_blueprint_path(*, study_root: Path) -> Path:
+    legacy_path = stable_medical_manuscript_blueprint_path(study_root=study_root)
     stage_native_path = _stage_native_medical_manuscript_blueprint_path(study_root=study_root)
     if not legacy_path.exists() and stage_native_path.exists():
         return stage_native_path
@@ -85,17 +90,18 @@ def resolve_medical_manuscript_blueprint_ref(
 ) -> Path:
     resolved_study_root = Path(study_root).expanduser().resolve()
     stable_path = stable_medical_manuscript_blueprint_path(study_root=study_root)
+    current_path = current_medical_manuscript_blueprint_path(study_root=study_root)
     legacy_path = _legacy_medical_manuscript_blueprint_path(study_root=resolved_study_root)
     stage_native_path = _stage_native_medical_manuscript_blueprint_path(study_root=resolved_study_root)
     if ref is None:
-        return stable_path
+        return current_path
     candidate = Path(ref).expanduser()
     if candidate.is_absolute():
         candidate = candidate.resolve()
     else:
         candidate = (resolved_study_root / candidate).resolve()
     if candidate == legacy_path:
-        return stable_path
+        return current_path if current_path == stage_native_path else stable_path
     if candidate == stage_native_path:
         return stage_native_path
     if candidate != stable_path:

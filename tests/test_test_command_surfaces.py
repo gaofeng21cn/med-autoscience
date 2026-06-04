@@ -365,7 +365,7 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if path_is_inside_checkout "${UV_PROJECT_ENVIRONMENT:-}"; then' in runner_script
     assert 'if path_is_inside_checkout "${PYTHONPYCACHEPREFIX:-}"; then' in runner_script
     assert 'if [[ "${MAS_CLEAN_RUNNER_PRESERVE_UV_CACHE:-0}" != "1" ]] || path_is_inside_checkout "${UV_CACHE_DIR:-}"; then' in runner_script
-    assert 'default_uv_cache_dir="${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR:-${HOME}/Library/Caches/med-autoscience/uv-cache}"' in runner_script
+    assert 'default_uv_cache_dir="${MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR:-${tmp_root}/uv-cache}"' in runner_script
     assert 'if path_is_inside_checkout "${default_uv_cache_dir}"; then' in runner_script
     assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
     assert 'export UV_CACHE_DIR="${UV_CACHE_DIR:-${default_uv_cache_dir}}"' in runner_script

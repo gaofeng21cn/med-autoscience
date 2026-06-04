@@ -176,8 +176,10 @@ def test_materialize_accepts_ai_authorized_canonical_blueprint(tmp_path: Path) -
 def test_blueprint_reader_accepts_stage_native_current_body_authority(tmp_path: Path) -> None:
     from med_autoscience.medical_manuscript_blueprint import (
         build_medical_manuscript_blueprint,
+        current_medical_manuscript_blueprint_path,
         read_medical_manuscript_blueprint,
         resolve_medical_manuscript_blueprint_ref,
+        stable_medical_manuscript_blueprint_path,
     )
 
     study_root = tmp_path / "study"
@@ -205,6 +207,10 @@ def test_blueprint_reader_accepts_stage_native_current_body_authority(tmp_path: 
     canonical = read_medical_manuscript_blueprint(study_root=study_root)
 
     assert resolved == stage_native_path.resolve()
+    assert current_medical_manuscript_blueprint_path(study_root=study_root) == stage_native_path.resolve()
+    assert stable_medical_manuscript_blueprint_path(study_root=study_root) == (
+        study_root.resolve() / "paper" / "medical_manuscript_blueprint.json"
+    )
     assert canonical["authoring_provenance"]["owner"] == "ai_author"
     assert not (study_root / "paper" / "medical_manuscript_blueprint.json").exists()
 

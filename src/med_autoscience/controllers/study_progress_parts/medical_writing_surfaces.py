@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.medical_journal_style_corpus import stable_medical_journal_style_corpus_path
-from med_autoscience.medical_manuscript_blueprint import stable_medical_manuscript_blueprint_path
+from med_autoscience.medical_manuscript_blueprint import current_medical_manuscript_blueprint_path
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.medical_prose_review_request import stable_medical_prose_review_request_path
 from med_autoscience.policies.publication_critique import (
@@ -20,7 +20,7 @@ from .shared import _mapping_copy, _non_empty_text, _read_json_object
 
 
 def medical_writing_quality_surface_status(*, study_root: Path) -> dict[str, Any]:
-    blueprint_path = stable_medical_manuscript_blueprint_path(study_root=study_root)
+    blueprint_path = current_medical_manuscript_blueprint_path(study_root=study_root)
     style_corpus_path = stable_medical_journal_style_corpus_path(study_root=study_root)
     prose_review_request_path = stable_medical_prose_review_request_path(study_root=study_root)
     prose_review_path = stable_medical_prose_review_path(study_root=study_root)

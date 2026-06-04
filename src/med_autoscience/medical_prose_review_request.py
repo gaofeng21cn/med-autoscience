@@ -11,8 +11,8 @@ from med_autoscience.medical_journal_style_corpus import (
     stable_medical_journal_style_corpus_path,
 )
 from med_autoscience.medical_manuscript_blueprint import (
+    current_medical_manuscript_blueprint_path,
     read_medical_manuscript_blueprint,
-    stable_medical_manuscript_blueprint_path,
 )
 from med_autoscience.medical_prose_review import (
     materialize_medical_prose_review,
@@ -151,7 +151,7 @@ def _existing_input_refs(*, study_root: Path, paper_root: Path, manuscript_path:
     refs: dict[str, str] = {}
     candidates = {
         "manuscript_ref": manuscript_path,
-        "medical_manuscript_blueprint_ref": stable_medical_manuscript_blueprint_path(study_root=study_root),
+        "medical_manuscript_blueprint_ref": current_medical_manuscript_blueprint_path(study_root=study_root),
         "medical_journal_style_corpus_ref": stable_medical_journal_style_corpus_path(study_root=study_root),
         "claim_evidence_map_ref": paper_root / "claim_evidence_map.json",
         "results_narrative_map_ref": paper_root / "results_narrative_map.json",
