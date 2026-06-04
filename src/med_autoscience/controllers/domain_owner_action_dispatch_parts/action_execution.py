@@ -467,7 +467,13 @@ def _complete_ai_reviewer_request_packet(
     for surface, path in _canonical_ai_reviewer_ref_paths(study_root=study_root).items():
         existing = _mapping(required_refs.get(surface))
         existing_path = _text(existing.get("path")) or _text(existing.get("ref")) or _text(existing.get("relative_path"))
-        if existing_path:
+        existing_target = _existing_ref_path(study_root=study_root, ref=existing_path)
+        if (
+            existing_target is not None
+            and existing_target.is_file()
+            and existing.get("present") is not False
+            and existing.get("valid") is not False
+        ):
             continue
         if not path.is_file():
             continue
@@ -494,11 +500,22 @@ def _canonical_ai_reviewer_ref_paths(*, study_root: Path) -> dict[str, Path]:
         "evidence_ledger": study_root / "paper" / "evidence_ledger.json",
         "review_ledger": study_root / "paper" / "review" / "review_ledger.json",
         "study_charter": study_root / "artifacts" / "controller" / "study_charter.json",
-        "medical_manuscript_blueprint": study_root / "paper" / "medical_manuscript_blueprint.json",
+        "medical_manuscript_blueprint": medical_manuscript_blueprint.stable_medical_manuscript_blueprint_path(
+            study_root=study_root
+        ),
         "claim_evidence_map": study_root / "paper" / "claim_evidence_map.json",
         "medical_prose_review": study_root / "artifacts" / "publication_eval" / "medical_prose_review.json",
         "publication_gate_projection": study_root / "artifacts" / "publication_eval" / "latest.json",
     }
+
+
+def _existing_ref_path(*, study_root: Path, ref: str | None) -> Path | None:
+    if ref is None:
+        return None
+    candidate = Path(ref).expanduser()
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (study_root / candidate).resolve()
 
 
 def execute_canonical_paper_inputs_rehydrate(

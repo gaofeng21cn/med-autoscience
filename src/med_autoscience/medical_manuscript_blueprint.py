@@ -26,6 +26,13 @@ __all__ = [
 
 STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_RELATIVE_PATH = Path("paper/medical_manuscript_blueprint.json")
 STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH = Path("paper/medical_manuscript_blueprint_source.json")
+STAGE_NATIVE_BODY_AUTHORITY_ROOT_RELATIVE_PATH = (
+    Path("artifacts")
+    / "stage_outputs"
+    / "_body_authority"
+    / "paper_authority_cutover"
+    / "current_body"
+)
 _REQUIRED_SEQUENCE = (
     "clinical_problem",
     "evidence_gap",
@@ -58,7 +65,11 @@ _REQUIRED_TOP_LEVEL_FIELDS = (
 
 
 def stable_medical_manuscript_blueprint_path(*, study_root: Path) -> Path:
-    return (Path(study_root).expanduser().resolve() / STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_RELATIVE_PATH).resolve()
+    legacy_path = _legacy_medical_manuscript_blueprint_path(study_root=study_root)
+    stage_native_path = _stage_native_medical_manuscript_blueprint_path(study_root=study_root)
+    if not legacy_path.exists() and stage_native_path.exists():
+        return stage_native_path
+    return legacy_path
 
 
 def stable_medical_manuscript_blueprint_source_path(*, study_root: Path) -> Path:
@@ -72,17 +83,38 @@ def resolve_medical_manuscript_blueprint_ref(
     study_root: Path,
     ref: str | Path | None = None,
 ) -> Path:
+    resolved_study_root = Path(study_root).expanduser().resolve()
     stable_path = stable_medical_manuscript_blueprint_path(study_root=study_root)
+    legacy_path = _legacy_medical_manuscript_blueprint_path(study_root=resolved_study_root)
+    stage_native_path = _stage_native_medical_manuscript_blueprint_path(study_root=resolved_study_root)
     if ref is None:
         return stable_path
     candidate = Path(ref).expanduser()
     if candidate.is_absolute():
         candidate = candidate.resolve()
     else:
-        candidate = (Path(study_root).expanduser().resolve() / candidate).resolve()
+        candidate = (resolved_study_root / candidate).resolve()
+    if candidate == legacy_path:
+        return stable_path
+    if candidate == stage_native_path:
+        return stage_native_path
     if candidate != stable_path:
         raise ValueError("medical manuscript blueprint reader only accepts the study paper authority artifact")
     return stable_path
+
+
+def _stage_native_medical_manuscript_blueprint_path(*, study_root: Path) -> Path:
+    return (
+        Path(study_root).expanduser().resolve()
+        / STAGE_NATIVE_BODY_AUTHORITY_ROOT_RELATIVE_PATH
+        / STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_RELATIVE_PATH
+    ).resolve()
+
+
+def _legacy_medical_manuscript_blueprint_path(*, study_root: Path) -> Path:
+    return (
+        Path(study_root).expanduser().resolve() / STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_RELATIVE_PATH
+    ).resolve()
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -386,7 +418,7 @@ def materialize_medical_manuscript_blueprint(
     if isinstance(payload, Mapping):
         resolved_payload = dict(payload)
         errors = validate_medical_manuscript_blueprint(resolved_payload)
-        path = stable_medical_manuscript_blueprint_path(study_root=study_root)
+        path = _legacy_medical_manuscript_blueprint_path(study_root=study_root)
     else:
         resolved_payload = build_medical_manuscript_blueprint(
             study_root=study_root,

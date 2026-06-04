@@ -105,6 +105,39 @@ def test_review_request_bundles_blueprint_corpus_and_mechanical_evidence_without
     assert "Figure 1 shows" in payload["manuscript"]["text"]
 
 
+def test_review_request_uses_stage_native_blueprint_when_legacy_paper_ref_is_absent(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.medical_prose_review_request import (
+        materialize_medical_prose_review_request,
+        read_medical_prose_review_request,
+    )
+
+    study_root = tmp_path / "study"
+    _write_review_request_inputs(study_root)
+    legacy_blueprint_path = study_root / "paper" / "medical_manuscript_blueprint.json"
+    stage_native_blueprint_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+        / "medical_manuscript_blueprint.json"
+    )
+    stage_native_blueprint_path.parent.mkdir(parents=True, exist_ok=True)
+    legacy_blueprint_path.replace(stage_native_blueprint_path)
+
+    materialize_medical_prose_review_request(study_root=study_root)
+    payload = read_medical_prose_review_request(study_root=study_root)
+
+    assert payload["required_inputs"]["medical_manuscript_blueprint_ref"] == str(
+        stage_native_blueprint_path.resolve()
+    )
+    assert not legacy_blueprint_path.exists()
+
+
 def test_review_request_includes_completed_unit_harmonized_rerun_evidence(tmp_path: Path) -> None:
     from med_autoscience.medical_prose_review_request import (
         materialize_medical_prose_review_request,
