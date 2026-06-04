@@ -299,6 +299,92 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
     assert json.loads(captured.out)["status"] == "maintained"
 
 
+def test_runtime_maintain_storage_command_dispatches_legacy_ds_root(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    ds_root = tmp_path / "runtime" / "archives" / "legacy" / ".ds"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_maintain_legacy_ds_runtime_storage(
+        *,
+        profile,
+        ds_root: Path,
+        restore_proof_buckets: tuple[str, ...],
+        restore_proof_max_shards: int | None,
+        refs_only_state_index_pilot: bool,
+    ) -> dict[str, object]:
+        called["profile"] = profile
+        called["ds_root"] = ds_root
+        called["restore_proof_buckets"] = restore_proof_buckets
+        called["restore_proof_max_shards"] = restore_proof_max_shards
+        called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
+        return {"status": "maintained", "legacy_ds_root_mode": True}
+
+    monkeypatch.setattr(
+        cli.runtime_storage_maintenance,
+        "maintain_legacy_ds_runtime_storage",
+        fake_maintain_legacy_ds_runtime_storage,
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "maintain-storage",
+            "--profile",
+            str(profile_path),
+            "--legacy-ds-root",
+            str(ds_root),
+            "--restore-proof-compaction",
+            "--restore-proof-max-shards",
+            "3",
+            "--restore-proof-bucket",
+            "runs",
+            "--restore-proof-bucket",
+            "codex_homes",
+            "--refs-only-state-index-pilot",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["ds_root"] == ds_root
+    assert called["restore_proof_buckets"] == ("runs", "codex_homes")
+    assert called["restore_proof_max_shards"] == 3
+    assert called["refs_only_state_index_pilot"] is True
+    assert json.loads(captured.out)["legacy_ds_root_mode"] is True
+
+
+def test_runtime_maintain_storage_legacy_ds_root_requires_restore_proof_compaction(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "runtime",
+                "maintain-storage",
+                "--profile",
+                str(profile_path),
+                "--legacy-ds-root",
+                str(tmp_path / ".ds"),
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "--legacy-ds-root requires --restore-proof-compaction" in captured.err
+
+
 def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

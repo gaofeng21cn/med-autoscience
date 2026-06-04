@@ -35,8 +35,21 @@ def handle_runtime_storage_command(
     load_profile: Any,
 ) -> int | None:
     if args.command == "maintain-runtime-storage":
-        if bool(args.study_id) == bool(args.quest_root):
-            parser.error("Specify exactly one of --study-id or --quest-root")
+        if args.legacy_ds_root:
+            if not args.restore_proof_compaction:
+                _command_parser(args, parser).error("--legacy-ds-root requires --restore-proof-compaction")
+            if args.restore_proof_canary:
+                _command_parser(args, parser).error("--legacy-ds-root does not support --restore-proof-canary")
+            profile = load_profile(args.profile)
+            result = runtime_storage_maintenance.maintain_legacy_ds_runtime_storage(
+                profile=profile,
+                ds_root=Path(args.legacy_ds_root),
+                restore_proof_buckets=tuple(args.restore_proof_buckets or ()),
+                restore_proof_max_shards=args.restore_proof_max_shards,
+                refs_only_state_index_pilot=bool(args.refs_only_state_index_pilot),
+            )
+            _print_json(result)
+            return 0
         profile = load_profile(args.profile)
         common_kwargs = _storage_maintenance_kwargs(args)
         if args.quest_root:
@@ -86,6 +99,7 @@ def _add_profile_and_storage_selector_options(parser: argparse.ArgumentParser) -
     selector = parser.add_mutually_exclusive_group(required=True)
     selector.add_argument("--study-id", type=str)
     selector.add_argument("--quest-root", type=str)
+    selector.add_argument("--legacy-ds-root", type=str)
 
 
 def _add_storage_cleanup_options(parser: argparse.ArgumentParser) -> None:

@@ -260,6 +260,89 @@ def test_audit_workspace_storage_restore_proof_compaction_shards_codex_homes(
     assert workspace_ref_count == 2
 
 
+def test_maintain_legacy_ds_runtime_storage_archives_and_prunes_bare_ds_payload_buckets(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    legacy_root = profile.workspace_root / "runtime" / "archives" / "legacy_mds" / "snapshot" / "runtime" / "quests" / "legacy"
+    ds_root = legacy_root / ".ds"
+    payload_paths = [
+        ds_root / "runs" / "run-001" / "stdout.jsonl",
+        ds_root / "codex_homes" / "home-001" / ".codex" / "sessions" / "rollout.jsonl",
+    ]
+    for path in payload_paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"{path.name}\n" * 1024, encoding="utf-8")
+
+    result = module.maintain_legacy_ds_runtime_storage(
+        profile=profile,
+        ds_root=ds_root,
+        restore_proof_buckets=("runs", "codex_homes"),
+        refs_only_state_index_pilot=True,
+    )
+
+    compaction = result["restore_proof_compaction"]
+    assert result["status"] == "maintained"
+    assert result["legacy_ds_root_mode"] is True
+    assert compaction["surface_kind"] == "legacy_runtime_restore_proof_compaction"
+    assert compaction["status"] == "compacted"
+    assert compaction["archive_ref_count"] == 2
+    assert compaction["source_group_count"] == 2
+    assert compaction["remaining_source_group_count"] == 0
+    assert {proof["status"] for proof in compaction["restore_proof_samples"]} == {"verified"}
+    assert not (ds_root / "runs").exists()
+    assert not (ds_root / "codex_homes").exists()
+    assert Path(result["latest_report_path"]).is_file()
+    archive_refs = json.loads(Path(compaction["archive_refs_path"]).read_text(encoding="utf-8"))["archive_refs"]
+    assert len(archive_refs) == 2
+    assert all(Path(ref["archive_path"]).is_file() for ref in archive_refs)
+    assert all(Path(ref["source_manifest_path"]).is_file() for ref in archive_refs)
+    assert all(Path(ref["restore_proof_path"]).is_file() for ref in archive_refs)
+    assert all(ref["restore_command"].endswith(f"-C {ds_root}") for ref in archive_refs)
+    assert result["domain_authority_archive_ref_index"]["indexed_count"] == 2
+    assert result["runtime_lifecycle_workspace_archive_index"]["indexed_count"] == 2
+    assert result["refs_only_state_index_pilot"]["body_included"] is False
+
+    db_path = legacy_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    with sqlite3.connect(db_path) as conn:
+        quest_ref_count = conn.execute(
+            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
+            (str(legacy_root.resolve()),),
+        ).fetchone()[0]
+    workspace_db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    with sqlite3.connect(workspace_db_path) as conn:
+        workspace_ref_count = conn.execute(
+            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
+            (str(legacy_root.resolve()),),
+        ).fetchone()[0]
+    assert quest_ref_count == 2
+    assert workspace_ref_count == 2
+
+
+def test_maintain_legacy_ds_runtime_storage_blocks_root_outside_profile_workspace(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path / "workspace-a")
+    ds_root = tmp_path / "workspace-b" / "runtime" / "archives" / "legacy" / ".ds"
+    payload = ds_root / "runs" / "run-001" / "stdout.jsonl"
+    payload.parent.mkdir(parents=True, exist_ok=True)
+    payload.write_text("outside workspace\n", encoding="utf-8")
+
+    result = module.maintain_legacy_ds_runtime_storage(
+        profile=profile,
+        ds_root=ds_root,
+        restore_proof_buckets=("runs",),
+        refs_only_state_index_pilot=True,
+    )
+
+    assert result["status"] == "blocked_legacy_ds_root_outside_profile_workspace"
+    assert result["restore_proof_compaction"]["blockers"] == ["legacy_ds_root_outside_profile_workspace"]
+    assert payload.exists()
+    assert result["refs_only_state_index_pilot"]["status"] == "skipped"
+
+
 def test_audit_workspace_storage_restore_proof_compaction_can_explicitly_compact_cold_archive_bucket(
     tmp_path: Path,
 ) -> None:

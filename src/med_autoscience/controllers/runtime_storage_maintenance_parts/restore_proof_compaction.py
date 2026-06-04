@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+import hashlib
 import itertools
 import json
 import shutil
@@ -380,6 +381,195 @@ def compact_cold_runtime_buckets(
         "remaining_source_group_count": remaining_source_group_count,
         "max_shards": bounded_max_shards,
     }
+
+
+def compact_legacy_ds_runtime_buckets(
+    *,
+    ds_root: Path,
+    quest_id: str,
+    recorded_at: str,
+    buckets: Iterable[str],
+    max_shards: int | None = None,
+) -> dict[str, Any]:
+    resolved_ds_root = Path(ds_root).expanduser().resolve()
+    if resolved_ds_root.name != ".ds":
+        raise ValueError(f"legacy runtime payload root must be a .ds directory: {resolved_ds_root}")
+    owner_root = resolved_ds_root.parent
+    selected_buckets = tuple(dict.fromkeys(_bucket_name(bucket) for bucket in buckets))
+    source_groups = _source_groups(ds_root=resolved_ds_root, selected_buckets=selected_buckets)
+    bounded_max_shards = _bounded_max_shards(max_shards)
+    all_source_group_count = len(source_groups)
+    selected_source_groups = source_groups[:bounded_max_shards] if bounded_max_shards else source_groups
+    remaining_source_group_count = max(0, all_source_group_count - len(selected_source_groups))
+    ds_root_digest = _ds_root_digest(resolved_ds_root)
+    if not source_groups:
+        empty_bucket_pruned_paths = _prune_empty_selected_bucket_dirs(
+            ds_root=resolved_ds_root,
+            selected_buckets=selected_buckets,
+        )
+        return {
+            "surface_kind": "legacy_runtime_restore_proof_compaction",
+            "schema_version": SCHEMA_VERSION,
+            "status": "nothing_to_archive",
+            "quest_id": quest_id,
+            "quest_root": str(owner_root),
+            "ds_root": str(resolved_ds_root),
+            "ds_root_digest": ds_root_digest,
+            "source_buckets": list(selected_buckets),
+            "actual_release_bytes": 0,
+            "archive_ref": None,
+            "archive_ref_count": 0,
+            "restore_proof": None,
+            "pruned_paths": [],
+            "empty_bucket_pruned_paths": empty_bucket_pruned_paths,
+            "blockers": [],
+            "source_group_count": 0,
+            "selected_source_group_count": 0,
+            "remaining_source_group_count": 0,
+            "max_shards": bounded_max_shards,
+        }
+    slug = _artifact_slug(recorded_at)
+    shards: list[dict[str, Any]] = []
+    for index, source_group in enumerate(selected_source_groups, start=1):
+        shard = _compact_source_group(
+            quest_root=owner_root,
+            ds_root=resolved_ds_root,
+            quest_id=quest_id,
+            recorded_at=recorded_at,
+            slug=slug,
+            group_index=index,
+            group_count=len(selected_source_groups),
+            group_id=f"{ds_root_digest}__{source_group['group_id']}",
+            source_paths=source_group["source_paths"],
+        )
+        if shard["status"] != "compacted":
+            archive_refs = [entry["archive_ref"] for entry in shards if isinstance(entry.get("archive_ref"), Mapping)]
+            source_manifest_paths = [*list(_shard_paths(shards, "source_manifest_path")), shard.get("source_manifest_path")]
+            restore_proof_paths = [*list(_shard_paths(shards, "restore_proof_path")), shard.get("restore_proof_path")]
+            pruned_paths = [path for entry in shards for path in list(entry.get("pruned_paths") or [])]
+            archive_refs_path = _write_archive_refs_index(
+                quest_root=owner_root,
+                quest_id=quest_id,
+                recorded_at=recorded_at,
+                slug=slug,
+                archive_refs=archive_refs,
+            )
+            return {
+                "surface_kind": "legacy_runtime_restore_proof_compaction",
+                "schema_version": SCHEMA_VERSION,
+                "status": shard["status"],
+                "quest_id": quest_id,
+                "quest_root": str(owner_root),
+                "ds_root": str(resolved_ds_root),
+                "ds_root_digest": ds_root_digest,
+                "source_buckets": list(selected_buckets),
+                "actual_release_bytes": 0,
+                "archive_ref": None,
+                "archive_ref_count": len(archive_refs),
+                "archive_refs_path": str(archive_refs_path) if archive_refs_path is not None else None,
+                "archive_refs_inlined": False,
+                "archive_ref_samples": _archive_ref_samples(archive_refs),
+                "source_manifest_path": shard.get("source_manifest_path"),
+                "source_manifest_path_summary": _path_summary(source_manifest_paths),
+                "restore_proof": shard.get("restore_proof"),
+                "restore_proof_path": shard.get("restore_proof_path"),
+                "restore_proof_path_summary": _path_summary(restore_proof_paths),
+                "pruned_path_count": len(pruned_paths),
+                "pruned_paths_inlined": False,
+                "pruned_path_samples": _sample_values(pruned_paths),
+                "blockers": shard.get("blockers") or [{"reason": "restore_proof_failed"}],
+                "shard_count": len(shards),
+                "shards_inlined": False,
+                "shard_samples": _sample_values([_shard_report_summary(entry) for entry in shards]),
+                "failed_shard": _shard_report_summary(shard),
+                "source_group_count": all_source_group_count,
+                "selected_source_group_count": len(selected_source_groups),
+                "remaining_source_group_count": remaining_source_group_count,
+                "max_shards": bounded_max_shards,
+            }
+        shards.append(shard)
+
+    archive_refs = [entry["archive_ref"] for entry in shards if isinstance(entry.get("archive_ref"), Mapping)]
+    source_manifest_paths = list(_shard_paths(shards, "source_manifest_path"))
+    restore_proof_paths = list(_shard_paths(shards, "restore_proof_path"))
+    bytes_before = sum(int(entry.get("bytes_before") or 0) for entry in shards)
+    files_before = sum(int(entry.get("files_before") or 0) for entry in shards)
+    actual_release_bytes = sum(int(entry.get("actual_release_bytes") or 0) for entry in shards)
+    pruned_paths = [path for entry in shards for path in list(entry.get("pruned_paths") or [])]
+    empty_bucket_pruned_paths = _prune_empty_selected_bucket_dirs(
+        ds_root=resolved_ds_root,
+        selected_buckets=selected_buckets,
+    )
+    result: dict[str, Any] = {
+        "surface_kind": "legacy_runtime_restore_proof_compaction",
+        "schema_version": SCHEMA_VERSION,
+        "status": "compacted",
+        "quest_id": quest_id,
+        "quest_root": str(owner_root),
+        "ds_root": str(resolved_ds_root),
+        "ds_root_digest": ds_root_digest,
+        "source_buckets": list(selected_buckets),
+        "archive_root": str(_archive_root(owner_root)),
+        "archive_ref_count": len(archive_refs),
+        "bytes_before": bytes_before,
+        "files_before": files_before,
+        "actual_release_bytes": actual_release_bytes,
+        "empty_bucket_pruned_paths": empty_bucket_pruned_paths,
+        "blockers": [],
+        "shard_count": len(shards),
+        "source_group_count": all_source_group_count,
+        "selected_source_group_count": len(selected_source_groups),
+        "remaining_source_group_count": remaining_source_group_count,
+        "max_shards": bounded_max_shards,
+    }
+    if len(shards) > 1:
+        archive_refs_path = _write_archive_refs_index(
+            quest_root=owner_root,
+            quest_id=quest_id,
+            recorded_at=recorded_at,
+            slug=slug,
+            archive_refs=archive_refs,
+        )
+        result.update(
+            {
+                "source_manifest_path": None,
+                "source_manifest_path_summary": _path_summary(source_manifest_paths),
+                "restore_proof_path": None,
+                "restore_proof_path_summary": _path_summary(restore_proof_paths),
+                "archive_ref": None,
+                "archive_refs_path": str(archive_refs_path) if archive_refs_path is not None else None,
+                "archive_refs_inlined": False,
+                "archive_ref_samples": _archive_ref_samples(archive_refs),
+                "restore_proof": None,
+                "restore_proofs_inlined": False,
+                "restore_proof_samples": _sample_values(
+                    [entry.get("restore_proof") for entry in shards if isinstance(entry.get("restore_proof"), Mapping)]
+                ),
+                "pruned_path_count": len(pruned_paths),
+                "pruned_paths_inlined": False,
+                "pruned_path_samples": _sample_values(pruned_paths),
+                "shards_inlined": False,
+                "shard_samples": _sample_values([_shard_report_summary(entry) for entry in shards]),
+            }
+        )
+    else:
+        result.update(
+            {
+                "source_manifest_path": source_manifest_paths[0] if len(source_manifest_paths) == 1 else None,
+                "source_manifest_paths": source_manifest_paths,
+                "restore_proof_path": restore_proof_paths[0] if len(restore_proof_paths) == 1 else None,
+                "restore_proof_paths": restore_proof_paths,
+                "archive_ref": archive_refs[0] if len(archive_refs) == 1 else None,
+                "archive_refs": archive_refs,
+                "restore_proof": shards[0].get("restore_proof") if len(shards) == 1 else None,
+                "restore_proofs": [
+                    entry.get("restore_proof") for entry in shards if isinstance(entry.get("restore_proof"), Mapping)
+                ],
+                "pruned_paths": pruned_paths,
+                "shards": shards,
+            }
+        )
+    return result
 
 
 def restore_proof_compaction_blockers(
@@ -922,12 +1112,18 @@ def _bucket_name(value: str) -> str:
     return name
 
 
+def _ds_root_digest(ds_root: Path) -> str:
+    return hashlib.sha256(str(ds_root).encode("utf-8")).hexdigest()[:12]
+
+
 __all__ = [
     "ARCHIVE_FORMAT",
     "COLD_RUNTIME_STATUSES",
     "PARKED_CONTROLLER_STOP_STATUSES",
     "SURFACE_KIND",
+    "archive_refs_from_compaction_result",
     "compact_cold_runtime_buckets",
+    "compact_legacy_ds_runtime_buckets",
     "plan_restore_proof_compaction_canary",
     "restore_proof_compaction_blockers",
     "restore_proof_compaction_candidate",

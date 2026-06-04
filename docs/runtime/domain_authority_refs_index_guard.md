@@ -71,6 +71,7 @@ Stable commands:
 - `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --restore-proof-canary --restore-proof-canary-entry-limit <n> --restore-proof-bucket <bucket> --include-parked-controller-stop`
 - `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n> --include-parked-controller-stop`
 - `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n> --include-parked-controller-stop`
+- `medautosci runtime maintain-storage --profile <profile> --legacy-ds-root <path/to/.ds> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n>`
 - `medautosci runtime storage-audit --profile <profile> --all-studies --apply --refs-only-state-index-pilot`
 
 Use `--refs-only-state-index-only` when the purpose is to rebuild the refs-only SQLite pilot on a very large `.ds` tree. In that mode MAS intentionally skips legacy backend storage maintenance and recursive size summaries, records `legacy_backend_status=skipped_by_refs_only_state_index_only`, and writes `size_before` / `size_after` as explicit skipped summaries. This is the preferred live canary path for million-file runtime roots because it indexes refs without doing physical compaction, GC, body migration, paper mutation or artifact cleanup.
@@ -80,6 +81,8 @@ Use `--restore-proof-canary` when the purpose is to prove archive/restore mechan
 Use `--restore-proof-compaction` only for an explicit stopped-cold bucket scope. `runs` and `codex_homes` are compacted as child-level source groups, not as one giant archive, so `--restore-proof-max-shards <n>` can process a bounded shard window and be rerun until `remaining_source_group_count=0`. Each shard writes an archive, source manifest, restore proof and body-free `archive_refs` row before deleting the compacted source group. The selected bucket directory is removed only when it becomes empty. This is physical runtime payload compaction, not refs-only indexing, paper progress, publication readiness, artifact authority, memory cleanup or study truth mutation.
 
 If a selected bucket contains empty child directories after all payload-bearing groups were already archived, rerun the same `--restore-proof-compaction` command. The `nothing_to_archive` result still prunes empty child directories and then the empty selected bucket directory. It must not remove any child that contains a file, symlink or other payload.
+
+Use `--legacy-ds-root` only for historical archive or nested bare `.ds` roots that no longer have a valid `quest.yaml` owner surface. It still requires `--restore-proof-compaction`, writes archive tarballs, source manifests, restore proofs, owner-root `domain_authority_refs.sqlite` rows and workspace-level refs-only rows, and refuses `.ds` roots outside the selected profile workspace. It must not be used as a shortcut for active quest runtime roots that can be handled with `--quest-root`.
 
 The safe live sequence for million-file `.ds` roots is:
 
@@ -114,9 +117,10 @@ Live compaction evidence:
 
 Full historical runtime payload closeout evidence:
 
-- `2026-06-04` all discovered MAS `.ds` quest roots under the known local MAS workspaces were inventoried: AS biologics `001`, DM-CVD `001` / `002` / `003` / `004`, NF-PitNET `001` / `002` / `003` / `004`, Obesity `obesity_multicenter_phenotype_atlas`, plus the legacy DM003 `ops/med-the study team` orphan path.
-- Fresh physical verification after compaction found no remaining `.ds/runs` or `.ds/codex_homes` bucket in those 11 roots.
+- `2026-06-04` all discovered MAS `.ds` quest roots and historical `.ds` archive residues under the known local MAS workspaces were inventoried. Coverage included AS biologics, DM-CVD, NF-PitNET, Obesity, the legacy DM003 `ops/med-the study team` orphan path, `runtime/archives/legacy_mds/**/.ds`, and nested `.ds/python_pycache/**/.ds` payload residues.
+- Fresh physical verification after compaction found no remaining `.ds/runs` or `.ds/codex_homes` bucket under `/Users/gaofeng/workspace/LinZM/as_biologics_workspace`, `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk`, `/Users/gaofeng/workspace/Yang/NF-PitNET`, or `/Users/gaofeng/workspace/Yang/Obesity`.
 - Archive refs by quest root: DM002 `1811` (`runs=1191`, `codex_homes=620`), DM003 `1841` (`runs=1349`, `codex_homes=492`), DM004 `8` (`runs=4`, `codex_homes=4`), Obesity `1637` (`runs=968`, `codex_homes=669`). Other discovered roots had no `runs` / `codex_homes` payload to compact.
+- Legacy archive / nested `.ds` follow-through added `364` archive refs across historical owner roots. Final refs-only archive row scan across the four local MAS workspaces read `remaining_runs_or_codex_homes_count=0`, `archive_ref_row_total=6025`, and `archive_ref_quest_root_count=14`.
 - Refs-only SQLite index-only maintenance was run for the three newly compacted payload roots before physical compaction: DM003, DM004 and Obesity. The SQLite role remains refs-only and body-free.
 - OPL Stage Folder closeout was materialized under `medautoscience/state-index-full-migration/all-workspaces/historical-runtime-payload-compaction`, stage `all_runtime_payload_compaction`, attempt `full-migration-2026-06-04`, owner receipt ref `mas-runtime-storage-full-payload-compaction:all-discovered-runtime-quests:20260604T044000Z`.
 - Read this as full local historical runtime payload storage closure for discovered `runs` / `codex_homes` buckets. It is not paper progress, publication-ready status, owner-route success, domain-ready status, memory acceptance, artifact mutation authorization or production readiness.
