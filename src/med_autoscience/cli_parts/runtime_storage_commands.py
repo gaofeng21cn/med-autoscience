@@ -109,6 +109,7 @@ def _add_restore_proof_compaction_options(parser: argparse.ArgumentParser) -> No
     parser.add_argument("--restore-proof-compaction", action="store_true")
     parser.add_argument("--restore-proof-canary", action="store_true")
     parser.add_argument("--restore-proof-canary-entry-limit", type=int, default=20)
+    parser.add_argument("--restore-proof-max-shards", type=int)
     parser.add_argument("--restore-proof-bucket", action="append", dest="restore_proof_buckets")
     parser.add_argument("--include-parked-controller-stop", action="store_true")
     parser.add_argument("--include-operator-confirmed-parked-active", action="store_true")
@@ -131,6 +132,7 @@ def _storage_maintenance_kwargs(args: argparse.Namespace) -> dict[str, Any]:
         "restore_proof_compaction": bool(args.restore_proof_compaction),
         "restore_proof_canary": bool(args.restore_proof_canary),
         "restore_proof_canary_entry_limit": int(args.restore_proof_canary_entry_limit),
+        "restore_proof_max_shards": args.restore_proof_max_shards,
         "restore_proof_buckets": tuple(args.restore_proof_buckets or ()),
         "include_parked_controller_stop": bool(args.include_parked_controller_stop),
         "include_operator_confirmed_parked_active": bool(args.include_operator_confirmed_parked_active),

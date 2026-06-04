@@ -28,6 +28,7 @@ Machine boundary: 本文是人读 owner / provenance guard。机器真相继续�
 | Domain authority refs index | `standard_agent_refs_index` | `artifacts/runtime/domain_authority_refs.sqlite` and body-free refs |
 | MAS refs-only state index pilot | `opt_in_storage_maintenance_pilot` | `artifacts/runtime/mas_refs_only_state_index_pilot.sqlite` indexes cursor/index/lifecycle/outbox/receipt refs only |
 | Restore-proof canary | `bounded_retain_source_canary` | `artifacts/runtime/runtime_storage_maintenance/restore_proof_canary/*.json` and bounded archive/restore proof refs |
+| Restore-proof compaction | `stopped_cold_bucket_compaction_available` | `.ds/runs` and `.ds/codex_homes` may be sharded into restore-proof archives after explicit cold-window gate |
 | Runtime/event/report history | `opl_owned_or_provenance_only` | OPL attempt/provider ledger for runtime truth; MAS refs index for owner receipts/blockers only |
 | Quest Git retirement | `current projects verified` | migration/cutover ledgers and restore manifests |
 | Workspace root Git retirement | `current projects verified` | workspace root Git retirement ledgers |
@@ -68,17 +69,21 @@ Stable commands:
 - `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --refs-only-state-index-pilot --refs-only-state-index-only`
 - `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --restore-proof-canary --restore-proof-canary-entry-limit <n> --restore-proof-bucket <bucket> --include-parked-controller-stop`
 - `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --restore-proof-canary --restore-proof-canary-entry-limit <n> --restore-proof-bucket <bucket> --include-parked-controller-stop`
+- `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n> --include-parked-controller-stop`
+- `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n> --include-parked-controller-stop`
 - `medautosci runtime storage-audit --profile <profile> --all-studies --apply --refs-only-state-index-pilot`
 
 Use `--refs-only-state-index-only` when the purpose is to rebuild the refs-only SQLite pilot on a very large `.ds` tree. In that mode MAS intentionally skips legacy backend storage maintenance and recursive size summaries, records `legacy_backend_status=skipped_by_refs_only_state_index_only`, and writes `size_before` / `size_after` as explicit skipped summaries. This is the preferred live canary path for million-file runtime roots because it indexes refs without doing physical compaction, GC, body migration, paper mutation or artifact cleanup.
 
 Use `--restore-proof-canary` when the purpose is to prove archive/restore mechanics on a bounded sample before any physical slimming. This canary samples at most `--restore-proof-canary-entry-limit` files or symlinks per selected runtime bucket, writes a bounded archive, source manifest, restore proof, plan and receipt under `artifacts/runtime/runtime_storage_maintenance/restore_proof_canary/`, and retains all source runtime payload. It records `actual_release_bytes=0`, `source_retained=true`, `mutated_runtime_payload=false`, and `pruned_paths=[]`. For parked `paused` / `stopped` roots it still requires `--include-parked-controller-stop`; do not use `--allow-live-runtime` to bypass this gate.
 
+Use `--restore-proof-compaction` only for an explicit stopped-cold bucket scope. `runs` and `codex_homes` are compacted as child-level source groups, not as one giant archive, so `--restore-proof-max-shards <n>` can process a bounded shard window and be rerun until `remaining_source_group_count=0`. Each shard writes an archive, source manifest, restore proof and body-free `archive_refs` row before deleting the compacted source group. The selected bucket directory is removed only when it becomes empty. This is physical runtime payload compaction, not refs-only indexing, paper progress, publication readiness, artifact authority, memory cleanup or study truth mutation.
+
 The safe live sequence for million-file `.ds` roots is:
 
 1. `--refs-only-state-index-pilot --refs-only-state-index-only` to rebuild refs-only SQLite without recursive size scan.
 2. `--restore-proof-canary --restore-proof-canary-entry-limit <small n> --restore-proof-bucket runs|codex_homes --include-parked-controller-stop` to produce bounded restore proof while retaining source payload.
-3. Full `--restore-proof-compaction` only after owner/operator confirms the stopped-cold window and target bucket scope.
+3. Sharded `--restore-proof-compaction --restore-proof-max-shards <n>` after owner/operator confirms the stopped-cold window and target bucket scope.
 
 Verification:
 
@@ -94,6 +99,16 @@ Live canary evidence:
 - SQLite proof: `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/artifacts/runtime/mas_refs_only_state_index_pilot.sqlite` existed, table `small_file_refs` had 3 rows, ref families were `lifecycle=1` and `outbox=2`, `body_included` min/max were both `0`, and schema columns did not include `body`, `content` or `payload`.
 - Report refs: `studies/002-dm-china-us-mortality-attribution/artifacts/runtime/runtime_storage_maintenance/20260604T004827Z.json` and `studies/002-dm-china-us-mortality-attribution/artifacts/runtime/runtime_storage_maintenance/latest.json`.
 - Read this as storage/index evidence only. It is not a paper-progress, publication-ready, stage-completion, artifact-authority, restore-ready, retention, GC or compaction receipt.
+
+Live compaction evidence:
+
+- `2026-06-04` DM002 `002-dm-china-us-mortality-attribution` ran sharded restore-proof compaction against the stopped quest root `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/002-dm-china-us-mortality-attribution`.
+- Scope was limited to `.ds/runs` and `.ds/codex_homes`; `study.yaml`, `publication_eval/latest.json`, `controller_decisions/latest.json`, manuscripts, paper source, memory body and artifact bodies were not compaction targets.
+- Fresh physical check after compaction read `.ds/runs` missing and `.ds/codex_homes` missing.
+- `domain_authority_refs.sqlite` contained `archive_ref_total=1811` for that quest root, with `runs=1191`, `codex_homes=620`, `other=0`, all as refs-only archive provenance.
+- Restore-proof archive root was `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/002-dm-china-us-mortality-attribution/artifacts/runtime/runtime_storage_maintenance/restore_proof_archives/runtime_bucket_compaction`, observed size `19G`.
+- OPL Stage Folder closeout was materialized under `medautoscience/state-index-canary/dm-cvd/dm002-runtime-state-index`, stage `runtime_payload_compaction`, attempt `compaction-2026-06-04`, owner receipt ref `mas-runtime-storage-payload-compaction:002-dm-china-us-mortality-attribution:20260604T032820Z`.
+- Read this as runtime payload storage closure for the selected cold buckets. It is not paper progress, publication-ready status, owner-route success, domain-ready status, memory acceptance, artifact mutation authorization or production readiness.
 
 Files and archives remain authoritative for:
 

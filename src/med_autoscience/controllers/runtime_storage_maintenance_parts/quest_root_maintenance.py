@@ -49,6 +49,7 @@ def maintain_quest_runtime_storage(
     restore_proof_compaction: bool = False,
     restore_proof_canary: bool = False,
     restore_proof_canary_entry_limit: int = 20,
+    restore_proof_max_shards: int | None = None,
     include_parked_controller_stop: bool = False,
     include_operator_confirmed_parked_active: bool = False,
     restore_proof_buckets: Iterable[str] | None = None,
@@ -72,6 +73,7 @@ def maintain_quest_runtime_storage(
         "restore_proof_compaction_enabled": restore_proof_compaction,
         "restore_proof_canary_enabled": restore_proof_canary,
         "restore_proof_canary_entry_limit": int(restore_proof_canary_entry_limit),
+        "restore_proof_max_shards": restore_proof_max_shards,
         "include_parked_controller_stop": include_parked_controller_stop,
         "include_operator_confirmed_parked_active": include_operator_confirmed_parked_active,
         "restore_proof_buckets": list(selected_restore_proof_buckets),
@@ -114,6 +116,7 @@ def maintain_quest_runtime_storage(
             quest_id=quest_id,
             recorded_at=recorded_at,
             buckets=selected_restore_proof_buckets,
+            max_shards=restore_proof_max_shards,
             include_parked_controller_stop=include_parked_controller_stop,
             include_operator_confirmed_parked_active=include_operator_confirmed_parked_active,
         )
@@ -199,6 +202,7 @@ def _apply_restore_proof_compaction(
     quest_id: str,
     recorded_at: str,
     buckets: tuple[str, ...],
+    max_shards: int | None,
     include_parked_controller_stop: bool,
     include_operator_confirmed_parked_active: bool,
 ) -> None:
@@ -225,6 +229,7 @@ def _apply_restore_proof_compaction(
         quest_id=quest_id,
         recorded_at=recorded_at,
         buckets=buckets,
+        max_shards=max_shards,
     )
     result["restore_proof_compaction"] = compaction_result
     archive_refs = _archive_refs_from_compaction(compaction_result)

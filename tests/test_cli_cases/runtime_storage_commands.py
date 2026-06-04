@@ -32,6 +32,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         restore_proof_compaction: bool,
         restore_proof_canary: bool,
         restore_proof_canary_entry_limit: int,
+        restore_proof_max_shards: int | None,
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
@@ -54,6 +55,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         called["restore_proof_compaction"] = restore_proof_compaction
         called["restore_proof_canary"] = restore_proof_canary
         called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
+        called["restore_proof_max_shards"] = restore_proof_max_shards
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
@@ -112,6 +114,7 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
     assert called["restore_proof_compaction"] is False
     assert called["restore_proof_canary"] is False
     assert called["restore_proof_canary_entry_limit"] == 20
+    assert called["restore_proof_max_shards"] is None
     assert called["restore_proof_buckets"] == ()
     assert called["include_parked_controller_stop"] is False
     assert called["include_operator_confirmed_parked_active"] is False
@@ -148,6 +151,7 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         restore_proof_compaction: bool,
         restore_proof_canary: bool,
         restore_proof_canary_entry_limit: int,
+        restore_proof_max_shards: int | None,
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
@@ -159,6 +163,7 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         called["restore_proof_compaction"] = restore_proof_compaction
         called["restore_proof_canary"] = restore_proof_canary
         called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
+        called["restore_proof_max_shards"] = restore_proof_max_shards
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
@@ -183,6 +188,8 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
             "--restore-proof-compaction",
             "--restore-proof-canary-entry-limit",
             "7",
+            "--restore-proof-max-shards",
+            "2",
             "--restore-proof-bucket",
             "runs",
             "--include-parked-controller-stop",
@@ -196,6 +203,7 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
     assert called["restore_proof_compaction"] is True
     assert called["restore_proof_canary"] is False
     assert called["restore_proof_canary_entry_limit"] == 7
+    assert called["restore_proof_max_shards"] == 2
     assert called["restore_proof_buckets"] == ("runs",)
     assert called["include_parked_controller_stop"] is True
     assert called["include_operator_confirmed_parked_active"] is False
@@ -232,6 +240,7 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
         restore_proof_compaction: bool,
         restore_proof_canary: bool,
         restore_proof_canary_entry_limit: int,
+        restore_proof_max_shards: int | None,
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
@@ -243,6 +252,7 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
         called["restore_proof_compaction"] = restore_proof_compaction
         called["restore_proof_canary"] = restore_proof_canary
         called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
+        called["restore_proof_max_shards"] = restore_proof_max_shards
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
@@ -281,6 +291,7 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
     assert called["restore_proof_compaction"] is False
     assert called["restore_proof_canary"] is True
     assert called["restore_proof_canary_entry_limit"] == 4
+    assert called["restore_proof_max_shards"] is None
     assert called["restore_proof_buckets"] == ("runs",)
     assert called["include_parked_controller_stop"] is True
     assert called["refs_only_state_index_pilot"] is True
@@ -317,6 +328,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         restore_proof_compaction: bool,
         restore_proof_canary: bool,
         restore_proof_canary_entry_limit: int,
+        restore_proof_max_shards: int | None,
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
@@ -344,6 +356,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["restore_proof_compaction"] = restore_proof_compaction
         called["restore_proof_canary"] = restore_proof_canary
         called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
+        called["restore_proof_max_shards"] = restore_proof_max_shards
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
@@ -406,6 +419,7 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["restore_proof_compaction"] is False
     assert called["restore_proof_canary"] is False
     assert called["restore_proof_canary_entry_limit"] == 20
+    assert called["restore_proof_max_shards"] is None
     assert called["restore_proof_buckets"] == ()
     assert called["include_parked_controller_stop"] is False
     assert called["include_operator_confirmed_parked_active"] is False
@@ -447,6 +461,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         restore_proof_compaction: bool,
         restore_proof_canary: bool,
         restore_proof_canary_entry_limit: int,
+        restore_proof_max_shards: int | None,
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
@@ -459,6 +474,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         called["restore_proof_compaction"] = restore_proof_compaction
         called["restore_proof_canary"] = restore_proof_canary
         called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
+        called["restore_proof_max_shards"] = restore_proof_max_shards
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
@@ -479,6 +495,8 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
             "--restore-proof-compaction",
             "--restore-proof-canary-entry-limit",
             "3",
+            "--restore-proof-max-shards",
+            "2",
             "--restore-proof-bucket",
             "cold_archive",
             "--include-parked-controller-stop",
@@ -495,6 +513,7 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         "restore_proof_compaction": True,
         "restore_proof_canary": False,
         "restore_proof_canary_entry_limit": 3,
+        "restore_proof_max_shards": 2,
         "restore_proof_buckets": ("cold_archive",),
         "include_parked_controller_stop": True,
         "include_operator_confirmed_parked_active": True,

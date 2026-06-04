@@ -33,7 +33,11 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
     compaction = study_report["apply_result"]["restore_proof_compaction"]
     assert study_report["status"] == "applied"
     assert compaction["status"] == "compacted"
-    assert compaction["restore_proof"]["status"] == "verified"
+    assert {proof["status"] for proof in compaction["restore_proof_samples"]} == {"verified"}
+    assert compaction["archive_ref_count"] == 13
+    assert compaction["source_group_count"] == 13
+    assert compaction["selected_source_group_count"] == 13
+    assert compaction["remaining_source_group_count"] == 0
     assert compaction["files_before"] == len(payload_paths)
     assert study_report["runtime"]["candidate_action"] == "restore-proof-compaction"
     assert study_report["actual_runtime_release_bytes"] > 0
@@ -41,38 +45,31 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
     assert not (quest_root / ".ds" / "runs").exists()
     assert not (quest_root / ".ds" / "bash_exec").exists()
     assert not (quest_root / ".ds" / "codex_history").exists()
-    assert Path(compaction["archive_ref"]["archive_path"]).is_file()
-    assert Path(compaction["source_manifest_path"]).is_file()
-    assert Path(compaction["restore_proof_path"]).is_file()
-    assert "/artifacts/runtime/runtime_storage_maintenance/restore_proof_archives/" in compaction["archive_ref"][
-        "archive_path"
-    ]
-    assert "/.ds/restore_proof_archives/" not in compaction["archive_ref"]["archive_path"]
+    archive_refs = json.loads(Path(compaction["archive_refs_path"]).read_text(encoding="utf-8"))["archive_refs"]
+    assert len(archive_refs) == 13
+    assert all(Path(ref["archive_path"]).is_file() for ref in archive_refs)
+    assert all(Path(ref["source_manifest_path"]).is_file() for ref in archive_refs)
+    assert all(Path(ref["restore_proof_path"]).is_file() for ref in archive_refs)
+    assert all("/artifacts/runtime/runtime_storage_maintenance/restore_proof_archives/" in ref["archive_path"] for ref in archive_refs)
+    assert all("/.ds/restore_proof_archives/" not in ref["archive_path"] for ref in archive_refs)
     assert sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file()) < file_count_before
 
     db_path = quest_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
     with sqlite3.connect(db_path) as conn:
-        row = conn.execute(
-            "SELECT archive_id, archive_path, restore_proof_path, payload_json FROM archive_refs WHERE quest_root = ?",
+        quest_ref_count = conn.execute(
+            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
             (str(quest_root.resolve()),),
-        ).fetchone()
-    assert row is not None
-    assert row[0] == compaction["archive_ref"]["archive_id"]
-    assert row[1] == compaction["archive_ref"]["archive_path"]
-    assert row[2] == compaction["restore_proof_path"]
-    assert json.loads(row[3])["sha256"] == compaction["archive_ref"]["sha256"]
+        ).fetchone()[0]
+    assert quest_ref_count == 13
     workspace_db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
     with sqlite3.connect(workspace_db_path) as conn:
-        workspace_row = conn.execute(
-            "SELECT archive_id, archive_path, restore_proof_path, payload_json FROM archive_refs WHERE quest_root = ?",
+        workspace_ref_count = conn.execute(
+            "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
             (str(quest_root.resolve()),),
-        ).fetchone()
-    assert workspace_row is not None
-    assert workspace_row[0] == compaction["archive_ref"]["archive_id"]
-    assert workspace_row[1] == compaction["archive_ref"]["archive_path"]
-    assert workspace_row[2] == compaction["restore_proof_path"]
-    assert json.loads(workspace_row[3])["sha256"] == compaction["archive_ref"]["sha256"]
+        ).fetchone()[0]
+    assert workspace_ref_count == 13
     assert study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]["indexed_table"] == "archive_refs"
+    assert study_report["apply_result"]["runtime_lifecycle_workspace_archive_index"]["indexed_count"] == 13
 
 
 @pytest.mark.parametrize(
@@ -424,6 +421,102 @@ def test_maintain_quest_runtime_storage_slims_sharded_codex_home_report(
     assert result["domain_authority_archive_ref_index"]["indexed_results_inlined"] is False
     assert "indexed_results" not in result["domain_authority_archive_ref_index"]
     assert len(json.dumps(result, ensure_ascii=False)) < 30_000
+
+
+def test_maintain_quest_runtime_storage_compacts_codex_homes_in_limited_shards(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    quest_root = profile.runtime_root / "legacy-codex-homes"
+    _write_quest(quest_root, quest_id="legacy-codex-homes", status="waiting_for_user")
+    for run_id in ("mas-run-a", "mas-run-b", "mas-run-c"):
+        payload = quest_root / ".ds" / "codex_homes" / run_id / ".codex" / "sessions" / f"{run_id}.jsonl"
+        payload.parent.mkdir(parents=True, exist_ok=True)
+        payload.write_text(f"{run_id}\n", encoding="utf-8")
+
+    first = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+        restore_proof_compaction=True,
+        restore_proof_buckets=("codex_homes",),
+        restore_proof_max_shards=2,
+        include_operator_confirmed_parked_active=True,
+    )
+
+    first_compaction = first["restore_proof_compaction"]
+    assert first["status"] == "maintained"
+    assert first_compaction["status"] == "compacted"
+    assert first_compaction["archive_ref_count"] == 2
+    assert first_compaction["remaining_source_group_count"] == 1
+    assert not (quest_root / ".ds" / "codex_homes" / "mas-run-a").exists()
+    assert not (quest_root / ".ds" / "codex_homes" / "mas-run-b").exists()
+    assert (quest_root / ".ds" / "codex_homes" / "mas-run-c").exists()
+
+    second = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+        restore_proof_compaction=True,
+        restore_proof_buckets=("codex_homes",),
+        restore_proof_max_shards=2,
+        include_operator_confirmed_parked_active=True,
+    )
+
+    second_compaction = second["restore_proof_compaction"]
+    assert second["status"] == "maintained"
+    assert second_compaction["archive_ref_count"] == 1
+    assert second_compaction["remaining_source_group_count"] == 0
+    assert not (quest_root / ".ds" / "codex_homes").exists()
+
+
+def test_maintain_quest_runtime_storage_compacts_runs_in_limited_shards(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    quest_root = profile.runtime_root / "legacy-runs"
+    _write_quest(quest_root, quest_id="legacy-runs", status="paused")
+    for run_id in ("run-a", "run-b", "run-c"):
+        payload = quest_root / ".ds" / "runs" / run_id / "stdout.jsonl"
+        payload.parent.mkdir(parents=True, exist_ok=True)
+        payload.write_text(f"{run_id}\n", encoding="utf-8")
+
+    first = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+        restore_proof_compaction=True,
+        restore_proof_buckets=("runs",),
+        restore_proof_max_shards=2,
+        include_parked_controller_stop=True,
+    )
+
+    first_compaction = first["restore_proof_compaction"]
+    assert first["status"] == "maintained"
+    assert first_compaction["status"] == "compacted"
+    assert first_compaction["archive_ref_count"] == 2
+    assert first_compaction["source_group_count"] == 3
+    assert first_compaction["selected_source_group_count"] == 2
+    assert first_compaction["remaining_source_group_count"] == 1
+    assert not (quest_root / ".ds" / "runs" / "run-a").exists()
+    assert not (quest_root / ".ds" / "runs" / "run-b").exists()
+    assert (quest_root / ".ds" / "runs" / "run-c").exists()
+
+    second = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+        restore_proof_compaction=True,
+        restore_proof_buckets=("runs",),
+        restore_proof_max_shards=2,
+        include_parked_controller_stop=True,
+    )
+
+    second_compaction = second["restore_proof_compaction"]
+    assert second["status"] == "maintained"
+    assert second_compaction["archive_ref_count"] == 1
+    assert second_compaction["source_group_count"] == 1
+    assert second_compaction["selected_source_group_count"] == 1
+    assert second_compaction["remaining_source_group_count"] == 0
+    assert not (quest_root / ".ds" / "runs").exists()
 
 
 def test_audit_workspace_storage_restore_proof_compaction_archives_symlink_without_dereferencing(

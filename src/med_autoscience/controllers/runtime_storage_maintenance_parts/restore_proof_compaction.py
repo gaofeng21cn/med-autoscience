@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from datetime import UTC, datetime
-import hashlib
 import itertools
 import json
 import shutil
 import tarfile
 from pathlib import Path
 from typing import Any
+
+from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof_compaction_helpers import (
+    artifact_slug as _artifact_slug,
+    file_sha256 as _file_sha256,
+    restore_proof as _restore_proof,
+    safe_artifact_id as _safe_artifact_id,
+    utc_now as _utc_now,
+    write_json as _write_json,
+)
 
 
 ARCHIVE_FORMAT = "tar.gz"
@@ -194,11 +201,16 @@ def compact_cold_runtime_buckets(
     quest_id: str,
     recorded_at: str,
     buckets: Iterable[str],
+    max_shards: int | None = None,
 ) -> dict[str, Any]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     ds_root = resolved_quest_root / ".ds"
     selected_buckets = tuple(dict.fromkeys(_bucket_name(bucket) for bucket in buckets))
     source_groups = _source_groups(ds_root=ds_root, selected_buckets=selected_buckets)
+    bounded_max_shards = _bounded_max_shards(max_shards)
+    all_source_group_count = len(source_groups)
+    selected_source_groups = source_groups[:bounded_max_shards] if bounded_max_shards else source_groups
+    remaining_source_group_count = max(0, all_source_group_count - len(selected_source_groups))
     if not source_groups:
         return {
             "surface_kind": SURFACE_KIND,
@@ -212,10 +224,14 @@ def compact_cold_runtime_buckets(
             "restore_proof": None,
             "pruned_paths": [],
             "blockers": [],
+            "source_group_count": 0,
+            "selected_source_group_count": 0,
+            "remaining_source_group_count": 0,
+            "max_shards": bounded_max_shards,
         }
     slug = _artifact_slug(recorded_at)
     shards: list[dict[str, Any]] = []
-    for index, source_group in enumerate(source_groups, start=1):
+    for index, source_group in enumerate(selected_source_groups, start=1):
         shard = _compact_source_group(
             quest_root=resolved_quest_root,
             ds_root=ds_root,
@@ -223,7 +239,7 @@ def compact_cold_runtime_buckets(
             recorded_at=recorded_at,
             slug=slug,
             group_index=index,
-            group_count=len(source_groups),
+            group_count=len(selected_source_groups),
             group_id=source_group["group_id"],
             source_paths=source_group["source_paths"],
         )
@@ -265,6 +281,10 @@ def compact_cold_runtime_buckets(
                 "shards_inlined": False,
                 "shard_samples": _sample_values([_shard_report_summary(entry) for entry in shards]),
                 "failed_shard": _shard_report_summary(shard),
+                "source_group_count": all_source_group_count,
+                "selected_source_group_count": len(selected_source_groups),
+                "remaining_source_group_count": remaining_source_group_count,
+                "max_shards": bounded_max_shards,
             }
         shards.append(shard)
 
@@ -275,6 +295,10 @@ def compact_cold_runtime_buckets(
     files_before = sum(int(entry.get("files_before") or 0) for entry in shards)
     actual_release_bytes = sum(int(entry.get("actual_release_bytes") or 0) for entry in shards)
     pruned_paths = [path for entry in shards for path in list(entry.get("pruned_paths") or [])]
+    empty_bucket_pruned_paths = _prune_empty_selected_bucket_dirs(
+        ds_root=ds_root,
+        selected_buckets=selected_buckets,
+    )
     if len(shards) > 1:
         archive_refs_path = _write_archive_refs_index(
             quest_root=resolved_quest_root,
@@ -311,10 +335,15 @@ def compact_cold_runtime_buckets(
             "pruned_path_count": len(pruned_paths),
             "pruned_paths_inlined": False,
             "pruned_path_samples": _sample_values(pruned_paths),
+            "empty_bucket_pruned_paths": empty_bucket_pruned_paths,
             "blockers": [],
             "shard_count": len(shards),
             "shards_inlined": False,
             "shard_samples": _sample_values([_shard_report_summary(entry) for entry in shards]),
+            "source_group_count": all_source_group_count,
+            "selected_source_group_count": len(selected_source_groups),
+            "remaining_source_group_count": remaining_source_group_count,
+            "max_shards": bounded_max_shards,
         }
     return {
         "surface_kind": SURFACE_KIND,
@@ -337,8 +366,13 @@ def compact_cold_runtime_buckets(
         "files_before": files_before,
         "actual_release_bytes": actual_release_bytes,
         "pruned_paths": pruned_paths,
+        "empty_bucket_pruned_paths": empty_bucket_pruned_paths,
         "blockers": [],
         "shards": shards,
+        "source_group_count": all_source_group_count,
+        "selected_source_group_count": len(selected_source_groups),
+        "remaining_source_group_count": remaining_source_group_count,
+        "max_shards": bounded_max_shards,
     }
 
 
@@ -505,7 +539,7 @@ def _source_groups(*, ds_root: Path, selected_buckets: tuple[str, ...]) -> list[
         bucket_path = ds_root / bucket
         if not bucket_path.exists():
             continue
-        if bucket == "codex_homes" and bucket_path.is_dir():
+        if bucket in {"codex_homes", "runs"} and bucket_path.is_dir():
             children = [path for path in sorted(bucket_path.iterdir()) if _has_any_payload(path)]
             groups.extend(
                 {
@@ -525,6 +559,26 @@ def _source_groups(*, ds_root: Path, selected_buckets: tuple[str, ...]) -> list[
             },
         )
     return groups
+
+
+def _bounded_max_shards(value: int | None) -> int | None:
+    if value is None:
+        return None
+    return max(1, int(value))
+
+
+def _prune_empty_selected_bucket_dirs(*, ds_root: Path, selected_buckets: tuple[str, ...]) -> list[str]:
+    pruned_paths: list[str] = []
+    for bucket in selected_buckets:
+        bucket_path = ds_root / bucket
+        if not bucket_path.exists() or not bucket_path.is_dir() or bucket_path.is_symlink():
+            continue
+        try:
+            bucket_path.rmdir()
+        except OSError:
+            continue
+        pruned_paths.append(str(bucket_path))
+    return pruned_paths
 
 
 def _compact_source_group(
@@ -813,96 +867,6 @@ def _source_manifest_entry(*, ds_root: Path, path: Path) -> dict[str, Any]:
     }
 
 
-def _restore_proof(
-    *,
-    archive_path: Path,
-    manifest: Mapping[str, Any],
-    archive_sha256: str,
-    verified_at: str,
-) -> dict[str, Any]:
-    expected = {str(item["path"]): dict(item) for item in manifest.get("source_files", []) if isinstance(item, Mapping)}
-    errors: list[dict[str, Any]] = []
-    observed: dict[str, dict[str, Any]] = {}
-    try:
-        with tarfile.open(archive_path, "r:gz") as tar:
-            file_observations: dict[str, dict[str, Any]] = {}
-            hardlink_refs: list[tuple[str, str, int]] = []
-            for member in tar.getmembers():
-                if member.isfile():
-                    extracted = tar.extractfile(member)
-                    if extracted is None:
-                        errors.append({"path": member.name, "reason": "member_not_readable"})
-                        continue
-                    digest = hashlib.sha256(extracted.read()).hexdigest()
-                    payload = {
-                        "path": member.name,
-                        "entry_type": "file",
-                        "size_bytes": member.size,
-                        "sha256": digest,
-                    }
-                    observed[member.name] = payload
-                    file_observations[member.name] = payload
-                    continue
-                if member.issym():
-                    observed[member.name] = {
-                        "path": member.name,
-                        "entry_type": "symlink",
-                        "link_target": member.linkname,
-                    }
-                    continue
-                if member.islnk():
-                    hardlink_refs.append((member.name, member.linkname, member.size))
-                    continue
-            for member_name, link_name, member_size in hardlink_refs:
-                target = file_observations.get(link_name)
-                if target is None:
-                    errors.append({"path": member_name, "reason": "hardlink_target_missing", "target": link_name})
-                    continue
-                observed[member_name] = {
-                    "path": member_name,
-                    "entry_type": "file",
-                    "size_bytes": member_size or int(target.get("size_bytes") or 0),
-                    "sha256": target.get("sha256"),
-                }
-    except tarfile.TarError as exc:
-        errors.append({"path": str(archive_path), "reason": "archive_not_readable", "error": str(exc)})
-    missing = sorted(set(expected) - set(observed))
-    extra = sorted(set(observed) - set(expected))
-    mismatch = [
-        path
-        for path in sorted(set(expected) & set(observed))
-        if _restore_entry_mismatch(expected[path], observed[path])
-    ]
-    errors.extend({"path": path, "reason": "missing_from_archive"} for path in missing)
-    errors.extend({"path": path, "reason": "unexpected_archive_member"} for path in extra)
-    errors.extend({"path": path, "reason": "archive_member_hash_or_size_mismatch"} for path in mismatch)
-    return {
-        "surface_kind": "runtime_restore_proof",
-        "schema_version": SCHEMA_VERSION,
-        "status": "verified" if not errors else "failed",
-        "verified_at": verified_at,
-        "archive_path": str(archive_path),
-        "archive_format": ARCHIVE_FORMAT,
-        "archive_sha256": archive_sha256,
-        "source_file_count": len(expected),
-        "verified_file_count": len(observed),
-        "verified_entries": [observed[path] for path in sorted(observed)],
-        "errors": errors,
-    }
-
-
-def _restore_entry_mismatch(expected: Mapping[str, Any], observed: Mapping[str, Any]) -> bool:
-    expected_type = str(expected.get("entry_type") or "file")
-    observed_type = str(observed.get("entry_type") or "file")
-    if expected_type != observed_type:
-        return True
-    if expected_type == "symlink":
-        return str(expected.get("link_target") or "") != str(observed.get("link_target") or "")
-    return int(expected.get("size_bytes") or 0) != int(observed.get("size_bytes") or 0) or str(
-        expected.get("sha256") or ""
-    ) != str(observed.get("sha256") or "")
-
-
 def _directory_size_bytes(path: Path) -> int:
     if path.is_symlink():
         return path.lstat().st_size
@@ -942,35 +906,6 @@ def _bucket_name(value: str) -> str:
     if not name or name in {".", ".."} or "/" in name or "\\" in name:
         raise ValueError(f"invalid runtime bucket name: {value!r}")
     return name
-
-
-def _artifact_slug(value: str) -> str:
-    normalized = value.strip()
-    if normalized.endswith("Z"):
-        normalized = f"{normalized[:-1]}+00:00"
-    return datetime.fromisoformat(normalized).astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
-
-
-def _safe_artifact_id(value: str) -> str:
-    safe = "".join(char if char.isalnum() or char in {"-", "_", "."} else "-" for char in str(value).strip())
-    return safe.strip("-._") or "quest"
-
-
-def _utc_now() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
-
-
-def _file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 __all__ = [
