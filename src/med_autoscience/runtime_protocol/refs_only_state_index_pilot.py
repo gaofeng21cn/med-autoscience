@@ -14,6 +14,17 @@ SURFACE_KIND = "mas_runtime_refs_only_state_index_pilot"
 SCHEMA_VERSION = 1
 DEFAULT_DB_FILENAME = "mas_refs_only_state_index_pilot.sqlite"
 INDEX_VERSION = "mas-runtime-refs-only-state-index-pilot.v1"
+FORBIDDEN_REF_SAMPLE_LIMIT = 20
+FORBIDDEN_BODY_MARKERS = (
+    "OWNER_RECEIPT_BODY_MUST_NOT_ENTER_SQLITE",
+    "PUBLICATION_TRUTH_MUST_NOT_ENTER_SQLITE",
+    "MANUSCRIPT_BODY_MUST_NOT_ENTER_SQLITE",
+)
+FORBIDDEN_BODY_MARKER_ROLES = (
+    "owner_receipt_body_fixture",
+    "publication_truth_body_fixture",
+    "manuscript_body_fixture",
+)
 
 _AUTHORITY_BOUNDARY = {
     "sqlite_role": "rebuildable_refs_only_sidecar_index",
@@ -116,6 +127,7 @@ def rebuild_refs_only_state_index(
         conn.commit()
         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         conn.execute("PRAGMA optimize")
+        sqlite_no_body_proof = _sqlite_no_body_proof(conn)
     return {
         "surface_kind": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
@@ -130,11 +142,20 @@ def rebuild_refs_only_state_index(
         "indexed_count": len(rows),
         "family_counts": dict(sorted(family_counts.items())),
         "skipped_forbidden_count": len(skipped),
-        "skipped_forbidden_refs": skipped,
+        "skipped_forbidden_refs_inlined": False,
+        "skipped_forbidden_ref_sample_count": min(len(skipped), FORBIDDEN_REF_SAMPLE_LIMIT),
+        "skipped_forbidden_ref_sample": skipped[:FORBIDDEN_REF_SAMPLE_LIMIT],
         "body_included": False,
         "payload_role": "ref_metadata_only",
         "index_version": INDEX_VERSION,
         "rebuild_epoch": rebuild_epoch,
+        "stage_folder_attempt_projection": _stage_folder_attempt_projection(
+            workspace_root=resolved_workspace_root,
+            quest_root=resolved_quest_root,
+            db_path=resolved_db_path,
+            family_counts=family_counts,
+        ),
+        "sqlite_no_body_proof": sqlite_no_body_proof,
         "authority_boundary": dict(_AUTHORITY_BOUNDARY),
     }
 
@@ -291,6 +312,86 @@ def _write_metadata(conn: sqlite3.Connection, values: Mapping[str, str]) -> None
         "INSERT OR REPLACE INTO state_index_metadata(key, value) VALUES (?, ?)",
         tuple(values.items()),
     )
+
+
+def _stage_folder_attempt_projection(
+    *,
+    workspace_root: Path,
+    quest_root: Path,
+    db_path: Path,
+    family_counts: Counter[str],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "opl_stage_folder_attempt_projection_evidence",
+        "projection_role": "refs_only_attempt_read_model_evidence",
+        "source_of_truth": "physical_stage_folder_manifest_receipt_refs",
+        "stage_completion_signal": False,
+        "body_included": False,
+        "attempt_root_ref": _relative_ref(quest_root, workspace_root),
+        "indexed_ref_families": dict(sorted(family_counts.items())),
+        "sqlite_summary_ref": _relative_ref(db_path, workspace_root),
+    }
+
+
+def _sqlite_no_body_proof(conn: sqlite3.Connection) -> dict[str, Any]:
+    small_file_ref_columns = [
+        str(row[1])
+        for row in conn.execute("PRAGMA table_info(small_file_refs)").fetchall()
+    ]
+    forbidden_column_names = {
+        "artifact_body",
+        "body",
+        "body_json",
+        "content",
+        "controller_decision_body",
+        "evidence_ledger_body",
+        "manuscript_body",
+        "memory_body",
+        "owner_receipt_body",
+        "payload",
+        "payload_body",
+        "publication_eval_body",
+        "raw_body",
+        "review_ledger_body",
+        "study_truth_body",
+        "text_body",
+    }
+    forbidden_columns_present = [
+        column
+        for column in small_file_ref_columns
+        if column in forbidden_column_names
+    ]
+    body_included_values = [
+        int(row[0])
+        for row in conn.execute("SELECT DISTINCT body_included FROM small_file_refs ORDER BY body_included").fetchall()
+    ]
+    indexed_text = "\n".join(
+        "|".join(str(cell) for cell in row)
+        for row in conn.execute(
+            """
+            SELECT ref_family, source_ref, source_path, payload_role, content_hash,
+                   authority_classification
+            FROM small_file_refs
+            ORDER BY source_ref
+            """
+        ).fetchall()
+    )
+    metadata_text = "\n".join(
+        "|".join(str(cell) for cell in row)
+        for row in conn.execute("SELECT key, value FROM state_index_metadata ORDER BY key").fetchall()
+    )
+    sqlite_text = "\n".join((indexed_text, metadata_text))
+    return {
+        "surface_kind": "mas_refs_only_sqlite_no_body_proof",
+        "schema_columns_forbid_body": not forbidden_columns_present,
+        "body_column_present": "body" in small_file_ref_columns,
+        "body_included_values": body_included_values,
+        "forbidden_body_marker_found": any(marker in sqlite_text for marker in FORBIDDEN_BODY_MARKERS),
+        "checked_forbidden_marker_count": len(FORBIDDEN_BODY_MARKERS),
+        "checked_forbidden_marker_roles": list(FORBIDDEN_BODY_MARKER_ROLES),
+        "checked_tables": ["small_file_refs", "state_index_metadata"],
+        "forbidden_columns_present": forbidden_columns_present,
+    }
 
 
 def _file_sha256(path: Path) -> str:

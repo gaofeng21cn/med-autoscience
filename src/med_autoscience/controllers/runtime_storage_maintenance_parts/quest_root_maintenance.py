@@ -50,6 +50,7 @@ def maintain_quest_runtime_storage(
     include_operator_confirmed_parked_active: bool = False,
     restore_proof_buckets: Iterable[str] | None = None,
     refs_only_state_index_pilot: bool = False,
+    refs_only_state_index_only: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     selected_restore_proof_buckets = _restore_proof_buckets(restore_proof_buckets)
@@ -70,6 +71,7 @@ def maintain_quest_runtime_storage(
         "include_operator_confirmed_parked_active": include_operator_confirmed_parked_active,
         "restore_proof_buckets": list(selected_restore_proof_buckets),
         "refs_only_state_index_pilot_enabled": refs_only_state_index_pilot,
+        "refs_only_state_index_only": refs_only_state_index_only,
         "orphan_quest_root_mode": True,
         "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
             report_mode="orphan_quest_runtime_storage_maintenance",
@@ -77,15 +79,26 @@ def maintain_quest_runtime_storage(
     }
     lightweight_buckets = selected_restore_proof_buckets if restore_proof_compaction else ()
     result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
-    result["size_before"] = _size_summary(
-        resolved_quest_root,
-        buckets=selected_restore_proof_buckets,
-        lightweight_buckets=lightweight_buckets,
+    result["size_before"] = (
+        _size_summary_skipped(resolved_quest_root, reason="refs_only_state_index_only")
+        if refs_only_state_index_only
+        else _size_summary(
+            resolved_quest_root,
+            buckets=selected_restore_proof_buckets,
+            lightweight_buckets=lightweight_buckets,
+        )
     )
 
-    if not result["quest_runtime_before"]["quest_exists"]:
+    if refs_only_state_index_only and not refs_only_state_index_pilot:
+        result["status"] = "blocked_refs_only_state_index_only_without_pilot"
+        result["summary"] = "--refs-only-state-index-only requires --refs-only-state-index-pilot."
+    elif not result["quest_runtime_before"]["quest_exists"]:
         result["status"] = "blocked_missing_quest_root"
         result["summary"] = "quest root 尚未就绪，当前无法执行 runtime storage maintenance。"
+    elif refs_only_state_index_only:
+        result["status"] = "maintained"
+        result["summary"] = "refs-only state index pilot 已完成；legacy backend storage maintenance 已按显式 only 模式跳过。"
+        result["legacy_backend_status"] = "skipped_by_refs_only_state_index_only"
     elif restore_proof_compaction:
         _apply_restore_proof_compaction(
             result=result,
@@ -133,12 +146,23 @@ def maintain_quest_runtime_storage(
                 "skip_reason": str(result.get("status") or "storage_maintenance_not_maintained"),
                 "body_included": False,
             }
+    elif refs_only_state_index_only:
+        result["refs_only_state_index_pilot"] = {
+            "surface_kind": refs_only_state_index_pilot_module.SURFACE_KIND,
+            "status": "skipped",
+            "skip_reason": str(result.get("status") or "refs_only_state_index_pilot_not_enabled"),
+            "body_included": False,
+        }
 
     result["quest_runtime_after"] = _quest_runtime_snapshot(resolved_quest_root)
-    result["size_after"] = _size_summary(
-        resolved_quest_root,
-        buckets=selected_restore_proof_buckets,
-        lightweight_buckets=lightweight_buckets,
+    result["size_after"] = (
+        _size_summary_skipped(resolved_quest_root, reason="refs_only_state_index_only")
+        if refs_only_state_index_only
+        else _size_summary(
+            resolved_quest_root,
+            buckets=selected_restore_proof_buckets,
+            lightweight_buckets=lightweight_buckets,
+        )
     )
     report_path = _quest_runtime_maintenance_report_path(resolved_quest_root, recorded_at)
     latest_report_path = _quest_runtime_maintenance_latest_path(resolved_quest_root)
@@ -341,6 +365,17 @@ def _size_summary(
         "total_bytes": total_bytes,
         "lightweight_buckets": sorted(lightweight_bucket_names),
         "buckets": bucket_summaries,
+    }
+
+
+def _size_summary_skipped(quest_root: Path, *, reason: str) -> dict[str, Any]:
+    return {
+        "root": str(quest_root / ".ds"),
+        "status": "skipped",
+        "skip_reason": reason,
+        "total_bytes": None,
+        "lightweight_buckets": [],
+        "buckets": {},
     }
 
 

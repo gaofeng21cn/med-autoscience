@@ -62,14 +62,26 @@ MAS refs-only state index pilot has the same authority boundary. It may store pa
 Stable commands:
 
 - `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --refs-only-state-index-pilot`
+- `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --refs-only-state-index-pilot --refs-only-state-index-only`
 - `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --refs-only-state-index-pilot`
+- `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --refs-only-state-index-pilot --refs-only-state-index-only`
 - `medautosci runtime storage-audit --profile <profile> --all-studies --apply --refs-only-state-index-pilot`
+
+Use `--refs-only-state-index-only` when the purpose is to rebuild the refs-only SQLite pilot on a very large `.ds` tree. In that mode MAS intentionally skips legacy backend storage maintenance and recursive size summaries, records `legacy_backend_status=skipped_by_refs_only_state_index_only`, and writes `size_before` / `size_after` as explicit skipped summaries. This is the preferred live canary path for million-file runtime roots because it indexes refs without doing physical compaction, GC, body migration, paper mutation or artifact cleanup.
 
 Verification:
 
 - `scripts/run-pytest-clean.sh tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py -q`
 - `scripts/run-pytest-clean.sh tests/test_cli_cases/runtime_storage_commands.py -q`
 - `scripts/run-pytest-clean.sh tests/test_stage_artifact_kernel_adoption_contract.py -q`
+
+Live canary evidence:
+
+- `2026-06-04` DM002 `002-dm-china-us-mortality-attribution` ran `runtime maintain-storage --refs-only-state-index-pilot --refs-only-state-index-only` against `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk`.
+- Result: `status=maintained`, `legacy_backend_status=skipped_by_refs_only_state_index_only`, `quest_runtime_before.status=paused`, `quest_runtime_after.status=paused`, `active_run_id=null` before and after, and both size summaries were `status=skipped` with `skip_reason=refs_only_state_index_only`.
+- SQLite proof: `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/artifacts/runtime/mas_refs_only_state_index_pilot.sqlite` existed, table `small_file_refs` had 3 rows, ref families were `lifecycle=1` and `outbox=2`, `body_included` min/max were both `0`, and schema columns did not include `body`, `content` or `payload`.
+- Report refs: `studies/002-dm-china-us-mortality-attribution/artifacts/runtime/runtime_storage_maintenance/20260604T004827Z.json` and `studies/002-dm-china-us-mortality-attribution/artifacts/runtime/runtime_storage_maintenance/latest.json`.
+- Read this as storage/index evidence only. It is not a paper-progress, publication-ready, stage-completion, artifact-authority, restore-ready, retention, GC or compaction receipt.
 
 Files and archives remain authoritative for:
 

@@ -370,6 +370,18 @@
         }
       ],
       "owner": "MedAutoScience",
+      "selected_executor": {
+        "executor_kind": "codex_cli",
+        "default_executor": true,
+        "executor_binding_ref": "default_codex_cli",
+        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
+        "required_capabilities": [
+          "repo_context_reading",
+          "domain_skill_invocation",
+          "receipt_or_typed_blocker_return",
+          "no_forbidden_write_guard"
+        ]
+      },
       "policy_refs": [
         {
           "ref": "agent/stages/stage_route_contract.yaml",
