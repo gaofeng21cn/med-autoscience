@@ -11,6 +11,8 @@ Machine boundary: 本文是人读规划与维护合同。机器真相继续归 c
 
 本文是 stage-surface / review-index / memory-receipt / workbench-projection 的 active support owner，不是 MAS production closure 总计划，也不是按日期增长的执行流水。已落地内容读作当前 stage surface shape、machine-boundary guard 和 evidence-tail 分类；剩余工作只保留会继续约束后续 stage surface 变更的 live paper-line、owner receipt、memory receipt、human gate 和 provider-soak 证据门。
 
+[Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md) 是下一 `/goal` 的 Stage / Route runtime-facing source of truth；本文只承接其中 stage / prompt / skill / knowledge / quality gate 形态边界。文档入口同步不表示重构已完成；实际完成必须落到 `agent/` semantic pack、machine-readable contracts、source/tests、runtime docs、owner receipts、typed blockers 或真实 evidence。single Active Truth 仍归 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)。
+
 ## 结论
 
 MAS 的理想形态不是继续增加程序化科研分流器，而是把每个医学研究 `Stage` 做成清晰、同构、可发现、可执行、可审计的 domain surface。

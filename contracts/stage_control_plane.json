@@ -40,6 +40,11 @@
       "role": "route_contract_source"
     },
     {
+      "ref": "agent/stages/stage_native_semantic_pack.yaml",
+      "ref_kind": "repo_path",
+      "role": "stage_native_semantic_pack"
+    },
+    {
       "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
       "ref_kind": "python_symbol",
       "role": "stage_knowledge_plane_contract"
@@ -482,6 +487,11 @@
           "role": "route_contract_source"
         },
         {
+          "ref": "agent/stages/stage_native_semantic_pack.yaml",
+          "ref_kind": "repo_path",
+          "role": "stage_native_semantic_pack"
+        },
+        {
           "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
           "ref_kind": "python_symbol",
           "role": "stage_knowledge_plane_contract"
@@ -562,8 +572,15 @@
             "tournament_ref",
             "evolution_ref"
           ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
@@ -580,7 +597,8 @@
             "independent_reviewer_or_auditor_receipt_ref",
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
-          ]
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -1277,6 +1295,11 @@
           "role": "route_contract_source"
         },
         {
+          "ref": "agent/stages/stage_native_semantic_pack.yaml",
+          "ref_kind": "repo_path",
+          "role": "stage_native_semantic_pack"
+        },
+        {
           "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
           "ref_kind": "python_symbol",
           "role": "stage_knowledge_plane_contract"
@@ -1356,8 +1379,15 @@
             "tournament_ref",
             "evolution_ref"
           ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
@@ -1374,7 +1404,8 @@
             "independent_reviewer_or_auditor_receipt_ref",
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
-          ]
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -2088,6 +2119,11 @@
           "role": "route_contract_source"
         },
         {
+          "ref": "agent/stages/stage_native_semantic_pack.yaml",
+          "ref_kind": "repo_path",
+          "role": "stage_native_semantic_pack"
+        },
+        {
           "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
           "ref_kind": "python_symbol",
           "role": "stage_knowledge_plane_contract"
@@ -2166,8 +2202,15 @@
             "tournament_ref",
             "evolution_ref"
           ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
@@ -2184,7 +2227,8 @@
             "independent_reviewer_or_auditor_receipt_ref",
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
-          ]
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -2890,6 +2934,11 @@
           "role": "route_contract_source"
         },
         {
+          "ref": "agent/stages/stage_native_semantic_pack.yaml",
+          "ref_kind": "repo_path",
+          "role": "stage_native_semantic_pack"
+        },
+        {
           "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
           "ref_kind": "python_symbol",
           "role": "stage_knowledge_plane_contract"
@@ -2968,8 +3017,15 @@
             "tournament_ref",
             "evolution_ref"
           ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
@@ -2986,7 +3042,8 @@
             "independent_reviewer_or_auditor_receipt_ref",
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
-          ]
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
         },
         "late_stage_progress_sprint_contract": {
           "admission_order": [
@@ -3744,6 +3801,11 @@
           "role": "route_contract_source"
         },
         {
+          "ref": "agent/stages/stage_native_semantic_pack.yaml",
+          "ref_kind": "repo_path",
+          "role": "stage_native_semantic_pack"
+        },
+        {
           "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
           "ref_kind": "python_symbol",
           "role": "stage_knowledge_plane_contract"
@@ -3823,8 +3885,15 @@
             "tournament_ref",
             "evolution_ref"
           ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
@@ -3841,7 +3910,8 @@
             "independent_reviewer_or_auditor_receipt_ref",
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
-          ]
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
         },
         "late_stage_progress_sprint_contract": {
           "admission_order": [
@@ -4602,6 +4672,11 @@
           "role": "route_contract_source"
         },
         {
+          "ref": "agent/stages/stage_native_semantic_pack.yaml",
+          "ref_kind": "repo_path",
+          "role": "stage_native_semantic_pack"
+        },
+        {
           "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
           "ref_kind": "python_symbol",
           "role": "stage_knowledge_plane_contract"
@@ -4682,8 +4757,15 @@
             "tournament_ref",
             "evolution_ref"
           ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
@@ -4700,7 +4782,8 @@
             "independent_reviewer_or_auditor_receipt_ref",
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
-          ]
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
         },
         "late_stage_progress_sprint_contract": {
           "admission_order": [

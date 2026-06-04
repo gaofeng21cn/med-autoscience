@@ -205,6 +205,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["pack_compiler_input"]["src_must_not_be_canonical_semantic_pack"] is True
     required_paths = generated["pack_compiler_input"]["required_domain_pack_paths"]
     assert "agent/stages/stage_route_contract.yaml" in required_paths
+    assert "agent/stages/stage_native_semantic_pack.yaml" in required_paths
     assert "agent/knowledge/hypothesis_portfolio_evidence_pack.md" in required_paths
     assert set(AGENT_PROMPT_REFS.values()) <= set(required_paths)
     assert all(str(path).startswith("agent/") for path in required_paths)
@@ -272,6 +273,19 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "human_gate_receipt_ref",
     } <= set(hypothesis_pack["candidate_required_ref_families"])
     assert {"ranking_ref", "proximity_ref"} <= set(hypothesis_pack["advisory_ref_families"])
+    assert hypothesis_pack["validator_ref"] == (
+        "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::"
+        "validate_hypothesis_portfolio_candidate_refs"
+    )
+    assert hypothesis_pack["candidate_promotion_requires_validator"] is True
+    assert hypothesis_pack["advisory_refs_are_authority"] is False
+    assert hypothesis_pack["candidate_validation_output_contract"] == {
+        "success_status": "validated",
+        "blocked_status": "typed_blocker",
+        "can_promote_candidate_requires": "all_required_ref_families_present",
+        "missing_required_ref_blocker_id": "missing_hypothesis_portfolio_ref_family",
+        "route_back_owner_required_when_blocked": True,
+    }
     assert hypothesis_pack["authority_boundary"]["ranking_and_proximity_authority"] == (
         "advisory_only"
     )
@@ -438,6 +452,7 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         assert str(prompt_ref["ref"]).startswith("agent/prompts/")
         _assert_pack_path_is_real(str(prompt_ref["ref"]))
         assert any(ref["role"] == "stage_domain_policy" for ref in stage["policy_refs"])
+        assert any(ref["role"] == "stage_native_semantic_pack" for ref in stage["source_refs"])
         assert all(
             str(ref["ref"]).startswith("agent/") or ref["role"] in {"route_contract", "stage_led_policy"}
             for ref in stage["policy_refs"]
@@ -499,6 +514,19 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         assert typed_blocker_lineage_policy["repeat_budget"] == {
             "mechanism_repair_after_repeat_count": 2,
             "human_gate_or_stop_loss_after_repeat_count": 3,
+        }
+        hypothesis_pack = stage["stage_contract"]["hypothesis_portfolio_evidence_pack"]
+        assert hypothesis_pack["validator_ref"] == (
+            "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::"
+            "validate_hypothesis_portfolio_candidate_refs"
+        )
+        assert hypothesis_pack["candidate_promotion_requires_validator"] is True
+        assert hypothesis_pack["advisory_refs_are_authority"] is False
+        assert hypothesis_pack["ranking_and_proximity_authority"] == "advisory_only"
+        assert hypothesis_pack["fail_closed_output_shape"] == {
+            "status": "typed_blocker",
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
         }
     assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
     assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"

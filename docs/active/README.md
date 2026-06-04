@@ -17,6 +17,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 - [MAS Current Development Lines](./current-development-lines.md)
 - [Program Portfolio Consolidation](./program_portfolio_consolidation.md)
 - [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)
+- [Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md)
 - [MAS Stage Surfaces](../runtime/contracts/stage_surfaces.md)
 
 过程归档只在需要追溯历史时读取，不作为 active 默认入口：
@@ -32,6 +33,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 | 层次 | 文档 | 当前作用 |
 | --- | --- | --- |
 | 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前唯一真相、已落地状态、功能/结构差距、测试/证据差距、完善顺序、历史索引和禁止误写口径。 |
+| 下一执行规格 | [Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md) | 把 Co-Scientist 启发的 Stage-native scientific work system 转成下一 `/goal` 的 runtime-facing 规格、并行 lane、验收门和吸收规则；它不替代 gap plan，也不声明实现已落地。 |
 | 控制面收薄 guard | [MAS Current Development Lines](./current-development-lines.md) + [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 当前 active 层只保留 `macro_state + owner_route + receipt_or_blocker + evidence_refs` 行为契约和 production evidence tail；已关闭折返记录进入 history/provenance。 |
 | 当前内容线索引 | [MAS Current Development Lines](./current-development-lines.md) | 把仍有效内容线归为 landed foundation、functional follow-through gate 或 production evidence gate；不维护第二 backlog，若与 gap plan 冲突以 gap plan 为准。 |
 | 文档组合 / 历史归位 | [Program Portfolio Consolidation](./program_portfolio_consolidation.md) | 只说明 active program 文档唯一职责、历史记录去向和 direct retirement rule；不替代 gap plan，也不作为第二 backlog。 |

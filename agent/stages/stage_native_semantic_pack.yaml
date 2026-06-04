@@ -1,0 +1,818 @@
+stage_native_semantic_pack:
+  pack_id: coscientist_stage_route_lane_a
+  source_design: docs/runtime/designs/coscientist_stage_route_restructure.md
+  state: semantic_pack_contract_source
+  machine_boundary: agent semantic pack only; runtime authority still requires MAS contracts, controller surfaces, owner receipts, typed blockers, and repo-native verification
+  required_stage_fields:
+    - stage_objective
+    - entry_contract
+    - skill_pack
+    - tool_policy
+    - knowledge_packet
+    - portfolio_input
+    - quality_gate
+    - closeout
+    - memory_writeback
+    - opl_projection
+  global_authority_boundary:
+    mas_authority:
+      - study_truth
+      - source_readiness_verdict
+      - evidence_interpretation
+      - publication_quality_verdict
+      - publication_route_memory_accept_reject
+      - artifact_mutation_authority
+      - current_package_authority
+      - owner_receipt
+      - typed_blocker
+    opl_refs_only_projection:
+      - index_refs
+      - display_refs
+      - dispatch_allowlisted_task_refs
+      - transport_receipts
+      - project_status_from_refs
+    forbidden_opl_writes:
+      - study_truth
+      - source_body
+      - memory_body
+      - artifact_body
+      - publication_verdict
+      - source_readiness_verdict
+      - artifact_mutation_verdict
+      - current_package
+      - submission_readiness
+  advisory_signal_policy:
+    advisory_only:
+      - generation
+      - reflection
+      - ranking
+      - proximity
+      - pairwise_debate
+      - tournament
+      - evolution
+      - meta_review_summary
+    allowed_uses:
+      - exploration_ordering
+      - candidate_clustering
+      - reviewer_workload_shaping
+      - route_option_context
+      - failed_path_recall
+    forbidden_authority_uses:
+      - source_readiness
+      - medical_quality_verdict
+      - publication_gate
+      - human_gate
+      - artifact_authority
+      - owner_receipt
+      - typed_blocker
+      - route_completion
+      - current_package_update
+    fail_closed_when_missing_refs:
+      - supporting_evidence_refs
+      - contradicting_evidence_refs
+      - source_provenance_refs
+      - failed_path_refs
+      - testability_refs
+      - required_reviewer_or_human_gate_refs
+  execution_review_independence:
+    policy: fail_closed
+    requirement: quality gates require a reviewer/auditor invocation that is separate from the executor invocation that produced the work
+    required_independence_refs:
+      - executor_task_record_ref
+      - reviewer_or_auditor_task_record_ref
+      - separate_context_summary_ref
+      - refs_reviewed
+      - reviewer_or_auditor_owner_receipt
+    invalid_closures:
+      - executor_self_review
+      - provider_completion
+      - queue_done
+      - read_model_refresh
+      - page_generated
+      - ranking_top_score
+      - mechanical_check_only
+  anchors:
+    advisory_stage_signals: &advisory_stage_signals
+      - generation_ref
+      - reflection_ref
+      - ranking_ref_advisory
+      - proximity_ref_advisory
+      - pairwise_debate_ref_advisory
+      - evolution_ref_advisory
+      - meta_review_summary_ref_advisory
+    fail_closed_reviewer_independence: &fail_closed_reviewer_independence
+      required: true
+      fail_closed_if_missing_or_same_invocation: true
+      invalid_sources:
+        - executor_self_review
+        - provider_completion
+        - mechanical_check_only
+        - generated_projection
+    refs_only_opl_projection: &refs_only_opl_projection
+      allowed:
+        - stage_id
+        - route_id
+        - work_unit_ref
+        - input_refs
+        - output_refs
+        - owner_receipt_ref
+        - typed_blocker_ref
+        - human_gate_ref
+        - advisory_signal_refs
+      forbidden:
+        - source_body
+        - memory_body
+        - artifact_body
+        - study_truth_body
+        - publication_verdict
+        - source_readiness_verdict
+        - artifact_authority_verdict
+        - current_package_mutation
+    forbidden_opl_stage_writes: &forbidden_opl_stage_writes
+      - source_body
+      - memory_body
+      - artifact_body
+      - study_truth
+      - publication_verdict
+      - source_readiness_verdict
+      - artifact_authority_verdict
+      - current_package
+      - submission_readiness
+  main_stages:
+    scout:
+      stage_objective: Freeze the study question, population, source/evidence boundary, topic landscape, and next route recommendation.
+      entry_contract:
+        required_refs:
+          - study_charter_or_task_intake_ref
+          - workspace_source_locator_ref
+          - literature_coverage_ref
+          - prior_art_boundary_ref
+          - controller_decision_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/direction_and_route_selection.md
+        policy_refs:
+          - agent/stages/direction_and_route_selection.policy.md
+          - agent/skills/medical_research_execution.md
+          - agent/skills/owner_receipt_and_route_control.md
+      tool_policy:
+        allowed_tools:
+          - literature_search
+          - source_locator
+          - guideline_and_journal_neighbor_ref_lookup
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - topic_landscape_ref
+          - workspace_literature_coverage_ref
+          - prior_art_boundary_ref
+          - guideline_or_journal_neighbor_refs
+      portfolio_input:
+        required: true
+        candidate_families:
+          - question_candidate
+          - evidence_gap_candidate
+          - route_option
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/artifact_source_authority_gate.md
+        checks:
+          - question_population_evidence_boundary
+          - novelty_and_prior_art_boundary
+          - source_readiness_floor
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - owner_receipt
+          - route_back_request
+          - human_gate_request
+          - typed_blocker
+          - stop_loss
+        required_refs:
+          - scout_note_ref
+          - literature_search_strategy_ref
+          - next_route_recommendation_ref
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - topic_landscape_lesson_ref
+          - literature_gap_ref
+          - route_recommendation_lesson_ref
+      opl_projection: *refs_only_opl_projection
+    idea:
+      stage_objective: Generate and select the strongest study line while preserving rejected alternatives and stop rules.
+      entry_contract:
+        required_refs:
+          - scout_receipt_ref
+          - candidate_portfolio_ref
+          - study_reference_context_ref
+          - publication_route_memory_ref
+          - controller_decision_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/direction_and_route_selection.md
+        policy_refs:
+          - agent/stages/direction_and_route_selection.policy.md
+          - agent/knowledge/hypothesis_portfolio_evidence_pack.md
+          - agent/skills/owner_receipt_and_route_control.md
+      tool_policy:
+        allowed_tools:
+          - candidate_board
+          - prior_failed_line_recall
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - prior_candidate_refs
+          - failed_line_refs
+          - journal_fit_refs
+          - study_reference_context_ref
+      portfolio_input:
+        required: true
+        candidate_families:
+          - hypothesis_candidate
+          - claim_candidate
+          - route_option
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/ai_reviewer_auditor_gate.md
+          - agent/quality_gates/artifact_source_authority_gate.md
+        checks:
+          - novelty
+          - clinical_relevance
+          - data_fit
+          - testability
+          - stop_rule
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - owner_receipt
+          - route_back_request
+          - human_gate_request
+          - typed_blocker
+          - stop_loss
+        required_refs:
+          - selected_line_ref
+          - rejected_alternatives_ref
+          - stop_rule_ref
+          - next_route_recommendation_ref
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - selected_line_lesson_ref
+          - rejected_alternative_lesson_ref
+          - stop_rule_lesson_ref
+      opl_projection: *refs_only_opl_projection
+    baseline:
+      stage_objective: Establish reproducible cohort, endpoint, comparator, source readiness, and baseline support for the active claim boundary.
+      entry_contract:
+        required_refs:
+          - selected_line_receipt_ref
+          - data_source_contract_ref
+          - cohort_definition_ref
+          - endpoint_definition_ref
+          - comparator_definition_ref
+          - prior_result_lineage_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/baseline_and_evidence_setup.md
+        policy_refs:
+          - agent/stages/baseline_and_evidence_setup.policy.md
+          - agent/knowledge/source_readiness_and_artifact_authority.md
+          - agent/skills/medical_research_execution.md
+      tool_policy:
+        allowed_tools:
+          - data_contract_reader
+          - baseline_runner
+          - reproducibility_ref_collector
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - cohort_lock_ref
+          - endpoint_window_ref
+          - comparator_history_ref
+          - failed_comparator_history_ref
+          - source_provenance_ref
+      portfolio_input:
+        required: true
+        candidate_families:
+          - baseline_candidate
+          - comparator_candidate
+          - source_readiness_candidate
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/artifact_source_authority_gate.md
+        checks:
+          - reproducibility
+          - source_readiness
+          - comparator_validity
+          - failed_comparator_lessons
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - owner_receipt
+          - route_back_request
+          - human_gate_request
+          - typed_blocker
+          - stop_loss
+        required_refs:
+          - baseline_artifact_ref
+          - source_readiness_ref_or_blocker
+          - run_context_ref
+          - continue_reroute_or_stop_ref
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - baseline_cohort_endpoint_comparator_snapshot_ref
+          - failed_comparator_lesson_ref
+          - source_readiness_lesson_ref
+      opl_projection: *refs_only_opl_projection
+    experiment:
+      stage_objective: Produce the primary managed result that answers the current study question or yields a route-safe blocker.
+      entry_contract:
+        required_refs:
+          - baseline_readiness_receipt_ref
+          - approved_experiment_protocol_ref
+          - endpoint_and_comparator_lock_ref
+          - statistical_analysis_plan_ref
+          - startup_run_context_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/baseline_and_evidence_setup.md
+        policy_refs:
+          - agent/stages/baseline_and_evidence_setup.policy.md
+          - agent/skills/medical_research_execution.md
+          - agent/skills/owner_receipt_and_route_control.md
+      tool_policy:
+        allowed_tools:
+          - analysis_pipeline
+          - stat_plan_runner
+          - run_lineage_collector
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - approved_protocol_ref
+          - endpoint_lock_ref
+          - comparator_lock_ref
+          - prior_result_lineage_ref
+          - failed_comparator_history_ref
+      portfolio_input:
+        required: true
+        candidate_families:
+          - primary_result_candidate
+          - analysis_option
+          - route_option
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/artifact_source_authority_gate.md
+          - agent/quality_gates/ai_reviewer_auditor_gate.md
+        checks:
+          - result_answers_question
+          - negative_result_preservation
+          - deviation_refs
+          - reproducible_lineage
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - owner_receipt
+          - route_back_request
+          - human_gate_request
+          - typed_blocker
+          - stop_loss
+        required_refs:
+          - primary_result_ref
+          - run_lineage_ref
+          - deviation_or_negative_result_ref
+          - next_route_recommendation_ref
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - primary_result_lineage_lesson_ref
+          - endpoint_or_comparator_deviation_lesson_ref
+          - negative_result_lesson_ref
+      opl_projection: *refs_only_opl_projection
+    analysis-campaign:
+      stage_objective: Close bounded evidence gaps through controlled exploration, robustness, sensitivity, subgroup, debug, or stop decisions.
+      entry_contract:
+        required_refs:
+          - baseline_or_primary_result_ref
+          - bounded_analysis_question_ref
+          - evidence_gap_ref
+          - reviewer_concern_ref
+          - failed_path_history_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/bounded_analysis_campaign.md
+        policy_refs:
+          - agent/stages/bounded_analysis_campaign.policy.md
+          - agent/knowledge/hypothesis_portfolio_evidence_pack.md
+          - agent/skills/medical_research_execution.md
+      tool_policy:
+        allowed_tools:
+          - sensitivity_analysis
+          - subgroup_analysis
+          - fusion_or_debug_candidate_board
+          - stop_candidate_board
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - evidence_gap_ref
+          - reviewer_concern_ref
+          - failed_path_history_ref
+          - bounded_frontier_ref
+          - multiplicity_guardrail_ref
+      portfolio_input:
+        required: true
+        candidate_families:
+          - analysis_candidate
+          - robustness_candidate
+          - stop_candidate
+          - route_option
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/ai_reviewer_auditor_gate.md
+        checks:
+          - evidence_gain
+          - multiplicity
+          - claim_boundary
+          - route_impact
+          - failed_path_preservation
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - owner_receipt
+          - route_back_request
+          - human_gate_request
+          - typed_blocker
+          - stop_loss
+        required_refs:
+          - analysis_result_ref
+          - evidence_ledger_ref
+          - failed_path_ref
+          - claim_impact_ref
+          - next_route_recommendation_ref
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - evidence_gap_resolution_lesson_ref
+          - negative_or_weak_result_lesson_ref
+          - route_impact_lesson_ref
+      opl_projection: *refs_only_opl_projection
+    write:
+      stage_objective: Convert the current portfolio/evidence candidate into canonical manuscript narrative with claim-evidence traceability.
+      entry_contract:
+        required_refs:
+          - evidence_and_claim_impact_receipt_ref
+          - claim_evidence_map_ref
+          - citation_or_source_refs
+          - reporting_guideline_ref
+          - display_to_claim_map_ref
+          - canonical_manuscript_source_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/manuscript_authoring.md
+        policy_refs:
+          - agent/stages/manuscript_authoring.policy.md
+          - agent/skills/medical_research_execution.md
+          - agent/knowledge/publication_route_memory.md
+      tool_policy:
+        allowed_tools:
+          - manuscript_builder
+          - claim_evidence_map_builder
+          - citation_ref_tool
+          - display_to_claim_checker
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - evidence_pack_ref
+          - journal_neighbor_ref
+          - reporting_guideline_ref
+          - failed_path_ref
+          - reviewer_concern_ref
+      portfolio_input:
+        required: true
+        candidate_families:
+          - claim_candidate
+          - narrative_option
+          - display_option
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/ai_reviewer_auditor_gate.md
+          - agent/quality_gates/artifact_source_authority_gate.md
+        checks:
+          - claim_restraint
+          - citation_support
+          - reader_risk
+          - display_to_claim_consistency
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - owner_receipt
+          - route_back_request
+          - human_gate_request
+          - typed_blocker
+          - stop_loss
+        required_refs:
+          - canonical_manuscript_ref
+          - claim_evidence_map_ref
+          - citation_source_ref
+          - review_handoff_ref
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - writing_lesson_ref
+          - claim_wording_boundary_decision_ref
+          - reporting_or_display_gap_ref
+      opl_projection: *refs_only_opl_projection
+    review:
+      stage_objective: Independently review current manuscript, evidence, source, artifact, and route memory, then return route-safe repair, blocker, or gate record.
+      entry_contract:
+        required_refs:
+          - reviewable_manuscript_ref
+          - claim_evidence_map_ref
+          - evidence_ledger_ref
+          - source_readiness_ref
+          - artifact_rebuild_ref
+          - prior_reviewer_finding_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/review_and_quality_gate.md
+        policy_refs:
+          - agent/stages/review_and_quality_gate.policy.md
+          - agent/quality_gates/ai_reviewer_auditor_gate.md
+          - agent/skills/owner_receipt_and_route_control.md
+      tool_policy:
+        allowed_tools:
+          - literature_grounded_reader
+          - source_grounded_reader
+          - statistical_reporting_check
+          - citation_integrity_check
+          - artifact_currentness_check
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - manuscript_ref
+          - claim_map_ref
+          - prior_reviewer_finding_ref
+          - journal_response_pack_ref
+          - reporting_and_citation_pack_refs
+      portfolio_input:
+        required: true
+        candidate_families:
+          - reviewer_finding_candidate
+          - repair_option
+          - route_option
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/ai_reviewer_auditor_gate.md
+        checks:
+          - independent_ai_reviewer_record
+          - medical_quality_judgment
+          - currentness
+          - route_back_or_blocker_mapping
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - independent_reviewer_record
+          - route_back_request
+          - human_gate_request
+          - typed_blocker
+          - stop_loss
+        required_refs:
+          - reviewer_or_auditor_record_ref
+          - review_ledger_ref
+          - typed_blocker_or_gate_record_ref
+          - next_route_recommendation_ref
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - reusable_critique_lesson_ref
+          - memory_accept_reject_receipt_ref
+          - reviewer_action_matrix_ref
+      opl_projection: *refs_only_opl_projection
+    finalize:
+      stage_objective: Produce package authority handoff only after quality, source, artifact, controller, and human-gate refs are current.
+      entry_contract:
+        required_refs:
+          - independent_reviewer_record_ref
+          - publication_eval_ref
+          - controller_decision_ref
+          - package_freshness_proof_ref
+          - artifact_authority_ref
+          - human_gate_status_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/finalize_and_publication_handoff.md
+        policy_refs:
+          - agent/stages/finalize_and_publication_handoff.policy.md
+          - agent/quality_gates/artifact_source_authority_gate.md
+          - agent/skills/owner_receipt_and_route_control.md
+      tool_policy:
+        allowed_tools:
+          - rebuild_export
+          - package_proof
+          - declarations_and_ethics_check
+          - artifact_lineage_check
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - publication_eval_ref
+          - controller_decision_ref
+          - package_freshness_ref
+          - artifact_lineage_ref
+          - target_outlet_or_human_gate_ref
+      portfolio_input:
+        required: true
+        candidate_families:
+          - package_option
+          - submission_readiness_blocker
+          - route_option
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/ai_reviewer_auditor_gate.md
+          - agent/quality_gates/artifact_source_authority_gate.md
+        checks:
+          - artifact_lineage
+          - submission_readiness_boundary
+          - source_and_package_currentness
+          - human_gate_status
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - publication_handoff_receipt
+          - artifact_mutation_blocker
+          - publication_quality_blocker
+          - human_gate_request
+          - stop_loss
+        required_refs:
+          - final_package_ref
+          - artifact_authority_receipt_ref
+          - package_freshness_ref
+          - human_gate_or_submission_boundary_ref
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - package_freshness_lesson_ref
+          - declaration_or_ethics_blocker_ref
+          - human_gate_lesson_ref
+      opl_projection: *refs_only_opl_projection
+    decision:
+      stage_objective: Arbitrate continue, route-back, review, repair, human gate, stop-loss, or finalize using current evidence and receipt refs.
+      entry_contract:
+        required_refs:
+          - all_relevant_owner_receipts_ref
+          - typed_blocker_refs
+          - review_refs
+          - failed_path_history_ref
+          - controller_decision_inputs_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/direction_and_route_selection.md
+          - agent/prompts/finalize_and_publication_handoff.md
+        policy_refs:
+          - agent/stages/direction_and_route_selection.policy.md
+          - agent/skills/owner_receipt_and_route_control.md
+          - agent/knowledge/publication_route_memory.md
+      tool_policy:
+        allowed_tools:
+          - stop_loss_memo
+          - route_matrix
+          - decision_trace
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - receipt_and_blocker_set_ref
+          - review_record_ref
+          - failed_path_history_ref
+          - stop_loss_context_ref
+          - human_gate_context_ref
+      portfolio_input:
+        required: true
+        candidate_families:
+          - route_option
+          - stop_loss_candidate
+          - human_gate_option
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/ai_reviewer_auditor_gate.md
+          - agent/quality_gates/artifact_source_authority_gate.md
+        checks:
+          - current_evidence_cited
+          - go_stop_reroute_human_gate_authority
+          - no_platform_repair_as_progress
+          - no_advisory_signal_as_authority
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - controller_decision_receipt
+          - route_back_request
+          - human_gate_request
+          - typed_blocker
+          - stop_loss
+        required_refs:
+          - decision_record_ref
+          - cited_evidence_ref
+          - next_owner_ticket_ref
+          - stop_loss_memo_ref_when_applicable
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - stop_or_pivot_lesson_ref
+          - route_impact_lesson_ref
+          - rejected_alternative_lesson_ref
+      opl_projection: *refs_only_opl_projection
+    journal-resolution:
+      stage_objective: Resolve outlet, export, response, data/citation/figure package constraints without changing the active claim boundary.
+      entry_contract:
+        required_refs:
+          - manuscript_or_package_ref
+          - target_outlet_constraint_ref
+          - journal_guideline_ref
+          - export_profile_ref
+          - claim_boundary_ref
+        fail_closed_if_missing: true
+      skill_pack:
+        prompt_refs:
+          - agent/prompts/finalize_and_publication_handoff.md
+          - agent/prompts/manuscript_authoring.md
+        policy_refs:
+          - agent/stages/finalize_and_publication_handoff.policy.md
+          - agent/knowledge/publication_route_memory.md
+          - agent/skills/owner_receipt_and_route_control.md
+      tool_policy:
+        allowed_tools:
+          - journal_guideline_reader
+          - export_profile_checker
+          - response_pack_checker
+          - data_citation_figure_pack_checker
+          - mas_status_and_allowlisted_dispatch
+        forbidden_writes: *forbidden_opl_stage_writes
+      knowledge_packet:
+        required_refs:
+          - official_author_guideline_ref
+          - outlet_profile_ref
+          - exporter_profile_constraint_ref
+          - response_pack_ref
+          - citation_and_figure_pack_refs
+      portfolio_input:
+        required: true
+        candidate_families:
+          - outlet_candidate
+          - package_route_option
+          - journal_fit_blocker
+        advisory_signals: *advisory_stage_signals
+      quality_gate:
+        gate_refs:
+          - agent/quality_gates/ai_reviewer_auditor_gate.md
+          - agent/quality_gates/artifact_source_authority_gate.md
+        checks:
+          - journal_fit_preserves_claim_boundary
+          - export_profile_currentness
+          - package_constraints_do_not_authorize_submission
+          - human_gate_boundary
+        independence: *fail_closed_reviewer_independence
+      closeout:
+        valid_outcomes:
+          - owner_receipt
+          - journal_fit_blocker
+          - route_back_request
+          - human_gate_request
+          - stop_loss
+        required_refs:
+          - outlet_resolution_ref
+          - export_profile_ref
+          - packaging_constraint_ref
+          - next_route_recommendation_ref
+      memory_writeback:
+        required: true
+        writeback_refs:
+          - outlet_fit_lesson_ref
+          - exporter_constraint_lesson_ref
+          - reporting_guideline_delta_ref
+      opl_projection: *refs_only_opl_projection

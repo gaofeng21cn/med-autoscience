@@ -101,6 +101,77 @@ def test_medical_quality_regression_lane_keeps_platform_repair_out_of_paper_prog
     assert result["next_forced_delta"]["reason"] == "platform_repair_does_not_count_as_paper_progress"
 
 
+def test_progress_first_projection_exposes_current_owner_ticket_without_domain_authority() -> None:
+    projection = importlib.import_module("med_autoscience.controllers.study_progress_parts.progress_first_projection")
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 1},
+            "domain_transition": {
+                "owner": "write",
+                "route_target": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "summary": "Repair manuscript story surface from current eval.",
+                },
+                "guard_boundary": {
+                    "required_owner_surface": "paper/draft.md plus claim-evidence map",
+                },
+                "source_refs": ["artifacts/publication_eval/latest.json"],
+            },
+            "current_blockers": ["platform_repair_only"],
+        }
+    )
+
+    ticket = result["current_owner_ticket"]
+    assert ticket["surface_kind"] == "mas_current_owner_ticket"
+    assert ticket["owner"] == "write"
+    assert ticket["allowed_action"] == "run_quality_repair_batch"
+    assert ticket["work_unit"] == {
+        "work_unit_id": "medical_prose_write_repair",
+        "summary": "Repair manuscript story surface from current eval.",
+    }
+    assert ticket["required_input_refs"] == ["artifacts/publication_eval/latest.json"]
+    assert ticket["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "write",
+        "surface_ref": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+    }
+    assert ticket["acceptance_criteria"] == result["next_forced_delta"]["acceptance_refs"]
+    assert ticket["forbidden_writes"] == [
+        "study_truth",
+        "memory_body",
+        "artifact_body",
+        "publication_verdict",
+        "source_readiness_verdict",
+        "current_package",
+    ]
+    assert ticket["expected_receipt_or_blocker"] == [
+        "owner_receipt",
+        "typed_blocker",
+        "route_back_request",
+        "human_gate_request",
+        "stop_loss",
+    ]
+    assert ticket["no_loop_budget"] == {
+        "platform_repair_is_not_deliverable_progress": True,
+        "provider_completion_is_not_closeout": True,
+        "repeat_same_work_unit_requires_typed_blocker_or_new_target_surface": True,
+    }
+    assert ticket["authority_boundary"] == {
+        "ticket_authorizes_next_attempt_only": True,
+        "ticket_authorizes_publication_quality": False,
+        "ticket_authorizes_artifact_mutation": False,
+        "ticket_authorizes_study_truth_write": False,
+    }
+    assert result["next_forced_delta"]["current_owner_ticket"] == ticket
+
+
 def test_medical_quality_regression_lane_projects_runtime_closeout_only_as_route_back_checklist() -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_progress_state")
     payload = {

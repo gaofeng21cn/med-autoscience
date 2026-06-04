@@ -82,11 +82,19 @@ def is_legacy_restore_import_context(quest_root: Path) -> bool:
     return (resolved_quest_root / ".ds" / "runtime_state.json").exists()
 
 
+def runtime_state_path_candidates(quest_root: Path) -> tuple[Path, ...]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    return (
+        resolved_quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
+        resolved_quest_root / ".ds" / "runtime_state.json",
+    )
+
+
 def load_runtime_state(quest_root: Path) -> dict[str, Any]:
-    path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
-    if not path.exists():
-        return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    for path in runtime_state_path_candidates(quest_root):
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    return {}
 
 
 def quest_status(quest_root: Path) -> str:
@@ -150,8 +158,12 @@ def resolve_active_stdout_path(*, quest_root: Path, runtime_state: dict[str, Any
     active_run_id = runtime_state.get("active_run_id")
     if not active_run_id:
         return None
-    path = Path(quest_root).expanduser().resolve() / ".ds" / "runs" / str(active_run_id) / "stdout.jsonl"
-    return path if path.exists() else None
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    candidates = (
+        resolved_quest_root / "artifacts" / "runtime" / "runs" / str(active_run_id) / "stdout.jsonl",
+        resolved_quest_root / ".ds" / "runs" / str(active_run_id) / "stdout.jsonl",
+    )
+    return next((path for path in candidates if path.exists()), None)
 
 
 def read_recent_stdout_lines(stdout_path: Path | None, *, limit: int = 40) -> list[str]:

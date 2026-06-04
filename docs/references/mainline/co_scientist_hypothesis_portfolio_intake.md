@@ -50,3 +50,5 @@ MAS 新增方向应表述为 `hypothesis portfolio / evidence pack`，并落在 
 ## 当前落地口径
 
 本 intake 已按 MAS contract-first 顺序落到 semantic pack、generated standard pack / stage control plane descriptor、focused tests 与 OPL refs-only hypothesis portfolio projection contract。后续扩展仍必须先定义 owner、refs、forbidden writes、receipt/blocker、schema fail-closed 和 generated projection，再补 fixtures/tests。不能先把 Co-Scientist 词面、Elo 数值或 proximity 文案写进 runtime 判断，再用文档解释边界。
+
+后续 runtime-facing Stage / Route 重构规格见 [Co-Scientist Stage / Route 重构设计与执行规格](../../runtime/designs/coscientist_stage_route_restructure.md)。该规格承接本文的外部模式 intake，但只有在落到 `agent/` semantic pack、machine-readable contracts、source/read-model、focused tests、owner receipts、typed blockers 或 runtime evidence 后，才算实际实现。

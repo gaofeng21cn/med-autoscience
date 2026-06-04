@@ -55,13 +55,21 @@ def build_progress_first_projection(payload: Mapping[str, Any]) -> dict[str, dic
         "allowed_nonterminal_outcomes": list(PROGRESS_FIRST_OUTCOME_CLASSES),
         "platform_only_is_paper_progress": False,
     }
+    next_forced_delta = _next_forced_delta(
+        state=state,
+        current_blockers=payload.get("current_blockers"),
+        owner_route=owner_route,
+    )
+    current_owner_ticket = _current_owner_ticket(
+        owner_route=owner_route,
+        state=state,
+        next_forced_delta=next_forced_delta,
+    )
+    next_forced_delta["current_owner_ticket"] = current_owner_ticket
     return {
         "progress_first_sprint_state": state,
-        "next_forced_delta": _next_forced_delta(
-            state=state,
-            current_blockers=payload.get("current_blockers"),
-            owner_route=owner_route,
-        ),
+        "next_forced_delta": next_forced_delta,
+        "current_owner_ticket": current_owner_ticket,
     }
 
 
@@ -338,6 +346,9 @@ def _owner_route_from_domain_transition(payload: Mapping[str, Any]) -> dict[str,
     route: dict[str, Any] = {
         "next_owner": next_owner,
         "route_target": route_target,
+        "next_work_unit": work_unit,
+        "required_input_refs": _ref_items(transition.get("source_refs"))
+        + _ref_items(transition.get("evidence_refs")),
         "source_refs": {
             key: value
             for key, value in {
@@ -502,6 +513,86 @@ def _owner_action(*, owner_route: Mapping[str, Any], state: Mapping[str, Any]) -
     }
 
 
+def _current_owner_ticket(
+    *,
+    owner_route: Mapping[str, Any],
+    state: Mapping[str, Any],
+    next_forced_delta: Mapping[str, Any],
+) -> dict[str, Any]:
+    owner_action = _mapping(next_forced_delta.get("owner_action"))
+    allowed_actions = _text_items(owner_action.get("allowed_actions")) or _text_items(
+        owner_route.get("allowed_actions")
+    )
+    work_unit_id = _text(owner_action.get("work_unit_id")) or _text(state.get("work_unit_id"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    return {
+        "surface_kind": "mas_current_owner_ticket",
+        "schema_version": 1,
+        "owner": _text(owner_action.get("next_owner")) or _text(owner_route.get("next_owner")),
+        "allowed_action": allowed_actions[0] if allowed_actions else None,
+        "work_unit": _compact(
+            {
+                "work_unit_id": work_unit_id,
+                "summary": _work_unit_summary(owner_route),
+            }
+        ),
+        "required_input_refs": _input_refs(owner_route=owner_route, source_refs=source_refs),
+        "target_surface": _mapping(next_forced_delta.get("target_surface")),
+        "acceptance_criteria": list(next_forced_delta.get("acceptance_refs") or []),
+        "forbidden_writes": [
+            "study_truth",
+            "memory_body",
+            "artifact_body",
+            "publication_verdict",
+            "source_readiness_verdict",
+            "current_package",
+        ],
+        "expected_receipt_or_blocker": [
+            "owner_receipt",
+            "typed_blocker",
+            "route_back_request",
+            "human_gate_request",
+            "stop_loss",
+        ],
+        "no_loop_budget": {
+            "platform_repair_is_not_deliverable_progress": True,
+            "provider_completion_is_not_closeout": True,
+            "repeat_same_work_unit_requires_typed_blocker_or_new_target_surface": True,
+        },
+        "authority_boundary": {
+            "ticket_authorizes_next_attempt_only": True,
+            "ticket_authorizes_publication_quality": False,
+            "ticket_authorizes_artifact_mutation": False,
+            "ticket_authorizes_study_truth_write": False,
+        },
+    }
+
+
+def _work_unit_summary(owner_route: Mapping[str, Any]) -> str | None:
+    for value in (
+        _mapping(owner_route.get("next_work_unit")).get("summary"),
+        owner_route.get("work_unit_summary"),
+        owner_route.get("summary"),
+    ):
+        if text := _text(value):
+            return text
+    return None
+
+
+def _input_refs(*, owner_route: Mapping[str, Any], source_refs: Mapping[str, Any]) -> list[str]:
+    explicit_refs = _ref_items(owner_route.get("required_input_refs"))
+    if explicit_refs:
+        return list(dict.fromkeys(explicit_refs))
+    refs: list[str] = []
+    for value in (
+        owner_route.get("evidence_refs"),
+        owner_route.get("source_refs"),
+        source_refs,
+    ):
+        refs.extend(_ref_items(value))
+    return list(dict.fromkeys(refs))
+
+
 def _delta_count(payload: Mapping[str, Any]) -> int:
     value = payload.get("count")
     if isinstance(value, bool) or value is None:
@@ -531,6 +622,36 @@ def _first_text(value: object) -> str | None:
         if text := _text(item):
             return text
     return None
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _text(item)) is not None]
+
+
+def _ref_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _text(value)
+        return [text] if text is not None else []
+    if isinstance(value, Mapping):
+        result: list[str] = []
+        for item in value.values():
+            result.extend(_ref_items(item))
+        return result
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        result.extend(_ref_items(item))
+    return result
+
+
+def _compact(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
 
 
 def _text(value: object) -> str | None:

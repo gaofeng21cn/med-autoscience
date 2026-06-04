@@ -84,6 +84,7 @@
       "tournament_ref",
       "evolution_ref"
     ],
+    "advisory_refs_are_authority": false,
     "authority_boundary": {
       "evidence_interpretation_owner": "MedAutoScience",
       "hypothesis_truth_owner": "MedAutoScience",
@@ -102,6 +103,7 @@
       "ranking_and_proximity_authority": "advisory_only",
       "testability_safety_owner": "MedAutoScience"
     },
+    "candidate_promotion_requires_validator": true,
     "candidate_required_ref_families": [
       "hypothesis_candidate_ref",
       "assumption_ref",
@@ -117,12 +119,20 @@
       "human_gate_receipt_ref",
       "owner_receipt_or_typed_blocker_ref"
     ],
+    "candidate_validation_output_contract": {
+      "blocked_status": "typed_blocker",
+      "can_promote_candidate_requires": "all_required_ref_families_present",
+      "missing_required_ref_blocker_id": "missing_hypothesis_portfolio_ref_family",
+      "route_back_owner_required_when_blocked": true,
+      "success_status": "validated"
+    },
     "fail_closed_missing_ref_policy": "emit_typed_blocker_naming_missing_hypothesis_portfolio_ref_family_and_route_back_owner",
     "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
     "owner": "MedAutoScience",
     "portfolio_role": "mas_owned_hypothesis_candidate_and_evidence_ref_pack",
     "schema_version": 1,
-    "surface_kind": "mas_hypothesis_portfolio_evidence_pack_contract"
+    "surface_kind": "mas_hypothesis_portfolio_evidence_pack_contract",
+    "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
   },
   "independent_executor_reviewer_agent_policy": {
     "codex_cli_may_serve_both_roles_only_as_separate_invocations": true,
@@ -154,6 +164,7 @@
   "program_output_policy": "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only",
   "required_domain_pack_paths": [
     "agent/stages/stage_route_contract.yaml",
+    "agent/stages/stage_native_semantic_pack.yaml",
     "agent/prompts/direction_and_route_selection.md",
     "agent/prompts/baseline_and_evidence_setup.md",
     "agent/prompts/bounded_analysis_campaign.md",
@@ -185,6 +196,7 @@
     "memory_descriptor": "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor",
     "required_domain_pack_paths": [
       "agent/stages/stage_route_contract.yaml",
+      "agent/stages/stage_native_semantic_pack.yaml",
       "agent/prompts/direction_and_route_selection.md",
       "agent/prompts/baseline_and_evidence_setup.md",
       "agent/prompts/bounded_analysis_campaign.md",

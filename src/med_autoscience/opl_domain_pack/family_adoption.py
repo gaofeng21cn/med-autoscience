@@ -24,6 +24,7 @@ from .agent_pack_refs import (
     AGENT_PROMPT_REFS,
     AGENT_QUALITY_GATE_REFS,
     AGENT_SKILL_REFS,
+    AGENT_STAGE_NATIVE_SEMANTIC_PACK_REF,
     AGENT_STAGE_POLICY_REFS,
     stage_knowledge_refs,
     stage_policy_ref,
@@ -70,6 +71,7 @@ STAGE_DELIVERABLE_INDEX_CONTRACT_REF = "med_autoscience.stage_surface_contract.b
 STAGE_ROUTE_OBLIGATIONS_DESCRIPTOR_REF = (
     "med_autoscience.stage_route_contract.route_obligations_descriptor"
 )
+ORDINARY_DEFAULT_STAGE_ID = "direction_and_route_selection"
 
 FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "publication_eval/latest.json",
@@ -203,6 +205,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "inventory": STAGE_LED_AUTONOMY_INVENTORY_REF,
             "policy": STAGE_LED_AUTONOMY_POLICY_REF,
             "route_contract_source": STAGE_ROUTE_CONTRACT_REF,
+            "stage_native_semantic_pack_source": AGENT_STAGE_NATIVE_SEMANTIC_PACK_REF,
             "late_stage_progress_sprint_contract_source": (
                 f"{STAGE_ROUTE_CONTRACT_REF}#/{PROGRESS_FIRST_SPRINT_CONTRACT_FIELD}"
             ),
@@ -513,6 +516,14 @@ def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
             "role": "route_contract_source",
         },
         {
+            "ref_kind": "repo_path",
+            "ref": str(
+                _mapping(descriptor.get("source_refs")).get("stage_native_semantic_pack_source")
+                or AGENT_STAGE_NATIVE_SEMANTIC_PACK_REF
+            ),
+            "role": "stage_native_semantic_pack",
+        },
+        {
             "ref_kind": "python_symbol",
             "ref": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "role": "stage_knowledge_plane_contract",
@@ -620,7 +631,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         stage_contract["runtime_event_refs"] = runtime_event_refs
         trust_boundary["runtime_event_refs"] = runtime_event_refs
     stage_contract.update(cohort_loop_refs)
-    return {
+    stage_descriptor = {
         "stage_id": stage["stage_id"],
         "stage_kind": stage["stage_kind"],
         "title": stage["title"],
@@ -711,6 +722,27 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "can_authorize_submission_readiness": False,
             **hypothesis_portfolio_pack.HYPOTHESIS_PORTFOLIO_AUTHORITY_FLAGS,
         },
+    }
+    selected_executor = _selected_executor(stage_id)
+    if selected_executor is not None:
+        stage_descriptor["selected_executor"] = selected_executor
+    return stage_descriptor
+
+
+def _selected_executor(stage_id: str) -> dict[str, Any] | None:
+    if stage_id != ORDINARY_DEFAULT_STAGE_ID:
+        return None
+    return {
+        "executor_kind": "codex_cli",
+        "default_executor": True,
+        "executor_binding_ref": "default_codex_cli",
+        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
+        "required_capabilities": [
+            "repo_context_reading",
+            "domain_skill_invocation",
+            "receipt_or_typed_blocker_return",
+            "no_forbidden_write_guard",
+        ],
     }
 
 

@@ -28,6 +28,7 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 - [Agent runtime interface](./contracts/agent_runtime_interface.md)
 - [Runtime handle and durable surface contract](./contracts/runtime_handle_and_durable_surface_contract.md)
 - [MAS Stage / Route / Handoff 标准](./stage_route_handoff_standard.md)：解释 stage、route、handoff、owner route 与 OPL stage graph 的关系；route 不是 MAS 私有小 stage，route 间调度归 OPL runtime manager / transition runner。
+- [Co-Scientist Stage / Route 重构设计与执行规格](./designs/coscientist_stage_route_restructure.md)：把 Co-Scientist 启发转译为 MAS Stage-native scientific work system 的 runtime-facing design 和下一 `/goal` 执行规格；它不替代 `docs/active/mas-ideal-state-gap-plan.md` 的 single Active Truth，不声明实现已完成，实际完成仍需落到 semantic pack、contracts、source、tests、owner receipts 和 runtime evidence。
 - [Study runtime control surface](./control/study_runtime_control_surface.md)
 - [Study runtime orchestration](./control/study_runtime_orchestration.md)
 - [Domain Authority Refs Index Guard](./domain_authority_refs_index_guard.md)：domain authority refs、owner receipt、typed blocker、restore/archive provenance refs 和 SQLite/file boundary guard。

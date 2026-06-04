@@ -13,6 +13,7 @@ AGENT_PROMPT_REFS: dict[str, str] = {
 AGENT_STAGE_POLICY_REFS: dict[str, str] = {
     stage_id: f"agent/stages/{stage_id}.policy.md" for stage_id in AGENT_PROMPT_REFS
 }
+AGENT_STAGE_NATIVE_SEMANTIC_PACK_REF = "agent/stages/stage_native_semantic_pack.yaml"
 AGENT_SKILL_REFS: tuple[str, ...] = (
     "agent/skills/medical_research_execution.md",
     "agent/skills/owner_receipt_and_route_control.md",
@@ -29,6 +30,7 @@ AGENT_KNOWLEDGE_REFS: tuple[str, ...] = (
 )
 REQUIRED_DOMAIN_PACK_PATHS: tuple[str, ...] = (
     "agent/stages/stage_route_contract.yaml",
+    AGENT_STAGE_NATIVE_SEMANTIC_PACK_REF,
     *AGENT_PROMPT_REFS.values(),
     *AGENT_STAGE_POLICY_REFS.values(),
     *AGENT_SKILL_REFS,
@@ -74,6 +76,7 @@ __all__ = [
     "AGENT_PROMPT_REFS",
     "AGENT_QUALITY_GATE_REFS",
     "AGENT_SKILL_REFS",
+    "AGENT_STAGE_NATIVE_SEMANTIC_PACK_REF",
     "AGENT_STAGE_POLICY_REFS",
     "REQUIRED_DOMAIN_PACK_PATHS",
     "stage_knowledge_refs",

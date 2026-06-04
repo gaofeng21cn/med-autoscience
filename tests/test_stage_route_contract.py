@@ -24,14 +24,63 @@ def test_stage_route_contract_source_uses_standard_agent_stage_slot() -> None:
     payload = load_stage_route_contract_payload()
 
     assert STAGE_ROUTE_CONTRACT_REF == "agent/stages/stage_route_contract.yaml"
+    assert payload["stage_native_semantic_pack_ref"] == (
+        "agent/stages/stage_native_semantic_pack.yaml#/stage_native_semantic_pack"
+    )
     assert set(payload) >= {
         "compatible_agents",
+        "stage_native_semantic_pack_ref",
         PROGRESS_FIRST_SPRINT_CONTRACT_FIELD,
         "route_contracts",
         "modes",
         "evidence_review_contract",
     }
     assert load_stage_route_contract() == stage_entry_modes_from_payload(payload)
+
+
+def test_stage_native_semantic_pack_covers_all_stage_obligation_fields() -> None:
+    semantic_pack_path = Path("agent/stages/stage_native_semantic_pack.yaml")
+    payload = yaml.safe_load(semantic_pack_path.read_text(encoding="utf-8"))
+    pack = payload["stage_native_semantic_pack"]
+
+    assert pack["source_design"] == "docs/runtime/designs/coscientist_stage_route_restructure.md"
+    assert pack["state"] == "semantic_pack_contract_source"
+    required_fields = set(pack["required_stage_fields"])
+    assert required_fields == {
+        "stage_objective",
+        "entry_contract",
+        "skill_pack",
+        "tool_policy",
+        "knowledge_packet",
+        "portfolio_input",
+        "quality_gate",
+        "closeout",
+        "memory_writeback",
+        "opl_projection",
+    }
+    assert pack["advisory_signal_policy"]["forbidden_authority_uses"]
+    assert "ranking" in pack["advisory_signal_policy"]["advisory_only"]
+    assert "proximity" in pack["advisory_signal_policy"]["advisory_only"]
+    assert pack["execution_review_independence"]["policy"] == "fail_closed"
+
+    main_stages = pack["main_stages"]
+    assert set(main_stages) >= {
+        "scout",
+        "idea",
+        "baseline",
+        "experiment",
+        "analysis-campaign",
+        "write",
+        "review",
+        "finalize",
+        "decision",
+        "journal-resolution",
+    }
+    for stage_id, stage_payload in main_stages.items():
+        assert required_fields <= set(stage_payload), stage_id
+        assert stage_payload["portfolio_input"]["advisory_signals"]
+        assert stage_payload["quality_gate"]["independence"]["fail_closed_if_missing_or_same_invocation"] is True
+        assert stage_payload["opl_projection"]["forbidden"]
 
 
 def test_route_obligations_descriptor_projects_all_canonical_routes_for_handoff() -> None:
