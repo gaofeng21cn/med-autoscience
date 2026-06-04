@@ -9,6 +9,8 @@ import sqlite3
 import subprocess
 from typing import Any
 
+from med_autoscience.runtime_protocol import quest_state
+
 
 SURFACE_KIND = "mas_runtime_refs_only_state_index_pilot"
 SCHEMA_VERSION = 1
@@ -81,7 +83,7 @@ def rebuild_refs_only_state_index(
     family_counts = Counter(str(row["ref_family"]) for row in rows)
     with _connect(resolved_db_path) as conn:
         _ensure_schema(conn)
-        conn.execute("DELETE FROM small_file_refs")
+        conn.execute("DELETE FROM small_file_refs WHERE quest_root = ?", (str(resolved_quest_root),))
         conn.executemany(
             """
             INSERT INTO small_file_refs(
@@ -113,6 +115,7 @@ def rebuild_refs_only_state_index(
                 for row in rows
             ],
         )
+        sqlite_total_indexed_count = int(conn.execute("SELECT COUNT(*) FROM small_file_refs").fetchone()[0])
         _write_metadata(
             conn,
             {
@@ -140,6 +143,7 @@ def rebuild_refs_only_state_index(
             "workspace_relative_path": _relative_ref(resolved_db_path, resolved_workspace_root),
         },
         "indexed_count": len(rows),
+        "sqlite_total_indexed_count": sqlite_total_indexed_count,
         "family_counts": dict(sorted(family_counts.items())),
         "skipped_forbidden_count": len(skipped),
         "skipped_forbidden_refs_inlined": False,
@@ -173,7 +177,13 @@ def _candidate_refs(
     quest_root: Path,
 ) -> tuple[_Candidate, ...]:
     candidates: list[_Candidate] = []
-    candidates.append(_Candidate(path=quest_root / ".ds" / "runtime_state.json", family="lifecycle"))
+    canonical_runtime_state = quest_state.canonical_runtime_state_path(quest_root)
+    legacy_runtime_state = quest_state.legacy_runtime_state_path(quest_root)
+    candidates.append(_Candidate(path=canonical_runtime_state, family="lifecycle"))
+    if not canonical_runtime_state.exists():
+        candidates.append(_Candidate(path=legacy_runtime_state, family="lifecycle"))
+    elif legacy_runtime_state.exists():
+        candidates.append(_Candidate(path=legacy_runtime_state, family="legacy_lifecycle"))
     if study_root is not None:
         candidates.extend(_glob_candidates(study_root / "artifacts" / "runtime" / "owner_route", "*.json", "receipt_ref"))
         candidates.extend(
@@ -305,6 +315,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    conn.execute("CREATE INDEX IF NOT EXISTS small_file_refs_quest_root_idx ON small_file_refs(quest_root)")
 
 
 def _write_metadata(conn: sqlite3.Connection, values: Mapping[str, str]) -> None:

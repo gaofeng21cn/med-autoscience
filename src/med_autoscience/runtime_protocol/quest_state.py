@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -82,11 +83,23 @@ def is_legacy_restore_import_context(quest_root: Path) -> bool:
     return (resolved_quest_root / ".ds" / "runtime_state.json").exists()
 
 
-def runtime_state_path_candidates(quest_root: Path) -> tuple[Path, ...]:
+SCHEMA_VERSION = 1
+
+
+def canonical_runtime_state_path(quest_root: Path) -> Path:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
+    return resolved_quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+
+
+def legacy_runtime_state_path(quest_root: Path) -> Path:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    return resolved_quest_root / ".ds" / "runtime_state.json"
+
+
+def runtime_state_path_candidates(quest_root: Path) -> tuple[Path, ...]:
     return (
-        resolved_quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
-        resolved_quest_root / ".ds" / "runtime_state.json",
+        canonical_runtime_state_path(quest_root),
+        legacy_runtime_state_path(quest_root),
     )
 
 
@@ -95,6 +108,70 @@ def load_runtime_state(quest_root: Path) -> dict[str, Any]:
         if path.exists():
             return json.loads(path.read_text(encoding="utf-8"))
     return {}
+
+
+def materialize_runtime_state_surface(quest_root: Path, *, recorded_at: str | None = None) -> dict[str, Any]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    canonical_path = canonical_runtime_state_path(resolved_quest_root)
+    legacy_path = legacy_runtime_state_path(resolved_quest_root)
+    result: dict[str, Any] = {
+        "surface_kind": "runtime_state_surface_materialization",
+        "schema_version": SCHEMA_VERSION,
+        "recorded_at": recorded_at,
+        "quest_root": str(resolved_quest_root),
+        "canonical_path": str(canonical_path),
+        "legacy_path": str(legacy_path),
+        "canonical_surface": "artifacts/runtime/state/runtime_state.json",
+        "legacy_surface": ".ds/runtime_state.json",
+        "body_included": False,
+        "changed": False,
+        "blockers": [],
+    }
+    canonical_exists = canonical_path.exists()
+    legacy_exists = legacy_path.exists()
+    result["canonical_exists_before"] = canonical_exists
+    result["legacy_exists"] = legacy_exists
+    if not legacy_exists:
+        result["status"] = "already_canonical" if canonical_exists else "missing_runtime_state"
+        return result
+    try:
+        legacy_bytes = legacy_path.read_bytes()
+        json.loads(legacy_bytes.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        result["status"] = "blocked_legacy_runtime_state_unreadable"
+        result["blockers"] = [{"reason": "legacy_runtime_state_unreadable", "error": str(exc)}]
+        return result
+    legacy_sha256 = _sha256_bytes(legacy_bytes)
+    result["legacy_sha256"] = legacy_sha256
+    if canonical_exists:
+        try:
+            canonical_bytes = canonical_path.read_bytes()
+        except OSError as exc:
+            result["status"] = "blocked_canonical_runtime_state_unreadable"
+            result["blockers"] = [{"reason": "canonical_runtime_state_unreadable", "error": str(exc)}]
+            return result
+        canonical_sha256 = _sha256_bytes(canonical_bytes)
+        result["canonical_sha256_before"] = canonical_sha256
+        if canonical_sha256 == legacy_sha256:
+            result["status"] = "already_materialized"
+            return result
+        if canonical_path.stat().st_mtime_ns >= legacy_path.stat().st_mtime_ns:
+            result["status"] = "canonical_runtime_state_diverged"
+            result["blockers"] = [{"reason": "canonical_runtime_state_newer_or_same_mtime"}]
+            return result
+    canonical_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = canonical_path.with_name(f"{canonical_path.name}.tmp")
+    tmp_path.write_bytes(legacy_bytes)
+    tmp_path.replace(canonical_path)
+    result["status"] = "materialized_from_legacy"
+    result["changed"] = True
+    result["canonical_exists_after"] = True
+    result["canonical_sha256_after"] = legacy_sha256
+    return result
+
+
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
 
 
 def quest_status(quest_root: Path) -> str:

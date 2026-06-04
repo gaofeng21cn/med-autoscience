@@ -506,6 +506,30 @@ def test_maintain_quest_runtime_storage_slims_sharded_codex_home_report(
     assert len(json.dumps(result, ensure_ascii=False)) < 30_000
 
 
+def test_maintain_quest_runtime_storage_materializes_runtime_state_surface(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    quest_root = profile.runtime_root / "legacy-state-surface"
+    _write_quest(quest_root, quest_id="legacy-state-surface", status="paused")
+
+    result = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+        refs_only_state_index_pilot=True,
+        refs_only_state_index_only=True,
+    )
+
+    canonical = quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+    assert result["status"] == "maintained"
+    assert result["runtime_state_materialization"]["status"] == "materialized_from_legacy"
+    assert canonical.is_file()
+    assert json.loads(canonical.read_text(encoding="utf-8"))["status"] == "paused"
+    latest_payload = json.loads(Path(result["latest_report_path"]).read_text(encoding="utf-8"))
+    assert latest_payload["runtime_state_materialization"]["canonical_path"] == str(canonical.resolve())
+
+
 def test_maintain_quest_runtime_storage_compacts_codex_homes_in_limited_shards(
     tmp_path: Path,
 ) -> None:

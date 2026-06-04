@@ -11,6 +11,7 @@ from med_autoscience.runtime_protocol.quest_state import (
     inspect_quest_runtime,
     iter_active_quests,
     load_runtime_state,
+    materialize_runtime_state_surface,
     read_recent_stdout_lines,
     resolve_active_stdout_path,
 )
@@ -43,6 +44,34 @@ def test_load_runtime_state_prefers_mas_runtime_state_surface(tmp_path: Path) ->
 
     assert result["status"] == "running"
     assert result["active_run_id"] == "run-current"
+
+
+def test_materialize_runtime_state_surface_copies_legacy_state_to_canonical_surface(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "paused", "active_run_id": None})
+
+    result = materialize_runtime_state_surface(quest_root, recorded_at="2026-06-04T00:00:00+00:00")
+
+    canonical = quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+    assert result["status"] == "materialized_from_legacy"
+    assert result["changed"] is True
+    assert result["canonical_path"] == str(canonical.resolve())
+    assert json.loads(canonical.read_text(encoding="utf-8"))["status"] == "paused"
+    assert load_runtime_state(quest_root)["status"] == "paused"
+
+
+def test_materialize_runtime_state_surface_keeps_newer_canonical_state(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    legacy = quest_root / ".ds" / "runtime_state.json"
+    canonical = quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+    dump_json(legacy, {"status": "paused", "active_run_id": None})
+    dump_json(canonical, {"status": "running", "active_run_id": "current"})
+
+    result = materialize_runtime_state_surface(quest_root)
+
+    assert result["status"] == "canonical_runtime_state_diverged"
+    assert result["changed"] is False
+    assert load_runtime_state(quest_root)["status"] == "running"
 
 
 def test_find_latest_main_result_path_prefers_latest_candidate(tmp_path: Path) -> None:

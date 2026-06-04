@@ -85,6 +85,10 @@ def maintain_quest_runtime_storage(
         ),
     }
     lightweight_buckets = selected_restore_proof_buckets if restore_proof_compaction else ()
+    result["runtime_state_materialization"] = quest_state.materialize_runtime_state_surface(
+        resolved_quest_root,
+        recorded_at=recorded_at,
+    )
     result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
     result["size_before"] = (
         _size_summary_skipped(resolved_quest_root, reason="refs_only_state_index_only")

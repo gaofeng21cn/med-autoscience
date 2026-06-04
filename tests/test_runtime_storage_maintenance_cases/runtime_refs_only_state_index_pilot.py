@@ -81,6 +81,92 @@ def test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies(t
     assert "MANUSCRIPT_BODY_MUST_NOT_ENTER_SQLITE" not in sqlite_text
 
 
+def test_refs_only_state_index_pilot_prefers_canonical_runtime_state_surface(tmp_path: Path) -> None:
+    state_index = importlib.import_module("med_autoscience.runtime_protocol.refs_only_state_index_pilot")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    quest_id = "quest-001"
+    study_root = profile.studies_root / study_id
+    quest_root = profile.runtime_root / quest_id
+    _write_study(study_root, study_id=study_id, quest_id=quest_id)
+    _write_quest(quest_root, quest_id=quest_id, status="paused")
+    canonical = quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+    canonical.parent.mkdir(parents=True, exist_ok=True)
+    canonical.write_text(
+        json.dumps({"quest_id": quest_id, "status": "paused", "active_run_id": None}, ensure_ascii=False, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = state_index.rebuild_refs_only_state_index(
+        workspace_root=profile.workspace_root,
+        study_root=study_root,
+        quest_root=quest_root,
+    )
+
+    assert result["family_counts"] == {
+        "legacy_lifecycle": 1,
+        "lifecycle": 1,
+    }
+    db_path = Path(result["sqlite_ref"]["db_path"])
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT ref_family, source_ref, body_included
+            FROM small_file_refs
+            ORDER BY ref_family, source_ref
+            """
+        ).fetchall()
+
+    assert rows == [
+        ("legacy_lifecycle", "runtime/quests/quest-001/.ds/runtime_state.json", 0),
+        ("lifecycle", "runtime/quests/quest-001/artifacts/runtime/state/runtime_state.json", 0),
+    ]
+
+
+def test_refs_only_state_index_pilot_replaces_only_current_quest_slice(tmp_path: Path) -> None:
+    state_index = importlib.import_module("med_autoscience.runtime_protocol.refs_only_state_index_pilot")
+    profile = make_profile(tmp_path)
+    study_a = profile.studies_root / "001-risk"
+    study_b = profile.studies_root / "002-risk"
+    quest_a = profile.runtime_root / "quest-001"
+    quest_b = profile.runtime_root / "quest-002"
+    _write_study(study_a, study_id="001-risk", quest_id="quest-001")
+    _write_study(study_b, study_id="002-risk", quest_id="quest-002")
+    _write_quest(quest_a, quest_id="quest-001", status="paused")
+    _write_quest(quest_b, quest_id="quest-002", status="paused")
+
+    first = state_index.rebuild_refs_only_state_index(
+        workspace_root=profile.workspace_root,
+        study_root=study_a,
+        quest_root=quest_a,
+    )
+    second = state_index.rebuild_refs_only_state_index(
+        workspace_root=profile.workspace_root,
+        study_root=study_b,
+        quest_root=quest_b,
+    )
+
+    assert first["indexed_count"] == 1
+    assert first["sqlite_total_indexed_count"] == 1
+    assert second["indexed_count"] == 1
+    assert second["sqlite_total_indexed_count"] == 2
+    db_path = Path(second["sqlite_ref"]["db_path"])
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT quest_root, source_ref
+            FROM small_file_refs
+            ORDER BY source_ref
+            """
+        ).fetchall()
+
+    assert rows == [
+        (str(quest_a.resolve()), "runtime/quests/quest-001/.ds/runtime_state.json"),
+        (str(quest_b.resolve()), "runtime/quests/quest-002/.ds/runtime_state.json"),
+    ]
+
+
 def test_maintain_runtime_storage_can_write_refs_only_state_index_pilot_summary(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = make_profile(tmp_path)
@@ -103,7 +189,7 @@ def test_maintain_runtime_storage_can_write_refs_only_state_index_pilot_summary(
     assert result["status"] == "maintained"
     pilot = result["refs_only_state_index_pilot"]
     assert pilot["status"] == "indexed"
-    assert pilot["indexed_count"] == 6
+    assert pilot["indexed_count"] == 7
     assert pilot["authority_boundary"]["body_included"] is False
     assert pilot["stage_folder_attempt_projection"] == {
         "surface_kind": "opl_stage_folder_attempt_projection_evidence",
@@ -115,6 +201,7 @@ def test_maintain_runtime_storage_can_write_refs_only_state_index_pilot_summary(
         "indexed_ref_families": {
             "cursor": 1,
             "index": 1,
+            "legacy_lifecycle": 1,
             "lifecycle": 1,
             "outbox": 1,
             "receipt_ref": 2,
@@ -168,7 +255,7 @@ def test_refs_only_state_index_pilot_runs_when_legacy_backend_is_unavailable(tmp
     assert result["summary"] == "refs-only state index pilot 已完成；legacy backend storage maintenance 当前不可用。"
     pilot = result["refs_only_state_index_pilot"]
     assert pilot["status"] == "indexed"
-    assert pilot["indexed_count"] == 6
+    assert pilot["indexed_count"] == 7
     assert pilot["stage_folder_attempt_projection"]["attempt_root_ref"] == "runtime/quests/quest-001"
     assert pilot["sqlite_no_body_proof"]["forbidden_body_marker_found"] is False
     latest_payload = json.loads(Path(result["latest_report_path"]).read_text(encoding="utf-8"))
@@ -222,6 +309,8 @@ def test_refs_only_state_index_only_skips_legacy_backend(tmp_path: Path, monkeyp
     }
     assert result["size_after"] == result["size_before"]
     assert result["refs_only_state_index_pilot"]["status"] == "indexed"
+    assert result["refs_only_state_index_pilot"]["family_counts"]["lifecycle"] == 1
+    assert result["refs_only_state_index_pilot"]["family_counts"]["legacy_lifecycle"] == 1
     assert result["refs_only_state_index_pilot"]["sqlite_no_body_proof"]["forbidden_body_marker_found"] is False
     latest_payload = json.loads(Path(result["latest_report_path"]).read_text(encoding="utf-8"))
     assert latest_payload["legacy_backend_status"] == "skipped_by_refs_only_state_index_only"
