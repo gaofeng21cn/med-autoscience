@@ -79,6 +79,8 @@ Use `--restore-proof-canary` when the purpose is to prove archive/restore mechan
 
 Use `--restore-proof-compaction` only for an explicit stopped-cold bucket scope. `runs` and `codex_homes` are compacted as child-level source groups, not as one giant archive, so `--restore-proof-max-shards <n>` can process a bounded shard window and be rerun until `remaining_source_group_count=0`. Each shard writes an archive, source manifest, restore proof and body-free `archive_refs` row before deleting the compacted source group. The selected bucket directory is removed only when it becomes empty. This is physical runtime payload compaction, not refs-only indexing, paper progress, publication readiness, artifact authority, memory cleanup or study truth mutation.
 
+If a selected bucket contains empty child directories after all payload-bearing groups were already archived, rerun the same `--restore-proof-compaction` command. The `nothing_to_archive` result still prunes empty child directories and then the empty selected bucket directory. It must not remove any child that contains a file, symlink or other payload.
+
 The safe live sequence for million-file `.ds` roots is:
 
 1. `--refs-only-state-index-pilot --refs-only-state-index-only` to rebuild refs-only SQLite without recursive size scan.
@@ -109,6 +111,15 @@ Live compaction evidence:
 - Restore-proof archive root was `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/002-dm-china-us-mortality-attribution/artifacts/runtime/runtime_storage_maintenance/restore_proof_archives/runtime_bucket_compaction`, observed size `19G`.
 - OPL Stage Folder closeout was materialized under `medautoscience/state-index-canary/dm-cvd/dm002-runtime-state-index`, stage `runtime_payload_compaction`, attempt `compaction-2026-06-04`, owner receipt ref `mas-runtime-storage-payload-compaction:002-dm-china-us-mortality-attribution:20260604T032820Z`.
 - Read this as runtime payload storage closure for the selected cold buckets. It is not paper progress, publication-ready status, owner-route success, domain-ready status, memory acceptance, artifact mutation authorization or production readiness.
+
+Full historical runtime payload closeout evidence:
+
+- `2026-06-04` all discovered MAS `.ds` quest roots under the known local MAS workspaces were inventoried: AS biologics `001`, DM-CVD `001` / `002` / `003` / `004`, NF-PitNET `001` / `002` / `003` / `004`, Obesity `obesity_multicenter_phenotype_atlas`, plus the legacy DM003 `ops/med-the study team` orphan path.
+- Fresh physical verification after compaction found no remaining `.ds/runs` or `.ds/codex_homes` bucket in those 11 roots.
+- Archive refs by quest root: DM002 `1811` (`runs=1191`, `codex_homes=620`), DM003 `1841` (`runs=1349`, `codex_homes=492`), DM004 `8` (`runs=4`, `codex_homes=4`), Obesity `1637` (`runs=968`, `codex_homes=669`). Other discovered roots had no `runs` / `codex_homes` payload to compact.
+- Refs-only SQLite index-only maintenance was run for the three newly compacted payload roots before physical compaction: DM003, DM004 and Obesity. The SQLite role remains refs-only and body-free.
+- OPL Stage Folder closeout was materialized under `medautoscience/state-index-full-migration/all-workspaces/historical-runtime-payload-compaction`, stage `all_runtime_payload_compaction`, attempt `full-migration-2026-06-04`, owner receipt ref `mas-runtime-storage-full-payload-compaction:all-discovered-runtime-quests:20260604T044000Z`.
+- Read this as full local historical runtime payload storage closure for discovered `runs` / `codex_homes` buckets. It is not paper progress, publication-ready status, owner-route success, domain-ready status, memory acceptance, artifact mutation authorization or production readiness.
 
 Files and archives remain authoritative for:
 

@@ -212,6 +212,10 @@ def compact_cold_runtime_buckets(
     selected_source_groups = source_groups[:bounded_max_shards] if bounded_max_shards else source_groups
     remaining_source_group_count = max(0, all_source_group_count - len(selected_source_groups))
     if not source_groups:
+        empty_bucket_pruned_paths = _prune_empty_selected_bucket_dirs(
+            ds_root=ds_root,
+            selected_buckets=selected_buckets,
+        )
         return {
             "surface_kind": SURFACE_KIND,
             "schema_version": SCHEMA_VERSION,
@@ -221,8 +225,10 @@ def compact_cold_runtime_buckets(
             "source_buckets": list(selected_buckets),
             "actual_release_bytes": 0,
             "archive_ref": None,
+            "archive_ref_count": 0,
             "restore_proof": None,
             "pruned_paths": [],
+            "empty_bucket_pruned_paths": empty_bucket_pruned_paths,
             "blockers": [],
             "source_group_count": 0,
             "selected_source_group_count": 0,
@@ -573,6 +579,14 @@ def _prune_empty_selected_bucket_dirs(*, ds_root: Path, selected_buckets: tuple[
         bucket_path = ds_root / bucket
         if not bucket_path.exists() or not bucket_path.is_dir() or bucket_path.is_symlink():
             continue
+        for child in sorted(bucket_path.iterdir(), reverse=True):
+            if not child.is_dir() or child.is_symlink() or _has_any_payload(child):
+                continue
+            try:
+                child.rmdir()
+            except OSError:
+                continue
+            pruned_paths.append(str(child))
         try:
             bucket_path.rmdir()
         except OSError:

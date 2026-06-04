@@ -469,6 +469,33 @@ def test_maintain_quest_runtime_storage_compacts_codex_homes_in_limited_shards(
     assert not (quest_root / ".ds" / "codex_homes").exists()
 
 
+def test_maintain_quest_runtime_storage_prunes_empty_codex_home_children(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    quest_root = profile.runtime_root / "legacy-empty-codex-homes"
+    _write_quest(quest_root, quest_id="legacy-empty-codex-homes", status="paused")
+    for run_id in ("mas-run-empty-a", "mas-run-empty-b"):
+        (quest_root / ".ds" / "codex_homes" / run_id).mkdir(parents=True)
+
+    result = module.maintain_quest_runtime_storage(
+        profile=profile,
+        quest_root=quest_root,
+        restore_proof_compaction=True,
+        restore_proof_buckets=("codex_homes",),
+        include_parked_controller_stop=True,
+    )
+
+    compaction = result["restore_proof_compaction"]
+    assert result["status"] == "maintained"
+    assert compaction["status"] == "nothing_to_archive"
+    assert compaction["archive_ref_count"] == 0
+    assert compaction["source_group_count"] == 0
+    assert len(compaction["empty_bucket_pruned_paths"]) == 3
+    assert not (quest_root / ".ds" / "codex_homes").exists()
+
+
 def test_maintain_quest_runtime_storage_compacts_runs_in_limited_shards(
     tmp_path: Path,
 ) -> None:
