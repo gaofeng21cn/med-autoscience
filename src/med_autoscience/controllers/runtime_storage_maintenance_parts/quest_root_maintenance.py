@@ -17,6 +17,7 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.jsonl_slimmin
 from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof_compaction import (
     archive_refs_from_compaction_result,
     compact_cold_runtime_buckets,
+    plan_restore_proof_compaction_canary,
     restore_proof_compaction_blockers,
 )
 from med_autoscience.profiles import WorkspaceProfile
@@ -46,6 +47,8 @@ def maintain_quest_runtime_storage(
     tail_lines: int = 200,
     allow_live_runtime: bool = False,
     restore_proof_compaction: bool = False,
+    restore_proof_canary: bool = False,
+    restore_proof_canary_entry_limit: int = 20,
     include_parked_controller_stop: bool = False,
     include_operator_confirmed_parked_active: bool = False,
     restore_proof_buckets: Iterable[str] | None = None,
@@ -67,6 +70,8 @@ def maintain_quest_runtime_storage(
         "include_worktrees": include_worktrees,
         "allow_live_runtime": allow_live_runtime,
         "restore_proof_compaction_enabled": restore_proof_compaction,
+        "restore_proof_canary_enabled": restore_proof_canary,
+        "restore_proof_canary_entry_limit": int(restore_proof_canary_entry_limit),
         "include_parked_controller_stop": include_parked_controller_stop,
         "include_operator_confirmed_parked_active": include_operator_confirmed_parked_active,
         "restore_proof_buckets": list(selected_restore_proof_buckets),
@@ -89,13 +94,16 @@ def maintain_quest_runtime_storage(
         )
     )
 
-    if refs_only_state_index_only and not refs_only_state_index_pilot:
+    if restore_proof_compaction and restore_proof_canary:
+        result["status"] = "blocked_restore_proof_mode_conflict"
+        result["summary"] = "--restore-proof-canary cannot be combined with --restore-proof-compaction."
+    elif refs_only_state_index_only and not refs_only_state_index_pilot:
         result["status"] = "blocked_refs_only_state_index_only_without_pilot"
         result["summary"] = "--refs-only-state-index-only requires --refs-only-state-index-pilot."
     elif not result["quest_runtime_before"]["quest_exists"]:
         result["status"] = "blocked_missing_quest_root"
         result["summary"] = "quest root 尚未就绪，当前无法执行 runtime storage maintenance。"
-    elif refs_only_state_index_only:
+    elif refs_only_state_index_only and not restore_proof_canary:
         result["status"] = "maintained"
         result["summary"] = "refs-only state index pilot 已完成；legacy backend storage maintenance 已按显式 only 模式跳过。"
         result["legacy_backend_status"] = "skipped_by_refs_only_state_index_only"
@@ -106,6 +114,17 @@ def maintain_quest_runtime_storage(
             quest_id=quest_id,
             recorded_at=recorded_at,
             buckets=selected_restore_proof_buckets,
+            include_parked_controller_stop=include_parked_controller_stop,
+            include_operator_confirmed_parked_active=include_operator_confirmed_parked_active,
+        )
+    elif restore_proof_canary:
+        _apply_restore_proof_canary(
+            result=result,
+            quest_root=resolved_quest_root,
+            quest_id=quest_id,
+            recorded_at=recorded_at,
+            buckets=selected_restore_proof_buckets,
+            entry_limit=restore_proof_canary_entry_limit,
             include_parked_controller_stop=include_parked_controller_stop,
             include_operator_confirmed_parked_active=include_operator_confirmed_parked_active,
         )
@@ -225,6 +244,47 @@ def _apply_restore_proof_compaction(
     else:
         result["status"] = status or "blocked_restore_proof_compaction"
         result["summary"] = "orphan/legacy quest runtime restore-proof compaction 未完成。"
+
+
+def _apply_restore_proof_canary(
+    *,
+    result: dict[str, Any],
+    quest_root: Path,
+    quest_id: str,
+    recorded_at: str,
+    buckets: tuple[str, ...],
+    entry_limit: int,
+    include_parked_controller_stop: bool,
+    include_operator_confirmed_parked_active: bool,
+) -> None:
+    blockers = restore_proof_compaction_blockers(
+        result["quest_runtime_before"],
+        include_parked_controller_stop=include_parked_controller_stop,
+        include_operator_confirmed_parked_active=include_operator_confirmed_parked_active,
+    )
+    canary_result = plan_restore_proof_compaction_canary(
+        quest_root=quest_root,
+        quest_id=quest_id,
+        recorded_at=recorded_at,
+        buckets=buckets,
+        entry_limit=entry_limit,
+        blockers=blockers,
+    )
+    result["restore_proof_canary"] = canary_result
+    result["legacy_backend_status"] = (
+        "skipped_by_restore_proof_canary_and_refs_only_state_index_only"
+        if bool(result.get("refs_only_state_index_only"))
+        else "skipped_by_restore_proof_canary"
+    )
+    if canary_result.get("status") == "verified":
+        result["status"] = "maintained"
+        result["summary"] = "orphan/legacy quest bounded restore-proof canary 已完成，源 runtime payload 已保留。"
+    elif canary_result.get("status") == "nothing_to_archive":
+        result["status"] = "maintained"
+        result["summary"] = "orphan/legacy quest bounded restore-proof canary 未发现可采样 runtime payload。"
+    else:
+        result["status"] = "blocked_restore_proof_canary"
+        result["summary"] = "orphan/legacy quest bounded restore-proof canary 未完成。"
 
 
 def _archive_refs_from_compaction(compaction: Mapping[str, Any]) -> list[Mapping[str, Any]]:

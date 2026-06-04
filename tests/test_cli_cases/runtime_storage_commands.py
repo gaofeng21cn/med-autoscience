@@ -30,6 +30,8 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         tail_lines: int,
         allow_live_runtime: bool,
         restore_proof_compaction: bool,
+        restore_proof_canary: bool,
+        restore_proof_canary_entry_limit: int,
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
@@ -50,6 +52,8 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         called["tail_lines"] = tail_lines
         called["allow_live_runtime"] = allow_live_runtime
         called["restore_proof_compaction"] = restore_proof_compaction
+        called["restore_proof_canary"] = restore_proof_canary
+        called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
@@ -106,6 +110,8 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
     assert called["tail_lines"] == 120
     assert called["allow_live_runtime"] is True
     assert called["restore_proof_compaction"] is False
+    assert called["restore_proof_canary"] is False
+    assert called["restore_proof_canary_entry_limit"] == 20
     assert called["restore_proof_buckets"] == ()
     assert called["include_parked_controller_stop"] is False
     assert called["include_operator_confirmed_parked_active"] is False
@@ -140,6 +146,8 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         tail_lines: int,
         allow_live_runtime: bool,
         restore_proof_compaction: bool,
+        restore_proof_canary: bool,
+        restore_proof_canary_entry_limit: int,
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
@@ -149,6 +157,8 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         called["profile"] = profile
         called["quest_root"] = quest_root
         called["restore_proof_compaction"] = restore_proof_compaction
+        called["restore_proof_canary"] = restore_proof_canary
+        called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
@@ -171,6 +181,8 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
             "--quest-root",
             str(quest_root),
             "--restore-proof-compaction",
+            "--restore-proof-canary-entry-limit",
+            "7",
             "--restore-proof-bucket",
             "runs",
             "--include-parked-controller-stop",
@@ -182,11 +194,97 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
     assert called["profile"].name == "nfpitnet"
     assert called["quest_root"] == quest_root
     assert called["restore_proof_compaction"] is True
+    assert called["restore_proof_canary"] is False
+    assert called["restore_proof_canary_entry_limit"] == 7
     assert called["restore_proof_buckets"] == ("runs",)
     assert called["include_parked_controller_stop"] is True
     assert called["include_operator_confirmed_parked_active"] is False
     assert called["refs_only_state_index_pilot"] is False
     assert called["refs_only_state_index_only"] is False
+    assert json.loads(captured.out)["status"] == "maintained"
+
+
+def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    quest_root = tmp_path / "runtime" / "quests" / "legacy-quest"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_maintain_quest_runtime_storage(
+        *,
+        profile,
+        quest_root: Path,
+        include_worktrees: bool,
+        older_than_seconds: int,
+        jsonl_max_mb: int,
+        text_max_mb: int,
+        event_segment_max_mb: int,
+        slim_jsonl_threshold_mb: int | None,
+        dedupe_worktree_min_mb: int | None,
+        head_lines: int,
+        tail_lines: int,
+        allow_live_runtime: bool,
+        restore_proof_compaction: bool,
+        restore_proof_canary: bool,
+        restore_proof_canary_entry_limit: int,
+        restore_proof_buckets: tuple[str, ...],
+        include_parked_controller_stop: bool,
+        include_operator_confirmed_parked_active: bool,
+        refs_only_state_index_pilot: bool,
+        refs_only_state_index_only: bool,
+    ) -> dict[str, object]:
+        called["profile"] = profile
+        called["quest_root"] = quest_root
+        called["restore_proof_compaction"] = restore_proof_compaction
+        called["restore_proof_canary"] = restore_proof_canary
+        called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
+        called["restore_proof_buckets"] = restore_proof_buckets
+        called["include_parked_controller_stop"] = include_parked_controller_stop
+        called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
+        called["refs_only_state_index_only"] = refs_only_state_index_only
+        return {"status": "maintained", "quest_id": "legacy-quest"}
+
+    monkeypatch.setattr(
+        cli.runtime_storage_maintenance,
+        "maintain_quest_runtime_storage",
+        fake_maintain_quest_runtime_storage,
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "maintain-storage",
+            "--profile",
+            str(profile_path),
+            "--quest-root",
+            str(quest_root),
+            "--restore-proof-canary",
+            "--restore-proof-canary-entry-limit",
+            "4",
+            "--restore-proof-bucket",
+            "runs",
+            "--include-parked-controller-stop",
+            "--refs-only-state-index-pilot",
+            "--refs-only-state-index-only",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["quest_root"] == quest_root
+    assert called["restore_proof_compaction"] is False
+    assert called["restore_proof_canary"] is True
+    assert called["restore_proof_canary_entry_limit"] == 4
+    assert called["restore_proof_buckets"] == ("runs",)
+    assert called["include_parked_controller_stop"] is True
+    assert called["refs_only_state_index_pilot"] is True
+    assert called["refs_only_state_index_only"] is True
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -217,6 +315,8 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         tail_lines: int,
         allow_live_runtime: bool,
         restore_proof_compaction: bool,
+        restore_proof_canary: bool,
+        restore_proof_canary_entry_limit: int,
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
@@ -242,6 +342,8 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["tail_lines"] = tail_lines
         called["allow_live_runtime"] = allow_live_runtime
         called["restore_proof_compaction"] = restore_proof_compaction
+        called["restore_proof_canary"] = restore_proof_canary
+        called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
@@ -302,6 +404,8 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["tail_lines"] == 120
     assert called["allow_live_runtime"] is True
     assert called["restore_proof_compaction"] is False
+    assert called["restore_proof_canary"] is False
+    assert called["restore_proof_canary_entry_limit"] == 20
     assert called["restore_proof_buckets"] == ()
     assert called["include_parked_controller_stop"] is False
     assert called["include_operator_confirmed_parked_active"] is False
@@ -341,6 +445,8 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         tail_lines: int,
         allow_live_runtime: bool,
         restore_proof_compaction: bool,
+        restore_proof_canary: bool,
+        restore_proof_canary_entry_limit: int,
         restore_proof_buckets: tuple[str, ...],
         include_parked_controller_stop: bool,
         include_operator_confirmed_parked_active: bool,
@@ -351,6 +457,8 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         called["apply"] = apply
         called["git_only"] = git_only
         called["restore_proof_compaction"] = restore_proof_compaction
+        called["restore_proof_canary"] = restore_proof_canary
+        called["restore_proof_canary_entry_limit"] = restore_proof_canary_entry_limit
         called["restore_proof_buckets"] = restore_proof_buckets
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
@@ -369,6 +477,8 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
             "--study-id",
             "004-completed",
             "--restore-proof-compaction",
+            "--restore-proof-canary-entry-limit",
+            "3",
             "--restore-proof-bucket",
             "cold_archive",
             "--include-parked-controller-stop",
@@ -383,6 +493,8 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         "apply": False,
         "git_only": False,
         "restore_proof_compaction": True,
+        "restore_proof_canary": False,
+        "restore_proof_canary_entry_limit": 3,
         "restore_proof_buckets": ("cold_archive",),
         "include_parked_controller_stop": True,
         "include_operator_confirmed_parked_active": True,

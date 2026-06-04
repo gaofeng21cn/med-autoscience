@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 import hashlib
+import itertools
 import json
 import shutil
 import tarfile
@@ -17,6 +18,174 @@ COLD_RUNTIME_STATUSES = frozenset({"completed", "failed", "terminated"})
 PARKED_CONTROLLER_STOP_STATUSES = frozenset({"paused", "stopped"})
 OPERATOR_CONFIRMED_PARKED_ACTIVE_STATUSES = frozenset({"active", "waiting_for_user"})
 REPORT_SAMPLE_LIMIT = 5
+
+
+def plan_restore_proof_compaction_canary(
+    *,
+    quest_root: Path,
+    quest_id: str,
+    recorded_at: str,
+    buckets: Iterable[str],
+    entry_limit: int = 20,
+    blockers: Iterable[str] | None = None,
+) -> dict[str, Any]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    ds_root = resolved_quest_root / ".ds"
+    selected_buckets = tuple(dict.fromkeys(_bucket_name(bucket) for bucket in buckets))
+    bounded_limit = max(1, int(entry_limit))
+    slug = _artifact_slug(recorded_at)
+    bucket_samples = [
+        _bucket_canary_sample(
+            ds_root=ds_root,
+            bucket=bucket,
+            entry_limit=bounded_limit,
+        )
+        for bucket in selected_buckets
+    ]
+    receipt_ref = f"mas-runtime-storage-restore-proof-canary:{quest_id}:{slug}"
+    canary_root = _canary_root(resolved_quest_root)
+    canary_root.mkdir(parents=True, exist_ok=True)
+    plan_path = canary_root / f"{_safe_artifact_id(quest_id)}-{slug}.restore_proof_canary.json"
+    receipt_path = canary_root / f"{_safe_artifact_id(quest_id)}-{slug}.restore_proof_canary_receipt.json"
+    archive_path = canary_root / f"{_safe_artifact_id(quest_id)}-{slug}.restore_proof_canary.tar.gz"
+    manifest_path = canary_root / f"{_safe_artifact_id(quest_id)}-{slug}.restore_proof_canary.manifest.json"
+    restore_proof_path = canary_root / f"{_safe_artifact_id(quest_id)}-{slug}.restore_proof_canary.restore_proof.json"
+    blocker_list = [str(blocker) for blocker in blockers or [] if str(blocker).strip()]
+    source_paths = [
+        ds_root / str(entry["path"])
+        for sample in bucket_samples
+        for entry in list(sample.get("entries") or [])
+        if isinstance(entry, Mapping) and str(entry.get("path") or "").strip()
+    ]
+    manifest: dict[str, Any] | None = None
+    restore_proof: dict[str, Any] | None = None
+    archive_ref: dict[str, Any] | None = None
+    archive_created = False
+    archive_sha256: str | None = None
+    if not blocker_list and source_paths:
+        if archive_path.exists() or manifest_path.exists() or restore_proof_path.exists():
+            raise FileExistsError(f"restore-proof canary target already exists for {quest_id}: {slug}")
+        manifest = _source_manifest(
+            quest_root=resolved_quest_root,
+            ds_root=ds_root,
+            quest_id=quest_id,
+            recorded_at=recorded_at,
+            source_paths=source_paths,
+            selected_buckets=selected_buckets,
+            shard={
+                "group_id": "bounded_canary",
+                "group_index": 1,
+                "group_count": 1,
+                "entry_limit_per_bucket": bounded_limit,
+                "source_retained": True,
+            },
+        )
+        _write_json(manifest_path, manifest)
+        with tarfile.open(archive_path, "w:gz") as tar:
+            for source_path in source_paths:
+                tar.add(source_path, arcname=source_path.relative_to(ds_root).as_posix(), recursive=True)
+        archive_created = True
+        archive_sha256 = _file_sha256(archive_path)
+        restore_proof = _restore_proof(
+            archive_path=archive_path,
+            manifest=manifest,
+            archive_sha256=archive_sha256,
+            verified_at=_utc_now(),
+        )
+        _write_json(restore_proof_path, restore_proof)
+        archive_ref = {
+            "surface_kind": "runtime_archive_ref",
+            "schema_version": SCHEMA_VERSION,
+            "quest_id": quest_id,
+            "quest_root": str(resolved_quest_root),
+            "archive_id": f"runtime-restore-proof-canary::{quest_id}::{slug}",
+            "archived_at": recorded_at,
+            "archive_path": str(archive_path),
+            "archive_format": ARCHIVE_FORMAT,
+            "sha256": archive_sha256,
+            "bytes": archive_path.stat().st_size,
+            "source_manifest_path": str(manifest_path),
+            "restore_proof_path": str(restore_proof_path),
+            "source_buckets": [path.relative_to(ds_root).as_posix() for path in source_paths],
+            "source_file_count": len(manifest["source_files"]),
+            "restore_command": f"tar -xzf {archive_path} -C {ds_root}",
+            "source_retained": True,
+        }
+    status = (
+        "blocked_not_stopped_cold"
+        if blocker_list
+        else "nothing_to_archive"
+        if not source_paths
+        else "verified"
+        if restore_proof and restore_proof.get("status") == "verified"
+        else "blocked_restore_proof_failed"
+    )
+    plan = {
+        "surface_kind": "runtime_restore_proof_compaction_canary",
+        "schema_version": SCHEMA_VERSION,
+        "status": status,
+        "quest_id": quest_id,
+        "quest_root": str(resolved_quest_root),
+        "recorded_at": recorded_at,
+        "receipt_ref": receipt_ref,
+        "source_buckets": list(selected_buckets),
+        "entry_limit_per_bucket": bounded_limit,
+        "bucket_samples": bucket_samples,
+        "bucket_sample_count": len(bucket_samples),
+        "blockers": blocker_list,
+        "compaction_apply_eligible": not blocker_list,
+        "actual_release_bytes": 0,
+        "archive_ref": archive_ref,
+        "archive_ref_count": 1 if archive_ref else 0,
+        "archive_path": str(archive_path) if archive_created else None,
+        "source_manifest_path": str(manifest_path) if manifest else None,
+        "restore_proof": restore_proof,
+        "restore_proof_path": str(restore_proof_path) if restore_proof else None,
+        "pruned_paths": [],
+        "source_retained": True,
+        "body_included": False,
+        "recursive_hash_scan_performed": bool(manifest),
+        "bounded_source_path_count": len(source_paths),
+        "archive_created": archive_created,
+        "mutated_runtime_payload": False,
+        "sqlite_record_counts_as_stage_complete": False,
+        "authority_boundary": {
+            "role": "bounded_restore_proof_canary_receipt",
+            "stores_body": False,
+            "stores_domain_truth": False,
+            "writes_archive_body": archive_created,
+            "prunes_runtime_payload": False,
+            "owner_receipt_authority": "med-autoscience",
+            "generic_state_index_owner": "one-person-lab",
+        },
+    }
+    receipt = {
+        "surface_kind": "runtime_restore_proof_compaction_canary_receipt",
+        "schema_version": SCHEMA_VERSION,
+        "receipt_ref": receipt_ref,
+        "receipt_kind": "mas_refs_only_restore_proof_canary",
+        "quest_id": quest_id,
+        "quest_root": str(resolved_quest_root),
+        "recorded_at": recorded_at,
+        "plan_path": str(plan_path),
+        "source_buckets": list(selected_buckets),
+        "entry_limit_per_bucket": bounded_limit,
+        "body_included": False,
+        "archive_created": archive_created,
+        "archive_ref": archive_ref,
+        "restore_proof_status": restore_proof.get("status") if restore_proof else None,
+        "source_retained": True,
+        "mutated_runtime_payload": False,
+        "pruned_paths": [],
+        "blockers": blocker_list,
+        "authority_boundary": plan["authority_boundary"],
+    }
+    _write_json(plan_path, plan)
+    _write_json(receipt_path, receipt)
+    result = dict(plan)
+    result["plan_path"] = str(plan_path)
+    result["receipt_path"] = str(receipt_path)
+    return result
 
 
 def compact_cold_runtime_buckets(
@@ -238,6 +407,95 @@ def archive_refs_from_compaction_result(compaction: Mapping[str, Any]) -> list[M
         return []
     archive_ref = compaction.get("archive_ref")
     return [archive_ref] if isinstance(archive_ref, Mapping) else []
+
+
+def _bucket_canary_sample(*, ds_root: Path, bucket: str, entry_limit: int) -> dict[str, Any]:
+    bucket_path = ds_root / bucket
+    if not bucket_path.exists():
+        return {
+            "bucket": bucket,
+            "path": str(bucket_path),
+            "status": "missing",
+            "sampled_entry_count": 0,
+            "has_more_than_limit": False,
+            "entries": [],
+        }
+    if bucket_path.is_symlink():
+        return {
+            "bucket": bucket,
+            "path": str(bucket_path),
+            "status": "sampled",
+            "sampled_entry_count": 1,
+            "has_more_than_limit": False,
+            "entries": [_canary_entry(ds_root=ds_root, path=bucket_path)],
+        }
+    if bucket_path.is_file():
+        return {
+            "bucket": bucket,
+            "path": str(bucket_path),
+            "status": "sampled",
+            "sampled_entry_count": 1,
+            "has_more_than_limit": False,
+            "entries": [_canary_entry(ds_root=ds_root, path=bucket_path)],
+        }
+    if not bucket_path.is_dir():
+        return {
+            "bucket": bucket,
+            "path": str(bucket_path),
+            "status": "unsupported_path_type",
+            "sampled_entry_count": 0,
+            "has_more_than_limit": False,
+            "entries": [],
+        }
+    try:
+        observed = list(
+            itertools.islice(
+                (path for path in bucket_path.rglob("*") if path.is_file() or path.is_symlink()),
+                entry_limit + 1,
+            )
+        )
+    except OSError as exc:
+        return {
+            "bucket": bucket,
+            "path": str(bucket_path),
+            "status": "blocked_unreadable_bucket",
+            "sampled_entry_count": 0,
+            "has_more_than_limit": False,
+            "entries": [],
+            "blockers": [{"reason": "bucket_not_readable", "error": str(exc)}],
+        }
+    sample = sorted(observed[:entry_limit], key=lambda path: path.name)
+    return {
+        "bucket": bucket,
+        "path": str(bucket_path),
+        "status": "sampled",
+        "sampled_entry_count": len(sample),
+        "has_more_than_limit": len(observed) > entry_limit,
+        "sampling_kind": "bounded_recursive_file_or_symlink_sample",
+        "entries": [_canary_entry(ds_root=ds_root, path=entry) for entry in sample],
+    }
+
+
+def _canary_entry(*, ds_root: Path, path: Path) -> dict[str, Any]:
+    if path.is_symlink():
+        entry_type = "symlink"
+        size_bytes = path.lstat().st_size
+    elif path.is_file():
+        entry_type = "file"
+        size_bytes = path.stat().st_size
+    elif path.is_dir():
+        entry_type = "directory"
+        size_bytes = None
+    else:
+        entry_type = "other"
+        size_bytes = None
+    return {
+        "path": path.relative_to(ds_root).as_posix(),
+        "entry_type": entry_type,
+        "size_bytes": size_bytes,
+        "body_included": False,
+        "content_hash": None,
+    }
 
 
 def _source_groups(*, ds_root: Path, selected_buckets: tuple[str, ...]) -> list[dict[str, Any]]:
@@ -515,26 +773,8 @@ def _source_manifest(
 ) -> dict[str, Any]:
     source_files: list[dict[str, Any]] = []
     for source_path in source_paths:
-        for path in sorted(source_path.rglob("*")):
-            if path.is_symlink():
-                source_files.append(
-                    {
-                        "path": path.relative_to(ds_root).as_posix(),
-                        "entry_type": "symlink",
-                        "size_bytes": path.lstat().st_size,
-                        "link_target": str(path.readlink()),
-                    }
-                )
-                continue
-            if path.is_file():
-                source_files.append(
-                    {
-                        "path": path.relative_to(ds_root).as_posix(),
-                        "entry_type": "file",
-                        "size_bytes": path.stat().st_size,
-                        "sha256": _file_sha256(path),
-                    }
-                )
+        for path in _manifest_source_paths(source_path):
+            source_files.append(_source_manifest_entry(ds_root=ds_root, path=path))
     return {
         "surface_kind": "runtime_restore_source_manifest",
         "schema_version": SCHEMA_VERSION,
@@ -544,6 +784,32 @@ def _source_manifest(
         "source_buckets": list(selected_buckets),
         "shard": dict(shard or {}),
         "source_files": source_files,
+    }
+
+
+def _manifest_source_paths(source_path: Path) -> Iterable[Path]:
+    if source_path.is_symlink() or source_path.is_file():
+        yield source_path
+        return
+    if source_path.is_dir():
+        for path in sorted(source_path.rglob("*")):
+            if path.is_symlink() or path.is_file():
+                yield path
+
+
+def _source_manifest_entry(*, ds_root: Path, path: Path) -> dict[str, Any]:
+    if path.is_symlink():
+        return {
+            "path": path.relative_to(ds_root).as_posix(),
+            "entry_type": "symlink",
+            "size_bytes": path.lstat().st_size,
+            "link_target": str(path.readlink()),
+        }
+    return {
+        "path": path.relative_to(ds_root).as_posix(),
+        "entry_type": "file",
+        "size_bytes": path.stat().st_size,
+        "sha256": _file_sha256(path),
     }
 
 
@@ -667,6 +933,10 @@ def _archive_root(quest_root: Path) -> Path:
     return quest_root / "artifacts" / "runtime" / "runtime_storage_maintenance" / "restore_proof_archives" / "runtime_bucket_compaction"
 
 
+def _canary_root(quest_root: Path) -> Path:
+    return quest_root / "artifacts" / "runtime" / "runtime_storage_maintenance" / "restore_proof_canary"
+
+
 def _bucket_name(value: str) -> str:
     name = str(value or "").strip()
     if not name or name in {".", ".."} or "/" in name or "\\" in name:
@@ -709,6 +979,7 @@ __all__ = [
     "PARKED_CONTROLLER_STOP_STATUSES",
     "SURFACE_KIND",
     "compact_cold_runtime_buckets",
+    "plan_restore_proof_compaction_canary",
     "restore_proof_compaction_blockers",
     "restore_proof_compaction_candidate",
 ]

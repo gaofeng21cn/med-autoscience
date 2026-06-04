@@ -27,6 +27,7 @@ Machine boundary: 本文是人读 owner / provenance guard。机器真相继续�
 | --- | --- | --- |
 | Domain authority refs index | `standard_agent_refs_index` | `artifacts/runtime/domain_authority_refs.sqlite` and body-free refs |
 | MAS refs-only state index pilot | `opt_in_storage_maintenance_pilot` | `artifacts/runtime/mas_refs_only_state_index_pilot.sqlite` indexes cursor/index/lifecycle/outbox/receipt refs only |
+| Restore-proof canary | `bounded_retain_source_canary` | `artifacts/runtime/runtime_storage_maintenance/restore_proof_canary/*.json` and bounded archive/restore proof refs |
 | Runtime/event/report history | `opl_owned_or_provenance_only` | OPL attempt/provider ledger for runtime truth; MAS refs index for owner receipts/blockers only |
 | Quest Git retirement | `current projects verified` | migration/cutover ledgers and restore manifests |
 | Workspace root Git retirement | `current projects verified` | workspace root Git retirement ledgers |
@@ -65,13 +66,24 @@ Stable commands:
 - `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --refs-only-state-index-pilot --refs-only-state-index-only`
 - `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --refs-only-state-index-pilot`
 - `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --refs-only-state-index-pilot --refs-only-state-index-only`
+- `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --restore-proof-canary --restore-proof-canary-entry-limit <n> --restore-proof-bucket <bucket> --include-parked-controller-stop`
+- `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --restore-proof-canary --restore-proof-canary-entry-limit <n> --restore-proof-bucket <bucket> --include-parked-controller-stop`
 - `medautosci runtime storage-audit --profile <profile> --all-studies --apply --refs-only-state-index-pilot`
 
 Use `--refs-only-state-index-only` when the purpose is to rebuild the refs-only SQLite pilot on a very large `.ds` tree. In that mode MAS intentionally skips legacy backend storage maintenance and recursive size summaries, records `legacy_backend_status=skipped_by_refs_only_state_index_only`, and writes `size_before` / `size_after` as explicit skipped summaries. This is the preferred live canary path for million-file runtime roots because it indexes refs without doing physical compaction, GC, body migration, paper mutation or artifact cleanup.
 
+Use `--restore-proof-canary` when the purpose is to prove archive/restore mechanics on a bounded sample before any physical slimming. This canary samples at most `--restore-proof-canary-entry-limit` files or symlinks per selected runtime bucket, writes a bounded archive, source manifest, restore proof, plan and receipt under `artifacts/runtime/runtime_storage_maintenance/restore_proof_canary/`, and retains all source runtime payload. It records `actual_release_bytes=0`, `source_retained=true`, `mutated_runtime_payload=false`, and `pruned_paths=[]`. For parked `paused` / `stopped` roots it still requires `--include-parked-controller-stop`; do not use `--allow-live-runtime` to bypass this gate.
+
+The safe live sequence for million-file `.ds` roots is:
+
+1. `--refs-only-state-index-pilot --refs-only-state-index-only` to rebuild refs-only SQLite without recursive size scan.
+2. `--restore-proof-canary --restore-proof-canary-entry-limit <small n> --restore-proof-bucket runs|codex_homes --include-parked-controller-stop` to produce bounded restore proof while retaining source payload.
+3. Full `--restore-proof-compaction` only after owner/operator confirms the stopped-cold window and target bucket scope.
+
 Verification:
 
 - `scripts/run-pytest-clean.sh tests/test_runtime_storage_maintenance_cases/runtime_refs_only_state_index_pilot.py -q`
+- `scripts/run-pytest-clean.sh tests/test_runtime_storage_maintenance_cases/runtime_restore_proof_canary.py -q`
 - `scripts/run-pytest-clean.sh tests/test_cli_cases/runtime_storage_commands.py -q`
 - `scripts/run-pytest-clean.sh tests/test_stage_artifact_kernel_adoption_contract.py -q`
 
