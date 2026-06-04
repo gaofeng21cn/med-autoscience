@@ -244,6 +244,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/functional_privatization_audit.json",
             "contracts/generated_surface_handoff.json",
             "contracts/foundry_agent_series.json",
+            "contracts/golden_path_profile.json",
             "contracts/mas-paper-study-stage-pack.json",
             "contracts/memory_descriptor.json",
             "contracts/owner_receipt_contract.json",
