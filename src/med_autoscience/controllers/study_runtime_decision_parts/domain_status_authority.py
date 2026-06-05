@@ -602,7 +602,10 @@ def _unknown_opl_current_control_state_runtime_liveness(
 
 
 def _quest_status_allows_opl_liveness_projection(quest_status: StudyRuntimeQuestStatus | None) -> bool:
-    return quest_status in _LIVE_QUEST_STATUSES or quest_status is StudyRuntimeQuestStatus.WAITING_FOR_USER
+    return quest_status in _LIVE_QUEST_STATUSES or quest_status in {
+        StudyRuntimeQuestStatus.PAUSED,
+        StudyRuntimeQuestStatus.WAITING_FOR_USER,
+    }
 
 
 def _runtime_health_liveness_status(study_entry: dict[str, object]) -> str | None:

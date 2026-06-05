@@ -48,7 +48,10 @@ def _record_only_prompt_contract_is_canonical(prompt_contract: Mapping[str, Any]
     command = _text(prompt_contract.get("owner_callable_command"))
     if command is None:
         return False
-    if "scripts/run-python-clean.sh -m med_autoscience.cli publication materialize-ai-reviewer-record" not in command:
+    if "python3 -m med_autoscience.cli publication materialize-ai-reviewer-record" not in command:
+        return False
+    request = _mapping(prompt_contract.get("ai_reviewer_record_production_request"))
+    if _text(request.get("owner_callable_runtime")) != "repo_local_python_module":
         return False
     allowed = {
         text

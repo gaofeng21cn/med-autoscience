@@ -820,8 +820,6 @@ def opl_current_control_state_live_attempt_handoff_projection(
     if _non_empty_text(runtime_liveness_audit.get("source")) != "opl_current_control_state_provider_attempt":
         return None
     stage_progress_log = _stage_progress_log_mapping(runtime_liveness_audit.get("stage_progress_log"))
-    if not stage_progress_log:
-        return None
     source_path = _non_empty_text(runtime_liveness_audit.get("handoff_path")) or str(
         opl_current_control_state_handoff_path(profile=profile)
     )

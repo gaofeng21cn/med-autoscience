@@ -407,8 +407,8 @@ def test_execute_dispatch_materializes_handoff_for_incomplete_current_ai_reviewe
     assert payload["surface"] == "ai_reviewer_record_payload_authoring_target"
     assert payload["record_payload"] is None
     assert payload["owner_callable_command"].startswith(
-        f"{Path(__file__).resolve().parents[2]}/scripts/run-python-clean.sh "
-        "-m med_autoscience.cli publication materialize-ai-reviewer-record "
+        f"PYTHONPATH={Path(__file__).resolve().parents[2]}/src:{Path(__file__).resolve().parents[2]} "
+        "python3 -m med_autoscience.cli publication materialize-ai-reviewer-record "
     )
     assert Path(execution["ai_reviewer_record_worker_handoff_path"]).is_file()
 

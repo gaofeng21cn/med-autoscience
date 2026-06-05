@@ -86,8 +86,8 @@ def _profile_ref(profile: WorkspaceProfile) -> str | None:
 
 def _repo_local_cli_prefix() -> str:
     repo_root = Path(__file__).resolve().parents[5]
-    runner = repo_root / "scripts" / "run-python-clean.sh"
-    return f"{shlex.quote(str(runner))} -m med_autoscience.cli"
+    python_path = f"{repo_root / 'src'}:{repo_root}"
+    return f"PYTHONPATH={shlex.quote(python_path)} python3 -m med_autoscience.cli"
 
 
 def _command_for_payload_ref(*, profile: WorkspaceProfile, study_id: str, payload_ref: str) -> str:
@@ -151,6 +151,7 @@ def _record_payload_authoring_target(
         "record_payload_contract": dict(_mapping(production_request.get("owner_callable_payload_contract"))),
         "owner_callable_surface": _text(production_request.get("owner_callable_surface")),
         "owner_callable_command": _text(production_request.get("owner_callable_command")),
+        "owner_callable_runtime": _text(production_request.get("owner_callable_runtime")),
         "owner_callable_profile_ref": _text(production_request.get("owner_callable_profile_ref")),
         "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
         "required_output_surface": RECORD_OUTPUT_SURFACE,
@@ -165,6 +166,21 @@ def _record_payload_authoring_target(
         ),
         "generated_at": _utc_now(),
     }
+
+
+def _authorization_fields(dispatch: Mapping[str, Any] | None) -> dict[str, Any]:
+    source = _mapping(dispatch)
+    prompt_contract = _mapping(source.get("prompt_contract"))
+    owner_route = _mapping(source.get("owner_route"))
+    fields: dict[str, Any] = {}
+    for key in ("opl_execution_authorization", "opl_provider_attempt", "stage_attempt"):
+        if key in source:
+            fields[key] = _mapping(source.get(key)) or source.get(key)
+        elif key in prompt_contract:
+            fields[key] = _mapping(prompt_contract.get(key)) or prompt_contract.get(key)
+        elif key in owner_route:
+            fields[key] = _mapping(owner_route.get(key)) or owner_route.get(key)
+    return fields
 
 
 def build_ai_reviewer_record_production_request(
@@ -195,7 +211,7 @@ def build_ai_reviewer_record_production_request(
             "--study-id <study-id> --payload-file <ai_reviewer_record_payload.json> "
             "--build-production-trace"
         ),
-        "owner_callable_runtime": "repo_local_run_python_clean",
+        "owner_callable_runtime": "repo_local_python_module",
         "owner_callable_profile_required": True,
         "reviewer_operating_system_contract": {
             "contract_id": "medical_publication_ai_reviewer_os_v1",
@@ -274,6 +290,7 @@ def build_ai_reviewer_record_worker_handoff(
     repeat_key = _text(owner_route.get("work_unit_fingerprint")) if owner_route else None
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
+    authorization_fields = _authorization_fields(dispatch)
     prompt_contract = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -289,6 +306,7 @@ def build_ai_reviewer_record_worker_handoff(
         "request_packet_ref": REQUEST_PACKET_REF,
         "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
         "owner_callable_command": _text(production_request.get("owner_callable_command")),
+        "owner_callable_runtime": _text(production_request.get("owner_callable_runtime")),
         "owner_callable_profile_ref": _text(production_request.get("owner_callable_profile_ref")),
         "record_payload_authoring_target_surface": RECORD_PAYLOAD_AUTHORING_SURFACE,
         "execution_steps": [
@@ -306,6 +324,7 @@ def build_ai_reviewer_record_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
+        **authorization_fields,
     }
     return {
         "surface": "default_executor_dispatch_request",
@@ -333,6 +352,7 @@ def build_ai_reviewer_record_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
+        **authorization_fields,
         "ai_reviewer_record_production_request": dict(production_request),
         "source_action": {
             "surface": "ai_reviewer_record_production_request",

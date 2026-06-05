@@ -96,6 +96,16 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
     assert request["request_owner"] == "ai_reviewer"
     assert dispatch["dispatch_status"] == "ready"
     assert dispatch["blocked_reason"] is None
+    assert dispatch["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert dispatch["required_output_surface"] == (
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    )
+    assert dispatch["prompt_contract"]["owner_callable_command"].endswith("--build-production-trace")
+    assert dispatch["prompt_contract"]["owner_callable_payload_ref"].endswith(
+        "record_production_payloads/return_to_ai_reviewer_workflow_payload.json"
+    )
+    assert dispatch["source_action"]["record_only_surface"] is True
+    assert dispatch["source_action"]["publication_eval_latest_write_allowed"] is False
     assert dispatch["owner_route_attempt_envelope"]["dispatchable"] is True
     assert route["currentness_contract"]["missing_required_fields"] == []
     assert basis["source_eval_id"] == eval_id

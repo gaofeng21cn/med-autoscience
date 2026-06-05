@@ -64,6 +64,16 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup i
     _should_refresh_managed_study_status_after_stage_request,
     _write_outer_loop_wakeup_audit,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
+    handoff_dispatch_path,
+    handoff_work_unit_id,
+    materialized_record_only_provider_handoff,
+    materialized_record_only_provider_handoffs,
+    provider_admission_pending_dispatch_result,
+    provider_probe_has_matching_attempt,
+    provider_probe_has_non_running_actions,
+    study_has_running_provider_attempt,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.quest_scan import (
     DEFAULT_CONTROLLER_ORDER,
     ControllerRunner,
@@ -445,14 +455,19 @@ def _run_developer_supervisor_same_tick(
         else:
             materialize_result = carried_materialize_result
             carried_materialize_result = None
-        dispatch_result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
-            profile=profile,
-            study_ids=resolved_study_ids,
-            action_types=(),
-            mode="developer_apply_safe",
-            apply=True,
-            consumer_payload=materialize_result,
-        )
+        if materialized_record_only_provider_handoff(materialize_result):
+            dispatch_result = provider_admission_pending_dispatch_result(
+                materialize_result=materialize_result,
+            )
+        else:
+            dispatch_result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
+                profile=profile,
+                study_ids=resolved_study_ids,
+                action_types=(),
+                mode="developer_apply_safe",
+                apply=True,
+                consumer_payload=materialize_result,
+            )
         iteration = {
             "pass_index": pass_index,
             "owner_route_reconcile": scan_result,
@@ -483,7 +498,7 @@ def _run_developer_supervisor_same_tick(
                     mode="developer_apply_safe",
                     apply=True,
                 )
-                if _provider_probe_has_non_running_actions(_mapping(iteration["provider_admission_probe"])):
+                if provider_probe_has_non_running_actions(_mapping(iteration["provider_admission_probe"])):
                     carried_scan_result = _mapping(iteration["provider_admission_probe"])
                     carried_materialize_result = _mapping(iteration["post_admission_materialize"])
         iterations.append(iteration)
@@ -574,7 +589,7 @@ def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
     if _same_tick_handoff_written(iteration):
         provider_admission_probe = _mapping(iteration.get("provider_admission_probe"))
         if _provider_attempt_started_for_iteration(iteration):
-            if _provider_probe_has_non_running_actions(provider_admission_probe):
+            if provider_probe_has_non_running_actions(provider_admission_probe):
                 return "continue_same_tick_after_provider_admission_delta"
             return "provider_attempt_started"
         return "provider_handoff_written_admission_pending"
@@ -598,6 +613,7 @@ def _same_tick_handoff_written(iteration: Mapping[str, Any]) -> bool:
     return (
         _int_value(delta.get("codex_dispatch_count")) > 0
         or _int_value(delta.get("handoff_ready_count")) > 0
+        or materialized_record_only_provider_handoff(_mapping(iteration.get("materialize")))
     )
 
 
@@ -620,7 +636,7 @@ def _provider_attempt_started_for_iteration(iteration: Mapping[str, Any]) -> boo
     if not identities:
         return _provider_attempt_started(provider_admission_probe)
     return all(
-        _provider_probe_has_matching_attempt(provider_admission_probe, identity=identity)
+        provider_probe_has_matching_attempt(provider_admission_probe, identity=identity)
         for identity in identities
     )
 
@@ -628,6 +644,21 @@ def _provider_attempt_started_for_iteration(iteration: Mapping[str, Any]) -> boo
 def _same_tick_handoff_identities(iteration: Mapping[str, Any]) -> list[dict[str, str]]:
     dispatch = _mapping(iteration.get("dispatch"))
     identities: list[dict[str, str]] = []
+    for handoff in materialized_record_only_provider_handoffs(
+        _mapping(iteration.get("materialize"))
+    ):
+        identity = {
+            key: value
+            for key, value in {
+                "study_id": _non_empty_text(handoff.get("study_id")),
+                "action_type": _non_empty_text(handoff.get("action_type")),
+                "work_unit_id": handoff_work_unit_id(handoff),
+                "dispatch_path": handoff_dispatch_path(handoff),
+            }.items()
+            if value is not None
+        }
+        if len(identity) > 1:
+            identities.append(identity)
     for execution in dispatch.get("executions") or []:
         if not isinstance(execution, Mapping):
             continue
@@ -644,70 +675,6 @@ def _same_tick_handoff_identities(iteration: Mapping[str, Any]) -> list[dict[str
         if len(identity) > 1:
             identities.append(identity)
     return identities
-
-
-def _provider_probe_has_matching_attempt(
-    scan_result: Mapping[str, Any],
-    *,
-    identity: Mapping[str, str],
-) -> bool:
-    expected_study_id = _non_empty_text(identity.get("study_id"))
-    for study in scan_result.get("studies") or []:
-        if not isinstance(study, Mapping):
-            continue
-        if expected_study_id is not None and _non_empty_text(study.get("study_id")) != expected_study_id:
-            continue
-        if not _study_has_running_provider_attempt(study):
-            continue
-        live_attempt = _mapping(study.get("opl_provider_attempt")) or study
-        if _provider_attempt_matches_identity(live_attempt, identity=identity):
-            return True
-    return False
-
-
-def _study_has_running_provider_attempt(study: Mapping[str, Any]) -> bool:
-    return study.get("running_provider_attempt") is True and (
-        _non_empty_text(study.get("active_stage_attempt_id"))
-        or _non_empty_text(study.get("active_run_id"))
-        or _non_empty_text(study.get("active_workflow_id"))
-    ) is not None
-
-
-def _provider_attempt_matches_identity(
-    live_attempt: Mapping[str, Any],
-    *,
-    identity: Mapping[str, str],
-) -> bool:
-    expected_action = _non_empty_text(identity.get("action_type"))
-    if expected_action is not None and _non_empty_text(live_attempt.get("action_type")) != expected_action:
-        return False
-    expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
-    if expected_work_unit is not None and _non_empty_text(live_attempt.get("work_unit_id")) != expected_work_unit:
-        return False
-    expected_dispatch = _non_empty_text(identity.get("dispatch_path"))
-    live_dispatch = _non_empty_text(live_attempt.get("dispatch_ref")) or _non_empty_text(live_attempt.get("dispatch_path"))
-    if expected_dispatch is None or live_dispatch is None:
-        return True
-    normalized_expected = expected_dispatch.replace("\\", "/")
-    normalized_live = live_dispatch.replace("\\", "/")
-    return normalized_expected == normalized_live or normalized_expected.endswith(f"/{normalized_live}")
-
-
-def _provider_probe_has_non_running_actions(scan_result: Mapping[str, Any]) -> bool:
-    running_study_ids = {
-        study_id
-        for study in scan_result.get("studies") or []
-        if isinstance(study, Mapping)
-        and study.get("running_provider_attempt") is True
-        and (study_id := _non_empty_text(study.get("study_id"))) is not None
-    }
-    for action in scan_result.get("action_queue") or []:
-        if not isinstance(action, Mapping):
-            continue
-        study_id = _non_empty_text(action.get("study_id"))
-        if study_id is None or study_id not in running_study_ids:
-            return True
-    return False
 
 
 def _same_tick_terminal_diagnostic(

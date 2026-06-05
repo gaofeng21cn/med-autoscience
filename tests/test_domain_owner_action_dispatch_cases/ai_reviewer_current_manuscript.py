@@ -19,7 +19,7 @@ from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execu
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REPO_LOCAL_CLI = f"{REPO_ROOT}/scripts/run-python-clean.sh -m med_autoscience.cli"
+REPO_LOCAL_CLI = f"PYTHONPATH={REPO_ROOT}/src:{REPO_ROOT} python3 -m med_autoscience.cli"
 
 
 def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_record_stale_after_current_manuscript(
@@ -629,10 +629,13 @@ def test_execute_dispatch_canonicalizes_record_only_handoff_with_stale_medautosc
         profile=profile,
         study_id=study_id,
         request=request_payload,
-        dispatch={
-            "owner_route": route,
-            "prompt_contract": {"owner_route": route},
-        },
+        dispatch=_dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+            owner_route=route,
+        ),
         production_request=production_request,
     )
     stale_prompt = dict(handoff["prompt_contract"])

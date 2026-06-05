@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,15 +9,16 @@ from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
 from med_autoscience.controllers import domain_action_request_lifecycle
-from med_autoscience.controllers import default_executor_dispatch_packets
 from med_autoscience.controllers import progress_first_closeout
 from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
+    ai_reviewer_record_handoff,
     current_action_selection,
     current_writer_handoff,
+    persistence,
     publication_owner_materialization,
     supervisor_request_packets,
     writer_handoff_preservation,
@@ -44,7 +44,6 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 
 SCHEMA_VERSION = 1
@@ -89,25 +88,6 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def _append_json_line(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(dict(payload), ensure_ascii=False, sort_keys=True) + "\n")
-
-
-def _read_json_object(path: Path) -> dict[str, Any] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    return dict(payload) if isinstance(payload, Mapping) else None
 
 
 def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
@@ -297,6 +277,17 @@ def _default_executor_dispatch(
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
     )
+    record_only_handoff = ai_reviewer_record_handoff.ai_reviewer_record_production_handoff_dispatch(
+        profile=profile,
+        action=action,
+        action_type=action_type,
+        study_id=study_id,
+        dispatch_path=dispatch_path,
+        owner_route=owner_route,
+        source_action_ref=_source_action_ref,
+    )
+    if record_only_handoff is not None:
+        return record_only_handoff
     closeout_admission = _progress_first_closeout_admission(
         scan_payload=scan_payload,
         study_id=study_id,
@@ -394,7 +385,7 @@ def _default_executor_dispatch(
     repeat_guard = repeat_suppression.dispatch_repeat_suppression(
         dispatch={"prompt_contract": prompt_contract, "owner_route": owner_route, "dispatch_status": dispatch_status},
         current_study=current_study,
-        existing_dispatch=_read_json_object(dispatch_path),
+        existing_dispatch=persistence.read_json_object(dispatch_path),
         required_output_pending=_required_output_pending(
             profile=profile,
             study_id=study_id,
@@ -656,10 +647,7 @@ def _ai_reviewer_request_refresh(
     changed = refreshed != packet
     if apply and changed:
         request_path.parent.mkdir(parents=True, exist_ok=True)
-        request_path.write_text(
-            json.dumps(refreshed, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        persistence.write_json(request_path, refreshed)
     return {
         "surface": "ai_reviewer_request_refresh",
         "schema_version": SCHEMA_VERSION,
@@ -685,58 +673,6 @@ def _ai_reviewer_request_refreshes(
         if refresh is not None:
             refreshes.append(refresh)
     return refreshes
-
-
-def _persist_default_executor_dispatches(
-    *,
-    profile: WorkspaceProfile,
-    dispatches: list[dict[str, Any]],
-) -> list[str]:
-    written_files: list[str] = []
-    for dispatch in dispatches:
-        if _text(dispatch.get("dispatch_status")) != "ready":
-            continue
-        dispatch_path = Path(_mapping(dispatch.get("refs")).get("dispatch_path"))
-        packet_dispatch = default_executor_dispatch_packets.dispatch_with_immutable_packet_ref(
-            dispatch=dispatch,
-            dispatch_path=dispatch_path,
-        )
-        dispatch.clear()
-        dispatch.update(packet_dispatch)
-        _write_json(dispatch_path, dispatch)
-        immutable_dispatch_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
-            dispatch,
-            fallback_dispatch_path=dispatch_path,
-        )
-        if immutable_dispatch_path != dispatch_path:
-            _write_json(immutable_dispatch_path, dispatch)
-        dispatch["dispatch_id"] = f"dispatch::{_text(dispatch.get('study_id'))}::{_text(dispatch.get('action_type'))}"
-        quest_root = profile.runtime_root / (_text(dispatch.get("quest_id")) or _text(dispatch.get("study_id")) or "")
-        dispatch["domain_authority_ref_index"] = domain_authority_refs_index.record_dispatch_receipt(
-            quest_root=quest_root,
-            receipt=dispatch,
-            receipt_path=dispatch_path,
-            db_path=domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root),
-        )
-        _write_json(dispatch_path, dispatch)
-        if immutable_dispatch_path != dispatch_path:
-            _write_json(immutable_dispatch_path, dispatch)
-        written_files.append(str(dispatch_path))
-        if immutable_dispatch_path != dispatch_path:
-            written_files.append(str(immutable_dispatch_path))
-    return written_files
-
-
-def _persist_request_packets(request_tasks: list[dict[str, Any]]) -> list[str]:
-    written_files: list[str] = []
-    for task in request_tasks:
-        if _text(task.get("dispatch_status")) != "applied":
-            continue
-        packet_path = Path(_mapping(task.get("refs")).get("request_packet_path"))
-        packet = _request_packet_for_persistence(task=task, packet_path=packet_path)
-        _write_json(packet_path, packet)
-        written_files.append(str(packet_path))
-    return written_files
 
 
 def _apply_progress_first_closeout_to_request_tasks(
@@ -766,96 +702,6 @@ def _apply_progress_first_closeout_to_request_tasks(
         task["handoff_packet"] = handoff
 
 
-def _request_packet_for_persistence(
-    *,
-    task: Mapping[str, Any],
-    packet_path: Path,
-) -> dict[str, Any]:
-    packet = _mapping(task.get("handoff_packet"))
-    if _text(task.get("action_type")) != "return_to_ai_reviewer_workflow":
-        return packet
-    action = _mapping(task.get("source_action"))
-    lifecycle = dict(_mapping(packet.get("request_lifecycle")))
-    reason = _text(action.get("reason")) or _text(packet.get("reason"))
-    if reason:
-        lifecycle["blocked_reason"] = reason
-    if stale_record_ref := _text(action.get("stale_record_ref")):
-        lifecycle["stale_record_ref"] = stale_record_ref
-    required_refs = [ref for ref in action.get("required_currentness_refs") or [] if _text(ref)]
-    if required_refs:
-        lifecycle["required_currentness_refs"] = required_refs
-    if source_ref := _text(action.get("source_ref")):
-        lifecycle["source_ref"] = source_ref
-    if lifecycle:
-        packet["request_lifecycle"] = lifecycle
-    source_workflow_ref = _source_workflow_ref_for_ai_reviewer_request(
-        action=action,
-        packet=packet,
-        existing_packet=_read_json_object(packet_path),
-    )
-    if source_workflow_ref:
-        packet["source_workflow_ref"] = source_workflow_ref
-    try:
-        study_root = packet_path.parents[4]
-    except IndexError:
-        return packet
-    return domain_action_request_lifecycle.ai_reviewer_request_with_latest_record(
-        study_root=study_root,
-        packet=packet,
-    )
-
-
-def _source_workflow_ref_for_ai_reviewer_request(
-    *,
-    action: Mapping[str, Any],
-    packet: Mapping[str, Any],
-    existing_packet: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    source_handoff = _mapping(action.get("handoff_packet"))
-    ref = {
-        **_mapping(_mapping(existing_packet).get("source_workflow_ref")),
-        **_mapping(source_handoff.get("source_workflow_ref")),
-        **_mapping(packet.get("source_workflow_ref")),
-    }
-    if next_work_unit := _text(action.get("next_work_unit")):
-        ref["next_work_unit"] = next_work_unit
-    if route_back_target := (
-        _text(action.get("request_owner"))
-        or _text(action.get("recommended_owner"))
-        or _text(action.get("owner"))
-        or _text(_mapping(action.get("owner_route")).get("next_owner"))
-        or _text(packet.get("request_owner"))
-    ):
-        ref["route_back_target"] = route_back_target
-    return ref
-
-
-def _persist_consumer_payload(
-    *,
-    profile: WorkspaceProfile,
-    payload: Mapping[str, Any],
-    generated_at: str,
-    study_ids: tuple[str, ...],
-    request_task_count: int,
-    ai_reviewer_request_refresh_count: int,
-    written_files: list[str],
-    effective_mode: str,
-) -> None:
-    written_files.append(str(_consumer_latest_path(profile)))
-    _write_json(_consumer_latest_path(profile), payload)
-    _append_json_line(
-        _consumer_history_path(profile),
-        {
-            "generated_at": generated_at,
-            "study_ids": list(study_ids),
-            "request_task_count": request_task_count,
-            "ai_reviewer_request_refresh_count": ai_reviewer_request_refresh_count,
-            "written_files": list(written_files),
-            "effective_mode": effective_mode,
-        },
-    )
-
-
 def _dispatch_status_count(dispatches: list[dict[str, Any]], status: str) -> int:
     return sum(_text(dispatch.get("dispatch_status")) == status for dispatch in dispatches)
 
@@ -875,7 +721,7 @@ def materialize_domain_action_requests(
         scheduler_owner="external_queue_consumer",
     )
     developer_mode_payload = developer_mode.to_dict()
-    scan_payload = _read_json_object(_scan_latest_path(profile)) or {}
+    scan_payload = persistence.read_json_object(_scan_latest_path(profile)) or {}
     resolved_study_ids = _resolve_study_ids_from_scan(scan_payload, study_ids)
     selected_request_actions, ignored_actions = _selected_actions(
         profile=profile,
@@ -914,8 +760,13 @@ def materialize_domain_action_requests(
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
     if apply and developer_mode.safe_actions_enabled:
-        written_files.extend(_persist_default_executor_dispatches(profile=profile, dispatches=default_executor_dispatches))
-        written_files.extend(_persist_request_packets(request_tasks))
+        written_files.extend(
+            persistence.persist_default_executor_dispatches(
+                profile=profile,
+                dispatches=default_executor_dispatches,
+            )
+        )
+        written_files.extend(persistence.persist_request_packets(request_tasks))
         ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
             profile=profile,
             study_ids=resolved_study_ids,
@@ -968,8 +819,9 @@ def materialize_domain_action_requests(
     }
     if apply and developer_mode.safe_actions_enabled:
         payload["written_files"] = written_files
-        _persist_consumer_payload(
-            profile=profile,
+        persistence.persist_consumer_payload(
+            latest_path=_consumer_latest_path(profile),
+            history_path=_consumer_history_path(profile),
             payload=payload,
             generated_at=generated_at,
             study_ids=resolved_study_ids,
