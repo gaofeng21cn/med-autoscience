@@ -943,6 +943,7 @@ def blocked_reason_from_scan(
     for action in actions:
         if _text(action.get("action_type")) in {
             "publication_gate_specificity_required",
+            "publication_handoff_owner_gate",
             "current_package_freshness_required",
             "return_to_ai_reviewer_workflow",
             "canonical_paper_inputs_rehydrate_required",

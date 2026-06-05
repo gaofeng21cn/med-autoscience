@@ -21,7 +21,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import projection_e
 from med_autoscience.controllers.owner_route_reconcile_parts import publication_gate_actions, queue_slo
 from med_autoscience.controllers.owner_route_reconcile_parts import repo_write_policy, request_packets
 from med_autoscience.controllers.owner_route_reconcile_parts import runtime_facts, scan_output, status_projection
-from med_autoscience.controllers.owner_route_reconcile_parts import stale_redrive_resolution
+from med_autoscience.controllers.owner_route_reconcile_parts import stage_artifact_owner_actions, stale_redrive_resolution
 from med_autoscience.controllers.owner_route_reconcile_parts import story_surface_delta_actions, study_identity
 from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_parking
 from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_projection, workspace_daemon
@@ -148,7 +148,6 @@ def _publication_gate_specificity_required(
 
 def _supervisor_only(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
     return runtime_facts.supervisor_only(status, progress)
-
 
 def _opl_stage_attempt_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
     return runtime_facts.opl_stage_attempt_admission_required(status, progress)
@@ -508,6 +507,13 @@ def _study_projection(
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
     )
+    actions = stage_artifact_owner_actions.action_queue_with_terminal_publication_handoff(
+        actions=actions,
+        progress=progress_payload,
+        study_id=study_id,
+        quest_id=resolved_quest_id,
+        decorate_action=_decorate_action,
+    )
     artifact_blocked_action = artifact_freshness.blocked_action_from_gate_clearing(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -820,6 +826,7 @@ def _study_projection(
             "domain_authority_handoff": domain_handoff,
         },
     )
+    stage_artifact_projection_fields = stage_artifact_owner_actions.projection_fields(progress_payload)
     return {
         "study_id": study_id,
         "handoff_generated_at": generated_at,
@@ -836,6 +843,7 @@ def _study_projection(
         "running_provider_attempt": provider_attempt_projection["running_provider_attempt"],
         "supervision_url": _text(supervision.get("browser_url")),
         "paper_stage": _text(progress_payload.get("paper_stage")),
+        **stage_artifact_projection_fields,
         "runtime_health": runtime_health,
         "current_execution_envelope": execution_envelope,
         "current_execution_evidence": execution_evidence,

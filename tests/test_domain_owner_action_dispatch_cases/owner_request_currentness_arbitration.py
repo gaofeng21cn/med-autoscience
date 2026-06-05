@@ -233,6 +233,149 @@ def test_default_dispatch_ignores_owner_request_superseded_by_current_transition
     }
 
 
+def test_default_dispatch_current_stage_handoff_supersedes_consumed_transition_gate_replay(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    gate_work_unit = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    gate_route = _owner_route(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+    )
+    gate_route.update(
+        {
+            "owner_reason": gate_work_unit,
+            "failure_signature": gate_work_unit,
+            "work_unit_fingerprint": f"domain-transition::route_back_same_line::{gate_work_unit}",
+            "source_refs": {
+                "work_unit_id": gate_work_unit,
+                "work_unit_fingerprint": f"domain-transition::route_back_same_line::{gate_work_unit}",
+                "source_eval_id": "publication-eval::003::current",
+            },
+        }
+    )
+    gate_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+        required_output_surface="artifacts/controller/gate_clearing_batch/latest.json",
+        owner_route=gate_route,
+    )
+    handoff_route = _owner_route(
+        study_id=study_id,
+        action_type="publication_handoff_owner_gate",
+        owner="publication_gate_owner",
+    )
+    handoff_route["source_refs"] = {
+        "work_unit_id": "publication_handoff_owner_gate",
+        "work_unit_fingerprint": handoff_route["work_unit_fingerprint"],
+        "owner_route_currentness_basis": {
+            "truth_epoch": handoff_route["truth_epoch"],
+            "runtime_health_epoch": handoff_route["runtime_health_epoch"],
+            "work_unit_id": "publication_handoff_owner_gate",
+            "work_unit_fingerprint": handoff_route["work_unit_fingerprint"],
+        },
+    }
+    handoff_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="publication_handoff_owner_gate",
+        owner="publication_gate_owner",
+        required_output_surface=(
+            "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json "
+            "or artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+        ),
+        owner_route=handoff_route,
+    )
+    gate_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    handoff_path = gate_path.parent / "publication_handoff_owner_gate.json"
+    _write_json(gate_path, gate_dispatch)
+    _write_json(handoff_path, handoff_dispatch)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": handoff_route,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "action_type": "publication_handoff_owner_gate",
+                            "owner": "publication_gate_owner",
+                            "owner_route": handoff_route,
+                        }
+                    ],
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "source": "stage_artifact_index.next_owner_action",
+                        "allowed_actions": ["publication_handoff_owner_gate"],
+                        "next_owner": "publication_gate_owner",
+                        "work_unit_id": "publication_handoff_owner_gate",
+                    },
+                    "stage_artifact_index": {
+                        "surface_kind": "stage_artifact_index",
+                        "next_owner_action": {
+                            "action_type": "publication_handoff_owner_gate",
+                            "allowed_actions": ["publication_handoff_owner_gate"],
+                            "next_owner": "publication_gate_owner",
+                            "work_unit_id": "publication_handoff_owner_gate",
+                        },
+                    },
+                    "domain_transition": {
+                        "decision_type": "route_back_same_line",
+                        "route_target": "finalize",
+                        "controller_action": "request_opl_stage_attempt",
+                        "next_work_unit": {"unit_id": gate_work_unit},
+                        "completion_receipt_consumption": {
+                            "status": "consumed",
+                            "eval_id": "publication-eval::003::current",
+                            "receipt_kind": "ai_reviewer_publication_eval",
+                        },
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [
+                {**gate_dispatch, "refs": {"dispatch_path": str(gate_path)}},
+                {**handoff_dispatch, "refs": {"dispatch_path": str(handoff_path)}},
+            ],
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert [execution["action_type"] for execution in result["executions"]] == [
+        "publication_handoff_owner_gate"
+    ]
+
+
 def test_default_dispatch_executes_active_owner_request_when_scan_route_is_stale(
     monkeypatch,
     tmp_path: Path,

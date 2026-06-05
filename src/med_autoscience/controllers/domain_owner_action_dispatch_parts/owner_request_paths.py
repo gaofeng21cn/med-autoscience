@@ -10,6 +10,7 @@ from med_autoscience.profiles import WorkspaceProfile
 
 OWNER_REQUEST_RELATIVE_PATHS = {
     "publication_gate_specificity_required": Path("artifacts/supervision/requests/publication_gate_specificity/latest.json"),
+    "publication_handoff_owner_gate": Path("artifacts/supervision/requests/publication_handoff_owner_gate/latest.json"),
     "current_package_freshness_required": Path("artifacts/supervision/requests/current_package_freshness/latest.json"),
     "artifact_display_surface_materialization_required": Path(
         "artifacts/supervision/requests/artifact_display_materialization/latest.json"

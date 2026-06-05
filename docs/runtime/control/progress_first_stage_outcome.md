@@ -97,11 +97,14 @@ AI-first 的 admission 锚点是 `current_executable_owner_action`，不是 `nex
 
 如果 admission request 已写出但缺 running proof，下一 owner 是 OPL worker / scheduler / provider attempt admission。不要把控制权退回 MAS receipt reconcile、read-model hydration、telemetry completeness、doctor explanation 或 operator wording review。
 
+Terminal `stage_artifact_index.next_owner_action=publication_handoff_owner_gate` 已具备完整 current owner action 时，Progress-first admission 的下一步是 OPL provider execution authorization / attempt lease / closeout receipt binding，随后才由 MAS owner callable 产出 `handoff_owner_receipt.json` 或 `receipts/typed_blocker.json`。缺少这组 OPL binding 时，operator outcome 应是 `blocked_with_typed_owner`，typed blocker owner=`one-person-lab`，reason=`opl_execution_authorization_required`；不得退回旧 writer repair、旧 gate replay、generic owner-route hydration 或 repeat receipt reconcile。
+
 ## Hard gates
 
 preflight 只保留以下 hard gates：
 
 - `human_gate`：需要用户、PI、医生、外部编辑或显式 approval/resume。
+- `opl_execution_authorization_required`：当前 owner action 已可 dispatch，但缺 OPL provider attempt、attempt lease、execution authorization decision 或 closeout receipt binding；owner=`one-person-lab`，解除者是 OPL provider admission / lease / closeout binding。
 - `forbidden_authority_write`：当前 action 会写 MAS 禁止 surface，例如未授权的 study truth、runtime-owned state、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission/current package 或非当前 owner 的 paper surface。
 - `missing_owner_callable`：当前 owner/action 没有可调用 MAS owner callable、domain-handler dispatch 或 OPL provider entry。
 - `missing_source_or_data`：当前 work unit 的必需 source/data/evidence ref 缺失，无法形成 owner output 或 typed blocker。

@@ -205,6 +205,12 @@ def projection_block_state(
             "next_owner": "gate_clearing_batch",
             "external_supervisor_required": False,
         }
+    if _has_publication_handoff_owner_gate_action(actions):
+        return {
+            "blocked_reason": "publication_handoff_owner_gate",
+            "next_owner": "publication_gate_owner",
+            "external_supervisor_required": False,
+        }
     if completion_evidence.completed_current_truth(status, progress):
         return _clear_block_state()
     parked_state = parked_truth.block_state(
@@ -265,6 +271,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "completion_evidence"
     if blocked_reason == "publication_gate_specificity_required":
         return "publication_gate"
+    if blocked_reason == "publication_handoff_owner_gate":
+        return "publication_gate_owner"
     if blocked_reason == evidence_adoption.RECHECK_REASON:
         return "publication_gate"
     if blocked_reason == evidence_adoption.OWNER_HANDOFF_REASON:
@@ -346,6 +354,14 @@ def _has_gate_clearing_batch_action(actions: list[dict[str, Any]]) -> bool:
     return any(
         _text(action.get("action_type")) == "run_gate_clearing_batch"
         and _text(action.get("owner")) == "gate_clearing_batch"
+        for action in actions
+    )
+
+
+def _has_publication_handoff_owner_gate_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "publication_handoff_owner_gate"
+        and _text(action.get("owner")) == "publication_gate_owner"
         for action in actions
     )
 

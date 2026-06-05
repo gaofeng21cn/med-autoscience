@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-05：terminal stage artifact handoff 必须压过旧 writer / gate replay tail
+
+- 决策：当 `stage_artifact_index.next_owner_action` 已明确给出 terminal `publication_handoff_owner_gate`，且 required delta 是 `publication_handoff_owner_receipt_or_typed_blocker` 时，它是 late-stage publication handoff 的最高 current owner source。`owner-route-reconcile`、`domain-action-request-materialize` 和 `domain-owner-action-dispatch` 必须把同一 study 投影为唯一 `publication_gate_owner / publication_handoff_owner_gate` action。
+- 决策：`publication_handoff_owner_gate` 的 request 和 persisted dispatch 是当前 dispatch authority。默认 dispatcher 必须压制旧 `run_quality_repair_batch`、旧 `run_gate_clearing_batch`、stale `consumer/latest.json`、stale owner request 和 consumed-transition tail；显式 `--action-types` 只限制候选集合，不得绕过这个 currentness 仲裁。
+- 决策：`publication_handoff_owner_gate` 只允许写 `artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json` 或 `artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json`。它不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper、submission package、`current_package`、memory body 或 quality verdict。
+- 决策：dry-run 可达 `publication_handoff_owner_gate.evaluate_terminal_handoff` 只证明 MAS owner-route/currentness/dispatch 链路能找到下一 owner callable；它不是 running proof、publication gate cleared、paper closure 或 package-ready。`apply` 缺 OPL provider attempt、lease 或 closeout receipt binding 时，正确状态是 `opl_execution_authorization_required` typed blocker，owner=`one-person-lab`，不得退回旧 writer repair、旧 gate replay、receipt reconcile 或手写 study truth。
+- 理由：DM002/DM003 terminal stage-native canary 暴露出 current stage 已进入 `08-publication_package_handoff`，但历史 writer/gate-replay dispatch residue 仍可抢占默认 selector。若不把 terminal stage artifact handoff 提升为最高 current owner source，Progress-first 会继续消耗在旧 repair/gate tail，而不是把真实阻塞暴露给 OPL execution authorization / lease / closeout binding。
+- 影响：这是 MAS owner-route/currentness 与 dispatch arbitration 修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、paper package、memory body 或 artifact body。后续论文推进仍必须通过 OPL provider authorization、MAS owner receipt、MAS typed blocker、AI reviewer / publication gate evidence、human gate 或 stop-loss 关闭。
+
 ## 2026-06-04：Yang 旧 `.ds` 执行态爆量必须先迁入 restore-proof / SQLite refs 体系，再做物理压缩或修复
 
 - 决策：`~/workspace/Yang` 下百万级文件量和大量深层 `.git` 不是当前 MAS 论文 workspace 的正常规模，也不是根层 workspace Git 管理的合理残留。2026-06-04 只读审计显示热点集中在少数旧 quest 的 `.ds` 执行态：DM002 `runtime/quests/002-dm-china-us-mortality-attribution/.ds/codex_homes` 约 `625` 个 run home、`.ds/runs` 约 `1194` 个 run 目录；Obesity `runtime/quests/obesity_multicenter_phenotype_atlas/.ds/codex_homes` 约 `674` 个 run home、`.ds/runs` 约 `968` 个 run 目录。这些目录中的 per-attempt Codex home 重复携带 `.codex/skills`、plugin/tmp/cache/session 形态，属于旧 executor/session home 与 run-log 保留失控，不是 study truth、publication verdict、artifact authority 或当前 runtime owner。

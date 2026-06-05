@@ -20,6 +20,7 @@ from . import current_writer_handoff
 from . import persisted_handoff_selection
 from . import publication_owner_materialization_currentness
 from . import runtime_current_dispatch_selection
+from . import stage_artifact_publication_handoff_currentness
 from . import writer_handoff_currentness
 
 
@@ -344,6 +345,8 @@ def _runtime_current_dispatches_only(
 
 def _with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
     study = dict(current_study)
+    if stage_artifact_publication_handoff_currentness.is_current(study):
+        return study
     transition_route = _consumed_transition_owner_route(study)
     if transition_route:
         study["owner_route"] = transition_route
@@ -584,6 +587,8 @@ def _matching_consumed_transition_route(
     current_study: Mapping[str, Any],
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    if stage_artifact_publication_handoff_currentness.is_current(current_study):
+        return None
     route = _consumed_transition_owner_route(current_study)
     if not route:
         return None
@@ -889,6 +894,8 @@ def _owner_request_current_against_scan(
 ) -> bool:
     if not current_study:
         return True
+    if stage_artifact_publication_handoff_currentness.is_current(current_study) and _text(dispatch.get("action_type")) != "publication_handoff_owner_gate":
+        return False
     if live_provider_attempt_owner_route_from_scan_payload(
         scan_payload={"studies": [dict(current_study)]},
         study_id=_text(current_study.get("study_id")) or _text(request_route.get("study_id")) or "",
