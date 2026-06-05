@@ -741,6 +741,13 @@ def _publication_eval_consumes_ai_reviewer_request(
             request_packet=request_packet,
             blocked_reason=record_blocker,
         )
+    if publication_eval_matches_attached_request_record(
+        publication_eval_payload=_mapping(publication_eval_payload),
+        request_packet=request_packet,
+        text=_text,
+        mapping=_mapping,
+    ):
+        return True
     record_production_reason = _request_packet_record_production_blocker_reason(request_packet)
     if record_production_reason and publication_eval_matches_attached_request_record(
         publication_eval_payload=_mapping(publication_eval_payload),

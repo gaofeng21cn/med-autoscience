@@ -52,6 +52,48 @@ def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() 
     assert "owner_route_currentness_basis" in route["source_refs"]
 
 
+def test_owner_route_registers_dm002_clean_migration_publication_gate_replay() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "quest_id": "002-dm-china-us-mortality-attribution",
+        "truth_epoch": "publication-eval::dm002::current-ai-reviewer",
+        "runtime_health_epoch": "runtime-health::dm002::current",
+        "source_fingerprint": "truth-source::dm002::current-ai-reviewer",
+        "work_unit_fingerprint": (
+            "domain-transition::route_back_same_line::publication_gate_replay_after_clean_migration"
+        ),
+        "current_owner": "mas_controller",
+        "next_owner": "gate_clearing_batch",
+        "owner_reason": "publication_gate_replay_after_clean_migration",
+        "failure_signature": "publication_gate_replay_after_clean_migration",
+        "allowed_actions": ["run_gate_clearing_batch"],
+        "idempotency_key": "owner-route::dm002::clean-migration-gate-replay",
+        "source_refs": {
+            "source_eval_id": "publication-eval::dm002::current-ai-reviewer",
+            "work_unit_id": "publication_gate_replay_after_clean_migration",
+            "work_unit_fingerprint": (
+                "domain-transition::route_back_same_line::publication_gate_replay_after_clean_migration"
+            ),
+            "study_truth_epoch": "publication-eval::dm002::current-ai-reviewer",
+            "runtime_health_epoch": "runtime-health::dm002::current",
+        },
+    }
+
+    decorated = protocol.decorate_owner_route(owner_route)
+
+    assert decorated["owner_reason_contract"]["registered"] is True
+    assert decorated["owner_reason_contract"]["owner"] == "gate_clearing_batch"
+    assert decorated["owner_reason_contract"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert decorated["owner_reason_contract"]["required_output"] == (
+        "artifacts/controller/gate_clearing_batch/latest.json"
+    )
+    assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
+
+
 def test_owner_route_executable_identity_ignores_projection_counter_churn() -> None:
     owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
 

@@ -1,7 +1,8 @@
 # 当前状态
 
 文档更新时间：`2026-06-05`
-最近一次已记录 live runtime audit：`2026-06-04`
+最近一次已记录 live runtime audit：`2026-06-05`
+最近一次已记录 DM002 / DM003 paper-line pause closeout：`2026-06-05`
 
 Owner: `MedAutoScience`
 Purpose: `current_truth_summary`
@@ -32,14 +33,20 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 ## 最近一次已记录 DM002 / DM003 runtime truth
 
-`2026-06-04` live audit 记录显示：DM002 / DM003 在 storage-state repair、stage-native materialization、owner-route currentness 和 OPL provider admission 链路上已有可定位 evidence；这些 evidence 只能证明 migrated workspace 可被 MAS/OPL surface 找到、读取、materialize、dispatch 或阻塞。
+`2026-06-05` live pause closeout 记录显示：DM002 / DM003 的旧 `opl_execution_authorization_required` gate-clearing blocker 已不再是当前主阻塞；两篇都完成了 gate replay / publication gate rebuild，但 authoritative publication truth 仍是 `blocked / partial`，不是 publication-ready、paper closure 或 package-ready。暂停前当前 owner route 已进入 `write / run_quality_repair_batch`：
+
+- DM002：`manuscript_story_repair`。
+- DM003：`medical_prose_write_repair`。
+
+用户因近 9 小时主要消耗在 MAS/OPL 控制面 currentness、dispatch、receipt 和 provider lifecycle 修复上，要求暂停论文线并转向 MAS/OPL 平台优化。OPL queue hold 已生效；两篇当前 provider attempt 均进入 `human_gate` / `operator_hold_requested`，对应 queue task 为 `waiting_approval` 且无 lease；全局 `attempt list --status running` 返回 0。dated attempt/task/hold id 和命令证据见 [DM002 / DM003 paper-line pause closeout 2026-06-05](./history/program/dm002_dm003_paper_line_pause_closeout_2026_06_05.md)。
 
 当前读法固定为：
 
 - 具体 study owner、action、route key、stage attempt、provider liveness 和 blocker 必须 fresh 读取 live `study_progress`、owner-route、OPL current-control / provider attempt ledger 和 owner receipts。
-- `stage-artifact-materialize`、refs-only SQLite、restore-proof archive、stage-folder index、OPL dispatch task 或 running attempt 都不能单独声明 publication-ready、paper closure、artifact authority、domain-ready、production-ready 或 `current_package` 更新。
+- `stage-artifact-materialize`、refs-only SQLite、restore-proof archive、stage-folder index、OPL dispatch task、held attempt 或曾经 running attempt 都不能单独声明 publication-ready、paper closure、artifact authority、domain-ready、production-ready 或 `current_package` 更新。
 - 2026-06-04 的 storage/index/stage-folder closeout 与 DM002/DM003 follow-through 细节由 [Domain Authority Refs Index Guard](./runtime/domain_authority_refs_index_guard.md) 承载；本文不保存 receipt/task/stage id ledger。
-- 同类 receipt/currentness/read-model/preflight 空转按 [Progress-First Stage Outcome Runbook](./runtime/control/progress_first_stage_outcome.md) 判断 paper/deliverable progress、platform repair 和 stable typed blocker。
+- 2026-06-05 的 paper-line pause closeout 细节由 [DM002 / DM003 paper-line pause closeout 2026-06-05](./history/program/dm002_dm003_paper_line_pause_closeout_2026_06_05.md) 承载；本文只保存当前判断。
+- 同类 receipt/currentness/read-model/preflight 空转按 [Progress-First Stage Outcome Runbook](./runtime/control/progress_first_stage_outcome.md) 判断 paper/deliverable progress、platform repair 和 stable typed blocker；platform repair 不计入论文实质进展。
 
 ## 当前机器事实
 
@@ -54,7 +61,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 | State index / restore-proof storage maintenance | MAS refs-only 小文件治理 pilot 和 restore-proof compaction 只作为 storage/index/provenance guard；细节、稳定命令和 2026-06-04 evidence 归 [Domain Authority Refs Index Guard](./runtime/domain_authority_refs_index_guard.md)。 |
 | Stage-native paper workspace materialization | `stage-artifact-materialize` 只写 locator / hash / receipt，不复制 legacy body，不改 paper/package/publication truth，不授权 quality verdict、publication-ready 或 submission-ready；2026-06-04 DM002/DM003 stage-folder 证据归 [Domain Authority Refs Index Guard](./runtime/domain_authority_refs_index_guard.md)。 |
 | Stage-native paper authority reader | `paper_authority_cutover/current_body` 是 reader authority surface；AI reviewer current-manuscript binding 优先消费该 current body，再回退到 root `paper/*`。当 `publication_eval/latest.json` 只是 `mechanical_projection` 且仍声明 `ai_reviewer_required=true` 时，已通过 reviewer OS currentness 的 AI reviewer record 可以作为当前 owner-route projection supersede 它。writer/materializer 仍必须走 MAS owner-authorized callable surface，不能把 reader authority、mechanical projection 或 reviewer currentness 升级为写权限、publication-ready 或 package authority。 |
-| DM002/DM003 current owner handoff | 最近记录的 next owner blocker 是 OPL execution authorization / owner-route handoff 类 blocker；具体 owner/action/running proof 必须 fresh read。该 blocker 不是 stale paper path blocker、publication-ready、paper closure 或 MAS 私有执行授权。 |
+| DM002/DM003 current owner handoff | 2026-06-05 pause closeout 后，两篇论文线处于 OPL queue hold / human gate；暂停前当前 owner route 为 write-owner `run_quality_repair_batch`。恢复前必须先 release hold / human approval，再由 StageRun / owner-route surface 重新 materialize 当前 work unit；不得直接 tick 或手写论文 truth。 |
 | Standard Agent purity | `standard_agent_purity` 是 current product-entry / domain-handler / read-model 默认口径：MAS 目标形态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。当前 retained code 只按 domain handler target、authority function、owner receipt / typed blocker producer 或 refs-only projection input 读取；repo-local dispatcher / repair executor 不再作为 MAS-private attempt loop 或 consumer 读取。 |
 | Legacy names | MDS / DeepScientist、Hermes、legacy scheduler、`runtime_transport`、`mas_runtime_core*`、旧 lifecycle writer 和旧 alias 只能作为 provenance、explicit archive import、backend audit、parity oracle、tombstone 或旧输入测试语境读取；不作为当前 runtime owner、adapter、fallback、compatibility alias 或 active caller。 |
 

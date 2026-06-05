@@ -153,14 +153,12 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         if running_provider_attempt is True or (owner_action_visible and not typed_blocker)
         else _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
     )
-    if running_provider_attempt is True:
+    if owner_action_visible:
+        state_kind = "executable_owner_action"
+    elif running_provider_attempt is True:
         state_kind = "running_provider_attempt"
     else:
-        state_kind = (
-            "executable_owner_action"
-            if owner_action_visible
-            else _text(execution.get("state_kind"))
-        )
+        state_kind = _text(execution.get("state_kind"))
     if state_kind is None:
         if receipt_consumed:
             state_kind = "receipt_consumed"
@@ -193,11 +191,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
                 handoff=handoff,
             ),
         },
-        "execution_state_kind": (
-            "running_provider_attempt"
-            if running_provider_attempt is True
-            else "owner_handoff_hydration" if hydration_work_unit is not None else state_kind
-        ),
+        "execution_state_kind": "owner_handoff_hydration" if hydration_work_unit is not None else state_kind,
         "next_owner": (
             _explicit_wakeup_hydration_owner(launch_policy)
             or _text(current_action.get("next_owner"))

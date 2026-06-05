@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import ai_reviewer_publication_eval_records
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer_actions
 from med_autoscience.publication_eval_reviewer_os import current_ai_reviewer_route_back_action
 
@@ -94,12 +95,15 @@ def gate_replay_action(
         return None
     route_back_action = current_ai_reviewer_route_back_action(dict(publication_eval_payload))
     if route_back_action is None:
+        route_back_action = _publication_gate_replay_route_back_action(publication_eval_payload)
+    if route_back_action is None:
         return None
     next_work_unit = _mapping(route_back_action.get("next_work_unit"))
     work_unit_id = _text(next_work_unit.get("unit_id"))
-    if _text(route_back_action.get("route_target")) != "finalize":
+    route_target = _text(route_back_action.get("route_target")) or _text(next_work_unit.get("lane")) or "finalize"
+    if route_target not in {"finalize", "publication_gate", "write", "review"}:
         return None
-    if work_unit_id != "owner_authorized_publication_gate_replay":
+    if work_unit_id not in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
         return None
     publication_eval_latest_path = Path(study_root).expanduser().resolve() / "artifacts" / "publication_eval" / "latest.json"
     eval_id = _text(publication_eval_payload.get("eval_id"))
@@ -107,7 +111,7 @@ def gate_replay_action(
         "decision_path": None,
         "decision_id": None,
         "controller_actions": ["run_gate_clearing_batch"],
-        "route_target": "finalize",
+        "route_target": route_target,
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": f"domain-transition::route_back_same_line::{work_unit_id}",
         "publication_eval_id": eval_id,
@@ -120,7 +124,7 @@ def gate_replay_action(
         },
         "next_work_unit": dict(next_work_unit),
         "source": "owner_route_reconcile_current_ai_reviewer_gate_replay",
-        "authorization_basis": "ai_reviewer_current_finalize_gate_replay",
+        "authorization_basis": "ai_reviewer_current_gate_replay",
     }
     return {
         "action_type": "run_gate_clearing_batch",
@@ -129,9 +133,9 @@ def gate_replay_action(
         "request_owner": "gate_clearing_batch",
         "recommended_owner": "gate_clearing_batch",
         "reason": work_unit_id,
-        "summary": "The current AI reviewer record routes publication-gate replay to the finalize owner.",
+        "summary": "The current AI reviewer record routes publication-gate replay to the MAS gate owner.",
         "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
-        "route_target": "finalize",
+        "route_target": route_target,
         "next_work_unit": work_unit_id,
         "executable_work_unit": work_unit_id,
         "controller_work_unit_id": work_unit_id,
@@ -139,7 +143,7 @@ def gate_replay_action(
         "controller_action": "run_gate_clearing_batch",
         "controller_route": controller_route,
         "domain_transition_decision_type": "route_back_same_line",
-        "original_route_target": "finalize",
+        "original_route_target": route_target,
         "work_unit_fingerprint": f"domain-transition::route_back_same_line::{work_unit_id}",
         "source_eval_id": eval_id,
         "paper_package_mutation_allowed": False,
@@ -148,6 +152,31 @@ def gate_replay_action(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+
+
+def _publication_gate_replay_route_back_action(publication_eval_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    provenance = _mapping(publication_eval_payload.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
+        return None
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if not isinstance(action, Mapping):
+            continue
+        if action.get("requires_controller_decision") is not True:
+            continue
+        if _text(action.get("action_type")) != "route_back_same_line":
+            continue
+        next_work_unit = _mapping(action.get("next_work_unit"))
+        work_unit_id = _text(next_work_unit.get("unit_id"))
+        if work_unit_id not in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+            continue
+        payload = dict(action)
+        route_target = _text(payload.get("route_target")) or _text(next_work_unit.get("lane")) or "finalize"
+        payload["route_target"] = route_target
+        return payload
+    return None
 
 
 def current_ai_reviewer_assessment_resolved(ai_reviewer_assessment: Mapping[str, Any]) -> bool:

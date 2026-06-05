@@ -1955,6 +1955,15 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出一个 Progress-First 闭环缺陷：`domain-action-request-materialize` 已经正确产出 gate replay dispatch，但 dispatch selector 先命中通用写作回修规则，把当前 work unit 误映射成 `run_quality_repair_batch`，导致后续 dispatch 报 `no_selected_dispatch_for_requested_action_types`，把时间耗在重复 receipt / read-model reconcile 上。
 - 影响：gate replay work unit family 是 publication-gate lane 的显式 controller action，优先级高于通用 write route-back；新增回归覆盖 consumed transition 后正确选择并执行当前 `run_gate_clearing_batch` dispatch。
 
+## 2026-06-05：request-bound AI reviewer record 和 clean-migration gate replay 必须关闭旧 reviewer loop
+
+- 决策：`return_to_ai_reviewer_workflow` request 绑定了 `publication_eval_record_ref` 和 attached AI reviewer record 时，MAS lifecycle 可以用当前 publication eval 的 `_projection_source_ref` 精确匹配该 ref 来关闭 request。该消费仍要求 attached record 存在、record ref 存在，并且 publication eval ref 或 eval id 与 request-bound record 一致；不得把任意 attached payload 当作 quality authority。
+- 决策：clean paper-authority migration 产生的 current AI reviewer record 如果推荐 `route_back_same_line` 且 next work unit 属于 `PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS`，`owner-route-reconcile` 必须投影 `gate_clearing_batch/run_gate_clearing_batch`，并注册 `publication_gate_replay_after_clean_migration` owner reason。旧 `ai_reviewer_re_eval` transition 只能作为 stale diagnostic，不得抢占当前 gate replay route。
+- 决策：provider-hosted default executor dispatch 在 OPL stage attempt identity、stage packet ref、study id、action type 和 work-unit id 与 current owner route 匹配时，可以授权 `run_gate_clearing_batch`；授权边界仍是 MAS default-executor dispatch request，不写 `paper/**`、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package 或 OPL runtime state。
+- 决策：Progress-first monitoring 必须让 stage artifact / owner-route 派生的 `current_executable_owner_action` 决定 `execution_state_kind=executable_owner_action`；`running_provider_attempt=true` 只作为 liveness / admission proof 保留，不能覆盖当前 artifact owner action 或让 operator 误以为 provider running 已替代下一 owner。
+- 理由：DM002 / DM003 在 2026-06-05 暴露出同一类 currentness 缺口：当前 AI reviewer record 已经存在并被 request/record ref 绑定，但 lifecycle/request projection 仍残留为 reviewer loop；gate replay work unit 又可能被旧 re-eval 或未注册 owner reason 拦住，导致 operator 看到 next owner 之前先花数小时修 read-model、dispatch 和 provider admission。
+- 影响：当前修复面是 MAS lifecycle / owner-route / dispatch authorization，不是论文正文修补。若用户要求暂停论文线，必须使用 OPL queue hold / human gate；恢复前先 release hold 或 human approval，再由 StageRun 或 current owner-route surface 重新生成当前 work unit，不能用全局 tick 或手写 workspace truth 恢复。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

@@ -121,21 +121,21 @@ def owner_output_consumption_ledger(
     if eval_id is None or record_ref is None:
         return None
     blocked_reason = record_blocker_reason(request_packet) or record_production_blocker_reason(request_packet)
-    if blocked_reason is None:
-        return None
-    required_refs = request_currentness_refs_for_blocked_reason(
-        study_root=study_root,
-        request_packet=request_packet,
-        blocked_reason=blocked_reason,
-        stale_after_current_manuscript=stale_after_current_manuscript,
-        stale_after_current_inputs=stale_after_current_inputs,
-        stale_after_unit_harmonized_rerun=stale_after_unit_harmonized_rerun,
-        required_inputs=required_inputs,
-        resolved_text_ref=resolved_text_ref,
-        required_currentness_refs=required_currentness_refs,
-        record_currentness_input_refs=record_currentness_input_refs,
-        analysis_harmonization_currentness_refs=analysis_harmonization_currentness_refs,
-    )
+    required_refs: list[str] = []
+    if blocked_reason is not None:
+        required_refs = request_currentness_refs_for_blocked_reason(
+            study_root=study_root,
+            request_packet=request_packet,
+            blocked_reason=blocked_reason,
+            stale_after_current_manuscript=stale_after_current_manuscript,
+            stale_after_current_inputs=stale_after_current_inputs,
+            stale_after_unit_harmonized_rerun=stale_after_unit_harmonized_rerun,
+            required_inputs=required_inputs,
+            resolved_text_ref=resolved_text_ref,
+            required_currentness_refs=required_currentness_refs,
+            record_currentness_input_refs=record_currentness_input_refs,
+            analysis_harmonization_currentness_refs=analysis_harmonization_currentness_refs,
+        )
     return {
         "status": "consumed",
         "receipt_kind": "ai_reviewer_publication_eval",
@@ -206,8 +206,12 @@ def publication_eval_matches_attached_request_record(
     )
     if not attached_record:
         return False
-    if not text(request_packet.get("publication_eval_record_ref")):
+    record_ref = text(request_packet.get("publication_eval_record_ref"))
+    if not record_ref:
         return False
+    projection_ref = text(publication_eval_payload.get("_projection_source_ref"))
+    if projection_ref is not None and projection_ref == record_ref:
+        return True
     attached_eval_id = text(attached_record.get("eval_id"))
     return attached_eval_id is not None and attached_eval_id == text(publication_eval_payload.get("eval_id"))
 
