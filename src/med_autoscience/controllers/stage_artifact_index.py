@@ -23,6 +23,10 @@ from med_autoscience.controllers.stage_artifact_index_parts.authority_projection
     provider_liveness as _provider_liveness,
     stale_platform_repairs as _stale_platform_repairs,
 )
+from med_autoscience.controllers.stage_artifact_index_parts.contract_refs import (
+    contract_ref_set as _contract_ref_set,
+    manifest_declared_support_refs as _manifest_declared_support_refs,
+)
 ALLOWED_ARTIFACT_STATUSES = (
     "missing",
     "missing_manifest_or_receipt",
@@ -649,38 +653,6 @@ def _artifact_ref_set(value: object) -> set[str]:
         elif isinstance(item, Mapping) and isinstance(item.get("ref"), str) and item["ref"].strip():
             refs.add(item["ref"].strip())
     return refs
-
-
-def _manifest_declared_support_refs(
-    manifest: Mapping[str, Any] | None,
-    *,
-    stage_folder_ref: str,
-) -> list[str]:
-    if manifest is None or manifest.get("_invalid_json") is True:
-        return []
-    refs: list[str] = []
-    for field in (
-        "required_input_artifact_refs",
-        "owner_receipt_refs",
-        "typed_blocker_refs",
-        "lineage_refs",
-        "projection_refs",
-    ):
-        refs.extend(_text_list(manifest.get(field)))
-    return [
-        ref if ref.startswith("artifacts/") or ref.startswith("/") else f"{stage_folder_ref}/{ref}"
-        for ref in refs
-    ]
-
-
-def _contract_ref_set(*, stage_folder_ref: str, refs: list[str]) -> list[str]:
-    result: set[str] = set()
-    for ref in refs:
-        if ref.startswith("/") or ref.startswith("artifacts/"):
-            result.add(ref)
-        else:
-            result.add(f"{stage_folder_ref}/{ref}")
-    return sorted(result)
 
 
 def _orphan_stage_artifact_refs(
