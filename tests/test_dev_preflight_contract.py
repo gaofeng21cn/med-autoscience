@@ -762,7 +762,13 @@ def test_classify_changed_files_matches_production_acceptance_surface() -> None:
 def test_classify_changed_files_matches_codex_plugin_skill_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
-    result = module.classify_changed_files(["plugins/mas/skills/mas/SKILL.md"])
+    result = module.classify_changed_files(
+        [
+            "plugins/mas/.codex-plugin/plugin.json",
+            "plugins/mas/skills/mas/SKILL.md",
+            "tests/test_codex_plugin_scaffold.py",
+        ]
+    )
 
     assert result.matched_categories == ("codex_plugin_surface",)
     assert result.unclassified_changes == ()
@@ -806,6 +812,7 @@ def test_plan_commands_for_categories_deduplicates_results() -> None:
 
     assert commands.count("scripts/run-pytest-clean.sh tests/test_release_workflow.py -q") == 1
     assert "scripts/run-pytest-clean.sh tests/test_codex_plugin.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_codex_plugin_scaffold.py -q" in commands
 
 
 def test_plan_commands_for_documentation_review_only_do_not_run_pytest() -> None:

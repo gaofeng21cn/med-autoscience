@@ -7,12 +7,11 @@ Machine boundary: Human-readable integration reference only; callable and genera
 
 `MedAutoScience` 现在可以通过仓库内置的 Codex plugin 暴露给 Agent，路径在 `plugins/mas/`。
 
-本文件同时承接原 `codex_plugin_release.md` 的发布说明口径。当前叙事以 repo-local plugin / skill / MCP 入口为准，不再把 MAS standalone release artifact 或系统级 skill 安装写成默认用户路径。
+本文件同时承接原 `codex_plugin_release.md` 的发布说明口径。当前叙事以 repo-tracked plugin source / skill / MCP 入口为准，不再把 MAS standalone release artifact、系统级 skill 安装或 repo-local marketplace 写成默认用户路径。
 
 ## 这个 plugin 增加了什么
 
 - 通过 `.codex-plugin/plugin.json` 提供 Codex 可发现、可安装的入口
-- 通过 `.agents/plugins/marketplace.json` 提供本仓库内的 plugin 市场元数据
 - 提供一层 plugin skill，让 Codex 通过稳定接口操作 `MedAutoScience`
 - 提供 `plugins/mas/.mcp.json`，让 Codex 直接接入 `medautosci-mcp`
 
@@ -75,8 +74,10 @@ Compatibility note:
 
 仓库里存在 plugin 文件，不等于 Codex 已经全局启用它。MAS skill 默认随本仓库工作目录发现，不应安装到系统级 skill 目录。
 
-- 仓库内状态：plugin 已经存在于当前仓库，可被仓库自己的 marketplace 元数据发现。
-- 全局状态：`scripts/install-codex-plugin.sh` 不写入 `~/.agents/skills`、`~/.codex/skills` 或 `~/.agents/plugins/marketplace.json`
+- 仓库内状态：plugin source 由 `plugins/mas/.codex-plugin/plugin.json`、`plugins/mas/skills/mas/SKILL.md` 和 `plugins/mas/.mcp.json` 维护。
+- 退役状态：repo-local `.agents/plugins/marketplace.json` 是 retired local-state surface；MAS 仓库不再跟踪、生成或写回它。
+- 全局状态：`scripts/install-codex-plugin.sh` 不写入 `~/.agents/skills`、`~/.codex/skills`、`~/.agents/plugins/marketplace.json` 或 repo-local `.agents/plugins/marketplace.json`。
+- Codex marketplace source：由 OPL-owned wrapper / startup maintenance 维护，不由 MAS domain repo 维护。
 - 发布状态：Codex plugin 是薄入口，不是新的运行核心，也不是 MAS standalone GitHub Release / installer 通道。
 
 因此，仓库内置 plugin 和整机可用 plugin 不是一回事。
@@ -92,9 +93,9 @@ Compatibility note:
    bash scripts/install-codex-plugin.sh
    ```
 
-3. 在本仓库工作目录中重启 Codex，让 repo-local skill 和 plugin 元数据重新加载
+3. 在本仓库工作目录中重启 Codex，让 repo-tracked skill 和 plugin source 重新加载
 
-然后确保 `medautosci-mcp` 仍然在 `PATH` 上。不要把 MAS/MDS 这类任务 skill 复制到 home-local 或系统级 skill 目录；需要研究运行时，应通过仓库内 `plugins/mas/` 与当前 workspace 初始化面发现。
+然后确保 `medautosci-mcp` 仍然在 `PATH` 上。不要把 MAS/MDS 这类任务 skill 复制到 home-local 或系统级 skill 目录，也不要在 MAS 仓库恢复 `.agents/plugins/marketplace.json`；需要 Codex marketplace 注册时，通过 OPL-owned wrapper 处理。需要研究运行时，应通过仓库内 `plugins/mas/` 与当前 workspace 初始化面发现。
 
 这里仍然只安装 `MedAutoScience` 的 plugin / skill / MCP 入口，不会顺带安装 `MedDeepScientist` runtime。
 

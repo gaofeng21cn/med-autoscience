@@ -12,7 +12,6 @@ PLUGIN_ICON_PATH = PLUGIN_ROOT / "assets" / "icon.png"
 PLUGIN_ICON_SOURCE_PATH = PLUGIN_ROOT / "assets" / "icon.svg"
 PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "mas" / "SKILL.md"
 PLUGIN_SKILL_UI_METADATA_PATH = PLUGIN_ROOT / "skills" / "mas" / "agents" / "openai.yaml"
-MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 MCP_SERVER_PATH = REPO_ROOT / "src" / "med_autoscience" / "mcp_server.py"
 ACTION_CATALOG_PATH = REPO_ROOT / "src" / "med_autoscience" / "action_catalog.py"
 
@@ -67,21 +66,15 @@ def test_mas_plugin_skill_tracks_current_domain_handler_and_doc_boundaries() -> 
         assert (REPO_ROOT / doc_path).is_file()
 
 
-def test_codex_plugin_marketplace_points_to_repo_local_plugin() -> None:
-    marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
+def test_codex_plugin_marketplace_surface_is_opl_owned_not_repo_local() -> None:
+    manifest = json.loads(PLUGIN_MANIFEST_PATH.read_text(encoding="utf-8"))
 
-    plugin_entry = next(item for item in marketplace["plugins"] if item["name"] == "mas")
-
-    assert marketplace["interface"]["displayName"] == "Med Auto Science Local"
-    assert plugin_entry["source"] == {
-        "source": "local",
-        "path": "./plugins/mas",
-    }
-    assert plugin_entry["policy"] == {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL",
-    }
-    assert plugin_entry["category"] == "Research"
+    assert not (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
+    assert manifest["name"] == "mas"
+    assert manifest["interface"]["displayName"] == "Med Auto Science"
+    assert manifest["interface"]["category"] == "Research"
+    assert manifest["skills"] == "./skills/"
+    assert manifest["mcpServers"] == "./.mcp.json"
 
 
 def test_mas_skill_ui_metadata_tracks_plugin_display_contract() -> None:

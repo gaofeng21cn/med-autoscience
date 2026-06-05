@@ -9,12 +9,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 PLUGIN_MCP_PATH = PLUGIN_ROOT / ".mcp.json"
-MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 
 
-def test_codex_plugin_scaffold_exists_and_points_to_repo_local_plugin() -> None:
+def test_codex_plugin_scaffold_exists_as_tracked_plugin_source() -> None:
     manifest = json.loads(PLUGIN_MANIFEST_PATH.read_text(encoding="utf-8"))
-    marketplace = json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
 
     assert PLUGIN_ROOT.is_dir()
     assert manifest["name"] == "mas"
@@ -30,15 +28,7 @@ def test_codex_plugin_scaffold_exists_and_points_to_repo_local_plugin() -> None:
     assert 'exec "${repo_root}/scripts/run-python-clean.sh" -m med_autoscience.mcp_server "$@"' in launcher_text
     assert 'uv run --directory "${repo_root}"' not in launcher_text
 
-    plugin_entry = next(item for item in marketplace["plugins"] if item["name"] == "mas")
-    assert plugin_entry["source"] == {
-        "source": "local",
-        "path": "./plugins/mas",
-    }
-    assert plugin_entry["policy"] == {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL",
-    }
+    assert not (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
 
 
 def test_codex_plugin_is_additive_and_keeps_python_cli_entrypoint() -> None:

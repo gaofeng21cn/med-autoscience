@@ -119,11 +119,11 @@ main() {
   if [[ "${SKIP_TOOLS}" -eq 0 ]]; then
     install_python_tools
   else
-    printf "skip tool installation; only refreshing MedAutoScience repo-local Codex plugin metadata\n" >&2
+    printf "skip tool installation; only validating MedAutoScience tracked Codex plugin source\n" >&2
   fi
   install_codex_paths
-  printf "installed MedAutoScience CLI tools into %s and refreshed repo-local Codex plugin metadata\n" "${INSTALL_HOME}" >&2
-  printf "restart Codex in this repository so repo-local skill discovery and plugin metadata are reloaded\n" >&2
+  printf "installed MedAutoScience CLI tools into %s and validated tracked Codex plugin source\n" "${INSTALL_HOME}" >&2
+  printf "use OPL startup maintenance to register the OPL-owned Codex marketplace wrapper\n" >&2
 }
 
 main "$@"

@@ -52,7 +52,8 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
     assert not (home_dir / "plugins" / "mas").exists()
     assert not (home_dir / ".agents" / "skills" / "mas").exists()
     assert not (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
-    assert (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
+    assert not (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
+    assert "OPL-owned Codex marketplace wrapper" in result.stderr
 
 
 def test_codex_plugin_installer_script_replaces_stale_uv_tool_symlink(tmp_path: Path) -> None:
@@ -106,7 +107,8 @@ def test_codex_plugin_installer_script_skip_tools_only_syncs_plugin_paths(tmp_pa
     assert not (home_dir / "plugins" / "mas").exists()
     assert not (home_dir / ".agents" / "skills" / "mas").exists()
     assert not (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
-    assert (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
+    assert not (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
+    assert "only validating MedAutoScience tracked Codex plugin source" in result.stderr
 
 
 def test_plugin_local_mcp_launcher_execs_clean_runner(tmp_path: Path) -> None:
