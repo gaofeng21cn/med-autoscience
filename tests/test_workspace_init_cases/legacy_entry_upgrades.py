@@ -4,6 +4,20 @@ import importlib
 from pathlib import Path
 
 
+def _assert_progress_projection_forces_json(progress_projection_text: str) -> None:
+    assert 'json_args=()' in progress_projection_text
+    assert 'if [[ "${arg}" == "--format" ]]; then' in progress_projection_text
+    assert 'if [[ "${arg}" == --format=* ]]; then' in progress_projection_text
+    assert (
+        'run_medautosci study-progress --profile "${PROFILE_PATH}" --format json --study-id "${study_id}" ${json_args[@]+"${json_args[@]}"}'
+        in progress_projection_text
+    )
+    assert (
+        'run_medautosci study-progress --profile "${PROFILE_PATH}" --format json ${json_args[@]+"${json_args[@]}"}'
+        in progress_projection_text
+    )
+
+
 def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "legacy-workspace"
@@ -98,7 +112,7 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in shared_text
     assert "command -v uv" not in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
-    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in progress_projection_text
+    _assert_progress_projection_forces_json(progress_projection_text)
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in domain_health_diagnostic_text
     assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
@@ -166,7 +180,7 @@ def test_init_workspace_upgrades_generated_workspace_wrappers_when_templates_cha
     resolve_targets_text = resolve_targets.read_text(encoding="utf-8")
     assert str(progress_projection) in result["upgraded_files"]
     assert str(resolve_targets) in result["upgraded_files"]
-    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in progress_projection_text
+    _assert_progress_projection_forces_json(progress_projection_text)
     assert 'for arg in ${args[@]+"${args[@]}"}; do' in resolve_targets_text
 
 
@@ -381,6 +395,7 @@ def test_init_workspace_upgrades_generated_guidance_and_removes_private_control_
         assert "supervisor-reconcile" not in text
         assert "supervisor-consume" not in text
         assert "supervisor-execute-dispatch" not in text
+    assert "ops/medautoscience/bin/study-progress" in agents_text
     assert "ops/medautoscience/bin/progress-projection" in agents_text
     assert "ops/medautoscience/bin/domain-health-diagnostic" in agents_text
     assert "OPL current-control-state refs" in agents_text

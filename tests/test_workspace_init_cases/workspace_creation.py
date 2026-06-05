@@ -214,8 +214,10 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text
     assert 'run_medautosci launch-study --profile "${PROFILE_PATH}" "$@"' in enter_study_text
-    assert 'run_medautosci study-progress --profile "${PROFILE_PATH}" --format json ${args[@]+"${args[@]}"}' in progress_projection_text
-    assert 'run_medautosci study-progress --profile "${PROFILE_PATH}" "$@"' in study_progress.read_text(encoding="utf-8")
+    assert 'run_medautosci study-progress --profile "${PROFILE_PATH}" --format json ${json_args[@]+"${json_args[@]}"}' in progress_projection_text
+    study_progress_text = study_progress.read_text(encoding="utf-8")
+    assert 'run_medautosci study-progress --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in study_progress_text
+    assert '--study-id "${study_id}"' in study_progress_text
     assert '--study-id "${study_id}"' in progress_projection_text
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
     assert '--profile "${PROFILE_PATH}"' in domain_health_diagnostic_text
@@ -244,6 +246,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "bin/study-state-matrix" in med_readme_text
     assert "bin/progress-projection <study_id> --format json" in med_readme_text
     assert "bin/study-progress <study_id>" in med_readme_text
+    assert "ops/medautoscience/bin/study-progress <study_id>" in agents_text
     assert "ops/medautoscience/bin/study-state-matrix --format json" in agents_text
 
     portfolio_memory_readme = workspace_root / "portfolio" / "research_memory" / "README.md"
@@ -368,6 +371,60 @@ def test_generated_progress_projection_accepts_study_id_without_extra_args(tmp_p
 
     assert result.stderr == ""
     assert result.stdout.splitlines() == [
+        "study-progress",
+        "--profile",
+        str(profile_path),
+        "--format",
+        "json",
+        "--study-id",
+        "002-dm-china-us-mortality-attribution",
+    ]
+
+
+def test_generated_progress_projection_forces_json_format(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "progress-wrapper-format-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="progress-wrapper-format",
+        dry_run=False,
+        force=False,
+    )
+
+    progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
+    shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
+    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "progress-wrapper-format.local.toml"
+    shared.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        f'PROFILE_PATH="{profile_path}"\n'
+        "run_medautosci() {\n"
+        "  printf '%s\\n' \"$@\"\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            "/bin/bash",
+            str(progress_projection),
+            "002-dm-china-us-mortality-attribution",
+            "--format",
+            "markdown",
+            "--format=json",
+        ],
+        check=True,
+        cwd=workspace_root,
+        text=True,
+        capture_output=True,
+    )
+
+    output = result.stdout.splitlines()
+    assert result.stderr == ""
+    assert "--format=json" not in output
+    assert "markdown" not in output
+    assert output == [
         "study-progress",
         "--profile",
         str(profile_path),

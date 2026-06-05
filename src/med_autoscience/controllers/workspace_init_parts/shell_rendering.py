@@ -123,15 +123,47 @@ def _render_progress_projection_script() -> str:
         'if [[ "${#args[@]}" -gt 0 && "${args[0]}" != -* ]]; then\n'
         '  study_id="${args[0]}"\n'
         '  args=("${args[@]:1}")\n'
-        '  run_medautosci study-progress --profile "${PROFILE_PATH}" --format json --study-id "${study_id}" ${args[@]+"${args[@]}"}\n'
         "else\n"
-        '  run_medautosci study-progress --profile "${PROFILE_PATH}" --format json ${args[@]+"${args[@]}"}\n'
+        '  study_id=""\n'
+        "fi\n"
+        'json_args=()\n'
+        "skip_next=0\n"
+        'for arg in ${args[@]+"${args[@]}"}; do\n'
+        '  if [[ "${skip_next}" -eq 1 ]]; then\n'
+        "    skip_next=0\n"
+        "    continue\n"
+        "  fi\n"
+        '  if [[ "${arg}" == "--format" ]]; then\n'
+        "    skip_next=1\n"
+        "    continue\n"
+        "  fi\n"
+        '  if [[ "${arg}" == --format=* ]]; then\n'
+        "    continue\n"
+        "  fi\n"
+        '  json_args+=("${arg}")\n'
+        "done\n"
+        'if [[ -n "${study_id}" ]]; then\n'
+        '  run_medautosci study-progress --profile "${PROFILE_PATH}" --format json --study-id "${study_id}" ${json_args[@]+"${json_args[@]}"}\n'
+        "else\n"
+        '  run_medautosci study-progress --profile "${PROFILE_PATH}" --format json ${json_args[@]+"${json_args[@]}"}\n'
         "fi\n"
     )
 
 
 def _render_study_progress_script() -> str:
-    return _render_forward_script("study-progress", with_profile=True)
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'args=("$@")\n'
+        'if [[ "${#args[@]}" -gt 0 && "${args[0]}" != -* ]]; then\n'
+        '  study_id="${args[0]}"\n'
+        '  args=("${args[@]:1}")\n'
+        '  run_medautosci study-progress --profile "${PROFILE_PATH}" --study-id "${study_id}" ${args[@]+"${args[@]}"}\n'
+        "else\n"
+        '  run_medautosci study-progress --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}\n'
+        "fi\n"
+    )
 
 
 def _render_domain_health_diagnostic_script(*, workspace_root: Path, runtime_quests_root: Path) -> str:
