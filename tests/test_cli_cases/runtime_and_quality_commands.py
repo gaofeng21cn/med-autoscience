@@ -176,28 +176,59 @@ def test_launch_study_command_dispatches_product_entry(monkeypatch, tmp_path: Pa
     assert called["explicit_user_wakeup"] is False
     assert called["force"] is True
     assert '"surface": "launch_study"' in captured.out
-def test_progress_projection_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_progress_projection_command_dispatches_stage_native_study_progress(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     called: dict[str, object] = {}
 
-    def fake_status(
+    def fail_old_progress_projection(**_: object) -> dict:
+        raise AssertionError("progress-projection must not use legacy domain_status_projection")
+
+    def fake_read_study_progress(
         *,
         profile,
+        profile_ref: Path,
         study_id: str | None,
         study_root: Path | None,
         entry_mode: str | None,
         sync_runtime_summary: bool,
+        materialize_read_model_artifacts: bool,
     ) -> dict:
         called["profile"] = profile
+        called["profile_ref"] = profile_ref
         called["study_id"] = study_id
         called["study_root"] = study_root
         called["entry_mode"] = entry_mode
         called["sync_runtime_summary"] = sync_runtime_summary
-        return {"decision": "noop", "study_id": study_id, "quest_status": "running"}
+        called["materialize_read_model_artifacts"] = materialize_read_model_artifacts
+        return {
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_status": "running",
+            "current_stage": "parked",
+            "stage_kernel_projection": {
+                "surface_kind": "stage_kernel_projection",
+                "current_stage": "01-study_intake",
+                "current_owner_delta": {
+                    "surface_kind": "stage_run_current_owner_delta",
+                    "owner": "MedAutoScience",
+                    "action": "consume_closeout_and_emit_owner_receipt_or_typed_blocker",
+                },
+                "authority": {
+                    "derived_projection": True,
+                    "writes_mas_truth": False,
+                    "claims_publication_ready": False,
+                },
+            },
+        }
 
-    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fail_old_progress_projection)
+    monkeypatch.setattr(cli.study_progress, "read_study_progress", fake_read_study_progress)
 
     exit_code = cli.main(
         [
@@ -214,11 +245,17 @@ def test_progress_projection_command_dispatches_controller(monkeypatch, tmp_path
 
     assert exit_code == 0
     assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == profile_path
     assert called["study_id"] == "001-risk"
     assert called["study_root"] is None
     assert called["entry_mode"] is None
     assert called["sync_runtime_summary"] is False
-    assert '"quest_status": "running"' in captured.out
+    assert called["materialize_read_model_artifacts"] is False
+    payload = json.loads(captured.out)
+    assert payload["quest_status"] == "running"
+    assert payload["stage_kernel_projection"]["surface_kind"] == "stage_kernel_projection"
+    assert payload["stage_kernel_projection"]["current_owner_delta"]["owner"] == "MedAutoScience"
+    assert payload["stage_kernel_projection"]["authority"]["writes_mas_truth"] is False
 
 
 def test_progress_projection_command_accepts_legacy_json_alias(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -227,22 +264,26 @@ def test_progress_projection_command_accepts_legacy_json_alias(monkeypatch, tmp_
     write_profile(profile_path)
     called: dict[str, object] = {}
 
-    def fake_status(
+    def fake_read_study_progress(
         *,
         profile,
+        profile_ref: Path,
         study_id: str | None,
         study_root: Path | None,
         entry_mode: str | None,
         sync_runtime_summary: bool,
+        materialize_read_model_artifacts: bool,
     ) -> dict:
         called["profile"] = profile
+        called["profile_ref"] = profile_ref
         called["study_id"] = study_id
         called["study_root"] = study_root
         called["entry_mode"] = entry_mode
         called["sync_runtime_summary"] = sync_runtime_summary
+        called["materialize_read_model_artifacts"] = materialize_read_model_artifacts
         return {"decision": "noop", "study_id": study_id, "quest_status": "running"}
 
-    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.study_progress, "read_study_progress", fake_read_study_progress)
 
     exit_code = cli.main(
         [
@@ -258,10 +299,12 @@ def test_progress_projection_command_accepts_legacy_json_alias(monkeypatch, tmp_
 
     assert exit_code == 0
     assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == profile_path
     assert called["study_id"] == "001-risk"
     assert called["study_root"] is None
     assert called["entry_mode"] is None
     assert called["sync_runtime_summary"] is False
+    assert called["materialize_read_model_artifacts"] is False
     assert json.loads(captured.out)["quest_status"] == "running"
 
 
@@ -272,8 +315,8 @@ def test_progress_projection_command_serializes_typed_controller_result(monkeypa
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
 
     monkeypatch.setattr(
-        cli.domain_status_projection,
-        "progress_projection",
+        cli.study_progress,
+        "read_study_progress",
         lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
             {
                 "schema_version": 1,
@@ -314,8 +357,8 @@ def test_progress_projection_command_serializes_nested_path_values(monkeypatch, 
     write_profile(profile_path)
 
     monkeypatch.setattr(
-        cli.domain_status_projection,
-        "progress_projection",
+        cli.study_progress,
+        "read_study_progress",
         lambda **kwargs: {
             "decision": "blocked",
             "study_id": kwargs["study_id"],
@@ -518,28 +561,40 @@ def test_study_group_help_surfaces_profile_cycle(capsys) -> None:
 
     assert exit_code == 0
     assert "profile-cycle" in captured.out
-def test_grouped_progress_projection_alias_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_grouped_progress_projection_alias_dispatches_stage_native_study_progress(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     called: dict[str, object] = {}
 
-    def fake_status(
+    def fail_old_progress_projection(**_: object) -> dict:
+        raise AssertionError("progress-projection alias must not use legacy domain_status_projection")
+
+    def fake_read_study_progress(
         *,
         profile,
+        profile_ref: Path,
         study_id: str | None,
         study_root: Path | None,
         entry_mode: str | None,
         sync_runtime_summary: bool,
+        materialize_read_model_artifacts: bool,
     ) -> dict:
         called["profile"] = profile
+        called["profile_ref"] = profile_ref
         called["study_id"] = study_id
         called["study_root"] = study_root
         called["entry_mode"] = entry_mode
         called["sync_runtime_summary"] = sync_runtime_summary
+        called["materialize_read_model_artifacts"] = materialize_read_model_artifacts
         return {"decision": "noop", "study_id": study_id, "quest_status": "running"}
 
-    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fail_old_progress_projection)
+    monkeypatch.setattr(cli.study_progress, "read_study_progress", fake_read_study_progress)
 
     exit_code = cli.main(
         [
@@ -556,10 +611,12 @@ def test_grouped_progress_projection_alias_dispatches_controller(monkeypatch, tm
 
     assert exit_code == 0
     assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == profile_path
     assert called["study_id"] == "001-risk"
     assert called["study_root"] is None
     assert called["entry_mode"] is None
     assert called["sync_runtime_summary"] is False
+    assert called["materialize_read_model_artifacts"] is False
     assert json.loads(captured.out)["quest_status"] == "running"
 def test_retired_workspace_cockpit_group_command_fails_closed(tmp_path: Path) -> None:
     cli = importlib.import_module("med_autoscience.cli")

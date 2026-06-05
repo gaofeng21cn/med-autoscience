@@ -381,5 +381,28 @@
       "latest_json_is_projection_not_route_authority",
       "no_legacy_scheduler_runner_session_store_status_shell_or_workbench_wrapper_authority"
     ]
+  },
+  "controlled_canary_operator_summary_contract": {
+    "summary_ref": "contracts/stage_run_canary_evidence.json#/controlled_canary_operator_summary",
+    "summary_role": "operator_read_model_summary_not_domain_truth",
+    "required_sections": [
+      "controlled_canary_operator_summary",
+      "overclaim_boundary",
+      "legacy_runtime_residue_guard"
+    ],
+    "required_completion_classification": "platform_repair_controlled_fixture",
+    "allowed_operator_claims_are_closed_set": true,
+    "forbidden_operator_claims_must_include": [
+      "live_dm002_dm003_domain_progress",
+      "paper_closure",
+      "publication_ready",
+      "artifact_mutation_authorized",
+      "current_package_updated",
+      "legacy_runtime_residue_authorizes_transition"
+    ],
+    "legacy_runtime_residue_can_authorize_transition": false,
+    "operator_summary_can_write_domain_truth": false,
+    "operator_summary_can_close_stage": false,
+    "operator_summary_can_resume_dm002_dm003": false
   }
 }

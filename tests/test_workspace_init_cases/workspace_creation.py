@@ -126,6 +126,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     bootstrap = workspace_root / "ops" / "medautoscience" / "bin" / "bootstrap"
     enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"
     progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
+    study_progress = workspace_root / "ops" / "medautoscience" / "bin" / "study-progress"
     study_state_matrix = workspace_root / "ops" / "medautoscience" / "bin" / "study-state-matrix"
     domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
     study_runtime_status = workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status"
@@ -148,6 +149,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert bootstrap.is_file()
     assert show_profile.is_file()
     assert enter_study.is_file()
+    assert study_progress.is_file()
     assert progress_projection.is_file()
     assert study_state_matrix.is_file()
     assert domain_health_diagnostic.is_file()
@@ -212,7 +214,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text
     assert 'run_medautosci launch-study --profile "${PROFILE_PATH}" "$@"' in enter_study_text
-    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in progress_projection_text
+    assert 'run_medautosci study-progress --profile "${PROFILE_PATH}" --format json ${args[@]+"${args[@]}"}' in progress_projection_text
+    assert 'run_medautosci study-progress --profile "${PROFILE_PATH}" "$@"' in study_progress.read_text(encoding="utf-8")
     assert '--study-id "${study_id}"' in progress_projection_text
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
     assert '--profile "${PROFILE_PATH}"' in domain_health_diagnostic_text
@@ -240,6 +243,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     agents_text = (workspace_root / "AGENTS.md").read_text(encoding="utf-8")
     assert "bin/study-state-matrix" in med_readme_text
     assert "bin/progress-projection <study_id> --format json" in med_readme_text
+    assert "bin/study-progress <study_id>" in med_readme_text
     assert "ops/medautoscience/bin/study-state-matrix --format json" in agents_text
 
     portfolio_memory_readme = workspace_root / "portfolio" / "research_memory" / "README.md"
@@ -364,9 +368,11 @@ def test_generated_progress_projection_accepts_study_id_without_extra_args(tmp_p
 
     assert result.stderr == ""
     assert result.stdout.splitlines() == [
-        "progress-projection",
+        "study-progress",
         "--profile",
         str(profile_path),
+        "--format",
+        "json",
         "--study-id",
         "002-dm-china-us-mortality-attribution",
     ]

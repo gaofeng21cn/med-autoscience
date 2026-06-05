@@ -78,12 +78,14 @@ def handle_study_read_command(
     if args.command == "progress-projection":
         _require_one_study_ref(args, parser)
         profile = load_profile(args.profile)
-        result = domain_status_projection.progress_projection(
+        result = study_progress.read_study_progress(
             profile=profile,
+            profile_ref=Path(args.profile),
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
             sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
         )
         print(
             json.dumps(

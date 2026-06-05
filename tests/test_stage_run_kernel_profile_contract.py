@@ -436,3 +436,89 @@ def test_controlled_stage_run_canary_authority_boundary_forbids_live_progress_cl
         "claims_artifact_mutation_authorized": False,
         "claims_current_package_updated": False,
     }
+
+
+def test_controlled_canary_operator_summary_is_read_model_only_and_fails_closed_on_overclaim() -> None:
+    profile = _profile()
+    evidence = _controlled_canary_evidence()
+    contract = profile["controlled_canary_operator_summary_contract"]
+    summary = evidence["controlled_canary_operator_summary"]
+    boundary = evidence["overclaim_boundary"]
+
+    assert contract["summary_ref"] == (
+        "contracts/stage_run_canary_evidence.json#/controlled_canary_operator_summary"
+    )
+    assert contract["summary_role"] == "operator_read_model_summary_not_domain_truth"
+    assert contract["required_sections"] == [
+        "controlled_canary_operator_summary",
+        "overclaim_boundary",
+        "legacy_runtime_residue_guard",
+    ]
+    assert contract["required_completion_classification"] == "platform_repair_controlled_fixture"
+    assert contract["allowed_operator_claims_are_closed_set"] is True
+    assert contract["operator_summary_can_write_domain_truth"] is False
+    assert contract["operator_summary_can_close_stage"] is False
+    assert contract["operator_summary_can_resume_dm002_dm003"] is False
+
+    assert summary["summary_kind"] == "controlled_canary_operator_summary"
+    assert summary["scope"] == contract["summary_role"]
+    assert summary["completion_classification"] == contract["required_completion_classification"]
+    assert summary["stage_run_ref"] == evidence["stage_run_ref"]["ref"]
+    assert summary["current_status"] == evidence["controlled_stage_folder"]["current_pointer"]["status"]
+    assert summary["body_included"] is False
+    assert summary["overclaim_boundary_ref"] == (
+        "contracts/stage_run_canary_evidence.json#/overclaim_boundary"
+    )
+    assert summary["legacy_runtime_residue_guard_ref"] == (
+        "contracts/stage_run_canary_evidence.json#/legacy_runtime_residue_guard"
+    )
+
+    assert boundary["boundary_kind"] == "controlled_canary_operator_overclaim_boundary"
+    assert boundary["must_classify_as"] == contract["required_completion_classification"]
+    assert boundary["overclaim_guard_fails_closed"] is True
+    assert summary["operator_claims"] == boundary["allowed_operator_claims"]
+    assert summary["forbidden_operator_claims"] == boundary["forbidden_operator_claims"]
+    assert {
+        "live_dm002_dm003_domain_progress",
+        "paper_closure",
+        "publication_ready",
+        "artifact_mutation_authorized",
+        "current_package_updated",
+        "legacy_runtime_residue_authorizes_transition",
+    } <= set(summary["forbidden_operator_claims"])
+    assert set(contract["forbidden_operator_claims_must_include"]) <= set(
+        summary["forbidden_operator_claims"]
+    )
+    assert "legacy_runtime_residue_authorizes_transition" in boundary["forbidden_operator_claims"]
+    assert evidence["claim_boundary"]["claims_live_domain_progress"] is False
+    assert evidence["claim_boundary"]["claims_paper_closure"] is False
+    assert evidence["claim_boundary"]["claims_publication_ready"] is False
+
+
+def test_controlled_canary_legacy_runtime_residue_guard_cannot_authorize_transition() -> None:
+    profile = _profile()
+    evidence = _controlled_canary_evidence()
+    contract = profile["controlled_canary_operator_summary_contract"]
+    guard = evidence["legacy_runtime_residue_guard"]
+    retirement = profile["legacy_runtime_wrapper_retirement"]
+
+    assert guard["guard_kind"] == "legacy_runtime_residue_transition_authority_guard"
+    assert guard["retired_surfaces"] == retirement["retired_mas_local_surfaces"]
+    assert guard["allowed_roles"] == [
+        "migration_input",
+        "diagnostic_projection",
+        "provenance_tombstone",
+    ]
+    assert set(guard["allowed_roles"]) <= set(retirement["allowed_roles"])
+    assert guard["residue_presence_counts_as_stage_progress"] is False
+    assert guard["residue_presence_counts_as_closeout"] is False
+    assert guard["operator_summary_must_not_promote_residue"] is True
+    assert contract["legacy_runtime_residue_can_authorize_transition"] is False
+    assert {
+        "stage_transition",
+        "domain_closeout",
+        "publication_quality_verdict",
+        "artifact_mutation_authorization",
+        "owner_receipt_signature",
+        "typed_blocker_replacement",
+    } == set(guard["forbidden_authority"])

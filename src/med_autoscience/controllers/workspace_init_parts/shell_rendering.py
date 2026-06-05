@@ -123,11 +123,15 @@ def _render_progress_projection_script() -> str:
         'if [[ "${#args[@]}" -gt 0 && "${args[0]}" != -* ]]; then\n'
         '  study_id="${args[0]}"\n'
         '  args=("${args[@]:1}")\n'
-        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" --study-id "${study_id}" ${args[@]+"${args[@]}"}\n'
+        '  run_medautosci study-progress --profile "${PROFILE_PATH}" --format json --study-id "${study_id}" ${args[@]+"${args[@]}"}\n'
         "else\n"
-        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}\n'
+        '  run_medautosci study-progress --profile "${PROFILE_PATH}" --format json ${args[@]+"${args[@]}"}\n'
         "fi\n"
     )
+
+
+def _render_study_progress_script() -> str:
+    return _render_forward_script("study-progress", with_profile=True)
 
 
 def _render_domain_health_diagnostic_script(*, workspace_root: Path, runtime_quests_root: Path) -> str:

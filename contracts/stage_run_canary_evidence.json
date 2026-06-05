@@ -174,6 +174,79 @@
     "claims_artifact_mutation_authorized": false,
     "claims_current_package_updated": false
   },
+  "overclaim_boundary": {
+    "boundary_kind": "controlled_canary_operator_overclaim_boundary",
+    "allowed_operator_claims": [
+      "controlled_stage_run_fixture_shape_verified",
+      "refs_only_stage_strategy_trace_present",
+      "stable_typed_blocker_ref_present"
+    ],
+    "forbidden_operator_claims": [
+      "live_dm002_dm003_domain_progress",
+      "paper_closure",
+      "publication_ready",
+      "artifact_mutation_authorized",
+      "current_package_updated",
+      "quality_or_export_authorized",
+      "legacy_runtime_residue_authorizes_transition"
+    ],
+    "must_classify_as": "platform_repair_controlled_fixture",
+    "overclaim_guard_fails_closed": true
+  },
+  "legacy_runtime_residue_guard": {
+    "guard_kind": "legacy_runtime_residue_transition_authority_guard",
+    "retired_surfaces": [
+      "generic_scheduler",
+      "generic_runner",
+      "generic_session_store",
+      "generic_status_shell",
+      "generic_workbench_wrapper",
+      "generic_lifecycle_wrapper",
+      "generic_attempt_ledger",
+      "generic_queue"
+    ],
+    "allowed_roles": [
+      "migration_input",
+      "diagnostic_projection",
+      "provenance_tombstone"
+    ],
+    "forbidden_authority": [
+      "stage_transition",
+      "domain_closeout",
+      "publication_quality_verdict",
+      "artifact_mutation_authorization",
+      "owner_receipt_signature",
+      "typed_blocker_replacement"
+    ],
+    "residue_presence_counts_as_stage_progress": false,
+    "residue_presence_counts_as_closeout": false,
+    "operator_summary_must_not_promote_residue": true
+  },
+  "controlled_canary_operator_summary": {
+    "summary_kind": "controlled_canary_operator_summary",
+    "scope": "operator_read_model_summary_not_domain_truth",
+    "completion_classification": "platform_repair_controlled_fixture",
+    "stage_run_ref": "stage-run://controlled-canary/med-autoscience/ai_reviewer_publication_eval_rebuild#run-001",
+    "current_status": "TypedBlocked",
+    "current_operator_action": "keep_dm002_dm003_queue_hold_until_human_release_then_require_fresh_owner_receipt_or_stable_typed_blocker",
+    "operator_claims": [
+      "controlled_stage_run_fixture_shape_verified",
+      "refs_only_stage_strategy_trace_present",
+      "stable_typed_blocker_ref_present"
+    ],
+    "forbidden_operator_claims": [
+      "live_dm002_dm003_domain_progress",
+      "paper_closure",
+      "publication_ready",
+      "artifact_mutation_authorized",
+      "current_package_updated",
+      "quality_or_export_authorized",
+      "legacy_runtime_residue_authorizes_transition"
+    ],
+    "overclaim_boundary_ref": "contracts/stage_run_canary_evidence.json#/overclaim_boundary",
+    "legacy_runtime_residue_guard_ref": "contracts/stage_run_canary_evidence.json#/legacy_runtime_residue_guard",
+    "body_included": false
+  },
   "verification_refs": [
     {
       "ref": "tests/test_stage_run_kernel_profile_contract.py",

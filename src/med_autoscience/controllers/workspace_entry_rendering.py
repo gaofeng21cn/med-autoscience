@@ -54,6 +54,7 @@ def render_medautoscience_readme(*, profile_relpath: Path) -> str:
         "\n"
         "推荐的 domain refs 入口：\n\n"
         "- `bin/domain-health-diagnostic`\n"
+        "- `bin/study-progress <study_id>`\n"
         "- `bin/progress-projection`\n"
         "- `bin/study-state-matrix`\n"
         "- `bin/owner-route-reconcile`\n"

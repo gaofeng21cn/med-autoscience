@@ -29,6 +29,7 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_profile_optional_forward_script,
     _render_materialize_domain_action_requests_script,
     _render_progress_projection_script,
+    _render_study_progress_script,
     _render_supervisor_execute_dispatch_script,
     _render_scan_domain_routes_script,
     _render_domain_health_diagnostic_script,
@@ -419,6 +420,11 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection",
             content=_render_progress_projection_script(),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "study-progress",
+            content=_render_study_progress_script(),
             executable=True,
         ),
         RenderedFile(
