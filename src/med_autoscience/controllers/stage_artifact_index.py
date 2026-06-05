@@ -499,6 +499,11 @@ def _artifact_classification(
         ),
         study_root=study_root,
     )
+    legacy_orphan_residue = _legacy_contract_residue_refs(
+        stage_folder_ref=str(stage_folder_contract["stage_folder_ref"]),
+        orphan_refs=orphan,
+    )
+    blocking_orphan = [ref for ref in orphan if ref not in set(legacy_orphan_residue)]
     existing_artifacts = set(required).issubset(legacy_observed)
     manifest_valid = _contract_payload_valid(
         stage_id=stage_id,
@@ -519,7 +524,7 @@ def _artifact_classification(
             "artifact_refs",
         ),
     )
-    contract_complete = existing_artifacts and manifest_valid and receipt_accepted and not orphan
+    contract_complete = existing_artifacts and manifest_valid and receipt_accepted and not blocking_orphan
     current = sorted(required) if contract_complete else []
     historical = sorted(ref for ref in legacy_observed if ref not in current)
     missing_outputs = sorted(ref for ref in required if ref not in legacy_observed)
@@ -529,7 +534,7 @@ def _artifact_classification(
         historical=historical,
         missing_manifest_or_receipt=missing_manifest_or_receipt,
         broken=broken,
-        orphan=orphan,
+        orphan=blocking_orphan,
         missing_outputs=missing_outputs,
         required_refs=required,
     )
@@ -540,7 +545,8 @@ def _artifact_classification(
         "current": current,
         "historical": historical,
         "missing_manifest_or_receipt": missing_manifest_or_receipt,
-        "orphan": orphan,
+        "orphan": blocking_orphan,
+        "legacy_orphan_residue": legacy_orphan_residue,
         "broken": broken,
         "missing": missing_outputs,
         "fail_closed": status != "current",
@@ -674,6 +680,15 @@ def _orphan_stage_artifact_refs(
         if ref not in known:
             orphan.append(ref)
     return sorted(orphan)
+
+
+def _legacy_contract_residue_refs(*, stage_folder_ref: str, orphan_refs: list[str]) -> list[str]:
+    retired_names = {"owner_receipt.json", "stage_artifact_manifest.json"}
+    return sorted(
+        ref
+        for ref in orphan_refs
+        if ref.startswith(f"{stage_folder_ref}/") and Path(ref).name in retired_names
+    )
 
 
 def _classification_status(
