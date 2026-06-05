@@ -31,7 +31,14 @@ MAS 的吸收口径是：这些模式进入 MAS-owned reviewer ledger、display 
 | No simulated experiments / claim traceability | `adopt_contract` | Source Authority / Evidence OS | source citation pack and research-integrity quality refs | missing result/source ref blocks the claim, not unrelated agent progress. |
 | Figure manifest with protected/scalable/placement | `adopt_contract` | Artifact OS / Delivery medical display | `display_artifact_manifest` | layout changes can proceed only when data/claim/statistical digests remain unchanged. |
 | Page adjustment without deleting science | `adopt_template` | Delivery / Artifact OS | display manifest page-adjustment policy | page fitting creates layout work units; it cannot edit values or claim refs. |
-| Human intervention skill with options | `adopt_template` | Runtime operator projection / human gate | future blocker projection wording | user-choice UX is useful; Telegram/webapp transport is not MAS authority. |
+| Human intervention skill with options | `adopt_contract` | Runtime operator projection / human gate | `ark_progress_first_learning_contract` human decision request | typed human requests are reserved for named hard gates; unrelated work continues. |
+| Small synthetic project canary | `adopt_contract` | Runtime OS / Quality OS | `ark_progress_first_learning_contract` micro-study canary | plan → experiment → write → review canary failures create platform repair work units, not real-study stalls. |
+| Telegram message preview harness | `adopt_template` | Operator projection / Workbench display | `ark_progress_first_learning_contract` operator preview | preview checks readability/redaction/action refs only; it has no transport or study authority. |
+| Figure/table lineage spot-check | `adopt_contract` | Artifact OS / Evidence OS | `ark_progress_first_learning_contract` figure lineage QA | missing/mismatched refs create artifact-QA work units unless a named hard gate is touched. |
+| No simulation / real-run closeout | `adopt_contract` | Evidence OS / owner receipt | `ark_progress_first_learning_contract` executor real-run closeout | missing resources stay blocked with command evidence; no degraded fallback or LLM substitute is accepted. |
+| Compiled PDF visual region checks | `adopt_contract` | Delivery visual QA / Artifact OS | `ark_progress_first_learning_contract` compiled visual region QA | overlap, overflow or template-width failures create layout work units unless publication/artifact hard gates are touched. |
+| Stagnation without meaningful delta | `adopt_contract` | Reviewer OS / paper progress delta | `ark_progress_first_learning_contract` semantic no-progress evidence | trivial deltas become reviewer issue evidence and bounded work units, not global stop rules. |
+| Citation lifecycle cleanup / refresh queue | `adopt_contract` | Source Authority / Reviewer OS | `ark_progress_first_learning_contract` citation lifecycle queue | stale, unused or mismatched refs route to source-refresh/reviewer work units without blocking unrelated progress. |
 | Per-project conda env and sandboxed HOME | `watch_only` | OPL runtime / workspace lifecycle | none in MAS repo | OPL owns generic environment isolation; MAS may project env blocker refs. |
 | ARK SQLite DB as source of truth | `reject` | none | none | conflicts with MAS durable truth / owner receipt authority. |
 | Score threshold as paper acceptance | `reject` | none | none | MAS readiness requires reviewer currentness, publication eval, source/artifact authority and human/expert gates. |
@@ -44,6 +51,7 @@ This intake is considered usable only when the following repo-owned surfaces and
 - `reviewer_issue_progress_contract`: MAS-owned issue ledger, goal anchor currentness, repair validation and progress-first route-back policy.
 - `display_artifact_manifest`: MAS-owned medical display artifact contract with source digests, rendered artifact digests, visual QA receipts, mutation authority and page-adjustment constraints.
 - `source_citation_authority_pack`: MAS stage-quality/source pack that forbids LLM-authored authoritative citation records and requires source API or human curator provenance.
+- `ark_progress_first_learning_contract`: MAS-owned progress-first continuation contract covering short micro-study canary, typed human decision request, operator message preview, figure/data lineage QA, executor real-run closeout, compiled visual region QA, semantic no-progress evidence and citation lifecycle queue.
 - Docs foldback: `docs/source/README.md`, `docs/references/README.md` and the active gap plan must point to the surfaces without turning this intake into current truth.
 
 ## Verification Gate

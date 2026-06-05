@@ -51,6 +51,6 @@ Co-Scientist 的可学习内容已按 clean-room pattern 进入 MAS `hypothesis 
 
 ## ARK Research Workflow Intake
 
-`kaust-ark/ARK` 的可学习内容已按 clean-room pattern 转译为 MAS reviewer issue/progress ledger、display artifact manifest 和 source citation authority pack。MAS 学习的是 review loop、goal anchor、issue repair validation、API-first citation、figure manifest、page adjustment 和 human-intervention UX 的 contract shape；不采用 ARK runtime、SQLite authority、conda project model、Telegram/webapp service、agent prompt、代码或依赖。
+`kaust-ark/ARK` 的可学习内容已按 clean-room pattern 转译为 MAS reviewer issue/progress ledger、display artifact manifest、source citation authority pack 和 progress-first external learning contract。MAS 学习的是 review loop、goal anchor、issue repair validation、API-first citation、figure manifest、page adjustment、human-intervention UX、micro-study canary、operator preview、real-run closeout、compiled visual QA 和 citation lifecycle queue 的 contract shape；不采用 ARK runtime、SQLite authority、conda project model、Telegram/webapp service、agent prompt、代码或依赖。
 
-进入 MAS 的输出只能是 reviewer issue refs、goal-anchor currentness proof、typed repair work unit、source-refresh work unit、display artifact QA refs、typed blocker、reviewer/auditor input 或 owner receipt。完整 intake 见 [ARK Research Workflow Intake](../references/mainline/ark_learning_intake.md)。
+进入 MAS 的输出只能是 reviewer issue refs、goal-anchor currentness proof、typed repair work unit、platform repair work unit、source-refresh work unit、artifact/layout QA work unit、operator preview ref、typed blocker、reviewer/auditor input 或 owner receipt。完整 intake 见 [ARK Research Workflow Intake](../references/mainline/ark_learning_intake.md)。
