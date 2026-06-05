@@ -34,6 +34,14 @@ __all__ = [
 
 
 STABLE_MEDICAL_PROSE_REVIEW_REQUEST_RELATIVE_PATH = Path("artifacts/publication_eval/medical_prose_review_request.json")
+STAGE_NATIVE_BODY_AUTHORITY_PAPER_ROOT_RELATIVE_PATH = (
+    Path("artifacts")
+    / "stage_outputs"
+    / "_body_authority"
+    / "paper_authority_cutover"
+    / "current_body"
+    / "paper"
+)
 
 _REQUIRED_TOP_LEVEL_FIELDS = (
     "schema_version",
@@ -119,6 +127,17 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _source_ref(path: Path) -> str | None:
     return str(path.resolve()) if path.exists() else None
+
+
+def _current_paper_root(*, study_root: Path, paper_root: Path | None) -> Path:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    if paper_root is not None:
+        return Path(paper_root).expanduser().resolve()
+    stage_native_root = resolved_study_root / STAGE_NATIVE_BODY_AUTHORITY_PAPER_ROOT_RELATIVE_PATH
+    legacy_root = resolved_study_root / "paper"
+    if not (legacy_root / "draft.md").is_file() and (stage_native_root / "draft.md").is_file():
+        return stage_native_root.resolve()
+    return legacy_root.resolve()
 
 
 def _read_text(path: Path) -> str:
@@ -303,7 +322,7 @@ def build_medical_prose_review_request(
     mechanical_safety_flags: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    resolved_paper_root = Path(paper_root).expanduser().resolve() if paper_root is not None else resolved_study_root / "paper"
+    resolved_paper_root = _current_paper_root(study_root=resolved_study_root, paper_root=paper_root)
     resolved_manuscript_path = (
         Path(manuscript_path).expanduser().resolve()
         if manuscript_path is not None

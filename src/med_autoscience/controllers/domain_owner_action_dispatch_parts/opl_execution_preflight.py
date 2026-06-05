@@ -9,6 +9,7 @@ from med_autoscience.controllers.opl_execution_boundary import (
     first_trusted_opl_execution_authorization,
     typed_blocker as opl_execution_authorization_typed_blocker,
 )
+from . import current_writer_handoff
 
 
 def block_if_missing_authorization(
@@ -39,6 +40,14 @@ def _authorized(
     owner_route_basis: str | None,
     current_study: Mapping[str, Any],
 ) -> bool:
+    if owner_route_basis in {"bridged_writer_handoff", "current_writer_handoff"} and (
+        current_writer_handoff.self_authorized_quality_repair_writer_handoff(
+            study_id=_text(dispatch.get("study_id")) or "",
+            action_type=_text(dispatch.get("action_type")) or "",
+            dispatch=dispatch,
+        )
+    ):
+        return True
     provider_hosted_authorization = _provider_hosted_stage_attempt_authorization(dispatch=dispatch)
     if provider_hosted_authorization is not None:
         return True

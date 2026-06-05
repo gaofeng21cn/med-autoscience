@@ -459,6 +459,36 @@ def test_analysis_claim_evidence_route_authorizes_paper_repair_under_downstream_
     assert gate["blocking_reasons"] == []
 
 
+def test_ai_reviewer_current_analysis_harmonization_record_route_authorizes_under_downstream_bundle_gate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
+    gate = module.authorize_authority_route(
+        "paper_write",
+        {
+            "authority_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "ai_reviewer_workflow",
+                "controller_action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": work_unit_id,
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::002::latest",
+                "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["route_authorization_flag"] == "paper_write_allowed"
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["controller_repair_authorization_ref"]["work_unit_id"] == work_unit_id
+    assert gate["blocking_reasons"] == []
+
+
 def test_medical_prose_methodology_route_authorizes_analysis_repair_under_downstream_bundle_gate() -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
 

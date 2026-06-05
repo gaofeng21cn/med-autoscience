@@ -58,6 +58,7 @@ _AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS = frozenset(
     {
         "ai_reviewer_recheck",
         "ai_reviewer_medical_prose_quality_review",
+        "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
     }
 )
 _UPSTREAM_QUALITY_AUTHORITY_WORK_UNIT_IDS = frozenset(

@@ -410,6 +410,131 @@ def test_watch_runtime_downstream_bundle_gate_allows_ai_reviewer_recheck_dispatc
     )
 
 
+def test_watch_runtime_downstream_bundle_gate_allows_ai_reviewer_current_analysis_harmonization_record_dispatch(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "002-dm")
+    quest_root = profile.runtime_root / "quest-002"
+    work_unit = {
+        "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+        "lane": "review",
+        "summary": "Produce a current AI reviewer publication-eval record before dispatching the publication-eval workflow.",
+    }
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": _write_charter(study_root),
+        "publication_eval_ref": _write_publication_eval(
+            study_root,
+            quest_root,
+            action_type="continue_same_line",
+            work_unit_fingerprint=(
+                "domain-transition::ai_reviewer_re_eval::"
+                "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
+            ),
+            next_work_unit=work_unit,
+        ),
+        "decision_type": "continue_same_line",
+        "route_target": "review",
+        "route_key_question": (
+            "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization: "
+            "Rebuild current analysis-harmonization AI reviewer authority."
+        ),
+        "route_rationale": "The current analysis harmonization rerun requires a fresh AI reviewer record.",
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": "Return current analysis harmonization refs to the AI reviewer workflow.",
+        "work_unit_fingerprint": (
+            "domain-transition::ai_reviewer_re_eval::"
+            "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
+        ),
+        "next_work_unit": work_unit,
+    }
+    status_payload = {
+        **make_progress_projection_payload(
+            study_id="002-dm",
+            decision="resume",
+            reason="quest_waiting_opl_runtime_owner_route",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-002",
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "authority_snapshot": {
+            **_authority_snapshot(
+                state="blocked",
+                blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+            ),
+            "control_state": "supervisor_gated",
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+            "route_authorization": {
+                "authorized": False,
+                "paper_write_allowed": True,
+                "managed_worker_paper_write_allowed": True,
+                "foreground_paper_write_allowed": True,
+                "bundle_build_allowed": False,
+                "foreground_bundle_build_allowed": False,
+                "runtime_recovery_allowed": True,
+            },
+        },
+    }
+    calls: list[str] = []
+
+    def fake_outer_loop_tick(**kwargs):
+        calls.append(str(kwargs.get("source") or ""))
+        return {
+            "study_id": "002-dm",
+            "quest_id": "quest-002",
+            "source": kwargs.get("source"),
+            "study_decision_ref": {
+                "artifact_path": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve())
+            },
+            "dispatch_status": "executed",
+            "executed_controller_action": {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "result": {"status": "executed"},
+            },
+        }
+
+    monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        request_opl_stage_attempts=True,
+    )
+    wakeup_latest = json.loads(
+        (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert calls == ["domain_health_diagnostic_outer_loop_wakeup"]
+    assert len(result["managed_study_outer_loop_dispatches"]) == 1
+    assert result["managed_study_no_op_suppressions"] == []
+    assert wakeup_latest["outcome"] == "dispatched"
+    assert wakeup_latest["work_unit_dispatch_key"] == (
+        "domain-transition::ai_reviewer_re_eval::"
+        "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization::"
+        "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization::"
+        "return_to_ai_reviewer_workflow"
+    )
+
+
 def test_watch_domain_route_only_runtime_block_allows_managed_submission_refresh_dispatch(
     tmp_path: Path,
     monkeypatch,

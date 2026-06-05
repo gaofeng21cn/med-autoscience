@@ -141,6 +141,23 @@ def test_execute_dispatch_materializes_complete_ai_reviewer_request_packet_befor
         "medical_prose_review": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
         "publication_gate_projection": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
     }
+    completed_request = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "requests"
+            / "ai_reviewer"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert completed_request["required_inputs"]["manuscript_ref"] == str(manuscript_path.resolve())
+    assert completed_request["required_inputs"]["medical_manuscript_blueprint_ref"] == str(
+        study_root / "paper" / "medical_manuscript_blueprint.json"
+    )
+    assert completed_request["required_inputs"]["publication_gate_projection_ref"] == str(
+        study_root / "artifacts" / "publication_eval" / "latest.json"
+    )
 
 
 def test_execute_dispatch_completes_ai_reviewer_packet_with_stage_native_blueprint_ref(
@@ -276,3 +293,160 @@ def test_execute_dispatch_completes_ai_reviewer_packet_with_stage_native_bluepri
     assert persisted_blueprint_ref["present"] is True
     assert persisted_blueprint_ref["valid"] is True
     assert not (study_root / "paper" / "medical_manuscript_blueprint.json").exists()
+
+
+def test_execute_dispatch_backfills_required_inputs_when_required_refs_are_already_complete(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nDM003 current manuscript has a complete current AI reviewer record.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1, "items": []})
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1, "items": []})
+    _write_json(study_root / "artifacts" / "controller" / "study_charter.json", {"schema_version": 1})
+    _write_json(study_root / "paper" / "medical_manuscript_blueprint.json", {"schema_version": 1})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1, "claims": []})
+    _write_json(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json", {"schema_version": 1})
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"schema_version": 1})
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260529T095414Z_publication_eval_record.json"
+    )
+    record_payload = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id="publication-eval::dm003::2026-05-29T09:54:14Z::ai-reviewer-current",
+        emitted_at="2026-05-29T09:54:14Z",
+    )
+    _write_json(record_path, record_payload)
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    _write_json(
+        request_path,
+        {
+            "surface": "supervisor_request_handoff_packet",
+            "schema_version": 1,
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {"state": "assessment_written", "blocked_reason": None},
+            "publication_eval_record_ref": str(record_path.resolve()),
+            "ai_reviewer_record": record_payload,
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+                    "evidence_ledger": {
+                        "path": str(study_root / "paper" / "evidence_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "review_ledger": {
+                        "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "study_charter": {
+                        "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_manuscript_blueprint": {
+                        "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "claim_evidence_map": {
+                        "path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_prose_review": {
+                        "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "publication_gate_projection": {
+                        "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                },
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+    captured: dict[str, object] = {}
+
+    def fake_run_ai_reviewer_publication_eval_workflow(**kwargs):
+        captured.update(kwargs)
+        _write_json(
+            study_root / "artifacts" / "publication_eval" / "latest.json",
+            {"schema_version": 1, "eval_id": record_payload["eval_id"]},
+        )
+        return {
+            "status": "materialized",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.ai_reviewer_publication_eval_workflow,
+        "run_ai_reviewer_publication_eval_workflow",
+        fake_run_ai_reviewer_publication_eval_workflow,
+    )
+    monkeypatch.setattr(
+        module,
+        "_refresh_controller_decision_after_ai_reviewer_eval",
+        lambda **_: {"refresh_status": "skipped"},
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    completed_request = json.loads(request_path.read_text(encoding="utf-8"))
+
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert captured["manuscript_ref"] == str(manuscript_path.resolve())
+    assert completed_request["required_inputs"]["manuscript_ref"] == str(manuscript_path.resolve())
+    assert completed_request["required_inputs"]["evidence_ledger_ref"] == str(
+        study_root / "paper" / "evidence_ledger.json"
+    )
+    assert completed_request["request_lifecycle"]["request_packet_materialized"] is True

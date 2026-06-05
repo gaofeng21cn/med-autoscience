@@ -7,7 +7,7 @@ from med_autoscience.controllers.paper_progress_state import build_paper_progres
 from med_autoscience.runtime_control.decision_trace_ledger import decision_trace_projection
 
 from .current_executable_owner_action import owner_action_next_step
-from .current_owner_handoff_projection import current_owner_handoff_action
+from .current_owner_handoff_projection import current_owner_handoff_action, current_owner_redrive_domain_transition
 from .shared import _mapping_copy, _non_empty_text
 
 USER_VISIBLE_PROJECTION_SURFACE = "study_progress_user_visible_projection"
@@ -91,7 +91,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     meaningful_artifact_delta = bool(paper_progress_state.get("meaningful_artifact_delta")) or _meaningful_artifact_delta(
         payload
     )
-    executable_owner_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    executable_owner_action = _user_facing_executable_owner_action(payload)
     next_owner = (
         _non_empty_text(executable_owner_action.get("next_owner"))
         or _non_empty_text(paper_progress_state.get("next_owner"))
@@ -378,7 +378,7 @@ def _meaningful_artifact_delta(payload: Mapping[str, Any]) -> bool:
 
 
 def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> str | None:
-    executable_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    executable_action = _user_facing_executable_owner_action(payload)
     impact = _mapping_copy(payload.get("production_blocker_impact"))
     owner_route = _mapping_copy(payload.get("owner_route"))
     paper_progress_stall = _mapping_copy(payload.get("paper_progress_stall"))
@@ -395,6 +395,15 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
         or _non_empty_text((opl_handoff_action or {}).get("owner"))
         or _non_empty_text(ai_repair_lifecycle.get("next_owner"))
     )
+
+
+def _user_facing_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any]:
+    action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if _non_empty_text(action.get("source")) != "stage_artifact_index.next_owner_action":
+        return action
+    if current_owner_handoff_action(payload) is not None or current_owner_redrive_domain_transition(payload):
+        return action
+    return {}
 
 
 def _why_not_progressing(

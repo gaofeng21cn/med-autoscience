@@ -96,7 +96,7 @@ def test_ai_reviewer_publication_eval_workflow_clean_migration_uses_record_route
     manuscript_text = "# Current manuscript\n\nClean migration reviewer record is bound to this manuscript.\n"
     _write_text(Path(manuscript_ref), manuscript_text)
     _write_json(
-        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json",
         {
             "schema_version": 1,
             "surface_kind": "paper_authority_clean_migration",

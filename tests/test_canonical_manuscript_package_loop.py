@@ -11,6 +11,14 @@ def _write(path: Path, text: str) -> Path:
     return path
 
 
+def _opl_auth(label: str = "test") -> dict[str, object]:
+    return {
+        "owner": "one-person-lab",
+        "stage_attempt_id": f"stage-attempt::{label}",
+        "lease_id": f"lease::{label}",
+    }
+
+
 def test_canonical_manuscript_package_loop_writes_rebuild_and_freshness_proofs(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.canonical_manuscript_package_loop")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
@@ -77,6 +85,7 @@ def test_paper_repair_executor_attaches_canonical_package_loop_proof(tmp_path: P
             "source_refs": ["artifacts/publication_eval/latest.json"],
             "claim_policy": {"claim_id": "claim.primary", "supported": False, "allowed_status": "downgraded"},
         },
+        opl_execution_authorization=_opl_auth("canonical-package-loop"),
         apply=True,
     )
 

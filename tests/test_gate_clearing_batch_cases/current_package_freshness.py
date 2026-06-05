@@ -316,7 +316,7 @@ def test_blocked_delivery_sync_clears_stale_current_package_freshness_proof(tmp_
 def test_pending_clean_paper_authority_cutover_blocks_gate_report_freshness_proof(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
     study_root = tmp_path / "study"
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
     _write_json(
         receipt_path,
         {

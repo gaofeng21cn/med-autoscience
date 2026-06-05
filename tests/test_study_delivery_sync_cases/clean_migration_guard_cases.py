@@ -38,7 +38,7 @@ def _open_bundle_route_context() -> dict[str, object]:
 def test_sync_study_delivery_blocks_pending_clean_paper_authority_cutover(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
     dump_json(
         receipt_path,
         {

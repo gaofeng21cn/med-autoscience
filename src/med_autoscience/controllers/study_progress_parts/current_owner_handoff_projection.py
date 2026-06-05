@@ -261,8 +261,13 @@ def current_owner_handoff_next_action(
     *,
     user_visible: Mapping[str, Any],
 ) -> str | None:
-    if current_step := owner_action_next_step(_mapping_copy(payload.get("current_executable_owner_action"))):
-        return current_step
+    executable_owner_action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not (
+        current_owner_redrive_domain_transition(payload)
+        and _stage_artifact_index_owner_action(executable_owner_action)
+    ):
+        if current_step := owner_action_next_step(executable_owner_action):
+            return current_step
     handoff_action = current_owner_handoff_action(payload)
     if handoff_action is not None:
         if summary := current_owner_handoff_summary(handoff_action):
@@ -284,12 +289,18 @@ def current_owner_handoff_next_action(
     return _non_empty_text(user_visible.get("next_system_action")) or _non_empty_text(user_visible.get("next_step"))
 
 
+def _stage_artifact_index_owner_action(action: Mapping[str, Any]) -> bool:
+    return _non_empty_text(action.get("source")) == "stage_artifact_index.next_owner_action"
+
+
 def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) -> dict[str, Any]:
     executable_owner_action = _mapping_copy(payload.get("current_executable_owner_action"))
-    if not current_owner_redrive_domain_transition(payload) and owner_action_next_step(executable_owner_action) is None:
-        return dict(payload)
     user_visible = _mapping_copy(payload.get("user_visible_projection"))
     handoff_action = current_owner_handoff_action(payload)
+    if not current_owner_redrive_domain_transition(payload) and handoff_action is None:
+        return dict(payload)
+    if handoff_action is None and owner_action_next_step(executable_owner_action) is None:
+        return dict(payload)
     next_step = current_owner_handoff_next_action(payload, user_visible=user_visible)
     if next_step is None:
         return dict(payload)
@@ -467,6 +478,7 @@ def current_owner_redrive_domain_transition(payload: Mapping[str, Any]) -> bool:
     return _non_empty_text(transition.get("decision_type")) in {
         "ai_reviewer_re_eval",
         "bundle_stage_finalize",
+        "current_owner_handoff",
         "publication_gate_blocker",
         "route_back_same_line",
     }

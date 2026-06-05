@@ -149,6 +149,7 @@ def test_clean_python_runner_removes_auto_tmp_root_after_success(tmp_path: Path)
             "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
             "MAS_CLEAN_RUNNER_SKIP_SYNC": "0",
             "MAS_CLEAN_RUNNER_DEFAULT_UV_CACHE_DIR": str(persistent_cache),
+            "MAS_CLEAN_RUNNER_TMP_ROOT": "",
             "MAS_TEST_PYTHON": sys.executable,
             "TMPDIR": f"{auto_tmp}/",
             "UV_PROJECT_ENVIRONMENT": "",

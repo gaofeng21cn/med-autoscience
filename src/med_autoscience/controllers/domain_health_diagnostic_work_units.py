@@ -25,6 +25,7 @@ _MEANINGFUL_RESULT_ARTIFACT_KEYS = (
     "gate_clearing_batch_latest",
     "repair_execution_evidence_latest",
     "publication_work_unit_lifecycle_latest",
+    "ai_reviewer_request_latest",
 )
 _WORK_UNIT_TARGET_CONTEXT_KEYS = (
     "specificity_targets",
@@ -252,6 +253,43 @@ def _artifact_signature(value: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _ai_reviewer_request_executable(value: Mapping[str, Any]) -> bool:
+    if value.get("exists") is not True:
+        return False
+    stable_payload = value.get("stable_payload")
+    if not isinstance(stable_payload, Mapping):
+        return False
+    lifecycle = stable_payload.get("request_lifecycle")
+    required_inputs = stable_payload.get("required_inputs")
+    if not isinstance(lifecycle, Mapping) or not isinstance(required_inputs, Mapping):
+        return False
+    if lifecycle.get("all_required_refs_present") is not True:
+        return False
+    if _non_empty_text(lifecycle.get("blocked_reason")) is not None:
+        return False
+    required_input_keys = {
+        "manuscript_ref",
+        "evidence_ledger_ref",
+        "review_ledger_ref",
+        "study_charter_ref",
+    }
+    return all(_non_empty_text(required_inputs.get(key)) is not None for key in required_input_keys)
+
+
+def _artifact_delta_is_meaningful(
+    *,
+    key: str,
+    previous_artifact: Mapping[str, Any],
+    current_artifact: Mapping[str, Any],
+) -> bool:
+    if key != "ai_reviewer_request_latest":
+        return True
+    return (
+        not _ai_reviewer_request_executable(previous_artifact)
+        and _ai_reviewer_request_executable(current_artifact)
+    )
+
+
 def _meaningful_artifact_delta_evidence(
     *,
     previous_wakeup: Mapping[str, Any],
@@ -268,6 +306,12 @@ def _meaningful_artifact_delta_evidence(
             continue
         previous_signature = _artifact_signature(previous_artifact)
         if previous_signature == current_signature:
+            continue
+        if not _artifact_delta_is_meaningful(
+            key=key,
+            previous_artifact=previous_artifact,
+            current_artifact=current_artifact,
+        ):
             continue
         deltas.append(
             {
@@ -308,6 +352,11 @@ def _meaningful_artifact_delta_evidence(
     ]
     if controller_result_deltas:
         evidence["controller_result_artifact_deltas"] = controller_result_deltas
+    ai_reviewer_request_delta = by_key.get("ai_reviewer_request_latest")
+    if ai_reviewer_request_delta is not None:
+        evidence["ai_reviewer_request_ref"] = ai_reviewer_request_delta["artifact_ref"]
+        evidence["ai_reviewer_request_fingerprint_before"] = ai_reviewer_request_delta["fingerprint_before"]
+        evidence["ai_reviewer_request_fingerprint_after"] = ai_reviewer_request_delta["fingerprint_after"]
     return evidence
 
 

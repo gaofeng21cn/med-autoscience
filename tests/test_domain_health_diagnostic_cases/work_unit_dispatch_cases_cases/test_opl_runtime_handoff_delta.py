@@ -329,3 +329,192 @@ def test_watch_runtime_closes_opl_runtime_handoff_when_inputs_show_controller_re
     closed_payload = ledger_events[1]["payload"]
     assert closed_payload["closure_reason"] == "meaningful_artifact_delta_after_opl_runtime_handoff"
     assert closed_payload["controller_result_artifact_deltas"]
+
+
+def test_watch_runtime_closes_opl_runtime_handoff_when_ai_reviewer_request_becomes_executable(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "003-dpcc")
+    quest_root = profile.runtime_root / "quest-003"
+    _write_charter(study_root)
+    _write_publication_eval(study_root, quest_root, action_type="continue_same_line")
+    status_payload = {
+        **make_progress_projection_payload(
+            study_id="003-dpcc",
+            decision="blocked",
+            reason="quest_waiting_opl_runtime_owner_route",
+            include_authority_snapshot=True,
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-003",
+        "quest_root": str(quest_root),
+        "quest_status": "paused",
+    }
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": _write_charter(study_root),
+        "publication_eval_ref": _write_publication_eval(study_root, quest_root, action_type="continue_same_line"),
+        "decision_type": "continue_same_line",
+        "route_target": "review",
+        "route_key_question": "当前稿件是否已经通过 AI reviewer-owned publication evaluation？",
+        "route_rationale": "Rebuild AI reviewer quality authority.",
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": "Rebuild AI reviewer quality authority.",
+        "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::ai_reviewer_recheck",
+        "next_work_unit": {
+            "unit_id": "ai_reviewer_recheck",
+            "lane": "review",
+            "summary": "Return the current manuscript and evidence refs to the AI reviewer workflow.",
+        },
+    }
+    identity = module.domain_health_diagnostic_work_units.identity_from_tick_request(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        tick_request=tick_request,
+    )
+    assert identity is not None
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="opl_runtime_handoff_required",
+        payload={
+            "source": "domain_health_diagnostic_outer_loop_wakeup",
+            "wakeup_outcome": "opl_runtime_handoff_required",
+            "wakeup_reason": "outer-loop work unit redrive budget exhausted without result evidence",
+        },
+        recorded_at="2026-06-05T00:30:00+00:00",
+    )
+    latest_path = study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json"
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    dump_json(
+        latest_path,
+        {
+            "outcome": "opl_runtime_handoff_required",
+            "work_unit_dispatch_key": identity.dispatch_key,
+            "input_fingerprint": "old-input",
+            "watched_inputs": {
+                "artifacts": {
+                    "ai_reviewer_request_latest": {
+                        "path": str(request_path.resolve()),
+                        "exists": True,
+                        "stable_payload_sha256": "old-request",
+                        "stable_payload": {
+                            "request_kind": "return_to_ai_reviewer_workflow",
+                            "request_owner": "ai_reviewer",
+                            "request_lifecycle": {
+                                "all_required_refs_present": True,
+                                "blocked_reason": "paper_authority_clean_migration_required",
+                            },
+                            "required_inputs": {},
+                            "required_refs": {},
+                        },
+                    },
+                    "publication_eval_latest": {"sha256": "eval-same"},
+                    "publication_gate_latest": {"sha256": "gate-same"},
+                }
+            },
+        },
+    )
+    dump_json(
+        request_path,
+        {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "request_packet_materialized": True,
+                "all_required_refs_present": True,
+                "blocked_reason": None,
+            },
+            "required_inputs": {
+                "manuscript_ref": str((study_root / "paper" / "draft.md").resolve()),
+                "evidence_ledger_ref": str((study_root / "paper" / "evidence_ledger.json").resolve()),
+                "review_ledger_ref": str((study_root / "paper" / "review" / "review_ledger.json").resolve()),
+                "study_charter_ref": str((study_root / "artifacts" / "controller" / "study_charter.json").resolve()),
+            },
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {
+                        "path": str((study_root / "paper" / "draft.md").resolve()),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "evidence_ledger": {
+                        "path": str((study_root / "paper" / "evidence_ledger.json").resolve()),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "review_ledger": {
+                        "path": str((study_root / "paper" / "review" / "review_ledger.json").resolve()),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "study_charter": {
+                        "path": str((study_root / "artifacts" / "controller" / "study_charter.json").resolve()),
+                        "present": True,
+                        "valid": True,
+                    },
+                }
+            },
+        },
+    )
+    calls: list[str] = []
+
+    def fake_outer_loop_tick(**kwargs):
+        calls.append(str(kwargs.get("source") or ""))
+        return {
+            "study_id": "003-dpcc",
+            "quest_id": "quest-003",
+            "source": kwargs.get("source"),
+            "study_decision_ref": {
+                "artifact_path": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve())
+            },
+            "dispatch_status": "executed",
+            "executed_controller_action": {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "result": {"status": "executed"},
+            },
+        }
+
+    monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        request_opl_stage_attempts=True,
+    )
+    wakeup_latest = json.loads(latest_path.read_text(encoding="utf-8"))
+    ledger_events = [
+        json.loads(line)
+        for line in (
+            study_root / "artifacts" / "runtime" / "work_unit_ledger" / "events.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+    ]
+
+    assert calls == ["domain_health_diagnostic_outer_loop_wakeup"]
+    assert len(result["managed_study_outer_loop_dispatches"]) == 1
+    assert result["managed_study_no_op_suppressions"] == []
+    assert wakeup_latest["outcome"] == "dispatched"
+    assert [event["event_type"] for event in ledger_events] == [
+        "opl_runtime_handoff_required",
+        "closed",
+        "dispatched",
+    ]
+    assert ledger_events[1]["payload"]["ai_reviewer_request_ref"] == str(request_path.resolve())
+    assert ledger_events[1]["payload"]["ai_reviewer_request_fingerprint_before"] == "old-request"
+    assert ledger_events[1]["payload"]["ai_reviewer_request_fingerprint_after"] != "old-request"

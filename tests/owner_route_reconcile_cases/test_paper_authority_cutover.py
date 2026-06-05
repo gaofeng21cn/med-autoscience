@@ -23,7 +23,7 @@ def test_scan_domain_routes_routes_clean_paper_authority_cutover_to_ai_reviewer(
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     _write_json(
-        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json",
         {
             "schema_version": 1,
             "surface_kind": "paper_authority_clean_migration",
@@ -130,7 +130,7 @@ def test_scan_domain_routes_routes_clean_cutover_rehydrate_blocker_to_write(
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     _write_json(
-        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json",
         {
             "schema_version": 1,
             "surface_kind": "paper_authority_clean_migration",
@@ -243,7 +243,7 @@ def test_scan_domain_routes_routes_clean_cutover_quality_repair_no_paper_root_to
     study_id = "004-dpcc-longitudinal-care-inertia-intensification-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     _write_json(
-        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json",
         {
             "schema_version": 1,
             "surface_kind": "paper_authority_clean_migration",
@@ -341,7 +341,7 @@ def test_scan_domain_routes_keeps_clean_cutover_rehydrate_failure_on_write_owner
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     _write_json(
-        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json",
         {
             "schema_version": 1,
             "surface_kind": "paper_authority_clean_migration",
@@ -445,7 +445,7 @@ def test_scan_domain_routes_defers_clean_cutover_rehydrate_when_scientific_ancho
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     quest_root = profile.runtime_root / study_id
     _write_json(
-        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json",
         {
             "schema_version": 1,
             "surface_kind": "paper_authority_clean_migration",

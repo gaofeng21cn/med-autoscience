@@ -310,6 +310,32 @@ def _artifact_fingerprint(path: Path | None) -> dict[str, Any]:
     }
 
 
+def _ai_reviewer_request_fingerprint(path: Path) -> dict[str, Any]:
+    payload = _artifact_fingerprint(path)
+    if payload.get("exists") is not True:
+        return payload
+    request_payload = _read_json_object(Path(str(payload["path"]))) or {}
+    lifecycle = request_payload.get("request_lifecycle")
+    input_contract = request_payload.get("input_contract")
+    stable_payload = {
+        "request_kind": _non_empty_text(request_payload.get("request_kind")),
+        "request_owner": _non_empty_text(request_payload.get("request_owner")),
+        "request_lifecycle": dict(lifecycle) if isinstance(lifecycle, Mapping) else {},
+        "required_inputs": dict(request_payload.get("required_inputs"))
+        if isinstance(request_payload.get("required_inputs"), Mapping)
+        else {},
+        "required_refs": dict(input_contract.get("required_refs"))
+        if isinstance(input_contract, Mapping) and isinstance(input_contract.get("required_refs"), Mapping)
+        else {},
+    }
+    canonical = json.dumps(stable_payload, ensure_ascii=False, sort_keys=True)
+    return {
+        **payload,
+        "stable_payload_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "stable_payload": stable_payload,
+    }
+
+
 def _opl_runtime_owner_handoff_fingerprint(path: Path) -> dict[str, Any]:
     resolved = Path(path).expanduser().resolve()
     if not resolved.exists() or not resolved.is_file():
@@ -389,6 +415,9 @@ def _managed_outer_loop_wakeup_fingerprint(
                 / "controller"
                 / "publication_work_unit_lifecycle"
                 / "latest.json"
+            ),
+            "ai_reviewer_request_latest": _ai_reviewer_request_fingerprint(
+                resolved_study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
             ),
             "opl_runtime_owner_handoff_latest": _opl_runtime_owner_handoff_fingerprint(
                 resolved_study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"

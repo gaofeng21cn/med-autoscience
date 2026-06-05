@@ -479,19 +479,62 @@ def _complete_ai_reviewer_request_packet(
             continue
         required_refs[surface] = {"path": str(path.resolve()), "present": True, "valid": True}
         changed = True
+    required_inputs, required_inputs_changed = _ai_reviewer_required_inputs_from_refs(
+        existing=_mapping(completed.get("required_inputs")),
+        required_refs=required_refs,
+    )
+    changed = changed or required_inputs_changed
+    lifecycle = _mapping(completed.get("request_lifecycle"))
+    completed_for_ref_check = {
+        **completed,
+        "input_contract": {**input_contract, "required_refs": required_refs},
+    }
+    all_required_refs_present = all(
+        ref is not None for ref in ai_reviewer_request_refs.required_refs(completed_for_ref_check).values()
+    )
+    lifecycle_updates = {
+        "request_packet_materialized": True,
+        "all_required_refs_present": all_required_refs_present,
+    }
+    for key, value in lifecycle_updates.items():
+        if lifecycle.get(key) != value:
+            lifecycle[key] = value
+            changed = True
+    if all_required_refs_present is True and _text(lifecycle.get("blocked_reason")) in {
+        "paper_authority_clean_migration_required",
+        "ai_reviewer_required_refs_missing",
+    }:
+        lifecycle["blocked_reason"] = None
+        changed = True
     if not changed:
         return completed
     input_contract["required_refs"] = required_refs
     completed["input_contract"] = input_contract
-    lifecycle = _mapping(completed.get("request_lifecycle"))
-    lifecycle["request_packet_materialized"] = True
-    lifecycle["all_required_refs_present"] = all(
-        ref is not None for ref in ai_reviewer_request_refs.required_refs(completed).values()
-    )
+    completed["required_inputs"] = required_inputs
     completed["request_lifecycle"] = lifecycle
     request_path.parent.mkdir(parents=True, exist_ok=True)
     request_path.write_text(json.dumps(completed, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return completed
+
+
+def _ai_reviewer_required_inputs_from_refs(
+    *,
+    existing: Mapping[str, Any],
+    required_refs: Mapping[str, Any],
+) -> tuple[dict[str, Any], bool]:
+    required_inputs = dict(existing)
+    changed = False
+    for surface, ref_payload in required_refs.items():
+        ref = _mapping(ref_payload)
+        ref_path = _text(ref.get("path")) or _text(ref.get("ref")) or _text(ref.get("relative_path"))
+        if ref_path is None:
+            continue
+        key = f"{surface}_ref"
+        if _text(required_inputs.get(key)) == ref_path:
+            continue
+        required_inputs[key] = ref_path
+        changed = True
+    return required_inputs, changed
 
 
 def _canonical_ai_reviewer_ref_paths(*, study_root: Path) -> dict[str, Path]:
@@ -532,7 +575,9 @@ def execute_canonical_paper_inputs_rehydrate(
             "blocked_reason": "paper_authority_clean_migration_not_pending",
             "owner_callable_surface": "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint",
             "next_owner": "ai_reviewer",
-            "required_input_surface": str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"),
+            "required_input_surface": str(
+                paper_authority_migration.paper_authority_cutover_latest_path(study_root=study_root)
+            ),
         }
     if not apply:
         return {

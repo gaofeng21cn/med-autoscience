@@ -16,13 +16,14 @@ MAS 采用 OPL-family canonical docs taxonomy：
 
 这个目录集合按长期职责保留，不按当前文件数量决定。`product/public/source/specs` 当前可以较薄，但必须在 README 或 owner 文档中说明进入条件和不进入条件。
 
-2026-06-03 生命周期清理后的当前收口口径：
+2026-06-05 生命周期清理后的当前收口口径：
 
 - `docs/status.md` 只保留 current-state 摘要和最近一次已记录 live audit 的结论，不保存 same-day receipt/worklist ledger。
 - `docs/active/mas-ideal-state-gap-plan.md` 是唯一 active gap / completion plan，只维护功能/结构 gap、production evidence tail、近期完善顺序和禁止误写口径。
 - `docs/active/current-development-lines.md` 只维护内容线索引，不承担第二 backlog。
 - dated closeout、attempt id、receipt id、OPL worklist 数字、命令流水、旧 phase checklist、same-day follow-through 和 proof 过程归 `docs/history/**`、runtime ledger、真实 workspace receipt 或提交历史。
-- 本轮逐类审计与清理 closeout 见 [Docs lifecycle governance closeout 2026-06-03](./history/program/docs_lifecycle_governance_closeout_2026_06_03.md)。
+- `docs/runtime/contracts/agent_runtime_interface.md` 只保留当前 agent-facing runtime contract、stable entry、owner boundary、禁止旧面复活口径和 history pointers；Hermes/MDS/local scheduler/Phase 旧叙事不得继续铺在 active contract 主体里。
+- 本轮逐类审计与清理 closeout 见 [Docs lifecycle governance closeout 2026-06-05](./history/program/docs_lifecycle_governance_closeout_2026_06_05.md)；上一轮 2026-06-03 closeout 继续保留为 history provenance。
 
 ## 生命周期原则
 
@@ -108,23 +109,8 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 
 ## Coverage Ledger
 
-Detailed dated coverage entries are archived as history/provenance to keep this active governance entry small and owner-focused. Append new active docs-governance tranches here only while they are current; fold older dated ledgers into the archive files during closeout.
+Dated coverage entries are archived under [docs-portfolio-coverage-ledger](./history/docs-portfolio-coverage-ledger/). This active governance document keeps only the current disposition:
 
-- [2026-05-26-part-1.md](./history/docs-portfolio-coverage-ledger/2026-05-26-part-1.md)
-- [2026-05-26-part-1b.md](./history/docs-portfolio-coverage-ledger/2026-05-26-part-1b.md)
-- [2026-05-26-part-2.md](./history/docs-portfolio-coverage-ledger/2026-05-26-part-2.md)
-- [2026-05-26-part-2b.md](./history/docs-portfolio-coverage-ledger/2026-05-26-part-2b.md)
-- [2026-05-26-27-part-3.md](./history/docs-portfolio-coverage-ledger/2026-05-26-27-part-3.md)
-- [2026-05-26-27-part-4.md](./history/docs-portfolio-coverage-ledger/2026-05-26-27-part-4.md)
-- [2026-05-27-part-5.md](./history/docs-portfolio-coverage-ledger/2026-05-27-part-5.md)
-- [2026-05-27-part-6.md](./history/docs-portfolio-coverage-ledger/2026-05-27-part-6.md)
-- [2026-05-28-part-7.md](./history/docs-portfolio-coverage-ledger/2026-05-28-part-7.md)
-- [2026-05-28-part-8.md](./history/docs-portfolio-coverage-ledger/2026-05-28-part-8.md)
-- [2026-05-28-part-9.md](./history/docs-portfolio-coverage-ledger/2026-05-28-part-9.md)
-- [2026-05-28-part-10.md](./history/docs-portfolio-coverage-ledger/2026-05-28-part-10.md)
-- [2026-05-28-part-11.md](./history/docs-portfolio-coverage-ledger/2026-05-28-part-11.md)
-- [2026-05-29-part-12.md](./history/docs-portfolio-coverage-ledger/2026-05-29-part-12.md)
-- [2026-05-29-part-13.md](./history/docs-portfolio-coverage-ledger/2026-05-29-part-13.md)
-- [2026-05-29-part-14.md](./history/docs-portfolio-coverage-ledger/2026-05-29-part-14.md)
-- [2026-05-29-part-15.md](./history/docs-portfolio-coverage-ledger/2026-05-29-part-15.md)
-- [2026-05-30-part-16.md](./history/docs-portfolio-coverage-ledger/2026-05-30-part-16.md)
+- coverage ledger files are `history_provenance` and never current truth;
+- active docs-governance work should update current owner docs first, then write a compact closeout in `docs/history/program/` only when durable evidence is useful;
+- no new dated part list should be appended here. If a reader needs exact tranche evidence, open the history directory or the relevant closeout record.

@@ -138,6 +138,78 @@ def test_review_request_uses_stage_native_blueprint_when_legacy_paper_ref_is_abs
     assert not legacy_blueprint_path.exists()
 
 
+def test_review_request_uses_stage_native_current_body_paper_root_when_legacy_paper_is_absent(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.medical_prose_review_request import (
+        materialize_medical_prose_review_request,
+        read_medical_prose_review_request,
+    )
+
+    study_root = tmp_path / "study"
+    _write_review_request_inputs(study_root)
+    legacy_paper_root = study_root / "paper"
+    stage_native_paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    stage_native_paper_root.parent.mkdir(parents=True, exist_ok=True)
+    legacy_paper_root.replace(stage_native_paper_root)
+
+    materialize_medical_prose_review_request(study_root=study_root)
+    payload = read_medical_prose_review_request(study_root=study_root)
+
+    assert payload["required_inputs"]["manuscript_ref"] == str((stage_native_paper_root / "draft.md").resolve())
+    assert payload["required_inputs"]["claim_evidence_map_ref"] == str(
+        (stage_native_paper_root / "claim_evidence_map.json").resolve()
+    )
+    assert payload["required_inputs"]["review_ledger_ref"] == str(
+        (stage_native_paper_root / "review" / "review_ledger.json").resolve()
+    )
+    assert payload["manuscript"]["path"] == str((stage_native_paper_root / "draft.md").resolve())
+    assert "Figure 1 shows" in payload["manuscript"]["text"]
+    assert not (legacy_paper_root / "draft.md").exists()
+    assert not (legacy_paper_root / "claim_evidence_map.json").exists()
+
+
+def test_review_request_uses_stage_native_body_when_legacy_paper_shell_lacks_draft(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.medical_prose_review_request import (
+        materialize_medical_prose_review_request,
+        read_medical_prose_review_request,
+    )
+
+    study_root = tmp_path / "study"
+    _write_review_request_inputs(study_root)
+    legacy_paper_root = study_root / "paper"
+    stage_native_paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    stage_native_paper_root.parent.mkdir(parents=True, exist_ok=True)
+    legacy_paper_root.replace(stage_native_paper_root)
+    legacy_paper_root.mkdir(parents=True)
+    _write_json(legacy_paper_root / "medical_journal_style_corpus.json", {"surface": "style_shell"})
+
+    materialize_medical_prose_review_request(study_root=study_root)
+    payload = read_medical_prose_review_request(study_root=study_root)
+
+    assert payload["required_inputs"]["manuscript_ref"] == str((stage_native_paper_root / "draft.md").resolve())
+    assert payload["manuscript"]["path"] == str((stage_native_paper_root / "draft.md").resolve())
+    assert not (legacy_paper_root / "draft.md").exists()
+
+
 def test_review_request_includes_completed_unit_harmonized_rerun_evidence(tmp_path: Path) -> None:
     from med_autoscience.medical_prose_review_request import (
         materialize_medical_prose_review_request,

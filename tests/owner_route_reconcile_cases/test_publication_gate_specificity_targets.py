@@ -469,7 +469,7 @@ def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_bl
                     "publication_objective": "Rebuild clean migrated paper authority.",
                 },
                 "runtime_context_refs": {
-                    "runtime_escalation_ref": str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"),
+                    "runtime_escalation_ref": str(study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"),
                     "main_result_ref": str(study_root / "paper" / "evidence_ledger.json"),
                 },
                 "delivery_context_refs": {
@@ -503,7 +503,7 @@ def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_bl
                         "severity": "must_fix",
                         "summary": "New MAS owner must rebuild delivery authority.",
                         "evidence_refs": [
-                            str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json")
+                            str(study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json")
                         ],
                     }
                 ],
@@ -514,7 +514,7 @@ def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_bl
                         "priority": "now",
                         "reason": "After AI reviewer writeback, rerun publication gate and delivery sync.",
                         "evidence_refs": [
-                            str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json")
+                            str(study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json")
                         ],
                         "requires_controller_decision": True,
                     }
@@ -864,7 +864,7 @@ def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_ev
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
     charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
     eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
     charter_path.parent.mkdir(parents=True)
     charter_path.write_text(

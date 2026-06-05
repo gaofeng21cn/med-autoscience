@@ -13,8 +13,8 @@ from med_autoscience.controllers import paper_repair_execution_evidence
 from med_autoscience.controllers import quality_repair_paper_owner_surface
 from med_autoscience.controllers import default_executor_dispatch_packets
 from med_autoscience.controllers import publication_work_units
-from med_autoscience.controllers import domain_status_projection
 from med_autoscience.controllers import current_publication_eval
+from med_autoscience.controllers.quality_repair_batch_parts.controller_proxy import lazy_controller_module
 from med_autoscience.controllers.quality_repair_batch_parts import hard_methodology_handoff
 from med_autoscience.controllers.quality_repair_batch_parts import repair_execution_gate
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
@@ -47,6 +47,7 @@ _ANALYSIS_REPAIR_ACTION = StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
 _QUALITY_REPAIR_BATCH_ALLOWED_WORK_UNIT_IDS = upstream_route_context.quality_repair_allowed_work_unit_ids(
     PUBLICATION_WORK_UNIT_REPAIR_IDS
 )
+domain_status_projection = lazy_controller_module("domain_status_projection")
 
 
 def stable_quality_repair_batch_path(*, study_root: Path) -> Path:

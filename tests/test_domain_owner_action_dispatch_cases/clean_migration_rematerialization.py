@@ -92,7 +92,7 @@ def test_execute_dispatch_after_clean_cutover_rematerializes_request_without_leg
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     _write_clean_migration_ai_reviewer_inputs(study_root, study_id)
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
     _write_json(
         receipt_path,
         {
@@ -201,7 +201,7 @@ def test_clean_cutover_rematerializes_stale_review_request_with_missing_manuscri
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     _write_clean_migration_ai_reviewer_inputs(study_root, study_id)
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
     _write_json(
         receipt_path,
         {
@@ -313,7 +313,7 @@ def test_clean_cutover_missing_canonical_blueprint_routes_to_rehydrate_owner(
     _write_json(study_root / "paper" / "evidence_ledger.json", {"items": [{"claim_id": "C1"}]})
     _write_json(study_root / "paper" / "review" / "review_ledger.json", {"items": []})
     (study_root / "paper" / "draft.md").write_text("## Results\n\nThe manuscript exists.\n", encoding="utf-8")
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
     _write_json(
         receipt_path,
         {
@@ -459,7 +459,7 @@ def test_execute_clean_canonical_rehydrate_writes_source_only_without_canonical_
         encoding="utf-8",
     )
     _write_json(
-        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json",
         {
             "schema_version": 1,
             "surface_kind": "paper_authority_clean_migration",
@@ -564,7 +564,7 @@ def test_clean_canonical_rehydrate_is_not_suppressed_by_prior_ai_reviewer_blocke
         },
     )
     _write_json(
-        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json",
         {
             "schema_version": 1,
             "surface_kind": "paper_authority_clean_migration",
@@ -694,7 +694,7 @@ def test_clean_canonical_rehydrate_runs_when_terminal_stall_marks_missing_source
         },
     )
     _write_json(
-        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json",
         {
             "schema_version": 1,
             "surface_kind": "paper_authority_clean_migration",

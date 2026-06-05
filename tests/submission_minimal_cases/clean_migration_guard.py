@@ -43,7 +43,7 @@ def test_create_submission_minimal_package_blocks_pending_clean_paper_authority_
     paper_root = make_paper_workspace(tmp_path)
     study_root = paper_root.parent
     shutil.rmtree(paper_root / "submission_minimal", ignore_errors=True)
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
     dump_json(
         receipt_path,
         {
@@ -93,7 +93,7 @@ def test_create_submission_minimal_package_blocks_pending_cutover_for_runtime_pa
         f"quest_id: {quest_id}\nruntime_reentry_gate:\n  study_id: {study_id}\n",
     )
     shutil.rmtree(paper_root / "submission_minimal", ignore_errors=True)
-    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    receipt_path = study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "latest.json"
     dump_json(
         receipt_path,
         {
