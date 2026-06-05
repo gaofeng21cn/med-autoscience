@@ -491,14 +491,18 @@ def _run_developer_supervisor_same_tick(
                 provider_readiness_timeout_seconds=PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
                 retain_unscanned_studies=retain_unscanned_studies,
             )
-            if _provider_attempt_started_for_iteration(iteration):
+            provider_attempt_started = _provider_attempt_started_for_iteration(iteration)
+            if (
+                provider_attempt_started
+                or materialized_record_only_provider_handoff(_mapping(iteration.get("materialize")))
+            ):
                 iteration["post_admission_materialize"] = domain_action_request_materializer.materialize_domain_action_requests(
                     profile=profile,
                     study_ids=resolved_study_ids,
                     mode="developer_apply_safe",
                     apply=True,
                 )
-                if provider_probe_has_non_running_actions(_mapping(iteration["provider_admission_probe"])):
+                if provider_attempt_started and provider_probe_has_non_running_actions(_mapping(iteration["provider_admission_probe"])):
                     carried_scan_result = _mapping(iteration["provider_admission_probe"])
                     carried_materialize_result = _mapping(iteration["post_admission_materialize"])
         iterations.append(iteration)
@@ -538,7 +542,7 @@ def _run_developer_supervisor_same_tick(
         },
         "iterations": iterations,
         "owner_route_reconcile": _mapping(iterations[-1].get("owner_route_reconcile")) if iterations else {},
-        "materialize": _mapping(iterations[-1].get("materialize")) if iterations else {},
+        "materialize": _same_tick_terminal_materialize(iterations),
         "dispatch": _mapping(iterations[-1].get("dispatch")) if iterations else {},
         "progress_first_terminal_diagnostic": terminal_diagnostic,
         "owner_boundaries": {
@@ -677,6 +681,16 @@ def _same_tick_handoff_identities(iteration: Mapping[str, Any]) -> list[dict[str
     return identities
 
 
+def _same_tick_terminal_materialize(iterations: list[dict[str, Any]]) -> dict[str, Any]:
+    if not iterations:
+        return {}
+    last_iteration = iterations[-1]
+    post_admission_materialize = last_iteration.get("post_admission_materialize")
+    if isinstance(post_admission_materialize, Mapping):
+        return dict(post_admission_materialize)
+    return _mapping(last_iteration.get("materialize"))
+
+
 def _same_tick_terminal_diagnostic(
     *,
     stop_reason: str,
@@ -751,7 +765,7 @@ def _same_tick_terminal_diagnostic(
                     )
                 ),
             }
-            if stop_reason == "provider_attempt_started"
+            if isinstance(last_iteration.get("post_admission_materialize"), Mapping)
             else None
         ),
         "last_iteration_delta": dict(last_delta),

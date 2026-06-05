@@ -72,6 +72,115 @@ def test_domain_health_diagnostic_same_tick_reports_handoff_pending_without_prov
     assert diagnostic["next_forced_delta"]["target_surface"]["owner"] == "one-person-lab"
 
 
+def test_domain_health_diagnostic_same_tick_refreshes_materialize_after_pending_provider_probe(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    scan_calls: list[dict[str, object]] = []
+    materialize_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
+        scan_calls.append(kwargs)
+        fingerprint = f"truth-snapshot::{len(scan_calls)}"
+        return {
+            "surface": "portable_owner_route_reconcile",
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "owner_route": {
+                        "work_unit_fingerprint": fingerprint,
+                        "source_refs": {
+                            "owner_route_currentness_basis": {
+                                "work_unit_id": fingerprint,
+                                "work_unit_fingerprint": fingerprint,
+                            }
+                        },
+                    },
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "running_provider_attempt": False,
+                    "active_run_id": None,
+                    "active_stage_attempt_id": None,
+                }
+            ],
+        }
+
+    def fake_materialize(**kwargs) -> dict[str, object]:
+        materialize_calls.append(kwargs)
+        generation = "initial" if len(materialize_calls) == 1 else "post-probe"
+        work_unit = f"truth-snapshot::{generation}"
+        return {
+            "surface": "domain_action_request_materializer",
+            "request_task_count": 1,
+            "default_executor_dispatch_count": 1,
+            "ready_default_executor_dispatch_count": 1,
+            "blocked_default_executor_dispatch_count": 0,
+            "default_executor_dispatches": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "dispatch_status": "ready",
+                    "dispatch_authority": "ai_reviewer_record_production_handoff",
+                    "next_executable_owner": "ai_reviewer",
+                    "required_output_surface": "ai_reviewer_record",
+                    "owner_route": {
+                        "work_unit_fingerprint": work_unit,
+                        "source_refs": {
+                            "owner_route_currentness_basis": {
+                                "work_unit_id": work_unit,
+                                "work_unit_fingerprint": work_unit,
+                            }
+                        },
+                    },
+                    "refs": {
+                        "dispatch_path": f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/{generation}.json"
+                    },
+                }
+            ],
+        }
+
+    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+    monkeypatch.setattr(module.domain_action_request_materializer, "materialize_domain_action_requests", fake_materialize)
+    monkeypatch.setattr(
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        lambda **kwargs: pytest.fail("record-only provider handoff should not start MAS-local LLM dispatch"),
+    )
+
+    supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=3)
+
+    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
+    assert len(scan_calls) == 2
+    assert scan_calls[1]["persist_surfaces"] is True
+    assert len(materialize_calls) == 2
+    iteration = supervisor_tick["iterations"][0]
+    assert iteration["post_admission_materialize"]["default_executor_dispatches"][0]["refs"]["dispatch_path"].endswith(
+        "/post-probe.json"
+    )
+    assert supervisor_tick["materialize"] == iteration["post_admission_materialize"]
+    diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
+    assert diagnostic["requires_provider_admission"] is True
+    assert diagnostic["post_admission_materialize"] == {
+        "observed": True,
+        "default_executor_dispatch_count": 1,
+        "ready_default_executor_dispatch_count": 1,
+    }
+
+
 def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_after_admission_probe(
     tmp_path: Path,
     monkeypatch,
