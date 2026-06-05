@@ -115,6 +115,7 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 - Managing validation, subgroup analysis, calibration, clinical utility analysis, and other supporting evidence.
 - Keeping multiple related studies organized in one workspace.
 - Keeping paper-facing results, figures, drafts, and delivery files tied to their study.
+- Comparing study claims, evidence gaps, analysis routes, and review findings inside the same study stage, then producing the next manuscript and evidence package.
 
 ## Current Position And Boundary
 
@@ -131,8 +132,10 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 - `Med Auto Science` is a medical research domain agent and Foundry Agent. It can be called directly by Codex, and it can also be discovered and hosted as an OPL-compatible package under `OPL Framework`.
 - MAS owns the medical work itself: study intake, workspace context, evidence progression, progress explanation, manuscript quality judgment, runtime-facing owner receipts/projections, artifact authority, and manuscript-facing delivery.
 - `OPL Framework` is the upper stage-led framework. It owns the generic runtime platform: stage attempts, queues, wakeups, recovery, approvals, receipts, state-machine execution, and cross-domain projection. MAS keeps medical conclusions, manuscript quality, domain transition semantics, artifact authority, and submission-facing judgment.
+- Legacy MAS-local schedulers, runners, session stores, status shells, and workbench wrappers are migration input, diagnostic projection, or provenance only. New MAS-local program surfaces must justify a medical authority role and return owner receipts, typed blockers, domain refs, or safe action refs.
 - In the OPL framework, a `Stage` is a large task step such as scouting, analysis, writing, reviewer repair, or delivery. An Agent executor is the minimum execution unit inside a stage; `Codex CLI` is the current first-class executor.
 - A MAS stage pack gives the executor a goal, context, authority boundary, available affordances, knowledge refs, and quality gate. During the attempt, the executor decides what to read first, which tools to call, whether to run in parallel, whether to generate multiple candidates, and when to route back or request a reviewer; OPL route orchestration does not pre-script that reasoning.
+- Candidate generation, reflection, review, and meta-review are Stage-internal execution strategies and evidence refs. They can guide exploration and review pressure, but they do not become a hardcoded workflow and cannot close a Stage without a MAS owner receipt, stable typed blocker, or independent reviewer/auditor receipt where quality is at stake.
 - MAS tool declarations follow a Tool Affordance Boundary: they declare capability, permission, credential boundary, write scope, side effects, forbidden authority, and evidence entry points. They do not freeze the executor's literature reading, statistical checks, candidate generation, route comparison, or question-asking order into an out-of-prompt workflow script.
 - MAS has completed monolith closeout. `MedDeepScientist` / `DeepScientist` remains available as provenance, explicit archive import, backend audit, upstream learning, and parity reference.
 - Long-running OPL-hosted production execution is Temporal-backed. Temporal is the required production provider for OPL durable stage attempts, signal/query, retry/dead-letter, and workflow history. `Hermes-Agent` is not the target session/wakeup substrate, but it remains available as an explicit Agent executor adapter / proof lane that promises connectivity and auditability, not behavior or quality equivalence with `Codex CLI`.

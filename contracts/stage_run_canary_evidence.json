@@ -1,0 +1,184 @@
+{
+  "surface_kind": "opl_stage_run_controlled_canary_evidence",
+  "version": "stage-run-controlled-canary.v1",
+  "domain_id": "med-autoscience",
+  "owner": "MedAutoScience",
+  "state": "active_controlled_fixture",
+  "canary_id": "mas_stage_run_controlled_canary_ai_reviewer_publication_eval_rebuild",
+  "stage_id": "ai_reviewer_publication_eval_rebuild",
+  "evidence_scope": "controlled_fixture_not_live_domain_progress",
+  "stage_run_ref": {
+    "ref": "stage-run://controlled-canary/med-autoscience/ai_reviewer_publication_eval_rebuild#run-001",
+    "role": "controlled_stage_run_ref",
+    "body_included": false
+  },
+  "stage_manifest_ref": {
+    "ref": "contracts/stage_run_canary_evidence.json#/controlled_stage_folder/stage_manifest",
+    "role": "controlled_stage_manifest_ref",
+    "body_included": false
+  },
+  "current_pointer_ref": {
+    "ref": "contracts/stage_run_canary_evidence.json#/controlled_stage_folder/current_pointer",
+    "role": "controlled_current_pointer_ref",
+    "body_included": false
+  },
+  "controlled_stage_folder": {
+    "stage_manifest": {
+      "stage_id": "ai_reviewer_publication_eval_rebuild",
+      "stage_run_ref": "stage-run://controlled-canary/med-autoscience/ai_reviewer_publication_eval_rebuild#run-001",
+      "required_role_artifacts": [
+        "candidate_pool_ref",
+        "reflection_review_ref",
+        "ranking_selection_ref",
+        "revision_lineage_ref",
+        "meta_review_ref",
+        "independent_gate_ref"
+      ],
+      "closeout_requires": "owner_receipt_or_typed_blocker",
+      "body_included": false
+    },
+    "current_pointer": {
+      "stage_run_ref": "stage-run://controlled-canary/med-autoscience/ai_reviewer_publication_eval_rebuild#run-001",
+      "status": "TypedBlocked",
+      "terminal_outcome_ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/stable-typed-blocker",
+      "projection_only": true,
+      "body_included": false
+    }
+  },
+  "strategy_trace": {
+    "candidate_generation": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/candidate-pool",
+          "role": "candidate_pool_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "grounded_reflection": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/reflection-review",
+          "role": "reflection_review_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "comparative_selection": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/ranking-selection",
+          "role": "ranking_selection_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "evolution_and_revision": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/revision-lineage",
+          "role": "revision_lineage_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "meta_review_learning": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/meta-review",
+          "role": "meta_review_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "independent_quality_gate": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/independent-gate",
+          "role": "independent_gate_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "independent_reviewer_or_publication_gate_ref_only",
+      "can_closeout": false
+    }
+  },
+  "role_artifact_refs": {
+    "candidate_pool_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/candidate-pool",
+      "role": "candidate_pool_ref",
+      "body_included": false
+    },
+    "reflection_review_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/reflection-review",
+      "role": "reflection_review_ref",
+      "body_included": false
+    },
+    "ranking_selection_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/ranking-selection",
+      "role": "ranking_selection_ref",
+      "body_included": false
+    },
+    "revision_lineage_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/revision-lineage",
+      "role": "revision_lineage_ref",
+      "body_included": false
+    },
+    "meta_review_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/meta-review",
+      "role": "meta_review_ref",
+      "body_included": false
+    },
+    "independent_gate_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/independent-gate",
+      "role": "independent_gate_ref",
+      "body_included": false
+    }
+  },
+  "closeout": {
+    "terminal_outcome": "typed_blocker",
+    "typed_blocker_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/stable-typed-blocker",
+      "role": "typed_blocker_ref",
+      "body_included": false
+    },
+    "same_attempt_self_review": false
+  },
+  "authority_boundary": {
+    "refs_only": true,
+    "controlled_canary_claims_live_domain_progress": false,
+    "provider_completion_counts_as_closeout": false,
+    "file_presence_counts_as_closeout": false,
+    "read_model_counts_as_closeout": false,
+    "conformance_pass_counts_as_closeout": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_mutate_artifact_body": false,
+    "opl_can_sign_owner_receipt": false,
+    "opl_can_create_typed_blocker": false,
+    "opl_can_authorize_quality_or_export": false
+  },
+  "claim_boundary": {
+    "claims_live_domain_progress": false,
+    "claims_paper_closure": false,
+    "claims_publication_ready": false,
+    "claims_artifact_mutation_authorized": false,
+    "claims_current_package_updated": false
+  },
+  "verification_refs": [
+    {
+      "ref": "tests/test_stage_run_kernel_profile_contract.py",
+      "role": "focused_controlled_canary_contract_test",
+      "body_included": false
+    }
+  ]
+}

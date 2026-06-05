@@ -10,6 +10,20 @@
   "stage_artifact_kernel_adoption_ref": "contracts/stage_artifact_kernel_adoption.json",
   "stage_folder_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
   "owner_receipt_contract_ref": "contracts/owner_receipt_contract.json",
+  "opl_contract_refs": {
+    "owner": "one-person-lab",
+    "domain_repo_role": "consumer_profile_ref_only",
+    "repo_local_file_required": false,
+    "local_resolution_policy": "do_not_copy_opl_framework_contracts_into_domain_repo",
+    "refs": [
+      "contracts/opl-framework/stage-run-kernel-contract.json",
+      "contracts/opl-framework/stage-manifest.schema.json",
+      "contracts/opl-framework/role-artifact-ref.schema.json",
+      "contracts/opl-framework/stage-owner-receipt.schema.json",
+      "contracts/opl-framework/stage-typed-blocker.schema.json",
+      "contracts/opl-framework/stage-artifact-runtime-contract.json"
+    ]
+  },
   "stage_native_unit": [
     "stage_folder",
     "stage_manifest",
@@ -100,6 +114,52 @@
     "stage_folder_files_count_as_next_stage_ready": false,
     "latest_json_counts_as_domain_accepted": false,
     "active_run_id_counts_as_paper_progress": false
+  },
+  "launch_admission_policy": {
+    "hard_blockers": [
+      "identity",
+      "owner",
+      "scope",
+      "selected_executor",
+      "authority_boundary",
+      "required_role_artifacts",
+      "receipt_or_blocker_shape",
+      "forbidden_write",
+      "replay_audit_lineage"
+    ],
+    "advisory_refs": [
+      "prompt_refs",
+      "skill_refs",
+      "tool_affordance_refs",
+      "knowledge_refs",
+      "rubric_refs",
+      "evaluation_refs"
+    ],
+    "advisory_refs_can_block_launch": false
+  },
+  "default_read_surface": {
+    "root": "stage_run_current_owner_delta",
+    "raw_worklist_default": false,
+    "readiness_default": false,
+    "replay_packet_default": false
+  },
+  "coscientist_stage_strategy_boundary": {
+    "stage_scope": "within_stage_execution_strategy_and_evidence_refs",
+    "strategy_refs": [
+      "candidate_generation_refs",
+      "reflection_refs",
+      "review_refs",
+      "meta_review_refs",
+      "ranking_refs",
+      "proximity_refs",
+      "evolution_refs"
+    ],
+    "strategy_refs_are_advisory": true,
+    "strategy_refs_can_define_hardcoded_workflow": false,
+    "strategy_refs_can_close_quality_gate": false,
+    "strategy_refs_can_promote_stage": false,
+    "quality_gate_requires_independent_reviewer_or_auditor_receipt": true,
+    "promotion_requires_owner_receipt_or_stable_typed_blocker": true
   },
   "object_models": {
     "StageRun": {
@@ -230,6 +290,51 @@
       "mas_controller_system_required_for_stage_run_kernel"
     ]
   },
+  "legacy_runtime_wrapper_retirement": {
+    "retired_mas_local_surfaces": [
+      "generic_scheduler",
+      "generic_runner",
+      "generic_session_store",
+      "generic_status_shell",
+      "generic_workbench_wrapper",
+      "generic_lifecycle_wrapper",
+      "generic_attempt_ledger",
+      "generic_queue"
+    ],
+    "allowed_roles": [
+      "migration_input",
+      "diagnostic_projection",
+      "provenance_tombstone",
+      "domain_authority_function_target"
+    ],
+    "allowed_domain_retained_surfaces": [
+      "study_truth",
+      "publication_quality_verdict",
+      "artifact_authority",
+      "owner_receipt",
+      "typed_blocker",
+      "domain_knowledge",
+      "domain_skill",
+      "domain_tool",
+      "domain_quality_gate",
+      "safe_action_ref"
+    ],
+    "forbidden_resurrection_claims": [
+      "mas_owns_hosted_scheduler",
+      "mas_owns_generic_runner",
+      "mas_owns_session_store",
+      "mas_owns_status_shell",
+      "mas_owns_workbench_wrapper",
+      "mas_workbench_status_can_authorize_stage_transition"
+    ],
+    "new_mas_local_wrapper_requires": [
+      "mas_domain_authority_reason",
+      "active_caller_ref",
+      "no_opl_generated_parity_ref",
+      "receipt_or_blocker_output_boundary",
+      "retirement_gate_ref"
+    ]
+  },
   "projection_boundary": {
     "read_models_are_rebuildable": true,
     "latest_progress_portal_and_workbench_are_projection_only": true,
@@ -256,15 +361,25 @@
   },
   "canary_scope": {
     "first_stage_spec_id": "ai_reviewer_publication_eval_rebuild",
+    "controlled_canary_evidence_ref": "contracts/stage_run_canary_evidence.json",
+    "controlled_canary_evidence_scope": "controlled_fixture_not_live_domain_progress",
     "target_studies": [
       "DM002",
       "DM003"
     ],
+    "coscientist_strategy_refs_required": [
+      "candidate_generation_refs",
+      "reflection_refs",
+      "review_refs",
+      "meta_review_refs"
+    ],
+    "coscientist_strategy_refs_authority": "advisory_within_stage_only",
     "canary_success_requires": [
       "fresh_owner_receipt_or_stable_typed_blocker",
       "stage_run_status_matches_stage_manifest",
       "study_progress_projects_stage_run_status",
-      "latest_json_is_projection_not_route_authority"
+      "latest_json_is_projection_not_route_authority",
+      "no_legacy_scheduler_runner_session_store_status_shell_or_workbench_wrapper_authority"
     ]
   }
 }
