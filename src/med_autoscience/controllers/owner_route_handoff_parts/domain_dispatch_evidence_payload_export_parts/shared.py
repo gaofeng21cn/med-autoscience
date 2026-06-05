@@ -31,8 +31,20 @@ PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION = (
 PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION = (
     "stale_run_quality_repair_dispatch_superseded_by_publication_gate_route"
 )
+PAYLOAD_REASON_GATE_CLEARING_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE = (
+    "stale_run_gate_clearing_dispatch_superseded_by_publication_gate_route"
+)
 PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE = (
     "stale_return_to_ai_reviewer_dispatch_superseded_by_publication_gate_route"
+)
+PAYLOAD_REASON_REVIEWER_DISPATCH_BLOCKED_BY_STOPPED_CURRENT_OWNER_ROUTE = (
+    "stale_return_to_ai_reviewer_dispatch_blocked_by_stopped_current_owner_route"
+)
+PAYLOAD_REASON_WRITER_DISPATCH_BLOCKED_BY_STOPPED_CURRENT_OWNER_ROUTE = (
+    "stale_run_quality_repair_dispatch_blocked_by_stopped_current_owner_route"
+)
+PAYLOAD_REASON_GATE_CLEARING_DISPATCH_BLOCKED_BY_STOPPED_CURRENT_OWNER_ROUTE = (
+    "stale_run_gate_clearing_dispatch_blocked_by_stopped_current_owner_route"
 )
 PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER = (
     "owner_authorized_publication_gate_replay_stage_attempt_blocker"

@@ -15,13 +15,17 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
     PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER,
     PAYLOAD_REASON_DELIVERED_PACKAGE_HANDOFF_TYPED_BLOCKER,
+    PAYLOAD_REASON_GATE_CLEARING_DISPATCH_BLOCKED_BY_STOPPED_CURRENT_OWNER_ROUTE,
+    PAYLOAD_REASON_GATE_CLEARING_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE,
     PAYLOAD_REASON_OWNER_AUTHORIZED_PUBLICATION_GATE_REPLAY_STAGE_ATTEMPT_BLOCKER,
     PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION,
+    PAYLOAD_REASON_REVIEWER_DISPATCH_BLOCKED_BY_STOPPED_CURRENT_OWNER_ROUTE,
     PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_CURRENTNESS,
     PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_STAGE_ADMISSION,
     PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE,
     PAYLOAD_REASON_RUNTIME_RECOVERY_NOT_AUTHORIZED_STAGE_ATTEMPT_BLOCKER,
     PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER,
+    PAYLOAD_REASON_WRITER_DISPATCH_BLOCKED_BY_STOPPED_CURRENT_OWNER_ROUTE,
     PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_AI_REVIEWER_STAGE_ADMISSION,
     PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_PRODUCTION_HANDOFF,
     PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK,
@@ -44,6 +48,24 @@ def payload_reason_for_superseded_dispatch(
     action_type: str | None,
     study_scan: Mapping[str, Any],
 ) -> str | None:
+    if action_type == GATE_CLEARING_ACTION_TYPE and consumed_ai_reviewer_finalize_gate_replay_observed(
+        study_scan
+    ):
+        return PAYLOAD_REASON_GATE_CLEARING_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE
+    if action_type == GATE_CLEARING_ACTION_TYPE and publication_gate_route_supersession_observed(
+        study_scan
+    ):
+        return PAYLOAD_REASON_GATE_CLEARING_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE
+    if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and consumed_ai_reviewer_finalize_gate_replay_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE
+    if current_owner_route_stops_dispatch_observed(
+        action_type=action_type,
+        study_scan=study_scan,
+    ):
+        return stopped_current_owner_route_payload_reason(action_type)
     if (
         action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
         and consumed_ai_reviewer_routeback_observed(study_scan)
@@ -148,9 +170,53 @@ def payload_reason_for_superseded_dispatch(
 
 
 def blocked_reason_for_action_type(action_type: str | None) -> str:
+    if action_type == GATE_CLEARING_ACTION_TYPE:
+        return "publication_gate_supersession_not_observed"
     if action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE:
         return "ai_reviewer_currentness_supersession_not_observed"
     return "consumed_ai_reviewer_routeback_not_observed"
+
+
+def stopped_current_owner_route_payload_reason(action_type: str | None) -> str | None:
+    if action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE:
+        return PAYLOAD_REASON_REVIEWER_DISPATCH_BLOCKED_BY_STOPPED_CURRENT_OWNER_ROUTE
+    if action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE:
+        return PAYLOAD_REASON_WRITER_DISPATCH_BLOCKED_BY_STOPPED_CURRENT_OWNER_ROUTE
+    if action_type == GATE_CLEARING_ACTION_TYPE:
+        return PAYLOAD_REASON_GATE_CLEARING_DISPATCH_BLOCKED_BY_STOPPED_CURRENT_OWNER_ROUTE
+    return None
+
+
+def current_owner_route_stops_dispatch_observed(
+    *,
+    action_type: str | None,
+    study_scan: Mapping[str, Any],
+) -> bool:
+    action = text(action_type)
+    if action not in {
+        SUPPORTED_SUPERSEDED_ACTION_TYPE,
+        SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE,
+        GATE_CLEARING_ACTION_TYPE,
+    }:
+        return False
+    domain_transition = mapping(study_scan.get("domain_transition"))
+    owner_route = mapping(study_scan.get("owner_route"))
+    owner_reason_contract = mapping(owner_route.get("owner_reason_contract"))
+    currentness_contract = mapping(owner_route.get("currentness_contract"))
+    attempt_protocol = mapping(owner_route.get("owner_route_attempt_protocol"))
+    return (
+        not domain_transition
+        and text(owner_route.get("current_owner")) == "controller_stop"
+        and text(owner_route.get("next_owner")) is None
+        and text(owner_route.get("owner_reason")) is None
+        and sequence(owner_route.get("allowed_actions")) == []
+        and action in set(texts(sequence(owner_route.get("blocked_actions"))))
+        and owner_reason_contract.get("registered") is False
+        and text(owner_reason_contract.get("owner")) is None
+        and sequence(owner_reason_contract.get("allowed_actions")) == []
+        and currentness_contract.get("missing_required_fields") == []
+        and attempt_protocol.get("dispatchable") is False
+    )
 
 
 def consumed_ai_reviewer_routeback_observed(study_scan: Mapping[str, Any]) -> bool:

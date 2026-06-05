@@ -20,10 +20,14 @@ _DISPATCH_SUPERSEDED_REASONS = {
     "stale_run_quality_repair_dispatch_superseded_by_consumed_ai_reviewer_production_handoff",
     "stale_run_quality_repair_dispatch_superseded_by_current_ai_reviewer_stage_admission",
     "stale_run_quality_repair_dispatch_superseded_by_ai_reviewer_currentness_route",
+    "stale_return_to_ai_reviewer_dispatch_blocked_by_stopped_current_owner_route",
+    "stale_run_quality_repair_dispatch_blocked_by_stopped_current_owner_route",
+    "stale_run_gate_clearing_dispatch_blocked_by_stopped_current_owner_route",
 }
 
 _PUBLICATION_GATE_SUPERSESSION_REASONS = {
     "stale_run_quality_repair_dispatch_superseded_by_publication_gate_route",
+    "stale_run_gate_clearing_dispatch_superseded_by_publication_gate_route",
     "stale_return_to_ai_reviewer_dispatch_superseded_by_publication_gate_route",
     "owner_authorized_publication_gate_replay_stage_attempt_blocker",
     "delivered_package_handoff_typed_blocker_observed_for_default_executor_dispatch",

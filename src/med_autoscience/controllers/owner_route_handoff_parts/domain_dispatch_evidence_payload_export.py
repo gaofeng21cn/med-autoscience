@@ -22,6 +22,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     payload_reason_for_superseded_dispatch,
 )
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
+    GATE_CLEARING_ACTION_TYPE,
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
     PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT,
     PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER,
@@ -63,6 +64,7 @@ def build_dispatch_evidence_payload_export(
     if action_type not in {
         SUPPORTED_SUPERSEDED_ACTION_TYPE,
         SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE,
+        GATE_CLEARING_ACTION_TYPE,
     }:
         return _blocked(
             profile=profile,
@@ -277,7 +279,15 @@ def _evidence_refs(
                     domain_transition.get("controller_action"),
                 ),
                 _label_ref("owner-route-reconcile:blocked_reason", blocked_reason),
-                f"owner-route-reconcile:owner_route_next_owner={text(owner_route.get('next_owner'))}",
+                _label_ref(
+                    "owner-route-reconcile:owner_route_next_owner",
+                    owner_route.get("next_owner"),
+                ),
+                _label_ref("owner-route-reconcile:current_owner", owner_route.get("current_owner")),
+                *[
+                    _label_ref("owner-route-reconcile:blocked_action", action)
+                    for action in sequence(owner_route.get("blocked_actions"))
+                ],
                 _label_ref(
                     "opl-provider-attempt:active_stage_attempt_id",
                     study_scan.get("active_stage_attempt_id"),
