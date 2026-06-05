@@ -209,6 +209,39 @@ def test_journal_family_quality_packs_are_projection_only_clean_room_absorptions
     ]
     assert "metadata_only_candidate" in citation_pack["citation_verification_pack"]["allowed_statuses"]
 
+    source_authority = citation_pack["source_citation_authority_pack"]
+    assert source_authority["clean_room_absorption"] == {
+        "source_project": "kaust-ark/ARK",
+        "source_pattern": "api_first_citation_and_no_fabricated_references",
+        "absorbed_as": "mas_native_source_authority_pack",
+        "runtime_dependency": False,
+        "vendor_dependency": False,
+        "foreign_source_authority": False,
+    }
+    assert source_authority["llm_role"] == "candidate_selection_and_claim_alignment_only"
+    assert source_authority["llm_may_author_authoritative_citation_record"] is False
+    assert source_authority["required_source_families"] == [
+        "PubMed",
+        "DOI",
+        "CrossRef",
+        "ClinicalTrials",
+        "dataset_manifest",
+        "guideline_source",
+        "manual_curator_receipt",
+    ]
+    assert source_authority["authority_boundary"] == {
+        "source_readiness_verdict_authority": False,
+        "publication_readiness_authority": False,
+        "quality_verdict_authority": False,
+        "may_write_source_truth": False,
+    }
+    assert source_authority["progress_first_policy"] == {
+        "missing_currentness_behavior": "source_refresh_work_unit",
+        "critical_claim_missing_source_behavior": "typed_blocker",
+        "noncritical_missing_source_behavior": "reviewer_route_back_or_source_refresh",
+        "may_block_unrelated_agent_progress": False,
+    }
+
     figure_pack = packs["figure_evidence_contract_pack"]
     assert figure_pack["journal_family_patterns"] == [
         "core_claim",

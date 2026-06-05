@@ -19,6 +19,7 @@ from med_autoscience.stage_quality_contract_parts.journal_currentness import (
     build_citation_verification_pack,
     build_journal_policy_currentness_pack,
     build_literature_search_source_pack,
+    build_source_citation_authority_pack,
 )
 from med_autoscience.stage_quality_contract_parts.life_science_source_discovery import (
     LIFE_SCIENCE_SOURCE_DISCOVERY_PACK_ID,
@@ -338,6 +339,7 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
         pack["journal_policy_currentness_pack"] = build_journal_policy_currentness_pack()
     if pack_id == "citation_integrity_pack":
         pack["citation_verification_pack"] = build_citation_verification_pack()
+        pack["source_citation_authority_pack"] = build_source_citation_authority_pack()
     if pack_id == LIFE_SCIENCE_SOURCE_DISCOVERY_PACK_ID:
         pack["clean_room_absorption"] = build_life_science_clean_room_absorption()
         pack["life_science_source_discovery_pack"] = build_life_science_source_discovery_pack()
