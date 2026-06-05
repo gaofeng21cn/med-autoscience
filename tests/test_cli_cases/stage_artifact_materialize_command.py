@@ -47,7 +47,7 @@ def test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index(
         / "artifacts"
         / "stage_outputs"
         / "01-study_intake"
-        / "owner_receipt.json"
+        / "receipts/owner_receipt.json"
     ).exists()
 
     apply_args = [
@@ -74,7 +74,7 @@ def test_stage_artifact_materialize_cli_dry_run_apply_and_idempotent_index(
         / "artifacts"
         / "stage_outputs"
         / "01-study_intake"
-        / "owner_receipt.json"
+        / "receipts/owner_receipt.json"
     )
     assert receipt_path.is_file()
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))

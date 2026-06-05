@@ -22,15 +22,15 @@ stage folder + stage_manifest + role artifacts + owner receipt / typed blocker
 
 ## 当前落地状态
 
-2026-06-05 foundation tranche 已落地到 MAS / OPL 主干：
+2026-06-05 foundation tranche 已落地到 MAS / OPL 主干；MAS 对应提交是 `3eb66cbe`：
 
-- MAS contract：`contracts/stage_run_kernel_profile.json` 固定 `StageRun`、`ArtifactRef`、`OwnerReceipt`、`TypedBlocker`、`ReadModel` 和 projection boundary。
+- MAS profile：`contracts/stage_run_kernel_profile.json` 固定 `StageRun`、`ArtifactRef`、`OwnerReceipt`、`TypedBlocker`、`ReadModel`、canary scope 和 projection boundary。
 - MAS adoption binding：`contracts/stage_artifact_kernel_adoption.json` 绑定 `stage folder + stage_manifest + role artifacts + owner receipt / typed blocker`，并明确 StageRun Kernel 不是 MAS controller system。
-- MAS runtime projection：`src/med_autoscience/controllers/stage_run_kernel.py` 从 stage folder / manifest / receipt / blocker 派生 refs-only StageRun projection；`study_progress_parts/stage_kernel_projection.py` 在 physical stage folder 存在时优先采用 manifest-backed `current_owner_delta`。
-- MAS canary tests：`tests/stage_run_kernel_cases/test_ai_reviewer_stage_run_kernel.py` 覆盖 AI reviewer publication eval rebuild 的 owner receipt、typed blocker、provider terminal 不等于 domain accepted，以及 `study progress` 优先 manifest-backed blocker。
+- MAS projection：`src/med_autoscience/controllers/stage_run_kernel.py` 从 stage folder / manifest / receipt / blocker 派生 refs-only StageRun projection；`study_progress_parts/stage_kernel_projection.py` 在 physical stage folder 存在时优先采用 manifest-backed `current_owner_delta`。
+- MAS canary tests：`tests/stage_run_kernel_cases/test_ai_reviewer_stage_run_kernel.py` 覆盖 AI reviewer publication eval rebuild 的 owner receipt、typed blocker、provider terminal 不等于 domain accepted，以及 `study progress` 优先 manifest-backed blocker；这些是 synthetic canary，不是 live DM002 / DM003 owner-chain closeout。
 - OPL substrate：`/Users/gaofeng/workspace/one-person-lab` 主干提交 `631aeb6b` 已加入 refs-only StageRun contract、read-model rebuild primitive 和 focused contract test。
 
-这次落地关闭的是 StageRun Kernel 的 contract / source / focused canary foundation。DM002 / DM003 live paper line 仍处于暂停后的人工 hold 语境；尚未恢复运行并产出 fresh `OwnerReceipt` 或 stable `TypedBlocker`。因此不能把本次 foundation landing 写成论文线完成、publication-ready、`current_package` fresh、或补偿链已全部物理退役。
+这次落地关闭的是 StageRun Kernel 的 profile / projection / focused canary foundation。real owner-chain evidence 仍开放：DM002 / DM003 live paper line 处于暂停后的人工 hold 语境，尚未恢复运行并产出 fresh `OwnerReceipt` 或 stable `TypedBlocker`，补偿链退役也必须等待 live canary 证明同一 work unit 不再需要重复 reconcile / materialize / dispatch。因此不能把本次 foundation landing 写成论文线完成、publication-ready、domain-ready、production-ready、`current_package` fresh、或补偿链已全部物理退役。
 
 ## 设计原则
 

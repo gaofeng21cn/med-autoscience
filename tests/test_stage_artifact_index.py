@@ -10,6 +10,9 @@ from med_autoscience.controllers.stage_artifact_index import (
 from med_autoscience.controllers.stage_artifact_materializer import (
     materialize_stage_artifact_delta,
 )
+from med_autoscience.controllers.stage_run_kernel import (
+    stage_run_kernel_projection_from_stage_folder,
+)
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 PAPER_STUDY_STAGE_PACK_REF = "contracts/mas-paper-study-stage-pack.json"
@@ -71,18 +74,18 @@ def _write_stage_native_contract(
 ) -> None:
     base = study_root / "artifacts" / "stage_outputs" / stage_id
     _write_json(
-        base / "stage_artifact_manifest.json",
+        base / "stage_manifest.json",
         {
-            "surface_kind": "stage_artifact_manifest",
+            "surface_kind": "stage_manifest",
             "schema_version": 1,
             "stage_id": stage_id,
             "artifact_refs": refs,
         },
     )
     _write_json(
-        base / "owner_receipt.json",
+        base / "receipts/owner_receipt.json",
         {
-            "surface_kind": "stage_artifact_owner_receipt",
+            "surface_kind": "mas_stage_owner_receipt",
             "schema_version": 1,
             "stage_id": stage_id,
             "owner": stage_id,
@@ -265,8 +268,8 @@ def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tm
     assert index["next_owner_action"]["artifact_native_contract_ref"] == (
         "mas-opl-stage-native-artifact-contract.v1"
     )
-    assert index["next_owner_action"]["manifest_ref"].endswith("/stage_artifact_manifest.json")
-    assert index["next_owner_action"]["receipt_ref"].endswith("/owner_receipt.json")
+    assert index["next_owner_action"]["manifest_ref"].endswith("/stage_manifest.json")
+    assert index["next_owner_action"]["receipt_ref"].endswith("/receipts/owner_receipt.json")
     assert set(index["allowed_artifact_statuses"]) == set(ALLOWED_ARTIFACT_STATUSES)
     assert [stage["stage_id"] for stage in index["stages"]] == list(EXPECTED_PAPER_STUDY_STAGE_IDS)
 
@@ -291,8 +294,8 @@ def test_stage_artifact_index_builds_requirements_from_paper_study_stage_pack(tm
     assert study_intake["stage_folder_contract"]["stage_folder_ref"] == (
         "artifacts/stage_outputs/01-study_intake"
     )
-    assert study_intake["manifest_requirements"]["ref"].endswith("/stage_artifact_manifest.json")
-    assert study_intake["receipt_requirements"]["ref"].endswith("/owner_receipt.json")
+    assert study_intake["manifest_requirements"]["ref"].endswith("/stage_manifest.json")
+    assert study_intake["receipt_requirements"]["ref"].endswith("/receipts/owner_receipt.json")
     assert study_intake["artifact_classification"]["status"] == "missing"
     assert study_intake["next_missing_surface"] == study_intake["required_output_refs"][0]["ref"]
     assert study_intake["freshness"]["status"] == "red_missing"
@@ -576,8 +579,8 @@ def test_stage_artifact_index_does_not_count_existing_files_without_manifest_and
     assert index["next_owner_action"]["artifact_native_contract_ref"] == (
         "mas-opl-stage-native-artifact-contract.v1"
     )
-    assert index["next_owner_action"]["manifest_ref"].endswith("/stage_artifact_manifest.json")
-    assert index["next_owner_action"]["receipt_ref"].endswith("/owner_receipt.json")
+    assert index["next_owner_action"]["manifest_ref"].endswith("/stage_manifest.json")
+    assert index["next_owner_action"]["receipt_ref"].endswith("/receipts/owner_receipt.json")
 
 
 def test_stage_artifact_index_counts_manifest_receipt_and_required_outputs_as_current(
@@ -672,7 +675,7 @@ def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying
             / "artifacts"
             / "stage_outputs"
             / "01-study_intake"
-            / "stage_artifact_manifest.json"
+            / "stage_manifest.json"
         ).read_text(encoding="utf-8")
     )
     receipt = json.loads(
@@ -681,15 +684,28 @@ def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying
             / "artifacts"
             / "stage_outputs"
             / "01-study_intake"
-            / "owner_receipt.json"
+            / "receipts/owner_receipt.json"
         ).read_text(encoding="utf-8")
     )
     assert manifest["artifact_refs"] == STUDY_INTAKE_REFS
     assert manifest["source_artifact_refs_are_locators_only"] is True
+    assert manifest["surface_kind"] == "stage_manifest"
+    assert manifest["owner_receipt_refs"] == ["receipts/owner_receipt.json"]
+    assert manifest["required_input_artifact_refs"] == ["inputs/consumed_artifact_refs.json"]
+    assert manifest["lineage_refs"] == ["lineage/prov.json"]
+    assert manifest["projection_refs"] == ["projection/current_owner_delta.json"]
     assert receipt["receipt_kind"] == "stage_artifact_delta"
-    assert receipt["owner"] == "med-autoscience"
+    assert receipt["surface_kind"] == "mas_stage_owner_receipt"
+    assert receipt["owner"] == "MedAutoScience"
+    assert receipt["authority_type"] == "medical_owner_receipt"
     assert receipt["can_authorize_publication_ready"] is False
     assert receipt["can_authorize_submission_ready"] is False
+    stage_run = stage_run_kernel_projection_from_stage_folder(
+        study_root / "artifacts" / "stage_outputs" / "01-study_intake"
+    )
+    assert stage_run["status"] == "DomainAccepted"
+    assert stage_run["completion_authority"] == "owner_receipt"
+    assert stage_run["current_owner_delta"]["action"] == "advance_stage_from_stage_artifact_receipt"
 
     sqlite_path = domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root)
     inspection = domain_authority_refs_index.inspect_authority_refs_index(sqlite_path)
@@ -753,7 +769,7 @@ def test_stage_artifact_materializer_nonterminal_stage_closeout_does_not_require
         / "artifacts"
         / "stage_outputs"
         / "01-study_intake"
-        / "owner_receipt.json"
+        / "receipts/owner_receipt.json"
     )
     receipt = json.loads(receipt_ref.read_text(encoding="utf-8"))
     assert result["stages"][0]["stage_closeout"] == {
@@ -867,18 +883,18 @@ def test_stage_artifact_index_does_not_promote_current_pointer_from_manifest_val
             _write_text(study_root / ref)
     base = study_root / "artifacts" / "stage_outputs" / "01-study_intake"
     _write_json(
-        base / "stage_artifact_manifest.json",
+        base / "stage_manifest.json",
         {
-            "surface_kind": "stage_artifact_manifest",
+            "surface_kind": "stage_manifest",
             "schema_version": 1,
             "stage_id": "01-study_intake",
             "artifact_refs": STUDY_INTAKE_REFS,
         },
     )
     _write_json(
-        base / "owner_receipt.json",
+        base / "receipts/owner_receipt.json",
         {
-            "surface_kind": "stage_artifact_owner_receipt",
+            "surface_kind": "mas_stage_owner_receipt",
             "schema_version": 1,
             "stage_id": "01-study_intake",
             "receipt_kind": "stage_artifact_delta",

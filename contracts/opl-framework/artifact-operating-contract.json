@@ -19,7 +19,7 @@
     "provider_completion_counts_as_progress": false
   },
   "manifest_contract": {
-    "manifest_ref_template": "artifacts/stage_outputs/{stage_id}/stage_artifact_manifest.json",
+    "manifest_ref_template": "artifacts/stage_outputs/{stage_id}/stage_manifest.json",
     "required_fields": [
       "surface_kind",
       "schema_version",
@@ -39,7 +39,7 @@
     }
   },
   "receipt_contract": {
-    "receipt_ref_template": "artifacts/stage_outputs/{stage_id}/owner_receipt.json",
+    "receipt_ref_template": "artifacts/stage_outputs/{stage_id}/receipts/owner_receipt.json",
     "required_fields": [
       "surface_kind",
       "schema_version",

@@ -40,8 +40,9 @@ _STATUS_DELTA = "artifact_delta_present"
 _STAGE_NATIVE_ARTIFACT_CONTRACT_REF = "mas-opl-stage-native-artifact-contract.v1"
 _PAPER_STUDY_STAGE_PACK_REF = "contracts/mas-paper-study-stage-pack.json"
 _PAPER_STUDY_STAGE_PACK_ROOT = Path(__file__).resolve().parents[3]
-_MANIFEST_FILENAME = "stage_artifact_manifest.json"
+_MANIFEST_FILENAME = "stage_manifest.json"
 _RECEIPT_FILENAME = "owner_receipt.json"
+_RECEIPT_REF = f"receipts/{_RECEIPT_FILENAME}"
 
 
 def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, Any]:
@@ -263,7 +264,7 @@ def _stage_folder_contract(
         "source_of_truth": "mas_declared_stage_artifact_projection",
         "stage_folder_ref": stage_folder_ref,
         "manifest_ref": f"{stage_folder_ref}/{_MANIFEST_FILENAME}",
-        "receipt_ref": f"{stage_folder_ref}/{_RECEIPT_FILENAME}",
+        "receipt_ref": f"{stage_folder_ref}/{_RECEIPT_REF}",
         "legacy_declared_refs_fallback": True,
         "body_included": False,
         "authority_boundary": _authority_boundary(),
@@ -481,7 +482,17 @@ def _artifact_classification(
     orphan = _orphan_stage_artifact_refs(
         stage_folder_ref=str(stage_folder_contract["stage_folder_ref"]),
         required_refs=required,
-        contract_refs=[manifest_ref, receipt_ref],
+        contract_refs=_contract_ref_set(
+            stage_folder_ref=str(stage_folder_contract["stage_folder_ref"]),
+            refs=[
+                manifest_ref,
+                receipt_ref,
+                *_manifest_declared_support_refs(
+                    manifest,
+                    stage_folder_ref=str(stage_folder_contract["stage_folder_ref"]),
+                ),
+            ],
+        ),
         study_root=study_root,
     )
     existing_artifacts = set(required).issubset(legacy_observed)
@@ -638,6 +649,38 @@ def _artifact_ref_set(value: object) -> set[str]:
         elif isinstance(item, Mapping) and isinstance(item.get("ref"), str) and item["ref"].strip():
             refs.add(item["ref"].strip())
     return refs
+
+
+def _manifest_declared_support_refs(
+    manifest: Mapping[str, Any] | None,
+    *,
+    stage_folder_ref: str,
+) -> list[str]:
+    if manifest is None or manifest.get("_invalid_json") is True:
+        return []
+    refs: list[str] = []
+    for field in (
+        "required_input_artifact_refs",
+        "owner_receipt_refs",
+        "typed_blocker_refs",
+        "lineage_refs",
+        "projection_refs",
+    ):
+        refs.extend(_text_list(manifest.get(field)))
+    return [
+        ref if ref.startswith("artifacts/") or ref.startswith("/") else f"{stage_folder_ref}/{ref}"
+        for ref in refs
+    ]
+
+
+def _contract_ref_set(*, stage_folder_ref: str, refs: list[str]) -> list[str]:
+    result: set[str] = set()
+    for ref in refs:
+        if ref.startswith("/") or ref.startswith("artifacts/"):
+            result.add(ref)
+        else:
+            result.add(f"{stage_folder_ref}/{ref}")
+    return sorted(result)
 
 
 def _orphan_stage_artifact_refs(

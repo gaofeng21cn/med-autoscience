@@ -14,8 +14,12 @@ SCHEMA_VERSION = 1
 SURFACE_KIND = "stage_artifact_delta_materializer"
 _PAPER_STUDY_STAGE_PACK_REF = "contracts/mas-paper-study-stage-pack.json"
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_MANIFEST_FILENAME = "stage_artifact_manifest.json"
+_MANIFEST_FILENAME = "stage_manifest.json"
 _RECEIPT_FILENAME = "owner_receipt.json"
+_RECEIPT_REF = f"receipts/{_RECEIPT_FILENAME}"
+_INPUT_REFS_REF = "inputs/consumed_artifact_refs.json"
+_LINEAGE_REF = "lineage/prov.json"
+_PROJECTION_REF = "projection/current_owner_delta.json"
 _TERMINAL_STAGE_ID = "08-publication_package_handoff"
 _MAX_SOURCE_REFS_PER_DIRECTORY = 20
 _MAX_SOURCE_REF_DIRECTORY_VISITS = 64
@@ -255,11 +259,29 @@ def _materialize_stage(
         generated_at=generated_at,
     )
     manifest_ref = f"artifacts/stage_outputs/{stage_id}/{_MANIFEST_FILENAME}"
-    receipt_ref = f"artifacts/stage_outputs/{stage_id}/{_RECEIPT_FILENAME}"
+    receipt_ref = f"artifacts/stage_outputs/{stage_id}/{_RECEIPT_REF}"
+    input_refs = _input_refs_payload(
+        study_id=study_id,
+        stage_id=stage_id,
+        role_results=role_results,
+        generated_at=generated_at,
+    )
+    lineage = _lineage_payload(
+        study_id=study_id,
+        stage_id=stage_id,
+        artifact_refs=artifact_refs,
+        receipt_ref=receipt["receipt_ref"],
+        generated_at=generated_at,
+    )
+    current_owner_delta = _current_owner_delta_payload(stage_id=stage_id, receipt_ref=receipt_ref)
     if apply:
         for role_result in role_results:
             _write_json(study_root / str(role_result["artifact_ref"]), role_result["payload"])
+        stage_root = study_root / "artifacts" / "stage_outputs" / stage_id
         _write_json(study_root / manifest_ref, manifest)
+        _write_json(stage_root / _INPUT_REFS_REF, input_refs)
+        _write_json(stage_root / _LINEAGE_REF, lineage)
+        _write_json(stage_root / _PROJECTION_REF, current_owner_delta)
         _write_json(study_root / receipt_ref, receipt)
         index_result = domain_authority_refs_index.record_paper_work_unit_receipt(
             study_root=study_root,
@@ -415,12 +437,29 @@ def _manifest_payload(
     generated_at: str,
 ) -> dict[str, Any]:
     return {
-        "surface_kind": "stage_artifact_manifest",
+        "surface_kind": "stage_manifest",
         "schema_version": SCHEMA_VERSION,
         "study_id": study_id,
         "stage_id": stage_id,
+        "stage_run_id": f"stage-run::{study_id}::{stage_id}",
+        "attempt_id": f"stage-artifact-materialize::{study_id}::{stage_id}",
+        "work_unit": "materialize_stage_artifact_delta",
         "generated_at": generated_at,
         "artifact_refs": artifact_refs,
+        "stage_run_ref": f"stage-run::{study_id}::{stage_id}",
+        "required_input_artifact_refs": [_INPUT_REFS_REF],
+        "required_role_artifacts": [
+            {
+                "role": item["role"],
+                "artifact_ref": item["artifact_ref"],
+            }
+            for item in role_results
+        ],
+        "produced_artifact_refs": artifact_refs,
+        "owner_receipt_refs": [_RECEIPT_REF],
+        "typed_blocker_refs": [],
+        "lineage_refs": [_LINEAGE_REF],
+        "projection_refs": [_PROJECTION_REF],
         "roles": [
             {
                 "role": item["role"],
@@ -456,16 +495,40 @@ def _receipt_payload(
     )
     receipt_id = f"stage-artifact-delta:{study_id}:{stage_id}:{source_fingerprint[:16]}"
     return {
-        "surface_kind": "stage_artifact_owner_receipt",
+        "surface_kind": "mas_stage_owner_receipt",
         "schema_version": SCHEMA_VERSION,
         "receipt_id": receipt_id,
         "study_id": study_id,
         "quest_id": study_id,
         "stage_id": stage_id,
-        "owner": "med-autoscience",
+        "owner": "MedAutoScience",
+        "authority_type": "medical_owner_receipt",
+        "receipt_ref": receipt_id,
+        "schema_refs": [
+            "contracts/stage_artifact_kernel_adoption.json#/semantic_consumability_gate",
+            "contracts/mas-paper-study-stage-pack.json#/authority_boundary",
+        ],
+        "capability_refs": [
+            "contracts/mas-paper-study-stage-pack.json#/authority_boundary/mas_authority_functions/medical_owner_receipt",
+        ],
+        "domain_semantic_refs": {
+            "owner_route_refs": [f"stage-artifact-owner-route:{study_id}:{stage_id}"],
+            "medical_owner_receipt_refs": [receipt_id],
+        },
         "receipt_kind": "stage_artifact_delta",
         "receipt_status": "materialized",
         "artifact_refs": artifact_refs,
+        "consumed_artifact_refs": [
+            source_ref
+            for role_result in role_results
+            for source_ref in role_result["source_refs"]
+        ],
+        "produced_artifact_refs": artifact_refs,
+        "lineage_refs": [_LINEAGE_REF],
+        "next_owner_delta": _current_owner_delta_payload(
+            stage_id=stage_id,
+            receipt_ref=f"artifacts/stage_outputs/{stage_id}/{_RECEIPT_REF}",
+        ),
         "idempotency_key": receipt_id,
         "intent_fingerprint": _fingerprint([{"stage_id": stage_id, "artifact_refs": artifact_refs}]),
         "source_fingerprint": source_fingerprint,
@@ -484,6 +547,64 @@ def _receipt_payload(
         "can_authorize_submission_ready": False,
         "stage_closeout": _stage_closeout(stage_id=stage_id),
         "authority_boundary": _authority_boundary(),
+    }
+
+
+def _input_refs_payload(
+    *,
+    study_id: str,
+    stage_id: str,
+    role_results: list[dict[str, Any]],
+    generated_at: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "stage_consumed_artifact_refs",
+        "schema_version": SCHEMA_VERSION,
+        "study_id": study_id,
+        "stage_id": stage_id,
+        "generated_at": generated_at,
+        "artifact_refs": [
+            source_ref
+            for role_result in role_results
+            for source_ref in role_result["source_refs"]
+        ],
+        "body_included": False,
+    }
+
+
+def _lineage_payload(
+    *,
+    study_id: str,
+    stage_id: str,
+    artifact_refs: list[str],
+    receipt_ref: str,
+    generated_at: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "stage_lineage_prov",
+        "schema_version": SCHEMA_VERSION,
+        "study_id": study_id,
+        "stage_id": stage_id,
+        "generated_at": generated_at,
+        "produced_artifact_refs": artifact_refs,
+        "owner_receipt_refs": [receipt_ref],
+        "body_included": False,
+    }
+
+
+def _current_owner_delta_payload(*, stage_id: str, receipt_ref: str) -> dict[str, Any]:
+    if stage_id == _TERMINAL_STAGE_ID:
+        return {
+            "owner": "publication_gate_owner",
+            "action": "publication_handoff_owner_gate",
+            "reason": "terminal_stage_artifact_delta_materialized",
+            "source_ref": receipt_ref,
+        }
+    return {
+        "owner": "MedAutoScience",
+        "action": "advance_stage_from_stage_artifact_receipt",
+        "reason": "stage_artifact_delta_materialized",
+        "source_ref": receipt_ref,
     }
 
 

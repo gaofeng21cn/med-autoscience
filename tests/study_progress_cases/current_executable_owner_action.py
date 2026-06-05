@@ -749,8 +749,8 @@ def test_progress_first_monitoring_consumes_lane1_stage_artifact_index_action_sh
                     "action_type": "materialize_stage_artifact_delta",
                     "required_output_surface": "artifacts/stage_outputs/idea/line_selection_note.md",
                     "artifact_native_contract_ref": "mas-opl-stage-native-artifact-contract.v1",
-                    "manifest_ref": "artifacts/stage_outputs/idea/stage_artifact_manifest.json",
-                    "receipt_ref": "artifacts/stage_outputs/idea/owner_receipt.json",
+                    "manifest_ref": "artifacts/stage_outputs/idea/stage_manifest.json",
+                    "receipt_ref": "artifacts/stage_outputs/idea/receipts/owner_receipt.json",
                     "authority_boundary": {
                         "artifact_first_can_determine_stage_progress": True,
                         "can_write_mas_truth": False,
@@ -788,8 +788,8 @@ def test_progress_first_monitoring_consumes_lane1_stage_artifact_index_action_sh
     }
     assert action["artifact_native_contract_ref"] == "mas-opl-stage-native-artifact-contract.v1"
     assert action["stage_artifact_contract_refs"] == {
-        "manifest_ref": "artifacts/stage_outputs/idea/stage_artifact_manifest.json",
-        "receipt_ref": "artifacts/stage_outputs/idea/owner_receipt.json",
+        "manifest_ref": "artifacts/stage_outputs/idea/stage_manifest.json",
+        "receipt_ref": "artifacts/stage_outputs/idea/receipts/owner_receipt.json",
     }
     assert action["authority_boundary"] == {
         "refs_only": True,
@@ -935,7 +935,7 @@ def test_progress_first_monitoring_keeps_publication_owner_gate_blocker_over_ter
                         "artifact_status": "artifact_delta_present",
                         "observed_artifact_refs": [
                             {
-                                "ref": "artifacts/stage_outputs/08-publication_package_handoff/owner_receipt.json"
+                                "ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json"
                             }
                         ],
                     }
