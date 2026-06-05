@@ -2,7 +2,7 @@
 
 Owner: `MedAutoScience` / `OPL Framework`
 Purpose: `stage_native_state_machine_design`
-State: `active_design`
+State: `active_design_foundation_landed`
 Machine boundary: 本文是人读顶层设计。机器真相继续归 `agent/` semantic pack、`contracts/`、源码、CLI/MCP/API 行为、OPL runtime ledger、StageRun 状态、真实 study workspace artifact、owner receipt 和 typed blocker。
 Date: `2026-06-05`
 
@@ -19,6 +19,18 @@ stage folder + stage_manifest + role artifacts + owner receipt / typed blocker
 ```
 
 `StageRun Kernel` 只是这个 Stage Native 体系的最小状态壳，用来表达一个 Stage 当前处于 declared、inputs-ready、running、terminalizing、accepted 还是 blocked。它不拥有医学质量，不替代 stage folder，不新增一组 controller，也不让 `latest.json`、progress projection、portal 或 workbench 反向决定 Stage 是否完成。
+
+## 当前落地状态
+
+2026-06-05 foundation tranche 已落地到 MAS / OPL 主干：
+
+- MAS contract：`contracts/stage_run_kernel_profile.json` 固定 `StageRun`、`ArtifactRef`、`OwnerReceipt`、`TypedBlocker`、`ReadModel` 和 projection boundary。
+- MAS adoption binding：`contracts/stage_artifact_kernel_adoption.json` 绑定 `stage folder + stage_manifest + role artifacts + owner receipt / typed blocker`，并明确 StageRun Kernel 不是 MAS controller system。
+- MAS runtime projection：`src/med_autoscience/controllers/stage_run_kernel.py` 从 stage folder / manifest / receipt / blocker 派生 refs-only StageRun projection；`study_progress_parts/stage_kernel_projection.py` 在 physical stage folder 存在时优先采用 manifest-backed `current_owner_delta`。
+- MAS canary tests：`tests/stage_run_kernel_cases/test_ai_reviewer_stage_run_kernel.py` 覆盖 AI reviewer publication eval rebuild 的 owner receipt、typed blocker、provider terminal 不等于 domain accepted，以及 `study progress` 优先 manifest-backed blocker。
+- OPL substrate：`/Users/gaofeng/workspace/one-person-lab` 主干提交 `631aeb6b` 已加入 refs-only StageRun contract、read-model rebuild primitive 和 focused contract test。
+
+这次落地关闭的是 StageRun Kernel 的 contract / source / focused canary foundation。DM002 / DM003 live paper line 仍处于暂停后的人工 hold 语境；尚未恢复运行并产出 fresh `OwnerReceipt` 或 stable `TypedBlocker`。因此不能把本次 foundation landing 写成论文线完成、publication-ready、`current_package` fresh、或补偿链已全部物理退役。
 
 ## 设计原则
 
