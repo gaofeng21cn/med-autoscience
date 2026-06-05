@@ -505,6 +505,16 @@ _REASON_REGISTRY = {
         priority_class="delivery_or_human_handoff",
         regression_refs=("DM002:publication_gate_specificity",),
     ),
+    "publication_handoff_owner_gate": _entry(
+        owner="publication_gate_owner",
+        allowed_actions=["publication_handoff_owner_gate"],
+        required_output=(
+            "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json "
+            "or typed blocker:publication_handoff_owner_gate_blocked"
+        ),
+        priority_class="delivery_or_human_handoff",
+        regression_refs=("DM002:terminal_publication_handoff", "DM003:terminal_publication_handoff"),
+    ),
     "gate_needs_specificity": _entry(
         owner="publication_gate",
         allowed_actions=["publication_gate_specificity_required"],
@@ -660,6 +670,7 @@ _REASON_REGISTRY = {
 
 _ROUTED_ACTION_TYPES = (
     "publication_gate_specificity_required",
+    "publication_handoff_owner_gate",
     "current_package_freshness_required",
     "artifact_display_surface_materialization_required",
     "return_to_ai_reviewer_workflow",

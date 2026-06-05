@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.domain_owner_action_dispatch_helpers import (
@@ -10,6 +11,9 @@ from tests.domain_owner_action_dispatch_helpers import (
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
+from med_autoscience.controllers.stage_artifact_materializer import materialize_stage_artifact_delta
+from med_autoscience.controllers.stage_run_kernel import stage_run_kernel_projection_from_stage_folder
+from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 
 def test_execute_dispatch_runs_publication_gate_owner_surface(monkeypatch, tmp_path: Path) -> None:
@@ -316,3 +320,273 @@ def test_execute_dispatch_runs_publication_gate_owner_when_terminal_stall_handof
     assert execution["will_start_llm"] is False
     assert execution["owner_callable_surface"] == "publication_gate.write_gate_files+_materialize_publication_eval_latest"
     assert called["quest_root"] == quest_root
+
+
+def test_execute_dispatch_writes_publication_handoff_typed_blocker_when_readiness_not_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_json(study_root / "study.yaml", {"study_id": study_id})
+    materialize_stage_artifact_delta(
+        study_id=study_id,
+        study_root=study_root,
+        workspace_root=profile.workspace_root,
+        apply=True,
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="publication_handoff_owner_gate",
+        owner="publication_gate_owner",
+        required_output_surface=(
+            "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json "
+            "or artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+        ),
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "publication_handoff_owner_gate.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+    readiness = {
+        "surface": "medical_paper_readiness",
+        "schema_version": 1,
+        "study_root": str(study_root),
+        "overall_status": "blocked",
+        "ready_count": 0,
+        "required_count": 1,
+        "capability_surfaces": [
+            {
+                "surface_key": "literature_provider_runtime",
+                "status": "missing",
+                "required_for_ready": True,
+            }
+        ],
+        "next_action": {
+            "action_id": "complete_medical_paper_readiness_surface",
+            "surface_key": "literature_provider_runtime",
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "readiness.json",
+        readiness,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("publication_handoff_owner_gate",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    blocker_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "typed_blocker.json"
+    )
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_callable_surface"] == "publication_handoff_owner_gate.evaluate_terminal_handoff"
+    assert blocker_path.is_file()
+    blocker = json.loads(blocker_path.read_text(encoding="utf-8"))
+    assert blocker["authority_type"] == "typed_blocker"
+    assert blocker["can_authorize_publication_ready"] is False
+    assert blocker["can_authorize_submission_ready"] is False
+    stage_run = stage_run_kernel_projection_from_stage_folder(
+        study_root / "artifacts" / "stage_outputs" / "08-publication_package_handoff"
+    )
+    assert stage_run["status"] == "TypedBlocked"
+    assert stage_run["current_owner_delta"]["action"] == "complete_medical_paper_readiness_surface"
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+
+
+def test_execute_dispatch_writes_publication_handoff_typed_blocker_when_readiness_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_json(study_root / "study.yaml", {"study_id": study_id})
+    materialize_stage_artifact_delta(
+        study_id=study_id,
+        study_root=study_root,
+        workspace_root=profile.workspace_root,
+        apply=True,
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="publication_handoff_owner_gate",
+        owner="publication_gate_owner",
+        required_output_surface=(
+            "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json "
+            "or artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+        ),
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "publication_handoff_owner_gate.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("publication_handoff_owner_gate",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    blocker_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "typed_blocker.json"
+    )
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_missing"
+    assert blocker_path.is_file()
+    blocker = json.loads(blocker_path.read_text(encoding="utf-8"))
+    assert blocker["authority_type"] == "typed_blocker"
+    assert blocker["decision"]["blocked_surfaces"] == ["medical_paper_readiness"]
+    assert not (study_root / "artifacts" / "medical_paper" / "readiness.json").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+
+
+def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_json(study_root / "study.yaml", {"study_id": study_id})
+    materialize_stage_artifact_delta(
+        study_id=study_id,
+        study_root=study_root,
+        workspace_root=profile.workspace_root,
+        apply=True,
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="publication_handoff_owner_gate",
+        owner="publication_gate_owner",
+        required_output_surface=(
+            "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json "
+            "or artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+        ),
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "publication_handoff_owner_gate.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+    readiness = {
+        "surface": "medical_paper_readiness",
+        "schema_version": 1,
+        "study_root": str(study_root),
+        "overall_status": "ready",
+        "ready_count": 1,
+        "required_count": 1,
+        "capability_surfaces": [
+            {
+                "surface_key": "literature_provider_runtime",
+                "status": "present",
+                "required_for_ready": True,
+            }
+        ],
+        "next_action": {
+            "action_id": "continue_managed_execution",
+            "surface_key": None,
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "readiness.json",
+        readiness,
+    )
+    index_before = domain_authority_refs_index.inspect_authority_refs_index(
+        domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root)
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("publication_handoff_owner_gate",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    receipt_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "handoff_owner_receipt.json"
+    )
+    stage_receipt_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "owner_receipt.json"
+    )
+    blocker_path = stage_receipt_path.parent / "typed_blocker.json"
+    assert result["executed_count"] == 1
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    assert execution["owner_callable_surface"] == "publication_handoff_owner_gate.evaluate_terminal_handoff"
+    assert receipt_path.is_file()
+    assert stage_receipt_path.is_file()
+    assert not blocker_path.exists()
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["receipt_kind"] == "publication_handoff_owner_gate"
+    assert receipt["receipt_status"] == "ready_for_human_submission_handoff"
+    assert receipt["can_authorize_publication_ready"] is False
+    assert receipt["can_authorize_submission_ready"] is False
+    stage_run = stage_run_kernel_projection_from_stage_folder(
+        study_root / "artifacts" / "stage_outputs" / "08-publication_package_handoff"
+    )
+    assert stage_run["status"] == "DomainAccepted"
+    assert stage_run["current_owner_delta"]["owner"] == "human_gate"
+    assert stage_run["current_owner_delta"]["action"] == "human_submission_decision"
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+    index = domain_authority_refs_index.inspect_authority_refs_index(
+        domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root)
+    )
+    assert index["tables"]["dispatch_receipts"] == index_before["tables"].get("dispatch_receipts", 0) + 1
+    assert index["tables"]["paper_work_unit_receipts"] == index_before["tables"].get("paper_work_unit_receipts", 0)

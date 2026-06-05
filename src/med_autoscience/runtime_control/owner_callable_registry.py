@@ -65,6 +65,25 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
         source_fingerprint_scope="publication_gate.gate_fingerprint",
     ),
     OwnerCallable(
+        owner="publication_gate_owner",
+        action_type="publication_handoff_owner_gate",
+        callable_surface="publication_handoff_owner_gate.evaluate_terminal_handoff",
+        required_inputs=(
+            "stage_artifact_index.current_stage=08-publication_package_handoff",
+            "artifacts/medical_paper/readiness.json",
+            "artifacts/stage_outputs/08-publication_package_handoff/publication_package_manifest.json",
+            "artifacts/stage_outputs/08-publication_package_handoff/publication_gate_receipt.json",
+        ),
+        required_outputs=(
+            "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+            "typed blocker:publication_handoff_owner_gate_blocked",
+        ),
+        artifact_delta_predicate="handoff_owner_receipt_or_typed_blocker_written",
+        gate_replay_target=None,
+        idempotency_scope="publication_handoff_owner_gate_work_unit",
+        source_fingerprint_scope="stage_artifact_index.next_owner_action.source_ref",
+    ),
+    OwnerCallable(
         owner="quality_repair_batch",
         action_type="run_quality_repair_batch",
         callable_surface="quality_repair_batch.run_quality_repair_batch",
@@ -236,6 +255,47 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                         "decision",
                         "awaiting_human",
                     ],
+                },
+            },
+            "publication_handoff_owner_gate": {
+                "owner": "publication_gate_owner",
+                "allowed_writes": [
+                    "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
+                ],
+                "forbidden_writes": [
+                    "artifacts/publication_eval/latest.json",
+                    "controller_decisions/latest.json",
+                    "paper/**",
+                    "paper/submission_minimal/**",
+                    "manuscript/current_package/**",
+                ],
+                "required_input_refs": [
+                    "stage_artifact_index.current_stage=08-publication_package_handoff",
+                    "artifacts/medical_paper/readiness.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/publication_package_manifest.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/publication_gate_receipt.json",
+                ],
+                "required_output_refs": [
+                    "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+                ],
+                "completion_proof": {
+                    "requires_owner_receipt_or_typed_blocker": True,
+                    "required_refs": [
+                        "owner_receipt_ref_or_typed_blocker_ref",
+                        "readiness_ref",
+                        "terminal_stage_manifest_ref",
+                    ],
+                    "publication_ready_claim_authorized": False,
+                    "submission_ready_claim_authorized": False,
+                },
+                "next_owner_rules": {
+                    "on_completed": ["human_gate", "controller_stop"],
+                    "on_blocked": ["MedAutoScience", "publication_gate_owner", "awaiting_human"],
                 },
             },
             "return_to_ai_reviewer_workflow": {

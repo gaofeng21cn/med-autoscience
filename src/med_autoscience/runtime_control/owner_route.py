@@ -15,6 +15,7 @@ from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 ROUTED_ACTION_TYPES = (
     "publication_gate_specificity_required",
+    "publication_handoff_owner_gate",
     "current_package_freshness_required",
     "artifact_display_surface_materialization_required",
     "return_to_ai_reviewer_workflow",

@@ -4,6 +4,7 @@ from __future__ import annotations
 SUPPORTED_ACTION_TYPES = frozenset(
     {
         "publication_gate_specificity_required",
+        "publication_handoff_owner_gate",
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
@@ -34,6 +35,7 @@ ALLOWED_WRITE_SURFACES = [
     "artifacts/supervision/consumer/latest.json",
     "artifacts/supervision/consumer/history.jsonl",
     "studies/<study_id>/artifacts/supervision/requests/publication_gate_specificity/latest.json",
+    "studies/<study_id>/artifacts/supervision/requests/publication_handoff_owner_gate/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/current_package_freshness/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/artifact_display_materialization/latest.json",
     "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
@@ -139,6 +141,7 @@ SOURCE_HANDOFF_REF_FIELDS = (
 
 REQUEST_OWNER_BY_ACTION_TYPE = {
     "publication_gate_specificity_required": "publication_gate",
+    "publication_handoff_owner_gate": "publication_gate_owner",
     "current_package_freshness_required": "artifact_os",
     "artifact_display_surface_materialization_required": "artifact_os",
     "return_to_ai_reviewer_workflow": "ai_reviewer",
@@ -153,6 +156,10 @@ REQUEST_OWNER_BY_ACTION_TYPE = {
 
 REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE = {
     "publication_gate_specificity_required": "artifacts/publication_eval/latest.json",
+    "publication_handoff_owner_gate": (
+        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json "
+        "or artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    ),
     "current_package_freshness_required": "artifacts/controller/gate_clearing_batch/latest.json",
     "artifact_display_surface_materialization_required": "artifacts/controller/gate_clearing_batch/latest.json",
     "return_to_ai_reviewer_workflow": "artifacts/publication_eval/latest.json",
@@ -211,6 +218,7 @@ REQUEST_OUTPUT_TARGET_SURFACE_BY_ACTION_TYPE = {
 
 REQUEST_PACKET_REF_BY_ACTION_TYPE = {
     "publication_gate_specificity_required": "artifacts/supervision/requests/publication_gate_specificity/latest.json",
+    "publication_handoff_owner_gate": "artifacts/supervision/requests/publication_handoff_owner_gate/latest.json",
     "current_package_freshness_required": "artifacts/supervision/requests/current_package_freshness/latest.json",
     "artifact_display_surface_materialization_required": "artifacts/supervision/requests/artifact_display_materialization/latest.json",
     "return_to_ai_reviewer_workflow": "artifacts/supervision/requests/ai_reviewer/latest.json",

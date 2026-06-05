@@ -17,6 +17,21 @@ from med_autoscience.runtime_control import repeat_suppression
 AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS = frozenset(
     domain_action_request_lifecycle.AI_REVIEWER_RECORD_PRODUCTION_BLOCKED_REASONS_BY_WORK_UNIT
 )
+RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS = frozenset(
+    {
+        "provider_completion",
+        "running_worker",
+        "queue_status",
+        "retry_budget_remaining",
+        "domain_completion",
+        "stage_state",
+        "provider_completion_is_domain_completion",
+        "provider_completion_is_stage_state",
+        "queue_succeeded_is_domain_completion",
+        "retry_budget_is_domain_completion",
+        "running_worker_is_stage_state",
+    }
+)
 
 
 def ai_reviewer_record_production_handoff_dispatch(
@@ -81,6 +96,9 @@ def ai_reviewer_record_production_handoff_dispatch(
         "publication_eval_latest_write_allowed": False,
         "controller_decision_write_allowed": False,
     }
+    dispatch["source_action_runtime_completion_fields_omitted"] = sorted(
+        key for key in action if key in RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS
+    )
     satisfaction = _record_production_satisfaction(
         study_root=study_root,
         request=request,

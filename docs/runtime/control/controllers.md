@@ -31,6 +31,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 12. clean paper-authority migration and re-materialization owner routing
 13. Agent Lab medical manuscript quality refs-only suite projection
 14. publication aftercare / ARIS analysis queue / AI reviewer refresh refs-only progression control
+15. terminal publication handoff owner gate: stage-native `publication_handoff_owner_gate` reads the terminal StageRun artifact index and `medical_paper_readiness`, then emits `artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json` or `artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json`; it does not write publication eval, controller decision, paper, submission package, `current_package`, memory body, or quality verdict.
 
 对应的 Python 实现在包内：
 
@@ -61,6 +62,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `src/med_autoscience/controllers/owner_route_reconcile_parts/action_projection.py`
 - `src/med_autoscience/controllers/agent_lab_medical_manuscript_quality.py`
 - `src/med_autoscience/controllers/publication_aftercare.py`
+- `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/action_execution_parts/publication_handoff.py`
 
 对应测试：
 
@@ -89,6 +91,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `tests/test_paper_authority_migration.py`
 - `tests/test_agent_lab_medical_manuscript_quality.py`
 - `tests/test_publication_aftercare.py`
+- `tests/test_domain_owner_action_dispatch_cases/publication_gate_dispatch.py`
 
 当前源码形态是：
 

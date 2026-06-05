@@ -64,3 +64,23 @@ def test_paper_work_unit_lifecycle_contract_resolves_action_specific_entry() -> 
     assert "paper/**" in lifecycle["forbidden_writes"]
     assert "manuscript/current_package/**" in lifecycle["forbidden_writes"]
     assert lifecycle["completion_proof"]["currentness_required"] is True
+
+
+def test_paper_work_unit_lifecycle_contract_declares_publication_handoff_owner_gate() -> None:
+    registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+
+    lifecycle = registry.paper_work_unit_lifecycle_for_action("publication_handoff_owner_gate")
+
+    assert lifecycle is not None
+    assert lifecycle["owner"] == "publication_gate_owner"
+    assert lifecycle["allowed_writes"] == [
+        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
+    ]
+    assert "artifacts/publication_eval/latest.json" in lifecycle["forbidden_writes"]
+    assert "controller_decisions/latest.json" in lifecycle["forbidden_writes"]
+    assert lifecycle["completion_proof"]["publication_ready_claim_authorized"] is False
+    assert lifecycle["completion_proof"]["submission_ready_claim_authorized"] is False

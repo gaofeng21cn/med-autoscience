@@ -18,6 +18,7 @@ from .. import (
     domain_status_projection,
 )
 from .action_execution_parts import methodology_reframe_decision
+from .action_execution_parts import publication_handoff
 from .action_execution_parts import publication_gate_actions
 from .action_execution_parts import provenance_limited_harmonization
 from .action_execution_parts import quality_repair
@@ -163,6 +164,21 @@ def execute_gate_clearing_batch(
         study_id=study_id,
         apply=apply,
         quest_root=quest_root_from_status(profile, study_id),
+        dispatch=dispatch,
+    )
+
+
+def execute_publication_handoff_owner_gate(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return publication_handoff.execute_publication_handoff_owner_gate(
+        profile=profile,
+        study_id=study_id,
+        apply=apply,
         dispatch=dispatch,
     )
 

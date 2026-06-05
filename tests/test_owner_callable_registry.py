@@ -14,6 +14,7 @@ def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
         "ai_reviewer",
         "decision",
         "publication_gate",
+        "publication_gate_owner",
         "provenance_limited_harmonization_owner",
         "quality_repair_batch",
         "source_provenance_owner",
@@ -40,6 +41,7 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
     methodology_reframe = module.owner_callable_for_action("methodology_reframe_route_decision")
     provenance_limited = module.owner_callable_for_action("provenance_limited_harmonization_audit")
     delivery = module.owner_callable_for_action("sync_submission_minimal_delivery")
+    handoff = module.owner_callable_for_action("publication_handoff_owner_gate")
 
     assert gate["owner"] == "gate_clearing_batch"
     assert gate["gate_replay_target"] == "publication_gate.run_controller"
@@ -60,3 +62,8 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
     assert provenance_limited["artifact_delta_predicate"] == "provenance_limited_audit_or_route_typed_blocker"
     assert delivery["owner"] == "delivery_sync"
     assert delivery["artifact_delta_predicate"] == "submission_source_or_current_package_freshness_proof"
+    assert handoff["owner"] == "publication_gate_owner"
+    assert handoff["required_outputs"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+        "typed blocker:publication_handoff_owner_gate_blocked",
+    )
