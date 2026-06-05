@@ -207,6 +207,97 @@ def test_invalid_current_ai_reviewer_response_record_does_not_supersede_latest_e
     assert selected.get("_projection_source_kind") is None
 
 
+def test_stage_native_current_body_record_supersedes_mechanical_latest_eval(
+    tmp_path: Path,
+) -> None:
+    canonical_inputs = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.canonical_inputs"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    current_body_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+    )
+    manuscript_path = current_body_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nStage-native current body manuscript.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    _write_json(
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "latest.json",
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "awaiting_new_mas_authority",
+            "study_id": study_id,
+        },
+    )
+    latest_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::mechanical::2026-06-05T09:00:00+00:00",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "emitted_at": "2026-06-05T09:00:00+00:00",
+        "assessment_provenance": {
+            "owner": "mechanical_projection",
+            "source_kind": "publication_eval_projection",
+            "ai_reviewer_required": True,
+        },
+        "quality_assessment": {"medical_journal_prose_quality": {"status": "blocked"}},
+        "recommended_actions": [],
+    }
+    latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(latest_path, latest_eval)
+
+    eval_id = "publication-eval::dm002::stage-native-current-body::2026-06-05T08:01:00+00:00"
+    current_record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-06-05T08:01:00+00:00",
+    )
+    record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260605T080100Z_publication_eval_record.json"
+    )
+    _write_json(record_path, current_record)
+
+    selected = canonical_inputs.publication_eval_payload(
+        {"study_id": study_id, "study_root": str(study_root), "publication_eval": latest_eval},
+        {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "refs": {"publication_eval_path": str(latest_path)},
+        },
+    )
+
+    assert selected["eval_id"] == eval_id
+    assert selected["_projection_source_ref"] == str(record_path.resolve())
+    assert selected["reviewer_operating_system"]["currentness_checks"]["current_manuscript"][
+        "manuscript_ref"
+    ] == str(manuscript_path.resolve())
+    assert selected["reviewer_operating_system"]["currentness_checks"]["current_manuscript"][
+        "manuscript_digest"
+    ] == _sha256_text(manuscript_text)
+
+
 def test_same_eval_id_record_supersedes_latest_when_currentness_trace_is_stronger(
     tmp_path: Path,
 ) -> None:

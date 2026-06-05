@@ -23,6 +23,13 @@ AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES = (
     Path("paper/manuscript.md"),
     Path("paper/build/review_manuscript.md"),
 )
+_STAGE_NATIVE_BODY_ROOT_RELPATH = (
+    Path("artifacts")
+    / "stage_outputs"
+    / "_body_authority"
+    / "paper_authority_cutover"
+    / "current_body"
+)
 PROJECTION_SOURCE_REF_FIELD = "_projection_source_ref"
 PROJECTION_SOURCE_KIND_FIELD = "_projection_source_kind"
 PROJECTION_SOURCE_KIND_AI_REVIEWER_RECORD = "ai_reviewer_publication_eval_record"
@@ -58,12 +65,19 @@ def latest_current_ai_reviewer_publication_eval_record(
 
 def current_manuscript_binding(*, study_root: str | Path) -> dict[str, str] | None:
     root = Path(study_root).expanduser().resolve()
-    for relative_path in AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES:
-        path = (root / relative_path).resolve()
+    for path in _current_manuscript_candidate_paths(root):
         digest = _sha256_file(path)
         if digest is not None:
             return {"ref": str(path), "digest": digest}
     return None
+
+
+def _current_manuscript_candidate_paths(study_root: Path) -> list[Path]:
+    candidates: list[Path] = []
+    for body_root in (study_root / _STAGE_NATIVE_BODY_ROOT_RELPATH, study_root):
+        for relative_path in AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES:
+            candidates.append((body_root / relative_path).resolve())
+    return candidates
 
 
 def record_matches_current_manuscript(
@@ -118,6 +132,8 @@ def record_supersedes_publication_eval(
 ) -> bool:
     if not publication_eval:
         return True
+    if _publication_eval_requires_ai_reviewer_authority(publication_eval):
+        return True
     if _text(record.get("eval_id")) == _text(publication_eval.get("eval_id")):
         return record_has_stronger_currentness_trace(record=record, publication_eval=publication_eval)
     record_timestamp = publication_eval_timestamp(record)
@@ -127,6 +143,15 @@ def record_supersedes_publication_eval(
     if publication_eval_timestamp_value is None:
         return True
     return record_timestamp > publication_eval_timestamp_value
+
+
+def _publication_eval_requires_ai_reviewer_authority(publication_eval: Mapping[str, Any]) -> bool:
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    return (
+        _text(provenance.get("owner")) == "mechanical_projection"
+        and provenance.get("ai_reviewer_required") is True
+        and provenance.get("mechanical_projection_used_as_quality_authority") is not True
+    )
 
 
 def record_has_stronger_currentness_trace(
