@@ -64,6 +64,21 @@ paper / deliverable progress 只承认五类 owner delta：
 
 Stage Operating Layer 分账进一步约束 stage MVP：`stage_kernel_projection` 是 Workbench primary progress 的当前 truth source；`stage_artifact_index` / Stage Deliverable Index 更新本身只算 derived locator/projection，除非它引用了新的 canonical paper / artifact delta、owner receipt、reviewer/gate delta、stable typed blocker、human gate、route-back 或 stop-loss。physical stage folder 只有通过 current pointer promotion、semantic receipt validation、consumability gate、lineage 和 retention / restore 检查后，才可被写成 current artifact progress；仅刷新 currentness、telemetry、read-model、receipt reconcile、provider liveness 或 evidence-tail 分类时，记为 platform repair / observability；不能写成 Stage Operating Layer landed，也不能显示成 primary progress。
 
+## Co-Scientist 增益层分账
+
+Progress-first 的 Co-Scientist 增益层只优化“下一步更快、更准、更少重复”，不创造独立 progress 类别。Operator 读取这层 signal 时按以下规则分账：
+
+| signal | 可计入 | 不可计入 |
+| --- | --- | --- |
+| `next-delta tournament` | next owner selection evidence、route advisory、no-loop suppression hint。 | paper progress、route blocker、admission gate、publication readiness。 |
+| `bounded micro-candidate generation` | 当前 work unit 的候选 repair / analysis / display / review target refs。 | 独立 stage completion、质量闭环、后台 paper-line progress。 |
+| `critique-as-repair-hint` | reviewer gap list、repair target surface、route-back briefing。 | AI reviewer verdict、quality closure、publication gate closeout。 |
+| `budgeted memory` | failed-path recall、negative result reuse、rejected candidate context、memory routing hint。 | memory accept/reject verdict、artifact authority、paper progress。 |
+| `triggered meta-review` | route arbitration brief、stop-loss candidate、human-gate suggestion。 | 每轮必经 admission gate、route blocking layer、publication readiness。 |
+| `opportunistic knowledge prefetch` | context hydration、literature/source/journal refs availability、reviewer briefing support。 | paper progress、quality score、readiness proof、hard blocker。 |
+
+缺少、陈旧或失败的 prefetch / tournament / meta-review / memory recall 只算 observability 或 platform repair，不能压住已经可执行的 `current_executable_owner_action`。只有这些 signal 暴露了真实 hard gate，例如 missing source/data、forbidden write、human gate、missing owner callable 或 irreversible mutation，才按 Hard gates 归类；否则下一步仍应推进 owner action、reviewer request、memory writeback receipt、typed blocker、route-back 或 stop-loss。
+
 ## AI-first admission
 
 AI-first 的 admission 锚点是 `current_executable_owner_action`，不是 `next_system_action` 文案。
@@ -245,6 +260,7 @@ When validating a docs-only change in this repo, use documentation review plus g
 - 在 `ai_reviewer_record_production_handoff` persisted dispatch 已存在后，继续让 stale `consumer/latest.json` inline dispatch 覆盖它，导致重复写 handoff 而不是把 AI reviewer record-production owner action 交给下一 owner。应优先 persisted record-only handoff，并把旧 inline 当作 read-model lag。
 - 把 provider handoff 写出当作 provider attempt 已启动。缺 running proof 时只能写 `provider_handoff_written_admission_pending`。
 - 把 telemetry、duration/token/cost、Portal card wording、read-model hygiene、refs-only ledger record/verify 当成 paper progress。
+- 把 `next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`budgeted memory`、`triggered meta-review` 或 `opportunistic knowledge prefetch` 当成 admission gate、route blocking layer、quality closure、publication readiness、artifact authority 或 paper progress。它们只能辅助 route selection、reviewer gap finding 和 failed-path memory reuse。
 - 用显式 `--action-types` 作为正常 Progress-first 必需步骤；它只用于诊断、限流或人工指定，默认 dispatch 必须消费 current ready dispatch。
 - 用 broad recursive scan、mtime、旧 request lifecycle、旧 generated_at、stale consumer dispatch 或旧 package freshness proof 覆盖当前 owner/work-unit currentness。
 - 手工写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或 submission package 来关闭 currentness 问题。

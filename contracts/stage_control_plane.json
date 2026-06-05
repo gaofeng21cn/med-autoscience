@@ -375,18 +375,6 @@
         }
       ],
       "owner": "MedAutoScience",
-      "selected_executor": {
-        "executor_kind": "codex_cli",
-        "default_executor": true,
-        "executor_binding_ref": "default_codex_cli",
-        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
-        "required_capabilities": [
-          "repo_context_reading",
-          "domain_skill_invocation",
-          "receipt_or_typed_blocker_return",
-          "no_forbidden_write_guard"
-        ]
-      },
       "policy_refs": [
         {
           "ref": "agent/stages/stage_route_contract.yaml",
@@ -448,6 +436,18 @@
         "stop_loss_pack",
         "human_gate_pack"
       ],
+      "selected_executor": {
+        "binding_policy": "default_first_class_executor_for_ai_first_stage_execution",
+        "default_executor": true,
+        "executor_binding_ref": "default_codex_cli",
+        "executor_kind": "codex_cli",
+        "required_capabilities": [
+          "repo_context_reading",
+          "domain_skill_invocation",
+          "receipt_or_typed_blocker_return",
+          "no_forbidden_write_guard"
+        ]
+      },
       "skills": [
         {
           "ref": "agent/skills/medical_research_execution.md",
@@ -582,6 +582,15 @@
             "status": "typed_blocker"
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
             "hypothesis_candidate_ref",
@@ -1389,6 +1398,15 @@
             "status": "typed_blocker"
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
             "hypothesis_candidate_ref",
@@ -2212,6 +2230,15 @@
             "status": "typed_blocker"
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
             "hypothesis_candidate_ref",
@@ -3027,6 +3054,15 @@
             "status": "typed_blocker"
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
             "hypothesis_candidate_ref",
@@ -3895,6 +3931,15 @@
             "status": "typed_blocker"
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
             "hypothesis_candidate_ref",
@@ -4767,6 +4812,15 @@
             "status": "typed_blocker"
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
           "ranking_and_proximity_authority": "advisory_only",
           "required_ref_families": [
             "hypothesis_candidate_ref",

@@ -33,6 +33,14 @@ HYPOTHESIS_PORTFOLIO_ADVISORY_REFS = [
     "tournament_ref",
     "evolution_ref",
 ]
+HYPOTHESIS_PORTFOLIO_PROGRESS_ENHANCEMENT_REFS = [
+    "next_delta_tournament_ref",
+    "micro_candidate_board_ref",
+    "critique_repair_hint_ref",
+    "memory_lesson_ref",
+    "meta_review_trigger_ref",
+    "opportunistic_prefetch_ref",
+]
 HYPOTHESIS_PORTFOLIO_FORBIDDEN_FAMILY_ACTIONS = [
     "promote_hypothesis_to_route_authority",
     "treat_ranking_or_proximity_as_authority",
@@ -47,6 +55,15 @@ PROMOTION_AUTHORITY_BOUNDARY = {
     "mas_owner_receipt_or_typed_blocker_required": True,
     "independent_reviewer_or_auditor_receipt_required": True,
     "human_gate_receipt_required": True,
+}
+PROGRESS_ENHANCEMENT_AUTHORITY_BOUNDARY = {
+    "missing_progress_enhancement_ref_blocks_route": False,
+    "next_delta_tournament_authorizes_next_attempt_only": True,
+    "micro_candidates_can_block_selected_owner_action": False,
+    "critique_hint_can_close_quality_gate": False,
+    "memory_lesson_body_required": False,
+    "meta_review_runs_every_attempt": False,
+    "opportunistic_prefetch_blocks_mainline": False,
 }
 
 
@@ -77,18 +94,35 @@ def validate_hypothesis_portfolio_candidate_refs(
         for ref_family in HYPOTHESIS_PORTFOLIO_ADVISORY_REFS
         if _present_ref(candidate.get(ref_family))
     ]
+    present_progress_enhancement_ref_families = [
+        ref_family
+        for ref_family in HYPOTHESIS_PORTFOLIO_PROGRESS_ENHANCEMENT_REFS
+        if _present_ref(candidate.get(ref_family))
+    ]
+    forbidden_authority_claims = _forbidden_progress_enhancement_authority_claims(candidate)
+    status = "validated" if not missing_ref_families and not forbidden_authority_claims else "typed_blocker"
     result: dict[str, object] = {
         "surface_kind": "mas_hypothesis_portfolio_candidate_validation",
         "validator_ref": HYPOTHESIS_PORTFOLIO_VALIDATOR_REF,
         "candidate_id": candidate.get("candidate_id"),
-        "status": "validated" if not missing_ref_families else "typed_blocker",
-        "can_promote_candidate": not missing_ref_families,
+        "status": status,
+        "can_promote_candidate": not missing_ref_families and not forbidden_authority_claims,
         "required_ref_families": list(HYPOTHESIS_PORTFOLIO_REQUIRED_REFS),
         "advisory_ref_families": list(HYPOTHESIS_PORTFOLIO_ADVISORY_REFS),
+        "progress_enhancement_ref_families": list(HYPOTHESIS_PORTFOLIO_PROGRESS_ENHANCEMENT_REFS),
         "present_advisory_ref_families": present_advisory_ref_families,
+        "present_progress_enhancement_ref_families": present_progress_enhancement_ref_families,
         "missing_ref_families": missing_ref_families,
+        "missing_progress_enhancement_ref_families": [
+            ref_family
+            for ref_family in HYPOTHESIS_PORTFOLIO_PROGRESS_ENHANCEMENT_REFS
+            if ref_family not in present_progress_enhancement_ref_families
+        ],
+        "progress_enhancement_refs_block_route": False,
         "advisory_refs_are_authority": False,
         "promotion_authority_boundary": dict(PROMOTION_AUTHORITY_BOUNDARY),
+        "progress_enhancement_authority_boundary": dict(PROGRESS_ENHANCEMENT_AUTHORITY_BOUNDARY),
+        "forbidden_authority_claims": forbidden_authority_claims,
     }
     if missing_ref_families:
         typed_blocker = {
@@ -105,7 +139,40 @@ def validate_hypothesis_portfolio_candidate_refs(
                 "typed_blocker": typed_blocker,
             }
         )
+    elif forbidden_authority_claims:
+        typed_blocker = {
+            "blocker_id": "progress_enhancement_authority_leak",
+            "blocker_family": "progress_enhancement_must_remain_advisory",
+            "route_back_owner": route_back_owner,
+            "forbidden_authority_claims": forbidden_authority_claims,
+            "required_action": "remove_authority_claim_or_return_route_back_owner_typed_blocker",
+        }
+        result.update(
+            {
+                "blocker_id": typed_blocker["blocker_id"],
+                "route_back_owner": route_back_owner,
+                "typed_blocker": typed_blocker,
+            }
+        )
     return result
+
+
+def _forbidden_progress_enhancement_authority_claims(candidate: Mapping[str, Any]) -> list[str]:
+    authority_flags = _mapping(candidate.get("progress_enhancement_authority"))
+    forbidden: list[str] = []
+    for key in (
+        "blocks_route_when_missing",
+        "closes_quality_gate",
+        "authorizes_publication_readiness",
+        "authorizes_artifact_mutation",
+        "counts_prefetch_as_paper_progress",
+        "runs_meta_review_every_attempt",
+    ):
+        if authority_flags.get(key) is True:
+            forbidden.append(key)
+    if candidate.get("advisory_refs_are_authority") is True:
+        forbidden.append("advisory_refs_are_authority")
+    return forbidden
 
 
 def build_hypothesis_portfolio_evidence_pack_descriptor() -> dict[str, object]:
@@ -117,9 +184,11 @@ def build_hypothesis_portfolio_evidence_pack_descriptor() -> dict[str, object]:
         "portfolio_role": "mas_owned_refs_first_hypothesis_candidate_portfolio",
         "candidate_required_refs": list(HYPOTHESIS_PORTFOLIO_REQUIRED_REFS),
         "advisory_only_refs": list(HYPOTHESIS_PORTFOLIO_ADVISORY_REFS),
+        "progress_enhancement_refs": list(HYPOTHESIS_PORTFOLIO_PROGRESS_ENHANCEMENT_REFS),
         "validator_ref": HYPOTHESIS_PORTFOLIO_VALIDATOR_REF,
         "candidate_promotion_requires_validator": True,
         "advisory_refs_are_authority": False,
+        "progress_enhancement_refs_block_route": False,
         "fail_closed_policy": (
             "missing_required_candidate_ref_family_returns_typed_blocker_with_route_back_owner"
         ),
@@ -128,6 +197,7 @@ def build_hypothesis_portfolio_evidence_pack_descriptor() -> dict[str, object]:
             "evidence_interpretation_owner": DOMAIN_OWNER,
             "quality_publication_artifact_authority_owner": DOMAIN_OWNER,
             "ranking_and_proximity_authority": "advisory_only",
+            "progress_enhancement_authority": "advisory_progress_accelerator_only",
             "opl_role": "refs_projection_transport_and_display_only",
             "opl_can_write_hypothesis_truth": False,
             "opl_can_promote_evidence": False,
@@ -159,15 +229,30 @@ def build_hypothesis_portfolio_evidence_pack_contract() -> dict[str, object]:
         "portfolio_role": "mas_owned_hypothesis_candidate_and_evidence_ref_pack",
         "candidate_required_ref_families": list(HYPOTHESIS_PORTFOLIO_REQUIRED_REFS),
         "advisory_ref_families": list(HYPOTHESIS_PORTFOLIO_ADVISORY_REFS),
+        "progress_enhancement_ref_families": list(HYPOTHESIS_PORTFOLIO_PROGRESS_ENHANCEMENT_REFS),
         "validator_ref": HYPOTHESIS_PORTFOLIO_VALIDATOR_REF,
         "candidate_promotion_requires_validator": True,
         "advisory_refs_are_authority": False,
+        "progress_enhancement_refs_block_route": False,
         "candidate_validation_output_contract": {
             "success_status": "validated",
             "blocked_status": "typed_blocker",
             "can_promote_candidate_requires": "all_required_ref_families_present",
             "missing_required_ref_blocker_id": "missing_hypothesis_portfolio_ref_family",
             "route_back_owner_required_when_blocked": True,
+        },
+        "progress_enhancement_contract": {
+            "role": "advisory_progress_accelerator",
+            "missing_progress_enhancement_ref_blocks_route": False,
+            "max_reusable_memory_lesson_refs_per_attempt": 1,
+            "meta_review_triggered_only_by": [
+                "stop_loss_candidate",
+                "repeated_failure",
+                "human_gate_pressure",
+                "claim_boundary_drift",
+                "no_loop_budget_exhausted",
+            ],
+            "opportunistic_prefetch_blocks_mainline": False,
         },
         "advisory_only_fields": [
             "ranking",
@@ -198,9 +283,15 @@ def stage_hypothesis_portfolio_evidence_pack_contract() -> dict[str, object]:
         "advisory_refs_are_authority": False,
         "required_ref_families": list(descriptor["candidate_required_refs"]),
         "advisory_ref_families": list(descriptor["advisory_only_refs"]),
+        "progress_enhancement_ref_families": list(descriptor["progress_enhancement_refs"]),
+        "progress_enhancement_refs_block_route": False,
         "fail_closed_output_shape": {
             "status": "typed_blocker",
             "blocker_id": "missing_hypothesis_portfolio_ref_family",
             "route_back_owner": "required",
         },
     }
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}

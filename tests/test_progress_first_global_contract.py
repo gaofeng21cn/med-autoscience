@@ -281,6 +281,81 @@ def test_typed_blocker_repeat_budget_escalates_without_paper_delta() -> None:
     assert terminal["progress_delta_classification"] == "human_gate"
 
 
+def test_current_owner_ticket_exposes_advisory_progress_enhancement_policy() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    projection = module.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 1},
+            "opl_current_control_state_handoff": {
+                "owner_route": {
+                    "next_owner": "write",
+                    "allowed_actions": ["run_quality_repair_batch"],
+                    "source_refs": {
+                        "work_unit_id": "publishability_repair_sprint",
+                        "source_eval_id": "eval-current",
+                        "route_option_board_ref": "refs/route-option-board.json",
+                        "opportunistic_prefetch_refs": [
+                            "refs/journal-neighbor-prefetch.json",
+                            "refs/guideline-prefetch.json",
+                        ],
+                    },
+                }
+            },
+        }
+    )
+
+    ticket = projection["current_owner_ticket"]
+    policy = ticket["progress_enhancement_policy"]
+
+    assert policy["mechanisms"] == [
+        "next_delta_tournament",
+        "bounded_micro_candidate_generation",
+        "critique_as_repair_hint",
+        "budgeted_memory_writeback",
+        "triggered_meta_review",
+        "opportunistic_knowledge_prefetch",
+    ]
+    assert policy["default_posture"] == "advisory_progress_accelerator_only"
+    assert policy["route_option_board_ref"] == "refs/route-option-board.json"
+    assert policy["next_delta_tournament"]["selects"] == "one_next_attempt"
+    assert policy["bounded_micro_candidates"]["max_candidates_per_attempt"] == 3
+    assert policy["bounded_micro_candidates"]["unselected_candidates_do_not_block"] is True
+    assert policy["critique_as_repair_hint"]["can_close_quality_gate"] is False
+    assert policy["budgeted_memory_writeback"]["max_reusable_lesson_refs_per_attempt"] == 1
+    assert policy["budgeted_memory_writeback"]["missing_lesson_blocks_route"] is False
+    assert policy["triggered_meta_review"]["runs_every_attempt"] is False
+    assert policy["triggered_meta_review"]["trigger_reasons"] == [
+        "stop_loss_candidate",
+        "repeated_failure",
+        "human_gate_pressure",
+        "claim_boundary_drift",
+        "no_loop_budget_exhausted",
+    ]
+    assert policy["opportunistic_knowledge_prefetch"]["refs"] == [
+        "refs/journal-neighbor-prefetch.json",
+        "refs/guideline-prefetch.json",
+    ]
+    assert policy["opportunistic_knowledge_prefetch"]["mainline_waits_for_prefetch"] is False
+    assert policy["forbidden_authority_claims"] == [
+        "admission_gate",
+        "quality_closure",
+        "publication_readiness",
+        "artifact_authority",
+        "route_blocking_layer",
+        "paper_progress_from_platform_repair_or_prefetch",
+    ]
+    assert ticket["authority_boundary"] == {
+        "ticket_authorizes_next_attempt_only": True,
+        "ticket_authorizes_publication_quality": False,
+        "ticket_authorizes_artifact_mutation": False,
+        "ticket_authorizes_study_truth_write": False,
+    }
+
+
 def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
     monkeypatch,
     tmp_path: Path,

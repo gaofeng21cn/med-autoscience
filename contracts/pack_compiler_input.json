@@ -99,6 +99,7 @@
       "opl_can_promote_evidence": false,
       "opl_can_write_hypothesis_truth": false,
       "opl_role": "refs_projection_transport_and_display_only",
+      "progress_enhancement_authority": "advisory_progress_accelerator_only",
       "quality_publication_artifact_authority_owner": "MedAutoScience",
       "ranking_and_proximity_authority": "advisory_only",
       "testability_safety_owner": "MedAutoScience"
@@ -130,6 +131,28 @@
     "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
     "owner": "MedAutoScience",
     "portfolio_role": "mas_owned_hypothesis_candidate_and_evidence_ref_pack",
+    "progress_enhancement_contract": {
+      "max_reusable_memory_lesson_refs_per_attempt": 1,
+      "meta_review_triggered_only_by": [
+        "stop_loss_candidate",
+        "repeated_failure",
+        "human_gate_pressure",
+        "claim_boundary_drift",
+        "no_loop_budget_exhausted"
+      ],
+      "missing_progress_enhancement_ref_blocks_route": false,
+      "opportunistic_prefetch_blocks_mainline": false,
+      "role": "advisory_progress_accelerator"
+    },
+    "progress_enhancement_ref_families": [
+      "next_delta_tournament_ref",
+      "micro_candidate_board_ref",
+      "critique_repair_hint_ref",
+      "memory_lesson_ref",
+      "meta_review_trigger_ref",
+      "opportunistic_prefetch_ref"
+    ],
+    "progress_enhancement_refs_block_route": false,
     "schema_version": 1,
     "surface_kind": "mas_hypothesis_portfolio_evidence_pack_contract",
     "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"

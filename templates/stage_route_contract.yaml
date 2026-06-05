@@ -3,6 +3,45 @@ compatible_agents:
 - Claude Code
 - OpenClaw
 stage_native_semantic_pack_ref: agent/stages/stage_native_semantic_pack.yaml#/stage_native_semantic_pack
+progress_first_advisory_policy:
+  applies_to_routes:
+  - scout
+  - idea
+  - baseline
+  - experiment
+  - analysis-campaign
+  - write
+  - review
+  - finalize
+  - decision
+  - journal-resolution
+  source_ref: agent/stages/stage_native_semantic_pack.yaml#/stage_native_semantic_pack/progress_enhancement
+  route_obligation: Co-Scientist-style generation, tournament, critique, memory, meta-review,
+    and prefetch signals must help select or repair the next owner delta without blocking
+    the active route.
+  allowed_outputs:
+  - ranked_next_owner_delta_refs_advisory
+  - reviewer_repair_hint_refs_advisory
+  - refs_only_reusable_lesson_ref
+  forbidden_outputs:
+  - route_admission
+  - quality_gate_closure
+  - stage_promotion
+  - publication_or_submission_readiness
+  - study_truth_or_artifact_or_memory_body_mutation
+  non_blocking_budget:
+    micro_candidates: bounded_to_at_most_3_per_attempt_and_1_generation_round
+    next_delta_tournament: at_most_1_per_attempt_for_ordering_only
+    critique_as_repair_hint: at_most_3_reviewer_hints_per_attempt
+    budgeted_memory: at_most_1_reusable_refs_only_lesson_ref_per_attempt
+    triggered_meta_review: only_for_stop_loss_repeated_failure_human_gate_claim_boundary_drift_or_no_loop_budget
+    opportunistic_knowledge_prefetch: refs_only_and_must_not_delay_next_owner_dispatch
+  anti_stall_requirements:
+  - advisory work must be skipped or truncated before it delays owner dispatch
+  - missing advisory refs cannot block route entry, route closeout, quality gate replay,
+    or owner handoff
+  - repeated advisory disagreement must route to the declared next owner, typed blocker,
+    human gate, or stop-loss instead of starting another advisory loop
 route_contracts:
   scout:
     route_id: scout

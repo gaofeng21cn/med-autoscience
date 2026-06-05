@@ -23,6 +23,21 @@ PROGRESS_FIRST_OUTCOME_CLASSES = (
     "human_gate",
     "stop_loss",
 )
+PROGRESS_ENHANCEMENT_MECHANISMS = (
+    "next_delta_tournament",
+    "bounded_micro_candidate_generation",
+    "critique_as_repair_hint",
+    "budgeted_memory_writeback",
+    "triggered_meta_review",
+    "opportunistic_knowledge_prefetch",
+)
+PROGRESS_ENHANCEMENT_TRIGGER_REASONS = (
+    "stop_loss_candidate",
+    "repeated_failure",
+    "human_gate_pressure",
+    "claim_boundary_drift",
+    "no_loop_budget_exhausted",
+)
 CURRENT_AI_REVIEWER_RECORD_CONSUMPTION_WRITE_WORK_UNIT_IDS = AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
 
 
@@ -559,12 +574,83 @@ def _current_owner_ticket(
             "provider_completion_is_not_closeout": True,
             "repeat_same_work_unit_requires_typed_blocker_or_new_target_surface": True,
         },
+        "progress_enhancement_policy": _progress_enhancement_policy(owner_route=owner_route),
         "authority_boundary": {
             "ticket_authorizes_next_attempt_only": True,
             "ticket_authorizes_publication_quality": False,
             "ticket_authorizes_artifact_mutation": False,
             "ticket_authorizes_study_truth_write": False,
         },
+    }
+
+
+def _progress_enhancement_policy(*, owner_route: Mapping[str, Any]) -> dict[str, Any]:
+    option_board_ref = (
+        _text(owner_route.get("route_option_board_ref"))
+        or _text(owner_route.get("next_delta_tournament_ref"))
+        or _text(_mapping(owner_route.get("source_refs")).get("route_option_board_ref"))
+    )
+    prefetch_refs = _ref_items(owner_route.get("opportunistic_prefetch_refs"))
+    if not prefetch_refs:
+        prefetch_refs = _ref_items(_mapping(owner_route.get("source_refs")).get("opportunistic_prefetch_refs"))
+    return {
+        "surface_kind": "mas_progress_enhancement_policy",
+        "schema_version": 1,
+        "mechanisms": list(PROGRESS_ENHANCEMENT_MECHANISMS),
+        "default_posture": "advisory_progress_accelerator_only",
+        "route_option_board_ref": option_board_ref,
+        "next_delta_tournament": {
+            "ranks": "candidate_current_owner_tickets",
+            "selects": "one_next_attempt",
+            "selection_factors": [
+                "evidence_gain",
+                "claim_impact",
+                "risk",
+                "cost",
+                "blocked_refs",
+                "quality_pressure",
+            ],
+            "can_authorize_publication_quality": False,
+            "can_authorize_artifact_mutation": False,
+        },
+        "bounded_micro_candidates": {
+            "max_candidates_per_attempt": 3,
+            "unselected_candidates_do_not_block": True,
+            "unselected_candidate_destination": "refs_only_failed_path_or_memory_lesson",
+        },
+        "critique_as_repair_hint": {
+            "allowed_outputs": [
+                "repair_checklist_ref",
+                "route_back_reason_ref",
+                "reviewer_prompt_ref",
+                "memory_lesson_ref",
+            ],
+            "can_close_quality_gate": False,
+        },
+        "budgeted_memory_writeback": {
+            "max_reusable_lesson_refs_per_attempt": 1,
+            "body_included": False,
+            "missing_lesson_blocks_route": False,
+        },
+        "triggered_meta_review": {
+            "trigger_reasons": list(PROGRESS_ENHANCEMENT_TRIGGER_REASONS),
+            "runs_every_attempt": False,
+            "purpose": "reduce_looping_and_choose_route_owner",
+            "can_promote_stage": False,
+        },
+        "opportunistic_knowledge_prefetch": {
+            "refs": prefetch_refs,
+            "mainline_waits_for_prefetch": False,
+            "missing_non_hard_gate_ref_blocks_attempt": False,
+        },
+        "forbidden_authority_claims": [
+            "admission_gate",
+            "quality_closure",
+            "publication_readiness",
+            "artifact_authority",
+            "route_blocking_layer",
+            "paper_progress_from_platform_repair_or_prefetch",
+        ],
     }
 
 
@@ -659,4 +745,9 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["PROGRESS_FIRST_OUTCOME_CLASSES", "build_progress_first_projection"]
+__all__ = [
+    "PROGRESS_ENHANCEMENT_MECHANISMS",
+    "PROGRESS_ENHANCEMENT_TRIGGER_REASONS",
+    "PROGRESS_FIRST_OUTCOME_CLASSES",
+    "build_progress_first_projection",
+]

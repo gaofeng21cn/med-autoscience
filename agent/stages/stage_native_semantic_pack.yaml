@@ -74,6 +74,94 @@ stage_native_semantic_pack:
       - failed_path_refs
       - testability_refs
       - required_reviewer_or_human_gate_refs
+  progress_enhancement:
+    state: progress_first_advisory_layer
+    purpose: use Co-Scientist-style search to improve the next MAS delta without slowing the owner route
+    advisory_strategy:
+      allowed_effects:
+        - rank_next_owner_delta_candidates
+        - generate_reviewer_repair_hints
+        - write_refs_only_reusable_lesson_ref
+      forbidden_authority_effects:
+        - admit_route
+        - close_quality_gate
+        - promote_stage
+        - mutate_study_truth
+        - mutate_artifact_body
+        - mutate_memory_body
+        - authorize_publication_or_submission_readiness
+      non_blocking_budget:
+        mainline_policy: advisory work must run inside the active owner attempt budget or be skipped; it cannot create a preflight loop before the next owner delta
+        micro_candidate_limit_per_attempt: 3
+        tournament_limit_per_attempt: 1
+        reviewer_hint_limit_per_attempt: 3
+        memory_writeback_limit_per_attempt: at_most_one_reusable_refs_only_lesson_ref
+        opportunistic_prefetch_limit: only refs needed by the next declared owner delta or reviewer hint
+        meta_review_trigger_only:
+          - stop_loss
+          - repeated_failure
+          - human_gate
+          - claim_boundary_drift
+          - no_loop_budget
+      mechanisms:
+        next_delta_tournament:
+          role: compare bounded candidate next-owner deltas and sort the immediate owner queue.
+          output_refs:
+            - next_delta_tournament_ref_advisory
+            - ranked_next_owner_delta_refs_advisory
+          cannot_replace:
+            - controller_decision_ref
+            - owner_receipt_ref
+            - quality_gate_ref
+        bounded_micro_candidate_generation:
+          role: generate a small candidate set for the next concrete delta only.
+          candidate_scope:
+            - next_owner_delta
+            - repair_hint
+            - refs_only_lesson
+          hard_bounds:
+            max_candidates_per_attempt: 3
+            max_generation_rounds_per_attempt: 1
+            expand_scope_requires: route_back_request_or_human_gate_request
+        critique_as_repair_hint:
+          role: convert critique into actionable repair hints for the next executor or independent reviewer.
+          output_refs:
+            - reviewer_repair_hint_ref_advisory
+          cannot_close:
+            - ai_reviewer_auditor_gate
+            - artifact_source_authority_gate
+            - publication_quality_gate
+        budgeted_memory:
+          role: preserve at most one reusable lesson ref when the attempt exposes a durable pattern.
+          writeback_policy: refs_only_summary_no_memory_body_copy
+          max_writebacks_per_attempt: 1
+          eligible_when:
+            - repeated_failure
+            - stop_loss
+            - route_back
+            - reviewer_repair_pattern
+            - reusable_source_or_artifact_boundary_pattern
+        triggered_meta_review:
+          role: synthesize why the loop should stop, reroute, ask a human, or repair claim-boundary drift.
+          trigger_only:
+            - stop_loss
+            - repeated_failure
+            - human_gate
+            - claim_boundary_drift
+            - no_loop_budget
+          forbidden_when:
+            - routine_stage_entry
+            - routine_quality_gate_precheck
+            - only_ranking_or_tournament_disagreement
+        opportunistic_knowledge_prefetch:
+          role: prefetch refs likely needed by the next declared owner delta without delaying dispatch.
+          allowed_refs:
+            - source_locator_refs
+            - evidence_refs
+            - failed_path_refs
+            - reviewer_concern_refs
+            - journal_neighbor_refs
+          forbidden_effect: missing or stale prefetch must not block owner dispatch; it can only produce a typed blocker if a route-required ref is actually missing
   execution_review_independence:
     policy: fail_closed
     requirement: quality gates require a reviewer/auditor invocation that is separate from the executor invocation that produced the work

@@ -12,6 +12,7 @@ The reviewer or auditor agent must run as a separate invocation from the executo
 - separate context summary and refs reviewed.
 - manuscript, source, evidence, artifact, review, runtime, controller, and memory refs considered.
 - hypothesis portfolio candidate, assumption, support/contradiction, novelty/provenance, testability/safety, negative failed-path, advisory ranking/proximity, and human gate receipt refs when the route depends on a hypothesis portfolio.
+- progress-enhancement advisory refs when consumed, including next-delta tournament, bounded micro-candidate, critique-as-repair-hint, triggered meta-review, prefetch, and reusable refs-only lesson refs.
 - medical judgment findings, not only checklist status.
 - verdict or route-back recommendation with typed blocker when not ready.
 - receipt proving currentness relative to task intake, controller decisions, manuscript/source refs, and artifact rebuild proof.
@@ -30,6 +31,7 @@ Rubrics and quality packs define the traceable floor. The reviewer/auditor must 
 - limitations, failed paths, reader risk, contribution logic, and journal fit.
 - route memory relevance and memory writeback safety.
 - hypothesis novelty, evidence balance, failed-path handling, advisory ranking limits, testability, safety, and human/independent-review boundary.
+- progress-first use of advisory signals: tournaments may order next owner deltas, critique may become repair hints, meta-review may explain stop-loss/repeated failure/human gate/claim-boundary drift/no-loop budget, and budgeted memory may write one reusable refs-only lesson.
 
 The journal-family floor must be explicitly consumed when the route touches manuscript, review, finalization, or journal resolution:
 
@@ -66,7 +68,8 @@ Fail closed or route back when:
 - required journal-family pack refs, output refs, typed blocker refs, or owner receipts are missing for an in-scope route.
 - publication eval says ready but reviewer operating-system trace or manuscript refs are not current.
 - only mechanical checks, test pass, provider completion, generated interface readiness, package presence, prose completeness, template completion, or pack presence support the ready claim.
+- next-delta tournament, micro-candidate generation, critique-as-repair-hint, budgeted memory, triggered meta-review, or opportunistic prefetch is used to admit a route, close this gate, promote a stage, or authorize publication/submission readiness.
 
 ## Receipt Requirements
 
-A passing gate must cite the independent record, quality pack evidence refs, journal-family pack refs when in scope, review ledger refs, publication eval refs if updated, output refs reviewed, and owner receipt. A blocking gate must cite the typed blocker, route-back owner, missing refs, stale refs, forbidden shortcut avoided, and required repair condition.
+A passing gate must cite the independent record, quality pack evidence refs, journal-family pack refs when in scope, review ledger refs, publication eval refs if updated, output refs reviewed, owner receipt, and any advisory refs consumed as non-authoritative context. A blocking gate must cite the typed blocker, route-back owner, missing refs, stale refs, forbidden shortcut avoided, and required repair condition.

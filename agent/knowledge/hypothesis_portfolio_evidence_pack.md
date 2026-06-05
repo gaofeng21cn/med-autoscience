@@ -37,6 +37,21 @@ Ranking, tournament, Elo-like, proximity, debate, and evolution signals are usef
 
 If a ranked candidate lacks supporting or contradicting evidence refs, provenance refs, failed-path refs, or reviewer/human gate refs required by the route, fail closed with a typed blocker naming the missing ref family.
 
+## Progress-First Advisory Strategy
+
+Co-Scientist-inspired portfolio work is a progress enhancement layer, not a new admission or gate authority. It may rank the next owner delta, generate reviewer repair hints, and write at most one reusable refs-only lesson per attempt.
+
+The bounded mechanisms are:
+
+- next-delta tournament: compare candidate next-owner deltas once per attempt and return advisory ordering refs.
+- bounded micro-candidate generation: generate at most three candidates for the immediate next delta, repair hint, or reusable lesson.
+- critique-as-repair-hint: turn critique into actionable repair-hint refs for the next executor or independent reviewer.
+- budgeted memory: preserve at most one reusable lesson ref per attempt, with no evidence, memory, artifact, or manuscript body copied into the handoff.
+- triggered meta-review: run only for stop-loss, repeated failure, human gate, claim-boundary drift, or exhausted no-loop budget.
+- opportunistic knowledge prefetch: prefetch source, evidence, failed-path, reviewer concern, or journal-neighbor refs only when it does not delay the declared owner dispatch.
+
+These signals cannot admit a route, close an AI reviewer or artifact/source gate, promote a stage, authorize publication/submission readiness, or mutate study truth, artifacts, memory, or current package state. Missing advisory refs should be skipped or truncated unless the route-required evidence refs are actually absent, in which case the route emits the normal typed blocker.
+
 ## Stage Use
 
 Direction and baseline stages may generate or consume hypothesis portfolios to compare candidate study lines. Analysis, writing, review, and finalization stages may consume portfolio refs to explain why a path was selected, narrowed, rejected, or routed back.
