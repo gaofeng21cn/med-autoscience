@@ -30,6 +30,26 @@ def test_stage_artifact_kernel_adoption_declares_physical_stage_folder_truth() -
     assert contract["authority_boundary"]["opl_can_mutate_domain_artifact_body"] is False
 
 
+def test_stage_artifact_kernel_adoption_links_stage_run_kernel_profile() -> None:
+    binding = _contract()["stage_run_kernel_profile_binding"]
+
+    assert binding == {
+        "profile_ref": "contracts/stage_run_kernel_profile.json",
+        "profile_role": "minimal_stage_native_state_shell",
+        "stage_run_kernel_is_mas_controller_system": False,
+        "stage_native_principle": [
+            "stage_folder",
+            "stage_manifest",
+            "role_artifacts",
+            "owner_receipt_or_typed_blocker",
+        ],
+        "terminal_transition_authority": "owner_receipt_or_typed_blocker",
+        "read_model_is_transition_authority": False,
+        "file_presence_counts_as_stage_complete": False,
+        "provider_completion_counts_as_domain_accepted": False,
+    }
+
+
 def test_state_index_kernel_adoption_keeps_sqlite_refs_only_and_rebuildable() -> None:
     adoption = _contract()["state_index_kernel_adoption"]
 

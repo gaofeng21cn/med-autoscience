@@ -140,6 +140,21 @@
       "sqlite_record_counts_as_stage_complete": false
     }
   },
+  "stage_run_kernel_profile_binding": {
+    "profile_ref": "contracts/stage_run_kernel_profile.json",
+    "profile_role": "minimal_stage_native_state_shell",
+    "stage_run_kernel_is_mas_controller_system": false,
+    "stage_native_principle": [
+      "stage_folder",
+      "stage_manifest",
+      "role_artifacts",
+      "owner_receipt_or_typed_blocker"
+    ],
+    "file_presence_counts_as_stage_complete": false,
+    "provider_completion_counts_as_domain_accepted": false,
+    "read_model_is_transition_authority": false,
+    "terminal_transition_authority": "owner_receipt_or_typed_blocker"
+  },
   "current_pointer_promotion_model": {
     "ordered_steps": [
       "attempt_output",

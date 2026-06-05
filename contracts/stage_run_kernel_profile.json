@@ -1,0 +1,270 @@
+{
+  "surface_kind": "mas_opl_stage_run_kernel_profile",
+  "version": "stage-run-kernel-profile.v1",
+  "domain_id": "med-autoscience",
+  "owner": "MedAutoScience / OPL Framework",
+  "state": "active_contract",
+  "purpose": "Machine-readable StageRun Kernel profile for Stage Native execution: stage folder, stage_manifest, role artifacts, and MAS owner receipt or typed blocker.",
+  "machine_boundary": "This profile defines a minimal StageRun state shell and authority boundary. It does not declare paper closure, publication readiness, domain readiness, quality readiness, artifact readiness, current_package freshness, or production readiness.",
+  "source_design_ref": "human_doc:mas_opl_stage_native_state_machine",
+  "stage_artifact_kernel_adoption_ref": "contracts/stage_artifact_kernel_adoption.json",
+  "stage_folder_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
+  "owner_receipt_contract_ref": "contracts/owner_receipt_contract.json",
+  "stage_native_unit": [
+    "stage_folder",
+    "stage_manifest",
+    "role_artifacts",
+    "owner_receipt_or_typed_blocker"
+  ],
+  "kernel_role": "minimal_state_shell_not_mas_controller_system",
+  "stage_folder_manifest_role": "artifact_evidence_and_structure_contract",
+  "transition_authority": "mas_owner_receipt_or_typed_blocker_only",
+  "required_object_models": [
+    "StageRun",
+    "ArtifactRef",
+    "OwnerReceipt",
+    "TypedBlocker",
+    "ReadModel"
+  ],
+  "stage_folder_manifest": {
+    "manifest_file_name": "stage_manifest.json",
+    "stage_folder_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
+    "required_directories": [
+      "inputs",
+      "outputs",
+      "receipts",
+      "lineage",
+      "projection"
+    ],
+    "required_manifest_sections": [
+      "stage_run_ref",
+      "required_input_artifact_refs",
+      "required_role_artifacts",
+      "produced_artifact_refs",
+      "owner_receipt_refs",
+      "typed_blocker_refs",
+      "lineage_refs",
+      "projection_refs"
+    ],
+    "role_artifact_contract": {
+      "role_is_interface": true,
+      "file_name_is_interface": false,
+      "artifact_ref_body_included": false,
+      "artifact_ref_must_include_hash": true,
+      "artifact_ref_must_include_lineage": true
+    },
+    "closeout_contract": {
+      "requires_owner_receipt_or_typed_blocker": true,
+      "owner_receipt_ref_role": "domain_success_or_route_handoff_authority",
+      "typed_blocker_ref_role": "domain_blocked_or_deferred_authority",
+      "output_only_stage_folder_is_orphan": true
+    },
+    "projection_contract": {
+      "projection_directory_is_authority": false,
+      "projection_rebuild_source": "stage_run_event_log_and_manifest_receipt_refs",
+      "current_owner_delta_ref_allowed": true
+    }
+  },
+  "stage_run_state_machine": {
+    "main_chain": [
+      "Declared",
+      "InputsReady",
+      "Admitted",
+      "Running",
+      "Terminalizing",
+      "DomainAccepted",
+      "NextStageReady"
+    ],
+    "exception_states": [
+      "NeedsHumanDecision",
+      "NeedsExternalResource",
+      "RetryScheduled",
+      "TypedBlocked",
+      "InfrastructureCrashed",
+      "Superseded"
+    ],
+    "state_meanings": {
+      "Declared": "Stage spec exists and input refs are not yet satisfied.",
+      "InputsReady": "Required role artifacts and knowledge packet refs satisfy the entry contract.",
+      "Admitted": "OPL accepted a WorkUnitRun and created task, lease, or attempt refs.",
+      "Running": "Provider attempt has live proof.",
+      "Terminalizing": "Provider wrote a closeout packet and OPL is ingesting terminal refs.",
+      "DomainAccepted": "MAS consumed closeout and signed OwnerReceipt or TypedBlocker.",
+      "NextStageReady": "Route emitted next StageRun spec, human gate, or owner action from accepted receipt/blocker."
+    },
+    "terminal_transition_authority": {
+      "DomainAccepted": "MAS consumes closeout and signs OwnerReceipt or TypedBlocker",
+      "NextStageReady": "route emitted from accepted OwnerReceipt or stable TypedBlocker"
+    },
+    "provider_completion_counts_as_domain_accepted": false,
+    "stage_folder_files_count_as_next_stage_ready": false,
+    "latest_json_counts_as_domain_accepted": false,
+    "active_run_id_counts_as_paper_progress": false
+  },
+  "object_models": {
+    "StageRun": {
+      "owner": "opl_runtime_with_mas_stage_spec",
+      "role": "minimal_stage_state_shell",
+      "required_fields": [
+        "stage_run_id",
+        "program_id",
+        "study_id",
+        "stage_id",
+        "generation",
+        "spec_ref",
+        "status",
+        "observed_generation",
+        "stage_folder_ref",
+        "stage_manifest_ref",
+        "event_log_ref"
+      ],
+      "authority_boundary": {
+        "owns_medical_quality": false,
+        "can_mutate_domain_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_replace_typed_blocker": false
+      }
+    },
+    "ArtifactRef": {
+      "owner": "mas_authority_or_opl_locator",
+      "role": "immutable_role_artifact_locator_with_lineage",
+      "required_fields": [
+        "artifact_ref",
+        "role",
+        "content_hash",
+        "lineage_ref",
+        "stage_manifest_ref",
+        "body_included"
+      ],
+      "body_included": false,
+      "file_presence_counts_as_completion": false
+    },
+    "OwnerReceipt": {
+      "owner": "med-autoscience",
+      "role": "domain_success_or_route_handoff_receipt",
+      "transition_authority": "success_or_route_handoff",
+      "required_fields": [
+        "receipt_id",
+        "stage_run_id",
+        "stage_id",
+        "generation",
+        "domain_owner",
+        "consumed_artifact_refs",
+        "produced_artifact_refs",
+        "lineage_refs",
+        "next_owner_delta_ref"
+      ]
+    },
+    "TypedBlocker": {
+      "owner": "med-autoscience",
+      "role": "stable_domain_blocker_or_deferred_outcome",
+      "transition_authority": "blocked_or_deferred_domain_outcome",
+      "required_fields": [
+        "blocker_id",
+        "stage_run_id",
+        "stage_id",
+        "generation",
+        "blocker_type",
+        "blocking_owner",
+        "blocked_surface",
+        "required_input_refs",
+        "next_safe_action_ref"
+      ]
+    },
+    "ReadModel": {
+      "owner": "opl_or_product_projection",
+      "role": "refs_only_rebuildable_projection",
+      "required_fields": [
+        "projection_id",
+        "stage_run_ref",
+        "observed_generation",
+        "source_event_log_ref",
+        "owner_receipt_refs",
+        "typed_blocker_refs",
+        "current_owner_delta_ref"
+      ],
+      "authority_boundary": {
+        "rebuildable_projection": true,
+        "can_write_transition": false,
+        "can_promote_latest_to_authority": false,
+        "can_write_mas_truth": false
+      }
+    }
+  },
+  "opl_mas_boundary": {
+    "opl_owns": [
+      "stage_run_spec_status",
+      "event_log",
+      "queue",
+      "hold",
+      "admission",
+      "lease",
+      "attempt",
+      "retry_dead_letter",
+      "projection_rebuild"
+    ],
+    "mas_owns": [
+      "stage_semantics",
+      "study_truth",
+      "publication_quality_verdict",
+      "artifact_authority",
+      "memory_accept_reject",
+      "owner_receipt",
+      "typed_blocker",
+      "route_decision"
+    ],
+    "forbidden_opl_authority": [
+      "write_mas_study_truth",
+      "write_publication_eval_as_authority",
+      "write_controller_decision_as_authority",
+      "mutate_domain_artifact_body",
+      "authorize_publication_quality",
+      "sign_mas_owner_receipt",
+      "replace_mas_typed_blocker"
+    ],
+    "forbidden_mas_claims": [
+      "mas_owns_generic_queue",
+      "mas_owns_generic_attempt_ledger",
+      "mas_owns_generic_state_machine_runner",
+      "mas_owns_generic_read_model_shell",
+      "mas_controller_system_required_for_stage_run_kernel"
+    ]
+  },
+  "projection_boundary": {
+    "read_models_are_rebuildable": true,
+    "latest_progress_portal_and_workbench_are_projection_only": true,
+    "forbidden_transition_authority": [
+      "publication_eval/latest.json",
+      "controller_decisions/latest.json",
+      "study_progress_projection",
+      "runtime_watch_projection",
+      "portal_or_workbench_status",
+      "stage_folder_file_presence",
+      "provider_completion",
+      "active_run_id_presence"
+    ],
+    "allowed_projection_inputs": [
+      "StageRun_event_log",
+      "stage_manifest_ref",
+      "artifact_refs",
+      "owner_receipt_refs",
+      "typed_blocker_refs",
+      "current_owner_delta_ref"
+    ],
+    "projection_can_write_truth": false,
+    "projection_can_authorize_next_stage": false
+  },
+  "canary_scope": {
+    "first_stage_spec_id": "ai_reviewer_publication_eval_rebuild",
+    "target_studies": [
+      "DM002",
+      "DM003"
+    ],
+    "canary_success_requires": [
+      "fresh_owner_receipt_or_stable_typed_blocker",
+      "stage_run_status_matches_stage_manifest",
+      "study_progress_projects_stage_run_status",
+      "latest_json_is_projection_not_route_authority"
+    ]
+  }
+}

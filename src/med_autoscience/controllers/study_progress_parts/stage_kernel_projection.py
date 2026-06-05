@@ -11,6 +11,9 @@ from med_autoscience.controllers.opl_stage_promotion_runtime import (
     promotion_audit_from_stage_projection,
 )
 from med_autoscience.controllers.opl_state_index_kernel import build_state_index_kernel_rows
+from med_autoscience.controllers.stage_run_kernel import (
+    stage_run_kernel_projection_from_stage_state,
+)
 
 
 def stage_kernel_projection_from_artifact_index(
@@ -33,15 +36,29 @@ def stage_kernel_projection_from_artifact_index(
     physical_kernel = _mapping_copy(selected_stage.get("physical_stage_folder_kernel"))
     consumability = _mapping_copy(artifact_classification.get("consumability"))
     semantic_validation = _mapping_copy(artifact_classification.get("semantic_validation"))
+    stage_run_kernel = stage_run_kernel_projection_from_stage_state(
+        selected_stage=selected_stage,
+        study_root=_non_empty_text(stage_artifact_index.get("study_root")),
+    )
     blocker = _stage_kernel_blocker(
         selected_stage=selected_stage,
         artifact_classification=artifact_classification,
         consumability=consumability,
         semantic_validation=semantic_validation,
     )
-    return {
+    stage_run = _stage_run_projection(
+        stage_artifact_index=stage_artifact_index,
+        selected_stage=selected_stage,
+        artifact_classification=artifact_classification,
+        semantic_validation=semantic_validation,
+        consumability=consumability,
+        current_pointer=current_pointer,
+        physical_kernel=physical_kernel,
+    )
+    projection = {
         "surface_kind": "stage_kernel_projection",
         "schema_version": 1,
+        "stage_run_profile_ref": "contracts/stage_run_kernel_profile.json",
         "current_truth_source": "opl_physical_stage_folder_kernel"
         if physical_kernel.get("status") == "observed"
         else "mas_declared_stage_artifact_projection",
@@ -76,6 +93,11 @@ def stage_kernel_projection_from_artifact_index(
             current_pointer=current_pointer,
             physical_kernel=physical_kernel,
         ),
+        "stage_run": stage_run,
+        "current_owner_delta": _current_owner_delta(
+            stage_run=stage_run,
+            next_owner_action=_mapping_copy(stage_artifact_index.get("next_owner_action")),
+        ),
         "blocker": blocker,
         "next_owner": _mapping_copy(stage_artifact_index.get("next_owner_action")),
         "provider_liveness": _mapping_copy(stage_artifact_index.get("provider_liveness")),
@@ -93,6 +115,175 @@ def stage_kernel_projection_from_artifact_index(
             "can_authorize_artifact_mutation": False,
         },
     }
+    if stage_run_kernel is not None:
+        projection["stage_run_kernel"] = stage_run_kernel
+        projection["current_owner_delta"] = dict(stage_run_kernel["current_owner_delta"])
+    return projection
+
+
+def _stage_run_projection(
+    *,
+    stage_artifact_index: Mapping[str, Any],
+    selected_stage: Mapping[str, Any],
+    artifact_classification: Mapping[str, Any],
+    semantic_validation: Mapping[str, Any],
+    consumability: Mapping[str, Any],
+    current_pointer: Mapping[str, Any],
+    physical_kernel: Mapping[str, Any],
+) -> dict[str, Any]:
+    stage_id = _non_empty_text(selected_stage.get("stage_id"))
+    owner_receipt_refs = _text_list(artifact_classification.get("owner_receipt_refs"))
+    typed_blocker_refs = _text_list(artifact_classification.get("typed_blocker_refs"))
+    return {
+        "surface_kind": "stage_run_kernel_projection",
+        "schema_version": 1,
+        "stage_id": stage_id,
+        "state": _stage_run_state(
+            stage_artifact_index=stage_artifact_index,
+            selected_stage=selected_stage,
+            artifact_classification=artifact_classification,
+            semantic_validation=semantic_validation,
+            consumability=consumability,
+        ),
+        "attempt_id": _non_empty_text(current_pointer.get("attempt_id"))
+        or _non_empty_text(artifact_classification.get("latest_attempt_id"))
+        or _non_empty_text(physical_kernel.get("latest_attempt_id")),
+        "generation": _non_empty_text(current_pointer.get("attempt_id"))
+        or _non_empty_text(artifact_classification.get("latest_attempt_id"))
+        or _non_empty_text(physical_kernel.get("latest_attempt_id"))
+        or "declared",
+        "status_owner": "one-person-lab",
+        "domain_authority_owner": "med-autoscience",
+        "transition_authority": {
+            "owner_receipt_or_typed_blocker_required": True,
+            "file_presence_counts_as_completion": False,
+            "provider_completion_counts_as_domain_completion": False,
+            "latest_projection_counts_as_transition_authority": False,
+            "read_model_counts_as_transition_authority": False,
+        },
+        "domain_outcome": {
+            "owner_receipt_refs": owner_receipt_refs,
+            "typed_blocker_refs": typed_blocker_refs,
+            "domain_accepted": bool(owner_receipt_refs) and not typed_blocker_refs,
+            "typed_blocked": bool(typed_blocker_refs),
+        },
+        "source_refs": _stage_run_source_refs(
+            selected_stage=selected_stage,
+            artifact_classification=artifact_classification,
+        ),
+        "projection_only": True,
+        "body_included": False,
+        "authority": {
+            "writes_mas_truth": False,
+            "writes_opl_status": False,
+            "claims_publication_ready": False,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_artifact_mutation": False,
+        },
+    }
+
+
+def _stage_run_state(
+    *,
+    stage_artifact_index: Mapping[str, Any],
+    selected_stage: Mapping[str, Any],
+    artifact_classification: Mapping[str, Any],
+    semantic_validation: Mapping[str, Any],
+    consumability: Mapping[str, Any],
+) -> str:
+    if _text_list(artifact_classification.get("typed_blocker_refs")):
+        return "TypedBlocked"
+    if (
+        _text_list(artifact_classification.get("owner_receipt_refs"))
+        and _non_empty_text(semantic_validation.get("status")) == "accepted"
+        and _non_empty_text(consumability.get("status")) in {"passed", "ready_for_consumability_validation"}
+    ):
+        return "DomainAccepted"
+    provider_liveness = _mapping_copy(stage_artifact_index.get("provider_liveness"))
+    if provider_liveness.get("running_provider_attempt") is True:
+        return "Running"
+    promotion = _mapping_copy(artifact_classification.get("promotion"))
+    if _non_empty_text(promotion.get("state")) == "current_pointer_promoted":
+        return "Terminalizing"
+    if selected_stage:
+        missing = _text_list(artifact_classification.get("missing"))
+        if missing:
+            return "InputsReady"
+    return "Declared"
+
+
+def _stage_run_source_refs(
+    *,
+    selected_stage: Mapping[str, Any],
+    artifact_classification: Mapping[str, Any],
+) -> list[str]:
+    refs = [
+        _non_empty_text(_mapping_copy(selected_stage.get("stage_folder_contract")).get("manifest_ref")),
+        _non_empty_text(_mapping_copy(selected_stage.get("stage_folder_contract")).get("receipt_ref")),
+        *_text_list(artifact_classification.get("owner_receipt_refs")),
+        *_text_list(artifact_classification.get("typed_blocker_refs")),
+    ]
+    return _dedupe_text(ref for ref in refs if ref)
+
+
+def _current_owner_delta(
+    *,
+    stage_run: Mapping[str, Any],
+    next_owner_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    stage_id = _non_empty_text(stage_run.get("stage_id"))
+    domain_outcome = _mapping_copy(stage_run.get("domain_outcome"))
+    typed_blocker_refs = _text_list(domain_outcome.get("typed_blocker_refs"))
+    owner_receipt_refs = _text_list(domain_outcome.get("owner_receipt_refs"))
+    state = _non_empty_text(stage_run.get("state"))
+    return {
+        "surface_kind": "stage_run_current_owner_delta",
+        "schema_version": 1,
+        "stage_id": stage_id,
+        "state": state,
+        "owner": _owner_for_delta(
+            state=state,
+            next_owner_action=next_owner_action,
+            stage_id=stage_id,
+        ),
+        "action_type": _action_type_for_delta(
+            state=state,
+            next_owner_action=next_owner_action,
+        ),
+        "typed_blocker_refs": typed_blocker_refs,
+        "owner_receipt_refs": owner_receipt_refs,
+        "projection_only": True,
+        "writes_transition_authority": False,
+    }
+
+
+def _owner_for_delta(
+    *,
+    state: str | None,
+    next_owner_action: Mapping[str, Any],
+    stage_id: str | None,
+) -> str | None:
+    if state == "TypedBlocked":
+        return (
+            _non_empty_text(next_owner_action.get("next_owner"))
+            or _non_empty_text(next_owner_action.get("owner"))
+            or stage_id
+        )
+    return _non_empty_text(next_owner_action.get("next_owner")) or _non_empty_text(
+        next_owner_action.get("owner")
+    )
+
+
+def _action_type_for_delta(
+    *,
+    state: str | None,
+    next_owner_action: Mapping[str, Any],
+) -> str | None:
+    if state == "TypedBlocked":
+        return "resolve_typed_blocker"
+    if state == "DomainAccepted":
+        return _non_empty_text(next_owner_action.get("action_type")) or "advance_next_stage"
+    return _non_empty_text(next_owner_action.get("action_type")) or "materialize_stage_artifact_delta"
 
 
 def _state_index_projection(stage_artifact_index: Mapping[str, Any]) -> dict[str, Any]:
