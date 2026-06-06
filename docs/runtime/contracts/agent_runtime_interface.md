@@ -96,7 +96,7 @@ Workspace-local Progress-first 监控薄入口：
 - `ops/medautoscience/bin/progress-projection <study_id> --format json`
 - `ops/medautoscience/bin/study-state-matrix --format json`
 
-`progress-projection <study_id> --json` 只作为旧 JSON alias 读取；新文档、脚本和自动化应使用 `--format json`。
+`progress-projection <study_id> --json` 旧 JSON alias 已退役；文档、脚本和自动化必须使用 `--format json`。
 
 OPL `current_control_state` / provider attempt ledger 持有 scheduler lifecycle、provider liveness、attempt、retry/dead-letter 和 operator runtime projection。MAS 不再提供 `runtime-supervision-*` compatibility CLI，不再把 workspace-local LaunchAgent / systemd / cron / docker service 写成 active runtime option。
 

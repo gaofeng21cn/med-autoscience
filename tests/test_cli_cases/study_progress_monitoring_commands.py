@@ -9,6 +9,37 @@ globals().update({
 })
 
 
+def test_progress_projection_retires_json_alias_and_keeps_format_json() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    parser = cli.build_parser()
+
+    args = parser.parse_args(
+        [
+            "progress-projection",
+            "--profile",
+            "profile.local.toml",
+            "--study-id",
+            "003-dpcc",
+            "--format",
+            "json",
+        ]
+    )
+    assert args.command == "progress-projection"
+    assert args.format == "json"
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "progress-projection",
+                "--profile",
+                "profile.local.toml",
+                "--study-id",
+                "003-dpcc",
+                "--json",
+            ]
+        )
+
+
 def test_progress_projection_command_surfaces_progress_first_user_visible_view(
     monkeypatch,
     tmp_path: Path,
@@ -18,19 +49,36 @@ def test_progress_projection_command_surfaces_progress_first_user_visible_view(
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
 
-    monkeypatch.setattr(
-        cli.domain_status_projection,
-        "progress_projection",
-        lambda **kwargs: {
+    def fail_old_progress_projection(**_: object) -> dict:
+        raise AssertionError("progress-projection must not use legacy domain_status_projection")
+
+    def fake_read_study_progress(
+        *,
+        profile,
+        profile_ref: Path,
+        study_id: str | None,
+        study_root: Path | None,
+        entry_mode: str | None,
+        sync_runtime_summary: bool,
+        materialize_read_model_artifacts: bool,
+    ) -> dict:
+        assert profile.name == "nfpitnet"
+        assert profile_ref == profile_path
+        assert study_id == "003-dpcc"
+        assert study_root is None
+        assert entry_mode is None
+        assert sync_runtime_summary is False
+        assert materialize_read_model_artifacts is False
+        return {
             "schema_version": 1,
-            "study_id": kwargs["study_id"],
-            "quest_id": kwargs["study_id"],
+            "study_id": study_id,
+            "quest_id": study_id,
             "decision": "resume",
             "reason": "domain_transition_ai_reviewer_re_eval",
             "active_run_id": "stale-runtime-run",
             "progress_projection": {
-                "study_id": kwargs["study_id"],
-                "quest_id": kwargs["study_id"],
+                "study_id": study_id,
+                "quest_id": study_id,
                 "current_stage": "publication_supervision",
                 "current_stage_summary": "old runtime-facing stage",
                 "paper_stage": "analysis-campaign",
@@ -40,7 +88,7 @@ def test_progress_projection_command_surfaces_progress_first_user_visible_view(
                 "progress_first_monitoring_summary": {
                     "surface": "progress_first_monitoring_summary",
                     "authority": "refs_only_observability",
-                    "study_id": kwargs["study_id"],
+                    "study_id": study_id,
                     "active_run_id": "run-003",
                     "active_stage_attempt_id": "attempt-003",
                     "running_provider_attempt": True,
@@ -74,8 +122,10 @@ def test_progress_projection_command_surfaces_progress_first_user_visible_view(
                     "needs_physician_decision": False,
                 },
             },
-        },
-    )
+        }
+
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fail_old_progress_projection)
+    monkeypatch.setattr(cli.study_progress, "read_study_progress", fake_read_study_progress)
 
     exit_code = cli.main(
         [
