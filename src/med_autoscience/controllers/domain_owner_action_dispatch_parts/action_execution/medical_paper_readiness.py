@@ -18,6 +18,9 @@ ACTION_TYPE = "complete_medical_paper_readiness_surface"
 CALLABLE_SURFACE = "medical_paper_readiness.complete_medical_paper_readiness_surface"
 DEFAULT_ACTION_ID_BY_SURFACE = {
     "literature_provider_runtime": "run_provider_literature_scout",
+    "study_line_selection": "materialize_study_line_selection",
+    "archetype_analysis_contract": "materialize_archetype_analysis_contract",
+    "bounded_analysis_candidate_board": "materialize_bounded_analysis_candidate_board",
     "route_decision_orchestrator": "materialize_route_decision",
     "statistical_discipline_operations": "resolve_statistical_blockers",
     "revision_rebuttal_loop": "start_revision_rebuttal_loop",
@@ -50,24 +53,26 @@ def execute_complete_medical_paper_readiness_surface(
     closeout_binding = _closeout_binding(dispatch_payload)
     request_payload = _mapping(owner_request_paths.owner_request_payload(profile, study_id, ACTION_TYPE))
     current_readiness = readiness_surface.build_medical_paper_readiness_surface(study_root=study_root)
-    surface_key = (
-        _surface_key(dispatch_payload)
-        or _surface_key(request_payload)
-        or _text(_mapping(current_readiness.get("next_action")).get("surface_key"))
+    current_surface_key = _text(_mapping(current_readiness.get("next_action")).get("surface_key"))
+    surface_key = current_surface_key or _surface_key(dispatch_payload) or _surface_key(request_payload)
+    operator_payload = _operator_payload(dispatch_payload, surface_key=surface_key) or _operator_payload(
+        request_payload,
+        surface_key=surface_key,
     )
-    operator_payload = _operator_payload(dispatch_payload) or _operator_payload(request_payload)
     if not operator_payload:
         operator_payload = _operator_payload_from_ref(
             profile=profile,
             study_id=study_id,
             dispatch=dispatch_payload,
             request_payload=request_payload,
+            surface_key=surface_key,
         )
     authored_payload: dict[str, Any] = {}
     if not operator_payload:
         authored_payload = medical_paper_readiness_payload_authoring.author_operator_payload(
             study_root=study_root,
             surface_key=surface_key,
+            profile=profile,
             write_provider_response_ledger=apply,
         )
         if _text(authored_payload.get("status")) != "blocked":
@@ -137,16 +142,25 @@ def execute_complete_medical_paper_readiness_surface(
         )
 
     action_id = _action_id(dispatch_payload, surface_key)
+    operator_idempotency_key = _operator_idempotency_key(
+        dispatch=dispatch_payload,
+        surface_key=surface_key,
+        action_id=action_id,
+    )
     action_result = medical_paper_operator_actions.dispatch_guarded_medical_paper_operator_action(
         study_root=study_root,
         action_id=action_id,
         surface_key=surface_key,
         operator_payload=operator_payload,
         action_instance_id=_text(dispatch_payload.get("action_id")),
-        idempotency_key=_text(dispatch_payload.get("idempotency_key"))
-        or _text(_mapping(dispatch_payload.get("prompt_contract")).get("idempotency_key")),
+        idempotency_key=operator_idempotency_key,
+        apply=apply,
     )
-    readiness = readiness_surface.build_medical_paper_readiness_surface(study_root=study_root)
+    readiness = (
+        readiness_surface.build_medical_paper_readiness_surface(study_root=study_root)
+        if apply
+        else _projected_readiness_after_action(current_readiness, surface_key=surface_key, action_result=action_result)
+    )
     owner_result = {
         "surface_kind": "medical_paper_readiness_surface_completion_result",
         "status": "ready" if _text(readiness.get("overall_status")) == "ready" else "blocked",
@@ -217,6 +231,53 @@ def _blocked(
     if isinstance(owner_delta_result, Mapping):
         payload["owner_delta_result"] = dict(owner_delta_result)
     return payload
+
+
+def _projected_readiness_after_action(
+    readiness: Mapping[str, Any],
+    *,
+    surface_key: str,
+    action_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    projected = dict(readiness)
+    if _text(action_result.get("status")) in {"blocked", "missing"}:
+        return projected
+    surfaces = [
+        {
+            **dict(item),
+            "status": "present",
+            "missing_reason": "",
+        }
+        if isinstance(item, Mapping) and _text(item.get("surface_key")) == surface_key
+        else dict(item)
+        for item in _sequence(readiness.get("capability_surfaces"))
+        if isinstance(item, Mapping)
+    ]
+    if surfaces:
+        projected["capability_surfaces"] = surfaces
+        projected["ready_count"] = sum(1 for item in surfaces if _text(item.get("status")) == "present")
+        projected["next_action"] = _next_action_from_surfaces(surfaces)
+        required_count = sum(1 for item in surfaces if item.get("required_for_ready") is True)
+        if required_count:
+            projected["required_count"] = required_count
+            projected["overall_status"] = "ready" if projected["ready_count"] >= required_count else "blocked"
+    return projected
+
+
+def _next_action_from_surfaces(surfaces: list[dict[str, Any]]) -> dict[str, Any]:
+    for item in surfaces:
+        if item.get("required_for_ready") is True and _text(item.get("status")) != "present":
+            surface_key = _text(item.get("surface_key"))
+            spec = readiness_surface._spec_by_key(surface_key)
+            return {
+                "action_id": ACTION_TYPE,
+                "surface_key": surface_key,
+                "summary": spec["next_action_summary"],
+            }
+    return {
+        "action_id": "continue_medical_paper_pipeline",
+        "summary": "medical paper readiness surfaces complete.",
+    }
 
 
 def _owner_delta_result(
@@ -499,8 +560,14 @@ def _typed_blocker(owner_result: Mapping[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def _operator_payload(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+def _operator_payload(dispatch: Mapping[str, Any], *, surface_key: str | None = None) -> dict[str, Any]:
+    declared_surface_key = _declared_surface_key(dispatch)
+    if surface_key and declared_surface_key and declared_surface_key != surface_key:
+        return {}
     for payload in _payload_candidates(dispatch):
+        payload_surface_key = _surface_key(payload)
+        if surface_key and payload_surface_key and payload_surface_key != surface_key:
+            continue
         if payload:
             return payload
     return {}
@@ -512,13 +579,20 @@ def _operator_payload_from_ref(
     study_id: str,
     dispatch: Mapping[str, Any],
     request_payload: Mapping[str, Any],
+    surface_key: str | None,
 ) -> dict[str, Any]:
     for ref in _operator_payload_ref_candidates(dispatch, request_payload):
         payload = _read_owner_payload_ref(profile=profile, study_id=study_id, ref=ref)
-        operator_payload = _operator_payload(payload)
+        declared_surface_key = _declared_surface_key(payload)
+        if surface_key and declared_surface_key and declared_surface_key != surface_key:
+            continue
+        operator_payload = _operator_payload(payload, surface_key=surface_key)
         if operator_payload:
             return operator_payload
         target_payload = _mapping(_mapping(payload.get("payload_authoring_target")).get("operator_payload"))
+        target_surface_key = _surface_key(target_payload)
+        if surface_key and target_surface_key and target_surface_key != surface_key:
+            continue
         if target_payload:
             return target_payload
     return {}
@@ -578,13 +652,19 @@ def _payload_candidates(dispatch: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def _surface_key(dispatch: Mapping[str, Any]) -> str | None:
+    if text := _declared_surface_key(dispatch):
+        return text
+    for payload in _payload_candidates(dispatch):
+        if text := _text(payload.get("surface_key")):
+            return text
+    return None
+
+
+def _declared_surface_key(dispatch: Mapping[str, Any]) -> str | None:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     handoff_packet = _mapping(dispatch.get("handoff_packet"))
     owner_pickup = _mapping(dispatch.get("owner_pickup")) or _mapping(handoff_packet.get("owner_pickup"))
     for payload in (dispatch, prompt_contract, handoff_packet, owner_pickup):
-        if text := _text(payload.get("surface_key")):
-            return text
-    for payload in _payload_candidates(dispatch):
         if text := _text(payload.get("surface_key")):
             return text
     return None
@@ -598,6 +678,14 @@ def _action_id(dispatch: Mapping[str, Any], surface_key: str) -> str:
         if action_id:
             return action_id
     return DEFAULT_ACTION_ID_BY_SURFACE.get(surface_key, f"complete_{surface_key}")
+
+
+def _operator_idempotency_key(*, dispatch: Mapping[str, Any], surface_key: str, action_id: str) -> str | None:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    base_key = _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key"))
+    if not base_key:
+        return None
+    return f"{base_key}::surface::{surface_key}::action::{action_id}"
 
 
 def _authority_boundary(*, writes_readiness: bool, writes_owner_blocker: bool) -> dict[str, Any]:
@@ -637,6 +725,12 @@ def _text_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [text for item in value if (text := _text(item))]
+
+
+def _sequence(value: object) -> list[object]:
+    if isinstance(value, list | tuple):
+        return list(value)
+    return []
 
 
 __all__ = ["execute_complete_medical_paper_readiness_surface"]

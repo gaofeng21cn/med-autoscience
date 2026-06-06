@@ -17,6 +17,9 @@ ACTIONS_ROOT = Path("artifacts/medical_paper/actions")
 
 ACTION_SURFACE_KEYS: dict[str, str] = {
     "run_provider_literature_scout": "literature_provider_runtime",
+    "materialize_study_line_selection": "study_line_selection",
+    "materialize_archetype_analysis_contract": "archetype_analysis_contract",
+    "materialize_bounded_analysis_candidate_board": "bounded_analysis_candidate_board",
     "materialize_route_decision": "route_decision_orchestrator",
     "resolve_statistical_blockers": "statistical_discipline_operations",
     "start_revision_rebuttal_loop": "revision_rebuttal_loop",
@@ -139,6 +142,7 @@ def dispatch_guarded_medical_paper_operator_action(
     operator_payload: Mapping[str, Any] | None = None,
     action_instance_id: str | None = None,
     idempotency_key: str | None = None,
+    apply: bool = True,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     expected_surface_key = ACTION_SURFACE_KEYS.get(action_id)
@@ -228,6 +232,7 @@ def dispatch_guarded_medical_paper_operator_action(
         study_root=resolved_study_root,
         surface_key=expected_surface_key,
         payload=operator_payload,
+        apply=apply,
     )
     status = _text(materialized.get("status")) or "blocked"
     missing_reason = _text(materialized.get("missing_reason"))
@@ -252,6 +257,7 @@ def dispatch_guarded_medical_paper_operator_action(
         "mechanical_projection_can_authorize_quality": False,
         "duplicate_submit_detected": False,
         "replay": False,
+        "dry_run": not apply,
         "reconciliation": "new_result",
         "action_result_ref": str(result_ref),
         "retry_governance": _retry_governance(
@@ -262,11 +268,12 @@ def dispatch_guarded_medical_paper_operator_action(
         ),
         "materializer_result": materialized,
     }
-    _write_action_result_and_ledger(
-        study_root=resolved_study_root,
-        idempotency_key=resolved_idempotency_key,
-        result=result,
-    )
+    if apply:
+        _write_action_result_and_ledger(
+            study_root=resolved_study_root,
+            idempotency_key=resolved_idempotency_key,
+            result=result,
+        )
     return result
 
 

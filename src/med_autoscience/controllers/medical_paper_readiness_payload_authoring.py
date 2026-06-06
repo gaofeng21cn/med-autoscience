@@ -11,18 +11,27 @@ import yaml
 from med_autoscience.adapters.literature import doi as crossref
 from med_autoscience.adapters.literature import pubmed
 from med_autoscience.adapters.literature import semantic_scholar
+from med_autoscience.controllers import medical_analysis_contract
+from med_autoscience.controllers import study_line_decision_engine
+from med_autoscience.profiles import WorkspaceProfile
 
 
 SOURCE = "medical_paper_readiness_owner_payload_authoring"
 SURFACE = "medical_paper_readiness_operator_payload_authoring"
 SCHEMA_VERSION = 1
-SUPPORTED_SURFACE_KEYS = {"literature_provider_runtime"}
+SUPPORTED_SURFACE_KEYS = {
+    "literature_provider_runtime",
+    "study_line_selection",
+    "archetype_analysis_contract",
+    "bounded_analysis_candidate_board",
+}
 
 
 def author_operator_payload(
     *,
     study_root: Path,
     surface_key: str | None,
+    profile: WorkspaceProfile | None = None,
     generated_at: str | None = None,
     write_provider_response_ledger: bool = False,
 ) -> dict[str, Any]:
@@ -30,6 +39,21 @@ def author_operator_payload(
         return _blocked_payload("unsupported_surface_key", surface_key=surface_key)
     root = Path(study_root).expanduser().resolve()
     timestamp = _text(generated_at) or _utc_now()
+    if _text(surface_key) == "study_line_selection":
+        payload = _payload_from_existing_study_line_decision(study_root=root)
+        if payload:
+            return payload
+        return _blocked_payload("insufficient_study_line_selection_payload_sources", surface_key=surface_key)
+    if _text(surface_key) == "archetype_analysis_contract":
+        payload = _payload_from_medical_analysis_contract(study_root=root, profile=profile)
+        if payload:
+            return payload
+        return _blocked_payload("insufficient_archetype_analysis_contract_payload_sources", surface_key=surface_key)
+    if _text(surface_key) == "bounded_analysis_candidate_board":
+        payload = _payload_from_analysis_contract_candidate_board(study_root=root)
+        if payload:
+            return payload
+        return _blocked_payload("insufficient_bounded_analysis_candidate_board_payload_sources", surface_key=surface_key)
     existing = _payload_from_existing_literature_intelligence(study_root=root, generated_at=timestamp)
     if existing:
         return existing
@@ -42,6 +66,113 @@ def author_operator_payload(
     if provider_backed:
         return provider_backed
     return _blocked_payload("insufficient_literature_provider_payload_sources", surface_key=surface_key)
+
+
+def _payload_from_medical_analysis_contract(
+    *,
+    study_root: Path,
+    profile: WorkspaceProfile | None,
+) -> dict[str, Any]:
+    if profile is None:
+        return {}
+    study_payload = _read_yaml(study_root / "study.yaml")
+    if not study_payload:
+        return {}
+    payload = medical_analysis_contract.resolve_medical_analysis_contract_for_study(
+        study_root=study_root,
+        study_payload=dict(study_payload),
+        profile=profile,
+    )
+    if _text(payload.get("status")) != "resolved":
+        return {}
+    return {
+        **dict(payload),
+        "payload_source": SOURCE,
+        "source_basis": "study_metadata_medical_analysis_contract_resolver",
+        "source_refs": [str(study_root / "study.yaml")],
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
+def _payload_from_existing_study_line_decision(*, study_root: Path) -> dict[str, Any]:
+    canonical = _read_json(study_line_decision_engine.stable_study_line_decision_path(study_root=study_root))
+    if _selected_study_line_decision(canonical):
+        return canonical
+    route_decision = _read_json(study_root / "artifacts" / "medical_paper" / "route_decision_orchestrator.json")
+    nested = _mapping(route_decision.get("study_line_decision"))
+    if _selected_study_line_decision(nested):
+        return {
+            **dict(nested),
+            "payload_source": SOURCE,
+            "source_basis": "route_decision_orchestrator.study_line_decision",
+            "source_refs": [str(study_root / "artifacts" / "medical_paper" / "route_decision_orchestrator.json")],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        }
+    scorecard = _mapping(route_decision.get("scorecard"))
+    if _selected_study_line_decision(scorecard):
+        return {
+            **dict(scorecard),
+            "payload_source": SOURCE,
+            "source_basis": "route_decision_orchestrator.scorecard",
+            "source_refs": [str(study_root / "artifacts" / "medical_paper" / "route_decision_orchestrator.json")],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        }
+    return {}
+
+
+def _payload_from_analysis_contract_candidate_board(*, study_root: Path) -> dict[str, Any]:
+    path = study_root / "paper" / "medical_analysis_contract.json"
+    contract = _read_json(path)
+    if _text(contract.get("status")) != "resolved":
+        return {}
+    packages = [_text(item) for item in _list(contract.get("required_analysis_packages")) if _text(item)]
+    if not packages:
+        return {}
+    candidates = [
+        {
+            "analysis_package": package,
+            "target_claim": _target_claim_for_package(package=package, contract=contract),
+            "expected_evidence_gain": f"Evaluate {package} against the active medical analysis contract.",
+            "cost_risk": "bounded",
+            "statistical_risk": "bounded_analysis_scope_requires_owner_review",
+            "clinical_interpretability": "owner-review-required-before-quality-claim",
+            "decision": "explore",
+            "decision_reason": (
+                "Generated from the resolved archetype analysis contract as a bounded candidate; "
+                "this does not authorize a quality verdict."
+            ),
+        }
+        for package in packages
+    ]
+    return {
+        "surface": "bounded_analysis_candidate_board",
+        "schema_version": SCHEMA_VERSION,
+        "status": "present",
+        "candidates": candidates,
+        "payload_source": SOURCE,
+        "source_basis": "resolved_archetype_analysis_contract_required_packages",
+        "source_refs": [str(path)],
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
+def _target_claim_for_package(*, package: str, contract: Mapping[str, Any]) -> str:
+    context = _mapping(contract.get("target_context"))
+    primary_endpoint = _text(context.get("primary_endpoint")) or _text(contract.get("endpoint_type")) or "primary endpoint"
+    archetype = _text(contract.get("study_archetype")) or "medical study"
+    return f"{package} support for {archetype} on {primary_endpoint}"
+
+
+def _selected_study_line_decision(payload: Mapping[str, Any]) -> bool:
+    return (
+        payload.get("surface") == study_line_decision_engine.SURFACE
+        and _text(payload.get("status")) == "selected"
+        and bool(_text(payload.get("selected_line_id")))
+    )
 
 
 def _payload_from_existing_literature_intelligence(*, study_root: Path, generated_at: str) -> dict[str, Any]:
