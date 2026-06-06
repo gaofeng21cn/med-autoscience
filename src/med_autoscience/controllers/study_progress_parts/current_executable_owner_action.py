@@ -6,9 +6,16 @@ from typing import Any
 from .shared import _mapping_copy, _non_empty_text
 
 SURFACE_KIND = "current_executable_owner_action"
+PUBLICATION_HANDOFF_ACTION = "publication_handoff_owner_gate"
+READINESS_ACTION = "complete_medical_paper_readiness_surface"
+READINESS_BLOCKER = "medical_paper_readiness_not_ready"
+READINESS_OWNER = "MedAutoScience"
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    readiness_followup = _from_stage_kernel_readiness_followup(payload)
+    if readiness_followup is not None:
+        return readiness_followup
     artifact_action = _from_stage_artifact_index(payload)
     if artifact_action is not None:
         return artifact_action
@@ -41,6 +48,50 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
                 next_forced_delta.get("target_surface_specificity")
             ),
             "acceptance_refs": _text_items(next_forced_delta.get("acceptance_refs")),
+            "authority_boundary": _authority_boundary(),
+        }
+    )
+
+
+def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    readiness = _mapping_copy(payload.get("medical_paper_readiness"))
+    if _non_empty_text(readiness.get("overall_status")) == "ready":
+        return None
+    delta = _current_owner_delta(payload)
+    if _non_empty_text(delta.get("action")) != READINESS_ACTION:
+        return None
+    if _non_empty_text(delta.get("reason")) != READINESS_BLOCKER:
+        return None
+    source_ref = _non_empty_text(delta.get("source_ref"))
+    return _compact(
+        {
+            "surface_kind": SURFACE_KIND,
+            "schema_version": 1,
+            "status": "ready",
+            "source": "stage_kernel_projection.current_owner_delta",
+            "next_owner": _non_empty_text(delta.get("owner")) or READINESS_OWNER,
+            "work_unit_id": READINESS_ACTION,
+            "allowed_actions": [READINESS_ACTION],
+            "owner_receipt_required": True,
+            "required_delta_kind": "medical_paper_readiness_surface_or_typed_blocker",
+            "target_surface": {
+                "ref_kind": "mas_owner_surface",
+                "surface_ref": _non_empty_text(delta.get("required_input")) or READINESS_ACTION,
+                "blocked_surface": _non_empty_text(delta.get("blocked_surface"))
+                or PUBLICATION_HANDOFF_ACTION,
+            },
+            "target_surface_specificity": "stage_kernel_typed_blocker_followup",
+            "acceptance_refs": _text_items(delta.get("acceptance_refs")),
+            "blocked_surface": _non_empty_text(delta.get("blocked_surface")) or PUBLICATION_HANDOFF_ACTION,
+            "source_ref": source_ref,
+            "latest_owner_answer_ref": _non_empty_text(delta.get("latest_owner_answer_ref")) or source_ref,
+            "latest_owner_answer_kind": _non_empty_text(delta.get("latest_owner_answer_kind"))
+            or _non_empty_text(delta.get("source_kind")),
+            "artifact_first_precedence": {
+                "superseded_stage_artifact_action": PUBLICATION_HANDOFF_ACTION,
+                "reason": READINESS_BLOCKER,
+                "typed_blocker_followup_takes_precedence": True,
+            },
             "authority_boundary": _authority_boundary(),
         }
     )
@@ -118,6 +169,18 @@ def _from_domain_transition(payload: Mapping[str, Any]) -> dict[str, Any] | None
             "authority_boundary": _authority_boundary(),
         }
     )
+
+
+def _current_owner_delta(payload: Mapping[str, Any]) -> dict[str, Any]:
+    direct = _mapping_copy(payload.get("current_owner_delta"))
+    if direct:
+        return direct
+    stage_kernel = _mapping_copy(payload.get("stage_kernel_projection"))
+    delta = _mapping_copy(stage_kernel.get("current_owner_delta"))
+    if delta:
+        return delta
+    stage_run_kernel = _mapping_copy(stage_kernel.get("stage_run_kernel"))
+    return _mapping_copy(stage_run_kernel.get("current_owner_delta"))
 
 
 def _mapping_items(value: object) -> list[dict[str, Any]]:

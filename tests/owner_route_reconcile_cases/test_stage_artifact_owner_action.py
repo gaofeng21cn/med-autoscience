@@ -227,6 +227,11 @@ def test_scan_domain_routes_promotes_handoff_typed_blocker_followup_action(
     )
 
     study = result["studies"][0]
+    assert study["current_executable_owner_action"]["source"] == "stage_kernel_projection.current_owner_delta"
+    assert study["current_executable_owner_action"]["allowed_actions"] == [
+        "complete_medical_paper_readiness_surface"
+    ]
+    assert study["current_executable_owner_action"]["blocked_surface"] == "publication_handoff_owner_gate"
     assert [action["action_type"] for action in study["action_queue"]] == [
         "complete_medical_paper_readiness_surface"
     ]

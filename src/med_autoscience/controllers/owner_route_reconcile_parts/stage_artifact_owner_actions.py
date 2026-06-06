@@ -127,6 +127,10 @@ def projection_fields(progress: Mapping[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     if _text(stage_artifact_index.get("surface_kind")) == "stage_artifact_index":
         result["stage_artifact_index"] = stage_artifact_index
+    followup = typed_blocker_followup_action(progress)
+    if followup is not None:
+        result["current_executable_owner_action"] = _projection_action_from_followup(followup)
+        return result
     if _text(current_action.get("surface_kind")) == "current_executable_owner_action":
         result["current_executable_owner_action"] = current_action
     return result
@@ -140,6 +144,43 @@ def _stage_artifact_contract_refs(owner_action: Mapping[str, Any]) -> dict[str, 
         "domain_stage_pack_ref": _text(owner_action.get("domain_stage_pack_ref")),
     }
     return {key: value for key, value in refs.items() if value is not None}
+
+
+def _projection_action_from_followup(action: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface_kind": "current_executable_owner_action",
+        "schema_version": 1,
+        "status": "ready",
+        "source": _text(action.get("source_surface")) or "stage_kernel_projection.current_owner_delta",
+        "next_owner": _text(action.get("owner")) or READINESS_OWNER,
+        "work_unit_id": _text(action.get("work_unit_id")) or READINESS_ACTION_TYPE,
+        "allowed_actions": [_text(action.get("action_type")) or READINESS_ACTION_TYPE],
+        "owner_receipt_required": True,
+        "required_delta_kind": "medical_paper_readiness_surface_or_typed_blocker",
+        "target_surface": {
+            "ref_kind": "mas_owner_surface",
+            "surface_ref": _text(action.get("required_output_surface")) or READINESS_ACTION_TYPE,
+            "blocked_surface": _text(action.get("blocked_surface")) or ACTION_TYPE,
+        },
+        "target_surface_specificity": "stage_kernel_typed_blocker_followup",
+        "blocked_surface": _text(action.get("blocked_surface")) or ACTION_TYPE,
+        "source_ref": _text(action.get("source_ref")),
+        "latest_owner_answer_ref": _text(action.get("latest_owner_answer_ref"))
+        or _text(action.get("source_ref")),
+        "latest_owner_answer_kind": _text(action.get("latest_owner_answer_kind")),
+        "artifact_first_precedence": {
+            "superseded_stage_artifact_action": ACTION_TYPE,
+            "reason": _text(action.get("reason")) or "medical_paper_readiness_not_ready",
+            "typed_blocker_followup_takes_precedence": True,
+        },
+        "authority_boundary": {
+            "refs_only": True,
+            "can_write_runtime_owned_surfaces": False,
+            "can_write_paper_or_package": False,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_publication_ready": False,
+        },
+    }
 
 
 def _current_owner_delta(progress: Mapping[str, Any]) -> dict[str, Any]:

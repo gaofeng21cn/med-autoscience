@@ -145,6 +145,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     owner_action_visible = (
         artifact_first_owner_action
+        or _stage_kernel_owner_action(current_action)
         or handoff_owner_action is not None
         or (transition_consumed_owner_action and gate_clearing_dispatch_consumption is None)
     )
@@ -772,6 +773,13 @@ def _foreground_write_policy(value: object) -> dict[str, Any]:
             else "follow_mas_owner_controller_runtime_path"
         ),
     }
+
+
+def _stage_kernel_owner_action(action: Mapping[str, Any]) -> bool:
+    return (
+        _text(action.get("source")) == "stage_kernel_projection.current_owner_delta"
+        and bool(_sequence(action.get("allowed_actions")))
+    )
 
 
 def _current_blockers(

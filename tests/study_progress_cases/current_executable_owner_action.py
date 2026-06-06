@@ -956,3 +956,58 @@ def test_progress_first_monitoring_keeps_publication_owner_gate_blocker_over_ter
     assert monitoring["typed_blocker"]["blocker_id"] == "publishability_gate_blocked"
     assert monitoring["next_owner"] == "ai_reviewer"
     assert monitoring["current_executable_owner_action"] is None
+
+
+def test_progress_first_monitoring_prefers_handoff_typed_blocker_readiness_followup_over_terminal_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "medical_paper_readiness": {"overall_status": "blocked"},
+            "stage_artifact_index": {
+                "surface_kind": "stage_artifact_index",
+                "current_stage": {
+                    "stage_id": "08-publication_package_handoff",
+                    "artifact_status": "artifact_delta_present",
+                    "next_missing_surface": None,
+                },
+                "next_owner_action": {
+                    "owner": "08-publication_package_handoff",
+                    "next_owner": "publication_gate_owner",
+                    "action_type": "publication_handoff_owner_gate",
+                    "allowed_actions": ["publication_handoff_owner_gate"],
+                    "required_delta_kind": "publication_handoff_owner_receipt_or_typed_blocker",
+                    "work_unit_id": "publication_handoff_owner_gate",
+                    "terminal_publication_handoff": True,
+                    "artifact_first_authority": True,
+                },
+            },
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "owner": "MedAutoScience",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "reason": "medical_paper_readiness_not_ready",
+                    "required_input": "complete_medical_paper_readiness_surface",
+                    "blocked_surface": "publication_handoff_owner_gate",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                    "source_kind": "typed_blocker",
+                }
+            },
+        }
+    )
+
+    action = monitoring["current_executable_owner_action"]
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["next_owner"] == "MedAutoScience"
+    assert monitoring["controller_action"] == "complete_medical_paper_readiness_surface"
+    assert monitoring["next_work_unit"] == "complete_medical_paper_readiness_surface"
+    assert action["source"] == "stage_kernel_projection.current_owner_delta"
+    assert action["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
+    assert action["blocked_surface"] == "publication_handoff_owner_gate"
+    assert action["artifact_first_precedence"]["typed_blocker_followup_takes_precedence"] is True
