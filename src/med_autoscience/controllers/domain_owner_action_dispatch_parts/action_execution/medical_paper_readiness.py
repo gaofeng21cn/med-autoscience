@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,13 @@ def execute_complete_medical_paper_readiness_surface(
         or _text(_mapping(current_readiness.get("next_action")).get("surface_key"))
     )
     operator_payload = _operator_payload(dispatch_payload) or _operator_payload(request_payload)
+    if not operator_payload:
+        operator_payload = _operator_payload_from_ref(
+            profile=profile,
+            study_id=study_id,
+            dispatch=dispatch_payload,
+            request_payload=request_payload,
+        )
     if not operator_payload:
         blocker = medical_paper_readiness_owner_blocker.materialize_readiness_owner_blocker(
             study_root=study_root,
@@ -164,6 +172,61 @@ def _operator_payload(dispatch: Mapping[str, Any]) -> dict[str, Any]:
         if payload:
             return payload
     return {}
+
+
+def _operator_payload_from_ref(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+    request_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    for ref in _operator_payload_ref_candidates(dispatch, request_payload):
+        payload = _read_owner_payload_ref(profile=profile, study_id=study_id, ref=ref)
+        operator_payload = _operator_payload(payload)
+        if operator_payload:
+            return operator_payload
+        target_payload = _mapping(_mapping(payload.get("payload_authoring_target")).get("operator_payload"))
+        if target_payload:
+            return target_payload
+    return {}
+
+
+def _operator_payload_ref_candidates(*dispatches: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for dispatch in dispatches:
+        prompt_contract = _mapping(dispatch.get("prompt_contract"))
+        handoff_packet = _mapping(dispatch.get("handoff_packet"))
+        owner_pickup = _mapping(dispatch.get("owner_pickup")) or _mapping(handoff_packet.get("owner_pickup"))
+        refs.extend(
+            ref
+            for ref in (
+                _text(dispatch.get("operator_payload_ref")),
+                _text(dispatch.get("medical_paper_readiness_payload_ref")),
+                _text(prompt_contract.get("operator_payload_ref")),
+                _text(prompt_contract.get("medical_paper_readiness_payload_ref")),
+                _text(handoff_packet.get("operator_payload_ref")),
+                _text(handoff_packet.get("medical_paper_readiness_payload_ref")),
+                _text(owner_pickup.get("operator_payload_ref")),
+                _text(owner_pickup.get("medical_paper_readiness_payload_ref")),
+                _text(dispatch.get("request_packet_ref")),
+                _text(prompt_contract.get("request_packet_ref")),
+                _text(handoff_packet.get("request_packet_ref")),
+            )
+            if ref
+        )
+    return list(dict.fromkeys(refs))
+
+
+def _read_owner_payload_ref(*, profile: WorkspaceProfile, study_id: str, ref: str) -> dict[str, Any]:
+    path = Path(ref).expanduser()
+    if not path.is_absolute():
+        path = profile.studies_root / study_id / path
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 def _payload_candidates(dispatch: Mapping[str, Any]) -> list[dict[str, Any]]:

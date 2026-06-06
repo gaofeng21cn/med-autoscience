@@ -44,6 +44,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/requests/ai_reviewer/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/quality_repair_batch/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/gate_clearing_batch/latest.json",
+    "studies/<study_id>/artifacts/supervision/requests/medical_paper_readiness/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/analysis_harmonization/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/source_provenance/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/decision/latest.json",

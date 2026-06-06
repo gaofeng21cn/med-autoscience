@@ -139,3 +139,120 @@ def test_materialize_domain_action_requests_dispatches_stage_artifact_publicatio
     )
     assert request_path.is_file()
     assert persisted_dispatch_path.is_file()
+
+
+def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_payload_ref(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": "quest-dm002",
+        "truth_epoch": "truth-epoch-dm002-readiness",
+        "runtime_health_epoch": "runtime-health-epoch-dm002-readiness",
+        "work_unit_fingerprint": "stage-current-owner-delta::complete_medical_paper_readiness_surface::typed-blocker",
+        "failure_signature": "medical_paper_readiness_not_ready",
+        "trace_id": "owner-route-trace::dm002::medical-paper-readiness",
+        "route_epoch": "truth-epoch-dm002-readiness",
+        "source_fingerprint": "truth-source-dm002-readiness",
+        "current_owner": "mas_controller",
+        "next_owner": "MedAutoScience",
+        "owner_reason": "medical_paper_readiness_not_ready",
+        "active_run_id": None,
+        "allowed_actions": ["complete_medical_paper_readiness_surface"],
+        "blocked_actions": [],
+        "source_refs": {
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "work_unit_fingerprint": "stage-current-owner-delta::complete_medical_paper_readiness_surface::typed-blocker",
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-epoch-dm002-readiness",
+                "runtime_health_epoch": "runtime-health-epoch-dm002-readiness",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "work_unit_fingerprint": "stage-current-owner-delta::complete_medical_paper_readiness_surface::typed-blocker",
+            },
+        },
+        "idempotency_key": "owner-route::dm002::medical-paper-readiness",
+    }
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": "quest-dm002",
+                    "owner_route": owner_route,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": "quest-dm002",
+                            "action_type": "complete_medical_paper_readiness_surface",
+                            "authority": "mas_owner_surface",
+                            "owner": "MedAutoScience",
+                            "request_owner": "MedAutoScience",
+                            "recommended_owner": "MedAutoScience",
+                            "reason": "medical_paper_readiness_not_ready",
+                            "required_output_surface": "complete_medical_paper_readiness_surface",
+                            "surface_key": "literature_provider_runtime",
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": (
+                                "stage-current-owner-delta::"
+                                "complete_medical_paper_readiness_surface::typed-blocker"
+                            ),
+                            "owner_route": owner_route,
+                            "handoff_packet": {
+                                "action_type": "complete_medical_paper_readiness_surface",
+                                "request_owner": "MedAutoScience",
+                                "recommended_owner": "MedAutoScience",
+                                "surface_key": "literature_provider_runtime",
+                                "owner_route": owner_route,
+                                "idempotency_key": owner_route["idempotency_key"],
+                            },
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    task = result["request_tasks"][0]
+    dispatch = result["default_executor_dispatches"][0]
+    request_ref = "artifacts/supervision/requests/medical_paper_readiness/latest.json"
+    request_path = study_root / request_ref
+    persisted_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "complete_medical_paper_readiness_surface.json"
+    )
+    assert task["dispatch_status"] == "applied"
+    assert task["surface_key"] == "literature_provider_runtime"
+    assert task["operator_payload_ref"] == request_ref
+    assert task["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
+    assert task["payload_authoring_target"]["operator_payload_contract"]["empty_payload_is_not_success_evidence"] is True
+    assert "operator_payload" not in json.loads(request_path.read_text(encoding="utf-8"))
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["surface_key"] == "literature_provider_runtime"
+    assert dispatch["operator_payload_ref"] == request_ref
+    assert dispatch["prompt_contract"]["surface_key"] == "literature_provider_runtime"
+    assert dispatch["prompt_contract"]["operator_payload_ref"] == request_ref
+    assert dispatch["prompt_contract"]["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
+    assert request_path.is_file()
+    assert persisted_dispatch_path.is_file()

@@ -13,6 +13,8 @@ from med_autoscience.controllers.default_executor_action_policy import (
 )
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
+READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
+
 
 def request_task(
     *,
@@ -40,6 +42,7 @@ def request_task(
     required_output_surface = _required_output_surface(action, action_type)
     required_output_target_surface = request_output_target_surface_for_action_type(action_type)
     request_packet_ref = request_packet_ref_for_action_type(action_type)
+    readiness_request = _readiness_request_enrichment(action=action, action_type=action_type)
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(action.get("owner_route")) or _mapping(handoff_packet.get("owner_route"))
     )
@@ -77,6 +80,7 @@ def request_task(
         request_packet_ref=request_packet_ref,
         owner_pickup=owner_pickup,
         effective_mode=_text(developer_mode_payload.get("mode")),
+        readiness_request=readiness_request,
     )
     return {
         "surface": "supervisor_request_handoff_task",
@@ -97,6 +101,7 @@ def request_task(
             else {}
         ),
         "request_packet_ref": request_packet_ref,
+        **readiness_request,
         "owner_pickup": owner_pickup,
         "owner_route": owner_route or None,
         "idempotency_key": idempotency_key,
@@ -171,7 +176,9 @@ def request_task_handoff_packet(
     request_packet_ref: str,
     owner_pickup: Mapping[str, Any],
     effective_mode: str | None,
+    readiness_request: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    readiness_request_payload = dict(readiness_request or {})
     return {
         **dict(source_handoff),
         "surface": "supervisor_request_handoff_packet",
@@ -193,6 +200,7 @@ def request_task_handoff_packet(
         "owner_route": owner_route or None,
         "idempotency_key": idempotency_key,
         "request_packet_ref": request_packet_ref,
+        **readiness_request_payload,
         "owner_pickup": dict(owner_pickup),
         "supervisor_authority_boundary": "request_only",
         "consumer_mutation_scope": "supervision_handoff_only",
@@ -211,6 +219,53 @@ def request_task_handoff_packet(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
         "platform_code_mutation_allowed": False,
+    }
+
+
+def _readiness_request_enrichment(*, action: Mapping[str, Any], action_type: str) -> dict[str, Any]:
+    if action_type != READINESS_ACTION_TYPE:
+        return {}
+    handoff_packet = _mapping(action.get("handoff_packet"))
+    surface_key = (
+        _text(action.get("surface_key"))
+        or _text(handoff_packet.get("surface_key"))
+        or _text(_mapping(action.get("next_action")).get("surface_key"))
+        or _text(_mapping(handoff_packet.get("next_action")).get("surface_key"))
+    )
+    if surface_key is None:
+        return {}
+    operator_payload = (
+        _mapping(action.get("operator_payload"))
+        or _mapping(action.get("medical_paper_readiness_payload"))
+        or _mapping(handoff_packet.get("operator_payload"))
+        or _mapping(handoff_packet.get("medical_paper_readiness_payload"))
+    )
+    payload_authoring_target = {
+        "surface": "medical_paper_readiness_operator_payload_authoring_target",
+        "schema_version": 1,
+        "study_id": _text(action.get("study_id")),
+        "quest_id": _text(action.get("quest_id")) or _text(handoff_packet.get("quest_id")),
+        "action_type": READINESS_ACTION_TYPE,
+        "surface_key": surface_key,
+        "operator_payload": operator_payload or None,
+        "operator_payload_contract": {
+            "required": ["operator_payload"],
+            "payload_owner": "MedAutoScience",
+            "surface_key": surface_key,
+            "payload_must_be_domain_authored": True,
+            "empty_payload_is_not_success_evidence": True,
+        },
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+    return {
+        "surface_key": surface_key,
+        "operator_payload_ref": request_packet_ref_for_action_type(READINESS_ACTION_TYPE),
+        "medical_paper_readiness_payload_ref": request_packet_ref_for_action_type(READINESS_ACTION_TYPE),
+        "operator_payload_present": bool(operator_payload),
+        "operator_payload": operator_payload if operator_payload else None,
+        "medical_paper_readiness_payload": operator_payload if operator_payload else None,
+        "payload_authoring_target": payload_authoring_target,
     }
 
 

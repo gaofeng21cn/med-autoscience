@@ -107,6 +107,8 @@ def request_packet_for_persistence(
     packet_path: Path,
 ) -> dict[str, Any]:
     packet = _mapping(task.get("handoff_packet"))
+    if _text(task.get("action_type")) == "complete_medical_paper_readiness_surface":
+        return medical_paper_readiness_packet_for_persistence(packet=packet)
     if _text(task.get("action_type")) != "return_to_ai_reviewer_workflow":
         return packet
     action = _mapping(task.get("source_action"))
@@ -138,6 +140,21 @@ def request_packet_for_persistence(
         study_root=study_root,
         packet=packet,
     )
+
+
+def medical_paper_readiness_packet_for_persistence(*, packet: Mapping[str, Any]) -> dict[str, Any]:
+    persisted = dict(packet)
+    if persisted.get("operator_payload") is None:
+        persisted.pop("operator_payload", None)
+    if persisted.get("medical_paper_readiness_payload") is None:
+        persisted.pop("medical_paper_readiness_payload", None)
+    target = _mapping(persisted.get("payload_authoring_target"))
+    if target:
+        target = dict(target)
+        if target.get("operator_payload") is None:
+            target.pop("operator_payload", None)
+        persisted["payload_authoring_target"] = target
+    return persisted
 
 
 def source_workflow_ref_for_ai_reviewer_request(
