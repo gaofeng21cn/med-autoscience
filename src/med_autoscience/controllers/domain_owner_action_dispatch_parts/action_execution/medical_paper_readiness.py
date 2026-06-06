@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience.controllers import medical_paper_operator_actions
 from med_autoscience.controllers import medical_paper_readiness as readiness_surface
 from med_autoscience.controllers import medical_paper_readiness_owner_blocker
+from med_autoscience.controllers import medical_paper_readiness_payload_authoring
 from med_autoscience.controllers.domain_owner_action_dispatch_parts import owner_request_paths
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -51,6 +52,15 @@ def execute_complete_medical_paper_readiness_surface(
             dispatch=dispatch_payload,
             request_payload=request_payload,
         )
+    authored_payload: dict[str, Any] = {}
+    if not operator_payload:
+        authored_payload = medical_paper_readiness_payload_authoring.author_operator_payload(
+            study_root=study_root,
+            surface_key=surface_key,
+            write_provider_response_ledger=apply,
+        )
+        if _text(authored_payload.get("status")) != "blocked":
+            operator_payload = authored_payload
     if not operator_payload:
         blocker = medical_paper_readiness_owner_blocker.materialize_readiness_owner_blocker(
             study_root=study_root,
@@ -66,6 +76,7 @@ def execute_complete_medical_paper_readiness_surface(
                 "readiness_ref": str(readiness_surface.stable_medical_paper_readiness_path(study_root=study_root)),
                 "requested_surface_key": surface_key,
                 "missing_operator_payload": True,
+                "operator_payload_authoring": authored_payload or None,
                 "owner_blocker": blocker,
                 "quality_claim_authorized": False,
                 "mechanical_projection_can_authorize_quality": False,

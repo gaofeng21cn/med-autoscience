@@ -23,6 +23,7 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     supervisor_request_packets,
     writer_handoff_preservation,
 )
+from med_autoscience.controllers import medical_paper_readiness_payload_authoring
 from med_autoscience.controllers.domain_owner_action_dispatch_parts import output_readiness
 from med_autoscience.controllers.default_executor_action_policy import (
     ALLOWED_WRITE_SURFACES,
@@ -242,7 +243,12 @@ def _default_executor_forbidden_surfaces(owner_route: Mapping[str, Any]) -> list
     return forbidden
 
 
-def _readiness_dispatch_enrichment(action: Mapping[str, Any], action_type: str) -> dict[str, Any]:
+def _readiness_dispatch_enrichment(
+    action: Mapping[str, Any],
+    action_type: str,
+    *,
+    profile: WorkspaceProfile | None = None,
+) -> dict[str, Any]:
     if action_type != READINESS_ACTION_TYPE:
         return {}
     handoff_packet = _mapping(action.get("handoff_packet"))
@@ -260,6 +266,15 @@ def _readiness_dispatch_enrichment(action: Mapping[str, Any], action_type: str) 
         or _mapping(handoff_packet.get("operator_payload"))
         or _mapping(handoff_packet.get("medical_paper_readiness_payload"))
     )
+    if not operator_payload and profile is not None:
+        study_id = _text(action.get("study_id")) or _text(handoff_packet.get("study_id"))
+        if study_id:
+            authored = medical_paper_readiness_payload_authoring.author_operator_payload(
+                study_root=_study_root(profile, study_id),
+                surface_key=surface_key,
+            )
+            if _text(authored.get("status")) != "blocked":
+                operator_payload = authored
     payload_authoring_target = {
         "surface": "medical_paper_readiness_operator_payload_authoring_target",
         "schema_version": SCHEMA_VERSION,
@@ -372,7 +387,7 @@ def _default_executor_dispatch(
     typed_closeout_contract = default_executor_typed_closeout_contract(action_type=action_type)
     forbidden_surfaces = _default_executor_forbidden_surfaces(owner_route)
     required_output_target_surface = _request_output_target_surface_for_action_type(action_type)
-    readiness_dispatch = _readiness_dispatch_enrichment(action, action_type)
+    readiness_dispatch = _readiness_dispatch_enrichment(action, action_type, profile=profile)
     prompt_contract = {
         "study_id": study_id,
         "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
@@ -596,8 +611,9 @@ def _request_task(
 ) -> dict[str, Any]:
     study_id = _text(action.get("study_id")) or "unknown-study"
     action_type = _text(action.get("action_type")) or "unknown_action"
+    action_payload = {**dict(action), "study_root": str(_study_root(profile, study_id))}
     return supervisor_request_packets.request_task(
-        action=action,
+        action=action_payload,
         schema_version=SCHEMA_VERSION,
         developer_mode_payload=developer_mode_payload,
         apply=apply,

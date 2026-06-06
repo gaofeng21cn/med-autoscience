@@ -16,6 +16,17 @@ ENVELOPE_KEYS = (
 )
 ALLOWED_STATE_KINDS = ("parked", "executable_owner_action", "running_provider_attempt", "typed_blocker")
 EVIDENCE_ONLY_SURFACES = ("action_queue", "runtime_health", "no_op")
+LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
+    {
+        "live_worker_requires_worker_running",
+        "managed_runtime_audit_unhealthy",
+        "opl_current_control_state.handoff_required",
+        "opl_stage_attempt_admission_required",
+        "quest_waiting_opl_runtime_owner_route",
+        "runtime_recovery_not_authorized",
+        "runtime_recovery_retry_budget_exhausted",
+    }
+)
 AUTHORITY_BOUNDARY = {
     "surface_kind": "current_execution_envelope",
     "authority": "read_model_projection",
@@ -48,6 +59,33 @@ def build_current_execution_envelope(
         runtime_health=runtime_health,
         extra=conflict_suppression_refs,
     )
+    resolved_typed_blocker = _typed_blocker(typed_blocker, blocked_reason=blocked_reason, owner=next_owner)
+    running_attempt = _running_provider_attempt_state(
+        live_provider_attempt=live_provider_attempt,
+        runtime_health=runtime_health,
+        owner=next_owner,
+    )
+    if running_attempt is not None:
+        if _running_attempt_can_supersede_blocker(resolved_typed_blocker):
+            return _envelope(
+                state_kind="running_provider_attempt",
+                owner=running_attempt["owner"],
+                next_work_unit=running_attempt["next_work_unit"],
+                typed_blocker=None,
+                parked_state=None,
+                source_refs=resolved_source_refs,
+                conflict_suppression_refs=resolved_suppression_refs,
+            )
+        if resolved_typed_blocker is not None:
+            return _envelope(
+                state_kind="typed_blocker",
+                owner=_text(resolved_typed_blocker.get("owner")) or _text(next_owner) or "med-autoscience",
+                next_work_unit=None,
+                typed_blocker=resolved_typed_blocker,
+                parked_state=None,
+                source_refs=resolved_source_refs,
+                conflict_suppression_refs=resolved_suppression_refs,
+            )
     parked = _parked_state(status_payload, progress_payload)
     if parked is not None:
         return _envelope(
@@ -70,22 +108,6 @@ def build_current_execution_envelope(
             source_refs=resolved_source_refs,
             conflict_suppression_refs=resolved_suppression_refs,
         )
-    running_attempt = _running_provider_attempt_state(
-        live_provider_attempt=live_provider_attempt,
-        runtime_health=runtime_health,
-        owner=next_owner,
-    )
-    if running_attempt is not None and not _mapping(typed_blocker):
-        return _envelope(
-            state_kind="running_provider_attempt",
-            owner=running_attempt["owner"],
-            next_work_unit=running_attempt["next_work_unit"],
-            typed_blocker=None,
-            parked_state=None,
-            source_refs=resolved_source_refs,
-            conflict_suppression_refs=resolved_suppression_refs,
-        )
-    resolved_typed_blocker = _typed_blocker(typed_blocker, blocked_reason=blocked_reason, owner=next_owner)
     if resolved_typed_blocker is not None:
         return _envelope(
             state_kind="typed_blocker",
@@ -219,11 +241,20 @@ def _running_provider_attempt_state(
         or _text(attempt.get("next_work_unit"))
         or _text(health.get("work_unit_id"))
         or _text(attempt.get("action_type"))
+        or _text(attempt.get("active_stage_attempt_id"))
+        or _text(attempt.get("active_workflow_id"))
     )
     return {
         "owner": _text(owner) or "supervisor_only/live_provider_attempt",
         "next_work_unit": next_work_unit,
     }
+
+
+def _running_attempt_can_supersede_blocker(blocker: Mapping[str, Any] | None) -> bool:
+    payload = _mapping(blocker)
+    if not payload:
+        return True
+    return _text(payload.get("blocker_type")) in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS
 
 
 def _source_refs(

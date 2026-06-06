@@ -12,6 +12,70 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _write_ready_literature_intelligence(study_root: Path) -> None:
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "literature_intelligence_os.json",
+        {
+            "surface": "literature_intelligence_os",
+            "status": "ready",
+            "search_strategy": {
+                "query": "diabetes mortality prediction",
+                "mesh_terms": ["Diabetes Mellitus"],
+                "keywords": ["diabetes mortality", "transportability"],
+            },
+            "search_date": "2026-06-06",
+            "why_worth_doing": "Provider-backed evidence supports the current study framing.",
+            "provider_provenance": [
+                {
+                    "provider_name": "pubmed",
+                    "query": "diabetes mortality prediction",
+                    "retrieved_at": "2026-06-06T08:00:00Z",
+                    "response_status": "ok",
+                    "source_refs": ["artifacts/medical_paper/provider_responses/pubmed.json"],
+                },
+                {
+                    "provider_name": "crossref",
+                    "query": "diabetes mortality guideline review",
+                    "retrieved_at": "2026-06-06T08:01:00Z",
+                    "response_status": "ok",
+                    "source_refs": ["artifacts/medical_paper/provider_responses/crossref.json"],
+                },
+                {
+                    "provider_name": "semantic_scholar",
+                    "query": "diabetes mortality clinical neighbor",
+                    "retrieved_at": "2026-06-06T08:02:00Z",
+                    "response_status": "ok",
+                    "source_refs": ["artifacts/medical_paper/provider_responses/semantic-scholar.json"],
+                },
+            ],
+            "anchor_papers": ["pmid:12345"],
+            "guidelines": ["guideline:TRIPOD+AI"],
+            "systematic_reviews": ["doi:10.1000/systematic-review"],
+            "journal_neighbor_refs": ["semantic_scholar:S2PAPER1"],
+            "high_score_neighbor_refs": [
+                {
+                    "ref": "semantic_scholar:S2PAPER1",
+                    "score": 0.91,
+                    "score_source_ref": "semantic_scholar:query",
+                }
+            ],
+            "citation_ledger_refs": [
+                "paper/evidence_ledger.json#pmid-12345",
+                "paper/evidence_ledger.json#tripod-ai",
+                "paper/evidence_ledger.json#systematic-review",
+                "paper/evidence_ledger.json#semantic-S2PAPER1",
+            ],
+            "screening_decisions": [
+                {
+                    "ref": "pmid:12345",
+                    "decision": "include",
+                    "reason": "Study anchor.",
+                }
+            ],
+        },
+    )
+
+
 def test_materialize_domain_action_requests_dispatches_stage_artifact_publication_handoff(
     monkeypatch,
     tmp_path: Path,
@@ -150,6 +214,7 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    _write_ready_literature_intelligence(study_root)
     owner_route = {
         "surface": "domain_route_owner_route",
         "schema_version": 2,
@@ -245,13 +310,27 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     assert task["dispatch_status"] == "applied"
     assert task["surface_key"] == "literature_provider_runtime"
     assert task["operator_payload_ref"] == request_ref
+    assert task["operator_payload_present"] is True
+    assert task["operator_payload"]["payload_source"] == "medical_paper_readiness_owner_payload_authoring"
+    assert task["operator_payload"]["provider_payloads"][0]["provider"] == "pubmed"
     assert task["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
+    assert task["payload_authoring_target"]["operator_payload"]["payload_source"] == (
+        "medical_paper_readiness_owner_payload_authoring"
+    )
     assert task["payload_authoring_target"]["operator_payload_contract"]["empty_payload_is_not_success_evidence"] is True
-    assert "operator_payload" not in json.loads(request_path.read_text(encoding="utf-8"))
+    persisted_request = json.loads(request_path.read_text(encoding="utf-8"))
+    assert persisted_request["operator_payload_present"] is True
+    assert persisted_request["operator_payload"]["provider_payloads"][1]["provider"] == "crossref"
     assert dispatch["dispatch_status"] == "ready"
     assert dispatch["surface_key"] == "literature_provider_runtime"
+    assert dispatch["operator_payload_present"] is True
+    assert dispatch["operator_payload"]["provider_payloads"][2]["provider"] == "semantic_scholar"
     assert dispatch["operator_payload_ref"] == request_ref
     assert dispatch["prompt_contract"]["surface_key"] == "literature_provider_runtime"
+    assert dispatch["prompt_contract"]["operator_payload_present"] is True
+    assert dispatch["prompt_contract"]["operator_payload"]["payload_source"] == (
+        "medical_paper_readiness_owner_payload_authoring"
+    )
     assert dispatch["prompt_contract"]["operator_payload_ref"] == request_ref
     assert dispatch["prompt_contract"]["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
     assert request_path.is_file()

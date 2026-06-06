@@ -11,6 +11,7 @@ from med_autoscience.controllers.default_executor_action_policy import (
     request_owner_for_action_type,
     request_packet_ref_for_action_type,
 )
+from med_autoscience.controllers import medical_paper_readiness_payload_authoring
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
@@ -240,6 +241,15 @@ def _readiness_request_enrichment(*, action: Mapping[str, Any], action_type: str
         or _mapping(handoff_packet.get("operator_payload"))
         or _mapping(handoff_packet.get("medical_paper_readiness_payload"))
     )
+    if not operator_payload:
+        study_root = _study_root_from_action(action, handoff_packet)
+        if study_root is not None:
+            authored = medical_paper_readiness_payload_authoring.author_operator_payload(
+                study_root=study_root,
+                surface_key=surface_key,
+            )
+            if _text(authored.get("status")) != "blocked":
+                operator_payload = authored
     payload_authoring_target = {
         "surface": "medical_paper_readiness_operator_payload_authoring_target",
         "schema_version": 1,
@@ -276,6 +286,28 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _study_root_from_action(action: Mapping[str, Any], handoff_packet: Mapping[str, Any]) -> Path | None:
+    for value in (
+        _text(action.get("study_root")),
+        _text(handoff_packet.get("study_root")),
+        _text(action.get("source_study_root")),
+        _text(handoff_packet.get("source_study_root")),
+    ):
+        if value:
+            return Path(value).expanduser().resolve()
+    source_refs = _mapping(action.get("source_refs")) or _mapping(handoff_packet.get("source_refs"))
+    for value in (
+        _text(source_refs.get("study_root")),
+        _text(source_refs.get("study_path")),
+    ):
+        if value:
+            return Path(value).expanduser().resolve()
+    source_ref = _text(action.get("source_ref")) or _text(handoff_packet.get("source_ref"))
+    if source_ref and "/artifacts/" in source_ref:
+        return Path(source_ref.split("/artifacts/", maxsplit=1)[0]).expanduser().resolve()
+    return None
 
 
 def _github_block_reason(developer_mode_payload: Mapping[str, Any], supported_mode: str) -> str | None:

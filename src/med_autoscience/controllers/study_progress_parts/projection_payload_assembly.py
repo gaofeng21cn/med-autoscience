@@ -702,6 +702,7 @@ def assemble_study_progress_payload(
         blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
         next_owner=_non_empty_text(handoff.get("next_owner")),
         runtime_health=runtime_health_snapshot,
+        live_provider_attempt=handoff,
     )
     payload["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
         action_queue=handoff.get("action_queue") if isinstance(handoff.get("action_queue"), list) else [],
