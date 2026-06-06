@@ -41,6 +41,7 @@ Machine boundary: 人读 program/process 历史索引。当前执行顺序、gap
 - [Progress projection JSON alias retirement closeout 2026-06-06](./progress_projection_json_alias_retirement_closeout_2026_06_06.md)
 - [Progress projection command retirement closeout 2026-06-06](./progress_projection_command_retirement_closeout_2026_06_06.md)
 - [Current executable owner action test split closeout 2026-06-06](./current_executable_owner_action_test_split_closeout_2026_06_06.md)
+- [Runtime supervisor dispatch executor helper shim retirement closeout 2026-06-06](./runtime_supervisor_dispatch_executor_helper_shim_retirement_closeout_2026_06_06.md)
 - [Plan Completion Ledger](./plan_completion_ledger.md)
 - [Real-study relaunch verification](./real_study_relaunch_verification.md)
 - [AI-first paper autonomy full record 2026-05-10](./ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)

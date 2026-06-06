@@ -63,6 +63,10 @@ def test_production_code_does_not_import_retired_mas_runtime_transport_modules()
     assert violations == []
 
 
+def test_retired_runtime_supervisor_dispatch_executor_test_helper_is_removed() -> None:
+    assert not (REPO_ROOT / "tests" / "runtime_supervisor_dispatch_executor_helpers.py").exists()
+
+
 def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -> None:
     inventory_path = REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json"
     inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
