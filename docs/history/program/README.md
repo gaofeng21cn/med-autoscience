@@ -45,6 +45,7 @@ Machine boundary: 人读 program/process 历史索引。当前执行顺序、gap
 - [Medical paper readiness surface currentness SSOT closeout 2026-06-06](./medical_paper_readiness_surface_currentness_ssot_closeout_2026_06_06.md)
 - [Medical paper readiness stop-loss surface follow-through closeout 2026-06-07](./medical_paper_readiness_stop_loss_surface_followthrough_closeout_2026_06_07.md)
 - [Medical paper readiness request packet persistence closeout 2026-06-07](./medical_paper_readiness_request_packet_persistence_closeout_2026_06_07.md)
+- [MAS broader docs portfolio SSOT closeout 2026-06-07](./mas_broader_docs_portfolio_ssot_closeout_2026_06_07.md)
 - [Plan Completion Ledger](./plan_completion_ledger.md)
 - [Real-study relaunch verification](./real_study_relaunch_verification.md)
 - [AI-first paper autonomy full record 2026-05-10](./ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)

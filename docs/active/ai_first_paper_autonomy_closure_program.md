@@ -4,7 +4,7 @@ Status: `active_target_and_acceptance_owner`
 Date: `2026-05-16`
 Owner: `MedAutoScience`
 Purpose: `paper_autonomy_acceptance_contract`
-State: `active_plan`
+State: `active_target_and_acceptance_owner`
 Machine boundary: 本文是人读目标和验收合同。机器真相继续归 `study_charter`、evidence/review ledger、`publication_eval/latest.json`、`controller_decisions/latest.json`、`progress_projection`、`domain_health_diagnostic`、domain-handler receipt、owner-route receipt、manuscript/package rebuild proof 和真实 workspace artifact refs。
 
 完整历史记录见 [2026-05-10 AI-first paper autonomy full record](../history/program/ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)。历史 full record 只用于追溯当时的 lane、证据和外部工程参考；当前执行口径以本文、[MAS 当前开发线路](./current-development-lines.md) 和 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 为准。
