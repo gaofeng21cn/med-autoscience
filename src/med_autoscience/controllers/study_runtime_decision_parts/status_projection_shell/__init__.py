@@ -19,7 +19,7 @@ from med_autoscience.controllers.study_runtime_decision_parts.runtime_health_dom
     _record_runtime_health_dominance,
     _record_runtime_recovery_lifecycle_if_required,
 )
-from med_autoscience.controllers.study_runtime_decision_parts.status_projection_shell_parts.read_model_projection_assembly import (
+from med_autoscience.controllers.study_runtime_decision_parts.status_projection_shell.read_model_projection_assembly import (
     attach_status_read_model_projections,
 )
 from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus

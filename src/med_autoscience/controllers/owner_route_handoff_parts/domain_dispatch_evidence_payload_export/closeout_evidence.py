@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.blocked_closeout_materializer import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.blocked_closeout_materializer import (
     materialize_blocked_default_executor_closeout,
 )
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.closeout_io import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.closeout_io import (
     is_matching_owner_receipt_closeout,
     read_json_object,
     relative_stage_attempt_closeout_ref,
 )
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.domain_stage_closeout import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.domain_stage_closeout import (
     domain_stage_closeout_owner_evidence,
 )
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.shared import (
     mapping,
     sequence,
     text,

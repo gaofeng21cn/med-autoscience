@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -21,8 +22,9 @@ BASELINE = DEFAULT_BASELINE
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description='Enforce the tracked code line budget.')
+    parser = argparse.ArgumentParser(description='Report tracked code files over the preferred line budget.')
     parser.add_argument('--list', action='store_true', help='list tracked code files over the default budget')
+    parser.add_argument('--strict', action='store_true', help='exit non-zero when tracked code exceeds the budget')
     args = parser.parse_args()
 
     report = audit_boundary_fitness(REPO_ROOT, baseline=BASELINE)
@@ -33,10 +35,13 @@ def main() -> int:
 
     failures = report.blocking_findings
     if failures:
-        print(f'line budget check failed ({len(failures)} issue{"s" if len(failures) != 1 else ""}):')
+        strict = args.strict or os.environ.get('MAS_LINE_BUDGET_STRICT') == '1'
+        mode = 'failed' if strict else 'advisory found'
+        print(f'line budget {mode} {len(failures)} issue{"s" if len(failures) != 1 else ""}:')
         for failure in failures:
             print(f'- {failure.path}: {failure.message}; {failure.recommendation}')
-        return 1
+        if strict:
+            return 1
     return 0
 
 

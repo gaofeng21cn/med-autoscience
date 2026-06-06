@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.shared import (
     mapping,
     text,
     texts,

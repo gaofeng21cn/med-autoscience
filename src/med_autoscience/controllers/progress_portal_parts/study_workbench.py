@@ -18,7 +18,7 @@ from .progress_first_operator import (
 from .source_refs import source_ref_allowed, source_refs
 from .stage_review import build_stage_review_index, render_stage_review_section
 from .status_display import display_text
-from .study_workbench_parts import (
+from .study_workbench_sections.action_owner_routing import (
     action_owner_routing_policy as _action_owner_routing_policy,
     render_action_owner_routing_section as _action_owner_routing_section,
     workbench_summary as _workbench_summary,

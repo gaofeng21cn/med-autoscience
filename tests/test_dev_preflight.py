@@ -293,7 +293,9 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
         "test-submission",
         "test-full",
         "test-family",
+        "line-budget-strict",
         "test-structure",
+        "test-structure-strict",
         "test-control-plane",
     ):
         assert target in phony_targets

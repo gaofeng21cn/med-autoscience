@@ -11,17 +11,17 @@ from med_autoscience.controllers.stable_blocker_classes import (
     source_refs_from_payloads,
     stable_blocker_class,
 )
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.closeout_evidence import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.closeout_evidence import (
     closeout_evidence_refs,
     owner_receipt_closeout_evidence_refs,
     stage_attempt_closeout_owner_receipt_evidence,
     stage_attempt_closeout_typed_blocker_evidence,
 )
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.route_reasons import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.route_reasons import (
     blocked_reason_for_action_type,
     payload_reason_for_superseded_dispatch,
 )
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.shared import (
     GATE_CLEARING_ACTION_TYPE,
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
     PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT,

@@ -213,7 +213,7 @@ When validating a docs-only change in this repo, use documentation review plus g
   - `43e80918` Prioritize artifact-first owner actions in progress monitoring.
   - `792b2230` Project artifact-first stage index to workbench surfaces.
   - `49d43aa3` Document artifact-first MVP runtime rules.
-  - Integration cleanup commit keeps line-budget gates green by moving runtime storage maintenance tests to a cases module and extracting artifact-first monitoring helpers.
+  - Integration cleanup commit keeps line-budget advisory reporting clean by moving runtime storage maintenance tests to a cases module and extracting artifact-first monitoring helpers.
 - Verification evidence:
   - `rtk scripts/run-pytest-clean.sh tests/test_stage_artifact_index.py -q` -> 4 passed.
   - `rtk scripts/run-pytest-clean.sh tests/study_progress_cases/current_executable_owner_action.py -q` -> 18 passed.
@@ -221,7 +221,7 @@ When validating a docs-only change in this repo, use documentation review plus g
   - `rtk scripts/run-pytest-clean.sh tests/test_product_entry.py -q -k stage_control_plane_descriptor` -> 1 passed, 105 deselected.
   - `rtk scripts/run-pytest-clean.sh tests/test_runtime_storage_maintenance.py -q` -> 31 passed.
   - `rtk make test-meta` -> 282 passed, 4193 deselected.
-  - `rtk scripts/verify.sh` -> repo hygiene audit passed; smoke entrypoints / line budget 4 passed.
+  - `rtk scripts/verify.sh` -> repo hygiene audit passed; smoke entrypoints / line budget advisory tests passed.
 - Residual risk / next owner:
   - This closeout does not declare any study publication ready, submission ready, or final paper quality ready.
   - DM002/DM003 live-study smoke remains read-only follow-through evidence, not a prerequisite for the repo-level artifact-first MVP integration.

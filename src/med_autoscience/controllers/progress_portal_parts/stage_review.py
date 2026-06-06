@@ -10,7 +10,7 @@ from med_autoscience.stage_surface_contract import build_stage_surface_contract
 
 from .rendering import list_html, status_chip
 from .source_refs import source_ref_allowed
-from .stage_review_parts import (
+from .stage_review_sections import (
     build_stage_log_summary,
     materialize_stage_review_deliverable_index,
     paper_line_workspace_proof_available,

@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from .progress_first_operator import build_progress_first_operator_projection
-from .runtime_workbench_projection_parts import build_paper_route_lens, paper_route_lens_summary
-from .runtime_workbench_projection_parts.common import (
+from .runtime_workbench_sections import build_paper_route_lens, paper_route_lens_summary
+from .runtime_workbench_sections.common import (
     dedupe_refs as _dedupe_refs,
     first_mapping as _first_mapping,
     first_non_empty_list as _first_non_empty_list,

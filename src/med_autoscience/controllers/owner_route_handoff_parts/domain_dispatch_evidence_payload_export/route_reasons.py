@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.controllers.stable_blocker_classes import stable_blocker_class
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.shared import (
     GATE_CLEARING_ACTION_TYPE,
     GATE_CLEARING_OWNER,
     DPCC_PUBLICATION_GATE_REPLAY_AFTER_CURRENT_AI_REVIEWER_RECORD_REASON,

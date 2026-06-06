@@ -134,21 +134,30 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
         "tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q"
     ) in makefile
     assert "scripts/run-pytest-clean.sh tests/test_opl_agent_lab_longline_migration.py -q" in makefile
+    assert "line-budget-strict:" in makefile
+    assert "scripts/run-python-clean.sh scripts/line_budget.py --strict" in makefile
     assert "test-structure:" in makefile
     assert "scripts/run-python-clean.sh scripts/line_budget.py" in makefile
     assert "scripts/run-structure-quality-gate.sh" in makefile
+    assert "test-structure-strict:" in makefile
     assert "test-full:" in makefile
     assert "./scripts/run-parallel-test-lanes.sh full" in makefile
 
 
-def test_structure_lane_keeps_line_budget_and_quality_gate_wrapper() -> None:
+def test_structure_lane_keeps_advisory_line_budget_and_quality_gate_wrapper() -> None:
     makefile = _read("Makefile")
     structure_block = makefile.split("test-structure:", maxsplit=1)[1].split(
+        "\ntest-structure-strict:", maxsplit=1
+    )[0]
+    strict_block = makefile.split("test-structure-strict:", maxsplit=1)[1].split(
         "\ntest-full:", maxsplit=1
     )[0]
 
     assert "\tscripts/run-python-clean.sh scripts/line_budget.py" in structure_block
+    assert "--strict" not in structure_block
     assert "\tscripts/run-structure-quality-gate.sh" in structure_block
+    assert "\tscripts/run-python-clean.sh scripts/line_budget.py --strict" in strict_block
+    assert "\tscripts/run-structure-quality-gate.sh" in strict_block
 
 
 def test_only_heavy_make_lanes_use_xdist() -> None:
@@ -407,6 +416,16 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "submission" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "structure" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "line-budget:strict" ]]; then' in verify_script
+    assert (
+        'run_with_optional_summary "line-budget:strict" "make line-budget-strict" make line-budget-strict'
+        in verify_script
+    )
+    assert 'if [[ "${lane}" == "structure:strict" ]]; then' in verify_script
+    assert (
+        'run_with_optional_summary "structure:strict" "make test-structure-strict" make test-structure-strict'
+        in verify_script
+    )
     assert 'if [[ "${lane}" == "control-plane" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "full" ]]; then' in verify_script
     assert "MAS_TEST_LANE_SUMMARY_PATH" in verify_script
@@ -418,6 +437,8 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "make test-display" in verify_script
     assert "make test-submission" in verify_script
     assert "make test-structure" in verify_script
+    assert "make line-budget-strict" in verify_script
+    assert "make test-structure-strict" in verify_script
     assert "make test-control-plane" in verify_script
     assert "make test-full" in verify_script
     for lane in ("regression", "ci-preflight", "fast", "full", "control-plane"):

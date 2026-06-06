@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.closeout_io import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.closeout_io import (
     closeout_does_not_claim_domain_completion,
     read_json_object,
     workspace_relative_ref,
 )
-from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
+from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.shared import (
     mapping,
     sequence,
     text,

@@ -25,10 +25,10 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 
 `smoke`、`regression`、`ci-preflight` 与 `structure` 的职责分开：
 
-- `smoke`：本地默认入口，即不带参数的 `scripts/verify.sh`。它负责快速确认当前 checkout 的基础 sanity 与最小入口合同，适合提交前和小改动自检。`line budget` 是有意保留在 smoke 前置 sanity 里的 sanity gate，用来及时发现测试或源码文件继续膨胀；smoke 的 pytest 部分保持在 `contracts/test-lane-manifest.json` 声明的最小、无 repo-root 写入入口面内。
+- `smoke`：本地默认入口，即不带参数的 `scripts/verify.sh`。它负责快速确认当前 checkout 的基础 sanity 与最小入口合同，适合提交前和小改动自检。`line budget` 是有意保留在 smoke 前置 sanity 里的 advisory signal，用来及时发现测试或源码文件继续膨胀；默认 line-budget advisory 不阻断 smoke、fast、ci-preflight 或本地开发。smoke 的 pytest 部分保持在 `contracts/test-lane-manifest.json` 声明的最小、无 repo-root 写入入口面内。
 - `regression`：显式回归入口，即 `scripts/verify.sh regression`。它负责比 smoke 更宽的行为回归，默认由 advisory/nightly 承接，避免把高漂移或高耗时回归压到每次 push。默认 regression 明确排除 `meta`、`display_heavy`、`submission_heavy`、`materialization_heavy` 与 `family`，这些面由各自 lane 承担。
 - `ci-preflight`：push CI 入口，即 `scripts/verify.sh ci-preflight <base-ref>`。它负责基于 base ref 展开 checked-in preflight contract，只检查本次变更实际触达的高风险面，并与 build 一起保护主线。
-- `structure`：显式结构入口，即 `scripts/verify.sh structure`。structure lane 继续承担 line budget 与 Sentrux 的结构检查职责；smoke 中的 line budget 只作为轻量 sanity gate，不取代 structure lane。
+- `structure`：显式结构入口，即 `scripts/verify.sh structure`。structure lane 继续运行 advisory line budget 与 Sentrux 结构检查；默认 line budget 不阻断 structure lane。需要把 line budget 作为 hard gate 时，显式运行 `scripts/verify.sh line-budget:strict`、`scripts/verify.sh structure:strict`、`make line-budget-strict` 或 `make test-structure-strict`。
 
 ## 耗时预算
 
@@ -36,7 +36,7 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 
 `--format json` contract 是 `scripts/summarize-test-lane-history.py` 的只读消费面，当前稳定字段为 `surface_kind`、`summary_dir` 与 `lanes[]`。每个 `lanes[]` 项保留 lane 名称、样本数、中位耗时、最大耗时、最慢 summary 路径，以及 `delta_from_baseline_percent`；其中 duration / sample 字段保持 number，缺少可用 baseline 或 baseline 非正数时 `delta_from_baseline_percent` 保持 number-or-null 语义并输出 JSON `null`。
 
-- `smoke`：目标是本地秒级到低分钟级反馈；超过预算时提醒维护者检查 fast tests、line budget 或基础 sanity 是否膨胀。
+- `smoke`：目标是本地秒级到低分钟级反馈；超过预算时提醒维护者检查 fast tests、line budget advisory 或基础 sanity 是否膨胀。
 - `ci-preflight`：目标是保持 push CI 可承受，只运行 change-aware preflight 与 build；耗时提醒用于判断 preflight contract 是否过宽，不额外触发重 lane。
 - `full`：目标是正式发布前完整覆盖，允许显著慢于 smoke / ci-preflight；耗时漂移通过 advisory / full summary 与 history summary 观察，不能替代质量失败或变成日常 push 门禁。
 

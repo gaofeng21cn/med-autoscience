@@ -21,7 +21,7 @@ Machine boundary: Human-readable reference only; current architecture and qualit
 
 ## Governance Decisions
 
-- `smoke` is a minimal entry contract. It covers the smoke entrypoint itself and line-budget sanity, not broad command-surface or subprocess-heavy tests.
+- `smoke` is a minimal entry contract. It covers the smoke entrypoint itself and line-budget advisory reporting, not broad command-surface or subprocess-heavy tests.
 - `meta` owns repo-tracked contracts, workflows, package surfaces, and entry consistency. It no longer owns `test_dev_preflight.py` or `test_dev_preflight_contract.py`; those stay in `family`.
 - `control-plane` is a focused owner-surface gate. It intentionally overlaps with regression and is used for high-risk control-plane changes, not as a mutually exclusive full-lane partition.
 - `submission` owns both `submission_heavy` and `materialization_heavy`, so artifact/package materialization tests stay out of default regression.
