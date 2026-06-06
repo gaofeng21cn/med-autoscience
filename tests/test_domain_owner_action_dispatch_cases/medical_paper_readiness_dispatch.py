@@ -31,6 +31,41 @@ def _readiness_dispatch(*, study_id: str) -> dict[str, object]:
     return dispatch
 
 
+def _attach_readiness_closeout_binding(dispatch: dict[str, object], *, study_id: str) -> dict[str, str]:
+    source_fingerprint = f"truth-source::{study_id}::{ACTION_TYPE}"
+    closeout_ref = (
+        "artifacts/supervision/consumer/stage_attempt_closeouts/"
+        "sat-medical-paper-readiness.json"
+    )
+    binding = {
+        "surface_kind": "medical_paper_readiness_closeout_binding",
+        "stage_run_id": f"stage-run::{study_id}::domain_owner/default-executor-dispatch",
+        "stage_run_ref": f"stage-run::{study_id}::domain_owner/default-executor-dispatch",
+        "stage_manifest_ref": (
+            "artifacts/supervision/consumer/stage_manifests/"
+            "domain_owner_default_executor_dispatch.json"
+        ),
+        "current_pointer_ref": (
+            "artifacts/supervision/consumer/current_pointers/"
+            "domain_owner_default_executor_dispatch.json"
+        ),
+        "closeout_refs": [closeout_ref],
+        "source_fingerprint": source_fingerprint,
+        "work_unit_fingerprint": source_fingerprint,
+    }
+    dispatch["closeout_binding"] = binding
+    dispatch["closeout_refs"] = [closeout_ref]
+    dispatch["source_fingerprint"] = source_fingerprint
+    dispatch["work_unit_fingerprint"] = source_fingerprint
+    prompt_contract = dispatch["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract["closeout_binding"] = binding
+    prompt_contract["closeout_refs"] = [closeout_ref]
+    prompt_contract["source_fingerprint"] = source_fingerprint
+    prompt_contract["work_unit_fingerprint"] = source_fingerprint
+    return binding
+
+
 def _write_readiness_dispatch(study_root: Path, profile, dispatch: dict[str, object]) -> None:
     dispatch_path = (
         study_root
@@ -179,7 +214,9 @@ def test_execute_dispatch_blocks_readiness_surface_completion_without_provider_p
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    _write_readiness_dispatch(study_root, profile, _readiness_dispatch(study_id=study_id))
+    dispatch = _readiness_dispatch(study_id=study_id)
+    binding = _attach_readiness_closeout_binding(dispatch, study_id=study_id)
+    _write_readiness_dispatch(study_root, profile, dispatch)
 
     result = module.dispatch_domain_owner_actions(
         profile=profile,
@@ -203,6 +240,16 @@ def test_execute_dispatch_blocks_readiness_surface_completion_without_provider_p
         str(study_root / "artifacts" / "controller_decisions" / "latest.json")
     ]
     assert owner_delta["typed_blocker"]["blocker_id"] == "medical_paper_readiness_missing"
+    assert owner_delta["body_included"] is False
+    assert owner_delta["closeout_binding"]["stage_run_id"] == binding["stage_run_id"]
+    assert owner_delta["closeout_binding"]["stage_manifest_ref"] == binding["stage_manifest_ref"]
+    assert owner_delta["closeout_binding"]["current_pointer_ref"] == binding["current_pointer_ref"]
+    assert owner_delta["closeout_binding"]["source_fingerprint"] == binding["source_fingerprint"]
+    assert owner_delta["closeout_binding"]["idempotency_key"] == (
+        f"owner-route::{study_id}::{ACTION_TYPE}::MedAutoScience"
+    )
+    assert owner_delta["stage_run_id"] == binding["stage_run_id"]
+    assert owner_delta["source_fingerprint"] == binding["source_fingerprint"]
     assert owner_delta["body_included"] is False
     decision = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
     assert decision["decision_type"] == "medical_paper_readiness_owner_blocker"
@@ -872,6 +919,7 @@ def test_execute_dispatch_materializes_provider_payload_from_readiness_request_r
     dispatch["medical_paper_readiness_payload_ref"] = request_ref
     dispatch["prompt_contract"]["operator_payload_ref"] = request_ref
     dispatch["prompt_contract"]["medical_paper_readiness_payload_ref"] = request_ref
+    binding = _attach_readiness_closeout_binding(dispatch, study_id=study_id)
     _write_readiness_dispatch(study_root, profile, dispatch)
 
     result = module.dispatch_domain_owner_actions(
@@ -903,6 +951,14 @@ def test_execute_dispatch_materializes_provider_payload_from_readiness_request_r
     assert owner_delta["quality_gate_receipt"]["completed_surface_key"] == "literature_provider_runtime"
     assert owner_delta["quality_gate_receipt"]["action_result_ref"] == owner_delta["quality_gate_receipt_refs"][1]
     assert owner_delta["typed_blocker"]["blocker_id"] == "medical_paper_readiness_missing"
+    assert owner_delta["closeout_binding"]["stage_run_id"] == binding["stage_run_id"]
+    assert owner_delta["closeout_binding"]["stage_manifest_ref"] == binding["stage_manifest_ref"]
+    assert owner_delta["closeout_binding"]["current_pointer_ref"] == binding["current_pointer_ref"]
+    assert owner_delta["closeout_binding"]["provider_attempt_ref"] == (
+        f"opl://stage-attempts/{study_id}/{ACTION_TYPE}"
+    )
+    assert owner_delta["closeout_binding"]["attempt_lease_status"] == "active"
+    assert owner_delta["idempotency_key"] == f"owner-route::{study_id}::{ACTION_TYPE}::MedAutoScience"
     assert owner_delta["authority_boundary"]["writes_publication_eval"] is False
     provider_surface = json.loads(
         (study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json").read_text(

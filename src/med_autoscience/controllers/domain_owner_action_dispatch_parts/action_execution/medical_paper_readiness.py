@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -46,6 +47,7 @@ def execute_complete_medical_paper_readiness_surface(
         )
 
     dispatch_payload = _mapping(dispatch)
+    closeout_binding = _closeout_binding(dispatch_payload)
     request_payload = _mapping(owner_request_paths.owner_request_payload(profile, study_id, ACTION_TYPE))
     current_readiness = readiness_surface.build_medical_paper_readiness_surface(study_root=study_root)
     surface_key = (
@@ -99,6 +101,7 @@ def execute_complete_medical_paper_readiness_surface(
                 study_id=study_id,
                 study_root=study_root,
                 owner_result=owner_result,
+                closeout_binding=closeout_binding,
             ),
         )
 
@@ -129,6 +132,7 @@ def execute_complete_medical_paper_readiness_surface(
                 study_id=study_id,
                 study_root=study_root,
                 owner_result=owner_result,
+                closeout_binding=closeout_binding,
             ),
         )
 
@@ -169,6 +173,7 @@ def execute_complete_medical_paper_readiness_surface(
                 study_id=study_id,
                 study_root=study_root,
                 owner_result=owner_result,
+                closeout_binding=closeout_binding,
             ),
             "quest_root": str(profile.runtime_root / study_id),
         }
@@ -190,6 +195,7 @@ def execute_complete_medical_paper_readiness_surface(
             study_id=study_id,
             study_root=study_root,
             owner_result=owner_result,
+            closeout_binding=closeout_binding,
         ),
     )
 
@@ -218,6 +224,7 @@ def _owner_delta_result(
     study_id: str,
     study_root: Path,
     owner_result: Mapping[str, Any],
+    closeout_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     quality_gate_receipt = _quality_gate_receipt(study_root=study_root, owner_result=owner_result)
     typed_blocker = _typed_blocker(owner_result)
@@ -228,7 +235,7 @@ def _owner_delta_result(
         quality_gate_refs=quality_gate_refs,
         stable_blocker_refs=stable_blocker_refs,
     )
-    return {
+    result = {
         "surface_kind": "mas_current_owner_delta_result",
         "study_id": study_id,
         "owner": "MedAutoScience",
@@ -255,6 +262,172 @@ def _owner_delta_result(
             "mechanical_projection_can_authorize_quality": False,
         },
     }
+    if closeout_binding:
+        binding = dict(closeout_binding)
+        result["closeout_binding"] = binding
+        result["stage_run_id"] = _text(binding.get("stage_run_id"))
+        result["stage_manifest_ref"] = _text(binding.get("stage_manifest_ref"))
+        result["current_pointer_ref"] = _text(binding.get("current_pointer_ref"))
+        result["source_fingerprint"] = _text(binding.get("source_fingerprint"))
+        result["idempotency_key"] = _text(binding.get("idempotency_key"))
+    return result
+
+
+def _closeout_binding(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    dispatch_binding = _mapping(dispatch.get("closeout_binding")) or _mapping(prompt_contract.get("closeout_binding"))
+    env_binding = _env_closeout_binding()
+    authorization = _mapping(dispatch.get("opl_execution_authorization")) or _mapping(
+        prompt_contract.get("opl_execution_authorization")
+    ) or _env_opl_execution_authorization()
+    provider_attempt_ref = _first_text(
+        authorization.get("provider_attempt_ref"),
+        dispatch.get("provider_attempt_ref"),
+        prompt_contract.get("provider_attempt_ref"),
+        dispatch_binding.get("provider_attempt_ref"),
+        env_binding.get("provider_attempt_ref"),
+    )
+    attempt_lease_ref = _first_text(
+        authorization.get("attempt_lease_ref"),
+        dispatch.get("attempt_lease_ref"),
+        prompt_contract.get("attempt_lease_ref"),
+        dispatch_binding.get("attempt_lease_ref"),
+        env_binding.get("attempt_lease_ref"),
+    )
+    execution_authorization_decision_ref = _first_text(
+        authorization.get("execution_authorization_decision_ref"),
+        dispatch.get("execution_authorization_decision_ref"),
+        prompt_contract.get("execution_authorization_decision_ref"),
+        dispatch_binding.get("execution_authorization_decision_ref"),
+        env_binding.get("execution_authorization_decision_ref"),
+    )
+    binding = {
+        "surface_kind": _first_text(
+            dispatch_binding.get("surface_kind"),
+            env_binding.get("surface_kind"),
+            "medical_paper_readiness_closeout_binding",
+        ),
+        "trusted_opl_execution_authorization": bool(
+            provider_attempt_ref and attempt_lease_ref and execution_authorization_decision_ref
+        ),
+        "stage_run_id": _first_text(
+            dispatch_binding.get("stage_run_id"),
+            env_binding.get("stage_run_id"),
+            dispatch.get("stage_run_id"),
+            prompt_contract.get("stage_run_id"),
+        ),
+        "stage_run_ref": _first_text(
+            dispatch_binding.get("stage_run_ref"),
+            env_binding.get("stage_run_ref"),
+            dispatch.get("stage_run_ref"),
+            prompt_contract.get("stage_run_ref"),
+        ),
+        "stage_manifest_ref": _first_text(
+            dispatch_binding.get("stage_manifest_ref"),
+            env_binding.get("stage_manifest_ref"),
+            dispatch.get("stage_manifest_ref"),
+            prompt_contract.get("stage_manifest_ref"),
+        ),
+        "current_pointer_ref": _first_text(
+            dispatch_binding.get("current_pointer_ref"),
+            env_binding.get("current_pointer_ref"),
+            dispatch.get("current_pointer_ref"),
+            prompt_contract.get("current_pointer_ref"),
+        ),
+        "closeout_refs": _text_list(
+            dispatch_binding.get("closeout_refs")
+            or env_binding.get("closeout_refs")
+            or dispatch.get("closeout_refs")
+            or prompt_contract.get("closeout_refs")
+        ),
+        "provider_attempt_ref": provider_attempt_ref,
+        "attempt_lease_ref": attempt_lease_ref,
+        "attempt_lease_status": _first_text(
+            authorization.get("attempt_lease_status"),
+            dispatch_binding.get("attempt_lease_status"),
+            env_binding.get("attempt_lease_status"),
+        ),
+        "execution_authorization_decision_ref": execution_authorization_decision_ref,
+        "source_fingerprint": _first_text(
+            dispatch_binding.get("source_fingerprint"),
+            env_binding.get("source_fingerprint"),
+            owner_route.get("source_fingerprint"),
+            dispatch.get("source_fingerprint"),
+            prompt_contract.get("source_fingerprint"),
+        ),
+        "work_unit_fingerprint": _first_text(
+            dispatch_binding.get("work_unit_fingerprint"),
+            env_binding.get("work_unit_fingerprint"),
+            owner_route.get("work_unit_fingerprint"),
+            dispatch.get("work_unit_fingerprint"),
+            prompt_contract.get("work_unit_fingerprint"),
+        ),
+        "idempotency_key": _first_text(
+            dispatch_binding.get("idempotency_key"),
+            env_binding.get("idempotency_key"),
+            authorization.get("idempotency_key"),
+            owner_route.get("idempotency_key"),
+            dispatch.get("idempotency_key"),
+            prompt_contract.get("idempotency_key"),
+        ),
+    }
+    required = (
+        binding["stage_run_id"],
+        binding["stage_manifest_ref"],
+        binding["current_pointer_ref"],
+        binding["source_fingerprint"],
+        binding["idempotency_key"],
+    )
+    if not all(required):
+        return {}
+    return {key: value for key, value in binding.items() if value not in (None, [], "")}
+
+
+def _env_opl_execution_authorization() -> dict[str, Any]:
+    values = {
+        "owner": "one-person-lab",
+        "provider_attempt_ref": os.environ.get("OPL_PROVIDER_ATTEMPT_REF"),
+        "stage_attempt_id": os.environ.get("OPL_STAGE_ATTEMPT_ID"),
+        "attempt_lease_ref": os.environ.get("OPL_ATTEMPT_LEASE_REF"),
+        "attempt_lease_status": os.environ.get("OPL_ATTEMPT_LEASE_STATUS"),
+        "execution_authorization_decision_ref": os.environ.get(
+            "OPL_EXECUTION_AUTHORIZATION_DECISION_REF"
+        ),
+        "source_fingerprint": os.environ.get("OPL_SOURCE_FINGERPRINT"),
+        "idempotency_key": os.environ.get("OPL_IDEMPOTENCY_KEY"),
+        "stage_run_id": os.environ.get("OPL_STAGE_RUN_ID"),
+        "stage_manifest_ref": os.environ.get("OPL_STAGE_MANIFEST_REF"),
+        "current_pointer_ref": os.environ.get("OPL_CURRENT_POINTER_REF"),
+    }
+    return {key: text for key, value in values.items() if (text := _text(value))}
+
+
+def _env_closeout_binding() -> dict[str, Any]:
+    parsed: dict[str, Any] = {}
+    if raw := _text(os.environ.get("OPL_CLOSEOUT_BINDING_JSON")):
+        try:
+            candidate = json.loads(raw)
+            if isinstance(candidate, Mapping):
+                parsed = dict(candidate)
+        except json.JSONDecodeError:
+            parsed = {}
+    aliases = {
+        "stage_run_id": os.environ.get("OPL_STAGE_RUN_ID"),
+        "stage_manifest_ref": os.environ.get("OPL_STAGE_MANIFEST_REF"),
+        "current_pointer_ref": os.environ.get("OPL_CURRENT_POINTER_REF"),
+        "provider_attempt_ref": os.environ.get("OPL_PROVIDER_ATTEMPT_REF"),
+        "attempt_lease_ref": os.environ.get("OPL_ATTEMPT_LEASE_REF"),
+        "attempt_lease_status": os.environ.get("OPL_ATTEMPT_LEASE_STATUS"),
+        "execution_authorization_decision_ref": os.environ.get(
+            "OPL_EXECUTION_AUTHORIZATION_DECISION_REF"
+        ),
+        "source_fingerprint": os.environ.get("OPL_SOURCE_FINGERPRINT"),
+        "idempotency_key": os.environ.get("OPL_IDEMPOTENCY_KEY"),
+    }
+    merged = {**parsed, **_env_opl_execution_authorization()}
+    merged.update({key: text for key, value in aliases.items() if (text := _text(value))})
+    return merged
 
 
 def _owner_delta_result_kind(
@@ -449,6 +622,21 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        if text := _text(value):
+            return text
+    return None
+
+
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value] if value.strip() else []
+    if not isinstance(value, list):
+        return []
+    return [text for item in value if (text := _text(item))]
 
 
 __all__ = ["execute_complete_medical_paper_readiness_surface"]
