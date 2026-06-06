@@ -695,6 +695,7 @@ def _trusted_closeout_binding(
         "source_fingerprint": source_fingerprint,
         "work_unit_fingerprint": _work_unit_fingerprint(dispatch=dispatch, source_fingerprint=source_fingerprint),
         "idempotency_key": _first_text(
+            authorization.get("idempotency_key"),
             _mapping(dispatch.get("owner_route")).get("idempotency_key"),
             dispatch.get("idempotency_key"),
             _mapping(dispatch.get("prompt_contract")).get("idempotency_key"),
@@ -773,13 +774,13 @@ def _source_fingerprint(*, dispatch: Mapping[str, Any], authorization: Mapping[s
         prompt_contract.get("closeout_binding")
     )
     return _first_text(
+        authorization.get("source_fingerprint"),
         closeout_binding.get("source_fingerprint"),
         dispatch.get("source_fingerprint"),
         prompt_contract.get("source_fingerprint"),
         owner_route.get("source_fingerprint"),
         source_refs.get("source_fingerprint"),
         currentness_basis.get("source_fingerprint"),
-        authorization.get("source_fingerprint"),
     )
 
 
