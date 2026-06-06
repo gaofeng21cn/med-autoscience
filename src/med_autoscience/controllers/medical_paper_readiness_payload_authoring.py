@@ -12,8 +12,10 @@ from med_autoscience.adapters.literature import doi as crossref
 from med_autoscience.adapters.literature import pubmed
 from med_autoscience.adapters.literature import semantic_scholar
 from med_autoscience.controllers import medical_analysis_contract
+from med_autoscience.controllers import literature_intelligence_os
 from med_autoscience.controllers import route_control_stoploss
 from med_autoscience.controllers import study_line_decision_engine
+from med_autoscience.policies import publication_critique
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -21,11 +23,13 @@ SOURCE = "medical_paper_readiness_owner_payload_authoring"
 SURFACE = "medical_paper_readiness_operator_payload_authoring"
 SCHEMA_VERSION = 1
 SUPPORTED_SURFACE_KEYS = {
+    "literature_scout",
     "literature_provider_runtime",
     "study_line_selection",
     "archetype_analysis_contract",
     "bounded_analysis_candidate_board",
     "stop_loss_memo",
+    "target_journal_writing_layer",
 }
 
 
@@ -41,6 +45,11 @@ def author_operator_payload(
         return _blocked_payload("unsupported_surface_key", surface_key=surface_key)
     root = Path(study_root).expanduser().resolve()
     timestamp = _text(generated_at) or _utc_now()
+    if _text(surface_key) == "literature_scout":
+        payload = _payload_from_existing_literature_scout(study_root=root)
+        if payload:
+            return payload
+        return _blocked_payload("insufficient_literature_scout_payload_sources", surface_key=surface_key)
     if _text(surface_key) == "study_line_selection":
         payload = _payload_from_existing_study_line_decision(study_root=root)
         if payload:
@@ -61,6 +70,11 @@ def author_operator_payload(
         if payload:
             return payload
         return _blocked_payload("insufficient_stop_loss_memo_payload_sources", surface_key=surface_key)
+    if _text(surface_key) == "target_journal_writing_layer":
+        payload = _payload_from_existing_target_journal_writing_layer(study_root=root)
+        if payload:
+            return payload
+        return _blocked_payload("insufficient_target_journal_writing_layer_payload_sources", surface_key=surface_key)
     existing = _payload_from_existing_literature_intelligence(study_root=root, generated_at=timestamp)
     if existing:
         return existing
@@ -73,6 +87,39 @@ def author_operator_payload(
     if provider_backed:
         return provider_backed
     return _blocked_payload("insufficient_literature_provider_payload_sources", surface_key=surface_key)
+
+
+def _payload_from_existing_literature_scout(*, study_root: Path) -> dict[str, Any]:
+    path = literature_intelligence_os.stable_literature_intelligence_os_path(study_root=study_root)
+    payload = literature_intelligence_os.read_literature_intelligence_os(study_root=study_root)
+    if _text(payload.get("status")) != "ready":
+        return {}
+    return {
+        **dict(payload),
+        "payload_source": SOURCE,
+        "source_basis": "existing_literature_intelligence_os",
+        "source_refs": [str(path)],
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
+def _payload_from_existing_target_journal_writing_layer(*, study_root: Path) -> dict[str, Any]:
+    path = publication_critique.stable_target_journal_writing_layer_path(study_root=study_root)
+    if not path.exists():
+        return {}
+    try:
+        payload = publication_critique.read_target_journal_writing_layer(study_root=study_root)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return {}
+    return {
+        **dict(payload),
+        "payload_source": SOURCE,
+        "source_basis": "existing_target_journal_writing_layer",
+        "source_refs": [str(path)],
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
 
 
 def _payload_from_medical_analysis_contract(

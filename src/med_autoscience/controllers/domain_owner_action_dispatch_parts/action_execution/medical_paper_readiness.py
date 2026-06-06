@@ -17,11 +17,13 @@ from med_autoscience.profiles import WorkspaceProfile
 ACTION_TYPE = "complete_medical_paper_readiness_surface"
 CALLABLE_SURFACE = "medical_paper_readiness.complete_medical_paper_readiness_surface"
 DEFAULT_ACTION_ID_BY_SURFACE = {
+    "literature_scout": "materialize_literature_scout",
     "literature_provider_runtime": "run_provider_literature_scout",
     "study_line_selection": "materialize_study_line_selection",
     "archetype_analysis_contract": "materialize_archetype_analysis_contract",
     "bounded_analysis_candidate_board": "materialize_bounded_analysis_candidate_board",
     "stop_loss_memo": "materialize_stop_loss_memo",
+    "target_journal_writing_layer": "materialize_target_journal_writing_layer",
     "route_decision_orchestrator": "materialize_route_decision",
     "statistical_discipline_operations": "resolve_statistical_blockers",
     "revision_rebuttal_loop": "start_revision_rebuttal_loop",

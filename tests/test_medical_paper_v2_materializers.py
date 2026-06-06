@@ -85,6 +85,34 @@ def _provider_payload() -> dict[str, object]:
     }
 
 
+def _literature_scout_payload() -> dict[str, object]:
+    return {
+        "surface": "literature_intelligence_os",
+        "status": "ready",
+        "search_strategy": {
+            "query": "diabetes mortality prediction",
+            "mesh_terms": ["Diabetes Mellitus"],
+            "keywords": ["diabetes mortality", "risk prediction"],
+        },
+        "search_date": "2026-06-06",
+        "why_worth_doing": "Provider-backed evidence supports the current study framing.",
+        "provider_provenance": [
+            {
+                "provider_name": "pubmed",
+                "query": "diabetes mortality prediction",
+                "retrieved_at": "2026-06-06T08:00:00Z",
+                "response_status": "ok",
+                "source_refs": ["artifacts/medical_paper/provider_responses/pubmed.json"],
+            }
+        ],
+        "anchor_papers": ["pmid:12345"],
+        "guidelines": ["guideline:TRIPOD+AI"],
+        "journal_neighbor_refs": ["semantic_scholar:S2PAPER1"],
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+
+
 def _candidate() -> dict[str, object]:
     return {
         "line_id": "transportable-risk-model",
@@ -135,6 +163,25 @@ def test_v2_materializer_dispatch_materializes_provider_and_route_surfaces(tmp_p
     assert written["decision_type"] == "study_line_route_decision"
     assert written["selected_line_id"] == "transportable-risk-model"
     assert written["quality_claim_authorized"] is False
+
+
+def test_v2_materializer_materializes_literature_scout_to_intelligence_os_path(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_paper_v2_materializers")
+    study_root = tmp_path / "study"
+
+    result = module.materialize_medical_paper_v2_surface(
+        study_root=study_root,
+        surface_key="literature_scout",
+        payload=_literature_scout_payload(),
+    )
+
+    assert result["status"] == "present"
+    assert result["surface_key"] == "literature_scout"
+    assert result["artifact_path"].endswith("artifacts/medical_paper/literature_intelligence_os.json")
+    assert (study_root / "artifacts" / "medical_paper" / "literature_intelligence_os.json").is_file()
+    assert not (study_root / "artifacts" / "medical_paper" / "literature_scout.json").exists()
+    assert result["quality_claim_authorized"] is False
+    assert result["mechanical_projection_can_authorize_quality"] is False
 
 
 def test_v2_materializer_fails_closed_for_missing_inputs(tmp_path: Path) -> None:

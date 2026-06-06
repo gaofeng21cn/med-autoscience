@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from med_autoscience.controllers import literature_provider_runtime
+from med_autoscience.controllers import literature_intelligence_os
 from med_autoscience.controllers import medical_paper_readiness
 from med_autoscience.controllers import real_workspace_soak_monitor
 from med_autoscience.controllers import revision_rebuttal_loop
@@ -13,6 +14,7 @@ from med_autoscience.controllers import route_decision_orchestrator
 from med_autoscience.controllers import statistical_discipline_runtime
 from med_autoscience.controllers import study_line_decision_engine
 from med_autoscience.controllers.ai_reviewer_journal_loop import build_authoring_runtime_authorization
+from med_autoscience.policies import publication_critique
 
 
 SCHEMA_VERSION = 1
@@ -82,6 +84,51 @@ def _materialize_literature_provider_runtime(
         missing_reason=_text(result.get("missing_reason")),
         artifact_path=_text(result.get("artifact_path")),
         payload=result,
+    )
+
+
+def _materialize_literature_scout(
+    *,
+    study_root: Path,
+    payload: Mapping[str, Any],
+    apply: bool,
+) -> dict[str, Any]:
+    if _text(payload.get("surface")) == literature_intelligence_os.SURFACE:
+        path = literature_intelligence_os.stable_literature_intelligence_os_path(study_root=study_root)
+        status, missing_reason = medical_paper_readiness._validate_literature_scout(payload)
+        if apply:
+            _write_json(path, payload)
+        return _result(
+            surface_key="literature_scout",
+            status=status,
+            missing_reason=missing_reason,
+            artifact_path=path,
+            payload=payload,
+        )
+    path = medical_paper_readiness.stable_capability_surface_path(
+        study_root=study_root,
+        surface_key="literature_scout",
+    )
+    if not apply:
+        status, missing_reason = medical_paper_readiness._validate_literature_scout(payload)
+        return _result(
+            surface_key="literature_scout",
+            status=status,
+            missing_reason=missing_reason,
+            artifact_path=path,
+            payload=payload,
+        )
+    result = medical_paper_readiness.materialize_medical_paper_readiness_surface(
+        study_root=study_root,
+        surface_key="literature_scout",
+        payload=payload,
+    )
+    return _result(
+        surface_key="literature_scout",
+        status=_text(result.get("status")) or "blocked",
+        missing_reason=_text(result.get("missing_reason")),
+        artifact_path=_text(result.get("artifact_path")) or path,
+        payload=payload,
     )
 
 
@@ -213,6 +260,42 @@ def _materialize_stop_loss_memo(
         missing_reason=missing_reason,
         artifact_path=path,
         payload=memo_payload,
+    )
+
+
+def _materialize_target_journal_writing_layer(
+    *,
+    study_root: Path,
+    payload: Mapping[str, Any],
+    apply: bool,
+) -> dict[str, Any]:
+    path = publication_critique.stable_target_journal_writing_layer_path(study_root=study_root)
+    try:
+        if apply:
+            result = publication_critique.materialize_target_journal_writing_layer(
+                study_root=study_root,
+                payload=dict(payload),
+            )
+            persisted = publication_critique.read_target_journal_writing_layer(study_root=study_root)
+            artifact_path = _text(result.get("artifact_path")) or path
+        else:
+            persisted = publication_critique._normalize_target_journal_writing_layer(dict(payload))
+            artifact_path = path
+    except ValueError as exc:
+        return _result(
+            surface_key="target_journal_writing_layer",
+            status="blocked",
+            missing_reason=str(exc),
+            artifact_path=path,
+            payload=payload,
+        )
+    status, missing_reason = medical_paper_readiness._validate_target_journal_layer(persisted)
+    return _result(
+        surface_key="target_journal_writing_layer",
+        status=status,
+        missing_reason=missing_reason,
+        artifact_path=artifact_path,
+        payload=persisted,
     )
 
 
@@ -354,11 +437,13 @@ def _read_json(path: Path) -> Mapping[str, Any]:
 
 
 MATERIALIZERS: dict[str, Callable[..., dict[str, Any]]] = {
+    "literature_scout": _materialize_literature_scout,
     "literature_provider_runtime": _materialize_literature_provider_runtime,
     "study_line_selection": _materialize_study_line_selection,
     "archetype_analysis_contract": _materialize_archetype_analysis_contract,
     "bounded_analysis_candidate_board": _materialize_bounded_analysis_candidate_board,
     "stop_loss_memo": _materialize_stop_loss_memo,
+    "target_journal_writing_layer": _materialize_target_journal_writing_layer,
     "route_decision_orchestrator": _materialize_route_decision_orchestrator,
     "statistical_discipline_operations": _materialize_statistical_discipline_operations,
     "revision_rebuttal_loop": _materialize_revision_rebuttal_loop,
