@@ -59,9 +59,9 @@ def execute_complete_medical_paper_readiness_surface(
     current_surface_key = _text(_mapping(current_readiness.get("next_action")).get("surface_key"))
     surface_key = (
         _current_owner_surface_key(dispatch_payload)
-        or _current_owner_surface_key(request_payload)
-        or current_surface_key
         or _surface_key(dispatch_payload)
+        or current_surface_key
+        or _current_owner_surface_key(request_payload)
         or _surface_key(request_payload)
     )
     operator_payload = _operator_payload(dispatch_payload, surface_key=surface_key) or _operator_payload(
@@ -599,8 +599,11 @@ def _operator_payload_from_ref(
         operator_payload = _operator_payload(payload, surface_key=surface_key)
         if operator_payload:
             return operator_payload
-        target_payload = _mapping(_mapping(payload.get("payload_authoring_target")).get("operator_payload"))
+        target = _mapping(payload.get("payload_authoring_target"))
+        target_payload = _mapping(target.get("operator_payload"))
         target_surface_key = _payload_surface_key(target_payload)
+        if target_surface_key is None:
+            target_surface_key = _text(target.get("surface_key"))
         if surface_key and target_surface_key and target_surface_key != surface_key:
             continue
         if target_payload:
@@ -688,6 +691,7 @@ def _payload_surface_key(payload: Mapping[str, Any]) -> str | None:
     if surface in DEFAULT_ACTION_ID_BY_SURFACE:
         return surface
     aliases = {
+        "literature_intelligence_os": "literature_scout",
         "study_line_decision": "study_line_selection",
         "study_line_selection_scorecard": "study_line_selection",
         "archetype_specific_analysis_contract": "archetype_analysis_contract",

@@ -1444,3 +1444,81 @@ def test_execute_dispatch_materializes_target_journal_writing_layer_from_existin
     assert by_key["target_journal_writing_layer"]["status"] == "present"
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "paper" / "submission_minimal" / "current_package").exists()
+
+
+def test_execute_dispatch_does_not_use_stale_request_payload_for_current_readiness_surface(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_target_journal_writing_layer(study_root)
+    request_ref = "artifacts/supervision/requests/medical_paper_readiness/latest.json"
+    stale_payload = {
+        "current_route": ACTION_TYPE,
+        "decision": "stop_loss",
+        "evidence_state": "blocked",
+        "stop_pressure": "high",
+        "attempted_paths": ["stop_loss_memo"],
+        "failure_reasons": ["older readiness surface"],
+        "continuation_cost": {"runtime_scope": "older"},
+        "evidence_gain_ceiling": "low",
+        "alternative_routes": ["return_to_write"],
+        "evidence_refs": [],
+        "exploration_depth_review": {
+            "route_options_exhausted": {"sufficient": True},
+            "artifact_delta_absent": {"sufficient": True},
+            "upstream_evidence_ceiling_reached": {"sufficient": True},
+        },
+        "payload_source": "older_request",
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+    _write_json(
+        study_root / request_ref,
+        {
+            "surface": "supervisor_request_handoff_packet",
+            "action_type": ACTION_TYPE,
+            "surface_key": "stop_loss_memo",
+            "readiness_surface_identity": {
+                "action_type": ACTION_TYPE,
+                "surface_key": "stop_loss_memo",
+                "source": "current_owner_action",
+            },
+            "operator_payload": stale_payload,
+            "payload_authoring_target": {
+                "surface": "medical_paper_readiness_operator_payload_authoring_target",
+                "surface_key": "stop_loss_memo",
+                "operator_payload": stale_payload,
+            },
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    dispatch = _readiness_dispatch_for_surface(study_id=study_id, surface_key="target_journal_writing_layer")
+    dispatch["operator_payload_ref"] = request_ref
+    dispatch["medical_paper_readiness_payload_ref"] = request_ref
+    prompt_contract = dispatch["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract["operator_payload_ref"] = request_ref
+    prompt_contract["medical_paper_readiness_payload_ref"] = request_ref
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "target_journal_writing_layer"
+    assert execution["owner_result"]["guarded_operator_action_result"]["status"] == "present"
+    assert not (study_root / "artifacts" / "medical_paper" / "stop_loss_memo.json").exists()
+    assert (study_root / "paper" / "target_journal_writing_layer.json").exists()
