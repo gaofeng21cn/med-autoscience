@@ -45,9 +45,13 @@ def _attach_publication_handoff_closeout_binding(dispatch: dict[str, object], *,
     dispatch["opl_execution_authorization"] = {
         "owner": "one-person-lab",
         "executor_kind": "codex_cli",
+        "provider_attempt_ref": f"opl://stage-attempts/{study_id}/publication-handoff",
         "stage_attempt_id": f"stage-attempt::{study_id}::publication-handoff",
-        "lease_id": f"lease::{study_id}::publication-handoff",
-        "typed_closeout_ref": closeout_ref,
+        "attempt_lease_ref": f"opl://stage-attempts/{study_id}/publication-handoff/leases/current",
+        "attempt_lease_status": "active",
+        "execution_authorization_decision_ref": (
+            f"opl://stage-attempts/{study_id}/publication-handoff/execution-authorizations/current"
+        ),
     }
     prompt_contract = dispatch["prompt_contract"]
     assert isinstance(prompt_contract, dict)
@@ -581,6 +585,99 @@ def test_execute_dispatch_requires_opl_authorization_before_publication_handoff_
     stage_run = stage_run_kernel_projection_from_stage_folder(stage_root)
     assert stage_run["status"] == "DomainAccepted"
     assert stage_run["current_owner_delta"]["action"] == "publication_handoff_owner_gate"
+
+
+def test_provider_hosted_stage_attempt_identity_authorizes_publication_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_json(study_root / "study.yaml", {"study_id": study_id})
+    materialize_stage_artifact_delta(
+        study_id=study_id,
+        study_root=study_root,
+        workspace_root=profile.workspace_root,
+        apply=True,
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="publication_handoff_owner_gate",
+        owner="publication_gate_owner",
+        required_output_surface=(
+            "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json "
+            "or artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+        ),
+    )
+    _remove_opl_execution_authorization(dispatch)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "immutable"
+        / "publication_handoff_owner_gate"
+        / "provider-hosted.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+    monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", "sat-provider-hosted-publication")
+    monkeypatch.setenv("OPL_PROVIDER_ATTEMPT_REF", "opl://stage-attempts/sat-provider-hosted-publication")
+    monkeypatch.setenv(
+        "OPL_ATTEMPT_LEASE_REF",
+        "opl://stage-attempts/sat-provider-hosted-publication/leases/frt-provider-hosted-publication/active",
+    )
+    monkeypatch.setenv("OPL_ATTEMPT_LEASE_STATUS", "active")
+    monkeypatch.setenv(
+        "OPL_EXECUTION_AUTHORIZATION_DECISION_REF",
+        "opl://stage-attempts/sat-provider-hosted-publication/execution-authorizations/frt-provider-hosted-publication/wf-provider-hosted-publication",
+    )
+    monkeypatch.setenv("OPL_WORKFLOW_ID", "wf-provider-hosted-publication")
+    monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
+    monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
+    monkeypatch.setenv("OPL_STUDY_ID", study_id)
+    monkeypatch.setenv("OPL_ACTION_TYPE", "publication_handoff_owner_gate")
+    monkeypatch.setenv("OPL_WORK_UNIT_ID", "publication_handoff_owner_gate")
+    monkeypatch.setenv("OPL_TASK_ID", "frt-provider-hosted-publication")
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("publication_handoff_owner_gate",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    blocker_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "typed_blocker.json"
+    )
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_missing"
+    assert blocker_path.is_file()
+    blocker = json.loads(blocker_path.read_text(encoding="utf-8"))
+    assert blocker["closeout_binding"]["provider_attempt_ref"] == (
+        "opl://stage-attempts/sat-provider-hosted-publication"
+    )
+    assert blocker["closeout_binding"]["attempt_lease_ref"] == (
+        "opl://stage-attempts/sat-provider-hosted-publication/leases/frt-provider-hosted-publication/active"
+    )
+    assert blocker["closeout_binding"]["attempt_lease_status"] == "active"
+    assert blocker["closeout_binding"]["execution_authorization_decision_ref"] == (
+        "opl://stage-attempts/sat-provider-hosted-publication/execution-authorizations/frt-provider-hosted-publication/wf-provider-hosted-publication"
+    )
+    assert blocker["closeout_binding"]["trusted_opl_execution_authorization"] is True
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
 
 
 def test_execute_dispatch_writes_publication_handoff_typed_blocker_when_readiness_missing(

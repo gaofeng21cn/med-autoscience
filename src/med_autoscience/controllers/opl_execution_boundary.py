@@ -27,6 +27,27 @@ _OPL_EXECUTION_REF_KEYS = (
 )
 
 
+def _provider_attempt_ref(payload: Mapping[str, Any]) -> str | None:
+    return _text(payload.get("provider_attempt_ref"))
+
+
+def _active_lease_ref(payload: Mapping[str, Any]) -> str | None:
+    status = _text(payload.get("attempt_lease_status")) or _text(payload.get("lease_status"))
+    if status is not None and status != "active":
+        return None
+    return (
+        _text(payload.get("attempt_lease_ref"))
+        or _text(payload.get("lease_ref"))
+        or _text(payload.get("lease_id"))
+    )
+
+
+def _execution_authorization_decision_ref(payload: Mapping[str, Any]) -> str | None:
+    return _text(payload.get("execution_authorization_decision_ref")) or _text(
+        payload.get("authorization_decision_ref")
+    )
+
+
 def first_trusted_opl_execution_authorization(*candidates: object) -> dict[str, Any] | None:
     for candidate in candidates:
         trusted = trusted_opl_execution_authorization(_mapping(candidate))
@@ -51,6 +72,12 @@ def trusted_opl_execution_authorization(candidate: Mapping[str, Any] | None) -> 
     if executor_kind is not None and executor_kind not in _OPL_DEFAULT_EXECUTORS:
         return None
     if not any(_text(payload.get(key)) is not None for key in _OPL_EXECUTION_REF_KEYS):
+        return None
+    if (
+        _provider_attempt_ref(payload) is None
+        or _active_lease_ref(payload) is None
+        or _execution_authorization_decision_ref(payload) is None
+    ):
         return None
     return dict(payload)
 

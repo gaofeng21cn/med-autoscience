@@ -37,8 +37,11 @@ def _work_unit(work_unit_type: str, *, unit_id: str = "unit-1") -> dict[str, obj
 def _opl_auth(label: str = "test") -> dict[str, object]:
     return {
         "owner": "one-person-lab",
+        "provider_attempt_ref": f"opl://stage-attempts/{label}",
         "stage_attempt_id": f"stage-attempt::{label}",
-        "lease_id": f"lease::{label}",
+        "attempt_lease_ref": f"opl://stage-attempts/{label}/leases/current",
+        "attempt_lease_status": "active",
+        "execution_authorization_decision_ref": f"opl://stage-attempts/{label}/execution-authorizations/current",
     }
 
 

@@ -9,6 +9,19 @@ def write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def opl_execution_authorization(*, study_id: str, action_type: str) -> dict[str, str]:
+    return {
+        "owner": "one-person-lab",
+        "provider_attempt_ref": f"opl://stage-attempts/{study_id}/{action_type}",
+        "stage_attempt_id": f"stage-attempt::{study_id}::{action_type}",
+        "attempt_lease_ref": f"opl://stage-attempts/{study_id}/{action_type}/leases/current",
+        "attempt_lease_status": "active",
+        "execution_authorization_decision_ref": (
+            f"opl://stage-attempts/{study_id}/{action_type}/execution-authorizations/current"
+        ),
+    }
+
+
 def owner_route(*, study_id: str, action_type: str, owner: str) -> dict[str, object]:
     return {
         "surface": "domain_route_owner_route",
@@ -55,6 +68,7 @@ def dispatch(
         action_type=action_type,
         owner=owner,
     )
+    authorization = opl_execution_authorization(study_id=study_id, action_type=action_type)
     return {
         "surface": "default_executor_dispatch_request",
         "schema_version": 1,
@@ -70,11 +84,7 @@ def dispatch(
         "next_executable_owner": owner,
         "required_output_surface": required_output_surface,
         "owner_route": route,
-        "opl_execution_authorization": {
-            "owner": "one-person-lab",
-            "stage_attempt_id": f"stage-attempt::{study_id}::{action_type}",
-            "lease_id": f"lease::{study_id}::{action_type}",
-        },
+        "opl_execution_authorization": dict(authorization),
         "prompt_contract": {
             "study_id": study_id,
             "quest_id": f"quest-{study_id}",
@@ -82,11 +92,7 @@ def dispatch(
             "next_executable_owner": owner,
             "required_output_surface": required_output_surface,
             "owner_route": route,
-            "opl_execution_authorization": {
-                "owner": "one-person-lab",
-                "stage_attempt_id": f"stage-attempt::{study_id}::{action_type}",
-                "lease_id": f"lease::{study_id}::{action_type}",
-            },
+            "opl_execution_authorization": dict(authorization),
             "idempotency_key": route["idempotency_key"],
             "prompt_budget": {"max_prompt_tokens": 6000},
             "compact_evidence_packet_ref": f"artifacts/supervision/compact_evidence_packets/{action_type}.json",

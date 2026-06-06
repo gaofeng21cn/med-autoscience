@@ -21,8 +21,11 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
 def _opl_execution_authorization(label: str) -> dict[str, object]:
     return {
         "owner": "one-person-lab",
+        "provider_attempt_ref": f"opl://stage-attempts/{label}",
         "stage_attempt_id": f"stage-attempt::{label}",
-        "lease_id": f"lease::{label}",
+        "attempt_lease_ref": f"opl://stage-attempts/{label}/leases/current",
+        "attempt_lease_status": "active",
+        "execution_authorization_decision_ref": f"opl://stage-attempts/{label}/execution-authorizations/current",
     }
 
 

@@ -70,6 +70,16 @@ def test_provider_hosted_stage_attempt_identity_authorizes_gate_clearing_batch_d
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)
     monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", "sat-provider-hosted-gate-clearing")
+    monkeypatch.setenv("OPL_PROVIDER_ATTEMPT_REF", "opl://stage-attempts/sat-provider-hosted-gate-clearing")
+    monkeypatch.setenv(
+        "OPL_ATTEMPT_LEASE_REF",
+        "opl://stage-attempts/sat-provider-hosted-gate-clearing/leases/frt-provider-hosted-gate-clearing/active",
+    )
+    monkeypatch.setenv("OPL_ATTEMPT_LEASE_STATUS", "active")
+    monkeypatch.setenv(
+        "OPL_EXECUTION_AUTHORIZATION_DECISION_REF",
+        "opl://stage-attempts/sat-provider-hosted-gate-clearing/execution-authorizations/frt-provider-hosted-gate-clearing/current",
+    )
     monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
     monkeypatch.setenv("OPL_STUDY_ID", study_id)

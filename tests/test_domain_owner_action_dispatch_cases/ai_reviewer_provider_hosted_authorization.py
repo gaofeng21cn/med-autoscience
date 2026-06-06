@@ -129,6 +129,16 @@ def test_provider_hosted_stage_attempt_identity_authorizes_ai_reviewer_dispatch(
     dispatch["prompt_contract"].pop("opl_execution_authorization", None)
     _write_current_dispatch(dispatch_path, profile, dispatch)
     monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", "sat-provider-hosted")
+    monkeypatch.setenv("OPL_PROVIDER_ATTEMPT_REF", "opl://stage-attempts/sat-provider-hosted")
+    monkeypatch.setenv(
+        "OPL_ATTEMPT_LEASE_REF",
+        "opl://stage-attempts/sat-provider-hosted/leases/frt-provider-hosted/active",
+    )
+    monkeypatch.setenv("OPL_ATTEMPT_LEASE_STATUS", "active")
+    monkeypatch.setenv(
+        "OPL_EXECUTION_AUTHORIZATION_DECISION_REF",
+        "opl://stage-attempts/sat-provider-hosted/execution-authorizations/frt-provider-hosted/current",
+    )
     monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path))
     monkeypatch.setenv("OPL_STUDY_ID", study_id)
@@ -195,6 +205,16 @@ def test_provider_hosted_stage_attempt_identity_mismatch_keeps_ai_reviewer_dispa
     dispatch["prompt_contract"].pop("opl_execution_authorization", None)
     _write_current_dispatch(dispatch_path, profile, dispatch)
     monkeypatch.setenv("OPL_STAGE_ATTEMPT_ID", "sat-provider-hosted")
+    monkeypatch.setenv("OPL_PROVIDER_ATTEMPT_REF", "opl://stage-attempts/sat-provider-hosted")
+    monkeypatch.setenv(
+        "OPL_ATTEMPT_LEASE_REF",
+        "opl://stage-attempts/sat-provider-hosted/leases/frt-provider-hosted/active",
+    )
+    monkeypatch.setenv("OPL_ATTEMPT_LEASE_STATUS", "active")
+    monkeypatch.setenv(
+        "OPL_EXECUTION_AUTHORIZATION_DECISION_REF",
+        "opl://stage-attempts/sat-provider-hosted/execution-authorizations/frt-provider-hosted/current",
+    )
     monkeypatch.setenv("OPL_STAGE_ID", "domain_owner/default-executor-dispatch")
     monkeypatch.setenv("OPL_STAGE_PACKET_REF", str(dispatch_path) + ".stale")
     monkeypatch.setenv("OPL_STUDY_ID", study_id)

@@ -652,16 +652,15 @@ def _trusted_closeout_binding(
     if authorization is None:
         return None
     closeout_refs = _closeout_refs(dispatch=dispatch, authorization=authorization)
-    provider_attempt_ref = (
-        _text(authorization.get("stage_attempt_id"))
-        or _text(authorization.get("active_stage_attempt_id"))
-        or _text(authorization.get("attempt_id"))
-        or _text(authorization.get("provider_attempt_id"))
-        or _text(authorization.get("workflow_id"))
+    provider_attempt_ref = _text(authorization.get("provider_attempt_ref"))
+    attempt_lease_ref = (
+        _text(authorization.get("attempt_lease_ref"))
+        or _text(authorization.get("lease_ref"))
         or _text(authorization.get("lease_id"))
-        or _text(authorization.get("typed_closeout_ref"))
-        or _text(authorization.get("receipt_ref"))
     )
+    execution_authorization_decision_ref = _text(
+        authorization.get("execution_authorization_decision_ref")
+    ) or _text(authorization.get("authorization_decision_ref"))
     source_fingerprint = _source_fingerprint(dispatch=dispatch, authorization=authorization)
     stage_run_id = _binding_text(
         dispatch,
@@ -677,6 +676,9 @@ def _trusted_closeout_binding(
         "bound_to_source_fingerprint": source_fingerprint is not None,
         "provider_attempt_ref": provider_attempt_ref,
         "attempt_id": provider_attempt_ref,
+        "attempt_lease_ref": attempt_lease_ref,
+        "attempt_lease_status": _text(authorization.get("attempt_lease_status")) or "active",
+        "execution_authorization_decision_ref": execution_authorization_decision_ref,
         "stage_run_id": stage_run_id,
         "stage_run_ref": _binding_text(dispatch, "stage_run_ref", fallback=stage_run_id),
         "stage_manifest_ref": _binding_text(
@@ -724,6 +726,9 @@ def _manifest_closeout_binding(closeout_binding: Mapping[str, Any]) -> dict[str,
         "bound_to_current_pointer": bool(closeout_binding.get("bound_to_current_pointer")),
         "bound_to_source_fingerprint": bool(closeout_binding.get("bound_to_source_fingerprint")),
         "provider_attempt_ref": _text(closeout_binding.get("provider_attempt_ref")),
+        "attempt_lease_ref": _text(closeout_binding.get("attempt_lease_ref")),
+        "attempt_lease_status": _text(closeout_binding.get("attempt_lease_status")) or "active",
+        "execution_authorization_decision_ref": _text(closeout_binding.get("execution_authorization_decision_ref")),
         "stage_run_id": _text(closeout_binding.get("stage_run_id")),
         "stage_run_ref": _text(closeout_binding.get("stage_run_ref")),
         "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),

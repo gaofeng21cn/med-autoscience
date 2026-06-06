@@ -159,6 +159,21 @@ def _dispatch_path(dispatch: Mapping[str, Any]) -> Path:
     return Path(path_text).expanduser().resolve()
 
 
+def _with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    result = dict(dispatch)
+    authorization = opl_execution_preflight.provider_hosted_stage_attempt_authorization(dispatch=result)
+    if authorization is None:
+        return result
+    result["opl_execution_authorization"] = dict(authorization)
+    prompt_contract = _mapping(result.get("prompt_contract"))
+    if prompt_contract:
+        result["prompt_contract"] = {
+            **prompt_contract,
+            "opl_execution_authorization": dict(authorization),
+        }
+    return result
+
+
 def _resolve_study_ids(
     profile: WorkspaceProfile,
     study_ids: Iterable[str],
@@ -569,6 +584,7 @@ def _execute_dispatch(
         dispatch=dispatch,
         dispatch_path=dispatch_path,
     )
+    dispatch = _with_provider_hosted_opl_authorization(dispatch)
     guard_ok, guard_reason = _contract_guard(dispatch)
     current_route, owner_route_basis = _execution_owner_route(
         profile=profile,

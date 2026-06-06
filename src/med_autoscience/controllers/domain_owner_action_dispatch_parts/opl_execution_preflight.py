@@ -65,6 +65,10 @@ def _authorized(
     ) is not None
 
 
+def provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
+    return _provider_hosted_stage_attempt_authorization(dispatch=dispatch)
+
+
 def _provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
     stage_attempt_id = _env_text("OPL_STAGE_ATTEMPT_ID")
     stage_packet_ref = _env_text("OPL_STAGE_PACKET_REF")
@@ -91,7 +95,11 @@ def _provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any])
         {
             "owner": "one-person-lab",
             "executor_kind": "codex_cli",
+            "provider_attempt_ref": _env_text("OPL_PROVIDER_ATTEMPT_REF"),
             "stage_attempt_id": stage_attempt_id,
+            "attempt_lease_ref": _env_text("OPL_ATTEMPT_LEASE_REF"),
+            "attempt_lease_status": _env_text("OPL_ATTEMPT_LEASE_STATUS"),
+            "execution_authorization_decision_ref": _env_text("OPL_EXECUTION_AUTHORIZATION_DECISION_REF"),
             "stage_packet_ref": stage_packet_ref,
             "workflow_id": _env_text("OPL_WORKFLOW_ID"),
             "task_id": _env_text("OPL_TASK_ID"),
