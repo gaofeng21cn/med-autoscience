@@ -63,6 +63,16 @@ def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[st
     if _non_empty_text(delta.get("reason")) != READINESS_BLOCKER:
         return None
     source_ref = _non_empty_text(delta.get("source_ref"))
+    next_action = _readiness_next_action(readiness=readiness, delta=delta)
+    surface_key = _readiness_surface_key(next_action=next_action, delta=delta)
+    target_surface = {
+        "ref_kind": "mas_owner_surface",
+        "surface_ref": _non_empty_text(delta.get("required_input")) or READINESS_ACTION,
+        "blocked_surface": _non_empty_text(delta.get("blocked_surface"))
+        or PUBLICATION_HANDOFF_ACTION,
+    }
+    if surface_key is not None:
+        target_surface["surface_key"] = surface_key
     return _compact(
         {
             "surface_kind": SURFACE_KIND,
@@ -74,13 +84,10 @@ def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[st
             "allowed_actions": [READINESS_ACTION],
             "owner_receipt_required": True,
             "required_delta_kind": "medical_paper_readiness_surface_or_typed_blocker",
-            "target_surface": {
-                "ref_kind": "mas_owner_surface",
-                "surface_ref": _non_empty_text(delta.get("required_input")) or READINESS_ACTION,
-                "blocked_surface": _non_empty_text(delta.get("blocked_surface"))
-                or PUBLICATION_HANDOFF_ACTION,
-            },
+            "target_surface": target_surface,
             "target_surface_specificity": "stage_kernel_typed_blocker_followup",
+            "surface_key": surface_key,
+            "next_action": next_action or None,
             "acceptance_refs": _text_items(delta.get("acceptance_refs")),
             "blocked_surface": _non_empty_text(delta.get("blocked_surface")) or PUBLICATION_HANDOFF_ACTION,
             "source_ref": source_ref,
@@ -181,6 +188,24 @@ def _current_owner_delta(payload: Mapping[str, Any]) -> dict[str, Any]:
         return delta
     stage_run_kernel = _mapping_copy(stage_kernel.get("stage_run_kernel"))
     return _mapping_copy(stage_run_kernel.get("current_owner_delta"))
+
+
+def _readiness_next_action(*, readiness: Mapping[str, Any], delta: Mapping[str, Any]) -> dict[str, Any]:
+    next_action = _mapping_copy(delta.get("next_action")) or _mapping_copy(readiness.get("next_action"))
+    if not next_action:
+        return {}
+    return {
+        key: value
+        for key, value in next_action.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _readiness_surface_key(*, next_action: Mapping[str, Any], delta: Mapping[str, Any]) -> str | None:
+    return (
+        _non_empty_text(delta.get("surface_key"))
+        or _non_empty_text(next_action.get("surface_key"))
+    )
 
 
 def _mapping_items(value: object) -> list[dict[str, Any]]:

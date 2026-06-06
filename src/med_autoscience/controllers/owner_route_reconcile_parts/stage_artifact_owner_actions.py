@@ -23,6 +23,16 @@ def typed_blocker_followup_action(progress: Mapping[str, Any]) -> dict[str, Any]
     if _text(delta.get("reason")) != "medical_paper_readiness_not_ready":
         return None
     source_ref = _text(delta.get("source_ref"))
+    readiness = _mapping(progress.get("medical_paper_readiness"))
+    next_action = _readiness_next_action(readiness=readiness, delta=delta)
+    surface_key = _readiness_surface_key(next_action=next_action, delta=delta)
+    work_unit_fingerprint = (
+        _text(delta.get("delta_id"))
+        or _readiness_work_unit_fingerprint(
+            source_ref=source_ref,
+            surface_key=surface_key,
+        )
+    )
     return {
         "action_type": READINESS_ACTION_TYPE,
         "authority": "mas_owner_surface",
@@ -32,10 +42,11 @@ def typed_blocker_followup_action(progress: Mapping[str, Any]) -> dict[str, Any]
         "reason": _text(delta.get("reason")) or "medical_paper_readiness_not_ready",
         "summary": "Complete the MAS medical-paper readiness surface named by the terminal handoff typed blocker.",
         "required_output_surface": _text(delta.get("required_input")) or READINESS_ACTION_TYPE,
+        "surface_key": surface_key,
+        "next_action": next_action or None,
         "work_unit_id": READINESS_ACTION_TYPE,
         "next_work_unit": READINESS_ACTION_TYPE,
-        "work_unit_fingerprint": _text(delta.get("delta_id"))
-        or f"stage-current-owner-delta::{READINESS_ACTION_TYPE}::{source_ref or 'unknown'}",
+        "work_unit_fingerprint": work_unit_fingerprint,
         "source_ref": source_ref,
         "source_surface": "stage_kernel_projection.current_owner_delta",
         "blocked_surface": _text(delta.get("blocked_surface")) or ACTION_TYPE,
@@ -147,6 +158,13 @@ def _stage_artifact_contract_refs(owner_action: Mapping[str, Any]) -> dict[str, 
 
 
 def _projection_action_from_followup(action: Mapping[str, Any]) -> dict[str, Any]:
+    target_surface = {
+        "ref_kind": "mas_owner_surface",
+        "surface_ref": _text(action.get("required_output_surface")) or READINESS_ACTION_TYPE,
+        "blocked_surface": _text(action.get("blocked_surface")) or ACTION_TYPE,
+    }
+    if surface_key := _text(action.get("surface_key")):
+        target_surface["surface_key"] = surface_key
     return {
         "surface_kind": "current_executable_owner_action",
         "schema_version": 1,
@@ -157,12 +175,10 @@ def _projection_action_from_followup(action: Mapping[str, Any]) -> dict[str, Any
         "allowed_actions": [_text(action.get("action_type")) or READINESS_ACTION_TYPE],
         "owner_receipt_required": True,
         "required_delta_kind": "medical_paper_readiness_surface_or_typed_blocker",
-        "target_surface": {
-            "ref_kind": "mas_owner_surface",
-            "surface_ref": _text(action.get("required_output_surface")) or READINESS_ACTION_TYPE,
-            "blocked_surface": _text(action.get("blocked_surface")) or ACTION_TYPE,
-        },
+        "target_surface": target_surface,
         "target_surface_specificity": "stage_kernel_typed_blocker_followup",
+        "surface_key": _text(action.get("surface_key")),
+        "next_action": _mapping(action.get("next_action")) or None,
         "blocked_surface": _text(action.get("blocked_surface")) or ACTION_TYPE,
         "source_ref": _text(action.get("source_ref")),
         "latest_owner_answer_ref": _text(action.get("latest_owner_answer_ref"))
@@ -181,6 +197,26 @@ def _projection_action_from_followup(action: Mapping[str, Any]) -> dict[str, Any
             "can_authorize_publication_ready": False,
         },
     }
+
+
+def _readiness_next_action(*, readiness: Mapping[str, Any], delta: Mapping[str, Any]) -> dict[str, Any]:
+    next_action = _mapping(delta.get("next_action")) or _mapping(readiness.get("next_action"))
+    if not next_action:
+        return {}
+    return {
+        key: value
+        for key, value in next_action.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def _readiness_surface_key(*, next_action: Mapping[str, Any], delta: Mapping[str, Any]) -> str | None:
+    return _text(delta.get("surface_key")) or _text(next_action.get("surface_key"))
+
+
+def _readiness_work_unit_fingerprint(*, source_ref: str | None, surface_key: str | None) -> str:
+    suffix = surface_key or "unspecified_surface"
+    return f"stage-current-owner-delta::{READINESS_ACTION_TYPE}::{suffix}::{source_ref or 'unknown'}"
 
 
 def _current_owner_delta(progress: Mapping[str, Any]) -> dict[str, Any]:

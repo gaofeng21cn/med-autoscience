@@ -199,6 +199,14 @@ def test_scan_domain_routes_promotes_handoff_typed_blocker_followup_action(
         "quest_id": "quest-dm002",
         "current_stage": "publication_supervision",
         "paper_stage": "bundle_stage_blocked",
+        "medical_paper_readiness": {
+            "overall_status": "blocked",
+            "next_action": {
+                "action_id": "complete_medical_paper_readiness_surface",
+                "surface_key": "literature_provider_runtime",
+                "summary": "运行联网 literature provider runtime 并写入可审计来源后再继续。",
+            },
+        },
         "stage_artifact_index": stage_artifact_index,
         "stage_kernel_projection": {
             "current_owner_delta": {
@@ -232,6 +240,10 @@ def test_scan_domain_routes_promotes_handoff_typed_blocker_followup_action(
         "complete_medical_paper_readiness_surface"
     ]
     assert study["current_executable_owner_action"]["blocked_surface"] == "publication_handoff_owner_gate"
+    assert study["current_executable_owner_action"]["surface_key"] == "literature_provider_runtime"
+    assert study["current_executable_owner_action"]["target_surface"]["surface_key"] == (
+        "literature_provider_runtime"
+    )
     assert [action["action_type"] for action in study["action_queue"]] == [
         "complete_medical_paper_readiness_surface"
     ]
@@ -239,8 +251,16 @@ def test_scan_domain_routes_promotes_handoff_typed_blocker_followup_action(
     assert action["owner"] == "MedAutoScience"
     assert action["source_surface"] == "stage_kernel_projection.current_owner_delta"
     assert action["source_ref"] == typed_blocker_ref
+    assert action["surface_key"] == "literature_provider_runtime"
+    assert action["next_action"]["surface_key"] == "literature_provider_runtime"
+    assert action["work_unit_fingerprint"] == (
+        "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
+        "literature_provider_runtime::"
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
     assert study["owner_route"]["next_owner"] == "MedAutoScience"
     assert study["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
+    assert study["owner_route"]["source_refs"]["work_unit_fingerprint"] == action["work_unit_fingerprint"]
     assert study["why_not_applied"] == "medical_paper_readiness_not_ready"
     assert study["blocked_reason"] == "medical_paper_readiness_not_ready"
     assert result["action_queue"][0]["action_type"] == "complete_medical_paper_readiness_surface"

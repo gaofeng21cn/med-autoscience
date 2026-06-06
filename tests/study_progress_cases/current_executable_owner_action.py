@@ -966,7 +966,14 @@ def test_progress_first_monitoring_prefers_handoff_typed_blocker_readiness_follo
     monitoring = module.build_progress_first_monitoring_summary(
         {
             "study_id": "002-dm-china-us-mortality-attribution",
-            "medical_paper_readiness": {"overall_status": "blocked"},
+            "medical_paper_readiness": {
+                "overall_status": "blocked",
+                "next_action": {
+                    "action_id": "complete_medical_paper_readiness_surface",
+                    "surface_key": "literature_provider_runtime",
+                    "summary": "运行联网 literature provider runtime 并写入可审计来源后再继续。",
+                },
+            },
             "stage_artifact_index": {
                 "surface_kind": "stage_artifact_index",
                 "current_stage": {
@@ -1010,4 +1017,7 @@ def test_progress_first_monitoring_prefers_handoff_typed_blocker_readiness_follo
     assert action["source"] == "stage_kernel_projection.current_owner_delta"
     assert action["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
     assert action["blocked_surface"] == "publication_handoff_owner_gate"
+    assert action["surface_key"] == "literature_provider_runtime"
+    assert action["next_action"]["surface_key"] == "literature_provider_runtime"
+    assert action["target_surface"]["surface_key"] == "literature_provider_runtime"
     assert action["artifact_first_precedence"]["typed_blocker_followup_takes_precedence"] is True
