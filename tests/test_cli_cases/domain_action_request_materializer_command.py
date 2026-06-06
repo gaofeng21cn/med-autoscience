@@ -113,12 +113,14 @@ def test_domain_owner_action_dispatch_command_dispatches_controller(monkeypatch,
         action_types,
         mode: str,
         apply: bool,
+        consumer_payload,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_ids"] = study_ids
         called["action_types"] = action_types
         called["mode"] = mode
         called["apply"] = apply
+        called["consumer_payload"] = consumer_payload
         return {
             "surface": "default_executor_dispatch_executor",
             "execution_count": len(study_ids),
@@ -153,7 +155,94 @@ def test_domain_owner_action_dispatch_command_dispatches_controller(monkeypatch,
     assert called["action_types"] == ("return_to_ai_reviewer_workflow",)
     assert called["mode"] == "developer_apply_safe"
     assert called["apply"] is True
+    assert called["consumer_payload"] is None
     assert json.loads(captured.out)["surface"] == "default_executor_dispatch_executor"
+
+
+def test_domain_owner_action_dispatch_command_accepts_payload_file(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    payload_path = tmp_path / "consumer-payload.json"
+    consumer_payload = {
+        "surface": "domain_action_request_materializer",
+        "schema_version": 1,
+        "default_executor_dispatch_count": 1,
+        "default_executor_dispatches": [
+            {
+                "surface": "default_executor_dispatch_request",
+                "study_id": "DM003",
+                "action_type": "complete_medical_paper_readiness_surface",
+                "refs": {
+                    "dispatch_path": (
+                        "artifacts/supervision/consumer/default_executor_dispatches/"
+                        "complete_medical_paper_readiness_surface.json"
+                    )
+                },
+                "closeout_binding": {
+                    "surface_kind": "opl_stage_run_closeout_binding",
+                    "stage_run_id": "app-stage-run:medautoscience:domain-owner-default-executor-dispatch",
+                    "stage_manifest_ref": "opl://stage-manifests/domain_owner%2Fdefault-executor-dispatch",
+                    "current_pointer_ref": "opl://stage-runs/current",
+                    "source_fingerprint": "mas_default_executor_source_current",
+                    "idempotency_key": "idem_current",
+                },
+            }
+        ],
+    }
+    payload_path.write_text(json.dumps(consumer_payload), encoding="utf-8")
+    called: dict[str, object] = {}
+
+    def fake_dispatch_domain_owner_actions(
+        *,
+        profile,
+        study_ids,
+        action_types,
+        mode: str,
+        apply: bool,
+        consumer_payload,
+    ) -> dict[str, object]:
+        called["profile"] = profile
+        called["study_ids"] = study_ids
+        called["action_types"] = action_types
+        called["mode"] = mode
+        called["apply"] = apply
+        called["consumer_payload"] = consumer_payload
+        return {
+            "surface": "default_executor_dispatch_executor",
+            "received_payload_surface": consumer_payload["surface"],
+        }
+
+    monkeypatch.setattr(
+        cli.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        fake_dispatch_domain_owner_actions,
+    )
+
+    exit_code = cli.main(
+        [
+            "domain-owner-action-dispatch",
+            "--profile",
+            str(profile_path),
+            "--payload-file",
+            str(payload_path),
+            "--action-types",
+            "complete_medical_paper_readiness_surface",
+            "--mode",
+            "developer_apply_safe",
+            "--dry-run",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_ids"] == ()
+    assert called["action_types"] == ("complete_medical_paper_readiness_surface",)
+    assert called["mode"] == "developer_apply_safe"
+    assert called["apply"] is False
+    assert called["consumer_payload"] == consumer_payload
+    assert json.loads(captured.out)["received_payload_surface"] == "domain_action_request_materializer"
 
 
 def test_domain_owner_action_dispatch_command_rejects_retired_worker_flag(
@@ -173,12 +262,14 @@ def test_domain_owner_action_dispatch_command_rejects_retired_worker_flag(
         action_types,
         mode: str,
         apply: bool,
+        consumer_payload,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_ids"] = study_ids
         called["action_types"] = action_types
         called["mode"] = mode
         called["apply"] = apply
+        called["consumer_payload"] = consumer_payload
         return {
             "surface": "default_executor_dispatch_executor",
         }

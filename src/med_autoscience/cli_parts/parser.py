@@ -163,6 +163,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_owner_action_dispatch_parser.add_argument("--profile", required=True)
     domain_owner_action_dispatch_parser.add_argument("--studies", nargs="+")
     domain_owner_action_dispatch_parser.add_argument("--action-types", nargs="+")
+    domain_owner_action_dispatch_parser.add_argument("--payload-file", type=str)
+    domain_owner_action_dispatch_parser.add_argument("--payload-json", type=str)
     domain_owner_action_dispatch_parser.add_argument(
         "--mode",
         choices=("developer_apply_safe",),

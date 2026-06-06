@@ -412,12 +412,18 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "domain-owner-action-dispatch":
         profile = load_profile(args.profile)
+        consumer_payload = (
+            _load_json_payload_from_args(args)
+            if getattr(args, "payload_file", None) or getattr(args, "payload_json", None)
+            else None
+        )
         result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
             profile=profile,
             study_ids=tuple(args.studies or ()),
             action_types=tuple(args.action_types or ()),
             mode=args.mode,
             apply=bool(args.apply),
+            consumer_payload=consumer_payload,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
