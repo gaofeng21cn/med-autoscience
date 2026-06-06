@@ -218,7 +218,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     shared_text = (workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh").read_text(encoding="utf-8")
     assert "PYTHONDONTWRITEBYTECODE=1" in shared_text
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
-    assert 'if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then' in bootstrap_text
+    assert 'workspace_python_has_medautosci_cli() {' in bootstrap_text
+    assert '"${WORKSPACE_PYTHON}" -c "import med_autoscience.cli"' in bootstrap_text
+    assert 'if ! workspace_python_has_medautosci_cli; then' in bootstrap_text
     assert 'MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"' in bootstrap_text
     assert 'run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli workspace bootstrap' in bootstrap_text
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text

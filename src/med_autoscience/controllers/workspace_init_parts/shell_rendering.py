@@ -98,10 +98,14 @@ def _render_bootstrap_script() -> str:
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then\n'
+        "workspace_python_has_medautosci_cli() {\n"
+        '  [[ -x "${WORKSPACE_PYTHON}" ]] || return 1\n'
+        '  PYTHONDONTWRITEBYTECODE=1 "${WORKSPACE_PYTHON}" -c "import med_autoscience.cli" >/dev/null 2>&1\n'
+        "}\n\n"
+        "if ! workspace_python_has_medautosci_cli; then\n"
         '  MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"\n'
         '  if [[ -z "${MED_AUTOSCIENCE_UV_BIN}" || "${MED_AUTOSCIENCE_UV_BIN}" != /* || ! -x "${MED_AUTOSCIENCE_UV_BIN}" ]]; then\n'
-        '    echo "Workspace Python is missing and MED_AUTOSCIENCE_UV_BIN is not executable: ${WORKSPACE_PYTHON}" >&2\n'
+        '    echo "Workspace Python is missing med_autoscience.cli and MED_AUTOSCIENCE_UV_BIN is not executable: ${WORKSPACE_PYTHON}" >&2\n'
         "    exit 1\n"
         "  fi\n"
         '  PYTHONDONTWRITEBYTECODE=1 "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli workspace bootstrap --profile "${PROFILE_PATH}" "$@"\n'

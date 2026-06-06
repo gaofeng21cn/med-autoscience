@@ -155,12 +155,22 @@ def legacy_medautoscience_shared_entry_reason(
             and '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"'
             in existing_content
         )
-        if looks_like_uv_entry or looks_like_managed_shared:
-            return "legacy_workspace_python_entry"
+        looks_like_workspace_python_runner = (
+            "run_medautosci() {" in existing_content
+            and '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in existing_content
+        )
+        workspace_python_gate_is_in_runner = (
+            'run_medautosci() {\n'
+            '  if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then\n' in existing_content
+        )
+        if looks_like_workspace_python_runner and not workspace_python_gate_is_in_runner:
+            return "legacy_workspace_python_gate"
         if looks_like_managed_shared and "MED_AUTOSCIENCE_RSCRIPT_BIN" not in existing_content:
             return "legacy_rscript_entry"
         if looks_like_managed_shared and "MED_AUTOSCIENCE_NODE_BIN" not in existing_content:
             return "legacy_node_entry"
+        if looks_like_uv_entry or looks_like_managed_shared:
+            return "legacy_workspace_python_entry"
         return None
     return None
 

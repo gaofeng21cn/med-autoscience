@@ -21,8 +21,9 @@ def ensure_workspace_python_environment(*, workspace_root: Path) -> dict[str, An
             "stdout": "",
             "stderr": "uv executable not found on PATH",
         }
+    sync_command = [uv_path, "sync", "--directory", str(root), "--inexact"]
     sync = subprocess.run(
-        [uv_path, "sync", "--directory", str(root), "--extra", "analysis", "--inexact"],
+        sync_command,
         capture_output=True,
         text=True,
         check=False,
@@ -35,7 +36,7 @@ def ensure_workspace_python_environment(*, workspace_root: Path) -> dict[str, An
         "python_path": str(python_path),
         "ready": ready and sync.returncode == 0,
         "sync": {
-            "command": [uv_path, "sync", "--directory", str(root), "--extra", "analysis", "--inexact"],
+            "command": sync_command,
             "exit_code": sync.returncode,
             "stdout": sync.stdout,
             "stderr": sync.stderr,

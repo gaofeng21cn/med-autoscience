@@ -212,6 +212,63 @@ def test_init_workspace_upgrades_generated_workspace_pyproject_analysis_extra(tm
     assert '"med-autoscience[analysis]"' in pyproject.read_text(encoding="utf-8")
 
 
+def test_init_workspace_upgrades_generated_shared_when_workspace_python_gate_moves_into_runner(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "old-shared-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="old-shared",
+        dry_run=False,
+        force=False,
+    )
+
+    shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
+    shared.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n\n"
+        'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
+        'MEDAUTOSCI_OPS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"\n'
+        'WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"\n'
+        'DEFAULT_PROFILE="${WORKSPACE_ROOT}/ops/medautoscience/profiles/old-shared.local.toml"\n'
+        'CONFIG_ENV_PATH="${MEDAUTOSCI_OPS_ROOT}/config.env"\n\n'
+        'if [[ -f "${CONFIG_ENV_PATH}" ]]; then\n'
+        "  # shellcheck disable=SC1090\n"
+        '  source "${CONFIG_ENV_PATH}"\n'
+        "fi\n\n"
+        'PROFILE_PATH="${MED_AUTOSCIENCE_PROFILE:-${DEFAULT_PROFILE}}"\n\n'
+        'MED_AUTOSCIENCE_REPO_RESOLVED="$(cd "${MED_AUTOSCIENCE_REPO}" && pwd)"\n\n'
+        'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"\n'
+        'if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then\n'
+        '  echo "Workspace Python is missing or not executable: ${WORKSPACE_PYTHON}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"\n'
+        'export MED_AUTOSCIENCE_RSCRIPT_BIN\n\n'
+        'MED_AUTOSCIENCE_NODE_BIN="${MED_AUTOSCIENCE_NODE_BIN:-$(command -v node || true)}"\n'
+        'export MED_AUTOSCIENCE_NODE_BIN\n\n'
+        "run_medautosci() {\n"
+        "  PYTHONDONTWRITEBYTECODE=1 \\\n"
+        '  "${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"\n'
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="old-shared",
+        dry_run=False,
+        force=False,
+    )
+
+    assert str(shared) in result["upgraded_files"]
+    assert (
+        'run_medautosci() {\n'
+        '  if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then\n'
+        in shared.read_text(encoding="utf-8")
+    )
+
+
 def test_init_workspace_removes_flat_watch_runtime_entry_even_when_current_flags_are_present(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "legacy-watch-runtime"
