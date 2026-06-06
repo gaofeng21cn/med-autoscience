@@ -85,6 +85,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="codex_plugin_surface",
         exact_paths=(
+            ".agents/plugins/marketplace.json",
             "scripts/install-codex-plugin.sh",
             "plugins/mas/.codex-plugin/plugin.json",
             "plugins/mas/skills/mas/SKILL.md",
@@ -254,6 +255,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/pack_compiler_input.json",
             "contracts/private_functional_surface_policy.json",
             "contracts/stage_artifact_kernel_adoption.json",
+            "contracts/stage_run_kernel_profile.json",
             "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
             "templates/codex/medautoscience-entry.SKILL.md",

@@ -651,6 +651,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "contracts/mas-paper-study-stage-pack.json",
             "contracts/pack_compiler_input.json",
             "contracts/stage_artifact_kernel_adoption.json",
+            "contracts/stage_run_kernel_profile.json",
             "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
             "templates/codex/medautoscience-entry.SKILL.md",
@@ -764,6 +765,7 @@ def test_classify_changed_files_matches_codex_plugin_skill_surface() -> None:
 
     result = module.classify_changed_files(
         [
+            ".agents/plugins/marketplace.json",
             "plugins/mas/.codex-plugin/plugin.json",
             "plugins/mas/skills/mas/SKILL.md",
             "tests/test_codex_plugin_scaffold.py",
