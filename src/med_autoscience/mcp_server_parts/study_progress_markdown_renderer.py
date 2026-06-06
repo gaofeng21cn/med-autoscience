@@ -97,7 +97,6 @@ def _render_mcp_progress_medical_paper_readiness(compact: dict[str, Any]) -> lis
     for item in _mcp_medical_paper_missing_surfaces(readiness):
         lines.append(_mcp_medical_paper_missing_surface_line(item))
         lines.extend(_mcp_medical_paper_guarded_action_lines(item))
-        lines.append(_mcp_medical_paper_missing_surface_compat_line(item))
     lines.append(f"- quality_claim_authorized: `{readiness.get('quality_claim_authorized')}`")
     lines.append(
         "- mechanical_projection_can_authorize_quality: "
@@ -271,12 +270,6 @@ def _mcp_medical_paper_guarded_action_lines(item: dict[str, Any]) -> list[str]:
         f"  guarded action: `{action_id}`",
         f"  authority: product-entry/controller guarded; quality authorization: {quality_authorized}",
     ]
-
-
-def _mcp_medical_paper_missing_surface_compat_line(item: dict[str, Any]) -> str:
-    surface_key = str(item.get("surface_key") or "unknown").strip() or "unknown"
-    missing_reason = str(item.get("missing_reason") or "unknown").strip() or "unknown"
-    return f"- 缺失 surface: {surface_key} (`{missing_reason}`)"
 
 
 def _mcp_readiness_surface_durable_ref(item: dict[str, Any]) -> str:

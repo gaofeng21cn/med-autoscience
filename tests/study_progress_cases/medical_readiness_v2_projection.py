@@ -306,6 +306,8 @@ def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> 
     assert "写作授权: 检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。" not in markdown
     assert "真实 soak: 从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。" not in markdown
     assert "generic 缺失 surface" not in markdown
+    assert "补文献: 运行 provider-backed 文献摄取" in markdown
+    assert "缺失 surface: literature_provider_runtime" not in markdown
     assert markdown.strip()
 
 
@@ -319,4 +321,6 @@ def test_study_progress_markdown_renders_v2_readiness_action_semantics() -> None
     assert "返修: 摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。" not in markdown
     assert "写作授权: 检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。" not in markdown
     assert "真实 soak: 从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。" not in markdown
+    assert "补文献: 运行 provider-backed 文献摄取" in markdown
+    assert "缺失 surface: literature_provider_runtime" not in markdown
     assert markdown.strip()
