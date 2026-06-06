@@ -10,41 +10,41 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience import medical_manuscript_blueprint
 from med_autoscience.controllers import gate_clearing_batch, publication_gate
 
-from .. import (
+from ... import (
     ai_reviewer_publication_eval_workflow,
     analysis_harmonization_owner,
     paper_authority_migration,
     quest_hydration,
     domain_status_projection,
 )
-from .action_execution_parts import methodology_reframe_decision
-from .action_execution_parts import publication_handoff
-from .action_execution_parts import publication_gate_actions
-from .action_execution_parts import provenance_limited_harmonization
-from .action_execution_parts import quality_repair
-from .action_execution_parts import source_provenance
-from .action_execution_parts import claim_evidence_alignment
-from .action_execution_parts import ai_reviewer_request_refs
-from .action_execution_parts.ai_reviewer_medical_prose_review_production import (
+from . import methodology_reframe_decision
+from . import publication_handoff
+from . import publication_gate_actions
+from . import provenance_limited_harmonization
+from . import quality_repair
+from . import source_provenance
+from . import claim_evidence_alignment
+from . import ai_reviewer_request_refs
+from .ai_reviewer_medical_prose_review_production import (
     currentness_blocker_or_handoff,
     try_rehydrate_medical_prose_review_request,
 )
-from .action_execution_parts.ai_reviewer_clean_migration_record import build_clean_migration_request_record
-from .action_execution_parts.ai_reviewer_record_validation import (
+from .ai_reviewer_clean_migration_record import build_clean_migration_request_record
+from .ai_reviewer_record_validation import (
     ai_reviewer_owned_record,
     ai_reviewer_record_blocker,
     ai_reviewer_record_requirements,
     missing_ai_reviewer_record_fields,
 )
-from .action_execution_parts.ai_reviewer_record_production import (
+from .ai_reviewer_record_production import (
     attach_incomplete_ai_reviewer_record_handoff,
     attach_invalid_ai_reviewer_record_handoff,
     record_production_handoff_execution,
 )
-from .action_execution_parts.ai_reviewer_routeback_record import build_current_medical_prose_routeback_record
-from .action_execution_parts.ai_reviewer_stale_record_handoff import stale_ai_reviewer_record_handoff
-from ..ai_reviewer_story_provenance_guard import ai_reviewer_record_story_provenance_leakage_dispatch_blocker
-from ..domain_action_request_lifecycle import stable_ai_reviewer_request_path
+from .ai_reviewer_routeback_record import build_current_medical_prose_routeback_record
+from .ai_reviewer_stale_record_handoff import stale_ai_reviewer_record_handoff
+from ...ai_reviewer_story_provenance_guard import ai_reviewer_record_story_provenance_leakage_dispatch_blocker
+from ...domain_action_request_lifecycle import stable_ai_reviewer_request_path
 
 
 PUBLICATION_EVAL_LATEST_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")

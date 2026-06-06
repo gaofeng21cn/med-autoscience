@@ -8,7 +8,7 @@ from typing import Any
 from med_autoscience.controllers.domain_action_request_lifecycle import stable_ai_reviewer_request_path
 from med_autoscience.profiles import WorkspaceProfile
 
-from .action_execution_parts.ai_reviewer_record_production import (
+from .action_execution.ai_reviewer_record_production import (
     build_ai_reviewer_record_worker_handoff,
 )
 

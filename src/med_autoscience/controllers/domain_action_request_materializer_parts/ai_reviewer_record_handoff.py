@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import domain_action_request_lifecycle
-from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution_parts.ai_reviewer_record_production import (
+from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution.ai_reviewer_record_production import (
     build_ai_reviewer_record_production_request,
     build_ai_reviewer_record_worker_handoff,
 )

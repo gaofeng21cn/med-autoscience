@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from . import current_writer_handoff
-from .action_execution_parts import ai_reviewer_record_production
+from .action_execution import ai_reviewer_record_production
 
 
 def persisted_handoff_supersedes_consumer_inline(

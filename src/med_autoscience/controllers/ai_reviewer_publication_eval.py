@@ -12,7 +12,7 @@ from med_autoscience.publication_eval_latest import (
 from med_autoscience.publication_eval_record import PublicationEvalRecord
 
 from . import ai_reviewer_publication_eval_workflow, domain_status_projection
-from .domain_owner_action_dispatch_parts.action_execution_parts import ai_reviewer_request_refs
+from .domain_owner_action_dispatch_parts.action_execution import ai_reviewer_request_refs
 from .domain_action_request_lifecycle import stable_ai_reviewer_request_path
 
 __all__ = [
