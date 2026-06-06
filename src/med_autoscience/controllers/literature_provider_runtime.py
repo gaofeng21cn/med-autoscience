@@ -675,6 +675,8 @@ def _literature_intelligence_payload(
 ) -> dict[str, Any]:
     categorized = _categorized_refs(providers)
     return {
+        "source_basis": _text(payload.get("source_basis")),
+        "source_refs": _list(payload.get("source_refs")),
         "search_strategy": dict(_mapping(payload.get("search_strategy"))),
         "search_date": _text(payload.get("search_date")),
         "searched_sources": _provider_source_refs(providers),
@@ -712,6 +714,8 @@ def build_literature_provider_runtime_projection(payload: Mapping[str, Any]) -> 
         "missing_reason": missing_reason,
         "providers": [_provider_name(provider) for provider in providers],
         "provider_provenance": _provider_provenance(providers),
+        "source_basis": _text(payload.get("source_basis")),
+        "source_refs": _list(payload.get("source_refs")),
         "query": _text(payload.get("query")) or _text(_mapping(payload.get("search_strategy")).get("query")),
         "search_date": _text(payload.get("search_date")),
         "search_strategy": dict(_mapping(payload.get("search_strategy"))),

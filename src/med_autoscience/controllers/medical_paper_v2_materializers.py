@@ -8,6 +8,7 @@ from med_autoscience.controllers import literature_provider_runtime
 from med_autoscience.controllers import medical_paper_readiness
 from med_autoscience.controllers import real_workspace_soak_monitor
 from med_autoscience.controllers import revision_rebuttal_loop
+from med_autoscience.controllers import route_control_stoploss
 from med_autoscience.controllers import route_decision_orchestrator
 from med_autoscience.controllers import statistical_discipline_runtime
 from med_autoscience.controllers import study_line_decision_engine
@@ -171,6 +172,50 @@ def _materialize_bounded_analysis_candidate_board(
     )
 
 
+def _materialize_stop_loss_memo(
+    *,
+    study_root: Path,
+    payload: Mapping[str, Any],
+    apply: bool,
+) -> dict[str, Any]:
+    path = Path(study_root).expanduser().resolve() / route_control_stoploss.STOP_LOSS_MEMO_PATH
+    route_payload = {
+        key: value
+        for key, value in dict(payload).items()
+        if key
+        not in {
+            "payload_source",
+            "source_basis",
+            "source_refs",
+            "quality_claim_authorized",
+            "mechanical_projection_can_authorize_quality",
+        }
+    }
+    if not apply:
+        memo = route_control_stoploss.build_route_control_stoploss_memo(**route_payload)
+        status, missing_reason = medical_paper_readiness._validate_stop_loss_memo(memo)
+        return _result(
+            surface_key="stop_loss_memo",
+            status=status,
+            missing_reason=missing_reason,
+            artifact_path=path,
+            payload=memo,
+        )
+    result = route_control_stoploss.materialize_route_control_stoploss_memo(
+        root=study_root,
+        **route_payload,
+    )
+    memo_payload = _mapping(result.get("stop_loss_memo")) or result
+    status, missing_reason = medical_paper_readiness._validate_stop_loss_memo(memo_payload)
+    return _result(
+        surface_key="stop_loss_memo",
+        status=status,
+        missing_reason=missing_reason,
+        artifact_path=path,
+        payload=memo_payload,
+    )
+
+
 def _materialize_route_decision_orchestrator(
     *,
     study_root: Path,
@@ -313,6 +358,7 @@ MATERIALIZERS: dict[str, Callable[..., dict[str, Any]]] = {
     "study_line_selection": _materialize_study_line_selection,
     "archetype_analysis_contract": _materialize_archetype_analysis_contract,
     "bounded_analysis_candidate_board": _materialize_bounded_analysis_candidate_board,
+    "stop_loss_memo": _materialize_stop_loss_memo,
     "route_decision_orchestrator": _materialize_route_decision_orchestrator,
     "statistical_discipline_operations": _materialize_statistical_discipline_operations,
     "revision_rebuttal_loop": _materialize_revision_rebuttal_loop,

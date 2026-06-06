@@ -21,6 +21,7 @@ DEFAULT_ACTION_ID_BY_SURFACE = {
     "study_line_selection": "materialize_study_line_selection",
     "archetype_analysis_contract": "materialize_archetype_analysis_contract",
     "bounded_analysis_candidate_board": "materialize_bounded_analysis_candidate_board",
+    "stop_loss_memo": "materialize_stop_loss_memo",
     "route_decision_orchestrator": "materialize_route_decision",
     "statistical_discipline_operations": "resolve_statistical_blockers",
     "revision_rebuttal_loop": "start_revision_rebuttal_loop",
@@ -54,7 +55,13 @@ def execute_complete_medical_paper_readiness_surface(
     request_payload = _mapping(owner_request_paths.owner_request_payload(profile, study_id, ACTION_TYPE))
     current_readiness = readiness_surface.build_medical_paper_readiness_surface(study_root=study_root)
     current_surface_key = _text(_mapping(current_readiness.get("next_action")).get("surface_key"))
-    surface_key = _surface_key(dispatch_payload) or _surface_key(request_payload) or current_surface_key
+    surface_key = (
+        _current_owner_surface_key(dispatch_payload)
+        or _current_owner_surface_key(request_payload)
+        or current_surface_key
+        or _surface_key(dispatch_payload)
+        or _surface_key(request_payload)
+    )
     operator_payload = _operator_payload(dispatch_payload, surface_key=surface_key) or _operator_payload(
         request_payload,
         surface_key=surface_key,
@@ -170,6 +177,7 @@ def execute_complete_medical_paper_readiness_surface(
         "required_count": readiness.get("required_count"),
         "completed_surface_key": surface_key,
         "guarded_operator_action_result": action_result,
+        "operator_payload_authoring": authored_payload or None,
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
         "authority_boundary": _authority_boundary(
@@ -565,7 +573,7 @@ def _operator_payload(dispatch: Mapping[str, Any], *, surface_key: str | None = 
     if surface_key and declared_surface_key and declared_surface_key != surface_key:
         return {}
     for payload in _payload_candidates(dispatch):
-        payload_surface_key = _surface_key(payload)
+        payload_surface_key = _payload_surface_key(payload)
         if surface_key and payload_surface_key and payload_surface_key != surface_key:
             continue
         if payload:
@@ -590,7 +598,7 @@ def _operator_payload_from_ref(
         if operator_payload:
             return operator_payload
         target_payload = _mapping(_mapping(payload.get("payload_authoring_target")).get("operator_payload"))
-        target_surface_key = _surface_key(target_payload)
+        target_surface_key = _payload_surface_key(target_payload)
         if surface_key and target_surface_key and target_surface_key != surface_key:
             continue
         if target_payload:
@@ -657,6 +665,34 @@ def _surface_key(dispatch: Mapping[str, Any]) -> str | None:
     for payload in _payload_candidates(dispatch):
         if text := _text(payload.get("surface_key")):
             return text
+    return None
+
+
+def _current_owner_surface_key(dispatch: Mapping[str, Any]) -> str | None:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    handoff_packet = _mapping(dispatch.get("handoff_packet"))
+    owner_pickup = _mapping(dispatch.get("owner_pickup")) or _mapping(handoff_packet.get("owner_pickup"))
+    for payload in (dispatch, prompt_contract, handoff_packet, owner_pickup):
+        identity = _mapping(payload.get("readiness_surface_identity"))
+        if _text(identity.get("source")) == "current_owner_action":
+            return _text(identity.get("surface_key"))
+    return None
+
+
+def _payload_surface_key(payload: Mapping[str, Any]) -> str | None:
+    if text := _text(payload.get("surface_key")):
+        return text
+    surface = _text(payload.get("surface"))
+    if surface in DEFAULT_ACTION_ID_BY_SURFACE:
+        return surface
+    aliases = {
+        "study_line_decision": "study_line_selection",
+        "study_line_selection_scorecard": "study_line_selection",
+        "archetype_specific_analysis_contract": "archetype_analysis_contract",
+        "route_control_stoploss": "stop_loss_memo",
+    }
+    if surface in aliases:
+        return aliases[surface]
     return None
 
 

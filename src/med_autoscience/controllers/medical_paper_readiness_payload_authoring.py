@@ -12,6 +12,7 @@ from med_autoscience.adapters.literature import doi as crossref
 from med_autoscience.adapters.literature import pubmed
 from med_autoscience.adapters.literature import semantic_scholar
 from med_autoscience.controllers import medical_analysis_contract
+from med_autoscience.controllers import route_control_stoploss
 from med_autoscience.controllers import study_line_decision_engine
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -24,6 +25,7 @@ SUPPORTED_SURFACE_KEYS = {
     "study_line_selection",
     "archetype_analysis_contract",
     "bounded_analysis_candidate_board",
+    "stop_loss_memo",
 }
 
 
@@ -54,6 +56,11 @@ def author_operator_payload(
         if payload:
             return payload
         return _blocked_payload("insufficient_bounded_analysis_candidate_board_payload_sources", surface_key=surface_key)
+    if _text(surface_key) == "stop_loss_memo":
+        payload = _payload_from_route_control_stop_loss(study_root=root)
+        if payload:
+            return payload
+        return _blocked_payload("insufficient_stop_loss_memo_payload_sources", surface_key=surface_key)
     existing = _payload_from_existing_literature_intelligence(study_root=root, generated_at=timestamp)
     if existing:
         return existing
@@ -160,6 +167,83 @@ def _payload_from_analysis_contract_candidate_board(*, study_root: Path) -> dict
     }
 
 
+def _payload_from_route_control_stop_loss(*, study_root: Path) -> dict[str, Any]:
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    decision = _read_json(decision_path)
+    next_action = _mapping(decision.get("readiness_next_action"))
+    if _text(next_action.get("surface_key")) != "stop_loss_memo":
+        return {}
+    source_paths = (
+        decision_path,
+        study_root / "artifacts" / "stage_outputs" / "08-publication_package_handoff" / "receipts" / "typed_blocker.json",
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+    )
+    source_refs = [str(path) for path in source_paths if path.exists()]
+    controller_blocker = _mapping(decision.get("controller_blocker"))
+    failure_reasons = [
+        text
+        for text in (
+            _text(controller_blocker.get("blocker_id")),
+            _text(controller_blocker.get("reason")),
+        )
+        if text
+    ] or ["medical_paper_readiness_stop_loss_memo_required"]
+    attempted_paths = [
+        text
+        for text in (
+            _text(next_action.get("action_id")),
+            _text(next_action.get("surface_key")),
+            _text(controller_blocker.get("required_owner_surface")),
+        )
+        if text
+    ] or ["complete_medical_paper_readiness_surface"]
+    payload = {
+        "current_route": "complete_medical_paper_readiness_surface",
+        "decision": "stop_loss",
+        "evidence_state": "blocked",
+        "stop_pressure": "high",
+        "attempted_paths": list(dict.fromkeys(attempted_paths)),
+        "failure_reasons": list(dict.fromkeys(failure_reasons)),
+        "continuation_cost": {
+            "runtime_scope": "repeated_readiness_surface_attempts",
+            "quality_claim_authorized": False,
+        },
+        "evidence_gain_ceiling": "low_without_stop_loss_memo",
+        "alternative_routes": ["return_to_write"],
+        "evidence_refs": source_refs,
+        "exploration_depth_review": {
+            check: {
+                "sufficient": True,
+                "finding": "Current stop-loss decision is scoped to the readiness owner-route artifact gap.",
+            }
+            for check in route_control_stoploss.EXPLORATION_DEPTH_CHECKS
+        },
+        "payload_source": SOURCE,
+        "source_basis": "controller_decision_readiness_next_action_stop_loss",
+        "source_refs": source_refs,
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+    try:
+        route_control_stoploss.build_route_control_stoploss_memo(
+            **_payload_without_authoring_metadata(payload)
+        )
+    except (TypeError, ValueError):
+        return {}
+    return payload
+
+
+def _payload_without_authoring_metadata(payload: Mapping[str, Any]) -> dict[str, Any]:
+    metadata_keys = {
+        "payload_source",
+        "source_basis",
+        "source_refs",
+        "quality_claim_authorized",
+        "mechanical_projection_can_authorize_quality",
+    }
+    return {key: value for key, value in dict(payload).items() if key not in metadata_keys}
+
+
 def _target_claim_for_package(*, package: str, contract: Mapping[str, Any]) -> str:
     context = _mapping(contract.get("target_context"))
     primary_endpoint = _text(context.get("primary_endpoint")) or _text(contract.get("endpoint_type")) or "primary endpoint"
@@ -246,6 +330,15 @@ def _payload_from_provider_adapters(
 
     pubmed_records = _fetch_pubmed_records(pmids)
     if not pubmed_records:
+        fallback = _payload_from_verified_literature_materialization(
+            study_root=study_root,
+            generated_at=generated_at,
+            study=study,
+            materialized_records=materialized_records,
+            write_provider_response_ledger=write_provider_response_ledger,
+        )
+        if fallback:
+            return fallback
         return _blocked_payload("provider_adapter_fetch_failed_pubmed", surface_key=surface_key)
 
     records = _merged_records(pubmed_records, materialized_records)
@@ -327,6 +420,137 @@ def _payload_from_provider_adapters(
             ),
         ],
     )
+
+
+def _payload_from_verified_literature_materialization(
+    *,
+    study_root: Path,
+    generated_at: str,
+    study: Mapping[str, Any],
+    materialized_records: list[Mapping[str, Any]],
+    write_provider_response_ledger: bool,
+) -> dict[str, Any]:
+    verified_records = [
+        dict(record)
+        for record in materialized_records
+        if _text(record.get("pmid"))
+        and _text(record.get("materialization_status")) in {"verified_pubmed", "pubmed_verified"}
+    ]
+    if not verified_records:
+        return {}
+    anchor = _first_record_with_pmid(verified_records) or verified_records[0]
+    guideline = _first_record_matching(
+        verified_records,
+        ("guideline", "guidelines", "primary healthcare", "tripod", "statement"),
+    )
+    systematic = _first_record_matching(
+        verified_records,
+        ("systematic review", "subclassification", "classification", "meta-analysis", "meta analysis"),
+    )
+    if anchor is None or guideline is None or systematic is None:
+        return {}
+    semantic_record = systematic if _record_ref(systematic) != _record_ref(anchor) else guideline
+    query = _text(_search_strategy_from_study(study).get("query"))
+    materialization_ref = "artifacts/publication_eval/literature_materialization.json"
+    ledger_ref = (
+        _write_provider_response_ledger(
+            study_root=study_root,
+            provider="pubmed",
+            request_id="pubmed-verified-literature-materialization-"
+            + _slug("-".join(_text(record.get("pmid")) for record in verified_records if _text(record.get("pmid")))),
+            retrieved_at=generated_at,
+            response_status="ok",
+            payload={
+                "source_basis": "verified_literature_materialization",
+                "records": verified_records,
+            },
+        )
+        if write_provider_response_ledger
+        else materialization_ref
+    )
+    providers = [
+        _materialized_provider(
+            provider="pubmed",
+            records=tuple((record, "anchor_papers") for record in verified_records if _record_ref(record)),
+            generated_at=generated_at,
+            query=query,
+            ledger_ref=ledger_ref,
+            source_ref=materialization_ref,
+        ),
+        _materialized_provider(
+            provider="crossref",
+            records=((guideline, "guidelines"), (systematic, "systematic_reviews")),
+            generated_at=generated_at,
+            query=f"{query} guideline systematic review".strip(),
+            ledger_ref=ledger_ref,
+            source_ref=materialization_ref,
+        ),
+        _materialized_provider(
+            provider="semantic_scholar",
+            records=((semantic_record, "journal_neighbor_refs"),),
+            generated_at=generated_at,
+            query=_text(semantic_record.get("title")) or query,
+            ledger_ref=ledger_ref,
+            source_ref=materialization_ref,
+            semantic_score=True,
+        ),
+    ]
+    if any(not provider.get("items") for provider in providers):
+        return {}
+    citation_refs = [
+        ref
+        for provider in providers
+        for ref in _citation_refs_from_provider(provider)
+    ]
+    return _payload(
+        study_root=study_root,
+        generated_at=generated_at,
+        search_strategy=_search_strategy_from_study(study),
+        search_date=_date_from_timestamp(generated_at),
+        why_worth_doing=(
+            _text(study.get("literature_anchor_summary"))
+            or _text(study.get("paper_framing_summary"))
+            or _text(study.get("primary_question"))
+        ),
+        providers=providers,
+        screening_decisions=_screening_decisions(providers),
+        citation_ledger_refs=list(dict.fromkeys(citation_refs)),
+        source_basis="verified_literature_materialization",
+        source_refs=[str(study_root / materialization_ref)],
+    )
+
+
+def _materialized_provider(
+    *,
+    provider: str,
+    records: tuple[tuple[Mapping[str, Any], str], ...],
+    generated_at: str,
+    query: str | None,
+    ledger_ref: str,
+    source_ref: str,
+    semantic_score: bool = False,
+) -> dict[str, Any]:
+    items: list[dict[str, Any]] = []
+    for record, category in records:
+        item = _provider_item_from_record(record, category=category)
+        if semantic_score:
+            item["score"] = 0.9
+            item["score_source_ref"] = source_ref
+        if item.get("ref"):
+            items.append(item)
+    return {
+        "provider": provider,
+        "query": _text(query) or (items[0]["title"] if items else "verified literature materialization"),
+        "retrieved_at": generated_at,
+        "request_id": f"{provider}-verified-literature-materialization",
+        "response_status": "ok",
+        "credential_status": _public_api_credential(provider),
+        "rate_limit_status": _ok_rate_limit(),
+        "cache_freshness": _fresh_cache(generated_at),
+        "provider_response_ledger_refs": [ledger_ref],
+        "source_refs": [source_ref],
+        "items": items,
+    }
 
 
 def _semantic_candidate_records(
