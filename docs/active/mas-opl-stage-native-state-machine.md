@@ -32,7 +32,7 @@ stage folder + stage_manifest + role artifacts + owner receipt / typed blocker
 - MAS terminal handoff apply：`publication_handoff_owner_gate` 现在要求可信 OPL execution authorization / provider attempt / lease / closeout binding。缺授权时 fail closed，返回 OPL-owned execution authorization blocker，不改 MAS owner receipt、typed blocker、publication eval、controller decision、paper、package 或 `current_package`；有授权时只写 stage-native `handoff_owner_receipt.json` 或 `receipts/typed_blocker.json`，并把 `closeout_binding`、`current.json`、`projection/current_owner_delta.json`、`latest_owner_answer_ref`、`hard_gate.owner_answer_*` 和 `delta_id` 绑定到 StageRun / manifest / current pointer / source fingerprint / idempotency key。
 - OPL substrate：`/Users/gaofeng/workspace/one-person-lab` 持有 refs-only StageRun contract、read-model rebuild primitive、family conformance 和默认 CLI/read surface；OPL 侧 Stage Native Kernel rollout 继续按 OPL repo 的 live diff、验证和提交记录判断，MAS 文档不把 OPL dirty lane 写成已吸收。
 
-这次落地关闭的是 StageRun Kernel 的 profile / projection / focused canary foundation，以及 terminal publication handoff 的功能面 owner-answer binding。real owner-chain evidence 仍开放：DM002 / DM003 live paper line 处于暂停后的人工 hold 语境，尚未恢复运行并产出 fresh `OwnerReceipt`、stable `TypedBlocker`、human gate 或 route-back，补偿链退役也必须等待 live canary 证明同一 work unit 不再需要重复 reconcile / materialize / dispatch。因此不能把本次 foundation / binding landing 写成论文线完成、publication-ready、domain-ready、production-ready、`current_package` fresh、或补偿链已全部物理退役。
+这次落地关闭的是 StageRun Kernel 的 profile / projection / focused canary foundation，以及 terminal publication handoff 的功能面 owner-answer binding。real owner-chain evidence 仍开放：DM002 / DM003 live paper line 处于暂停后的人工 hold 语境，尚未恢复运行并产出 fresh `OwnerReceipt`、stable `TypedBlocker`、human gate 或 route-back。补偿链 retirement / tombstone 的唯一触发条件是 fresh live owner evidence 产出，并证明 OPL StageRun status、MAS receipt/blocker、stage manifest、`study progress` 四者对同一 work unit 一致；在 gate 未满足前，重复 reconcile / materialize / dispatch 路径只能保留 tombstone / provenance / delete-gate context，不能物理退役。因此不能把本次 foundation / binding landing 写成论文线完成、publication-ready、domain-ready、production-ready、`current_package` fresh、或补偿链已全部物理退役。
 
 ## 设计原则
 
@@ -223,7 +223,7 @@ OPL projects current_owner_delta
 Canary 完成标准：
 
 - DM002 / DM003 各自产生一个 fresh `OwnerReceipt` 或 stable `TypedBlocker`。
-- OPL ledger、StageRun status、MAS `study progress`、stage folder manifest 四者一致，且 owner answer 已带 `closeout_binding` / `current_pointer_ref` / `source_fingerprint` / `idempotency_key` 绑定。
+- OPL StageRun status、MAS receipt/blocker、stage manifest、MAS `study progress` 四者一致，且 owner answer 已带 `closeout_binding` / `current_pointer_ref` / `source_fingerprint` / `idempotency_key` 绑定。
 - 不需要人工运行 `owner-route-reconcile` 才能看见新状态。
 - 旧 attempt / 旧 request 不再消耗新 generation 的 retry budget。
 
@@ -235,7 +235,7 @@ Canary 完成标准：
 4. MAS canary：只迁移 AI reviewer publication eval rebuild，不碰全论文路线。
 5. Stage folder manifest：为 DM002 / DM003 当前 stage folder 生成 manifest-backed role map。
 6. Projection cutover：`study progress` 优先读 StageRun status + receipt/blocker，`latest.json` 降为 evidence projection。
-7. 删除补偿链：canary 通过后退役同一 work unit 上的重复 reconcile/materialize/dispatch 补丁路径。
+7. 删除补偿链：fresh live owner evidence 证明 OPL StageRun status、MAS receipt/blocker、stage manifest、`study progress` 四者对同一 work unit 一致后，才退役同一 work unit 上的重复 reconcile/materialize/dispatch 补丁路径；gate 未满足时只保留 tombstone/provenance/delete-gate context。
 
 ## 验收标准
 
