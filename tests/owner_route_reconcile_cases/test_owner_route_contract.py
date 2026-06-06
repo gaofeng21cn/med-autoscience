@@ -139,6 +139,7 @@ def test_scan_domain_routes_projects_single_owner_route_for_current_queue(monkey
     assert route["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert route["blocked_actions"] == [
         "publication_gate_specificity_required",
+        "publication_handoff_owner_gate",
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",
         "canonical_paper_inputs_rehydrate_required",

@@ -22,6 +22,7 @@ from med_autoscience.policies.publication_critique import (
 )
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 RECORD_OUTPUT_SURFACE = "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
 REQUEST_PACKET_REF = "artifacts/supervision/requests/ai_reviewer/latest.json"
@@ -291,6 +292,7 @@ def build_ai_reviewer_record_worker_handoff(
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
     authorization_fields = _authorization_fields(dispatch)
+    owner_route_currentness_basis = _mapping(_mapping(owner_route.get("source_refs")).get("owner_route_currentness_basis"))
     prompt_contract = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -304,6 +306,7 @@ def build_ai_reviewer_record_worker_handoff(
         "do_not_repeat": True,
         "repeat_suppression_key": repeat_key,
         "request_packet_ref": REQUEST_PACKET_REF,
+        "owner_route_currentness_basis": owner_route_currentness_basis or None,
         "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
         "owner_callable_command": _text(production_request.get("owner_callable_command")),
         "owner_callable_runtime": _text(production_request.get("owner_callable_runtime")),
@@ -326,6 +329,18 @@ def build_ai_reviewer_record_worker_handoff(
         "medical_claim_authoring_allowed": False,
         **authorization_fields,
     }
+    dispatch_shell = {
+        "action_type": ACTION_TYPE,
+        "next_executable_owner": "ai_reviewer",
+        "owner_route": owner_route or None,
+        "prompt_contract": prompt_contract,
+        "required_closeout_packet": closeout_contract,
+        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
+        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+    }
+    owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
+        dispatch=dispatch_shell
+    )
     return {
         "surface": "default_executor_dispatch_request",
         "schema_version": 1,
@@ -344,10 +359,12 @@ def build_ai_reviewer_record_worker_handoff(
         "action_fingerprint": repeat_key,
         "consumer_mutation_scope": "executor_dispatch_request_only",
         "required_closeout_packet": closeout_contract,
+        "owner_route_attempt_envelope": owner_route_attempt_envelope,
         "terminal_output_instruction": closeout_contract["terminal_output_instruction"],
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "prompt_contract": prompt_contract,
+        "executor_prompt": _executor_prompt(),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
@@ -376,6 +393,19 @@ def build_ai_reviewer_record_worker_handoff(
         },
         "generated_at": _utc_now(),
     }
+
+
+def _executor_prompt() -> str:
+    closeout_contract = default_executor_typed_closeout_contract(action_type=ACTION_TYPE)
+    return (
+        "Use Codex CLI as the default MAS repair executor. "
+        "Handle action `return_to_ai_reviewer_workflow` as owner `ai_reviewer`. "
+        "Read the referenced MAS durable truth surfaces, fill only the AI reviewer record payload target, "
+        "and run the rendered owner callable command. Do not write artifacts/publication_eval/latest.json, "
+        "controller decisions, paper/current_package, manuscript/current_package, publication gates, "
+        "or medical conclusions outside the owner workflow. "
+        f"{closeout_contract['terminal_output_instruction']}"
+    )
 
 
 def materialize_ai_reviewer_record_worker_handoff(

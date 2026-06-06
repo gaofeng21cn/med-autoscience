@@ -277,14 +277,26 @@ def _default_executor_dispatch(
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
     )
-    record_only_handoff = ai_reviewer_record_handoff.ai_reviewer_record_production_handoff_dispatch(
-        profile=profile,
-        action=action,
-        action_type=action_type,
-        study_id=study_id,
-        dispatch_path=dispatch_path,
+    owner_route_allows_action = owner_route_part.route_allows_action(
+        action={
+            **dict(action),
+            "next_executable_owner": next_executable_owner,
+            "action_type": action_type,
+        },
         owner_route=owner_route,
-        source_action_ref=_source_action_ref,
+    )
+    record_only_handoff = (
+        ai_reviewer_record_handoff.ai_reviewer_record_production_handoff_dispatch(
+            profile=profile,
+            action=action,
+            action_type=action_type,
+            study_id=study_id,
+            dispatch_path=dispatch_path,
+            owner_route=owner_route,
+            source_action_ref=_source_action_ref,
+        )
+        if owner_route_allows_action
+        else None
     )
     if record_only_handoff is not None:
         return record_only_handoff
@@ -362,14 +374,7 @@ def _default_executor_dispatch(
         and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
         and developer_mode_payload.get("safe_actions_enabled") is True
         and owner_route_attempt_envelope.get("dispatchable") is True
-        and owner_route_part.route_allows_action(
-            action={
-                **dict(action),
-                "next_executable_owner": next_executable_owner,
-                "action_type": action_type,
-            },
-            owner_route=owner_route,
-        )
+        and owner_route_allows_action
         else "dry_run" if not apply else "blocked"
     )
     blocked_reason = _default_executor_dispatch_blocked_reason(

@@ -200,6 +200,7 @@ def test_supervisor_only_live_quality_repair_does_not_suppress_ai_reviewer_workf
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert study["owner_route"]["blocked_actions"] == [
         "publication_gate_specificity_required",
+        "publication_handoff_owner_gate",
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",
         "canonical_paper_inputs_rehydrate_required",
