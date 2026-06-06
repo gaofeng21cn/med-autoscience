@@ -9,6 +9,10 @@ from typing import Any
 
 from med_autoscience.controllers import medical_paper_readiness
 from med_autoscience.controllers import stage_artifact_index
+from med_autoscience.controllers.opl_execution_boundary import (
+    first_trusted_opl_execution_authorization,
+    typed_blocker as opl_execution_authorization_typed_blocker,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -19,6 +23,7 @@ STAGE_RECEIPT_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "receipts" / "owner_rec
 TYPED_BLOCKER_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "receipts" / "typed_blocker.json"
 STAGE_MANIFEST_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "stage_manifest.json"
 CURRENT_OWNER_DELTA_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "projection" / "current_owner_delta.json"
+CURRENT_POINTER_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "current.json"
 
 
 def execute_publication_handoff_owner_gate(
@@ -28,7 +33,7 @@ def execute_publication_handoff_owner_gate(
     apply: bool,
     dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    del dispatch
+    dispatch_payload = _mapping(dispatch)
     study_root = profile.studies_root / study_id
     if not study_root.exists():
         return _blocked_execution(
@@ -60,6 +65,17 @@ def execute_publication_handoff_owner_gate(
             },
             "quest_root": str(profile.runtime_root / study_id),
         }
+    closeout_binding = _trusted_closeout_binding(
+        dispatch=dispatch_payload,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    if closeout_binding is None:
+        return _blocked_execution(
+            study_root=study_root,
+            reason="opl_execution_authorization_required",
+            owner_result=_authorization_required_result(study_root=study_root),
+        )
     if decision["status"] == "ready_for_human_submission_handoff":
         owner_result = _write_handoff_receipt(
             profile=profile,
@@ -68,6 +84,7 @@ def execute_publication_handoff_owner_gate(
             decision=decision,
             index=index,
             readiness=readiness,
+            closeout_binding=closeout_binding,
         )
         return {
             "execution_status": "executed",
@@ -81,6 +98,7 @@ def execute_publication_handoff_owner_gate(
         study_root=study_root,
         decision=decision,
         readiness=readiness,
+        closeout_binding=closeout_binding,
     )
     return _blocked_execution(
         study_root=study_root,
@@ -101,6 +119,22 @@ def _blocked_execution(
         "owner_callable_surface": "publication_handoff_owner_gate.evaluate_terminal_handoff",
         "owner_result": dict(owner_result) if isinstance(owner_result, Mapping) else owner_result,
         "quest_root": str(study_root),
+    }
+
+
+def _authorization_required_result(*, study_root: Path) -> dict[str, Any]:
+    return {
+        "surface_kind": "publication_handoff_owner_gate_result",
+        "status": "typed_blocker_or_stop_loss",
+        "owner_receipt_ref": None,
+        "typed_blocker_ref": None,
+        "will_write_receipt": False,
+        "will_write_typed_blocker": False,
+        "typed_blocker": opl_execution_authorization_typed_blocker(),
+        "readiness_ref": str(
+            medical_paper_readiness.stable_medical_paper_readiness_path(study_root=study_root)
+        ),
+        "authority_boundary": _authority_boundary(),
     }
 
 
@@ -186,6 +220,7 @@ def _write_handoff_receipt(
     decision: Mapping[str, Any],
     index: Mapping[str, Any],
     readiness: Mapping[str, Any],
+    closeout_binding: Mapping[str, Any],
 ) -> dict[str, Any]:
     generated_at = _utc_now()
     artifact_refs = _terminal_artifact_refs(index)
@@ -196,9 +231,15 @@ def _write_handoff_receipt(
         decision=decision,
         readiness=readiness,
         generated_at=generated_at,
+        closeout_binding=closeout_binding,
     )
     receipt_path = study_root / HANDOFF_RECEIPT_RELATIVE_PATH
     stage_receipt_path = study_root / STAGE_RECEIPT_RELATIVE_PATH
+    receipt_binding = _closeout_binding_for_receipt(
+        closeout_binding=closeout_binding,
+        receipt_ref=HANDOFF_RECEIPT_RELATIVE_PATH.as_posix(),
+    )
+    receipt["closeout_binding"] = receipt_binding
     _write_json(receipt_path, receipt)
     _write_json(stage_receipt_path, receipt)
     _unlink_if_exists(study_root / TYPED_BLOCKER_RELATIVE_PATH)
@@ -209,6 +250,7 @@ def _write_handoff_receipt(
             "receipts/owner_receipt.json",
         ],
         typed_blocker_refs=[],
+        closeout_binding=receipt_binding,
     )
     _write_current_owner_delta(
         study_root=study_root,
@@ -216,6 +258,14 @@ def _write_handoff_receipt(
         action="human_submission_decision",
         reason="publication_handoff_owner_receipt_ready",
         source_ref=HANDOFF_RECEIPT_RELATIVE_PATH.as_posix(),
+        closeout_binding=receipt_binding,
+    )
+    _write_current_pointer(
+        study_root=study_root,
+        stage_status="success",
+        terminal_outcome_kind="owner_receipt",
+        terminal_outcome_ref=HANDOFF_RECEIPT_RELATIVE_PATH.as_posix(),
+        closeout_binding=receipt_binding,
     )
     return {
         "surface_kind": "publication_handoff_owner_gate_result",
@@ -223,6 +273,7 @@ def _write_handoff_receipt(
         "owner_receipt_ref": str(receipt_path),
         "stage_owner_receipt_ref": str(stage_receipt_path),
         "typed_blocker_ref": None,
+        "closeout_binding": receipt_binding,
         "readiness_ref": str(medical_paper_readiness.stable_medical_paper_readiness_path(study_root=study_root)),
         "authority_boundary": _authority_boundary(),
     }
@@ -234,6 +285,7 @@ def _write_typed_blocker(
     study_root: Path,
     decision: Mapping[str, Any],
     readiness: Mapping[str, Any],
+    closeout_binding: Mapping[str, Any],
 ) -> dict[str, Any]:
     blocker_path = study_root / TYPED_BLOCKER_RELATIVE_PATH
     blocker = _typed_blocker_payload(
@@ -242,12 +294,19 @@ def _write_typed_blocker(
         decision=decision,
         readiness=readiness,
         generated_at=_utc_now(),
+        closeout_binding=closeout_binding,
     )
+    blocker_binding = _closeout_binding_for_receipt(
+        closeout_binding=closeout_binding,
+        receipt_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
+    )
+    blocker["closeout_binding"] = blocker_binding
     _write_json(blocker_path, blocker)
     _update_stage_manifest(
         study_root=study_root,
         owner_receipt_refs=[],
         typed_blocker_refs=["receipts/typed_blocker.json"],
+        closeout_binding=blocker_binding,
     )
     _write_current_owner_delta(
         study_root=study_root,
@@ -255,12 +314,21 @@ def _write_typed_blocker(
         action=_text(decision.get("next_action")) or "resolve_typed_blocker",
         reason=_text(decision.get("reason")) or "publication_handoff_owner_gate_blocked",
         source_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
+        closeout_binding=blocker_binding,
+    )
+    _write_current_pointer(
+        study_root=study_root,
+        stage_status="blocked",
+        terminal_outcome_kind="typed_blocker",
+        terminal_outcome_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
+        closeout_binding=blocker_binding,
     )
     return {
         "surface_kind": "publication_handoff_owner_gate_result",
         "status": "typed_blocker_or_stop_loss",
         "owner_receipt_ref": None,
         "typed_blocker_ref": str(blocker_path),
+        "closeout_binding": blocker_binding,
         "readiness_ref": str(medical_paper_readiness.stable_medical_paper_readiness_path(study_root=study_root)),
         "authority_boundary": _authority_boundary(),
     }
@@ -274,6 +342,7 @@ def _receipt_payload(
     decision: Mapping[str, Any],
     readiness: Mapping[str, Any],
     generated_at: str,
+    closeout_binding: Mapping[str, Any],
 ) -> dict[str, Any]:
     receipt_id = f"publication-handoff:{study_id}:{_fingerprint([artifact_refs, decision])[:16]}"
     return {
@@ -283,6 +352,10 @@ def _receipt_payload(
         "study_id": study_id,
         "quest_id": study_id,
         "stage_id": STAGE_ID,
+        "stage_run_id": _text(closeout_binding.get("stage_run_id")),
+        "stage_run_ref": _text(closeout_binding.get("stage_run_ref")),
+        "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
+        "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
         "owner": "publication_gate_owner",
         "authority_type": "medical_owner_receipt",
         "receipt_ref": receipt_id,
@@ -309,7 +382,10 @@ def _receipt_payload(
         },
         "idempotency_key": receipt_id,
         "intent_fingerprint": _fingerprint([artifact_refs, decision]),
-        "source_fingerprint": _fingerprint([artifact_refs, readiness.get("ready_count"), readiness.get("required_count")]),
+        "source_fingerprint": _text(closeout_binding.get("source_fingerprint"))
+        or _fingerprint([artifact_refs, readiness.get("ready_count"), readiness.get("required_count")]),
+        "work_unit_fingerprint": _text(closeout_binding.get("work_unit_fingerprint")),
+        "closeout_refs": _text_list(closeout_binding.get("closeout_refs")),
         "recorded_at": generated_at,
         "started_worker": False,
         "body_included": False,
@@ -329,6 +405,7 @@ def _typed_blocker_payload(
     decision: Mapping[str, Any],
     readiness: Mapping[str, Any],
     generated_at: str,
+    closeout_binding: Mapping[str, Any],
 ) -> dict[str, Any]:
     blocker_id = _text(decision.get("reason")) or "publication_handoff_owner_gate_blocked"
     blocker_ref = f"publication-handoff-typed-blocker:{study_id}:{_fingerprint([decision, readiness])[:16]}"
@@ -339,6 +416,10 @@ def _typed_blocker_payload(
         "study_id": study_id,
         "quest_id": study_id,
         "stage_id": STAGE_ID,
+        "stage_run_id": _text(closeout_binding.get("stage_run_id")),
+        "stage_run_ref": _text(closeout_binding.get("stage_run_ref")),
+        "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
+        "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
         "owner": _text(decision.get("next_owner")) or "publication_gate_owner",
         "authority_type": "typed_blocker",
         "receipt_ref": blocker_ref,
@@ -360,6 +441,9 @@ def _typed_blocker_payload(
         "readiness_ref": _readiness_ref(readiness=readiness, fallback_study_root=study_root),
         "artifact_refs": [TYPED_BLOCKER_RELATIVE_PATH.as_posix()],
         "produced_artifact_refs": [TYPED_BLOCKER_RELATIVE_PATH.as_posix()],
+        "source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
+        "work_unit_fingerprint": _text(closeout_binding.get("work_unit_fingerprint")),
+        "closeout_refs": _text_list(closeout_binding.get("closeout_refs")),
         "recorded_at": generated_at,
         "body_included": False,
         "refs_only": True,
@@ -375,11 +459,22 @@ def _update_stage_manifest(
     study_root: Path,
     owner_receipt_refs: list[str],
     typed_blocker_refs: list[str],
+    closeout_binding: Mapping[str, Any],
 ) -> None:
     path = study_root / STAGE_MANIFEST_RELATIVE_PATH
     manifest = _read_json_object(path)
     if not manifest:
         return
+    if stage_run_id := _text(closeout_binding.get("stage_run_id")):
+        manifest["stage_run_id"] = stage_run_id
+    if stage_run_ref := _text(closeout_binding.get("stage_run_ref")):
+        manifest["stage_run_ref"] = stage_run_ref
+    manifest["stage_manifest_ref"] = _text(closeout_binding.get("stage_manifest_ref"))
+    manifest["current_pointer_ref"] = _text(closeout_binding.get("current_pointer_ref"))
+    manifest["closeout_binding_refs"] = _text_list(closeout_binding.get("closeout_refs"))
+    manifest["source_fingerprint"] = _text(closeout_binding.get("source_fingerprint"))
+    manifest["work_unit_fingerprint"] = _text(closeout_binding.get("work_unit_fingerprint"))
+    manifest["closeout_binding"] = _manifest_closeout_binding(closeout_binding)
     manifest["owner_receipt_refs"] = owner_receipt_refs
     manifest["typed_blocker_refs"] = typed_blocker_refs
     manifest["terminal_status"] = "blocked" if typed_blocker_refs else "completed"
@@ -393,7 +488,10 @@ def _write_current_owner_delta(
     action: str,
     reason: str,
     source_ref: str,
+    closeout_binding: Mapping[str, Any],
 ) -> None:
+    owner_answer_kind = "typed_blocker" if source_ref == TYPED_BLOCKER_RELATIVE_PATH.as_posix() else "owner_receipt"
+    idempotency_key = _text(closeout_binding.get("idempotency_key"))
     _write_json(
         study_root / CURRENT_OWNER_DELTA_RELATIVE_PATH,
         {
@@ -401,6 +499,60 @@ def _write_current_owner_delta(
             "action": action,
             "reason": reason,
             "source_ref": source_ref,
+            "delta_id": idempotency_key,
+            "latest_owner_answer_ref": source_ref,
+            "latest_owner_answer_kind": owner_answer_kind,
+            "latest_owner_receipt_ref": source_ref if owner_answer_kind == "owner_receipt" else None,
+            "latest_typed_blocker_ref": source_ref if owner_answer_kind == "typed_blocker" else None,
+            "stage_run_id": _text(closeout_binding.get("stage_run_id")),
+            "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
+            "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
+            "source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
+            "closeout_binding": _manifest_closeout_binding(closeout_binding),
+            "hard_gate": {
+                "state": "domain_owner_answer_recorded",
+                "owner_answer_ref": source_ref,
+                "owner_answer_kind": owner_answer_kind,
+                "owner_answer_stage_run_id": _text(closeout_binding.get("stage_run_id")),
+                "owner_answer_generation": closeout_binding.get("generation"),
+                "owner_answer_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
+                "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
+                "owner_answer_current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
+                "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
+                "owner_answer_source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
+                "owner_answer_idempotency_key": idempotency_key,
+            },
+        },
+    )
+
+
+def _write_current_pointer(
+    *,
+    study_root: Path,
+    stage_status: str,
+    terminal_outcome_kind: str,
+    terminal_outcome_ref: str,
+    closeout_binding: Mapping[str, Any],
+) -> None:
+    _write_json(
+        study_root / CURRENT_POINTER_RELATIVE_PATH,
+        {
+            "surface_kind": "stage_current_pointer",
+            "schema_version": 1,
+            "current_stage": {
+                "stage_id": STAGE_ID,
+                "status": stage_status,
+                "latest_attempt_id": _text(closeout_binding.get("attempt_id"))
+                or _text(closeout_binding.get("provider_attempt_ref")),
+                "stage_run_id": _text(closeout_binding.get("stage_run_id")),
+                "terminal_outcome_kind": terminal_outcome_kind,
+                "terminal_outcome_ref": terminal_outcome_ref,
+                "source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
+            },
+            "closeout_binding": _manifest_closeout_binding(closeout_binding),
+            "projection_only": True,
+            "body_included": False,
+            "authority_boundary": _authority_boundary(),
         },
     )
 
@@ -480,6 +632,185 @@ def _authority_boundary() -> dict[str, Any]:
     }
 
 
+def _trusted_closeout_binding(
+    *,
+    dispatch: Mapping[str, Any],
+    study_id: str,
+    study_root: Path,
+) -> dict[str, Any] | None:
+    authorization = first_trusted_opl_execution_authorization(
+        dispatch.get("opl_execution_authorization"),
+        dispatch.get("opl_provider_attempt"),
+        dispatch.get("stage_attempt"),
+        _mapping(dispatch.get("prompt_contract")).get("opl_execution_authorization"),
+        _mapping(dispatch.get("prompt_contract")).get("opl_provider_attempt"),
+        _mapping(dispatch.get("prompt_contract")).get("stage_attempt"),
+        _mapping(dispatch.get("owner_route")).get("opl_execution_authorization"),
+        _mapping(dispatch.get("owner_route")).get("opl_provider_attempt"),
+        _mapping(dispatch.get("owner_route")).get("stage_attempt"),
+    )
+    if authorization is None:
+        return None
+    closeout_refs = _closeout_refs(dispatch=dispatch, authorization=authorization)
+    provider_attempt_ref = (
+        _text(authorization.get("stage_attempt_id"))
+        or _text(authorization.get("active_stage_attempt_id"))
+        or _text(authorization.get("attempt_id"))
+        or _text(authorization.get("provider_attempt_id"))
+        or _text(authorization.get("workflow_id"))
+        or _text(authorization.get("lease_id"))
+        or _text(authorization.get("typed_closeout_ref"))
+        or _text(authorization.get("receipt_ref"))
+    )
+    source_fingerprint = _source_fingerprint(dispatch=dispatch, authorization=authorization)
+    stage_run_id = _binding_text(
+        dispatch,
+        "stage_run_id",
+        fallback=f"stage-run::{study_id}::{STAGE_ID}",
+    )
+    return {
+        "surface_kind": "publication_handoff_closeout_binding",
+        "trusted_opl_execution_authorization": True,
+        "bound_to_stage_run": stage_run_id is not None,
+        "bound_to_stage_manifest": True,
+        "bound_to_current_pointer": True,
+        "bound_to_source_fingerprint": source_fingerprint is not None,
+        "provider_attempt_ref": provider_attempt_ref,
+        "attempt_id": provider_attempt_ref,
+        "stage_run_id": stage_run_id,
+        "stage_run_ref": _binding_text(dispatch, "stage_run_ref", fallback=stage_run_id),
+        "stage_manifest_ref": _binding_text(
+            dispatch,
+            "stage_manifest_ref",
+            fallback=STAGE_MANIFEST_RELATIVE_PATH.as_posix(),
+        ),
+        "current_pointer_ref": _binding_text(
+            dispatch,
+            "current_pointer_ref",
+            fallback=CURRENT_POINTER_RELATIVE_PATH.as_posix(),
+        ),
+        "closeout_refs": closeout_refs,
+        "source_fingerprint": source_fingerprint,
+        "work_unit_fingerprint": _work_unit_fingerprint(dispatch=dispatch, source_fingerprint=source_fingerprint),
+        "idempotency_key": _first_text(
+            _mapping(dispatch.get("owner_route")).get("idempotency_key"),
+            dispatch.get("idempotency_key"),
+            _mapping(dispatch.get("prompt_contract")).get("idempotency_key"),
+            _mapping(dispatch.get("closeout_binding")).get("idempotency_key"),
+            _mapping(_mapping(dispatch.get("prompt_contract")).get("closeout_binding")).get("idempotency_key"),
+            source_fingerprint,
+        ),
+        "body_included": False,
+    }
+
+
+def _closeout_binding_for_receipt(
+    *,
+    closeout_binding: Mapping[str, Any],
+    receipt_ref: str,
+) -> dict[str, Any]:
+    return {
+        **_manifest_closeout_binding(closeout_binding),
+        "receipt_ref": receipt_ref,
+    }
+
+
+def _manifest_closeout_binding(closeout_binding: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface_kind": "publication_handoff_closeout_binding",
+        "trusted_opl_execution_authorization": True,
+        "bound_to_stage_run": bool(closeout_binding.get("bound_to_stage_run")),
+        "bound_to_stage_manifest": bool(closeout_binding.get("bound_to_stage_manifest")),
+        "bound_to_current_pointer": bool(closeout_binding.get("bound_to_current_pointer")),
+        "bound_to_source_fingerprint": bool(closeout_binding.get("bound_to_source_fingerprint")),
+        "provider_attempt_ref": _text(closeout_binding.get("provider_attempt_ref")),
+        "stage_run_id": _text(closeout_binding.get("stage_run_id")),
+        "stage_run_ref": _text(closeout_binding.get("stage_run_ref")),
+        "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
+        "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
+        "closeout_refs": _text_list(closeout_binding.get("closeout_refs")),
+        "source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
+        "work_unit_fingerprint": _text(closeout_binding.get("work_unit_fingerprint")),
+        "idempotency_key": _text(closeout_binding.get("idempotency_key")),
+        "generation": closeout_binding.get("generation") if isinstance(closeout_binding.get("generation"), int) else 0,
+        "body_included": False,
+    }
+
+
+def _closeout_refs(*, dispatch: Mapping[str, Any], authorization: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for candidate in (
+        dispatch.get("closeout_refs"),
+        _mapping(dispatch.get("prompt_contract")).get("closeout_refs"),
+        _mapping(dispatch.get("owner_route")).get("closeout_refs"),
+        _mapping(dispatch.get("closeout_binding")).get("closeout_refs"),
+        _mapping(_mapping(dispatch.get("prompt_contract")).get("closeout_binding")).get("closeout_refs"),
+    ):
+        refs.extend(_text_list(candidate))
+    for key in (
+        "typed_closeout_ref",
+        "typed_closeout_receipt_ref",
+        "attempt_receipt_ref",
+        "receipt_ref",
+        "stage_packet_ref",
+    ):
+        if ref := _text(authorization.get(key)):
+            refs.append(ref)
+    return list(dict.fromkeys(refs))
+
+
+def _source_fingerprint(*, dispatch: Mapping[str, Any], authorization: Mapping[str, Any]) -> str | None:
+    owner_route = _mapping(dispatch.get("owner_route"))
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    closeout_binding = _mapping(dispatch.get("closeout_binding")) or _mapping(
+        prompt_contract.get("closeout_binding")
+    )
+    return _first_text(
+        closeout_binding.get("source_fingerprint"),
+        dispatch.get("source_fingerprint"),
+        prompt_contract.get("source_fingerprint"),
+        owner_route.get("source_fingerprint"),
+        source_refs.get("source_fingerprint"),
+        currentness_basis.get("source_fingerprint"),
+        authorization.get("source_fingerprint"),
+    )
+
+
+def _work_unit_fingerprint(
+    *,
+    dispatch: Mapping[str, Any],
+    source_fingerprint: str | None,
+) -> str | None:
+    owner_route = _mapping(dispatch.get("owner_route"))
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return _first_text(
+        dispatch.get("work_unit_fingerprint"),
+        prompt_contract.get("work_unit_fingerprint"),
+        owner_route.get("work_unit_fingerprint"),
+        source_refs.get("work_unit_fingerprint"),
+        currentness_basis.get("work_unit_fingerprint"),
+        source_fingerprint,
+    )
+
+
+def _binding_text(dispatch: Mapping[str, Any], key: str, *, fallback: str | None) -> str | None:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    closeout_binding = _mapping(dispatch.get("closeout_binding")) or _mapping(
+        prompt_contract.get("closeout_binding")
+    )
+    return _first_text(
+        closeout_binding.get(key),
+        dispatch.get(key),
+        prompt_contract.get(key),
+        _mapping(dispatch.get("owner_route")).get(key),
+        fallback,
+    )
+
+
 def _readiness_ref(*, readiness: Mapping[str, Any], fallback_study_root: Path) -> str:
     return str(
         medical_paper_readiness.stable_medical_paper_readiness_path(
@@ -510,6 +841,22 @@ def _unlink_if_exists(path: Path) -> None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _text(item)) is not None]
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        if text := _text(value):
+            return text
+    return None
 
 
 def _text(value: object) -> str | None:

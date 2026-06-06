@@ -66,6 +66,10 @@ def stage_run_kernel_projection_from_stage_folder(
         "manifest_ref": str(manifest_path),
         "owner_receipt_ref": str(owner_receipt_path) if owner_receipt_path else None,
         "typed_blocker_ref": str(typed_blocker_path) if typed_blocker_path else None,
+        "closeout_binding": _closeout_binding_projection(
+            manifest=manifest,
+            source_payload=source_payload,
+        ),
         "receipt_validation": _receipt_validation_projection(
             owner_receipt=owner_receipt,
             typed_blocker=typed_blocker,
@@ -207,6 +211,41 @@ def _evidence_projection(
     if latest_json_ref is None:
         result["outputs_present"] = _text_list(manifest.get("present_outputs"))
     return result
+
+
+def _closeout_binding_projection(
+    *,
+    manifest: Mapping[str, Any],
+    source_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    binding = _mapping(_mapping(source_payload).get("closeout_binding")) or _mapping(
+        manifest.get("closeout_binding")
+    )
+    return {
+        "surface_kind": "publication_handoff_closeout_binding_projection",
+        "trusted_opl_execution_authorization": bool(
+            binding.get("trusted_opl_execution_authorization")
+        ),
+        "bound_to_stage_run": bool(binding.get("bound_to_stage_run")),
+        "bound_to_stage_manifest": bool(binding.get("bound_to_stage_manifest")),
+        "bound_to_current_pointer": bool(binding.get("bound_to_current_pointer")),
+        "bound_to_source_fingerprint": bool(binding.get("bound_to_source_fingerprint")),
+        "provider_attempt_ref": _text(binding.get("provider_attempt_ref")),
+        "stage_run_id": _text(binding.get("stage_run_id")) or _text(manifest.get("stage_run_id")),
+        "stage_run_ref": _text(binding.get("stage_run_ref")) or _text(manifest.get("stage_run_ref")),
+        "stage_manifest_ref": _text(binding.get("stage_manifest_ref"))
+        or _text(manifest.get("stage_manifest_ref")),
+        "current_pointer_ref": _text(binding.get("current_pointer_ref"))
+        or _text(manifest.get("current_pointer_ref")),
+        "closeout_refs": _text_list(binding.get("closeout_refs"))
+        or _text_list(manifest.get("closeout_binding_refs")),
+        "source_fingerprint": _text(binding.get("source_fingerprint"))
+        or _text(manifest.get("source_fingerprint")),
+        "work_unit_fingerprint": _text(binding.get("work_unit_fingerprint"))
+        or _text(manifest.get("work_unit_fingerprint")),
+        "receipt_ref": _text(binding.get("receipt_ref")),
+        "body_included": False,
+    }
 
 
 def _valid_owner_receipt(*, path: Path | None) -> dict[str, Any] | None:
