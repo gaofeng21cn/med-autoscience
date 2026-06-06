@@ -33,6 +33,8 @@ def _latest_controller_decision_record(*, study_root: Path) -> Any | None:
     payload = _read_json_object(latest_path)
     if payload is None:
         return None
+    if payload.get("surface") == "controller_decision":
+        return None
     return _decision_record_module().StudyDecisionRecord.from_payload(payload)
 
 

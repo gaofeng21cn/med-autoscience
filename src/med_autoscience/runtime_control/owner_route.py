@@ -22,6 +22,7 @@ ROUTED_ACTION_TYPES = (
     "canonical_paper_inputs_rehydrate_required",
     "run_quality_repair_batch",
     "run_gate_clearing_batch",
+    "complete_medical_paper_readiness_surface",
 )
 ALLOWED_ACTION_TYPES = (
     *ROUTED_ACTION_TYPES,

@@ -25,6 +25,7 @@ def execute_owner_dispatch_action(
     executors = {
         "publication_gate_specificity_required": execute_publication_gate_specificity,
         "publication_handoff_owner_gate": action_execution.execute_publication_handoff_owner_gate,
+        "complete_medical_paper_readiness_surface": action_execution.execute_complete_medical_paper_readiness_surface,
         "current_package_freshness_required": action_execution.execute_current_package_freshness,
         "run_gate_clearing_batch": action_execution.execute_gate_clearing_batch,
         "artifact_display_surface_materialization_required": action_execution.execute_artifact_display_materialization,

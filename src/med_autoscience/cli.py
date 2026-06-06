@@ -48,6 +48,10 @@ def _load_analysis_bundle_controller() -> Any:
     return _load_module("med_autoscience.study_runtime_analysis_bundle")
 
 
+def _load_workspace_python_environment_controller() -> Any:
+    return _load_module("med_autoscience.workspace_python_environment")
+
+
 def _load_doctor_module() -> Any:
     return _load_module("med_autoscience.doctor")
 
@@ -73,6 +77,9 @@ owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_r
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
 study_config_migration = _LazyModuleProxy(lambda: _load_controller("study_config_migration"))
+legacy_control_surface_clean_migration = _LazyModuleProxy(
+    lambda: _load_controller("legacy_control_surface_clean_migration")
+)
 agent_lab_medical_manuscript_quality = _LazyModuleProxy(
     lambda: _load_controller("agent_lab_medical_manuscript_quality")
 )
@@ -123,6 +130,7 @@ tooluniverse_adapter = _LazyModuleProxy(lambda: _load_adapter("tooluniverse"))
 workspace_literature_controller = _LazyModuleProxy(lambda: _load_controller("workspace_literature"))
 workspace_init_controller = _LazyModuleProxy(lambda: _load_controller("workspace_init"))
 analysis_bundle_controller = _LazyModuleProxy(_load_analysis_bundle_controller)
+workspace_python_environment_controller = _LazyModuleProxy(_load_workspace_python_environment_controller)
 
 
 def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
@@ -628,6 +636,15 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "legacy-control-surface-clean-migration":
+        result = legacy_control_surface_clean_migration.run_legacy_control_surface_clean_migration(
+            profile_path=Path(args.profile),
+            study_ids=tuple(args.studies or ()),
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "agent-lab-medical-manuscript-quality-suite":
         if args.apply:
             result = agent_lab_medical_manuscript_quality.materialize_medical_manuscript_quality_agent_lab_suite(
@@ -677,6 +694,7 @@ def main(argv: list[str] | None = None) -> int:
         load_doctor_module=_load_doctor_module,
         overlay_installer=overlay_installer,
         analysis_bundle_controller=analysis_bundle_controller,
+        workspace_python_environment_controller=workspace_python_environment_controller,
         overlay_request_from_args=_overlay_request_from_args,
         load_json_payload_from_args=_load_json_payload_from_args,
     )

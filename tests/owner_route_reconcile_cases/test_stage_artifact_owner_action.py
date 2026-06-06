@@ -154,3 +154,88 @@ def test_scan_domain_routes_promotes_stage_artifact_publication_handoff_action(
     assert study["blocked_reason"] == "publication_handoff_owner_gate"
     assert study["next_owner"] == "publication_gate_owner"
     assert result["action_queue"][0]["action_type"] == "publication_handoff_owner_gate"
+
+
+def test_scan_domain_routes_promotes_handoff_typed_blocker_followup_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    quest_root = profile.runtime_root / "quest-dm002"
+    typed_blocker_ref = (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    stage_artifact_index = _terminal_stage_artifact_index(study_root)
+
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": "quest-dm002",
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+        "current_execution_envelope": {
+            "state_kind": "typed_blocker",
+            "typed_blocker": {
+                "blocker_type": "medical_paper_readiness_not_ready",
+                "owner": "MedAutoScience",
+            },
+        },
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-epoch-dm002-readiness-followup",
+            "canonical_runtime_action": "observe_runtime",
+        },
+        "publication_eval": {},
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm002-readiness-followup",
+            "source_signature": "truth-source-dm002-readiness-followup",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": "quest-dm002",
+        "current_stage": "publication_supervision",
+        "paper_stage": "bundle_stage_blocked",
+        "stage_artifact_index": stage_artifact_index,
+        "stage_kernel_projection": {
+            "current_owner_delta": {
+                "owner": "MedAutoScience",
+                "action": "complete_medical_paper_readiness_surface",
+                "reason": "medical_paper_readiness_not_ready",
+                "required_input": "complete_medical_paper_readiness_surface",
+                "blocked_surface": "publication_handoff_owner_gate",
+                "source_ref": typed_blocker_ref,
+                "source_kind": "typed_blocker",
+            }
+        },
+    }
+
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, "quest-dm002", status_payload["publication_eval"]),
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=(study_id,),
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == [
+        "complete_medical_paper_readiness_surface"
+    ]
+    action = study["action_queue"][0]
+    assert action["owner"] == "MedAutoScience"
+    assert action["source_surface"] == "stage_kernel_projection.current_owner_delta"
+    assert action["source_ref"] == typed_blocker_ref
+    assert study["owner_route"]["next_owner"] == "MedAutoScience"
+    assert study["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
+    assert study["why_not_applied"] == "medical_paper_readiness_not_ready"
+    assert study["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert result["action_queue"][0]["action_type"] == "complete_medical_paper_readiness_surface"

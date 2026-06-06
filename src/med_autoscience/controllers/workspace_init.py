@@ -21,6 +21,7 @@ from med_autoscience.controllers.workspace_git_boundary import (
 from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_behavior_equivalence_gate,
     _render_forward_script,
+    _render_bootstrap_script,
     _render_mas_runtime_bridge_forward,
     _render_mas_runtime_bridge_shared,
     _render_mas_runtime_bridge_show_config,
@@ -31,6 +32,7 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_progress_projection_script,
     _render_study_progress_script,
     _render_supervisor_execute_dispatch_script,
+    _render_legacy_control_surface_clean_migration_script,
     _render_scan_domain_routes_script,
     _render_domain_health_diagnostic_script,
 )
@@ -276,6 +278,10 @@ def _is_generated_workspace_guidance_path(path: Path) -> bool:
     )
 
 
+def _is_generated_workspace_pyproject_path(path: Path) -> bool:
+    return path.name == "pyproject.toml"
+
+
 def _is_generated_workspace_wrapper_path(path: Path) -> bool:
     return len(path.parts) >= 4 and path.parts[-4:-1] in {
         ("ops", "medautoscience", "bin"),
@@ -285,6 +291,10 @@ def _is_generated_workspace_wrapper_path(path: Path) -> bool:
 
 def _looks_like_generated_workspace_wrapper(content: str) -> bool:
     return 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in content
+
+
+def _looks_like_generated_workspace_pyproject(content: str) -> bool:
+    return 'description = "Managed Python environment for the ' in content and "med-autoscience" in content
 
 
 def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
@@ -312,6 +322,12 @@ def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
     if _is_workspace_profile_path(item.path) and existing_content != item.content:
         return "upgrade"
     if _is_medautoscience_config_path(item.path) and existing_content != item.content:
+        return "upgrade"
+    if (
+        _is_generated_workspace_pyproject_path(item.path)
+        and existing_content != item.content
+        and _looks_like_generated_workspace_pyproject(existing_content)
+    ):
         return "upgrade"
     if is_workspace_gitignore_path(item.path) and existing_content != item.content:
         return "upgrade"
@@ -404,7 +420,7 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "bootstrap",
-            content=_render_forward_script("workspace bootstrap", with_profile=True),
+            content=_render_bootstrap_script(),
             executable=True,
         ),
         RenderedFile(
@@ -450,6 +466,11 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch",
             content=_render_supervisor_execute_dispatch_script(),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "legacy-control-surface-clean-migration",
+            content=_render_legacy_control_surface_clean_migration_script(),
             executable=True,
         ),
         RenderedFile(

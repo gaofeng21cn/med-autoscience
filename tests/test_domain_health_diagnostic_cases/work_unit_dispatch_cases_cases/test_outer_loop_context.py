@@ -606,3 +606,52 @@ def test_matching_controller_decision_requires_same_work_unit_context(tmp_path: 
         status_payload={},
         tick_request=tick_request,
     ) is True
+
+
+def test_matching_controller_decision_ignores_current_blocker_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup")
+    study_root = tmp_path / "studies" / "001-risk"
+    latest_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    dump_json(
+        latest_path,
+        {
+            "surface": "controller_decision",
+            "schema_version": 1,
+            "decision_type": "medical_paper_readiness_owner_blocker",
+            "runtime_decision": "blocked",
+            "route_decision": "stable_blocker",
+            "blocked_reason": "medical_paper_readiness_missing",
+            "next_owner": "med-autoscience",
+            "requires_human_confirmation": False,
+            "readiness_status": "missing",
+            "readiness_ref": "studies/001-risk/artifacts/medical_paper/readiness.json",
+            "generated_at": "2026-06-06T07:08:45Z",
+            "source": "medical_paper_readiness.complete_medical_paper_readiness_surface",
+            "authority_boundary": {
+                "can_authorize_quality": False,
+                "can_authorize_submission": False,
+            },
+        },
+    )
+
+    assert module._controller_decision_latest_matches_outer_loop_request(
+        study_root=study_root,
+        status_payload={},
+        tick_request={
+            "decision_type": "bounded_analysis",
+            "reason": "Run deterministic gate repair.",
+            "route_target": "analysis-campaign",
+            "route_key_question": "analysis_claim_evidence_repair",
+            "route_rationale": "Publication gate selected controller-owned work unit.",
+            "charter_ref": {
+                "charter_id": "charter::001-risk",
+                "artifact_path": "studies/001-risk/study.yaml",
+            },
+            "publication_eval_ref": {
+                "eval_id": "eval::001-risk",
+                "artifact_path": "studies/001-risk/artifacts/publication_eval/latest.json",
+            },
+            "requires_human_confirmation": False,
+            "controller_actions": [],
+        },
+    ) is False

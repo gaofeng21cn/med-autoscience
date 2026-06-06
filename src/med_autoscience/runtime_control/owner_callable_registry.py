@@ -84,6 +84,24 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
         source_fingerprint_scope="stage_artifact_index.next_owner_action.source_ref",
     ),
     OwnerCallable(
+        owner="MedAutoScience",
+        action_type="complete_medical_paper_readiness_surface",
+        callable_surface="medical_paper_readiness.complete_medical_paper_readiness_surface",
+        required_inputs=(
+            "artifacts/medical_paper/readiness.json",
+            "provider-backed capability payload or existing canonical capability surface",
+            "artifacts/supervision/requests/medical_paper_readiness/latest.json",
+        ),
+        required_outputs=(
+            "artifacts/medical_paper/readiness.json",
+            "typed blocker:medical_paper_readiness_surface_input_required",
+        ),
+        artifact_delta_predicate="medical_paper_readiness_surface_completed_or_stable_blocker_recorded",
+        gate_replay_target="publication_handoff_owner_gate.evaluate_terminal_handoff",
+        idempotency_scope="medical_paper_readiness_surface_work_unit",
+        source_fingerprint_scope="stage_kernel_projection.current_owner_delta.source_ref",
+    ),
+    OwnerCallable(
         owner="quality_repair_batch",
         action_type="run_quality_repair_batch",
         callable_surface="quality_repair_batch.run_quality_repair_batch",
@@ -296,6 +314,40 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                 "next_owner_rules": {
                     "on_completed": ["human_gate", "controller_stop"],
                     "on_blocked": ["MedAutoScience", "publication_gate_owner", "awaiting_human"],
+                },
+            },
+            "complete_medical_paper_readiness_surface": {
+                "owner": "MedAutoScience",
+                "allowed_writes": [
+                    "artifacts/medical_paper/readiness.json",
+                    "artifacts/medical_paper/*.json",
+                    "artifacts/medical_paper/actions/**",
+                    "artifacts/controller_decisions/latest.json",
+                ],
+                "forbidden_writes": [
+                    "artifacts/publication_eval/latest.json",
+                    "paper/**",
+                    "paper/submission_minimal/**",
+                    "manuscript/current_package/**",
+                    "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+                ],
+                "required_input_refs": [
+                    "artifacts/medical_paper/readiness.json",
+                    "provider-backed capability payload or existing canonical capability surface",
+                    "artifacts/supervision/requests/medical_paper_readiness/latest.json",
+                ],
+                "required_output_refs": [
+                    "artifacts/medical_paper/readiness.json",
+                    "typed blocker:medical_paper_readiness_surface_input_required",
+                ],
+                "completion_proof": {
+                    "requires_owner_receipt_or_typed_blocker": True,
+                    "publication_ready_claim_authorized": False,
+                    "submission_ready_claim_authorized": False,
+                },
+                "next_owner_rules": {
+                    "on_completed": ["publication_gate_owner", "controller_stop"],
+                    "on_blocked": ["MedAutoScience", "awaiting_human"],
                 },
             },
             "return_to_ai_reviewer_workflow": {

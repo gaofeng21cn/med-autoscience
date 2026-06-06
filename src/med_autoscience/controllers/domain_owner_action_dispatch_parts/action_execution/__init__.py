@@ -18,6 +18,7 @@ from ... import (
     domain_status_projection,
 )
 from . import methodology_reframe_decision
+from . import medical_paper_readiness
 from . import publication_handoff
 from . import publication_gate_actions
 from . import provenance_limited_harmonization
@@ -176,6 +177,21 @@ def execute_publication_handoff_owner_gate(
     dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return publication_handoff.execute_publication_handoff_owner_gate(
+        profile=profile,
+        study_id=study_id,
+        apply=apply,
+        dispatch=dispatch,
+    )
+
+
+def execute_complete_medical_paper_readiness_surface(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return medical_paper_readiness.execute_complete_medical_paper_readiness_surface(
         profile=profile,
         study_id=study_id,
         apply=apply,

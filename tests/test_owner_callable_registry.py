@@ -9,6 +9,7 @@ def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
     registry = module.owner_callable_registry()
 
     assert set(registry) == {
+        "MedAutoScience",
         "MAS/controller",
         "analysis_harmonization_owner",
         "ai_reviewer",
@@ -42,6 +43,7 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
     provenance_limited = module.owner_callable_for_action("provenance_limited_harmonization_audit")
     delivery = module.owner_callable_for_action("sync_submission_minimal_delivery")
     handoff = module.owner_callable_for_action("publication_handoff_owner_gate")
+    readiness = module.owner_callable_for_action("complete_medical_paper_readiness_surface")
 
     assert gate["owner"] == "gate_clearing_batch"
     assert gate["gate_replay_target"] == "publication_gate.run_controller"
@@ -67,3 +69,5 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
         "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
         "typed blocker:publication_handoff_owner_gate_blocked",
     )
+    assert readiness["owner"] == "MedAutoScience"
+    assert readiness["callable_surface"] == "medical_paper_readiness.complete_medical_paper_readiness_surface"

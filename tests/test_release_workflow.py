@@ -238,7 +238,16 @@ def test_ci_boundary_guards_mas_repo_only_contract_regression() -> None:
 
 def test_sdist_build_projects_stage_route_contract_resource(tmp_path: Path) -> None:
     fixture_root = tmp_path / "sdist-fixture"
-    ignored_roots = {".git", ".venv", ".worktrees", "dist", "build", ".pytest_cache", "__pycache__"}
+    ignored_roots = {
+        ".codegraph",
+        ".git",
+        ".venv",
+        ".worktrees",
+        "dist",
+        "build",
+        ".pytest_cache",
+        "__pycache__",
+    }
 
     def ignore(_dir: str, names: list[str]) -> set[str]:
         return set(names) & ignored_roots

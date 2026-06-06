@@ -184,6 +184,34 @@ def test_init_workspace_upgrades_generated_workspace_wrappers_when_templates_cha
     assert 'for arg in ${args[@]+"${args[@]}"}; do' in resolve_targets_text
 
 
+def test_init_workspace_upgrades_generated_workspace_pyproject_analysis_extra(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "old-pyproject-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="old-pyproject",
+        dry_run=False,
+        force=False,
+    )
+
+    pyproject = workspace_root / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text(encoding="utf-8").replace('"med-autoscience[analysis]"', '"med-autoscience"'),
+        encoding="utf-8",
+    )
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="old-pyproject",
+        dry_run=False,
+        force=False,
+    )
+
+    assert str(pyproject) in result["upgraded_files"]
+    assert '"med-autoscience[analysis]"' in pyproject.read_text(encoding="utf-8")
+
+
 def test_init_workspace_removes_flat_watch_runtime_entry_even_when_current_flags_are_present(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "legacy-watch-runtime"

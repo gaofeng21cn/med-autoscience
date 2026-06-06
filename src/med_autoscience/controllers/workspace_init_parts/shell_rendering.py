@@ -48,10 +48,6 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         "  exit 1\n"
         "fi\n\n"
         'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"\n'
-        'if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then\n'
-        '  echo "Workspace Python is missing or not executable: ${WORKSPACE_PYTHON}" >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
         'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"\n'
         'if [[ -n "${MED_AUTOSCIENCE_RSCRIPT_BIN}" ]]; then\n'
         '  if [[ "${MED_AUTOSCIENCE_RSCRIPT_BIN}" != /* ]]; then\n'
@@ -77,6 +73,10 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         "fi\n\n"
         'export MED_AUTOSCIENCE_NODE_BIN\n\n'
         "run_medautosci() {\n"
+        '  if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then\n'
+        '    echo "Workspace Python is missing or not executable: ${WORKSPACE_PYTHON}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
         "  PYTHONDONTWRITEBYTECODE=1 \\\n"
         '  "${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"\n'
         "}\n"
@@ -90,6 +90,24 @@ def _render_forward_script(command: str, *, with_profile: bool = False) -> str:
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
         f'run_medautosci {command}{extra} "$@"\n'
+    )
+
+
+def _render_bootstrap_script() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then\n'
+        '  MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"\n'
+        '  if [[ -z "${MED_AUTOSCIENCE_UV_BIN}" || "${MED_AUTOSCIENCE_UV_BIN}" != /* || ! -x "${MED_AUTOSCIENCE_UV_BIN}" ]]; then\n'
+        '    echo "Workspace Python is missing and MED_AUTOSCIENCE_UV_BIN is not executable: ${WORKSPACE_PYTHON}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
+        '  PYTHONDONTWRITEBYTECODE=1 "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli workspace bootstrap --profile "${PROFILE_PATH}" "$@"\n'
+        "  exit $?\n"
+        "fi\n\n"
+        'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"\n'
     )
 
 
@@ -235,6 +253,17 @@ def _render_supervisor_execute_dispatch_script() -> str:
         '  --profile "${PROFILE_PATH}" \\\n'
         f"  {DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS} \\\n"
         '  ${apply_mode:+"${apply_mode}"} \\\n'
+        '  "$@"\n'
+    )
+
+
+def _render_legacy_control_surface_clean_migration_script() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'run_medautosci runtime legacy-control-surface-clean-migration \\\n'
+        '  --profile "${PROFILE_PATH}" \\\n'
         '  "$@"\n'
     )
 

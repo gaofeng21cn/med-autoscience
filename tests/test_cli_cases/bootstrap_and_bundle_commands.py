@@ -82,6 +82,11 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
         lambda: {"action": "already_ready", "ready": True},
     )
     monkeypatch.setattr(
+        cli.workspace_python_environment_controller,
+        "ensure_workspace_python_environment",
+        lambda *, workspace_root: {"status": "ready", "ready": True, "workspace_root": str(workspace_root)},
+    )
+    monkeypatch.setattr(
         cli.overlay_installer,
         "ensure_medical_overlay",
         lambda **_: {
@@ -104,6 +109,7 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     assert exit_code == 0
     assert '"selected_action": "noop"' in captured.out
     assert '"supervision_bootstrap"' in captured.out
+    assert '"workspace_python_environment"' in captured.out
     assert '"manager": "opl"' in captured.out
     assert '"trigger_now": false' in captured.out
     assert not install_service.exists()

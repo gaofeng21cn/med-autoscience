@@ -205,6 +205,12 @@ def projection_block_state(
             "next_owner": "gate_clearing_batch",
             "external_supervisor_required": False,
         }
+    if _has_medical_paper_readiness_action(actions):
+        return {
+            "blocked_reason": "medical_paper_readiness_not_ready",
+            "next_owner": "MedAutoScience",
+            "external_supervisor_required": False,
+        }
     if _has_publication_handoff_owner_gate_action(actions):
         return {
             "blocked_reason": "publication_handoff_owner_gate",
@@ -273,6 +279,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "publication_gate"
     if blocked_reason == "publication_handoff_owner_gate":
         return "publication_gate_owner"
+    if blocked_reason in {"medical_paper_readiness_not_ready", "medical_paper_readiness_missing"}:
+        return "MedAutoScience"
     if blocked_reason == evidence_adoption.RECHECK_REASON:
         return "publication_gate"
     if blocked_reason == evidence_adoption.OWNER_HANDOFF_REASON:
@@ -362,6 +370,14 @@ def _has_publication_handoff_owner_gate_action(actions: list[dict[str, Any]]) ->
     return any(
         _text(action.get("action_type")) == "publication_handoff_owner_gate"
         and _text(action.get("owner")) == "publication_gate_owner"
+        for action in actions
+    )
+
+
+def _has_medical_paper_readiness_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "complete_medical_paper_readiness_surface"
+        and _text(action.get("owner")) == "MedAutoScience"
         for action in actions
     )
 

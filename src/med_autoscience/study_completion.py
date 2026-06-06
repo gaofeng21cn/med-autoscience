@@ -207,7 +207,7 @@ def _primary_publication_profiles(payload: dict[str, Any]) -> tuple[str, ...]:
     for item in raw_targets:
         if not isinstance(item, dict) or item.get("package_required") is False:
             continue
-        profile = normalize_publication_profile(str(item.get("exporter_profile") or ""))
+        profile = normalize_publication_profile(str(item.get("exporter_profile") or item.get("publication_profile") or ""))
         if profile and is_supported_publication_profile(profile):
             if item.get("primary") is True:
                 profiles.insert(0, profile)
@@ -219,10 +219,16 @@ def _primary_publication_profiles(payload: dict[str, Any]) -> tuple[str, ...]:
 def _evidence_path_exists(study_root: Path, relative_path: str, *, publication_profiles: tuple[str, ...]) -> bool:
     if (study_root / relative_path).resolve().exists():
         return True
-    if relative_path != "manuscript/submission_package.zip":
-        return False
     manuscript_root = study_root / "manuscript"
-    return any((manuscript_root / f"{profile}_submission_package.zip").resolve().exists() for profile in publication_profiles)
+    if relative_path == "manuscript/submission_package.zip":
+        return any((manuscript_root / f"{profile}_submission_package.zip").resolve().exists() for profile in publication_profiles)
+    if relative_path in {
+        "manuscript/delivery_manifest.json",
+        "manuscript/submission_manifest.json",
+    }:
+        filename = Path(relative_path).name
+        return any((manuscript_root / "journal_packages" / profile / filename).resolve().exists() for profile in publication_profiles)
+    return False
 
 
 def resolve_study_completion_contract(*, study_root: Path | None) -> StudyCompletionContract | None:

@@ -763,6 +763,11 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
         "ensure_analysis_bundle",
         lambda: {"action": "already_ready", "ready": True},
     )
+    monkeypatch.setattr(
+        cli.workspace_python_environment_controller,
+        "ensure_workspace_python_environment",
+        lambda *, workspace_root: {"status": "ready", "ready": True, "workspace_root": str(workspace_root)},
+    )
     monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
     monkeypatch.setattr(cli.data_asset_updates_controller, "refresh_data_assets", fake_refresh_data_assets)
 
@@ -834,6 +839,11 @@ def test_bootstrap_command_maintains_workspace_local_mas_stage_skills_without_ho
         lambda: {"action": "already_ready", "ready": True},
     )
     monkeypatch.setattr(
+        cli.workspace_python_environment_controller,
+        "ensure_workspace_python_environment",
+        lambda *, workspace_root: {"status": "ready", "ready": True, "workspace_root": str(workspace_root)},
+    )
+    monkeypatch.setattr(
         cli.data_asset_updates_controller,
         "refresh_data_assets",
         lambda *, workspace_root: {"status": {"layout_ready": True}},
@@ -884,6 +894,11 @@ def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path
         cli.analysis_bundle_controller,
         "ensure_analysis_bundle",
         lambda: {"action": "already_ready", "ready": True},
+    )
+    monkeypatch.setattr(
+        cli.workspace_python_environment_controller,
+        "ensure_workspace_python_environment",
+        lambda *, workspace_root: {"status": "ready", "ready": True, "workspace_root": str(workspace_root)},
     )
     monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
     monkeypatch.setattr(

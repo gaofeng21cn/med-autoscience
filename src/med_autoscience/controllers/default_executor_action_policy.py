@@ -11,6 +11,7 @@ SUPPORTED_ACTION_TYPES = frozenset(
         "canonical_paper_inputs_rehydrate_required",
         "run_quality_repair_batch",
         "run_gate_clearing_batch",
+        "complete_medical_paper_readiness_surface",
         "unit_harmonized_external_validation_rerun",
         "recover_transport_model_provenance",
         "methodology_reframe_route_decision",
@@ -148,6 +149,7 @@ REQUEST_OWNER_BY_ACTION_TYPE = {
     "canonical_paper_inputs_rehydrate_required": "write",
     "run_quality_repair_batch": "write",
     "run_gate_clearing_batch": "gate_clearing_batch",
+    "complete_medical_paper_readiness_surface": "MedAutoScience",
     "unit_harmonized_external_validation_rerun": "analysis_harmonization_owner",
     "recover_transport_model_provenance": "source_provenance_owner",
     "methodology_reframe_route_decision": "decision",
@@ -169,6 +171,10 @@ REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE = {
         "typed blocker:manuscript_story_surface_delta_missing"
     ),
     "run_gate_clearing_batch": "artifacts/controller/gate_clearing_batch/latest.json",
+    "complete_medical_paper_readiness_surface": (
+        "artifacts/medical_paper/<surface_key>.json or "
+        "typed blocker:medical_paper_readiness_surface_input_required"
+    ),
     "unit_harmonized_external_validation_rerun": (
         "unit-harmonized external-validation rerun evidence or "
         "typed blocker:unit_harmonized_rerun_required"
@@ -225,6 +231,7 @@ REQUEST_PACKET_REF_BY_ACTION_TYPE = {
     "canonical_paper_inputs_rehydrate_required": "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json",
     "run_quality_repair_batch": "artifacts/supervision/requests/quality_repair_batch/latest.json",
     "run_gate_clearing_batch": "artifacts/supervision/requests/gate_clearing_batch/latest.json",
+    "complete_medical_paper_readiness_surface": "artifacts/supervision/requests/medical_paper_readiness/latest.json",
     "unit_harmonized_external_validation_rerun": "artifacts/supervision/requests/analysis_harmonization/latest.json",
     "recover_transport_model_provenance": "artifacts/supervision/requests/source_provenance/latest.json",
     "methodology_reframe_route_decision": "artifacts/supervision/requests/decision/latest.json",

@@ -515,6 +515,36 @@ _REASON_REGISTRY = {
         priority_class="delivery_or_human_handoff",
         regression_refs=("DM002:terminal_publication_handoff", "DM003:terminal_publication_handoff"),
     ),
+    "medical_paper_readiness_not_ready": _entry(
+        owner="MedAutoScience",
+        allowed_actions=["complete_medical_paper_readiness_surface"],
+        required_output=(
+            "artifacts/medical_paper/readiness.json updated from provider-backed capability surfaces "
+            "or typed blocker:medical_paper_readiness_surface_input_required"
+        ),
+        priority_class="hard_methodology_or_source_blocker",
+        regression_refs=("DM002:medical_paper_readiness", "DM003:medical_paper_readiness"),
+    ),
+    "medical_paper_readiness_missing": _entry(
+        owner="MedAutoScience",
+        allowed_actions=["complete_medical_paper_readiness_surface"],
+        required_output=(
+            "artifacts/medical_paper/readiness.json updated from provider-backed capability surfaces "
+            "or typed blocker:medical_paper_readiness_surface_input_required"
+        ),
+        priority_class="hard_methodology_or_source_blocker",
+        regression_refs=("DM002:medical_paper_readiness", "DM003:medical_paper_readiness"),
+    ),
+    "complete_medical_paper_readiness_surface": _entry(
+        owner="MedAutoScience",
+        allowed_actions=["complete_medical_paper_readiness_surface"],
+        required_output=(
+            "artifacts/medical_paper/readiness.json updated from provider-backed capability surfaces "
+            "or typed blocker:medical_paper_readiness_surface_input_required"
+        ),
+        priority_class="hard_methodology_or_source_blocker",
+        regression_refs=("tests/owner_route_reconcile_cases/test_stage_artifact_owner_action.py",),
+    ),
     "gate_needs_specificity": _entry(
         owner="publication_gate",
         allowed_actions=["publication_gate_specificity_required"],
@@ -677,6 +707,7 @@ _ROUTED_ACTION_TYPES = (
     "canonical_paper_inputs_rehydrate_required",
     "run_quality_repair_batch",
     "run_gate_clearing_batch",
+    "complete_medical_paper_readiness_surface",
 )
 
 

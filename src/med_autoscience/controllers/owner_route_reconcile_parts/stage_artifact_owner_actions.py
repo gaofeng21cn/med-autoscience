@@ -10,6 +10,46 @@ from med_autoscience.controllers.default_executor_action_policy import (
 
 ACTION_TYPE = "publication_handoff_owner_gate"
 OWNER = "publication_gate_owner"
+READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
+READINESS_OWNER = "MedAutoScience"
+
+
+def typed_blocker_followup_action(progress: Mapping[str, Any]) -> dict[str, Any] | None:
+    if _medical_paper_readiness_ready(progress):
+        return None
+    delta = _current_owner_delta(progress)
+    if _text(delta.get("action")) != READINESS_ACTION_TYPE:
+        return None
+    if _text(delta.get("reason")) != "medical_paper_readiness_not_ready":
+        return None
+    source_ref = _text(delta.get("source_ref"))
+    return {
+        "action_type": READINESS_ACTION_TYPE,
+        "authority": "mas_owner_surface",
+        "owner": _text(delta.get("owner")) or READINESS_OWNER,
+        "request_owner": _text(delta.get("owner")) or READINESS_OWNER,
+        "recommended_owner": _text(delta.get("owner")) or READINESS_OWNER,
+        "reason": _text(delta.get("reason")) or "medical_paper_readiness_not_ready",
+        "summary": "Complete the MAS medical-paper readiness surface named by the terminal handoff typed blocker.",
+        "required_output_surface": _text(delta.get("required_input")) or READINESS_ACTION_TYPE,
+        "work_unit_id": READINESS_ACTION_TYPE,
+        "next_work_unit": READINESS_ACTION_TYPE,
+        "work_unit_fingerprint": _text(delta.get("delta_id"))
+        or f"stage-current-owner-delta::{READINESS_ACTION_TYPE}::{source_ref or 'unknown'}",
+        "source_ref": source_ref,
+        "source_surface": "stage_kernel_projection.current_owner_delta",
+        "blocked_surface": _text(delta.get("blocked_surface")) or ACTION_TYPE,
+        "latest_owner_answer_ref": _text(delta.get("latest_owner_answer_ref")) or source_ref,
+        "latest_owner_answer_kind": _text(delta.get("latest_owner_answer_kind")) or _text(delta.get("source_kind")),
+        "terminal_publication_handoff": False,
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_ready": False,
+        "can_authorize_submission_ready": False,
+    }
 
 
 def terminal_publication_handoff_action(progress: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -72,6 +112,9 @@ def action_queue_with_terminal_publication_handoff(
     quest_id: str | None,
     decorate_action: Callable[..., dict[str, Any]],
 ) -> list[dict[str, Any]]:
+    followup = typed_blocker_followup_action(progress)
+    if followup is not None:
+        return [decorate_action(study_id=study_id, quest_id=quest_id, action=followup)]
     action = terminal_publication_handoff_action(progress)
     if action is None:
         return actions
@@ -99,6 +142,23 @@ def _stage_artifact_contract_refs(owner_action: Mapping[str, Any]) -> dict[str, 
     return {key: value for key, value in refs.items() if value is not None}
 
 
+def _current_owner_delta(progress: Mapping[str, Any]) -> dict[str, Any]:
+    direct = _mapping(progress.get("current_owner_delta"))
+    if direct:
+        return direct
+    stage_kernel = _mapping(progress.get("stage_kernel_projection"))
+    delta = _mapping(stage_kernel.get("current_owner_delta"))
+    if delta:
+        return delta
+    stage_run_kernel = _mapping(stage_kernel.get("stage_run_kernel"))
+    return _mapping(stage_run_kernel.get("current_owner_delta"))
+
+
+def _medical_paper_readiness_ready(progress: Mapping[str, Any]) -> bool:
+    readiness = _mapping(progress.get("medical_paper_readiness"))
+    return _text(readiness.get("overall_status")) == "ready"
+
+
 def _stage_id(value: object) -> str | None:
     if isinstance(value, Mapping):
         return _text(value.get("stage_id"))
@@ -120,4 +180,5 @@ __all__ = [
     "action_queue_with_terminal_publication_handoff",
     "projection_fields",
     "terminal_publication_handoff_action",
+    "typed_blocker_followup_action",
 ]

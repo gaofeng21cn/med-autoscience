@@ -123,6 +123,44 @@ def test_resolve_study_completion_contract_accepts_profile_named_submission_pack
     assert contract.missing_evidence_paths == ()
 
 
+def test_resolve_study_completion_contract_accepts_publication_profile_journal_package_aliases(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_completion")
+    study_root = tmp_path / "study"
+    write_text(
+        study_root / "study.yaml",
+        "\n".join(
+            [
+                "study_id: 002-risk",
+                "submission_targets:",
+                "  - publication_profile: frontiers_family_harvard",
+                "    primary: true",
+                "    package_required: true",
+                "study_completion:",
+                "  status: completed",
+                "  summary: Study is done.",
+                "  user_approval_text: 同意",
+                "  evidence_paths:",
+                "    - manuscript/delivery_manifest.json",
+                "    - manuscript/submission_manifest.json",
+                "    - manuscript/submission_package.zip",
+                "",
+            ]
+        ),
+    )
+    journal_package_root = study_root / "manuscript" / "journal_packages" / "frontiers_family_harvard"
+    write_text(journal_package_root / "delivery_manifest.json", "{}\n")
+    write_text(journal_package_root / "submission_manifest.json", "{}\n")
+    write_text(study_root / "manuscript" / "frontiers_family_harvard_submission_package.zip", "zip\n")
+
+    contract = module.resolve_study_completion_contract(study_root=study_root)
+
+    assert contract is not None
+    assert contract.ready is True
+    assert contract.missing_evidence_paths == ()
+
+
 def test_resolve_study_completion_state_wraps_invalid_contract_as_invalid_state(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.study_completion")
     study_root = tmp_path / "study"
