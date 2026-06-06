@@ -69,6 +69,26 @@ def test_execute_dispatch_blocks_ai_reviewer_when_record_payload_missing(
         owner="ai_reviewer",
         required_output_surface="artifacts/publication_eval/latest.json",
     )
+    closeout_binding = {
+        "surface_kind": "opl_stage_run_closeout_binding",
+        "trusted_opl_execution_authorization": True,
+        "stage_run_id": f"stage-run::{study_id}::domain_owner/default-executor-dispatch",
+        "stage_manifest_ref": "opl://stage-manifests/domain_owner%2Fdefault-executor-dispatch",
+        "current_pointer_ref": (
+            "opl://stage-runs/stage-run%3A"
+            f"{study_id}%3Adomain_owner%2Fdefault-executor-dispatch/current"
+        ),
+        "provider_attempt_ref": f"temporal://attempt/{study_id}",
+        "attempt_lease_ref": f"opl://stage-attempts/{study_id}/leases/current/active",
+        "attempt_lease_status": "active",
+        "execution_authorization_decision_ref": (
+            f"opl://stage-attempts/{study_id}/execution-authorizations/current"
+        ),
+        "source_fingerprint": "truth-source::ai-reviewer-record-missing",
+        "idempotency_key": f"idem::{study_id}::return_to_ai_reviewer_workflow",
+    }
+    dispatch["closeout_binding"] = closeout_binding
+    dispatch["prompt_contract"]["closeout_binding"] = closeout_binding
     _write_current_dispatch(
         dispatch_path,
         profile,
@@ -89,6 +109,15 @@ def test_execute_dispatch_blocks_ai_reviewer_when_record_payload_missing(
     assert execution["blocked_reason"] == "ai_reviewer_record_missing"
     assert execution["owner_callable_surface"] == "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
     assert execution["next_owner"] == "ai_reviewer"
+    owner_delta = execution["owner_delta_result"]
+    assert owner_delta["result_kind"] == "stable_typed_blocker"
+    assert owner_delta["required_return_shape_satisfied"] is True
+    assert owner_delta["stable_typed_blocker_refs"] == [str(study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json")]
+    assert owner_delta["typed_blocker"]["blocker_id"] == "ai_reviewer_record_missing"
+    assert owner_delta["closeout_binding"]["stage_run_id"] == closeout_binding["stage_run_id"]
+    assert owner_delta["closeout_binding"]["provider_attempt_ref"] == closeout_binding["provider_attempt_ref"]
+    assert owner_delta["stage_run_id"] == closeout_binding["stage_run_id"]
+    assert owner_delta["idempotency_key"] == closeout_binding["idempotency_key"]
 
 
 def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_record_stale_after_unit_harmonized_rerun(

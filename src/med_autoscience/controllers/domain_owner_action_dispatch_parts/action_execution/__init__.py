@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -383,9 +384,15 @@ def execute_ai_reviewer_workflow(
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
     request_path = stable_ai_reviewer_request_path(study_root=study_root)
+    closeout_binding = _ai_reviewer_closeout_binding(dispatch)
     request = _read_json_object(request_path)
     if request is None or _text(_mapping(request).get("surface_kind")) == "legacy_control_surface_tombstone":
-        return _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_request_missing", request_path=request_path)
+        return _blocked_ai_reviewer_execution(
+            apply=apply,
+            reason="ai_reviewer_request_missing",
+            request_path=request_path,
+            closeout_binding=closeout_binding,
+        )
     request = _complete_ai_reviewer_request_packet(study_root=study_root, request=request, request_path=request_path)
     record, record_blocker = _ai_reviewer_record_for_execution(request=request, study_root=study_root)
     if record_blocker:
@@ -399,15 +406,30 @@ def execute_ai_reviewer_workflow(
         )
         if handoff is not None:
             return handoff
-        payload = _blocked_ai_reviewer_execution(apply=apply, reason=record_blocker["reason"], request_path=request_path)
+        payload = _blocked_ai_reviewer_execution(
+            apply=apply,
+            reason=record_blocker["reason"],
+            request_path=request_path,
+            closeout_binding=closeout_binding,
+        )
         payload.update(record_blocker["payload"])
         return payload
     if not record:
-        return _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_record_missing", request_path=request_path)
+        return _blocked_ai_reviewer_execution(
+            apply=apply,
+            reason="ai_reviewer_record_missing",
+            request_path=request_path,
+            closeout_binding=closeout_binding,
+        )
     required_refs = ai_reviewer_request_refs.required_refs(request)
     missing_refs = [surface for surface, ref in required_refs.items() if ref is None]
     if missing_refs:
-        payload = _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_required_refs_missing", request_path=request_path)
+        payload = _blocked_ai_reviewer_execution(
+            apply=apply,
+            reason="ai_reviewer_required_refs_missing",
+            request_path=request_path,
+            closeout_binding=closeout_binding,
+        )
         payload["missing_refs"] = missing_refs
         return payload
     if not apply:
@@ -460,7 +482,12 @@ def execute_ai_reviewer_workflow(
         )
         if alignment_blocker is not None:
             return alignment_blocker
-        payload = _blocked_ai_reviewer_execution(apply=True, reason="ai_reviewer_workflow_failed", request_path=request_path)
+        payload = _blocked_ai_reviewer_execution(
+            apply=True,
+            reason="ai_reviewer_workflow_failed",
+            request_path=request_path,
+            closeout_binding=closeout_binding,
+        )
         payload["error"] = str(exc)
         return payload
     output_error = _ai_reviewer_workflow_output_error(study_root=study_root, owner_result=owner_result)
@@ -469,6 +496,7 @@ def execute_ai_reviewer_workflow(
             apply=True,
             reason="ai_reviewer_workflow_output_missing",
             request_path=request_path,
+            closeout_binding=closeout_binding,
         )
         payload["error"] = output_error
         if isinstance(owner_result, Mapping):
@@ -799,19 +827,119 @@ def _blocked_ai_reviewer_execution(
     required_input_surface: str | None = None,
     error: str | None = None,
     owner_result: Mapping[str, Any] | None = None,
+    closeout_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    typed_blocker = _ai_reviewer_typed_blocker(reason=reason)
     payload: dict[str, Any] = {
         "execution_status": "blocked" if apply else "dry_run",
         "blocked_reason": reason,
         "owner_callable_surface": owner_callable_surface,
         "next_owner": next_owner,
         "required_input_surface": required_input_surface or str(request_path),
+        "typed_blocker": typed_blocker,
+        "owner_delta_result": _ai_reviewer_owner_delta_result(
+            reason=reason,
+            request_path=request_path,
+            typed_blocker=typed_blocker,
+            closeout_binding=closeout_binding,
+        ),
     }
     if error is not None:
         payload["error"] = error
     if owner_result is not None:
         payload["owner_result"] = dict(owner_result)
     return payload
+
+
+def _ai_reviewer_typed_blocker(*, reason: str) -> dict[str, Any]:
+    return {
+        "blocker_id": reason,
+        "owner": "ai_reviewer",
+        "reason": reason,
+        "required_owner_surface": "return_to_ai_reviewer_workflow owner surface",
+        "write_permitted": False,
+    }
+
+
+def _ai_reviewer_owner_delta_result(
+    *,
+    reason: str,
+    request_path: Path,
+    typed_blocker: Mapping[str, Any],
+    closeout_binding: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "surface_kind": "mas_current_owner_delta_result",
+        "owner": "ai_reviewer",
+        "result_kind": "stable_typed_blocker",
+        "required_return_shape_satisfied": True,
+        "owner_receipt_refs": [],
+        "quality_gate_receipt_refs": [],
+        "stable_typed_blocker_refs": [str(request_path)],
+        "quality_gate_receipt": None,
+        "typed_blocker": dict(typed_blocker),
+        "body_included": False,
+        "blocked_reason": reason,
+        "authority_boundary": {
+            "owner": "med-autoscience",
+            "writes_publication_eval": False,
+            "writes_controller_decision": False,
+            "writes_paper_or_package": False,
+            "writes_memory_body": False,
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    }
+    if closeout_binding:
+        binding = dict(closeout_binding)
+        result["closeout_binding"] = binding
+        result["stage_run_id"] = _text(binding.get("stage_run_id"))
+        result["stage_manifest_ref"] = _text(binding.get("stage_manifest_ref"))
+        result["current_pointer_ref"] = _text(binding.get("current_pointer_ref"))
+        result["source_fingerprint"] = _text(binding.get("source_fingerprint"))
+        result["idempotency_key"] = _text(binding.get("idempotency_key"))
+    return result
+
+
+def _ai_reviewer_closeout_binding(dispatch: Mapping[str, Any] | None) -> dict[str, Any]:
+    source = _mapping(dispatch)
+    prompt_contract = _mapping(source.get("prompt_contract"))
+    dispatch_binding = _mapping(source.get("closeout_binding")) or _mapping(prompt_contract.get("closeout_binding"))
+    env_binding = _env_ai_reviewer_closeout_binding()
+    binding = {**dispatch_binding, **env_binding}
+    required = (
+        _text(binding.get("stage_run_id")),
+        _text(binding.get("stage_manifest_ref")),
+        _text(binding.get("current_pointer_ref")),
+        _text(binding.get("source_fingerprint")),
+        _text(binding.get("idempotency_key")),
+    )
+    if not all(required):
+        return {}
+    return {key: value for key, value in binding.items() if value not in (None, [], "")}
+
+
+def _env_ai_reviewer_closeout_binding() -> dict[str, Any]:
+    parsed: dict[str, Any] = {}
+    if raw := _text(os.environ.get("OPL_CLOSEOUT_BINDING_JSON")):
+        try:
+            candidate = json.loads(raw)
+            if isinstance(candidate, Mapping):
+                parsed = dict(candidate)
+        except json.JSONDecodeError:
+            parsed = {}
+    aliases = {
+        "stage_run_id": os.environ.get("OPL_STAGE_RUN_ID"),
+        "stage_manifest_ref": os.environ.get("OPL_STAGE_MANIFEST_REF"),
+        "current_pointer_ref": os.environ.get("OPL_CURRENT_POINTER_REF"),
+        "provider_attempt_ref": os.environ.get("OPL_PROVIDER_ATTEMPT_REF"),
+        "attempt_lease_ref": os.environ.get("OPL_ATTEMPT_LEASE_REF"),
+        "attempt_lease_status": os.environ.get("OPL_ATTEMPT_LEASE_STATUS"),
+        "execution_authorization_decision_ref": os.environ.get("OPL_EXECUTION_AUTHORIZATION_DECISION_REF"),
+        "source_fingerprint": os.environ.get("OPL_SOURCE_FINGERPRINT"),
+        "idempotency_key": os.environ.get("OPL_IDEMPOTENCY_KEY"),
+    }
+    return {**parsed, **{key: text for key, value in aliases.items() if (text := _text(value))}}
 
 
 def _ai_reviewer_record_for_execution(
