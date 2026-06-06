@@ -21,6 +21,7 @@ TASK_KIND = "domain_owner/default-executor-dispatch"
 DISPATCH_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_dispatches")
 REQUIRED_SURFACE = "default_executor_dispatch_request"
 REQUIRED_EXECUTOR_KIND = "codex_cli_default"
+READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
 DEFAULT_NEXT_OWNER = "write"
 ALLOWED_NEXT_OWNERS = frozenset({*REQUEST_OWNER_BY_ACTION_TYPE.values(), "write/ai_reviewer"})
 OWNER_RECEIPT_CONTRACT = "mas-default-executor-owner-receipt.v1"
@@ -74,6 +75,10 @@ def default_executor_dispatch_tasks(
         protocol_payload_fields = owner_route_attempt_protocol.payload_fields_for_default_executor_dispatch(
             dispatch=dispatch
         )
+        readiness_surface_identity = _readiness_surface_identity(
+            action_type=action_type,
+            current_owner_action=_mapping(current_owner_action),
+        )
         prompt_contract_ref = f"{dispatch_ref}#prompt_contract"
         source_refs = _source_refs(
             dispatch=dispatch,
@@ -93,6 +98,7 @@ def default_executor_dispatch_tasks(
             dispatch=dispatch,
             dispatch_path=stage_packet_path,
             redrive_context=redrive_context,
+            readiness_surface_identity=readiness_surface_identity,
         )
         evidence_record_payload = build_domain_dispatch_evidence_record_payload(
             task_kind=TASK_KIND,
@@ -131,6 +137,11 @@ def default_executor_dispatch_tasks(
                     "dispatch_ref": dispatch_ref,
                     "authority_boundary": "mas_default_executor_dispatch_request_only",
                     "next_executable_owner": next_owner,
+                    **(
+                        {"readiness_surface_identity": readiness_surface_identity}
+                        if readiness_surface_identity
+                        else {}
+                    ),
                     **({"redrive_context": redrive_context} if redrive_context else {}),
                 },
                 "source_refs": source_refs,
@@ -215,6 +226,31 @@ def _dispatch_matches_current_owner_action(
     if current_allowed_actions and action_type not in current_allowed_actions:
         return False
     return True
+
+
+def _readiness_surface_identity(
+    *,
+    action_type: str,
+    current_owner_action: Mapping[str, Any],
+) -> dict[str, str] | None:
+    if action_type != READINESS_ACTION_TYPE:
+        return None
+    if _text(current_owner_action.get("action_type")) != READINESS_ACTION_TYPE:
+        return None
+    target_surface = _mapping(current_owner_action.get("target_surface"))
+    next_action = _mapping(current_owner_action.get("next_action"))
+    surface_key = (
+        _text(current_owner_action.get("surface_key"))
+        or _text(target_surface.get("surface_key"))
+        or _text(next_action.get("surface_key"))
+    )
+    if surface_key is None:
+        return None
+    return {
+        "action_type": READINESS_ACTION_TYPE,
+        "surface_key": surface_key,
+        "source": _text(current_owner_action.get("source")) or "current_owner_action",
+    }
 
 
 def _dispatch_blocked_by_newer_candidate(
@@ -594,6 +630,7 @@ def _source_fingerprint(
     dispatch: Mapping[str, Any],
     dispatch_path: Path,
     redrive_context: Mapping[str, Any] | None = None,
+    readiness_surface_identity: Mapping[str, Any] | None = None,
 ) -> str:
     digest_payload = {
         "path": str(dispatch_path),
@@ -606,6 +643,13 @@ def _source_fingerprint(
     redrive_fingerprint = _source_fingerprint_redrive_context(redrive_context)
     if redrive_fingerprint is not None:
         digest_payload["redrive_context"] = redrive_fingerprint
+    readiness_identity = _mapping(readiness_surface_identity)
+    if readiness_identity:
+        digest_payload["readiness_surface_identity"] = {
+            "action_type": _text(readiness_identity.get("action_type")),
+            "surface_key": _text(readiness_identity.get("surface_key")),
+            "source": _text(readiness_identity.get("source")),
+        }
     rendered = json.dumps(digest_payload, ensure_ascii=False, sort_keys=True)
     return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
 

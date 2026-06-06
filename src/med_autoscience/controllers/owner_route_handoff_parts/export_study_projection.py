@@ -95,7 +95,16 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         study_root=study_root,
         profile=profile,
     )
-    current_owner_action = current_writer_owner_action or current_control_owner_action
+    current_readiness_owner_action = current_readiness_owner_action_record(
+        study_root=study_root,
+        profile=profile,
+        controller_decision=mapping(payload.get("controller_decisions")),
+    )
+    current_owner_action = (
+        current_writer_owner_action
+        or current_readiness_owner_action
+        or current_control_owner_action
+    )
     if current_owner_action is not None:
         payload["current_owner_action"] = current_owner_action
     current_owner_route_handoff_exists = (
@@ -318,6 +327,65 @@ def current_writer_handoff_owner_action_record(
         "source_ref_role": "quality_repair_batch_writer_handoff",
         "source_relative_path": "studies/"
         f"{study_root.name}/artifacts/controller/quality_repair_batch/latest.json",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
+
+
+def current_readiness_owner_action_record(
+    *,
+    study_root: Path,
+    profile: WorkspaceProfile,
+    controller_decision: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if text(controller_decision.get("decision_type")) != "medical_paper_readiness_owner_blocker":
+        return None
+    next_action = mapping(controller_decision.get("readiness_next_action"))
+    action_type = text(next_action.get("action_id"))
+    if action_type != "complete_medical_paper_readiness_surface":
+        return None
+    surface_key = text(next_action.get("surface_key"))
+    if surface_key is None:
+        return None
+    work_unit_id = action_type
+    source_ref = workspace_relative(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        workspace_root=profile.workspace_root,
+    )
+    return {
+        "surface_kind": "mas_current_owner_action_record",
+        "schema_version": 1,
+        "source": "controller_decisions.readiness_next_action",
+        "study_id": study_root.name,
+        "quest_id": study_root.name,
+        "recorded_at": text(controller_decision.get("generated_at")),
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        "next_owner": "MedAutoScience",
+        "allowed_actions": [action_type],
+        "surface_key": surface_key,
+        "next_action": dict(next_action),
+        "target_surface": {
+            "ref_kind": "mas_owner_surface",
+            "surface_ref": action_type,
+            "surface_key": surface_key,
+        },
+        "target_surface_specificity": "controller_decisions_readiness_next_action",
+        "owner_route_currentness_basis": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": f"medical-paper-readiness::{surface_key}",
+            "truth_epoch": text(controller_decision.get("generated_at")) or source_ref,
+            "runtime_health_epoch": text(controller_decision.get("generated_at")) or source_ref,
+        },
+        "currentness_status": "current_readiness_owner_action_active",
+        "source_ref_role": "controller_decisions_readiness_next_action",
+        "source_relative_path": source_ref,
         "authority_boundary": {
             "mas_writes_generic_runtime_queue": False,
             "mas_submits_runtime_chat": False,
