@@ -683,7 +683,12 @@ def _orphan_stage_artifact_refs(
 
 
 def _legacy_contract_residue_refs(*, stage_folder_ref: str, orphan_refs: list[str]) -> list[str]:
-    retired_names = {"owner_receipt.json", "stage_artifact_manifest.json"}
+    retired_names = {
+        "current.json",
+        "owner_receipt.json",
+        "stage_artifact_manifest.json",
+        "typed_blocker.json",
+    }
     return sorted(
         ref
         for ref in orphan_refs
