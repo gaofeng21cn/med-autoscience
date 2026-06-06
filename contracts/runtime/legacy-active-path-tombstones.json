@@ -62,6 +62,60 @@
       "can_authorize_publication_quality": false
     }
   },
+  "stage_native_compensation_retirement_gate": {
+    "surface_id": "stage_native_compensation_tail_retirement_gate",
+    "status": "active_delete_gate",
+    "scope": [
+      "legacy_writer_repair_tail",
+      "legacy_gate_replay_tail",
+      "receipt_reconcile_tail",
+      "read_model_hydration_tail",
+      "repeat_materialize_dispatch_tail"
+    ],
+    "allowed_before_gate": [
+      "tombstone_ref",
+      "provenance_ref",
+      "delete_gate_context",
+      "stale_superseded_diagnostic"
+    ],
+    "physical_retirement_allowed_before_gate": false,
+    "required_live_evidence": [
+      "opl_stage_run_status",
+      "mas_owner_receipt_or_typed_blocker",
+      "stage_manifest",
+      "study_progress_current_owner_delta"
+    ],
+    "same_work_unit_consistency_keys": [
+      "study_id",
+      "stage_id",
+      "work_unit_id_or_fingerprint",
+      "stage_run_id",
+      "generation",
+      "source_fingerprint",
+      "idempotency_key"
+    ],
+    "retirement_allowed_when": {
+      "all_required_live_evidence_present": true,
+      "all_required_live_evidence_points_to_same_work_unit": true,
+      "owner_answer_has_closeout_binding": true,
+      "opportunistic_read_model_refresh_counts": false,
+      "provider_completion_counts": false,
+      "stage_folder_file_presence_counts": false
+    },
+    "forbidden_until_gate_passes": [
+      "delete_or_disable_current_owner_route_callable",
+      "delete_or_disable_current_materializer_path",
+      "delete_or_disable_current_dispatch_path",
+      "claim_compensation_chain_physically_retired",
+      "claim_publication_ready_or_package_ready"
+    ],
+    "authority_boundary": {
+      "read_only": true,
+      "can_write_domain_truth": false,
+      "can_authorize_publication_quality": false,
+      "can_authorize_artifact_mutation": false
+    }
+  },
   "no_active_default_caller_proof": {
     "active_default_callers": [],
     "default_cli_mcp_product_entry_or_skill_caller_count": 0,
