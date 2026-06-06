@@ -59,7 +59,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 1. OPL provider completion / retry / dead-letter 只证明 generic attempt lifecycle 已有结果。
 2. MAS 读取 attempt refs、typed closeout refs、owner-route currentness basis 与 source/work-unit fingerprint。
 3. MAS 只能在同一 currentness basis 下产出 owner receipt、typed blocker、human gate、progress delta 或 stop-loss。
-4. `study-progress` / `progress-projection` 再把该结果投影为 `owner_resolution_state`：`running`、`ready_for_owner_action`、`waiting_human`、`blocked_with_typed_owner`、`terminal_success` 或 `terminal_stop_loss`。
+4. `study-progress` 再把该结果投影为 `owner_resolution_state`：`running`、`ready_for_owner_action`、`waiting_human`、`blocked_with_typed_owner`、`terminal_success` 或 `terminal_stop_loss`。
 
 因此，provider dead-letter、queue succeeded、terminal provider attempt 或旧 `active_run_id` 不能直接成为 study 最终语义。缺 currentness basis 时，结果必须回到 MAS-owned typed blocker 或 human gate；存在 current `domain_transition.route_back_same_line` / AI reviewer re-eval / publication gate blocker / bundle finalize 时，read-model 优先展示该 owner/work unit。
 

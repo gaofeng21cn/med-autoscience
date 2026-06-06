@@ -11,6 +11,7 @@ RETIRED_WORKSPACE_SERVICE_ENTRY_SUFFIXES: tuple[tuple[str, ...], ...] = (
     ("ops", "medautoscience", "bin", "uninstall-watch-runtime-service"),
     ("ops", "medautoscience", "bin", "watch-runtime-service-runner"),
     ("ops", "medautoscience", "bin", "ensure-study-runtime"),
+    ("ops", "medautoscience", "bin", "progress-projection"),
     ("ops", "medautoscience", "bin", "progress-portal"),
     ("ops", "mas", "bin", "start-web"),
     ("ops", "medautoscience", "bin", "domain-route-scan"),

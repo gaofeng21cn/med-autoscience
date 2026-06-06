@@ -168,7 +168,7 @@ def test_group_help_lists_subcommands(capsys) -> None:
     assert exit_code == 0
     assert "Usage: medautosci study <command> [options]" in captured.out
     assert "progress" in captured.out
-    assert "progress-projection" in captured.out
+    assert "progress-projection" not in captured.out
 
 
 def test_publication_group_help_lists_route_memory_inventory(capsys) -> None:

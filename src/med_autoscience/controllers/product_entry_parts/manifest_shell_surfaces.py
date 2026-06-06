@@ -71,7 +71,7 @@ def _build_manifest_shell_surfaces(
     build_family_product_entry_orchestration: Callable[..., dict[str, Any]],
 ) -> dict[str, Any]:
     progress_projection_command = _json_surface_command(
-        f"{prefix} study progress-projection --profile {profile_arg} --study-id <study_id>"
+        f"{prefix} study progress --profile {profile_arg} --study-id <study_id>"
     )
     product_entry_shell = _build_shared_product_entry_shell_catalog(
         _product_entry_shell_from_action_catalog(action_catalog)

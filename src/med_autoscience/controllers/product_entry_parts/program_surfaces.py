@@ -239,7 +239,7 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="progress_projection.autonomous_runtime_notice",
-                command=f"{prefix} study progress-projection --profile {profile_arg} --study-id <study_id>",
+                command=f"{prefix} study progress --profile {profile_arg} --study-id <study_id> --format json",
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="domain_health_diagnostic",

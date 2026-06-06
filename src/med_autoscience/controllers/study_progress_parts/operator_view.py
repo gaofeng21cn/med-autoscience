@@ -42,7 +42,7 @@ def _study_command_surfaces(
     return {
         "workspace_cockpit": f"{prefix} workspace cockpit --profile {profile_arg}",
         "study_progress": f"{prefix} study progress --profile {profile_arg} {selector}",
-        "progress_projection": f"{prefix} study progress-projection --profile {profile_arg} {selector}",
+        "progress_projection": f"{prefix} study progress --profile {profile_arg} {selector} --format json",
         "quality_repair_batch": f"{prefix} study quality-repair-batch --profile {profile_arg} {selector}",
         "launch_study": f"{prefix} study launch --profile {profile_arg} {selector}",
         "refresh_supervision": (

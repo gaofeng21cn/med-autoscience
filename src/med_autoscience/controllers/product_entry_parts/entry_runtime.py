@@ -77,8 +77,10 @@ def build_product_entry(
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
         "progress_projection": (
-            f"{_command_prefix(profile_ref)} study progress-projection --profile {_profile_arg(profile_ref)} "
-            f"{_study_selector(study_id=resolved_study_id)}"
+            _json_surface_command(
+                f"{_command_prefix(profile_ref)} study progress --profile {_profile_arg(profile_ref)} "
+                f"{_study_selector(study_id=resolved_study_id)}"
+            )
         ),
     }
     commands["workspace_cockpit"] = _json_surface_command(commands["workspace_cockpit"])

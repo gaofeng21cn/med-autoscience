@@ -27,7 +27,7 @@ def legacy_generated_workspace_guidance_reason(
     _ = suffix
     if path.name == "AGENTS.md" and "这个文件由 `medautosci init-workspace` 自动生成" in existing_content:
         current_required_tokens = (
-            "ops/medautoscience/bin/progress-projection",
+            "ops/medautoscience/bin/study-progress",
             "ops/medautoscience/bin/domain-health-diagnostic",
             "OPL current-control-state refs",
         )
@@ -55,7 +55,7 @@ def legacy_generated_workspace_guidance_reason(
     if path.name == "README.md" and "这个 workspace 由 `medautosci init-workspace` 初始化" in existing_content:
         current_required_tokens = (
             "OPL stage 控制面",
-            "ops/medautoscience/bin/progress-projection",
+            "ops/medautoscience/bin/study-progress",
             "MAS 不提供私有 scheduler、runner、attempt 或 runtime console 入口",
         )
         legacy_tokens = (
@@ -78,7 +78,7 @@ def legacy_generated_workspace_guidance_reason(
             return None
         current_required_tokens = (
             "bin/domain-health-diagnostic",
-            "bin/progress-projection",
+            "bin/study-progress",
             "OPL current_control_state refs-only handoff",
         )
         legacy_tokens = (

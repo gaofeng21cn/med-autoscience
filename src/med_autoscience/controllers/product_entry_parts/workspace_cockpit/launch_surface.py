@@ -105,8 +105,8 @@ def launch_study(
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
         "status": (
-            f"{_command_prefix(profile_ref)} study progress-projection --profile {_profile_arg(profile_ref)} "
-            f"{_study_selector(study_id=resolved_study_id)}"
+            f"{_command_prefix(profile_ref)} study progress --profile {_profile_arg(profile_ref)} "
+            f"{_study_selector(study_id=resolved_study_id)} --format json"
         ),
         "cockpit": _command(profile_ref, "workspace-cockpit", "--profile", _profile_arg(profile_ref)),
         "owner_route_handoff": (

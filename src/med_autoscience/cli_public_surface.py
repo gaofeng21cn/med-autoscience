@@ -44,7 +44,6 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "overlay-status"): "overlay-status",
     ("runtime", "install-overlay"): "install-medical-overlay",
     ("runtime", "reapply-overlay"): "reapply-medical-overlay",
-    ("study", "progress-projection"): "progress-projection",
     ("study", "progress"): "study-progress",
     ("study", "open-auto-research-soak"): "open-auto-research-soak",
     ("study", "reconcile-truth"): "reconcile-study-truth",
@@ -95,7 +94,7 @@ GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "workspace": "workspace 初始化与 data/literature readiness。",
     "data": "研究资产、public data、registry 与 literature/memory 准备。",
     "runtime": "domain health diagnostic、domain owner handoff 与 overlay。",
-    "study": "progress projection、progress、launch 与 delivery sync。",
+    "study": "progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
     "product": "authority governance、backfill 与 artifact lifecycle surfaces。",
 }

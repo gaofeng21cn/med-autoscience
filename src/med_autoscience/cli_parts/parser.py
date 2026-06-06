@@ -442,12 +442,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     reapply_overlay_parser.add_argument("--quest-root", type=str)
     reapply_overlay_parser.add_argument("--profile", type=str)
 
-    progress_projection_parser = subparsers.add_parser("progress-projection")
-    progress_projection_parser.add_argument("--profile", required=True)
-    progress_projection_parser.add_argument("--study-id", type=str)
-    progress_projection_parser.add_argument("--study-root", type=str)
-    progress_projection_parser.add_argument("--entry-mode", type=str)
-    progress_projection_parser.add_argument("--format", choices=("json",), default="json")
     study_progress_parser = subparsers.add_parser("study-progress")
     study_progress_parser.add_argument("--profile", required=True)
     study_progress_parser.add_argument("--study-id", type=str)

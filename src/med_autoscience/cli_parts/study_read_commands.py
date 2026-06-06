@@ -75,30 +75,6 @@ def handle_study_read_command(
     study_truth_kernel: Any,
     runtime_health_kernel: Any,
 ) -> int | None:
-    if args.command == "progress-projection":
-        _require_one_study_ref(args, parser)
-        profile = load_profile(args.profile)
-        result = study_progress.read_study_progress(
-            profile=profile,
-            profile_ref=Path(args.profile),
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-            sync_runtime_summary=False,
-            materialize_read_model_artifacts=False,
-        )
-        print(
-            json.dumps(
-                _progress_first_status_payload(
-                    serialize_study_runtime_result(result),
-                    preserve_runtime_reason=True,
-                ),
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
-        return 0
-
     if args.command == "study-progress":
         _require_one_study_ref(args, parser)
         profile = load_profile(args.profile)
@@ -112,7 +88,8 @@ def handle_study_read_command(
             materialize_read_model_artifacts=False,
         )
         if args.format == "json":
-            print(json.dumps(_progress_first_status_payload(result), ensure_ascii=False, indent=2))
+            payload = serialize_study_runtime_result(result)
+            print(json.dumps(_progress_first_status_payload(payload), ensure_ascii=False, indent=2))
         else:
             print(study_progress.render_study_progress_markdown(result), end="")
         return 0

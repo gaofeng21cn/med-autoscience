@@ -383,7 +383,7 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="progress_projection.autonomous_runtime_notice",
-                command="uv run python -m med_autoscience.cli study progress-projection --profile <profile> --study-id <study_id>",
+                command="uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="domain_health_diagnostic",
