@@ -194,6 +194,16 @@ def test_execute_dispatch_blocks_readiness_surface_completion_without_provider_p
     assert execution["execution_status"] == "blocked"
     assert execution["blocked_reason"] == "medical_paper_readiness_surface_input_required"
     assert execution["owner_callable_surface"] == "medical_paper_readiness.complete_medical_paper_readiness_surface"
+    owner_delta = execution["owner_delta_result"]
+    assert owner_delta["result_kind"] == "stable_typed_blocker"
+    assert owner_delta["required_return_shape_satisfied"] is True
+    assert owner_delta["owner_receipt_refs"] == []
+    assert owner_delta["quality_gate_receipt_refs"] == []
+    assert owner_delta["stable_typed_blocker_refs"] == [
+        str(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    ]
+    assert owner_delta["typed_blocker"]["blocker_id"] == "medical_paper_readiness_missing"
+    assert owner_delta["body_included"] is False
     decision = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
     assert decision["decision_type"] == "medical_paper_readiness_owner_blocker"
     assert decision["quality_claim_authorized"] is False
@@ -877,6 +887,23 @@ def test_execute_dispatch_materializes_provider_payload_from_readiness_request_r
     assert execution["execution_status"] == "blocked"
     assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
     assert execution["owner_result"]["completed_surface_key"] == "literature_provider_runtime"
+    owner_delta = execution["owner_delta_result"]
+    assert owner_delta["result_kind"] == "quality_gate_receipt_with_stable_typed_blocker"
+    assert owner_delta["required_return_shape_satisfied"] is True
+    assert owner_delta["owner_receipt_refs"] == []
+    assert owner_delta["quality_gate_receipt_refs"][0] == str(
+        study_root / "artifacts" / "medical_paper" / "readiness.json"
+    )
+    assert owner_delta["quality_gate_receipt_refs"][1].startswith(
+        "artifacts/medical_paper/actions/results/"
+    )
+    assert owner_delta["stable_typed_blocker_refs"] == [
+        str(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    ]
+    assert owner_delta["quality_gate_receipt"]["completed_surface_key"] == "literature_provider_runtime"
+    assert owner_delta["quality_gate_receipt"]["action_result_ref"] == owner_delta["quality_gate_receipt_refs"][1]
+    assert owner_delta["typed_blocker"]["blocker_id"] == "medical_paper_readiness_missing"
+    assert owner_delta["authority_boundary"]["writes_publication_eval"] is False
     provider_surface = json.loads(
         (study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json").read_text(
             encoding="utf-8"

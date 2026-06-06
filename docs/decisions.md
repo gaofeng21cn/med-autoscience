@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-06：medical paper readiness owner dispatch 必须返回显式 owner-delta result
+
+- 决策：`complete_medical_paper_readiness_surface` 是当前 `MedAutoScience` owner callable。`domain-action-request-materialize` 和 supervisor request packet 可以从 dispatch / owner request / existing literature intelligence / provider adapters 补齐 MAS-authored operator payload；`domain-owner-action-dispatch` 执行该 callable 后，顶层 execution payload 必须返回 `owner_delta_result`，其 `result_kind` 只能落在 `owner_receipt`、`quality_gate_receipt`、`quality_gate_receipt_with_stable_typed_blocker`、`stable_typed_blocker` 或 `missing_owner_delta_result`。
+- 决策：当 owner action 成功物化 readiness surface 但整体 medical-paper readiness 仍未完成时，返回 `quality_gate_receipt_with_stable_typed_blocker`，同时给出 `quality_gate_receipt_refs` 和 stable blocker ref；缺 operator payload / surface key 时返回 `stable_typed_blocker`。这些 result 不授权 publication-ready、submission-ready、paper/package mutation、`publication_eval/latest.json`、`current_package` 或 quality verdict。
+- 理由：DM002/DM003 已从 terminal publication handoff 进入 `medical_paper_readiness_not_ready` 的 MAS owner follow-up。如果 default dispatch 只返回 nested `owner_result` 或 read-model/currentness 解释，下一轮仍会把时间耗在 receipt/reconcile 上；显式 `owner_delta_result` 让 OPL/operator 直接消费 MAS-owned receipt / quality gate receipt / typed blocker shape。
+- 影响：这是 MAS owner-delta closeout surface 修复。它不写 DM-CVD study truth、publication eval、artifact body、memory body、paper body 或 OPL Framework；只把现有 MAS owner callable 的返回口径从解释性 read-model 补齐为可消费 owner delta。
+
 ## 2026-06-05：terminal stage artifact handoff 必须压过旧 writer / gate replay tail
 
 - 决策：当 `stage_artifact_index.next_owner_action` 已明确给出 terminal `publication_handoff_owner_gate`，且 required delta 是 `publication_handoff_owner_receipt_or_typed_blocker` 时，它是 late-stage publication handoff 的最高 current owner source。`owner-route-reconcile`、`domain-action-request-materialize` 和 `domain-owner-action-dispatch` 必须把同一 study 投影为唯一 `publication_gate_owner / publication_handoff_owner_gate` action。
