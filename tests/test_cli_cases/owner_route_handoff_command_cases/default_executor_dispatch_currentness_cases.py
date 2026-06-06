@@ -772,6 +772,12 @@ def test_readiness_surface_key_changes_default_executor_source_identity(
         "surface_key": "stop_loss_memo",
         "source": "controller_decisions.readiness_next_action",
     }
+    packet_path = workspace_root / second_task["payload"]["dispatch_ref"]
+    packet = json.loads(packet_path.read_text(encoding="utf-8"))
+    assert packet["readiness_surface_identity"] == second_task["payload"]["readiness_surface_identity"]
+    assert packet["surface_key"] == "stop_loss_memo"
+    assert packet["prompt_contract"]["readiness_surface_identity"] == second_task["payload"]["readiness_surface_identity"]
+    assert packet["prompt_contract"]["surface_key"] == "stop_loss_memo"
     assert second_task["source_fingerprint"] != first_task["source_fingerprint"]
     assert second_task["dedupe_key"] != first_task["dedupe_key"]
 

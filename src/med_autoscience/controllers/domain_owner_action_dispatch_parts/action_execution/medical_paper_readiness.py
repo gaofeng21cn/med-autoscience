@@ -54,7 +54,7 @@ def execute_complete_medical_paper_readiness_surface(
     request_payload = _mapping(owner_request_paths.owner_request_payload(profile, study_id, ACTION_TYPE))
     current_readiness = readiness_surface.build_medical_paper_readiness_surface(study_root=study_root)
     current_surface_key = _text(_mapping(current_readiness.get("next_action")).get("surface_key"))
-    surface_key = current_surface_key or _surface_key(dispatch_payload) or _surface_key(request_payload)
+    surface_key = _surface_key(dispatch_payload) or _surface_key(request_payload) or current_surface_key
     operator_payload = _operator_payload(dispatch_payload, surface_key=surface_key) or _operator_payload(
         request_payload,
         surface_key=surface_key,
@@ -665,6 +665,9 @@ def _declared_surface_key(dispatch: Mapping[str, Any]) -> str | None:
     handoff_packet = _mapping(dispatch.get("handoff_packet"))
     owner_pickup = _mapping(dispatch.get("owner_pickup")) or _mapping(handoff_packet.get("owner_pickup"))
     for payload in (dispatch, prompt_contract, handoff_packet, owner_pickup):
+        identity = _mapping(payload.get("readiness_surface_identity"))
+        if text := _text(identity.get("surface_key")):
+            return text
         if text := _text(payload.get("surface_key")):
             return text
     return None

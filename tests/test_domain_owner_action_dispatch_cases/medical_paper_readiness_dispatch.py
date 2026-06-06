@@ -8,6 +8,7 @@ from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     write_json as _write_json,
     write_current_dispatch as _write_current_dispatch,
+    write_scan_latest as _write_scan_latest,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
 from tests.test_literature_provider_runtime import _complete_provider_payload
@@ -255,6 +256,73 @@ def test_execute_dispatch_blocks_readiness_surface_completion_without_provider_p
     assert decision["decision_type"] == "medical_paper_readiness_owner_blocker"
     assert decision["quality_claim_authorized"] is False
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_execute_dispatch_consumes_inline_readiness_dispatch_closeout_binding(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    dispatch = _readiness_dispatch(study_id=study_id)
+    binding = _attach_readiness_closeout_binding(dispatch, study_id=study_id)
+    dispatch["refs"] = {
+        "dispatch_path": str(
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_dispatches"
+            / f"{ACTION_TYPE}.json"
+        )
+    }
+    _write_scan_latest(profile, study_id, dict(dispatch["owner_route"]))
+    consumer_payload = {
+        "surface": "domain_action_request_materializer",
+        "schema_version": 1,
+        "default_executor_dispatch_count": 1,
+        "default_executor_dispatches": [dispatch],
+    }
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+        consumer_payload=consumer_payload,
+    )
+
+    assert result["requested_studies"] == [study_id]
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_surface_input_required"
+    owner_delta = execution["owner_delta_result"]
+    assert owner_delta["result_kind"] == "stable_typed_blocker"
+    assert owner_delta["required_return_shape_satisfied"] is True
+    assert owner_delta["stable_typed_blocker_refs"] == [
+        str(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    ]
+    assert owner_delta["closeout_binding"]["stage_run_id"] == binding["stage_run_id"]
+    assert owner_delta["closeout_binding"]["stage_manifest_ref"] == binding["stage_manifest_ref"]
+    assert owner_delta["closeout_binding"]["current_pointer_ref"] == binding["current_pointer_ref"]
+    assert owner_delta["closeout_binding"]["provider_attempt_ref"] == (
+        f"opl://stage-attempts/{study_id}/{ACTION_TYPE}"
+    )
+    assert owner_delta["source_fingerprint"] == binding["source_fingerprint"]
+    assert owner_delta["idempotency_key"] == f"owner-route::{study_id}::{ACTION_TYPE}::MedAutoScience"
+    assert not (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{ACTION_TYPE}.json"
+    ).exists()
 
 
 def test_execute_dispatch_does_not_author_provider_runtime_from_materialization_without_provider_fetch(
@@ -886,6 +954,53 @@ def test_execute_dispatch_materializes_provider_payload_for_readiness_surface(
     assert by_key["literature_provider_runtime"]["status"] == "present"
     assert readiness["quality_claim_authorized"] is False
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_execute_dispatch_prefers_readiness_identity_over_stale_surface_key(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    identity = {
+        "action_type": ACTION_TYPE,
+        "surface_key": "literature_provider_runtime",
+        "source": "current_owner_action",
+    }
+    dispatch = _readiness_dispatch(study_id=study_id)
+    dispatch["surface_key"] = "bounded_analysis_candidate_board"
+    dispatch["readiness_surface_identity"] = identity
+    dispatch["operator_payload"] = _complete_provider_payload()
+    prompt_contract = dispatch["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract["surface_key"] = "bounded_analysis_candidate_board"
+    prompt_contract["readiness_surface_identity"] = identity
+    prompt_contract["operator_payload"] = _complete_provider_payload()
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "literature_provider_runtime"
+    provider_surface = json.loads(
+        (study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert provider_surface["surface"] == "literature_provider_runtime"
+    assert provider_surface["status"] == "ready"
+    assert not (study_root / "artifacts" / "medical_paper" / "bounded_analysis_candidate_board.json").exists()
 
 
 def test_execute_dispatch_materializes_provider_payload_from_readiness_request_ref(

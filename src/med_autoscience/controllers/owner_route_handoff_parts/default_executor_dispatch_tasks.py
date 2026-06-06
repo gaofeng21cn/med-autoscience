@@ -79,6 +79,17 @@ def default_executor_dispatch_tasks(
             action_type=action_type,
             current_owner_action=_mapping(current_owner_action),
         )
+        dispatch_for_task = _dispatch_with_readiness_surface_identity(
+            dispatch=dispatch,
+            readiness_surface_identity=readiness_surface_identity,
+        )
+        if dispatch_for_task is not dispatch:
+            dispatch = dispatch_for_task
+            _persist_dispatch_identity(
+                dispatch_path=dispatch_path,
+                stage_packet_path=stage_packet_path,
+                dispatch=dispatch,
+            )
         prompt_contract_ref = f"{dispatch_ref}#prompt_contract"
         source_refs = _source_refs(
             dispatch=dispatch,
@@ -251,6 +262,44 @@ def _readiness_surface_identity(
         "surface_key": surface_key,
         "source": _text(current_owner_action.get("source")) or "current_owner_action",
     }
+
+
+def _dispatch_with_readiness_surface_identity(
+    *,
+    dispatch: Mapping[str, Any],
+    readiness_surface_identity: Mapping[str, Any] | None,
+) -> Mapping[str, Any]:
+    identity = _mapping(readiness_surface_identity)
+    surface_key = _text(identity.get("surface_key"))
+    if surface_key is None:
+        return dispatch
+    updated = dict(dispatch)
+    updated["readiness_surface_identity"] = {
+        "action_type": _text(identity.get("action_type")) or READINESS_ACTION_TYPE,
+        "surface_key": surface_key,
+        "source": _text(identity.get("source")) or "current_owner_action",
+    }
+    updated["surface_key"] = surface_key
+    prompt_contract = dict(_mapping(updated.get("prompt_contract")))
+    prompt_contract["readiness_surface_identity"] = dict(updated["readiness_surface_identity"])
+    prompt_contract["surface_key"] = surface_key
+    updated["prompt_contract"] = prompt_contract
+    target = dict(_mapping(updated.get("payload_authoring_target")))
+    if target:
+        target["readiness_surface_identity"] = dict(updated["readiness_surface_identity"])
+        target["surface_key"] = surface_key
+        contract = dict(_mapping(target.get("operator_payload_contract")))
+        if contract:
+            contract["surface_key"] = surface_key
+            target["operator_payload_contract"] = contract
+        payload = dict(_mapping(target.get("operator_payload")))
+        if payload:
+            payload["surface_key"] = surface_key
+            target["operator_payload"] = payload
+        updated["payload_authoring_target"] = target
+    if updated == dict(dispatch):
+        return dispatch
+    return updated
 
 
 def _dispatch_blocked_by_newer_candidate(
@@ -606,6 +655,24 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return None
     return dict(payload) if isinstance(payload, dict) else None
+
+
+def _persist_dispatch_identity(
+    *,
+    dispatch_path: Path,
+    stage_packet_path: Path,
+    dispatch: Mapping[str, Any],
+) -> None:
+    if not _mapping(dispatch.get("readiness_surface_identity")):
+        return
+    targets = {dispatch_path, stage_packet_path}
+    for target in targets:
+        if not target.is_file():
+            continue
+        target.write_text(
+            json.dumps(dict(dispatch), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
 
 
 def _workspace_relative(path: Path, *, workspace_root: Path) -> str:

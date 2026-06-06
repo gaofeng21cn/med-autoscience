@@ -235,6 +235,13 @@ def _readiness_request_enrichment(*, action: Mapping[str, Any], action_type: str
     )
     if surface_key is None:
         return {}
+    readiness_surface_identity = {
+        "action_type": READINESS_ACTION_TYPE,
+        "surface_key": surface_key,
+        "source": _text(action.get("source"))
+        or _text(handoff_packet.get("source"))
+        or "current_owner_action",
+    }
     operator_payload = (
         _mapping(action.get("operator_payload"))
         or _mapping(action.get("medical_paper_readiness_payload"))
@@ -256,6 +263,7 @@ def _readiness_request_enrichment(*, action: Mapping[str, Any], action_type: str
         "study_id": _text(action.get("study_id")),
         "quest_id": _text(action.get("quest_id")) or _text(handoff_packet.get("quest_id")),
         "action_type": READINESS_ACTION_TYPE,
+        "readiness_surface_identity": readiness_surface_identity,
         "surface_key": surface_key,
         "operator_payload": operator_payload or None,
         "operator_payload_contract": {
@@ -269,6 +277,7 @@ def _readiness_request_enrichment(*, action: Mapping[str, Any], action_type: str
         "mechanical_projection_can_authorize_quality": False,
     }
     return {
+        "readiness_surface_identity": readiness_surface_identity,
         "surface_key": surface_key,
         "operator_payload_ref": request_packet_ref_for_action_type(READINESS_ACTION_TYPE),
         "medical_paper_readiness_payload_ref": request_packet_ref_for_action_type(READINESS_ACTION_TYPE),

@@ -308,6 +308,11 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
         / "complete_medical_paper_readiness_surface.json"
     )
     assert task["dispatch_status"] == "applied"
+    assert task["readiness_surface_identity"] == {
+        "action_type": "complete_medical_paper_readiness_surface",
+        "surface_key": "literature_provider_runtime",
+        "source": "current_owner_action",
+    }
     assert task["surface_key"] == "literature_provider_runtime"
     assert task["operator_payload_ref"] == request_ref
     assert task["operator_payload_present"] is True
@@ -320,13 +325,16 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     assert task["payload_authoring_target"]["operator_payload_contract"]["empty_payload_is_not_success_evidence"] is True
     persisted_request = json.loads(request_path.read_text(encoding="utf-8"))
     assert persisted_request["operator_payload_present"] is True
+    assert persisted_request["readiness_surface_identity"] == task["readiness_surface_identity"]
     assert persisted_request["operator_payload"]["provider_payloads"][1]["provider"] == "crossref"
     assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["readiness_surface_identity"] == task["readiness_surface_identity"]
     assert dispatch["surface_key"] == "literature_provider_runtime"
     assert dispatch["operator_payload_present"] is True
     assert dispatch["operator_payload"]["provider_payloads"][2]["provider"] == "semantic_scholar"
     assert dispatch["operator_payload_ref"] == request_ref
     assert dispatch["prompt_contract"]["surface_key"] == "literature_provider_runtime"
+    assert dispatch["prompt_contract"]["readiness_surface_identity"] == task["readiness_surface_identity"]
     assert dispatch["prompt_contract"]["operator_payload_present"] is True
     assert dispatch["prompt_contract"]["operator_payload"]["payload_source"] == (
         "medical_paper_readiness_owner_payload_authoring"
@@ -335,3 +343,13 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
     assert dispatch["prompt_contract"]["payload_authoring_target"]["surface_key"] == "literature_provider_runtime"
     assert request_path.is_file()
     assert persisted_dispatch_path.is_file()
+    persisted_dispatch = json.loads(persisted_dispatch_path.read_text(encoding="utf-8"))
+    immutable_dispatch_path = Path(persisted_dispatch["refs"]["immutable_dispatch_path"])
+    assert persisted_dispatch["readiness_surface_identity"] == task["readiness_surface_identity"]
+    assert persisted_dispatch["prompt_contract"]["readiness_surface_identity"] == task["readiness_surface_identity"]
+    assert immutable_dispatch_path.is_file()
+    immutable_dispatch = json.loads(immutable_dispatch_path.read_text(encoding="utf-8"))
+    assert immutable_dispatch["readiness_surface_identity"] == task["readiness_surface_identity"]
+    assert immutable_dispatch["surface_key"] == "literature_provider_runtime"
+    assert immutable_dispatch["prompt_contract"]["readiness_surface_identity"] == task["readiness_surface_identity"]
+    assert immutable_dispatch["prompt_contract"]["surface_key"] == "literature_provider_runtime"
