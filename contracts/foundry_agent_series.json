@@ -188,6 +188,7 @@
       "prompts",
       "stages",
       "skills",
+      "tools",
       "knowledge",
       "quality_gates"
     ],
@@ -224,5 +225,33 @@
   "stage_control_plane_target_domain_id": "med-autoscience",
   "standard_agent_requirement": "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_and_app_projection_packets",
   "surface_kind": "opl_foundry_agent_series_contract",
-  "version": "foundry-agent-series.v1"
+  "version": "foundry-agent-series.v1",
+  "workspace_topology_profile": {
+    "allowed_workspace_modes": [
+      "one_off",
+      "series",
+      "portfolio"
+    ],
+    "default_workspace": {
+      "project_collection_path": "deliverables/studies",
+      "series_capable": true,
+      "workspace_mode": "one_off"
+    },
+    "domain_profiles": {
+      "mas": {
+        "project_collection_path": "studies",
+        "stage_outputs_root": "artifacts/stage_outputs",
+        "workspace_mode": "portfolio"
+      },
+      "rca": {
+        "project_collection_path": "deliverables",
+        "stage_outputs_root": "artifacts/stage_outputs",
+        "workspace_mode": "series"
+      }
+    },
+    "profile_id": "opl.workspace_topology_profile.v1",
+    "stage_outputs_root": "artifacts/stage_outputs",
+    "surface_kind": "opl_workspace_topology_profile",
+    "version": "workspace-topology-profile.v1"
+  }
 }

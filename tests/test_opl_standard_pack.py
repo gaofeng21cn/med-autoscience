@@ -115,6 +115,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "prompts",
         "stages",
         "skills",
+        "tools",
         "knowledge",
         "quality_gates",
     ]
@@ -133,6 +134,30 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "opl_can_write_domain_truth": False,
         "opl_can_authorize_quality_or_export": False,
         "domain_owns_input_truth_and_output_authority": True,
+    }
+    assert foundry_series["workspace_topology_profile"] == {
+        "surface_kind": "opl_workspace_topology_profile",
+        "version": "workspace-topology-profile.v1",
+        "profile_id": "opl.workspace_topology_profile.v1",
+        "stage_outputs_root": "artifacts/stage_outputs",
+        "default_workspace": {
+            "workspace_mode": "one_off",
+            "series_capable": True,
+            "project_collection_path": "deliverables/studies",
+        },
+        "domain_profiles": {
+            "mas": {
+                "workspace_mode": "portfolio",
+                "project_collection_path": "studies",
+                "stage_outputs_root": "artifacts/stage_outputs",
+            },
+            "rca": {
+                "workspace_mode": "series",
+                "project_collection_path": "deliverables",
+                "stage_outputs_root": "artifacts/stage_outputs",
+            },
+        },
+        "allowed_workspace_modes": ["one_off", "series", "portfolio"],
     }
     domain_profile = foundry_series["domain_specific_profile"]
     assert domain_profile["shared_agent_logic"] == (

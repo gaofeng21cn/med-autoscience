@@ -35,7 +35,7 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 
 ## 文档 / Reference 一致性 Guard
 
-README、status、policy、runtime reference 与 program reference 都是人读面，但它们不能各自长出新的 owner truth。对应的机器合同是 `mas_mds_doc_reference_semantic_guard`，它把文档语义固定为以下几类：
+README、status、policy、runtime reference 与 program reference 都是人读面，但它们不能各自长出新的 owner truth。当前机器 owner 是 `docs/references/med-deepscientist/source_provenance.json` 与 `med_autoscience.controllers.mds_capability_parity`；它们把 MDS 引用语义固定为以下几类：
 
 - 受约束的文档族：`README`、`docs/README`、`docs/status`、`docs/active`、`docs/policies`、`docs/runtime`、`docs/references`
 - 允许的 MDS 角色：`frozen_source_archive`、`historical_fixture_ref`、`explicit_archive_import_ref`、`source_provenance`、`parity_oracle`、`upstream_intake_source`
