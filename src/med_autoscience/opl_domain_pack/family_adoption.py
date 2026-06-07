@@ -45,6 +45,7 @@ from .stage_throughput_contracts import (
 from .user_stage_log_contract import USER_STAGE_LOG_CONTRACT
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 from med_autoscience.runtime_protocol.domain_authority_refs_index import OPL_FAMILY_ADAPTER_SOURCE_TABLES
+from med_autoscience.workspace_paths import PUBLICATION_ROUTE_MEMORY_RELPATH
 
 ADOPTION_SURFACE_KIND = "mas_opl_family_domain_authority_refs_adoption"
 FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND = "family_stage_control_plane_descriptor"
@@ -68,6 +69,7 @@ STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
 STAGE_QUALITY_PACK_CONTRACT_REF = stage_quality_contract.CONTRACT_REF
 STAGE_SKILL_SURFACE_PROJECTION_REF = stage_skill_surface_projection.CONTRACT_REF
 STAGE_DELIVERABLE_INDEX_CONTRACT_REF = "med_autoscience.stage_surface_contract.build_stage_surface_contract"
+PUBLICATION_ROUTE_MEMORY_LOCATOR = PUBLICATION_ROUTE_MEMORY_RELPATH.as_posix()
 STAGE_ROUTE_OBLIGATIONS_DESCRIPTOR_REF = (
     "med_autoscience.stage_route_contract.route_obligations_descriptor"
 )
@@ -344,7 +346,7 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
             "ref_kind": "repo_policy_and_workspace_locator",
             "ref": PUBLICATION_ROUTE_MEMORY_POLICY_REF,
             "role": "publication_route_memory_policy_seed",
-            "workspace_locator": "portfolio/research_memory/publication_route_memory",
+            "workspace_locator": PUBLICATION_ROUTE_MEMORY_LOCATOR,
         },
         "stage_applicability": stage_applicability,
         "retrieval_contract_ref": {
@@ -385,14 +387,14 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
         },
         "writeback_receipt_locator_ref": {
             "ref_kind": "workspace_locator",
-            "ref": "portfolio/research_memory/publication_route_memory/writeback_receipts",
+            "ref": f"{PUBLICATION_ROUTE_MEMORY_LOCATOR}/writeback_receipts",
             "role": "domain_owned_router_receipts",
         },
         "workspace_apply_surface": {
             "seed_apply_receipt_surface": stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE,
             "memory_pack_surface": stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
-            "memory_pack_locator": "portfolio/research_memory/publication_route_memory/memory_pack.json",
-            "migration_receipt_locator": "portfolio/research_memory/publication_route_memory/migration_receipts",
+            "memory_pack_locator": f"{PUBLICATION_ROUTE_MEMORY_LOCATOR}/memory_pack.json",
+            "migration_receipt_locator": f"{PUBLICATION_ROUTE_MEMORY_LOCATOR}/migration_receipts",
             "repo_tracks_real_pack_or_receipts": False,
         },
         "provenance_refs": [

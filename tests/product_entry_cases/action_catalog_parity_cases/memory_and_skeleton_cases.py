@@ -18,7 +18,9 @@ def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_
     assert descriptor["owner"] == "MedAutoScience"
     assert descriptor["memory_family"] == "publication_route_memory"
     assert descriptor["memory_pack_ref"]["ref"] == "docs/policies/study-workflow/publication_route_memory_policy.md"
-    assert descriptor["memory_pack_ref"]["workspace_locator"] == "portfolio/research_memory/publication_route_memory"
+    assert descriptor["memory_pack_ref"]["workspace_locator"] == (
+        "memory/portfolio/research_memory/publication_route_memory"
+    )
     assert descriptor["stage_applicability"] == ["scout", "idea", "decision", "analysis-campaign", "review"]
     assert descriptor["retrieval_contract_ref"]["ref"] == "stage_knowledge_packet"
     assert descriptor["writeback_contract_ref"]["ref"] == "stage_memory_closeout_packet"
@@ -38,7 +40,7 @@ def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_
     )
     assert descriptor["seed_corpus_ref"]["role"] == "repo_source_seed_index"
     assert descriptor["writeback_receipt_locator_ref"]["ref"] == (
-        "portfolio/research_memory/publication_route_memory/writeback_receipts"
+        "memory/portfolio/research_memory/publication_route_memory/writeback_receipts"
     )
     assert descriptor["writeback_receipt_locator_ref"]["role"] == "domain_owned_router_receipts"
     assert descriptor["freshness"]["refresh_policy"] == "rebuild_product_entry_manifest_before_opl_discovery"

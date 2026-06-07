@@ -48,8 +48,8 @@ from med_autoscience.runtime_control import repeat_suppression
 
 
 SCHEMA_VERSION = 1
-CONSUMER_LATEST_RELATIVE_PATH = Path("artifacts/supervision/consumer/latest.json")
-CONSUMER_HISTORY_RELATIVE_PATH = Path("artifacts/supervision/consumer/history.jsonl")
+CONSUMER_LATEST_RELATIVE_PATH = Path("runtime/artifacts/supervision/consumer/latest.json")
+CONSUMER_HISTORY_RELATIVE_PATH = Path("runtime/artifacts/supervision/consumer/history.jsonl")
 DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT = Path(
     "artifacts/supervision/consumer/default_executor_dispatches"
 )

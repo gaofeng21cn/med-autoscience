@@ -13,9 +13,10 @@ from med_autoscience.stage_knowledge_contract import (
     SCHEMA_VERSION,
     authority_boundary,
 )
+from med_autoscience.workspace_paths import PUBLICATION_ROUTE_MEMORY_RELPATH
 
 
-PUBLICATION_ROUTE_MEMORY_ROOT = Path("portfolio/research_memory/publication_route_memory")
+PUBLICATION_ROUTE_MEMORY_ROOT = PUBLICATION_ROUTE_MEMORY_RELPATH
 
 
 def build_publication_route_memory_inventory(

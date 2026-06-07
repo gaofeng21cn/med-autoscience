@@ -28,7 +28,7 @@
     "ref": "docs/policies/study-workflow/publication_route_memory_policy.md",
     "ref_kind": "repo_policy_and_workspace_locator",
     "role": "publication_route_memory_policy_seed",
-    "workspace_locator": "portfolio/research_memory/publication_route_memory"
+    "workspace_locator": "memory/portfolio/research_memory/publication_route_memory"
   },
   "memory_ref_id": "mas_publication_route_memory",
   "migration_plan_ref": {
@@ -106,9 +106,9 @@
   "target_domain_id": "med-autoscience",
   "version": "family-domain-memory-ref.v1",
   "workspace_apply_surface": {
-    "memory_pack_locator": "portfolio/research_memory/publication_route_memory/memory_pack.json",
+    "memory_pack_locator": "memory/portfolio/research_memory/publication_route_memory/memory_pack.json",
     "memory_pack_surface": "publication_route_memory_pack",
-    "migration_receipt_locator": "portfolio/research_memory/publication_route_memory/migration_receipts",
+    "migration_receipt_locator": "memory/portfolio/research_memory/publication_route_memory/migration_receipts",
     "repo_tracks_real_pack_or_receipts": false,
     "seed_apply_receipt_surface": "publication_route_memory_apply_receipt"
   },
@@ -118,7 +118,7 @@
     "role": "typed_stage_closeout_proposal"
   },
   "writeback_receipt_locator_ref": {
-    "ref": "portfolio/research_memory/publication_route_memory/writeback_receipts",
+    "ref": "memory/portfolio/research_memory/publication_route_memory/writeback_receipts",
     "ref_kind": "workspace_locator",
     "role": "domain_owned_router_receipts"
   }

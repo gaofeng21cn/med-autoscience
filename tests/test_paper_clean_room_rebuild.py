@@ -464,7 +464,7 @@ def test_domain_action_request_materializer_prefers_stage_native_clean_room_next
         owner="gate_clearing_batch",
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -534,7 +534,7 @@ def test_domain_owner_dispatch_accepts_stage_native_clean_room_owner_route(
     clean_paper_root = Path(clean_result["clean_workspace_root"]) / "verified_inputs" / "paper"
     write_text(clean_paper_root / "draft.md", "clean-room verified draft\n")
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / request_module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -586,7 +586,7 @@ def test_domain_owner_dispatch_accepts_stage_native_publication_surface_report_o
     write_text(study_root / "paper" / "draft.md", "canonical root draft\n")
     _write_stage(study_root)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / dispatch_module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,

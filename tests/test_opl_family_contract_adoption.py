@@ -202,13 +202,13 @@ def test_mas_domain_memory_projection_declares_domain_owned_migration_surface() 
         "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
     )
     assert memory["writeback_receipt_locator_ref"] == (
-        "portfolio/research_memory/publication_route_memory/writeback_receipts"
+        "memory/portfolio/research_memory/publication_route_memory/writeback_receipts"
     )
     assert memory["workspace_apply_surface"] == {
         "seed_apply_receipt_surface": "publication_route_memory_apply_receipt",
         "memory_pack_surface": "publication_route_memory_pack",
-        "memory_pack_locator": "portfolio/research_memory/publication_route_memory/memory_pack.json",
-        "migration_receipt_locator": "portfolio/research_memory/publication_route_memory/migration_receipts",
+        "memory_pack_locator": "memory/portfolio/research_memory/publication_route_memory/memory_pack.json",
+        "migration_receipt_locator": "memory/portfolio/research_memory/publication_route_memory/migration_receipts",
         "repo_tracks_real_pack_or_receipts": False,
     }
     assert memory["migration_readiness"] == {

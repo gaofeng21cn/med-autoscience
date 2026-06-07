@@ -55,7 +55,8 @@ def test_workspace_gitignore_excludes_local_intake_archives_and_framework_mirror
     assert "runtime/restore_index/**" in gitignore_text
     assert "!runtime/restore_index/README.md" in gitignore_text
     assert "runtime/logs/" in gitignore_text
-    assert "artifacts/runtime/" in gitignore_text
+    assert "runtime/artifacts/" in gitignore_text
+    assert "artifacts/runtime/" not in gitignore_text
     assert "ops/med-deepscientist/config.env" in gitignore_text
     assert "ops/med-deepscientist/runtime/quests/" in gitignore_text
     assert "inbox/**" in gitignore_text
@@ -67,15 +68,15 @@ def test_workspace_gitignore_excludes_local_intake_archives_and_framework_mirror
     assert "ops/med-deepscientist/paper/**" in gitignore_text
     assert "ops/framework_refs/_repo_compare/**" in gitignore_text
     assert "!ops/framework_refs/README.md" in gitignore_text
-    assert "refs/**/logs/**" in gitignore_text
-    assert "refs/**/data/**" in gitignore_text
-    assert "refs/**/*.pdf" in gitignore_text
-    assert "refs/**/*.html" in gitignore_text
-    assert "refs/**/*.Rhistory" in gitignore_text
-    assert "refs/**/.cursor/**" in gitignore_text
-    assert "datasets/**/*.csv" in gitignore_text
-    assert "!datasets/**/dataset_manifest.yaml" in gitignore_text
-    assert "portfolio/**/*.csv" in gitignore_text
+    assert "archive/legacy_root_surfaces/refs/**/logs/**" in gitignore_text
+    assert "archive/legacy_root_surfaces/refs/**/data/**" in gitignore_text
+    assert "archive/legacy_root_surfaces/refs/**/*.pdf" in gitignore_text
+    assert "archive/legacy_root_surfaces/refs/**/*.html" in gitignore_text
+    assert "archive/legacy_root_surfaces/refs/**/*.Rhistory" in gitignore_text
+    assert "archive/legacy_root_surfaces/refs/**/.cursor/**" in gitignore_text
+    assert "data/datasets/**/*.csv" in gitignore_text
+    assert "!data/datasets/**/dataset_manifest.yaml" in gitignore_text
+    assert "memory/portfolio/**/*.csv" in gitignore_text
     assert "studies/*/analysis/**/*.csv" in gitignore_text
 
 
@@ -227,7 +228,9 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     assert _git_config(workspace_root, "gc.autoPackLimit") == "0"
     assert _git_config(workspace_root, "maintenance.auto") == "false"
 
-    large_download = workspace_root / "portfolio" / "data_assets" / "public" / "downloads" / "asset.zip"
+    large_download = (
+        workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "downloads" / "asset.zip"
+    )
     large_download.parent.mkdir(parents=True, exist_ok=True)
     large_download.write_text("data\n", encoding="utf-8")
     check_large_download = subprocess.run(
@@ -347,7 +350,7 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     )
     assert check_legacy_paper_payload.returncode == 0
 
-    dataset_payload = workspace_root / "datasets" / "master" / "v1" / "analysis.csv"
+    dataset_payload = workspace_root / "data" / "datasets" / "master" / "v1" / "analysis.csv"
     dataset_payload.parent.mkdir(parents=True, exist_ok=True)
     dataset_payload.write_text("id\n1\n", encoding="utf-8")
     check_dataset_payload = subprocess.run(
@@ -394,7 +397,9 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     )
     assert check_authority_refs_wal.returncode == 0
 
-    portfolio_evidence_table = workspace_root / "portfolio" / "legacy_audit" / "evidence" / "metrics.csv"
+    portfolio_evidence_table = (
+        workspace_root / "memory" / "portfolio" / "legacy_audit" / "evidence" / "metrics.csv"
+    )
     portfolio_evidence_table.parent.mkdir(parents=True, exist_ok=True)
     portfolio_evidence_table.write_text("metric,value\nc_index,0.7\n", encoding="utf-8")
     check_portfolio_evidence_table = subprocess.run(
@@ -406,7 +411,7 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     )
     assert check_portfolio_evidence_table.returncode == 0
 
-    legacy_html_report = workspace_root / "refs" / "legacy" / "reports" / "final.html"
+    legacy_html_report = workspace_root / "archive" / "legacy_root_surfaces" / "refs" / "legacy" / "reports" / "final.html"
     legacy_html_report.parent.mkdir(parents=True, exist_ok=True)
     legacy_html_report.write_text("<html></html>\n", encoding="utf-8")
     check_legacy_html_report = subprocess.run(
@@ -418,7 +423,9 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     )
     assert check_legacy_html_report.returncode == 0
 
-    legacy_cursor_rule = workspace_root / "refs" / "legacy" / ".cursor" / "rules" / "local.mdc"
+    legacy_cursor_rule = (
+        workspace_root / "archive" / "legacy_root_surfaces" / "refs" / "legacy" / ".cursor" / "rules" / "local.mdc"
+    )
     legacy_cursor_rule.parent.mkdir(parents=True, exist_ok=True)
     legacy_cursor_rule.write_text("local editor rule\n", encoding="utf-8")
     check_legacy_cursor_rule = subprocess.run(
@@ -430,7 +437,7 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     )
     assert check_legacy_cursor_rule.returncode == 0
 
-    dataset_manifest = workspace_root / "datasets" / "master" / "v1" / "dataset_manifest.yaml"
+    dataset_manifest = workspace_root / "data" / "datasets" / "master" / "v1" / "dataset_manifest.yaml"
     dataset_manifest.write_text("dataset_id: master\n", encoding="utf-8")
     check_dataset_manifest = subprocess.run(
         ["git", "check-ignore", str(dataset_manifest.relative_to(workspace_root))],
@@ -508,7 +515,7 @@ def test_init_workspace_backfills_gitignore_and_git_config_for_existing_repo(tmp
     assert result["workspace_git"]["already_initialized"] is True
     workspace_gitignore = (workspace_root / ".gitignore").read_text(encoding="utf-8")
     assert "custom-local-rule/" in workspace_gitignore
-    assert "datasets/standardized_longitudinal/" in workspace_gitignore
+    assert "data/datasets/standardized_longitudinal/" in workspace_gitignore
     assert "storage_audit/" in workspace_gitignore
     assert "studies/*/artifacts/**" in workspace_gitignore
     assert _git_config(workspace_root, "worktree.useRelativePaths") == "true"

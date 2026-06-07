@@ -47,7 +47,7 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         '  echo "Profile file not found: ${PROFILE_PATH}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
-        'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"\n'
+        'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/ops/medautoscience/.venv/bin/python3"\n'
         'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"\n'
         'if [[ -n "${MED_AUTOSCIENCE_RSCRIPT_BIN}" ]]; then\n'
         '  if [[ "${MED_AUTOSCIENCE_RSCRIPT_BIN}" != /* ]]; then\n'

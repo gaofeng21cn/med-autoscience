@@ -430,7 +430,7 @@ def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cros
     assert [item["write_id"] for item in receipt["rejected_writes"]] == ["claim-specific"]
     accepted_by_id = {item["write_id"]: item for item in receipt["accepted_writes"]}
     assert accepted_by_id["workspace-lesson"]["target_path"].endswith(
-        "portfolio/research_memory/publication_route_memory/writeback_proposals/stage_memory_updates.jsonl"
+        "memory/portfolio/research_memory/publication_route_memory/writeback_proposals/stage_memory_updates.jsonl"
     )
     assert accepted_by_id["citation-gap-1"]["target_path"].endswith(
         "artifacts/literature_provider/repair_requests/stage_memory_closeout.jsonl"
@@ -440,6 +440,7 @@ def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cros
     )
     proposal_path = (
         workspace_root
+        / "memory"
         / "portfolio"
         / "research_memory"
         / "publication_route_memory"

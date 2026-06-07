@@ -706,7 +706,7 @@ def test_progress_portal_opl_projection_exposes_reference_lanes_as_read_only_dri
         "publication_route_memory_final_proof": {
             "status": "final_ref_chain_proven",
             "writeback_receipt_refs": [
-                "portfolio/research_memory/publication_route_memory/writeback_receipts/receipt-001.json"
+                "memory/portfolio/research_memory/publication_route_memory/writeback_receipts/receipt-001.json"
             ],
         },
         "runtime_owner_route_handoffs": [
@@ -768,7 +768,7 @@ def test_progress_portal_opl_projection_exposes_reference_lanes_as_read_only_dri
     }
     assert "artifacts/provider_attempts/opl-attempt-dm002-001.json" in reference["source_refs"]
     assert "artifacts/autonomy/guarded_apply/receipt-001.json" in reference["source_refs"]
-    assert "portfolio/research_memory/publication_route_memory/writeback_receipts/receipt-001.json" in reference[
+    assert "memory/portfolio/research_memory/publication_route_memory/writeback_receipts/receipt-001.json" in reference[
         "source_refs"
     ]
     assert "artifacts/supervision/owner_route_handoff/latest.json" in reference["source_refs"]

@@ -93,7 +93,7 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     shared_text = shared.read_text(encoding="utf-8")
     study_state_matrix_text = study_state_matrix.read_text(encoding="utf-8")
     domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
-    assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"' in shared_text
+    assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/ops/medautoscience/.venv/bin/python3"' in shared_text
     assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in shared_text
     assert "command -v uv" not in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
@@ -249,6 +249,9 @@ def test_init_workspace_upgrades_generated_shared_when_workspace_python_gate_mov
         'run_medautosci() {\n'
         '  if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then\n'
         in shared.read_text(encoding="utf-8")
+    )
+    assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/ops/medautoscience/.venv/bin/python3"' in shared.read_text(
+        encoding="utf-8"
     )
 
 

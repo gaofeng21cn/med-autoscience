@@ -65,7 +65,7 @@ _PACK_OWNER_REFS = {
     ],
     "data_availability_fair_pack": [
         _ref("surface_kind", "data_assets_readiness", "data_asset_owner"),
-        _ref("workspace_locator", "portfolio/data_assets", "data_asset_registry"),
+        _ref("workspace_locator", "memory/portfolio/data_assets", "data_asset_registry"),
         _ref("workspace_locator", "paper/submission_minimal", "submission_statement_source"),
     ],
     "citation_integrity_pack": [
@@ -147,7 +147,7 @@ _PACK_REQUIRED_REFS = {
     ],
     "data_availability_fair_pack": [
         _ref("surface_kind", "data_assets_readiness", "dataset_location_mapping"),
-        _ref("workspace_locator", "portfolio/data_assets", "repository_identifier_source"),
+        _ref("workspace_locator", "memory/portfolio/data_assets", "repository_identifier_source"),
         _ref("workspace_locator", "paper/submission_minimal", "data_availability_statement"),
     ],
     "citation_integrity_pack": [

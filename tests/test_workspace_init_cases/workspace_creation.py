@@ -105,7 +105,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     runtime_bridge_config_text = runtime_bridge_config.read_text(encoding="utf-8")
     assert 'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"' in med_shared_text
     assert 'MED_AUTOSCIENCE_NODE_BIN="${MED_AUTOSCIENCE_NODE_BIN:-$(command -v node || true)}"' in med_shared_text
-    assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"' in med_shared_text
+    assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/ops/medautoscience/.venv/bin/python3"' in med_shared_text
     assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in med_shared_text
     assert 'run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli' not in med_shared_text
     assert (

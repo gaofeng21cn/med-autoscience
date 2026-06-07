@@ -71,7 +71,7 @@ def _render_prompt(*, workspace_root: Path, as_of_date: str) -> str:
         "4. 是否值得引入易获取的外部公开数据，以及这些数据最合理的用途是什么\n"
         "5. 这些方向理想情况下大致能投到什么档次、什么邻域的期刊\n\n"
         "## 已知硬边界\n\n"
-        "- refs/ 只用于理解数据与历史背景，不代表要复现旧代码、继承旧分析流程，或沿旧半成品课题继续执行。\n"
+        "- archive/legacy_root_surfaces/refs/ 只用于理解数据与历史背景，不代表要复现旧代码、继承旧分析流程，或沿旧半成品课题继续执行。\n"
         "- 当前任务是做课题与论文布局，不是去重跑 legacy code。\n"
         "- 外部公开数据只考虑网上非常容易公开获取、可快速下载的数据；不要建议准入复杂、申请周期长的数据源。\n"
         "- 请优先评估“临床问题是否强、数据结构是否支持、叙事是否站得住”，不要先入为主地假设必须依赖炫技方法学创新。\n"
@@ -121,11 +121,11 @@ def _render_prompt(*, workspace_root: Path, as_of_date: str) -> str:
         "- 为什么这篇第一文更像 diabetes / cardiometabolic / cardiovascular 哪一类稿件\n\n"
         "## 返回文档放置规则\n\n"
         "请把完整返回整理成一份可以直接保存的 Markdown 文档。默认保存位置是：\n\n"
-        f"- `portfolio/research_memory/external_reports/{DEFAULT_REPORT_NAMING_PATTERN}`\n\n"
+        f"- `memory/portfolio/research_memory/external_reports/{DEFAULT_REPORT_NAMING_PATTERN}`\n\n"
         "后续如果其中有稳定结论，会再回写到：\n\n"
-        "- `portfolio/research_memory/topic_landscape.md`\n"
-        "- `portfolio/research_memory/dataset_question_map.md`\n"
-        "- `portfolio/research_memory/venue_intelligence.md`\n\n"
+        "- `memory/portfolio/research_memory/topic_landscape.md`\n"
+        "- `memory/portfolio/research_memory/dataset_question_map.md`\n"
+        "- `memory/portfolio/research_memory/venue_intelligence.md`\n\n"
         "## 当前 workspace 研究记忆\n\n"
         "下面这些内容代表当前 workspace 已经形成的显式研究记忆。请在此基础上继续，不要忽略它们重新从空白开始想。\n\n"
         "### Topic Landscape\n\n"
@@ -174,9 +174,9 @@ def prepare_external_research(*, workspace_root: Path, as_of_date: str | None = 
         "status": "ready",
         "report_naming_pattern": DEFAULT_REPORT_NAMING_PATTERN,
         "write_back_targets": [
-            "portfolio/research_memory/topic_landscape.md",
-            "portfolio/research_memory/dataset_question_map.md",
-            "portfolio/research_memory/venue_intelligence.md",
+            "memory/portfolio/research_memory/topic_landscape.md",
+            "memory/portfolio/research_memory/dataset_question_map.md",
+            "memory/portfolio/research_memory/venue_intelligence.md",
         ],
         "recommendations": [
             "external_research_prompt_ready",

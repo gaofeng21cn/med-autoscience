@@ -30,8 +30,9 @@ from med_autoscience.stage_knowledge_contract import (
     authority_boundary,
     stage_knowledge_plane_contract,
 )
+from med_autoscience.workspace_paths import PUBLICATION_ROUTE_MEMORY_RELPATH, publication_route_memory_root
 
-PUBLICATION_ROUTE_MEMORY_ROOT = Path("portfolio/research_memory/publication_route_memory")
+PUBLICATION_ROUTE_MEMORY_ROOT = PUBLICATION_ROUTE_MEMORY_RELPATH
 PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF = Path(
     "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
 )
@@ -75,7 +76,7 @@ def paper_soak_memory_apply_proof_path(*, study_root: Path) -> Path:
 
 
 def publication_route_memory_pack_root(*, workspace_root: Path) -> Path:
-    return Path(workspace_root).expanduser().resolve() / PUBLICATION_ROUTE_MEMORY_ROOT
+    return publication_route_memory_root(Path(workspace_root))
 
 
 def publication_route_memory_pack_path(*, workspace_root: Path) -> Path:
@@ -756,7 +757,7 @@ def _memory_router_receipt(
         "rejected_writes": [dict(item) for item in rejected],
         "typed_blockers": [dict(item) for item in typed_blockers],
         "status": status,
-        "writeback_receipt_locator_ref": "portfolio/research_memory/publication_route_memory/writeback_receipts",
+        "writeback_receipt_locator_ref": f"{PUBLICATION_ROUTE_MEMORY_ROOT.as_posix()}/writeback_receipts",
     }
 
 

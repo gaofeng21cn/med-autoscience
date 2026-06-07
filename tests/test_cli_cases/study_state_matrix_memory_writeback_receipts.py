@@ -36,7 +36,7 @@ def _write_memory_router_receipt(
     status: str = "applied",
     memory_family: str = "publication_route_memory",
     receipt_refs: list[str] | None = None,
-    writeback_receipt_locator_ref: str = "portfolio/research_memory/publication_route_memory/writeback_receipts",
+    writeback_receipt_locator_ref: str = "memory/portfolio/research_memory/publication_route_memory/writeback_receipts",
     accepted_writes: list[dict[str, Any]] | None = None,
     rejected_writes: list[dict[str, Any]] | None = None,
     typed_blockers: list[dict[str, Any]] | None = None,
@@ -44,6 +44,7 @@ def _write_memory_router_receipt(
     router_receipt_ref = Path(f"artifacts/stage_knowledge/memory_write_router_receipts/{receipt_name}.json")
     writeback_receipt_ref = (
         workspace_root
+        / "memory"
         / "portfolio"
         / "research_memory"
         / "publication_route_memory"

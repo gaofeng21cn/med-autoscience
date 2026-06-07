@@ -371,7 +371,7 @@ def test_publication_route_memory_inventory_cli_projects_accepted_and_rejected_w
         "artifacts/stage_knowledge/memory_write_router_receipts/accepted-writeback-receipt.json"
     )
     assert accepted_receipt["writeback_receipt_ref"].endswith(
-        "portfolio/research_memory/publication_route_memory/writeback_receipts/accepted-writeback-receipt.json"
+        "memory/portfolio/research_memory/publication_route_memory/writeback_receipts/accepted-writeback-receipt.json"
     )
     assert accepted_receipt["route_back_refs"] == [
         {

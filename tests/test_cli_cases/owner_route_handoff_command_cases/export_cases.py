@@ -327,7 +327,7 @@ def test_domain_handler_export_projects_memory_paper_soak_proof_refs_readonly(tm
                 "publication_route_memory_refs": [
                     {
                         "memory_id": "publication_route_memory_seed__negative_result_stoploss",
-                        "memory_pack_ref": "portfolio/research_memory/publication_route_memory/memory_pack.json",
+                        "memory_pack_ref": "memory/portfolio/research_memory/publication_route_memory/memory_pack.json",
                     }
                 ]
             },

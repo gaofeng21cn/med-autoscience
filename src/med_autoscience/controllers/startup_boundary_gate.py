@@ -261,7 +261,7 @@ def render_boundary_custom_brief(
         )
         if required_first_anchor == "scout":
             sections.append(
-                "Check `portfolio/data_assets/public/registry.json` before route lock. If bounded public-data discovery for the current route-selection scope has not been recorded yet, complete that proactive scouting pass first and record retain / reject decisions through `apply-data-asset-update`. Keep large retained public anchors remote-only until the study has an explicit use case, storage budget, and reuse/prune plan."
+                "Check `memory/portfolio/data_assets/public/registry.json` before route lock. If bounded public-data discovery for the current route-selection scope has not been recorded yet, complete that proactive scouting pass first and record retain / reject decisions through `apply-data-asset-update`. Keep large retained public anchors remote-only until the study has an explicit use case, storage budget, and reuse/prune plan."
             )
         if missing_requirements:
             sections.append(f"Missing startup requirements: {', '.join(str(item) for item in missing_requirements)}.")
@@ -269,7 +269,7 @@ def render_boundary_custom_brief(
         sections.append("Legacy implementation reuse is allowed because the workspace carries explicit approval.")
     else:
         sections.append(
-            "Do not execute legacy implementation code from `refs/` or historical project directories unless the user has explicitly approved that reuse."
+            "Do not execute legacy implementation code from `archive/legacy_root_surfaces/refs/` or historical project directories unless the user has explicitly approved that reuse."
         )
     if existing_brief:
         sections.append("Existing startup brief context:")

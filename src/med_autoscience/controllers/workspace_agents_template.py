@@ -30,7 +30,7 @@ def render_workspace_agents(*, workspace_name: str) -> str:
         "- Progress-first 监控入口：单 study 使用 `ops/medautoscience/bin/study-progress <study_id>`；"
         "结构化读面使用 `ops/medautoscience/bin/study-progress <study_id> --format json`；"
         "workspace 矩阵使用 `ops/medautoscience/bin/study-state-matrix --format json`。\n"
-        "- `runtime/` 是运行态目录，`artifacts/runtime/` 是 SQLite refs index 与维护 ledger，`ops/mas/` 是薄运维桥；研究治理入口归属 MAS。\n\n"
+        "- `runtime/` 是运行态目录，`runtime/artifacts/` 是 SQLite refs index 与维护 ledger，`ops/mas/` 是薄运维桥；研究治理入口归属 MAS。\n\n"
         "## 用户论文修改请求处理\n\n"
         "- 用户通过 Codex/MAS 对论文提出修改、导师反馈、审稿意见、补分析或改表图要求时，先把请求识别为 `reviewer_revision` study task intake，并形成结构化 revision checklist。\n"
         "- revision checklist 至少覆盖 text revisions、methods completeness、statistical analysis、tables/figures、follow-up evidence、discussion/claim guardrails 与 handoff/evidence surface。\n"

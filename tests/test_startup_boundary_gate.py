@@ -20,6 +20,6 @@ def test_render_boundary_custom_brief_requires_public_data_follow_through(tmp_pa
     )
     brief = module.render_boundary_custom_brief(existing_brief="", boundary_gate=boundary_gate)
 
-    assert "Check `portfolio/data_assets/public/registry.json` before route lock" in brief
+    assert "Check `memory/portfolio/data_assets/public/registry.json` before route lock" in brief
     assert "record retain / reject decisions through `apply-data-asset-update`" in brief
     assert "explicit use case, storage budget" in brief

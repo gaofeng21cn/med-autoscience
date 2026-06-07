@@ -154,12 +154,12 @@
     "migration_plan_ref": "docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan",
     "canonical_body_ref": "docs/policies/study-workflow/publication_route_memory_library.md",
     "seed_corpus_ref": "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
-    "writeback_receipt_locator_ref": "portfolio/research_memory/publication_route_memory/writeback_receipts",
+    "writeback_receipt_locator_ref": "memory/portfolio/research_memory/publication_route_memory/writeback_receipts",
     "workspace_apply_surface": {
       "seed_apply_receipt_surface": "publication_route_memory_apply_receipt",
       "memory_pack_surface": "publication_route_memory_pack",
-      "memory_pack_locator": "portfolio/research_memory/publication_route_memory/memory_pack.json",
-      "migration_receipt_locator": "portfolio/research_memory/publication_route_memory/migration_receipts",
+      "memory_pack_locator": "memory/portfolio/research_memory/publication_route_memory/memory_pack.json",
+      "migration_receipt_locator": "memory/portfolio/research_memory/publication_route_memory/migration_receipts",
       "repo_tracks_real_pack_or_receipts": false
     },
     "migration_readiness": {
@@ -482,7 +482,7 @@
       "payload"
     ],
     "source_surfaces": [
-      "artifacts/runtime/domain_authority_refs.sqlite",
+      "runtime/artifacts/domain_authority_refs.sqlite",
       "study_macro_state/latest.json",
       "domain_route_owner_route",
       "domain_route_dispatch_receipt",
