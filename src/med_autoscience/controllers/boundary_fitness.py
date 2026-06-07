@@ -305,7 +305,7 @@ def _oversized_file_finding(
         return BoundaryFinding(
             path=relative_path,
             kind="oversized_file",
-            severity="violation",
+            severity="advisory",
             line_count=line_count,
             limit=PREFERRED_LINE_LIMIT,
             message=f"{line_count} lines exceeds the preferred boundary without a reviewed boundary baseline",
@@ -315,7 +315,7 @@ def _oversized_file_finding(
         return BoundaryFinding(
             path=relative_path,
             kind="oversized_file",
-            severity="violation",
+            severity="advisory",
             line_count=line_count,
             limit=baseline,
             baseline=baseline,

@@ -42,7 +42,7 @@ def test_audit_reports_preferred_boundary_advisories_and_clear_violations(tmp_pa
     assert "natural responsibility boundary" in oversized[violation_path.as_posix()].recommendation
 
 
-def test_audit_blocks_new_or_growing_files_over_preferred_boundary(tmp_path: Path) -> None:
+def test_audit_reports_new_or_growing_files_over_preferred_boundary_as_advisory(tmp_path: Path) -> None:
     module = _boundary_fitness_module()
     new_path = Path("src/med_autoscience/controllers/new_runtime_surface.py")
     growing_path = Path("src/med_autoscience/controllers/current_runtime_surface.py")
@@ -55,9 +55,12 @@ def test_audit_blocks_new_or_growing_files_over_preferred_boundary(tmp_path: Pat
         baseline={growing_path.as_posix(): 1001},
     )
 
-    blocking_by_path = {finding.path: finding for finding in report.blocking_findings}
-    assert "without a reviewed boundary baseline" in blocking_by_path[new_path.as_posix()].message
-    assert "exceeds locked boundary baseline" in blocking_by_path[growing_path.as_posix()].message
+    oversized_by_path = {finding.path: finding for finding in report.oversized_findings}
+    assert oversized_by_path[new_path.as_posix()].severity == "advisory"
+    assert "without a reviewed boundary baseline" in oversized_by_path[new_path.as_posix()].message
+    assert oversized_by_path[growing_path.as_posix()].severity == "advisory"
+    assert "exceeds locked boundary baseline" in oversized_by_path[growing_path.as_posix()].message
+    assert report.blocking_findings == ()
 
 
 def test_audit_detects_mechanical_split_residue_without_flagging_semantic_parts(tmp_path: Path) -> None:

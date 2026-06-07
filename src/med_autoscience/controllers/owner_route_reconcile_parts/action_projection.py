@@ -176,17 +176,6 @@ def action_queue(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     )
-    if current_controller_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=current_controller_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
     analysis_handoff_action = analysis_harmonization_ai_review.completed_ai_reviewer_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -373,6 +362,33 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    artifact_action = _current_package_freshness_lifecycle_action(
+        progress=progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if artifact_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=artifact_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    if current_controller_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=current_controller_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     record_consumption_actions = ai_reviewer_owner_output_consumption.record_consumption_domain_transition_actions(
         status=status,
         publication_eval_payload=publication_eval_payload,
@@ -442,14 +458,6 @@ def action_queue(
         from med_autoscience.controllers.owner_route_reconcile_parts import publication_gate_actions
 
         actions.append(publication_gate_actions.action_payload(gate_specificity=gate_specificity))
-    artifact_action = _current_package_freshness_lifecycle_action(
-        progress=progress,
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if artifact_action is not None:
-        actions = [action for action in actions if _text(action.get("action_type")) != artifact_freshness.ACTION_TYPE]
-        actions.insert(0, artifact_action)
     if (
         not actions
         and ai_reviewer_assessment.get("missing") is True

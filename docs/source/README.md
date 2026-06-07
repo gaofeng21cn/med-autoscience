@@ -11,6 +11,7 @@ Machine boundary: 人读索引。Source truth 继续归 study workspaces、exter
 
 - [架构](../architecture.md)
 - [当前状态](../status.md)
+- [Study Workspace Target State](./study_workspace_target_state.md)
 - [References](../references/README.md)
 - [Workspace Knowledge And Literature Contract](../runtime/contracts/workspace_knowledge_and_literature_contract.md)
 - [Standard Domain Agent Skeleton](../runtime/contracts/standard_domain_agent_skeleton.md)

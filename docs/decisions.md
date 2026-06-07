@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-07：preferred line budget 是 advisory，strict 入口才可阻断
+
+- 决策：`scripts/line_budget.py` 默认只报告 preferred line budget advisory，不因 1000 行 preferred boundary、缺 reviewed baseline 或超过旧 baseline 而返回失败。需要把超线作为硬门时，必须显式使用 `scripts/line_budget.py --strict` 或 `MAS_LINE_BUDGET_STRICT=1`。
+- 决策：`boundary_fitness` 的 `blocking_findings` 只保留 clear structural violation，例如 1500 行以上 clear violation、机械编号 split residue、stale boundary baseline 等明确结构违规；preferred 1000 行预算、未建 baseline 或 baseline 增长只进入 `oversized_findings` advisory。`make test-meta` 不能通过 `test_current_repo_boundary_guard_has_no_blocking_findings` 把 preferred advisory 重新变成 preflight 阻断。
+- 理由：OPL family structure cleanup 已把 family structure scan 固定为 advisory surface；MAS 仓内 `line_budget.py` 也已按默认 advisory / explicit strict 的语义维护。但 `test-meta` 仍直接断言 `boundary_fitness.blocking_findings == ()`，在 1000 行附近文件出现时表现为 CI/preflight hard fail，和当前 line-budget contract 漂移。
+- 影响：这是结构治理 gate 语义修复，不改变源码自然边界治理方向，也不把超线信号隐藏。结构 cleanup 仍应按 owner/natural boundary 拆分；只是不再让 preferred budget 在默认 preflight 中阻断论文/runtime 修复。严格结构 lane、release hardening 或显式 strict gate 仍可用 strict 入口阻断 oversized files。
+
 ## 2026-06-06：medical paper readiness owner dispatch 必须返回显式 owner-delta result
 
 - 决策：`complete_medical_paper_readiness_surface` 是当前 `MedAutoScience` owner callable。`domain-action-request-materialize` 和 supervisor request packet 可以从 dispatch / owner request / existing literature intelligence / provider adapters 补齐 MAS-authored operator payload；`domain-owner-action-dispatch` 执行该 callable 后，顶层 execution payload 必须返回 `owner_delta_result`，其 `result_kind` 只能落在 `owner_receipt`、`quality_gate_receipt`、`quality_gate_receipt_with_stable_typed_blocker`、`stable_typed_blocker` 或 `missing_owner_delta_result`。
