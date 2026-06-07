@@ -32,6 +32,7 @@ def execute_owner_dispatch_action(
         "return_to_ai_reviewer_workflow": execute_ai_reviewer_workflow,
         "canonical_paper_inputs_rehydrate_required": action_execution.execute_canonical_paper_inputs_rehydrate,
         "paper_clean_room_rebuild_required": action_execution.execute_paper_clean_room_rebuild,
+        "run_medical_publication_surface_from_clean_room": action_execution.execute_clean_room_publication_surface,
     }
     if action_type == "unit_harmonized_external_validation_rerun":
         return action_execution.execute_unit_harmonized_external_validation_rerun(

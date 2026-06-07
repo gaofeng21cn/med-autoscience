@@ -300,3 +300,359 @@ def test_domain_owner_dispatch_executes_paper_clean_room_rebuild_action(
     assert execution["blocked_reason"] is None
     assert execution["owner_result"]["descriptor_path"] == str(descriptor_path)
     assert descriptor_path.is_file()
+
+
+def test_domain_owner_dispatch_executes_clean_room_publication_surface_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    write_text(study_root / "paper" / "draft.md", "canonical root draft\n")
+    write_text(study_root / "paper" / "evidence_ledger.json", "{}\n")
+    write_text(study_root / "paper" / "review" / "review_ledger.json", "{}\n")
+    _write_stage(study_root)
+
+    clean_room = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
+    clean_result = clean_room.materialize_paper_clean_room_rebuild(
+        profile=profile,
+        study_id=study_id,
+        apply=True,
+    )
+    clean_paper_root = Path(clean_result["clean_workspace_root"]) / "verified_inputs" / "paper"
+    write_text(clean_paper_root / "draft.md", "clean-room verified draft\n")
+
+    captured: dict[str, object] = {}
+
+    def fake_run_clean_room_publication_surface(*, paper_root: Path, study_root: Path, apply: bool) -> dict:
+        captured["paper_root"] = paper_root
+        captured["study_root"] = study_root
+        captured["apply"] = apply
+        return {
+            "status": "blocked",
+            "blockers": ["medical_journal_prose_style_not_met"],
+            "report_json": str(study_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"),
+            "report_markdown": str(study_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.md"),
+        }
+
+    monkeypatch.setattr(
+        module.action_router.action_execution,
+        "run_clean_room_publication_surface",
+        fake_run_clean_room_publication_surface,
+    )
+    route = _owner_route(
+        study_id=study_id,
+        action_type="run_medical_publication_surface_from_clean_room",
+        owner="MedAutoScience",
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_medical_publication_surface_from_clean_room.json"
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="run_medical_publication_surface_from_clean_room",
+            owner="MedAutoScience",
+            required_output_surface="artifacts/reports/medical_publication_surface/latest.json",
+            owner_route=route,
+        ),
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_medical_publication_surface_from_clean_room",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_publication_surface_blocked"
+    assert execution["owner_result"]["source"] == "clean_room_verified_inputs"
+    assert captured["paper_root"] == clean_paper_root
+    assert captured["study_root"] == study_root
+    assert captured["apply"] is True
+
+
+def test_clean_room_publication_surface_blocks_when_descriptor_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+
+    result = module.execute_clean_room_publication_surface(
+        profile=profile,
+        study_id=study_id,
+        apply=True,
+    )
+
+    assert result["execution_status"] == "blocked"
+    assert result["blocked_reason"] == "paper_clean_room_descriptor_missing"
+    assert result["owner_result"]["source"] == "clean_room_verified_inputs"
+    assert result["owner_result"]["study_root"] == str(study_root)
+
+
+def test_clean_room_publication_surface_blocks_when_verified_paper_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution")
+    clean_room = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    write_text(study_root / "paper" / "draft.md", "canonical root draft\n")
+    write_text(study_root / "paper" / "evidence_ledger.json", "{}\n")
+    write_text(study_root / "paper" / "review" / "review_ledger.json", "{}\n")
+    _write_stage(study_root)
+    clean_result = clean_room.materialize_paper_clean_room_rebuild(
+        profile=profile,
+        study_id=study_id,
+        apply=True,
+    )
+    clean_paper_root = Path(clean_result["clean_workspace_root"]) / "verified_inputs" / "paper"
+    for path in sorted(clean_paper_root.rglob("*"), reverse=True):
+        if path.is_file():
+            path.unlink()
+        elif path.is_dir():
+            path.rmdir()
+    clean_paper_root.rmdir()
+
+    result = module.execute_clean_room_publication_surface(
+        profile=profile,
+        study_id=study_id,
+        apply=True,
+    )
+
+    assert result["execution_status"] == "blocked"
+    assert result["blocked_reason"] == "clean_room_verified_paper_root_missing"
+    assert result["owner_result"]["descriptor_status"] == "ready"
+
+
+def test_domain_action_request_materializer_prefers_stage_native_clean_room_next_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    write_text(study_root / "paper" / "draft.md", "canonical root draft\n")
+    write_text(study_root / "paper" / "evidence_ledger.json", "{}\n")
+    write_text(study_root / "paper" / "review" / "review_ledger.json", "{}\n")
+    _write_stage(study_root)
+    clean_room = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
+    clean_room.materialize_paper_clean_room_rebuild(
+        profile=profile,
+        study_id=study_id,
+        apply=True,
+    )
+    stale_route = _owner_route(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner_route": stale_route,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "run_gate_clearing_batch",
+                            "owner": "gate_clearing_batch",
+                            "request_owner": "gate_clearing_batch",
+                            "recommended_owner": "gate_clearing_batch",
+                            "reason": "stale_gate_replay",
+                            "owner_route": stale_route,
+                            "handoff_packet": {"owner_route": stale_route},
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    dispatches = result["default_executor_dispatches"]
+    assert [dispatch["action_type"] for dispatch in dispatches] == [
+        "run_medical_publication_surface_from_clean_room"
+    ]
+    dispatch = dispatches[0]
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["next_executable_owner"] == "MedAutoScience"
+    assert dispatch["required_output_surface"] == "artifacts/reports/medical_publication_surface/latest.json"
+    assert dispatch["source_action"]["source_surface"] == "artifacts/supervision/paper_clean_room_rebuild/latest.json"
+    assert (study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches" / "run_medical_publication_surface_from_clean_room.json").is_file()
+    assert result["ignored_actions"][0]["reason"] == "superseded_by_stage_native_next_action"
+
+
+def test_domain_owner_dispatch_accepts_stage_native_clean_room_owner_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    request_module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    write_text(study_root / "paper" / "draft.md", "canonical root draft\n")
+    write_text(study_root / "paper" / "evidence_ledger.json", "{}\n")
+    write_text(study_root / "paper" / "review" / "review_ledger.json", "{}\n")
+    _write_stage(study_root)
+    clean_room = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
+    clean_result = clean_room.materialize_paper_clean_room_rebuild(
+        profile=profile,
+        study_id=study_id,
+        apply=True,
+    )
+    clean_paper_root = Path(clean_result["clean_workspace_root"]) / "verified_inputs" / "paper"
+    write_text(clean_paper_root / "draft.md", "clean-room verified draft\n")
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": study_id}],
+        },
+    )
+    request_module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+    captured: dict[str, object] = {}
+
+    def fake_run_clean_room_publication_surface(*, paper_root: Path, study_root: Path, apply: bool) -> dict:
+        captured["paper_root"] = paper_root
+        return {"status": "clear", "blockers": [], "report_json": "latest.json", "report_markdown": "latest.md"}
+
+    monkeypatch.setattr(
+        dispatch_module.action_router.action_execution,
+        "run_clean_room_publication_surface",
+        fake_run_clean_room_publication_surface,
+    )
+
+    result = dispatch_module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_medical_publication_surface_from_clean_room",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "executed"
+    assert execution["owner_route_basis"] == "stage_native_workspace_next_action"
+    assert execution["blocked_reason"] is None
+    assert captured["paper_root"] == clean_paper_root
+
+
+def test_domain_owner_dispatch_accepts_stage_native_publication_surface_report_owner_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    write_text(study_root / "paper" / "draft.md", "canonical root draft\n")
+    _write_stage(study_root)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": study_id}],
+        },
+    )
+    route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    route["source_refs"] = {
+        **dict(route.get("source_refs") or {}),
+        "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+        "owner_route_currentness_basis": {
+            "work_unit_id": "run_quality_repair_batch",
+            "work_unit_fingerprint": (
+                "stage-native-next-action::08-publication_package_handoff::"
+                "run_quality_repair_batch::artifacts/reports/medical_publication_surface/latest.json"
+            ),
+            "truth_epoch": f"stage-native-next-action::{study_id}::08-publication_package_handoff",
+            "runtime_health_epoch": f"stage-native-next-action::{study_id}::08-publication_package_handoff",
+        },
+    }
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=route,
+    )
+    payload["source_action"] = {
+        "authority": "stage_native_workspace_next_action",
+        "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+    }
+    _write_current_dispatch(dispatch_path, profile, payload)
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        return {"ok": False, "blocked_reason": "manuscript_story_surface_delta_missing"}
+
+    monkeypatch.setattr(
+        dispatch_module.action_router.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fake_run_quality_repair_batch,
+    )
+
+    result = dispatch_module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert execution["owner_route_basis"] == "stage_native_workspace_next_action"
+    assert execution["owner_route_current"] is True
+    assert execution["blocked_reason"] == "manuscript_story_surface_delta_missing"

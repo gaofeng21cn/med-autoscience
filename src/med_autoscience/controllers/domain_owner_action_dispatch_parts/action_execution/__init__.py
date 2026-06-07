@@ -9,6 +9,11 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 
 from med_autoscience.controllers import gate_clearing_batch, paper_clean_room_rebuild, publication_gate
+from med_autoscience.controllers.medical_publication_surface_parts.reporting import (
+    build_surface_report,
+    render_surface_markdown,
+)
+from med_autoscience.controllers.medical_publication_surface_parts.shared_base import SurfaceState
 
 from ... import (
     analysis_harmonization_owner,
@@ -31,6 +36,7 @@ PROVENANCE_LIMITED_HARMONIZATION_REQUEST_RELATIVE_PATH = (
     provenance_limited_harmonization.REQUEST_RELATIVE_PATH
 )
 DECISION_REQUEST_RELATIVE_PATH = methodology_reframe_decision.DECISION_REQUEST_RELATIVE_PATH
+MEDICAL_PUBLICATION_SURFACE_REPORT_RELATIVE_ROOT = Path("artifacts/reports/medical_publication_surface")
 
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
@@ -145,6 +151,191 @@ def execute_paper_clean_room_rebuild(
         "descriptor_path": owner_result.get("descriptor_path"),
         "clean_workspace_root": owner_result.get("clean_workspace_root"),
     }
+
+
+def execute_clean_room_publication_surface(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    study_root = _study_root(profile, study_id).expanduser().resolve()
+    descriptor_path = study_root / paper_clean_room_rebuild.SUPERVISION_ROOT_RELPATH / "latest.json"
+    descriptor = _read_json_mapping(descriptor_path)
+    if descriptor is None:
+        return _blocked_clean_room_surface_result(
+            reason="paper_clean_room_descriptor_missing",
+            study_root=study_root,
+            descriptor_path=descriptor_path,
+            apply=apply,
+        )
+    if _text(descriptor.get("status")) != "ready":
+        return _blocked_clean_room_surface_result(
+            reason="paper_clean_room_descriptor_not_ready",
+            study_root=study_root,
+            descriptor_path=descriptor_path,
+            apply=apply,
+            descriptor=descriptor,
+        )
+    paper_root = _clean_room_verified_paper_root(descriptor)
+    if paper_root is None or not paper_root.is_dir():
+        return _blocked_clean_room_surface_result(
+            reason="clean_room_verified_paper_root_missing",
+            study_root=study_root,
+            descriptor_path=descriptor_path,
+            apply=apply,
+            descriptor=descriptor,
+        )
+    required_input = paper_root / "draft.md"
+    if not required_input.is_file():
+        return _blocked_clean_room_surface_result(
+            reason="clean_room_verified_manuscript_missing",
+            study_root=study_root,
+            descriptor_path=descriptor_path,
+            apply=apply,
+            descriptor=descriptor,
+            paper_root=paper_root,
+        )
+
+    owner_result = run_clean_room_publication_surface(
+        paper_root=paper_root,
+        study_root=study_root,
+        apply=apply,
+    )
+    blocked = bool(owner_result.get("blockers"))
+    return {
+        "execution_status": "blocked" if blocked else ("executed" if apply else "dry_run"),
+        "blocked_reason": "medical_publication_surface_blocked" if blocked else None,
+        "owner_callable_surface": "clean_room_publication_surface.run_clean_room_publication_surface",
+        "owner_result": {
+            **dict(owner_result),
+            "source": "clean_room_verified_inputs",
+            "descriptor_path": str(descriptor_path),
+            "paper_root": str(paper_root),
+        },
+        "descriptor_path": str(descriptor_path),
+        "paper_root": str(paper_root),
+    }
+
+
+def run_clean_room_publication_surface(*, paper_root: Path, study_root: Path, apply: bool) -> dict[str, Any]:
+    state = _clean_room_surface_state(paper_root=paper_root, study_root=study_root)
+    report = build_surface_report(state)
+    if not apply:
+        return {
+            "status": report["status"],
+            "blockers": report["blockers"],
+            "top_hits": report["top_hits"],
+            "report_json": None,
+            "report_markdown": None,
+        }
+    json_path, markdown_path = _write_clean_room_surface_report(study_root=study_root, report=report)
+    return {
+        "status": report["status"],
+        "blockers": report["blockers"],
+        "top_hits": report["top_hits"],
+        "report_json": str(json_path),
+        "report_markdown": str(markdown_path),
+    }
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _clean_room_verified_paper_root(descriptor: Mapping[str, Any]) -> Path | None:
+    verified_input_root = _text(descriptor.get("verified_input_root"))
+    if verified_input_root is not None:
+        return (Path(verified_input_root).expanduser().resolve() / "paper").resolve()
+    clean_workspace_root = _text(descriptor.get("clean_workspace_root"))
+    if clean_workspace_root is not None:
+        return (Path(clean_workspace_root).expanduser().resolve() / "verified_inputs" / "paper").resolve()
+    return None
+
+
+def _blocked_clean_room_surface_result(
+    *,
+    reason: str,
+    study_root: Path,
+    descriptor_path: Path,
+    apply: bool,
+    descriptor: Mapping[str, Any] | None = None,
+    paper_root: Path | None = None,
+) -> dict[str, Any]:
+    owner_result: dict[str, Any] = {
+        "source": "clean_room_verified_inputs",
+        "status": "blocked",
+        "blockers": [reason],
+        "descriptor_path": str(descriptor_path),
+        "study_root": str(study_root),
+        "paper_root": str(paper_root) if paper_root is not None else None,
+    }
+    if descriptor is not None:
+        owner_result["descriptor_status"] = _text(descriptor.get("status"))
+        owner_result["clean_workspace_root"] = _text(descriptor.get("clean_workspace_root"))
+        owner_result["verified_input_root"] = _text(descriptor.get("verified_input_root"))
+    return {
+        "execution_status": "blocked" if apply else "dry_run",
+        "blocked_reason": reason,
+        "owner_callable_surface": "clean_room_publication_surface.run_clean_room_publication_surface",
+        "owner_result": owner_result,
+        "descriptor_path": str(descriptor_path),
+        "paper_root": str(paper_root) if paper_root is not None else None,
+    }
+
+
+def _clean_room_surface_state(*, paper_root: Path, study_root: Path) -> SurfaceState:
+    paper_root = paper_root.expanduser().resolve()
+    study_root = study_root.expanduser().resolve()
+    return SurfaceState(
+        quest_root=study_root,
+        runtime_state={"quest_id": study_root.name},
+        paper_root=paper_root,
+        study_root=study_root,
+        review_defaults_path=paper_root / "latex" / "review_defaults.yaml",
+        ama_csl_path=paper_root / "latex" / "american-medical-association.csl",
+        paper_pdf_path=paper_root / "paper.pdf",
+        draft_path=paper_root / "draft.md",
+        review_manuscript_path=paper_root / "build" / "review_manuscript.md",
+        figure_catalog_path=paper_root / "figures" / "figure_catalog.json",
+        table_catalog_path=paper_root / "tables" / "table_catalog.json",
+        methods_implementation_manifest_path=paper_root / "methods_implementation_manifest.json",
+        review_ledger_path=paper_root / "review" / "review_ledger.json",
+        statistical_reviewer_audit_path=paper_root / "review" / "statistical_reviewer_audit.json",
+        structured_disclosure_audit_path=paper_root / "review" / "structured_disclosure_audit.json",
+        medical_manuscript_blueprint_path=study_root / "paper" / "medical_manuscript_blueprint.json",
+        medical_prose_review_path=study_root / "artifacts" / "medical_prose_review" / "latest.json",
+        results_narrative_map_path=paper_root / "results_narrative_map.json",
+        figure_semantics_manifest_path=paper_root / "figure_semantics_manifest.json",
+        claim_evidence_map_path=paper_root / "claim_evidence_map.json",
+        numeric_trace_path=paper_root / "numeric_trace.json",
+        evidence_ledger_path=paper_root / "evidence_ledger.json",
+        derived_analysis_manifest_path=paper_root / "derived_analysis_manifest.json",
+        reproducibility_supplement_path=paper_root / "reproducibility_supplement.md",
+        endpoint_provenance_note_path=paper_root / "endpoint_provenance_note.md",
+    )
+
+
+def _write_clean_room_surface_report(*, study_root: Path, report: Mapping[str, Any]) -> tuple[Path, Path]:
+    report_root = study_root / MEDICAL_PUBLICATION_SURFACE_REPORT_RELATIVE_ROOT
+    generated_at = _text(report.get("generated_at")) or "latest"
+    history_json_path = report_root / "history" / f"{generated_at.replace(':', '').replace('+', 'Z')}.json"
+    history_markdown_path = history_json_path.with_suffix(".md")
+    latest_json_path = report_root / "latest.json"
+    latest_markdown_path = report_root / "latest.md"
+    for path in (history_json_path, latest_json_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(dict(report), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    markdown = render_surface_markdown(dict(report))
+    for path in (history_markdown_path, latest_markdown_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(markdown, encoding="utf-8")
+    return latest_json_path, latest_markdown_path
 
 
 def execute_artifact_display_materialization(
@@ -367,6 +558,7 @@ __all__ = [
     "execute_canonical_paper_inputs_rehydrate",
     "execute_current_package_freshness",
     "execute_gate_clearing_batch",
+    "execute_clean_room_publication_surface",
     "execute_methodology_reframe_route_decision",
     "execute_paper_clean_room_rebuild",
     "execute_publication_gate_specificity",
@@ -374,4 +566,5 @@ __all__ = [
     "execute_recover_transport_model_provenance",
     "execute_unit_harmonized_external_validation_rerun",
     "quest_root_from_status",
+    "run_clean_room_publication_surface",
 ]
