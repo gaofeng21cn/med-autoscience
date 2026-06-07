@@ -13,7 +13,7 @@ Machine boundary: 人读 program/process 历史索引。当前执行顺序、gap
 - [MAS Current Development Lines](../../active/current-development-lines.md)
 - [AI-first Paper Autonomy Closure Program](../../active/ai_first_paper_autonomy_closure_program.md)
 - [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md)
-- [MAS 单项目 MDS 吸收 Program](../../active/mas_single_project_mds_absorb_program.md)
+- [MAS/MDS Owner Boundary Contract](../../policies/runtime-governance/mas_mds_owner_boundary_contract.md)
 - [Domain Authority Refs Index Guard](../../runtime/domain_authority_refs_index_guard.md)
 
 周期性支持线快照：
@@ -56,6 +56,7 @@ Machine boundary: 人读 program/process 历史索引。当前执行顺序、gap
 - [Hermes backend activation package](./hermes_backend_activation_package.md)
 - [Integration harness activation package](./integration_harness_activation_package.md)
 - [MAS/MDS absorb full record 2026-05-10](./mas_single_project_mds_absorb_program_2026_05_10_full_record.md)
+- [MDS absorb landed guard retirement 2026-06-07](./mas_single_project_mds_absorb_guard_2026_06_07.md)
 - [OPL App MAS Runtime Workbench full record 2026-05-11](./opl_app_mas_runtime_workbench_program_2026_05_11_full_record.md)
 - [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md)
 - [OPL Temporal MAS Runtime Retirement full record 2026-05-11](./opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md)

@@ -1,17 +1,41 @@
 # MAS 单项目 MDS 吸收
 
-Status: `landed_foundation_owner_doc`
+Status: `retired_active_guard_history`
 Date: `2026-05-16`
 Owner: `MedAutoScience`
 Purpose: `mds_provenance_archive_parity_guard`
-State: `active_support`
-Machine boundary: 本文是人读 owner / provenance guard。机器真相继续归 MAS controller/domain-authority refs、quality/artifact surfaces、source provenance records、parity fixtures、explicit archive/import readers、archive/import ledgers、OPL current-control-state refs 和 live workspace evidence。
+State: `history_provenance`
+Machine boundary: 本文是人读历史 guard / provenance record。当前 MDS / DeepScientist owner boundary 归 `docs/policies/runtime-governance/mas_mds_owner_boundary_contract.md`、核心五件套、active gap plan、contracts、source、tests、runtime/controller surfaces、owner receipts 和 typed blockers。
 
-完整历史记录见 [2026-05-10 MAS/MDS absorb full record](../history/program/mas_single_project_mds_absorb_program_2026_05_10_full_record.md)。
+完整历史记录见 [2026-05-10 MAS/MDS absorb full record](./mas_single_project_mds_absorb_program_2026_05_10_full_record.md)。
+
+## Active-path retirement closeout 2026-06-07
+
+Retired surface:
+
+- `docs/active/mas_single_project_mds_absorb_program.md`
+
+Replacement owners:
+
+- `docs/policies/runtime-governance/mas_mds_owner_boundary_contract.md` 持有当前 MAS/MDS owner boundary policy。
+- `docs/active/mas-ideal-state-gap-plan.md` 和 `docs/active/current-development-lines.md` 持有当前 active truth / execution map。
+- `docs/runtime/domain_authority_refs_index_guard.md` 持有 domain authority refs / restore / archive drift guard。
+- 本文件和 `docs/history/program/mas_single_project_mds_absorb_program_2026_05_10_full_record.md` 只保留 history / provenance。
+
+Reviewed refs:
+
+- Active/support references were updated in `docs/active/README.md`, `docs/active/current-development-lines.md`, `docs/active/program_portfolio_consolidation.md`, `docs/active/ai_first_paper_autonomy_closure_program.md`, `docs/docs_portfolio_consolidation.md`, `docs/history/program/README.md`, and `docs/references/med-deepscientist/deepscientist_latest_update_learning_protocol.md`.
+- No `src/`, `tests/`, `contracts/`, or `agent/` caller referenced the retired active path during this tranche.
+- Remaining literal mentions of `docs/active/mas_single_project_mds_absorb_program.md` live only in older history / coverage ledgers and are preserved as historical evidence, not current entrypoints.
+
+Next-scope:
+
+- Keep MDS / DeepScientist wording in active docs constrained to source provenance, historical fixture, explicit archive import, backend audit, upstream learning, and parity oracle reference.
+- If future active caller evidence appears for this retired path, migrate that caller to the policy / active gap plan / domain authority refs owner surface rather than adding a compatibility redirect.
 
 ## 当前定位
 
-本文是 P3 landed foundation owner，不是活跃 implementation queue。它只保存 MAS monolith closeout 后的当前 owner 边界、MDS / DeepScientist retained role、archive/import 规则、parity oracle 规则和后续 source intake 分类口径。
+本文是已从 `docs/active/` 退役的 P3 landed foundation guard，不是活跃 implementation queue，也不是当前 owner doc。它只保存 MAS monolith closeout 后的 owner 边界、MDS / DeepScientist retained role、archive/import 规则、parity oracle 规则和后续 source intake 分类口径的历史 guard 版本；当前维护入口回到 MAS/MDS owner boundary policy、核心 docs 和 active gap plan。
 
 当前结论：
 
