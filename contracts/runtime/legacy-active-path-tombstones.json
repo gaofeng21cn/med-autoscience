@@ -94,6 +94,24 @@
       "source_fingerprint",
       "idempotency_key"
     ],
+    "same_work_unit_live_evidence_scope": {
+      "gate_id": "same_work_unit_live_evidence",
+      "applies_to": "current_owner_answer_compensation_chain",
+      "stage_run_closeout_binding_gate_applies_to": "current_owner_answer_compensation_chain",
+      "blocks_static_no_active_caller_retirement": false,
+      "static_retired_surface_classes": [
+        "retired_wrapper",
+        "retired_alias",
+        "retired_facade",
+        "retired_renderer"
+      ],
+      "static_retirement_prerequisite_gate_ids": [
+        "replacement_parity",
+        "no_active_caller_proof",
+        "no_forbidden_write_proof",
+        "tombstone_or_provenance_ref"
+      ]
+    },
     "retirement_allowed_when": {
       "all_required_live_evidence_present": true,
       "all_required_live_evidence_points_to_same_work_unit": true,

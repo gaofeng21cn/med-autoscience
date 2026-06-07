@@ -75,6 +75,25 @@ def test_stage_native_compensation_tail_retirement_requires_same_work_unit_live_
         "source_fingerprint",
         "idempotency_key",
     ]
+    live_scope = gate["same_work_unit_live_evidence_scope"]
+    assert live_scope["gate_id"] == "same_work_unit_live_evidence"
+    assert live_scope["applies_to"] == "current_owner_answer_compensation_chain"
+    assert live_scope["stage_run_closeout_binding_gate_applies_to"] == (
+        "current_owner_answer_compensation_chain"
+    )
+    assert live_scope["blocks_static_no_active_caller_retirement"] is False
+    assert live_scope["static_retired_surface_classes"] == [
+        "retired_wrapper",
+        "retired_alias",
+        "retired_facade",
+        "retired_renderer",
+    ]
+    assert live_scope["static_retirement_prerequisite_gate_ids"] == [
+        "replacement_parity",
+        "no_active_caller_proof",
+        "no_forbidden_write_proof",
+        "tombstone_or_provenance_ref",
+    ]
 
     retirement = gate["retirement_allowed_when"]
     assert retirement["all_required_live_evidence_present"] is True
@@ -96,3 +115,17 @@ def test_stage_native_compensation_tail_retirement_requires_same_work_unit_live_
         "claim_compensation_chain_physically_retired",
         "claim_publication_ready_or_package_ready",
     } <= set(gate["forbidden_until_gate_passes"])
+
+
+def test_retired_ops_mas_bridge_renderer_symbols_do_not_resurrect() -> None:
+    forbidden_tokens = {
+        "_render_behavior_equivalence_gate",
+        "_render_mas_runtime_bridge",
+        "load_mas_runtime_bridge_contract",
+        "render_mas_runtime_bridge",
+        "render_mas_runtime_bridge_config_json",
+    }
+    for path in (REPO_ROOT / "src").rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        for token in forbidden_tokens:
+            assert token not in text, f"{token} resurrected in {path.relative_to(REPO_ROOT)}"
