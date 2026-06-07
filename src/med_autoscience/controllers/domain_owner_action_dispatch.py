@@ -286,6 +286,12 @@ def _execution_owner_route(
     action_type: str,
     dispatch: Mapping[str, Any],
 ) -> tuple[dict[str, Any] | None, str | None]:
+    stage_native_route = _stage_native_dispatch_owner_route(dispatch)
+    if (
+        stage_native_route is not None
+        and _owner_route_block_reason(dispatch=dispatch, current_route=stage_native_route) is None
+    ):
+        return stage_native_route, "stage_native_workspace_next_action"
     bridged_route = persisted_dispatches.bridged_quality_repair_writer_handoff_route(
         profile=profile,
         study_id=study_id,
@@ -369,6 +375,28 @@ def _dispatch_uses_bridge_authority(dispatch: Mapping[str, Any]) -> bool:
     route = _dispatch_owner_route(dispatch)
     refs = _mapping(route.get("source_refs"))
     return _text(refs.get("bridge_authority")) is not None
+
+
+def _stage_native_dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
+    source_action = _mapping(dispatch.get("source_action"))
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    source_surface = _text(source_action.get("source_surface")) or _text(
+        _mapping(_dispatch_owner_route(dispatch).get("source_refs")).get("source_surface")
+    )
+    if _text(source_action.get("authority")) != "stage_native_workspace_next_action":
+        return None
+    if source_surface not in {
+        "artifacts/supervision/paper_clean_room_rebuild/latest.json",
+        "artifacts/reports/medical_publication_surface/latest.json",
+    }:
+        return None
+    route = _dispatch_owner_route(dispatch)
+    currentness = _mapping(_mapping(route.get("source_refs")).get("owner_route_currentness_basis"))
+    if not currentness:
+        currentness = _mapping(prompt_contract.get("owner_route_currentness_basis"))
+    if not currentness:
+        return None
+    return route or None
 
 
 def _progress_first_closeout_block_reason(dispatch: Mapping[str, Any]) -> str | None:

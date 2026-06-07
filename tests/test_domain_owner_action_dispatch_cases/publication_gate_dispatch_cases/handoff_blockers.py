@@ -15,6 +15,7 @@ from med_autoscience.controllers.stage_run_kernel import stage_run_kernel_projec
 
 from .helpers import (
     TERMINAL_HANDOFF_STAGE_ID,
+    assert_opl_closeout_binding,
     attach_publication_handoff_closeout_binding,
     remove_opl_execution_authorization,
 )
@@ -103,9 +104,11 @@ def test_execute_dispatch_writes_publication_handoff_typed_blocker_when_readines
     assert blocker_path.is_file()
     blocker = json.loads(blocker_path.read_text(encoding="utf-8"))
     assert blocker["authority_type"] == "typed_blocker"
-    assert blocker["closeout_binding"]["closeout_refs"] == [
-        "artifacts/supervision/consumer/stage_attempt_closeouts/sat-publication-handoff.json"
-    ]
+    assert_opl_closeout_binding(
+        blocker["closeout_binding"],
+        study_id=study_id,
+        receipt_ref="artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+    )
     assert blocker["stage_run_id"] == f"stage-run::{study_id}::{TERMINAL_HANDOFF_STAGE_ID}"
     assert blocker["stage_manifest_ref"].endswith(
         "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json"
@@ -128,15 +131,32 @@ def test_execute_dispatch_writes_publication_handoff_typed_blocker_when_readines
         "artifacts/supervision/consumer/stage_attempt_closeouts/sat-publication-handoff.json"
     ]
     assert manifest["source_fingerprint"] == "truth-source::002-dm-china-us-mortality-attribution::publication-handoff-binding"
+    assert_opl_closeout_binding(manifest["closeout_binding"], study_id=study_id)
     current_pointer = json.loads((blocker_path.parents[1] / "current.json").read_text(encoding="utf-8"))
     assert current_pointer["current_stage"]["status"] == "blocked"
     assert current_pointer["current_stage"]["terminal_outcome_kind"] == "typed_blocker"
+    assert_opl_closeout_binding(current_pointer["closeout_binding"], study_id=study_id)
     current_owner_delta = json.loads((blocker_path.parents[1] / "projection" / "current_owner_delta.json").read_text(encoding="utf-8"))
     assert current_owner_delta["latest_owner_answer_ref"] == (
         "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
     )
     assert current_owner_delta["latest_owner_answer_kind"] == "typed_blocker"
     assert current_owner_delta["delta_id"] == current_owner_delta["hard_gate"]["owner_answer_idempotency_key"]
+    assert_opl_closeout_binding(current_owner_delta["closeout_binding"], study_id=study_id)
+    assert current_owner_delta["provider_attempt_ref"] == f"opl://stage-attempts/{study_id}/publication-handoff"
+    assert current_owner_delta["attempt_lease_ref"] == f"opl://stage-attempts/{study_id}/publication-handoff/leases/current"
+    assert current_owner_delta["execution_authorization_decision_ref"] == (
+        f"opl://stage-attempts/{study_id}/publication-handoff/execution-authorizations/current"
+    )
+    assert current_owner_delta["hard_gate"]["owner_answer_provider_attempt_ref"] == (
+        f"opl://stage-attempts/{study_id}/publication-handoff"
+    )
+    assert current_owner_delta["hard_gate"]["owner_answer_attempt_lease_ref"] == (
+        f"opl://stage-attempts/{study_id}/publication-handoff/leases/current"
+    )
+    assert current_owner_delta["hard_gate"]["owner_answer_execution_authorization_decision_ref"] == (
+        f"opl://stage-attempts/{study_id}/publication-handoff/execution-authorizations/current"
+    )
     stage_run = stage_run_kernel_projection_from_stage_folder(
         study_root / "artifacts" / "stage_outputs" / "08-publication_package_handoff"
     )
@@ -144,6 +164,11 @@ def test_execute_dispatch_writes_publication_handoff_typed_blocker_when_readines
     assert stage_run["current_owner_delta"]["action"] == "complete_medical_paper_readiness_surface"
     assert stage_run["closeout_binding"]["source_fingerprint"] == (
         "truth-source::002-dm-china-us-mortality-attribution::publication-handoff-binding"
+    )
+    assert_opl_closeout_binding(
+        stage_run["closeout_binding"],
+        study_id=study_id,
+        receipt_ref="artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
     )
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
 
 import pytest
 
@@ -115,6 +117,12 @@ def _complete_proof_bundle_from_matrix(matrix: dict[str, object]) -> dict[str, o
         "schema_version": 1,
         "capabilities": capabilities,
     }
+
+
+def _source_provenance_payload() -> dict[str, object]:
+    repo_root = Path(__file__).resolve().parents[1]
+    provenance_path = repo_root / "docs" / "references" / "med-deepscientist" / "source_provenance.json"
+    return json.loads(provenance_path.read_text(encoding="utf-8"))
 
 
 def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
@@ -255,6 +263,55 @@ def test_mds_remaining_surface_inventory_classifies_functional_monolith_surfaces
         assert surface["quality_authority_allowed"] is False
         assert surface["publication_ready_authority_allowed"] is False
 
+    assert module.validate_mds_remaining_surface_inventory(inventory)["ok"] is True
+
+
+def test_no_history_source_provenance_json_is_machine_readable_by_parity_owner() -> None:
+    module = importlib.import_module("med_autoscience.controllers.mds_capability_parity")
+    payload = _source_provenance_payload()
+
+    assert payload["surface"] == "mds_no_history_snapshot_manifest"
+    assert payload["schema_version"] == 1
+    assert payload["import_mode"] == "no_history_snapshot_only"
+    assert payload["default_operation_requires_external_mds"] is False
+
+    source_provenance = payload["source_provenance"]
+    assert source_provenance == {
+        "upstream_repo": "med-deepscientist",
+        "upstream_ref": "med-deepscientist@35976b7d6e3b99b15b57ec44ff5f5d959b342ecc",
+        "snapshot_sha256": "f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b",
+        "snapshot_archive_format": "git archive --format=tar HEAD",
+        "snapshot_file_count": 1843,
+        "license_refs": [
+            "LICENSE (Apache-2.0; Copyright 2026 ResearAI)",
+            "MEDICAL_FORK_MANIFEST.json (controlled fork; upstream base a7853fda3432d37f6dee91fa6e66330f564bd8be)",
+            "docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md",
+        ],
+        "capability_classification": "external_source_archive_only",
+    }
+    assert payload["author_audit"] == {
+        "import_commit_author_policy": "mas_maintainer_only",
+        "coauthor_trailers_allowed": False,
+        "unwanted_upstream_author_identity_allowed": False,
+        "default_branch_contributor_check_required": True,
+    }
+    assert payload["retained_capability_ids"] == EXPECTED_CAPABILITY_IDS
+    assert [item["capability_id"] for item in payload["capabilities"]] == EXPECTED_CAPABILITY_IDS
+    assert {item["classification"] for item in payload["capabilities"]} == {
+        "mas_owned",
+        "fixture_only",
+        "retire",
+    }
+    for capability in payload["capabilities"]:
+        assert capability["authority_claims"] == []
+        assert capability["mas_owner"] in {"Runtime OS", "Artifact OS", "Quality OS", "Evaluation OS"}
+
+    inventory = payload["remaining_surface_inventory"]
+    assert inventory["surface"] == "mds_remaining_surface_inventory"
+    assert inventory["allowed_classifications"] == EXPECTED_REMAINING_SURFACE_CLASSIFICATIONS
+    assert [surface["surface_id"] for surface in inventory["remaining_surfaces"]] == (
+        EXPECTED_REMAINING_SURFACE_IDS
+    )
     assert module.validate_mds_remaining_surface_inventory(inventory)["ok"] is True
 
 

@@ -36,7 +36,7 @@ Machine boundary: Human-readable upstream-learning reference only; current study
 - `MAS`: `docs/references/med-deepscientist/source_provenance.json`
 - `MAS`: `docs/status.md`
 - `MAS`: `docs/active/program_portfolio_consolidation.md`
-- `MAS`: `docs/active/mas_single_project_mds_absorb_program.md`
+- `MAS`: `docs/policies/runtime-governance/mas_mds_owner_boundary_contract.md` and `docs/history/program/mas_single_project_mds_absorb_guard_2026_06_07.md`
 
 这些文档决定 owner 边界。它们优先于临时记忆、上一轮对话总结和旧 `MDS` fork intake 习惯。若本轮确实需要审计外部 `med-deepscientist` checkout，再额外读该 checkout 的当前 `docs/status.md` / fork audit surface；这一步是例外，不是默认学习入口。
 

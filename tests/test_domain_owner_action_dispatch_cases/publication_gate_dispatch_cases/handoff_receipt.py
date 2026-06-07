@@ -14,7 +14,11 @@ from med_autoscience.controllers.stage_artifact_materializer import materialize_
 from med_autoscience.controllers.stage_run_kernel import stage_run_kernel_projection_from_stage_folder
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 
-from .helpers import TERMINAL_HANDOFF_STAGE_ID, attach_publication_handoff_closeout_binding
+from .helpers import (
+    TERMINAL_HANDOFF_STAGE_ID,
+    assert_opl_closeout_binding,
+    attach_publication_handoff_closeout_binding,
+)
 
 
 def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal_ready(
@@ -114,9 +118,11 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert receipt["receipt_kind"] == "publication_handoff_owner_gate"
     assert receipt["receipt_status"] == "ready_for_human_submission_handoff"
-    assert receipt["closeout_binding"]["closeout_refs"] == [
-        "artifacts/supervision/consumer/stage_attempt_closeouts/sat-publication-handoff.json"
-    ]
+    assert_opl_closeout_binding(
+        receipt["closeout_binding"],
+        study_id=study_id,
+        receipt_ref="artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+    )
     assert receipt["source_fingerprint"] == (
         "truth-source::003-dpcc-primary-care-phenotype-treatment-gap::publication-handoff-binding"
     )
@@ -139,9 +145,11 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
     assert manifest["closeout_binding_refs"] == [
         "artifacts/supervision/consumer/stage_attempt_closeouts/sat-publication-handoff.json"
     ]
+    assert_opl_closeout_binding(manifest["closeout_binding"], study_id=study_id)
     current_pointer = json.loads((stage_receipt_path.parents[1] / "current.json").read_text(encoding="utf-8"))
     assert current_pointer["current_stage"]["status"] == "success"
     assert current_pointer["current_stage"]["terminal_outcome_kind"] == "owner_receipt"
+    assert_opl_closeout_binding(current_pointer["closeout_binding"], study_id=study_id)
     current_owner_delta = json.loads(
         (stage_receipt_path.parents[1] / "projection" / "current_owner_delta.json").read_text(encoding="utf-8")
     )
@@ -150,6 +158,21 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
     )
     assert current_owner_delta["latest_owner_answer_kind"] == "owner_receipt"
     assert current_owner_delta["delta_id"] == current_owner_delta["hard_gate"]["owner_answer_idempotency_key"]
+    assert_opl_closeout_binding(current_owner_delta["closeout_binding"], study_id=study_id)
+    assert current_owner_delta["provider_attempt_ref"] == f"opl://stage-attempts/{study_id}/publication-handoff"
+    assert current_owner_delta["attempt_lease_ref"] == f"opl://stage-attempts/{study_id}/publication-handoff/leases/current"
+    assert current_owner_delta["execution_authorization_decision_ref"] == (
+        f"opl://stage-attempts/{study_id}/publication-handoff/execution-authorizations/current"
+    )
+    assert current_owner_delta["hard_gate"]["owner_answer_provider_attempt_ref"] == (
+        f"opl://stage-attempts/{study_id}/publication-handoff"
+    )
+    assert current_owner_delta["hard_gate"]["owner_answer_attempt_lease_ref"] == (
+        f"opl://stage-attempts/{study_id}/publication-handoff/leases/current"
+    )
+    assert current_owner_delta["hard_gate"]["owner_answer_execution_authorization_decision_ref"] == (
+        f"opl://stage-attempts/{study_id}/publication-handoff/execution-authorizations/current"
+    )
     stage_run = stage_run_kernel_projection_from_stage_folder(
         study_root / "artifacts" / "stage_outputs" / "08-publication_package_handoff"
     )
@@ -158,6 +181,11 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
     assert stage_run["current_owner_delta"]["action"] == "human_submission_decision"
     assert stage_run["closeout_binding"]["source_fingerprint"] == (
         "truth-source::003-dpcc-primary-care-phenotype-treatment-gap::publication-handoff-binding"
+    )
+    assert_opl_closeout_binding(
+        stage_run["closeout_binding"],
+        study_id=study_id,
+        receipt_ref="artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
     )
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()

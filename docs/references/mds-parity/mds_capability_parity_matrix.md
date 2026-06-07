@@ -148,7 +148,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 
 MDS paper contract health 和 manuscript coverage 永远不能授权医学论文质量 ready；它们只提供 backend preflight 或 mechanical oracle 信号。
 
-当前 `tests/test_mds_capability_parity.py` 和 `tests/test_mds_retained_capability_absorb.py` 共同固定：
+当前 `tests/test_mds_capability_parity.py` 固定：
 
 - 每个 retained fixture 必须带 provenance ref、oracle input 和 MAS proof bundle。
 - MAS owner surface 必须显式 match 或 supersede MDS behavior。

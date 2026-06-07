@@ -306,6 +306,12 @@ def _closeout_binding_projection(
         "bound_to_current_pointer": bool(binding.get("bound_to_current_pointer")),
         "bound_to_source_fingerprint": bool(binding.get("bound_to_source_fingerprint")),
         "provider_attempt_ref": _text(binding.get("provider_attempt_ref")),
+        "attempt_id": _text(binding.get("attempt_id")) or _text(binding.get("provider_attempt_ref")),
+        "attempt_lease_ref": _text(binding.get("attempt_lease_ref")),
+        "attempt_lease_status": _text(binding.get("attempt_lease_status")),
+        "execution_authorization_decision_ref": _text(
+            binding.get("execution_authorization_decision_ref")
+        ),
         "stage_run_id": _text(binding.get("stage_run_id")) or _text(manifest.get("stage_run_id")),
         "stage_run_ref": _text(binding.get("stage_run_ref")) or _text(manifest.get("stage_run_ref")),
         "stage_manifest_ref": _text(binding.get("stage_manifest_ref"))
@@ -318,6 +324,8 @@ def _closeout_binding_projection(
         or _text(manifest.get("source_fingerprint")),
         "work_unit_fingerprint": _text(binding.get("work_unit_fingerprint"))
         or _text(manifest.get("work_unit_fingerprint")),
+        "idempotency_key": _text(binding.get("idempotency_key")),
+        "generation": binding.get("generation") if isinstance(binding.get("generation"), int) else 0,
         "receipt_ref": _text(binding.get("receipt_ref")),
         "body_included": False,
     }

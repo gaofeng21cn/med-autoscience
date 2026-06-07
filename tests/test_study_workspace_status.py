@@ -119,6 +119,46 @@ def test_study_workspace_status_apply_materializes_stage_index_and_manifest(tmp_
     assert validation["target_state_reference_doc"] == "docs/source/study_workspace_target_state.md"
 
 
+def test_study_workspace_status_routes_blocked_clean_room_surface_to_quality_repair(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_workspace_status")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_current_inputs(study_root)
+    _write_stage(study_root)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "paper_clean_room_rebuild" / "latest.json",
+        {"status": "ready", "clean_workspace_root": str(study_root / "clean-room")},
+    )
+    _write_json(
+        study_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json",
+        {
+            "gate_kind": "medical_publication_surface_control",
+            "status": "blocked",
+            "blockers": [
+                "missing_medical_story_contract",
+                "statistical_reviewer_audit_missing_or_incomplete",
+            ],
+        },
+    )
+
+    result = module.run_study_workspace_status(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+
+    next_action = result["studies"][0]["next_action"]
+    persisted = json.loads((study_root / "control" / "next_action.json").read_text(encoding="utf-8"))
+    assert next_action["action_id"] == "run_quality_repair_batch"
+    assert next_action["owner"] == "write"
+    assert next_action["source_surface"] == "artifacts/reports/medical_publication_surface/latest.json"
+    assert next_action["next_work_unit"] == "medical_publication_surface_blocked_write_repair"
+    assert persisted == next_action
+
+
 def test_study_workspace_status_fails_closed_for_runtime_root_as_study_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_workspace_status")
     profile = make_profile(tmp_path)

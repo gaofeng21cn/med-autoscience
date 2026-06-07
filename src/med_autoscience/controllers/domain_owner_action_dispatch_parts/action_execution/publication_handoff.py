@@ -492,6 +492,12 @@ def _write_current_owner_delta(
 ) -> None:
     owner_answer_kind = "typed_blocker" if source_ref == TYPED_BLOCKER_RELATIVE_PATH.as_posix() else "owner_receipt"
     idempotency_key = _text(closeout_binding.get("idempotency_key"))
+    provider_attempt_ref = _text(closeout_binding.get("provider_attempt_ref"))
+    attempt_lease_ref = _text(closeout_binding.get("attempt_lease_ref"))
+    attempt_lease_status = _text(closeout_binding.get("attempt_lease_status")) or "active"
+    execution_authorization_decision_ref = _text(closeout_binding.get("execution_authorization_decision_ref"))
+    closeout_refs = _text_list(closeout_binding.get("closeout_refs"))
+    binding = _manifest_closeout_binding(closeout_binding)
     _write_json(
         study_root / CURRENT_OWNER_DELTA_RELATIVE_PATH,
         {
@@ -500,6 +506,7 @@ def _write_current_owner_delta(
             "reason": reason,
             "source_ref": source_ref,
             "delta_id": idempotency_key,
+            "idempotency_key": idempotency_key,
             "latest_owner_answer_ref": source_ref,
             "latest_owner_answer_kind": owner_answer_kind,
             "latest_owner_receipt_ref": source_ref if owner_answer_kind == "owner_receipt" else None,
@@ -508,7 +515,12 @@ def _write_current_owner_delta(
             "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
             "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
             "source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
-            "closeout_binding": _manifest_closeout_binding(closeout_binding),
+            "provider_attempt_ref": provider_attempt_ref,
+            "attempt_lease_ref": attempt_lease_ref,
+            "attempt_lease_status": attempt_lease_status,
+            "execution_authorization_decision_ref": execution_authorization_decision_ref,
+            "closeout_refs": closeout_refs,
+            "closeout_binding": binding,
             "hard_gate": {
                 "state": "domain_owner_answer_recorded",
                 "owner_answer_ref": source_ref,
@@ -521,6 +533,11 @@ def _write_current_owner_delta(
                 "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
                 "owner_answer_source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
                 "owner_answer_idempotency_key": idempotency_key,
+                "owner_answer_provider_attempt_ref": provider_attempt_ref,
+                "owner_answer_attempt_lease_ref": attempt_lease_ref,
+                "owner_answer_attempt_lease_status": attempt_lease_status,
+                "owner_answer_execution_authorization_decision_ref": execution_authorization_decision_ref,
+                "owner_answer_closeout_refs": closeout_refs,
             },
         },
     )

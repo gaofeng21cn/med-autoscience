@@ -103,7 +103,7 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 - `ai_first_paper_autonomy_closure_program.md` 只定义论文自治验收合同。
 - `stage_surface_standardization_program.md` 只维护 stage pack 形态。
 - `opl_app_mas_runtime_workbench_program.md` 只维护 MAS refs-only projection 到 OPL App/workbench 的边界。
-- `mas_single_project_mds_absorb_program.md` 与 `../runtime/domain_authority_refs_index_guard.md` 只保留 landed foundation guard、provenance 和 drift 判断。
+- `policies/runtime-governance/mas_mds_owner_boundary_contract.md`、`runtime/domain_authority_refs_index_guard.md` 与 `history/program/mas_single_project_mds_absorb_guard_2026_06_07.md` 持有 landed foundation guard、provenance 和 drift 判断；旧 active MDS absorb 路径不保留兼容入口。
 
 这些路径暂留不是兼容承诺。若后续 machine/human_doc caller 迁出，且当前结论已吸收到 gap plan、runtime/source/delivery/policy 或 history，文档应直接移动到 `docs/history/**` 或 tombstone；不新增重定向文档、兼容 alias 或平行索引。
 

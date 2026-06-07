@@ -5,6 +5,12 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import autonomy_ai_doctor
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    default_executor_execution_candidates,
+)
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.missing_refs_typed_closeout import (
+    is_blocked_typed_closeout,
+)
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
@@ -152,6 +158,7 @@ def opl_current_control_state_handoff_path(*, profile: WorkspaceProfile) -> Path
         / "opl_current_control_state"
         / "latest.json"
     )
+
 
 
 def _opl_current_control_state_mode_fields(payload: Mapping[str, Any]) -> dict[str, Any]:

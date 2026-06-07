@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,7 +12,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer,
 from med_autoscience.controllers.owner_route_reconcile_parts import block_state as block_state_part, completion_evidence
 from med_autoscience.controllers.owner_route_reconcile_parts import current_controller_followthrough, current_truth_owner
 from med_autoscience.controllers.owner_route_reconcile_parts import default_executor_receipts, domain_authority_handoff
-from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract, evidence_adoption
+from med_autoscience.controllers.owner_route_reconcile_parts import evidence_adoption
 from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.owner_route_reconcile_parts import lifecycle_projection, opl_provider_attempts
 from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth, paper_progress_stall_projection, path_utils
@@ -25,6 +24,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import stage_artifa
 from med_autoscience.controllers.owner_route_reconcile_parts import story_surface_delta_actions, study_identity
 from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_parking
 from med_autoscience.controllers.owner_route_reconcile_parts import submission_milestone_projection, workspace_daemon
+from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import domain_authority_refs_index
@@ -36,11 +36,11 @@ from med_autoscience.profiles import WorkspaceProfile
 
 
 SCHEMA_VERSION = 1
-SUPERVISION_LATEST_RELATIVE_PATH = domain_route_contract.SUPERVISION_LATEST_RELATIVE_PATH
-SUPERVISION_HISTORY_RELATIVE_PATH = domain_route_contract.SUPERVISION_HISTORY_RELATIVE_PATH
-SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES = domain_route_contract.SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES
-SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES = domain_route_contract.SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES
-SUPERVISION_FORBIDDEN_ACTIONS = domain_route_contract.SUPERVISION_FORBIDDEN_ACTIONS
+SUPERVISION_LATEST_RELATIVE_PATH = supervision_surfaces.SUPERVISION_LATEST_RELATIVE_PATH
+SUPERVISION_HISTORY_RELATIVE_PATH = supervision_surfaces.SUPERVISION_HISTORY_RELATIVE_PATH
+SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES = supervision_surfaces.SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES
+SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES = supervision_surfaces.SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES
+SUPERVISION_FORBIDDEN_ACTIONS = supervision_surfaces.SUPERVISION_FORBIDDEN_ACTIONS
 
 
 def _utc_now() -> str:
@@ -57,56 +57,6 @@ def _mapping(value: object) -> dict[str, Any]:
 
 
 resolve_owner_route_reconcile_study_ids = study_identity.resolve_owner_route_reconcile_study_ids
-
-
-def _latest_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH
-
-
-def _history_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / SUPERVISION_HISTORY_RELATIVE_PATH
-
-
-def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def _append_json_line(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(dict(payload), ensure_ascii=False, sort_keys=True) + "\n")
-
-
-def _read_json_object(path: Path) -> dict[str, Any] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    return dict(payload) if isinstance(payload, Mapping) else None
-
-
-def _repair_lifecycle_path(study_root: Path) -> Path:
-    return study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json"
-
-
-def _clear_resolved_repair_lifecycle(
-    *,
-    study_root: Path,
-    previous_lifecycle: Mapping[str, Any],
-    current_lifecycle: Mapping[str, Any],
-    developer_mode: DeveloperSupervisorMode,
-    persist_surfaces: bool,
-) -> bool:
-    if not persist_surfaces or not developer_mode.safe_actions_enabled:
-        return False
-    if not previous_lifecycle or current_lifecycle:
-        return False
-    try:
-        _repair_lifecycle_path(study_root).unlink()
-    except FileNotFoundError:
-        return False
-    return True
 
 
 def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
@@ -791,7 +741,7 @@ def _study_projection(
         next_owner=next_owner,
         generated_at=generated_at,
     )
-    _clear_resolved_repair_lifecycle(
+    supervision_surfaces.clear_resolved_repair_lifecycle(
         study_root=study_root,
         previous_lifecycle=initial_lifecycle,
         current_lifecycle=lifecycle,
@@ -899,9 +849,9 @@ def scan_domain_routes(
         apply_safe_actions=apply_safe_actions,
         scheduler_owner="opl_current_control_state",
     )
-    latest_path = _latest_path(profile)
-    history_path = _history_path(profile)
-    previous_payload = _read_json_object(latest_path)
+    latest_path = supervision_surfaces.latest_path(profile)
+    history_path = supervision_surfaces.history_path(profile)
+    previous_payload = supervision_surfaces.read_json_object(latest_path)
     previous_action_ids = scan_output.previous_action_ids(previous_payload)
     provider_readiness = opl_provider_attempts.current_provider_readiness(
         timeout_seconds=provider_readiness_timeout_seconds
@@ -994,8 +944,8 @@ def scan_domain_routes(
             resolved_study_ids=resolved_study_ids,
             domain_authority_refs_index=domain_authority_refs_index,
             study_root_for_id=lambda value: _study_root(profile, value),
-            write_json=_write_json,
-            append_json_line=_append_json_line,
+            write_json=supervision_surfaces.write_json,
+            append_json_line=supervision_surfaces.append_json_line,
             text=_text,
             mapping=_mapping,
         )

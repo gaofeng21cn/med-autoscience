@@ -211,6 +211,7 @@ def _study_status(
         package_status=package_status,
         stage_index=stage_index,
         paper_clean_room_status=paper_clean_room_status,
+        study_root=study_root,
     )
     current_truth_map = {
         "schema_version": 1,
@@ -701,6 +702,7 @@ def _next_action(
     package_status: Mapping[str, Any],
     stage_index: Mapping[str, Any],
     paper_clean_room_status: Mapping[str, Any],
+    study_root: Path,
 ) -> dict[str, Any]:
     if blockers:
         return {
@@ -727,6 +729,23 @@ def _next_action(
             "clean_room_descriptor_ref": PAPER_CLEAN_ROOM_DESCRIPTOR_RELPATH.as_posix(),
             "current_stage_id": stage_index.get("current_stage_id"),
         }
+    publication_surface_status = _medical_publication_surface_status(study_root=study_root)
+    if publication_surface_status.get("status") == "blocked":
+        return {
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "status": "ready_for_owner_action",
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            "stage_index_ref": USER_ENTRY_REFS["stage_index"].as_posix(),
+            "current_stage_id": stage_index.get("current_stage_id"),
+            "current_package_status": package_status.get("status"),
+            "next_work_unit": "medical_publication_surface_blocked_write_repair",
+            "blockers": publication_surface_status.get("blockers") or [],
+        }
     if paper_clean_room_status.get("ready") is True:
         return {
             "action_id": "run_medical_publication_surface_from_clean_room",
@@ -745,6 +764,17 @@ def _next_action(
         "stage_index_ref": USER_ENTRY_REFS["stage_index"].as_posix(),
         "current_stage_id": stage_index.get("current_stage_id"),
         "current_package_status": package_status.get("status"),
+    }
+
+def _medical_publication_surface_status(*, study_root: Path) -> dict[str, Any]:
+    report_path = study_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"
+    payload = _read_json_mapping(report_path)
+    if payload is None:
+        return {}
+    return {
+        "status": _text(payload.get("status")),
+        "blockers": [str(item) for item in payload.get("blockers") or [] if str(item).strip()],
+        "report_ref": "artifacts/reports/medical_publication_surface/latest.json",
     }
 
 
