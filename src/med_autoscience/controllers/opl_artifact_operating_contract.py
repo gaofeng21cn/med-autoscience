@@ -6,6 +6,33 @@ from typing import Any, Mapping
 
 CONTRACT_REF = "contracts/opl-framework/artifact-operating-contract.json"
 CONTRACT_ID = "opl-artifact-operating-contract.v1"
+CONSUMABILITY_REQUIRED_CHECKS = (
+    "role",
+    "hash",
+    "source",
+    "current_truth",
+    "receipt_authority",
+    "lineage",
+    "retention_restore",
+    "domain_validation",
+)
+CONSUMABILITY_INSUFFICIENT_AUTHORITY_REFS = (
+    "file_presence",
+    "manifest_hash",
+    "manifest_structural_validity",
+    "read_model_projection",
+)
+
+_CONSUMABILITY_REQUIRED_REFS_BY_CHECK = {
+    "role": ("role_artifact_ref",),
+    "hash": ("manifest_hash_ref",),
+    "source": ("source_artifact_ref",),
+    "current_truth": ("current_pointer_ref",),
+    "receipt_authority": ("owner_receipt_ref_or_typed_blocker_ref",),
+    "lineage": ("lineage_event_ref_or_graph_ref",),
+    "retention_restore": ("retention_ref_or_restore_ref",),
+    "domain_validation": ("domain_semantic_receipt_ref_or_typed_blocker_ref",),
+}
 
 
 def load_opl_artifact_operating_contract() -> dict[str, Any]:
@@ -51,6 +78,66 @@ def consumability_gate_projection(contract: Mapping[str, Any]) -> dict[str, Any]
         "can_authorize_publication_readiness": False,
         "can_write_mas_truth": False,
     }
+
+
+def consumability_authority_boundary() -> dict[str, bool]:
+    return {
+        "derived_projection": True,
+        "writes_mas_truth": False,
+        "writes_publication_eval_latest": False,
+        "writes_controller_decision_latest": False,
+        "claims_publication_ready": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_artifact_mutation": False,
+        "file_presence_counts_as_consumability_authority": False,
+        "manifest_hash_counts_as_consumability_authority": False,
+        "manifest_validity_counts_as_semantic_receipt": False,
+        "read_model_counts_as_consumability_authority": False,
+    }
+
+
+def consumability_insufficient_authority_refs() -> list[str]:
+    return list(CONSUMABILITY_INSUFFICIENT_AUTHORITY_REFS)
+
+
+def consumability_failed_checks(checks: Mapping[str, Any]) -> list[str]:
+    return [name for name in CONSUMABILITY_REQUIRED_CHECKS if checks.get(name) is not True]
+
+
+def consumability_next_owner_delta(
+    *,
+    stage_id: str | None,
+    attempt_id: str | None,
+    failed_checks: list[str],
+    source_ref: str | None,
+    source_kind: str = "stage_manifest",
+) -> dict[str, Any] | None:
+    if not failed_checks:
+        return None
+    return {
+        "surface_kind": "stage_artifact_consumability_owner_delta",
+        "owner": "MedAutoScience",
+        "action": "emit_stage_artifact_consumability_receipt_or_typed_blocker",
+        "reason": "artifact_consumability_gate_failed:" + ",".join(failed_checks),
+        "stage_id": stage_id,
+        "attempt_id": attempt_id,
+        "blocked_surface": "stage_artifact_consumability_gate",
+        "required_refs": _required_refs_for_failed_checks(failed_checks),
+        "source_ref": source_ref,
+        "source_kind": source_kind,
+    }
+
+
+def _required_refs_for_failed_checks(failed_checks: list[str]) -> list[str]:
+    refs: list[str] = []
+    seen: set[str] = set()
+    for check in failed_checks:
+        for ref in _CONSUMABILITY_REQUIRED_REFS_BY_CHECK.get(check, ()):
+            if ref in seen:
+                continue
+            seen.add(ref)
+            refs.append(ref)
+    return refs
 
 
 def current_pointer_contract_projection(contract: Mapping[str, Any]) -> dict[str, Any]:
@@ -139,7 +226,12 @@ def _checks(value: Any) -> dict[str, dict[str, Any]]:
 __all__ = [
     "CONTRACT_ID",
     "CONTRACT_REF",
+    "CONSUMABILITY_REQUIRED_CHECKS",
+    "consumability_authority_boundary",
+    "consumability_failed_checks",
     "consumability_gate_projection",
+    "consumability_insufficient_authority_refs",
+    "consumability_next_owner_delta",
     "current_pointer_contract_projection",
     "find_opl_artifact_operating_contract_path",
     "load_opl_artifact_operating_contract",
