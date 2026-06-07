@@ -1,0 +1,83 @@
+{
+  "surface_kind": "opl_standard_agent_stage_operating_principles",
+  "version": "stage-operating-principles.v1",
+  "state": "active_contract",
+  "policy_owner": "one-person-lab",
+  "owner": "MedAutoScience",
+  "domain_id": "med-autoscience",
+  "purpose": "Keep OPL stages easy to manage while preserving fast owner-delta progression.",
+  "principle_summary": {
+    "management_logic": "MAS manages medical research progress through coarse stage attempts and owner receipts, not through stale study-level action queues.",
+    "speed_logic": "Codex executes inside the stage with medical source and authority boundaries; publication-quality gaps become scoped owner deltas or typed blockers unless a hard gate applies."
+  },
+  "management_boundary": {
+    "stage_unit": "coarse_grained_stage_attempt",
+    "required_boundary_controls": [
+      "stage_goal",
+      "input_refs",
+      "current_owner",
+      "accepted_answer_shape",
+      "owner_receipt_or_typed_blocker",
+      "handoff_packet",
+      "current_pointer",
+      "authority_boundary"
+    ],
+    "stage_must_not_split_into_micro_status_chain": true,
+    "default_operator_question": "what_does_current_owner_need_to_answer_next"
+  },
+  "speed_policy": {
+    "executor_autonomy_inside_stage": true,
+    "executor_can_choose_order_and_parallelism": true,
+    "strategy_refs_are_advisory_or_route_back": true,
+    "strategy_refs_block_launch_by_default": false,
+    "tool_catalog_can_prescribe_workflow_sequence": false,
+    "preflight_or_quality_review_can_loop_without_deliverable_delta": false,
+    "quality_gaps_block_ordinary_progress_by_default": false,
+    "safe_action_before_diagnostic_reconcile": true,
+    "next_delta_must_be_deliverable_receipt_blocker_or_handoff": true
+  },
+  "default_read_surface": {
+    "root": "current_owner_delta",
+    "raw_worklist_default": false,
+    "readiness_default": false,
+    "replay_packet_default": false,
+    "evidence_accounting_default": false,
+    "cleanup_delete_gate_default": false
+  },
+  "demoted_default_surfaces": [
+    "raw_worklist",
+    "stage_replay_packet",
+    "provider_trace",
+    "evidence_accounting",
+    "private_residue_inventory",
+    "cleanup_delete_gate"
+  ],
+  "hard_stop_gates": [
+    "safety_or_compliance",
+    "permission_or_credential_boundary",
+    "human_decision_required",
+    "irreversible_write_or_delete",
+    "authority_boundary_violation",
+    "missing_owner_answer_shape",
+    "stale_or_mismatched_stage_identity"
+  ],
+  "accepted_next_delta_shapes": [
+    "deliverable_delta_ref",
+    "owner_receipt_ref",
+    "typed_blocker_ref",
+    "human_gate_ref",
+    "quality_gate_receipt_ref",
+    "no_regression_ref",
+    "route_back_ref",
+    "handoff_packet_ref"
+  ],
+  "authority_boundary": {
+    "policy_can_claim_domain_ready": false,
+    "policy_can_claim_production_ready": false,
+    "conformance_pass_counts_as_live_progress": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_sign_domain_owner_receipt": false,
+    "opl_can_create_typed_blocker": false,
+    "opl_can_authorize_quality_or_export": false
+  }
+}
