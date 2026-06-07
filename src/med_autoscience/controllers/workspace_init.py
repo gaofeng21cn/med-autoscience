@@ -31,7 +31,6 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_materialize_domain_action_requests_script,
     _render_study_progress_script,
     _render_supervisor_execute_dispatch_script,
-    _render_legacy_control_surface_clean_migration_script,
     _render_scan_domain_routes_script,
     _render_domain_health_diagnostic_script,
 )
@@ -460,11 +459,6 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch",
             content=_render_supervisor_execute_dispatch_script(),
-            executable=True,
-        ),
-        RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "legacy-control-surface-clean-migration",
-            content=_render_legacy_control_surface_clean_migration_script(),
             executable=True,
         ),
         RenderedFile(

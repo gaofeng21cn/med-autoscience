@@ -32,6 +32,20 @@ def _install_blocking_report(module, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(module, "audit_boundary_fitness", lambda *args, **kwargs: report)
 
 
+def _install_oversized_advisory_report(module, monkeypatch: pytest.MonkeyPatch) -> None:
+    finding = SimpleNamespace(
+        line_count=1200,
+        path="src/med_autoscience/example.py",
+        message="exceeds the preferred line budget",
+        recommendation="split along the owner boundary",
+    )
+    report = SimpleNamespace(
+        oversized_findings=(finding,),
+        blocking_findings=(),
+    )
+    monkeypatch.setattr(module, "audit_boundary_fitness", lambda *args, **kwargs: report)
+
+
 def test_line_budget_script_accepts_current_locked_baseline() -> None:
     module = _load_line_budget_script()
     original_argv = sys.argv
@@ -64,11 +78,31 @@ def test_line_budget_script_reports_blocking_findings_as_advisory_by_default(
     assert "src/med_autoscience/example.py" in output
 
 
+def test_line_budget_script_reports_oversized_advisories_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    module = _load_line_budget_script()
+    _install_oversized_advisory_report(module, monkeypatch)
+    monkeypatch.delenv("MAS_LINE_BUDGET_STRICT", raising=False)
+    original_argv = sys.argv
+    sys.argv = ["scripts/line_budget.py"]
+    try:
+        exit_code = module.main()
+    finally:
+        sys.argv = original_argv
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "line budget advisory found 1 issue" in output
+    assert "src/med_autoscience/example.py" in output
+
+
 def test_line_budget_script_strict_flag_fails_on_blocking_findings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = _load_line_budget_script()
-    _install_blocking_report(module, monkeypatch)
+    _install_oversized_advisory_report(module, monkeypatch)
     original_argv = sys.argv
     sys.argv = ["scripts/line_budget.py", "--strict"]
     try:
@@ -83,7 +117,7 @@ def test_line_budget_script_strict_environment_fails_on_blocking_findings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = _load_line_budget_script()
-    _install_blocking_report(module, monkeypatch)
+    _install_oversized_advisory_report(module, monkeypatch)
     monkeypatch.setenv("MAS_LINE_BUDGET_STRICT", "1")
     original_argv = sys.argv
     sys.argv = ["scripts/line_budget.py"]

@@ -5,8 +5,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers.opl_artifact_operating_contract import (
+    CONSUMABILITY_REQUIRED_CHECKS,
     CONTRACT_REF as OPL_ARTIFACT_OPERATING_CONTRACT_REF,
+    consumability_authority_boundary,
+    consumability_failed_checks,
     consumability_gate_projection,
+    consumability_insufficient_authority_refs,
+    consumability_next_owner_delta,
     current_pointer_contract_projection,
     load_opl_artifact_operating_contract,
     operating_contract_projection,
@@ -26,6 +31,12 @@ from med_autoscience.controllers.stage_artifact_index_parts.authority_projection
 from med_autoscience.controllers.stage_artifact_index_parts.contract_refs import (
     contract_ref_set as _contract_ref_set,
     manifest_declared_support_refs as _manifest_declared_support_refs,
+)
+from med_autoscience.controllers.stage_artifact_index_parts.legacy_taxonomy import (
+    legacy_mappings_by_stage as _legacy_mappings_by_stage,
+    legacy_role_refs_for_stage as _legacy_role_refs_for_stage,
+    legacy_taxonomy_migration as _legacy_taxonomy_migration,
+    legacy_taxonomy_migration_stage_read_model as _legacy_taxonomy_migration_stage_read_model,
 )
 ALLOWED_ARTIFACT_STATUSES = (
     "missing",
@@ -58,7 +69,10 @@ def build_stage_artifact_index(*, study_id: str, study_root: Path) -> dict[str, 
     current_pointer_contract = current_pointer_contract_projection(operating_contract)
     domain_stage_pack = _load_paper_study_stage_pack()
     stage_specs = _paper_study_stage_specs(domain_stage_pack)
-    legacy_taxonomy_migration = _legacy_taxonomy_migration(domain_stage_pack)
+    legacy_taxonomy_migration = _legacy_taxonomy_migration(
+        domain_stage_pack,
+        paper_study_stage_pack_ref=_PAPER_STUDY_STAGE_PACK_REF,
+    )
     legacy_mappings_by_stage = _legacy_mappings_by_stage(legacy_taxonomy_migration)
     physical_kernel = physical_stage_kernel_projection(
         study_id=str(study_id),
@@ -213,7 +227,7 @@ def _build_stage_artifact_state(
         operating_contract=operating_contract,
         promotion_protocol=promotion_protocol,
     )
-    return {
+    stage_state = {
         "surface_kind": "stage_artifact_state",
         "stage_id": stage_id,
         "display_name": str(stage_spec.get("display_name") or stage_id),
@@ -229,6 +243,9 @@ def _build_stage_artifact_state(
         "physical_stage_folder_kernel": dict(physical_stage_kernel),
         "current_pointer": current_pointer,
         "consumability_gate": _stage_consumability_gate(
+            stage_id=stage_id,
+            attempt_id=_text(artifact_classification.get("latest_attempt_id")),
+            source_ref=str(manifest_requirements["ref"]),
             consumability_gate=consumability_gate,
             current_pointer=current_pointer,
         ),
@@ -239,6 +256,16 @@ def _build_stage_artifact_state(
         "next_routes": list(stage_spec.get("next_stage_ids") or ()),
         "authority_boundary": _authority_boundary(),
     }
+    stage_state["legacy_taxonomy_migration_read_model"] = (
+        _legacy_taxonomy_migration_stage_read_model(
+            stage_id=stage_id,
+            legacy_stage_mappings=legacy_stage_mappings,
+            current_pointer=current_pointer,
+            next_owner_action=_next_owner_action(stage_state),
+            paper_study_stage_pack_ref=_PAPER_STUDY_STAGE_PACK_REF,
+        )
+    )
+    return stage_state
 
 
 def _stage_folder_contract(
@@ -352,101 +379,6 @@ def _validate_paper_study_stage_pack(payload: Mapping[str, Any]) -> None:
 
 def _paper_study_stage_specs(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
     return tuple(stage for stage in payload["stages"] if isinstance(stage, Mapping))
-
-
-def _legacy_taxonomy_migration(payload: Mapping[str, Any]) -> dict[str, Any]:
-    migration = payload["legacy_taxonomy_migration"]
-    if not isinstance(migration, Mapping):
-        raise ValueError("legacy taxonomy migration must be a mapping")
-    mappings = [
-        _legacy_mapping_projection(item)
-        for item in _mapping_items(migration.get("mappings"))
-    ]
-    role_mapping: dict[str, list[dict[str, str]]] = {}
-    for item in mappings:
-        stage_id = str(item["target_stage_id"])
-        stage_roles = role_mapping.setdefault(stage_id, [])
-        for role in item["legacy_artifact_roles"]:
-            stage_roles.append(
-                {
-                    "legacy_route_id": str(item["legacy_route_id"]),
-                    "legacy_role": str(role["role"]),
-                    "legacy_ref": str(role["ref"]),
-                    "target_role": str(role["target_role"]),
-                }
-            )
-    policy = migration.get("current_truth_policy")
-    if not isinstance(policy, Mapping):
-        policy = {}
-    return {
-        "surface_kind": str(migration.get("surface_kind") or "mas_paper_study_legacy_taxonomy_migration"),
-        "status": str(migration.get("status") or "migration_manifest"),
-        "contract_ref": f"{_PAPER_STUDY_STAGE_PACK_REF}#/legacy_taxonomy_migration",
-        "current_truth_policy": {
-            "workbench_must_not_display_two_current_truths": bool(
-                policy.get("workbench_must_not_display_two_current_truths", True)
-            ),
-            "legacy_route_is_current_truth": bool(policy.get("legacy_route_is_current_truth", False)),
-            "current_truth_surface": str(policy.get("current_truth_surface") or "paper_study_stage_pack"),
-            "legacy_semantics": str(
-                policy.get("legacy_semantics") or "tombstone_backfilled_current_pointer"
-            ),
-        },
-        "mappings": mappings,
-        "role_mapping": role_mapping,
-        "body_included": False,
-        "authority_boundary": _authority_boundary(),
-    }
-
-
-def _legacy_mapping_projection(value: Mapping[str, Any]) -> dict[str, Any]:
-    legacy_route_id = _required_text(value.get("legacy_route_id"), "legacy_route_id")
-    target_stage_id = _required_text(value.get("target_stage_id"), "target_stage_id")
-    return {
-        "legacy_route_id": legacy_route_id,
-        "target_stage_id": target_stage_id,
-        "migration_semantics": "tombstone_backfilled_current_pointer",
-        "workbench_display_current_truth": "paper_study_stage_pack",
-        "legacy_route_is_current_truth": False,
-        "legacy_artifact_roles": [
-            {
-                "role": _required_text(role.get("role"), "role"),
-                "ref": _required_text(role.get("ref"), "ref"),
-                "target_role": _required_text(role.get("target_role"), "target_role"),
-            }
-            for role in _mapping_items(value.get("legacy_artifact_roles"))
-        ],
-    }
-
-
-def _legacy_mappings_by_stage(
-    legacy_taxonomy_migration: Mapping[str, Any],
-) -> dict[str, tuple[Mapping[str, Any], ...]]:
-    by_stage: dict[str, list[Mapping[str, Any]]] = {}
-    for item in _mapping_items(legacy_taxonomy_migration.get("mappings")):
-        stage_id = _text(item.get("target_stage_id"))
-        if stage_id is None:
-            continue
-        by_stage.setdefault(stage_id, []).append(item)
-    return {stage_id: tuple(items) for stage_id, items in by_stage.items()}
-
-
-def _legacy_role_refs_for_stage(
-    legacy_stage_mappings: tuple[Mapping[str, Any], ...],
-) -> tuple[dict[str, str], ...]:
-    refs: list[dict[str, str]] = []
-    for mapping in legacy_stage_mappings:
-        legacy_route_id = _required_text(mapping.get("legacy_route_id"), "legacy_route_id")
-        for role in _mapping_items(mapping.get("legacy_artifact_roles")):
-            refs.append(
-                {
-                    "legacy_route_id": legacy_route_id,
-                    "role": _required_text(role.get("role"), "role"),
-                    "target_role": _required_text(role.get("target_role"), "target_role"),
-                    "ref": _required_text(role.get("ref"), "ref"),
-                }
-            )
-    return tuple(refs)
 
 
 def _artifact_classification(
@@ -868,19 +800,47 @@ def _current_pointer_promotion_state(
 
 def _stage_consumability_gate(
     *,
+    stage_id: str,
+    attempt_id: str | None,
+    source_ref: str,
     consumability_gate: Mapping[str, Any],
     current_pointer: Mapping[str, Any],
 ) -> dict[str, Any]:
-    status = (
-        "ready_for_consumability_validation"
-        if current_pointer["promotion_state"] == "current_pointer_promoted"
-        else "blocked"
-    )
+    checks = _stage_consumability_gate_checks(current_pointer=current_pointer)
+    failed_checks = consumability_failed_checks(checks)
+    status = "ready_for_consumability_validation" if not failed_checks else "blocked"
     return {
         **dict(consumability_gate),
+        "surface_kind": "stage_artifact_consumability_gate",
+        "required_checks": list(CONSUMABILITY_REQUIRED_CHECKS),
         "status": status,
+        "fail_closed": bool(failed_checks),
+        "observed_checks": checks,
+        "failed_checks": failed_checks,
+        "next_owner_delta": consumability_next_owner_delta(
+            stage_id=stage_id,
+            attempt_id=attempt_id,
+            failed_checks=failed_checks,
+            source_ref=source_ref,
+        ),
+        "insufficient_authority_refs": consumability_insufficient_authority_refs(),
+        "authority_boundary": consumability_authority_boundary(),
         "blocked_reason": None if status != "blocked" else current_pointer["promotion_state"],
         "current_pointer_promotion_state": current_pointer["promotion_state"],
+    }
+
+
+def _stage_consumability_gate_checks(*, current_pointer: Mapping[str, Any]) -> dict[str, bool]:
+    current_pointer_promoted = current_pointer["promotion_state"] == "current_pointer_promoted"
+    return {
+        "role": current_pointer_promoted,
+        "hash": current_pointer_promoted,
+        "source": current_pointer_promoted,
+        "current_truth": current_pointer_promoted,
+        "receipt_authority": current_pointer_promoted,
+        "lineage": current_pointer_promoted,
+        "retention_restore": current_pointer_promoted,
+        "domain_validation": current_pointer_promoted,
     }
 
 

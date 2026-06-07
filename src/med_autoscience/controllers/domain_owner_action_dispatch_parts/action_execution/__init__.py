@@ -12,6 +12,7 @@ from med_autoscience.controllers import gate_clearing_batch, paper_clean_room_re
 
 from ... import (
     analysis_harmonization_owner,
+    ai_reviewer_publication_eval_workflow,
     quest_hydration,
     domain_status_projection,
 )

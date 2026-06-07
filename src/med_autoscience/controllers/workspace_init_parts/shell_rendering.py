@@ -225,17 +225,6 @@ def _render_supervisor_execute_dispatch_script() -> str:
     )
 
 
-def _render_legacy_control_surface_clean_migration_script() -> str:
-    return (
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci runtime legacy-control-surface-clean-migration \\\n'
-        '  --profile "${PROFILE_PATH}" \\\n'
-        '  "$@"\n'
-    )
-
-
 def _render_mas_runtime_bridge_shared() -> str:
     return (
         "#!/usr/bin/env bash\n"

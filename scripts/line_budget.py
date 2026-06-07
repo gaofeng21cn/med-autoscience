@@ -33,7 +33,7 @@ def main() -> int:
             print(f"{finding.line_count:6d} {finding.path}")
         return 0
 
-    failures = report.blocking_findings
+    failures = report.oversized_findings
     if failures:
         strict = args.strict or os.environ.get('MAS_LINE_BUDGET_STRICT') == '1'
         mode = 'failed' if strict else 'advisory found'
