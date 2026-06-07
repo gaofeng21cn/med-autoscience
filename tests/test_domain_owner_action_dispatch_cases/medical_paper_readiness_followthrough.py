@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tests.domain_owner_action_dispatch_helpers import write_json as _write_json
 from tests.study_runtime_test_helpers import make_profile, write_study
-from tests.test_domain_owner_action_dispatch_cases.medical_paper_readiness_dispatch import (
+from tests.test_domain_owner_action_dispatch_cases.medical_paper_readiness_dispatch_cases.shared import (
     ACTION_TYPE,
     _attach_readiness_closeout_binding,
     _readiness_dispatch,
