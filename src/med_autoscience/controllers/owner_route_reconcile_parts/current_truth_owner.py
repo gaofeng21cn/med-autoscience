@@ -64,7 +64,10 @@ def current_controller_runtime_route(
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
-    decision = _read_json_object(decision_path)
+    decision_path, decision = _current_controller_decision_candidate(
+        decision_path=decision_path,
+        publication_eval_payload=publication_eval_payload,
+    )
     if decision is None or decision.get("requires_human_confirmation") is True:
         return None
     work_unit = _mapping(decision.get("next_work_unit"))
@@ -124,6 +127,87 @@ def current_controller_runtime_route(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": decision_fingerprint,
     }
+
+
+def _current_controller_decision_candidate(
+    *,
+    decision_path: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> tuple[Path, dict[str, Any] | None]:
+    decision = _read_json_object(decision_path)
+    if not _medical_readiness_owner_blocker(decision):
+        return decision_path, decision
+    archived = _latest_archived_runtime_redrive_decision(
+        controller_decisions_root=decision_path.parent,
+        study_root=decision_path.parent.parent.parent,
+        publication_eval_payload=publication_eval_payload,
+    )
+    return archived if archived is not None else (decision_path, decision)
+
+
+def _medical_readiness_owner_blocker(decision: Mapping[str, Any] | None) -> bool:
+    payload = _mapping(decision)
+    return _text(payload.get("decision_type")) == "medical_paper_readiness_owner_blocker"
+
+
+def _latest_archived_runtime_redrive_decision(
+    *,
+    controller_decisions_root: Path,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> tuple[Path, dict[str, Any]] | None:
+    try:
+        paths = sorted(
+            (
+                path
+                for path in controller_decisions_root.glob("*.json")
+                if path.name != "latest.json"
+            ),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return None
+    for path in paths:
+        decision = _read_json_object(path)
+        if _archived_runtime_redrive_decision_current(
+            decision=decision,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        ):
+            return path.resolve(), decision
+    return None
+
+
+def _archived_runtime_redrive_decision_current(
+    *,
+    decision: Mapping[str, Any] | None,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> bool:
+    payload = _mapping(decision)
+    if not payload or payload.get("requires_human_confirmation") is True:
+        return False
+    work_unit = _mapping(payload.get("next_work_unit"))
+    work_unit_id = _text(work_unit.get("unit_id"))
+    fingerprint = _text(payload.get("work_unit_fingerprint")) or _text(work_unit.get("fingerprint"))
+    if work_unit_id is None or fingerprint is None:
+        return False
+    action_types = _canonical_controller_action_types(decision=payload, work_unit=work_unit)
+    if not domain_transition_runtime_route_allowed(
+        work_unit_fingerprint=fingerprint,
+        action_types=action_types,
+        work_unit_id=work_unit_id,
+    ):
+        return False
+    if _publication_work_unit_closed(
+        study_root=Path(_text(payload.get("study_root")) or study_root),
+        publication_eval_payload=publication_eval_payload,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=fingerprint,
+    ):
+        return False
+    return True
 
 
 def current_story_surface_delta_blocker_route(

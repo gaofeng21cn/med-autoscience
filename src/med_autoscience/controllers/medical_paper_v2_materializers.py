@@ -299,6 +299,28 @@ def _materialize_target_journal_writing_layer(
     )
 
 
+def _materialize_real_study_soak_matrix_evidence(
+    *,
+    study_root: Path,
+    payload: Mapping[str, Any],
+    apply: bool,
+) -> dict[str, Any]:
+    path = medical_paper_readiness.stable_capability_surface_path(
+        study_root=study_root,
+        surface_key="real_study_soak_matrix_evidence",
+    )
+    status, missing_reason = medical_paper_readiness._validate_soak_matrix(payload)
+    if apply:
+        _write_json(path, payload)
+    return _result(
+        surface_key="real_study_soak_matrix_evidence",
+        status=status,
+        missing_reason=missing_reason,
+        artifact_path=path,
+        payload=payload,
+    )
+
+
 def _materialize_route_decision_orchestrator(
     *,
     study_root: Path,
@@ -387,7 +409,7 @@ def _materialize_authoring_runtime_authorization(
     payload: Mapping[str, Any],
     apply: bool,
 ) -> dict[str, Any]:
-    projection = build_authoring_runtime_authorization(**dict(payload))
+    projection = build_authoring_runtime_authorization(**_without_authoring_metadata(payload))
     path = _surface_path(study_root=study_root, surface_key="authoring_runtime_authorization")
     if apply:
         _write_json(path, projection)
@@ -400,6 +422,21 @@ def _materialize_authoring_runtime_authorization(
         artifact_path=path,
         payload=projection,
     )
+
+
+def _without_authoring_metadata(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in dict(payload).items()
+        if key
+        not in {
+            "payload_source",
+            "source_basis",
+            "source_refs",
+            "quality_claim_authorized",
+            "mechanical_projection_can_authorize_quality",
+        }
+    }
 
 
 def _materialize_real_workspace_soak_monitor(
@@ -444,6 +481,7 @@ MATERIALIZERS: dict[str, Callable[..., dict[str, Any]]] = {
     "bounded_analysis_candidate_board": _materialize_bounded_analysis_candidate_board,
     "stop_loss_memo": _materialize_stop_loss_memo,
     "target_journal_writing_layer": _materialize_target_journal_writing_layer,
+    "real_study_soak_matrix_evidence": _materialize_real_study_soak_matrix_evidence,
     "route_decision_orchestrator": _materialize_route_decision_orchestrator,
     "statistical_discipline_operations": _materialize_statistical_discipline_operations,
     "revision_rebuttal_loop": _materialize_revision_rebuttal_loop,

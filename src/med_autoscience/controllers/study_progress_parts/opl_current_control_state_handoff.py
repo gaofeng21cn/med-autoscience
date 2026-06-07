@@ -5,6 +5,12 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import autonomy_ai_doctor
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    default_executor_execution_candidates,
+)
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.missing_refs_typed_closeout import (
+    is_blocked_typed_closeout,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 from .shared_base import _mapping_copy, _non_empty_text, _read_json_object
@@ -606,6 +612,85 @@ def _terminal_stage_log_sort_key(value: Mapping[str, Any]) -> tuple[str, float]:
     return (_non_empty_text(value.get("generated_at")) or "", mtime)
 
 
+def _latest_typed_default_executor_closeout_projection(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> dict[str, Any] | None:
+    study_root = profile.studies_root / study_id
+    if not study_root.is_dir():
+        return None
+    candidates: list[dict[str, Any]] = []
+    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
+        if not is_blocked_typed_closeout(execution=execution, receipt_ref=receipt_ref):
+            continue
+        owner_result = _observability_mapping(execution.get("owner_result"))
+        blocked_reason = _non_empty_text(owner_result.get("blocked_reason"))
+        if blocked_reason is None:
+            continue
+        source_path = study_root / receipt_ref
+        candidates.append(
+            {
+                "surface_kind": "mas_latest_default_executor_typed_closeout_projection",
+                "read_model": "study_opl_current_control_state_handoff_projection",
+                "authority": "observability_only",
+                "source_path": str(source_path),
+                "source_mtime": _source_path_mtime(source_path),
+                "receipt_ref": receipt_ref,
+                "generated_at": _non_empty_text(execution.get("generated_at")),
+                "study_id": study_id,
+                "execution_id": _non_empty_text(execution.get("execution_id")),
+                "action_type": _non_empty_text(execution.get("action_type")),
+                "status": "typed_blocker",
+                "blocked_reason": blocked_reason,
+                "next_owner": _non_empty_text(_observability_mapping(execution.get("current_owner_route")).get("next_owner")),
+                "owner_route": _owner_route_projection(execution.get("current_owner_route"))
+                or _owner_route_projection(execution.get("owner_route")),
+                "closeout_refs": _string_list(execution.get("stage_closeout_refs")),
+                "authority_boundary": _terminal_stage_log_authority_boundary(),
+            }
+        )
+    if not candidates:
+        return None
+    candidates.sort(key=_typed_closeout_sort_key, reverse=True)
+    return candidates[0]
+
+
+def _typed_closeout_sort_key(value: Mapping[str, Any]) -> tuple[str, float]:
+    return (_non_empty_text(value.get("generated_at")) or "", _number_value(value.get("source_mtime")) or 0.0)
+
+
+def _source_path_mtime(path: Path) -> float:
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def _typed_closeout_supersedes_terminal(
+    *,
+    typed_closeout: Mapping[str, Any] | None,
+    terminal_stage_log: Mapping[str, Any] | None,
+) -> bool:
+    typed = _observability_mapping(typed_closeout)
+    if not typed:
+        return False
+    terminal = _observability_mapping(terminal_stage_log)
+    if not terminal:
+        return True
+    typed_source = _non_empty_text(typed.get("source_path"))
+    terminal_source = _non_empty_text(terminal.get("source_path"))
+    if typed_source and terminal_source and typed_source == terminal_source:
+        return True
+    typed_mtime = (
+        (_number_value(typed.get("source_mtime")) or _source_path_mtime(Path(typed_source)))
+        if typed_source
+        else 0.0
+    )
+    terminal_mtime = _source_path_mtime(Path(terminal_source)) if terminal_source else 0.0
+    return typed_mtime >= terminal_mtime
+
+
 def _opl_current_control_state_mode_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
     scheduler_contract = _mapping_copy(payload.get("scheduler_contract"))
     developer_supervisor = _mapping_copy(payload.get("developer_supervisor"))
@@ -657,12 +742,17 @@ def opl_current_control_state_study_handoff_projection(
         profile=profile,
         study_id=study_id,
     )
+    latest_typed_closeout = _latest_typed_default_executor_closeout_projection(
+        profile=profile,
+        study_id=study_id,
+    )
     if payload is None:
-        if latest_terminal_stage_log is None:
+        if latest_terminal_stage_log is None and latest_typed_closeout is None:
             return None
         return _closeout_only_study_handoff_projection(
             handoff_path=handoff_path,
             latest_terminal_stage_log=latest_terminal_stage_log,
+            latest_typed_closeout=latest_typed_closeout,
             study_id=study_id,
         )
     matching = None
@@ -671,11 +761,12 @@ def opl_current_control_state_study_handoff_projection(
             matching = dict(item)
             break
     if matching is None:
-        if latest_terminal_stage_log is None:
+        if latest_terminal_stage_log is None and latest_typed_closeout is None:
             return None
         return _closeout_only_study_handoff_projection(
             handoff_path=handoff_path,
             latest_terminal_stage_log=latest_terminal_stage_log,
+            latest_typed_closeout=latest_typed_closeout,
             study_id=study_id,
             payload=payload,
         )
@@ -762,6 +853,14 @@ def opl_current_control_state_study_handoff_projection(
         "external_supervisor_required": bool(matching.get("external_supervisor_required")),
         "blocked_reason": _non_empty_text(matching.get("blocked_reason")),
     }
+    if _typed_closeout_supersedes_terminal(
+        typed_closeout=latest_typed_closeout,
+        terminal_stage_log=latest_terminal_stage_log or matching_terminal_stage_log,
+    ):
+        typed_closeout = _observability_mapping(latest_typed_closeout)
+        projection["blocked_reason"] = _non_empty_text(typed_closeout.get("blocked_reason"))
+        projection["next_owner"] = _non_empty_text(typed_closeout.get("next_owner")) or projection["next_owner"]
+        projection["latest_typed_default_executor_closeout"] = typed_closeout
     if latest_terminal_stage_log is not None:
         projection["latest_terminal_stage_log"] = latest_terminal_stage_log
     elif matching_terminal_stage_log:
@@ -773,22 +872,26 @@ def opl_current_control_state_study_handoff_projection(
 def _closeout_only_study_handoff_projection(
     *,
     handoff_path: Path,
-    latest_terminal_stage_log: Mapping[str, Any],
+    latest_terminal_stage_log: Mapping[str, Any] | None,
+    latest_typed_closeout: Mapping[str, Any] | None,
     study_id: str,
     payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_payload = _mapping_copy(payload)
+    terminal_stage_log = _observability_mapping(latest_terminal_stage_log)
+    typed_closeout = _observability_mapping(latest_typed_closeout)
     projection = {
         "surface_kind": "opl_current_control_state_study_handoff",
         "read_model": "study_opl_current_control_state_handoff_projection",
         "authority": "observability_only",
         "source_path": str(handoff_path),
         "generated_at": _non_empty_text(source_payload.get("generated_at"))
-        or _non_empty_text(latest_terminal_stage_log.get("generated_at")),
+        or _non_empty_text(terminal_stage_log.get("generated_at")),
         "study_id": study_id,
         "quest_status": None,
         "active_run_id": None,
-        "active_stage_attempt_id": _non_empty_text(latest_terminal_stage_log.get("stage_attempt_id")),
+        "active_stage_attempt_id": _non_empty_text(terminal_stage_log.get("stage_attempt_id"))
+        or _non_empty_text(typed_closeout.get("execution_id")),
         "active_workflow_id": None,
         "running_provider_attempt": False,
         "runtime_health": {},
@@ -802,11 +905,15 @@ def _closeout_only_study_handoff_projection(
         "developer_supervisor_attention_required": False,
         "action_queue": [],
         "why_not_applied": [],
-        "next_owner": None,
+        "next_owner": _non_empty_text(typed_closeout.get("next_owner")),
         "external_supervisor_required": False,
-        "blocked_reason": _non_empty_text(latest_terminal_stage_log.get("typed_blocker_reason")),
-        "latest_terminal_stage_log": dict(latest_terminal_stage_log),
+        "blocked_reason": _non_empty_text(typed_closeout.get("blocked_reason"))
+        or _non_empty_text(terminal_stage_log.get("typed_blocker_reason")),
     }
+    if terminal_stage_log:
+        projection["latest_terminal_stage_log"] = dict(terminal_stage_log)
+    if typed_closeout:
+        projection["latest_typed_default_executor_closeout"] = dict(typed_closeout)
     projection.update(_opl_current_control_state_mode_fields(source_payload))
     return projection
 

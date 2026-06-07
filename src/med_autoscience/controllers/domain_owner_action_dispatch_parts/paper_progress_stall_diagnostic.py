@@ -37,6 +37,17 @@ def diagnostic(
         return _stall_diagnostic(status="missing", blocking=False, handoff_allowed=False)
     current_stall = _mapping(_mapping(current_study).get("paper_progress_stall"))
     if not current_stall:
+        if _owner_authorized_readiness_surface_dispatch(
+            action_type=action_type,
+            dispatch=dispatch,
+            current_route=current_route,
+        ):
+            return _stall_diagnostic(
+                status="owner_authorized_readiness_surface_current_missing_bypass",
+                blocking=False,
+                handoff_allowed=True,
+                dispatch_stall=dispatch_stall,
+            )
         return _stall_diagnostic(
             status="current_missing",
             blocking=True,
@@ -130,6 +141,34 @@ def _stall_diagnostic(
         "current_terminal": _mapping(current_stall).get("terminal"),
         "current_stalled": _mapping(current_stall).get("stalled"),
     }
+
+
+def _owner_authorized_readiness_surface_dispatch(
+    *,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+    current_route: Mapping[str, Any] | None,
+) -> bool:
+    if action_type != "complete_medical_paper_readiness_surface":
+        return False
+    if not owner_route_part.route_allows_action(action=dispatch, owner_route=current_route):
+        return False
+    return _readiness_surface_key(dispatch) is not None
+
+
+def _readiness_surface_key(dispatch: Mapping[str, Any]) -> str | None:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    target_surface = _mapping(dispatch.get("target_surface")) or _mapping(prompt_contract.get("target_surface"))
+    for value in (
+        dispatch.get("surface_key"),
+        prompt_contract.get("surface_key"),
+        _mapping(dispatch.get("readiness_surface_identity")).get("surface_key"),
+        _mapping(prompt_contract.get("readiness_surface_identity")).get("surface_key"),
+        target_surface.get("surface_key"),
+    ):
+        if text := _text(value):
+            return text
+    return None
 
 
 def _mapping(value: object) -> dict[str, Any]:

@@ -24,6 +24,7 @@ DEFAULT_ACTION_ID_BY_SURFACE = {
     "bounded_analysis_candidate_board": "materialize_bounded_analysis_candidate_board",
     "stop_loss_memo": "materialize_stop_loss_memo",
     "target_journal_writing_layer": "materialize_target_journal_writing_layer",
+    "real_study_soak_matrix_evidence": "materialize_real_study_soak_matrix_evidence",
     "route_decision_orchestrator": "materialize_route_decision",
     "statistical_discipline_operations": "resolve_statistical_blockers",
     "revision_rebuttal_loop": "start_revision_rebuttal_loop",
@@ -57,13 +58,18 @@ def execute_complete_medical_paper_readiness_surface(
     request_payload = _mapping(owner_request_paths.owner_request_payload(profile, study_id, ACTION_TYPE))
     current_readiness = readiness_surface.build_medical_paper_readiness_surface(study_root=study_root)
     current_surface_key = _text(_mapping(current_readiness.get("next_action")).get("surface_key"))
-    surface_key = (
-        _current_owner_surface_key(dispatch_payload)
-        or _surface_key(dispatch_payload)
-        or current_surface_key
-        or _current_owner_surface_key(request_payload)
-        or _surface_key(request_payload)
+    declared_surface_key, declared_surface_has_currentness_binding = (
+        _declared_surface_key_and_currentness_binding(
+            dispatch_payload=dispatch_payload,
+            request_payload=request_payload,
+        )
     )
+    surface_key = _current_surface_key_if_declared_surface_is_stale(
+        current_readiness,
+        current_surface_key=current_surface_key,
+        declared_surface_key=declared_surface_key,
+        declared_surface_has_currentness_binding=declared_surface_has_currentness_binding,
+    ) or declared_surface_key or current_surface_key
     operator_payload = _operator_payload(dispatch_payload, surface_key=surface_key) or _operator_payload(
         request_payload,
         surface_key=surface_key,
@@ -288,6 +294,77 @@ def _next_action_from_surfaces(surfaces: list[dict[str, Any]]) -> dict[str, Any]
         "action_id": "continue_medical_paper_pipeline",
         "summary": "medical paper readiness surfaces complete.",
     }
+
+
+def _current_surface_key_if_declared_surface_is_stale(
+    readiness: Mapping[str, Any],
+    *,
+    current_surface_key: str | None,
+    declared_surface_key: str | None,
+    declared_surface_has_currentness_binding: bool,
+) -> str | None:
+    if not declared_surface_has_currentness_binding:
+        return None
+    if not current_surface_key or not declared_surface_key or current_surface_key == declared_surface_key:
+        return None
+    for item in _sequence(readiness.get("capability_surfaces")):
+        if not isinstance(item, Mapping):
+            continue
+        if _text(item.get("surface_key")) != declared_surface_key:
+            continue
+        if _text(item.get("status")) == "present":
+            return current_surface_key
+        return None
+    return None
+
+
+def _declared_surface_key_and_currentness_binding(
+    *,
+    dispatch_payload: Mapping[str, Any],
+    request_payload: Mapping[str, Any],
+) -> tuple[str | None, bool]:
+    for payload in (dispatch_payload, request_payload):
+        if text := _current_owner_surface_key(payload):
+            return text, _has_owner_route_currentness_binding(payload)
+        if text := _surface_key(payload):
+            return text, _has_owner_route_currentness_binding(payload)
+    return None, False
+
+
+def _has_owner_route_currentness_binding(payload: Mapping[str, Any]) -> bool:
+    prompt_contract = _mapping(payload.get("prompt_contract"))
+    handoff_packet = _mapping(payload.get("handoff_packet"))
+    owner_pickup = _mapping(payload.get("owner_pickup")) or _mapping(handoff_packet.get("owner_pickup"))
+    for item in (payload, prompt_contract, handoff_packet, owner_pickup):
+        if _currentness_basis_has_identity(_mapping(item.get("owner_route_currentness_basis"))):
+            return True
+        if _currentness_contract_has_basis(_mapping(item.get("currentness_contract"))):
+            return True
+        owner_route = _mapping(item.get("owner_route"))
+        if _currentness_basis_has_identity(_mapping(owner_route.get("owner_route_currentness_basis"))):
+            return True
+        if _currentness_contract_has_basis(_mapping(owner_route.get("currentness_contract"))):
+            return True
+    return False
+
+
+def _currentness_contract_has_basis(contract: Mapping[str, Any]) -> bool:
+    if not contract:
+        return False
+    return _currentness_basis_has_identity(_mapping(contract.get("basis")))
+
+
+def _currentness_basis_has_identity(basis: Mapping[str, Any]) -> bool:
+    if not basis:
+        return False
+    return bool(
+        _text(basis.get("work_unit_fingerprint"))
+        and (
+            _text(basis.get("truth_epoch"))
+            or _text(basis.get("source_eval_id"))
+            or _text(basis.get("runtime_health_epoch"))
+        )
+    )
 
 
 def _owner_delta_result(

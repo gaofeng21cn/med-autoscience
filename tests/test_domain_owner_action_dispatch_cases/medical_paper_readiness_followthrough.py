@@ -10,6 +10,7 @@ from tests.test_domain_owner_action_dispatch_cases.medical_paper_readiness_dispa
     ACTION_TYPE,
     _attach_readiness_closeout_binding,
     _readiness_dispatch,
+    _readiness_dispatch_for_surface,
     _write_readiness_dispatch,
     _write_ready_literature_intelligence,
 )
@@ -122,6 +123,45 @@ def _prepare_study_through_study_line(tmp_path: Path) -> tuple[object, str, Path
     return profile, study_id, study_root
 
 
+def _bind_stale_readiness_owner_route_currentness(
+    dispatch: dict[str, object],
+    *,
+    study_id: str,
+    study_root: Path,
+    stale_surface_key: str,
+) -> None:
+    currentness_basis = {
+        "work_unit_id": ACTION_TYPE,
+        "work_unit_fingerprint": (
+            f"stage-current-owner-delta::{ACTION_TYPE}::{stale_surface_key}::"
+            f"{study_root}/artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+        ),
+        "truth_epoch": f"truth-event::{study_id}::{stale_surface_key}",
+        "runtime_health_epoch": f"runtime-health-event::{study_id}::{stale_surface_key}",
+    }
+    currentness_contract = {
+        "status": "currentness_basis_required",
+        "basis": currentness_basis,
+        "required_fields": [
+            "work_unit_fingerprint",
+            "truth_epoch",
+            "runtime_health_epoch_or_source_eval_id",
+        ],
+        "missing_required_fields": [],
+        "fail_closed_when_missing": True,
+    }
+    dispatch["owner_route_currentness_basis"] = currentness_basis
+    prompt_contract = dispatch["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract["owner_route_currentness_basis"] = currentness_basis
+    owner_route = dispatch["owner_route"]
+    assert isinstance(owner_route, dict)
+    owner_route["currentness_contract"] = currentness_contract
+    prompt_owner_route = prompt_contract["owner_route"]
+    assert isinstance(prompt_owner_route, dict)
+    prompt_owner_route["currentness_contract"] = currentness_contract
+
+
 def test_execute_dispatch_authors_study_line_selection_from_route_decision_artifact(
     monkeypatch,
     tmp_path: Path,
@@ -222,6 +262,12 @@ def test_execute_dispatch_uses_current_readiness_surface_over_stale_dispatch_sur
     dispatch["medical_paper_readiness_payload_ref"] = request_ref
     dispatch["prompt_contract"]["operator_payload_ref"] = request_ref
     dispatch["prompt_contract"]["medical_paper_readiness_payload_ref"] = request_ref
+    _bind_stale_readiness_owner_route_currentness(
+        dispatch,
+        study_id=study_id,
+        study_root=study_root,
+        stale_surface_key="literature_provider_runtime",
+    )
     _write_readiness_dispatch(study_root, profile, dispatch)
 
     result = module.dispatch_domain_owner_actions(
@@ -305,6 +351,255 @@ def test_execute_dispatch_authors_archetype_analysis_contract_from_study_metadat
     assert not (study_root / "manuscript" / "current_package").exists()
     assert not (study_root / "manuscript" / "current_package.zip").exists()
     assert not (study_root / "paper" / "draft.md").exists()
+
+
+def test_execute_dispatch_repairs_route_decision_requested_action_from_selected_line(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    readiness_module = importlib.import_module("med_autoscience.controllers.medical_paper_readiness")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile, study_id, study_root = _prepare_study_through_study_line(tmp_path)
+    contract = {
+        "surface": "archetype_specific_analysis_contract",
+        "schema_version": 1,
+        "status": "resolved",
+        "study_archetype": "clinical_classifier",
+        "endpoint_type": "time_to_event",
+        "required_analysis_packages": ["discrimination_metrics"],
+        "quality_claim_authorized": False,
+        "mechanical_projection_can_authorize_quality": False,
+    }
+    _write_json(study_root / "paper" / "medical_analysis_contract.json", contract)
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "bounded_analysis_candidate_board.json",
+        {
+            "surface": "bounded_analysis_candidate_board",
+            "schema_version": 1,
+            "status": "present",
+            "candidates": [
+                {
+                    "analysis_package": "discrimination_metrics",
+                    "target_claim": "Validate discrimination for the selected time-to-event mortality model.",
+                    "expected_evidence_gain": "Quantify discrimination evidence before route execution.",
+                    "cost_risk": "bounded",
+                    "clinical_interpretability": "owner-review-required-before-quality-claim",
+                    "decision": "explore",
+                    "decision_reason": "Generated as a bounded candidate for the route decision handoff test.",
+                    "evidence_refs": ["paper/medical_analysis_contract.json"],
+                }
+            ],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "stop_loss_memo.json",
+        {
+            "surface": "route_control_stop_loss_memo",
+            "schema_version": 1,
+            "status": "present",
+            "decision": "continue",
+            "decision_allowed": True,
+            "attempted_paths": ["study_line_selection", "bounded_analysis_candidate_board"],
+            "evidence_gain_ceiling": "moderate_with_current_selected_line",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "paper" / "target_journal_writing_layer.json",
+        {
+            "surface": "target_journal_writing_layer",
+            "schema_version": 1,
+            "status": "present",
+            "target_journal_family": "general_internal_medicine",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json",
+        {
+            "surface": "real_study_soak_matrix_evidence",
+            "schema_version": 1,
+            "overall_status": "complete",
+            "checks": [{"check_id": "study_line", "status": "pass"}],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    readiness_module.build_medical_paper_readiness_surface(study_root=study_root)
+    dispatch = _readiness_dispatch(study_id=study_id)
+    dispatch.pop("surface_key", None)
+    dispatch["prompt_contract"].pop("surface_key", None)
+    _attach_readiness_closeout_binding(dispatch, study_id=study_id)
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "route_decision_orchestrator"
+    action_result = execution["owner_result"]["guarded_operator_action_result"]
+    assert action_result["action_id"] == "materialize_route_decision"
+    assert action_result["status"] == "ready"
+    route = json.loads(
+        (study_root / "artifacts" / "medical_paper" / "route_decision_orchestrator.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert route["requested_action"] == "select_line"
+    assert route["route_decision"] == "proceed_to_baseline"
+    assert route["blockers"] == []
+    readiness = json.loads((study_root / "artifacts" / "medical_paper" / "readiness.json").read_text(encoding="utf-8"))
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["route_decision_orchestrator"]["status"] == "present"
+    assert readiness["next_action"]["surface_key"] == "statistical_discipline_operations"
+
+
+def test_execute_dispatch_uses_current_readiness_over_stale_dispatch_identity(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    readiness_module = importlib.import_module("med_autoscience.controllers.medical_paper_readiness")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile, study_id, study_root = _prepare_study_through_study_line(tmp_path)
+    _write_json(
+        study_root / "paper" / "medical_analysis_contract.json",
+        {
+            "surface": "archetype_specific_analysis_contract",
+            "schema_version": 1,
+            "status": "resolved",
+            "study_archetype": "clinical_classifier",
+            "endpoint_type": "time_to_event",
+            "required_analysis_packages": ["discrimination_metrics"],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "bounded_analysis_candidate_board.json",
+        {
+            "surface": "bounded_analysis_candidate_board",
+            "schema_version": 1,
+            "status": "present",
+            "candidates": [
+                {
+                    "analysis_package": "discrimination_metrics",
+                    "target_claim": "Validate discrimination for the selected mortality model.",
+                    "expected_evidence_gain": "Quantify discrimination before promotion.",
+                    "statistical_risk": "requires_precision_and_calibration_binding",
+                    "clinical_interpretability": "owner-review-required-before-quality-claim",
+                    "decision": "explore",
+                    "decision_reason": "Bounded candidate selected for statistical discipline checks.",
+                    "evidence_refs": ["paper/medical_analysis_contract.json"],
+                }
+            ],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "route_decision_orchestrator.json",
+        {
+            "surface": "route_decision_orchestrator",
+            "schema_version": 1,
+            "status": "ready",
+            "requested_action": "select_line",
+            "route_decision": "proceed_to_baseline",
+            "route_control_decision": "continue",
+            "selected_line_id": "dm002-current-line",
+            "next_action": "proceed_to_baseline",
+            "controller_decision_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            "controller_decision": {
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+            "blockers": [],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "stop_loss_memo.json",
+        {
+            "surface": "route_control_stop_loss_memo",
+            "schema_version": 1,
+            "status": "present",
+            "decision": "continue",
+            "decision_allowed": True,
+            "attempted_paths": ["study_line_selection", "bounded_analysis_candidate_board"],
+            "evidence_gain_ceiling": "moderate_with_current_selected_line",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "paper" / "target_journal_writing_layer.json",
+        {
+            "surface": "target_journal_writing_layer",
+            "schema_version": 1,
+            "status": "present",
+            "target_journal_family": "general_internal_medicine",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json",
+        {
+            "surface": "real_study_soak_matrix_evidence",
+            "schema_version": 1,
+            "overall_status": "complete",
+            "checks": [{"check_id": "study_line", "status": "pass"}],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    readiness_module.build_medical_paper_readiness_surface(study_root=study_root)
+    dispatch = _readiness_dispatch_for_surface(
+        study_id=study_id,
+        surface_key="route_decision_orchestrator",
+    )
+    _attach_readiness_closeout_binding(dispatch, study_id=study_id)
+    _bind_stale_readiness_owner_route_currentness(
+        dispatch,
+        study_id=study_id,
+        study_root=study_root,
+        stale_surface_key="route_decision_orchestrator",
+    )
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "statistical_discipline_operations"
+    action_result = execution["owner_result"]["guarded_operator_action_result"]
+    assert action_result["action_id"] == "resolve_statistical_blockers"
+    assert action_result["status"] == "ready"
+    readiness = json.loads((study_root / "artifacts" / "medical_paper" / "readiness.json").read_text(encoding="utf-8"))
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["statistical_discipline_operations"]["status"] == "present"
+    assert readiness["ready_count"] == 10
+    assert readiness["next_action"]["surface_key"] == "revision_rebuttal_loop"
 
 
 def test_execute_dispatch_dry_run_does_not_materialize_archetype_analysis_contract(

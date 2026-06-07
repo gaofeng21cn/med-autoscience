@@ -24,6 +24,21 @@ def block_if_missing_authorization(
         current_study=current_study,
     ):
         return None
+    if _text(dispatch.get("action_type")) == "complete_medical_paper_readiness_surface":
+        return {
+            "execution_status": "handoff_ready",
+            "blocked_reason": None,
+            "owner_callable_surface": "opl_default_executor.stage_attempt",
+            "provider_attempt_or_lease_required": True,
+            "provider_completion_is_domain_completion": False,
+            "authority_boundary": {
+                "opl": "provider_attempt_admission_and_execution_authorization",
+                "domain": "truth_quality_artifact_gate_owner",
+                "can_write_domain_truth": False,
+                "can_authorize_quality_verdict": False,
+                "provider_completion_is_domain_ready": False,
+            },
+        }
     return {
         "execution_status": "blocked",
         "blocked_reason": "opl_execution_authorization_required",

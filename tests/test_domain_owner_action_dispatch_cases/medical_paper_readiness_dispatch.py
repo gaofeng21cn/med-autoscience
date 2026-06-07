@@ -94,6 +94,20 @@ def _write_readiness_dispatch(study_root: Path, profile, dispatch: dict[str, obj
     _write_current_dispatch(dispatch_path, profile, dispatch)
 
 
+def _drop_opl_execution_authorization(dispatch: dict[str, object]) -> None:
+    dispatch.pop("opl_execution_authorization", None)
+    dispatch.pop("opl_provider_attempt", None)
+    dispatch.pop("stage_attempt", None)
+    prompt_contract = dispatch["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract.pop("opl_execution_authorization", None)
+    prompt_contract.pop("opl_provider_attempt", None)
+    owner_route = dispatch["owner_route"]
+    assert isinstance(owner_route, dict)
+    owner_route.pop("opl_execution_authorization", None)
+    owner_route.pop("opl_provider_attempt", None)
+
+
 def _write_ready_literature_intelligence(study_root: Path) -> None:
     _write_json(
         study_root / "artifacts" / "medical_paper" / "literature_intelligence_os.json",
@@ -195,6 +209,470 @@ def _write_target_journal_writing_layer(study_root: Path) -> None:
             "mechanical_projection_can_authorize_quality": False,
         },
     )
+
+
+def _write_ready_literature_provider_runtime_with_nested_intelligence(study_root: Path) -> None:
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json",
+        {
+            "surface": "literature_provider_runtime",
+            "schema_version": 1,
+            "status": "ready",
+            "source_basis": "verified_literature_materialization",
+            "source_refs": ["artifacts/publication_eval/literature_materialization.json"],
+            "literature_intelligence_payload": {
+                "search_strategy": {
+                    "query": "primary-care diabetes phenotype treatment gap",
+                    "mesh_terms": ["Diabetes Mellitus"],
+                    "keywords": ["primary care", "phenotype", "treatment gap"],
+                },
+                "search_date": "2026-06-06",
+                "searched_sources": ["artifacts/publication_eval/literature_materialization.json"],
+                "provider_provenance": [
+                    {
+                        "provider_name": "pubmed",
+                        "query": "primary-care diabetes phenotype treatment gap",
+                        "retrieved_at": "2026-06-06T08:00:00Z",
+                        "response_status": "ok",
+                        "source_refs": ["artifacts/publication_eval/literature_materialization.json"],
+                    },
+                    {
+                        "provider_name": "crossref",
+                        "query": "primary-care diabetes guideline systematic review",
+                        "retrieved_at": "2026-06-06T08:01:00Z",
+                        "response_status": "ok",
+                        "source_refs": ["artifacts/publication_eval/literature_materialization.json"],
+                    },
+                    {
+                        "provider_name": "semantic_scholar",
+                        "query": "primary-care diabetes phenotype neighbor",
+                        "retrieved_at": "2026-06-06T08:02:00Z",
+                        "response_status": "ok",
+                        "source_refs": ["artifacts/publication_eval/literature_materialization.json"],
+                    },
+                ],
+                "why_worth_doing": "Provider runtime evidence supports the DPCC phenotype and treatment-gap framing.",
+                "anchor_papers": ["pmid:41469089"],
+                "guidelines": ["doi:10.1136/fmch-2025-003765"],
+                "systematic_reviews": ["doi:10.1038/s43856-023-00360-3"],
+                "journal_neighbor_refs": ["semantic_scholar:S2PAPER1"],
+                "high_score_neighbor_refs": [
+                    {
+                        "ref": "semantic_scholar:S2PAPER1",
+                        "score": 0.91,
+                        "score_source_ref": "semantic_scholar:verified-literature-materialization",
+                    }
+                ],
+                "screening_decisions": [
+                    {
+                        "ref": "pmid:41469089",
+                        "decision": "include",
+                        "reason": "Current provider runtime anchor for the clinical context.",
+                    }
+                ],
+                "citation_ledger_refs": [
+                    "paper/evidence_ledger.json#pmid-41469089",
+                    "paper/evidence_ledger.json#doi-10-1136-fmch-2025-003765",
+                    "paper/evidence_ledger.json#doi-10-1038-s43856-023-00360-3",
+                    "paper/evidence_ledger.json#semantic-S2PAPER1",
+                ],
+            },
+        },
+    )
+
+
+def _write_target_journal_source_surfaces(study_root: Path) -> None:
+    _write_json(
+        study_root / "paper" / "medical_journal_style_corpus.json",
+        {
+            "surface": "medical_journal_style_corpus",
+            "schema_version": 1,
+            "source_refs": [
+                {
+                    "source_id": "jama_author_instructions",
+                    "label": "JAMA Instructions for Authors",
+                    "style_takeaway": "Use concise medical writing and quantify results with uncertainty.",
+                },
+                {
+                    "source_id": "jama_network_open_neighbor",
+                    "label": "JAMA Network Open diabetes prediction neighbor",
+                    "style_takeaway": "State clinical context, objective, methods, results, and limitations plainly.",
+                },
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "primary_mortality_claim",
+                    "sections": ["Results"],
+                    "evidence_items": [
+                        {
+                            "source_paths": [
+                                "paper/results_narrative_map.json#primary_mortality_claim",
+                                "paper/tables/table_catalog.json#T2",
+                            ]
+                        }
+                    ],
+                    "display_bindings": [
+                        {
+                            "display_id": "T2",
+                            "display_role": "primary results table",
+                        },
+                        {
+                            "display_id": "F2",
+                            "display_role": "model performance figure",
+                        },
+                    ],
+                    "prohibited_interpretations": [
+                        "Do not imply causal attribution beyond the observational design."
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {"display_id": "T2", "title": "Primary mortality attribution results"},
+                {"display_id": "F2", "title": "Model performance and calibration"},
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [{"figure_id": "F2", "claim_id": "primary_mortality_claim"}],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [{"table_id": "T2", "claim_id": "primary_mortality_claim"}],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "results_narrative_map.json",
+        {
+            "schema_version": 1,
+            "primary_result": "Primary mortality risk differences should be reported with uncertainty.",
+        },
+    )
+    _write_json(
+        study_root / "paper" / "medical_manuscript_blueprint.json",
+        {
+            "schema_version": 1,
+            "sections": ["Introduction", "Methods", "Results", "Discussion"],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review.json",
+        {
+            "schema_version": 1,
+            "restraint_principles": [
+                "Use associated with language.",
+                "Keep causal language out of observational findings.",
+            ],
+        },
+    )
+
+
+def _write_revision_rebuttal_loop_sources(study_root: Path) -> None:
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::dm002::ai-reviewer-record::20260606T080000Z",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "schema_version": 1,
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-claim-restraint",
+                    "gap_type": "claim",
+                    "severity": "must_fix",
+                    "summary": "Reviewer requested more restrained wording for the mortality gap claim.",
+                    "evidence_refs": [
+                        "paper/claim_evidence_map.json#C1",
+                        "artifacts/stage_outputs/_body_authority/current_body/paper/evidence_ledger.json#C1",
+                    ],
+                }
+            ],
+            "quality_assessment": {
+                "evidence_strength": {
+                    "status": "blocked",
+                    "summary": "The evidence ledger must be cited before rebuttal closure.",
+                    "reviewer_revision_advice": "Add additional analysis or evidence repair before acceptance.",
+                    "evidence_refs": ["paper/claim_evidence_map.json#C1"],
+                }
+            },
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::route-back",
+                    "action_type": "route_back_same_line",
+                    "priority": "now",
+                    "route_target": "write",
+                    "route_key_question": "What same-line repair is required before package handoff?",
+                    "route_rationale": "Reviewer concerns remain unresolved.",
+                    "requires_controller_decision": True,
+                    "evidence_refs": ["paper/review/review_ledger.json#gap-claim-restraint"],
+                }
+            ],
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "ai_reviewer_required": False,
+                "policy_id": "publication_critique.default",
+            },
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "paper" / "claim_evidence_map.json",
+        {
+            "schema_version": "claim_evidence_map_v2",
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "sections": ["Results"],
+                    "statement": "Observed diabetes mortality gap requires restrained reporting.",
+                    "evidence_items": [
+                        {
+                            "item_id": "C1-main",
+                            "source_paths": ["paper/results_narrative_map.json#C1"],
+                            "summary": "Primary result supports a descriptive cohort difference.",
+                            "support_level": "primary",
+                        }
+                    ],
+                    "status": "supported_with_limitations",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "current_body" / "paper" / "evidence_ledger.json",
+        {
+            "schema_version": 1,
+            "items": [
+                {
+                    "item_id": "C1-main",
+                    "kind": "analysis_result",
+                    "summary": "Primary result ledger entry for the descriptive mortality gap.",
+                    "source_paths": ["paper/results_narrative_map.json#C1"],
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "review" / "review_ledger.json",
+        {
+            "schema_version": 1,
+            "status": "active",
+            "concerns": [
+                {
+                    "concern_id": "gap-claim-restraint",
+                    "reviewer_id": "ai_reviewer",
+                    "severity": "major",
+                    "status": "open",
+                    "summary": "Reviewer requested more restrained wording for the mortality gap claim.",
+                }
+            ],
+        },
+    )
+
+
+def _write_revision_rebuttal_loop_surface(study_root: Path) -> None:
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "revision_rebuttal_loop.json",
+        {
+            "surface": "revision_rebuttal_loop",
+            "schema_version": 1,
+            "status": "ready",
+            "reviewer_comment_count": 1,
+            "durable_refs": {
+                "evidence_ledger_refs": [
+                    str(
+                        study_root
+                        / "artifacts"
+                        / "stage_outputs"
+                        / "_body_authority"
+                        / "paper_authority_cutover"
+                        / "current_body"
+                        / "paper"
+                        / "evidence_ledger.json"
+                    )
+                ],
+                "review_ledger_refs": [str(study_root / "paper" / "review" / "review_ledger.json")],
+            },
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+
+
+def _write_readiness_surfaces_before_revision_rebuttal(study_root: Path) -> None:
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json",
+        {
+            "surface": "literature_provider_runtime",
+            "status": "ready",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "literature_scout.json",
+        {
+            "search_strategy": {"query": "diabetes mortality"},
+            "search_date": "2026-06-06",
+            "anchor_papers": ["pmid:25869581"],
+            "guidelines": ["doi:10.1155/2018/4638327"],
+            "journal_neighbor_refs": ["doi:10.5334/gh.1131"],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "study_line_selection.json",
+        {
+            "selected_line_id": "002-dm-china-us-mortality-attribution",
+            "dimensions": {
+                "novelty": 3,
+                "clinical_relevance": 4,
+                "data_fit": 4,
+                "analysis_plasticity": 3,
+                "external_validation": 3,
+                "journal_fit": 3,
+                "cost_risk": 2,
+                "stop_threshold": "owner_review_required",
+            },
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "paper" / "medical_analysis_contract.json",
+        {
+            "surface": "archetype_specific_analysis_contract",
+            "status": "resolved",
+            "study_archetype": "clinical_classifier",
+            "endpoint_type": "time_to_event",
+            "required_analysis_packages": ["discrimination_metrics"],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "bounded_analysis_candidate_board.json",
+        {
+            "surface": "bounded_analysis_candidate_board",
+            "candidates": [
+                {
+                    "analysis_package": "discrimination_metrics",
+                    "target_claim": "Validate mortality risk discrimination.",
+                    "expected_evidence_gain": "Quantify model discrimination.",
+                    "cost_risk": "bounded",
+                    "statistical_risk": "requires_precision_and_calibration_binding",
+                    "clinical_interpretability": "owner-review-required-before-quality-claim",
+                    "decision": "explore",
+                    "decision_reason": "Required by the analysis contract.",
+                }
+            ],
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "stop_loss_memo.json",
+        {
+            "surface": "stop_loss_memo",
+            "decision": "continue",
+            "attempted_paths": ["complete_medical_paper_readiness_surface"],
+            "evidence_gain_ceiling": "meaningful_revision_loop_expected",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_target_journal_writing_layer(study_root)
+    _write_json(
+        study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json",
+        {
+            "surface": "real_study_soak_matrix_evidence",
+            "overall_status": "complete",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "route_decision_orchestrator.json",
+        {
+            "surface": "route_decision_orchestrator",
+            "status": "ready",
+            "route_decision": "proceed_to_baseline",
+            "controller_decision_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            "controller_decision": {
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "medical_paper" / "statistical_discipline_operations.json",
+        {
+            "surface": "statistical_discipline_operations",
+            "status": "ready",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+
+
+def _write_stage_output_owner_receipt(study_root: Path, stage_id: str) -> None:
+    _write_json(
+        study_root / "artifacts" / "stage_outputs" / stage_id / "receipts" / "owner_receipt.json",
+        {
+            "surface": "stage_owner_receipt",
+            "stage_id": stage_id,
+            "status": "completed",
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+
+
+def _write_complete_soak_stage_refs(study_root: Path) -> None:
+    for relative_ref in (
+        "artifacts/stage_outputs/01-study_intake/receipts/owner_receipt.json",
+        "artifacts/stage_outputs/01-study_intake/projection/current_owner_delta.json",
+        "artifacts/stage_outputs/04-analysis_execution/analysis_run_record.json",
+        "artifacts/stage_outputs/04-analysis_execution/primary_results_artifact_set.json",
+        "artifacts/stage_outputs/05-evidence_synthesis/evidence_synthesis_matrix.json",
+        "artifacts/medical_paper/stop_loss_memo.json",
+        "artifacts/medical_paper/revision_rebuttal_loop.json",
+        "artifacts/supervision/consumer/default_executor_execution/history.jsonl",
+        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+    ):
+        _write_json(
+            study_root / relative_ref,
+            {
+                "surface": "durable_stage_ref",
+                "relative_ref": relative_ref,
+                "quality_claim_authorized": False,
+                "mechanical_projection_can_authorize_quality": False,
+            },
+        )
 
 
 def _write_literature_materialization(study_root: Path) -> None:
@@ -384,6 +862,44 @@ def test_execute_dispatch_consumes_inline_readiness_dispatch_closeout_binding(
         / "default_executor_dispatches"
         / f"{ACTION_TYPE}.json"
     ).exists()
+
+
+def test_apply_without_opl_authorization_hands_readiness_action_to_provider(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch = _readiness_dispatch(study_id=study_id)
+    _drop_opl_execution_authorization(dispatch)
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["codex_dispatch_count"] == 1
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    assert execution["blocked_reason"] is None
+    assert execution["will_start_llm"] is True
+    assert execution["provider_attempt_or_lease_required"] is True
+    assert execution["provider_completion_is_domain_completion"] is False
+    assert execution["dispatch_path"].endswith(
+        "artifacts/supervision/consumer/default_executor_dispatches/complete_medical_paper_readiness_surface.json"
+    )
+    assert not (study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json").exists()
+    assert not (study_root / "artifacts" / "medical_paper" / "owner_blocker.json").exists()
 
 
 def test_execute_dispatch_authors_provider_runtime_from_verified_materialization_when_pubmed_fetch_fails(
@@ -1366,6 +1882,111 @@ def test_execute_dispatch_materializes_literature_scout_from_existing_intelligen
     assert not (study_root / "paper" / "submission_minimal" / "current_package").exists()
 
 
+def test_execute_dispatch_materializes_literature_scout_from_ready_provider_runtime(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_ready_literature_provider_runtime_with_nested_intelligence(study_root)
+    dispatch = _readiness_dispatch_for_surface(study_id=study_id, surface_key="literature_scout")
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "literature_scout"
+    assert execution["owner_result"]["operator_payload_authoring"]["source_basis"] == (
+        "ready_literature_provider_runtime"
+    )
+    action_result = execution["owner_result"]["guarded_operator_action_result"]
+    assert action_result["status"] == "present"
+    intelligence_os = json.loads(
+        (study_root / "artifacts" / "medical_paper" / "literature_intelligence_os.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert intelligence_os["surface"] == "literature_intelligence_os"
+    assert intelligence_os["status"] == "ready"
+    assert intelligence_os["quality_claim_authorized"] is False
+    readiness = json.loads((study_root / "artifacts" / "medical_paper" / "readiness.json").read_text(encoding="utf-8"))
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["literature_scout"]["status"] == "present"
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_execute_dispatch_authors_study_line_selection_from_study_literature_and_stage_refs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        quest_id=study_id,
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="primary_care_phenotype_treatment_gap",
+        paper_framing_summary="DPCC primary-care diabetes phenotype treatment gap study.",
+    )
+    _write_ready_literature_intelligence(study_root)
+    literature_module = importlib.import_module("med_autoscience.controllers.literature_provider_runtime")
+    literature_module.materialize_literature_provider_runtime(
+        study_root=study_root,
+        payload=_complete_provider_payload(),
+    )
+    _write_stage_output_owner_receipt(study_root, "01-study_intake")
+    dispatch = _readiness_dispatch_for_surface(study_id=study_id, surface_key="study_line_selection")
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "study_line_selection"
+    assert execution["owner_result"]["operator_payload_authoring"]["source_basis"] == (
+        "study_metadata_literature_and_stage_refs"
+    )
+    action_result = execution["owner_result"]["guarded_operator_action_result"]
+    assert action_result["action_id"] == "materialize_study_line_selection"
+    assert action_result["status"] == "present"
+    line_decision = json.loads(
+        (study_root / "artifacts" / "medical_paper" / "study_line_decision.json").read_text(encoding="utf-8")
+    )
+    assert line_decision["surface"] == "study_line_decision_engine"
+    assert line_decision["status"] == "selected"
+    assert line_decision["selected_line_id"] == study_id
+    assert line_decision["quality_claim_authorized"] is False
+    readiness = json.loads((study_root / "artifacts" / "medical_paper" / "readiness.json").read_text(encoding="utf-8"))
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["study_line_selection"]["status"] == "present"
+    assert readiness["next_action"]["surface_key"] == "archetype_analysis_contract"
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_execute_dispatch_blocks_literature_scout_without_existing_intelligence_os(
     monkeypatch,
     tmp_path: Path,
@@ -1444,6 +2065,299 @@ def test_execute_dispatch_materializes_target_journal_writing_layer_from_existin
     assert by_key["target_journal_writing_layer"]["status"] == "present"
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "paper" / "submission_minimal" / "current_package").exists()
+
+
+def test_execute_dispatch_authors_target_journal_layer_from_structured_writing_sources(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_target_journal_source_surfaces(study_root)
+    dispatch = _readiness_dispatch_for_surface(study_id=study_id, surface_key="target_journal_writing_layer")
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "target_journal_writing_layer"
+    assert execution["owner_result"]["operator_payload_authoring"]["source_basis"] == (
+        "structured_writing_context_sources"
+    )
+    target_layer = json.loads((study_root / "paper" / "target_journal_writing_layer.json").read_text(encoding="utf-8"))
+    assert target_layer["surface"] == "target_journal_writing_layer"
+    assert target_layer["target_journal_family"] == "general_internal_medicine"
+    assert target_layer["claim_to_paragraph_map"][0]["claim_id"] == "primary_mortality_claim"
+    assert target_layer["display_to_claim_map"][0]["display_id"] == "T2"
+    assert target_layer["quality_claim_authorized"] is False
+    readiness = json.loads((study_root / "artifacts" / "medical_paper" / "readiness.json").read_text(encoding="utf-8"))
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["target_journal_writing_layer"]["status"] == "present"
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "paper" / "submission_minimal" / "current_package").exists()
+
+
+def test_execute_dispatch_materializes_real_study_soak_matrix_evidence_from_stage_refs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_complete_soak_stage_refs(study_root)
+    dispatch = _readiness_dispatch_for_surface(study_id=study_id, surface_key="real_study_soak_matrix_evidence")
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "real_study_soak_matrix_evidence"
+    assert execution["owner_result"]["operator_payload_authoring"]["source_basis"] == (
+        "real_study_soak_matrix_evidence_builder"
+    )
+    action_result = execution["owner_result"]["guarded_operator_action_result"]
+    assert action_result["action_id"] == "materialize_real_study_soak_matrix_evidence"
+    assert action_result["status"] == "present"
+    evidence_path = study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json"
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    assert evidence["surface"] == "real_study_soak_matrix_evidence"
+    assert evidence["overall_status"] == "complete"
+    assert evidence["quality_claim_authorized"] is False
+    readiness = json.loads((study_root / "artifacts" / "medical_paper" / "readiness.json").read_text(encoding="utf-8"))
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["real_study_soak_matrix_evidence"]["status"] == "present"
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_execute_dispatch_materializes_revision_rebuttal_loop_from_review_and_ledger_sources(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_readiness_surfaces_before_revision_rebuttal(study_root)
+    _write_revision_rebuttal_loop_sources(study_root)
+    dispatch = _readiness_dispatch_for_surface(study_id=study_id, surface_key="revision_rebuttal_loop")
+    _attach_readiness_closeout_binding(dispatch, study_id=study_id)
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "revision_rebuttal_loop"
+    assert execution["owner_result"]["operator_payload_authoring"]["source_basis"] == (
+        "publication_eval_review_and_evidence_ledgers"
+    )
+    action_result = execution["owner_result"]["guarded_operator_action_result"]
+    assert action_result["action_id"] == "start_revision_rebuttal_loop"
+    assert action_result["status"] == "ready"
+    artifact_path = study_root / "artifacts" / "medical_paper" / "revision_rebuttal_loop.json"
+    projection = json.loads(artifact_path.read_text(encoding="utf-8"))
+    assert projection["surface"] == "revision_rebuttal_loop"
+    assert projection["status"] == "ready"
+    assert projection["reviewer_comment_count"] >= 1
+    assert projection["durable_refs"]["review_ledger_refs"] == [
+        str(study_root / "paper" / "review" / "review_ledger.json")
+    ]
+    assert projection["durable_refs"]["evidence_ledger_refs"] == [
+        str(study_root / "artifacts" / "stage_outputs" / "_body_authority" / "paper_authority_cutover" / "current_body" / "paper" / "evidence_ledger.json"),
+        str(study_root / "paper" / "claim_evidence_map.json"),
+    ]
+    assert projection["quality_claim_authorized"] is False
+    assert projection["mechanical_projection_can_authorize_quality"] is False
+    readiness = json.loads((study_root / "artifacts" / "medical_paper" / "readiness.json").read_text(encoding="utf-8"))
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["revision_rebuttal_loop"]["status"] == "present"
+    assert readiness["next_action"]["surface_key"] == "authoring_runtime_authorization"
+
+
+def test_execute_dispatch_materializes_authoring_runtime_authorization_from_paper_sources(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_readiness_surfaces_before_revision_rebuttal(study_root)
+    _write_revision_rebuttal_loop_sources(study_root)
+    _write_revision_rebuttal_loop_surface(study_root)
+    dispatch = _readiness_dispatch_for_surface(study_id=study_id, surface_key="authoring_runtime_authorization")
+    _attach_readiness_closeout_binding(dispatch, study_id=study_id)
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "publication_eval_not_ai_reviewer_owned"
+    assert execution["owner_result"]["completed_surface_key"] == "authoring_runtime_authorization"
+    assert execution["owner_result"]["operator_payload_authoring"]["source_basis"] == (
+        "target_journal_layer_publication_eval_and_ledgers"
+    )
+    action_result = execution["owner_result"]["guarded_operator_action_result"]
+    assert action_result["action_id"] == "authorize_manuscript_drafting"
+    assert action_result["status"] == "blocked"
+    artifact_path = study_root / "artifacts" / "medical_paper" / "authoring_runtime_authorization.json"
+    projection = json.loads(artifact_path.read_text(encoding="utf-8"))
+    assert projection["surface"] == "ai_reviewer_journal_writing_authorization"
+    assert projection["full_drafting_authorized"] is False
+    assert projection["required_refs"]["evidence_ledger_ref"] == (
+        "artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper/evidence_ledger.json"
+    )
+    assert projection["required_refs"]["review_ledger_ref"] == "paper/review/review_ledger.json"
+    assert "publication_eval_not_ai_reviewer_owned" in projection["blockers"]
+    assert "claim_to_paragraph_map_evidence_ref_outside_ledger:C1" not in projection["blockers"]
+    assert "claim_to_paragraph_map_review_ref_outside_ledger:C1" not in projection["blockers"]
+    readiness = json.loads((study_root / "artifacts" / "medical_paper" / "readiness.json").read_text(encoding="utf-8"))
+    by_key = {item["surface_key"]: item for item in readiness["capability_surfaces"]}
+    assert by_key["authoring_runtime_authorization"]["status"] == "blocked"
+    assert by_key["authoring_runtime_authorization"]["missing_reason"] == "publication_eval_not_ai_reviewer_owned"
+    assert readiness["next_action"]["surface_key"] == "authoring_runtime_authorization"
+
+
+def test_execute_dispatch_dry_run_projects_authored_revision_rebuttal_loop_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_readiness_surfaces_before_revision_rebuttal(study_root)
+    _write_revision_rebuttal_loop_sources(study_root)
+    dispatch = _readiness_dispatch_for_surface(study_id=study_id, surface_key="revision_rebuttal_loop")
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["owner_result"]["completed_surface_key"] == "revision_rebuttal_loop"
+    assert execution["owner_result"]["operator_payload_authoring"]["status"] == "ready"
+    action_result = execution["owner_result"]["guarded_operator_action_result"]
+    assert action_result["status"] == "ready"
+    assert action_result["dry_run"] is True
+    assert not (study_root / "artifacts" / "medical_paper" / "revision_rebuttal_loop.json").exists()
+
+
+def test_execute_dispatch_allows_owner_authorized_readiness_surface_when_stall_scan_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_complete_soak_stage_refs(study_root)
+    dispatch = _readiness_dispatch_for_surface(study_id=study_id, surface_key="real_study_soak_matrix_evidence")
+    stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": False,
+        "safe_reconcile_candidate": False,
+        "action_fingerprint": "paper_progress_stall::missing-scan-readiness-surface",
+        "source_refs": {
+            "owner_route_work_unit_fingerprint": dispatch["owner_route"]["work_unit_fingerprint"],
+        },
+    }
+    dispatch["paper_progress_stall"] = stall
+    dispatch["prompt_contract"]["paper_progress_stall"] = stall
+    _write_readiness_dispatch(study_root, profile, dispatch)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": dispatch["owner_route"],
+                }
+            ],
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert execution["paper_progress_stall_handoff_allowed"] is True
+    assert execution["paper_progress_stall_diagnostic"] == {
+        "surface_kind": "paper_progress_stall_diagnostic",
+        "status": "owner_authorized_readiness_surface_current_missing_bypass",
+        "blocking": False,
+        "blocked_reason": None,
+        "handoff_allowed": True,
+        "dispatch_action_fingerprint": "paper_progress_stall::missing-scan-readiness-surface",
+        "current_action_fingerprint": None,
+        "current_terminal": None,
+        "current_stalled": None,
+    }
+    assert execution["owner_result"]["completed_surface_key"] == "real_study_soak_matrix_evidence"
+    assert execution["owner_result"]["guarded_operator_action_result"]["status"] == "present"
+    assert (study_root / "artifacts" / "real_study_soak_matrix" / "evidence.json").is_file()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
 def test_execute_dispatch_does_not_use_stale_request_payload_for_current_readiness_surface(

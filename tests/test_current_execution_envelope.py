@@ -377,6 +377,219 @@ def test_study_progress_envelope_preserves_non_superseded_handoff_blocker_over_l
     assert envelope["typed_blocker"]["blocker_type"] == "medical_paper_readiness_not_ready"
 
 
+def test_study_progress_envelope_preserves_latest_default_executor_typed_closeout_over_stale_action_queue(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-07T00:36:14+00:00",
+            "authority": "observability_only",
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_status": "active",
+                    "active_run_id": "opl-stage-attempt://sat-old",
+                    "running_provider_attempt": False,
+                    "runtime_health": {},
+                    "action_queue": [
+                        {
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "owner": "ai_reviewer",
+                            "next_work_unit": "ai_reviewer_medical_prose_quality_review",
+                        }
+                    ],
+                    "next_owner": "ai_reviewer",
+                    "blocked_reason": "domain_transition_ai_reviewer_re_eval",
+                }
+            ],
+        },
+    )
+    closeout_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat-rehydrate.closeout.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "generated_at": "2026-06-07T01:04:47+00:00",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_attempt_id": "sat-rehydrate",
+            "closeout_id": "stage-attempt-closeout::sat-rehydrate::medical_prose_review_request_rehydrate_required",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "status": "blocked_with_typed_closeout",
+            "blocked_reason": "medical_prose_review_request_rehydrate_required",
+            "stage_packet_ref": (
+                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+                "immutable/return_to_ai_reviewer_workflow/packet.json"
+            ),
+            "domain_execution": {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "execution_status": "blocked",
+                "blocked_reason": "medical_prose_review_request_rehydrate_required",
+                "domain_owner": "ai_reviewer",
+                "execution_id": "execution::002::return_to_ai_reviewer_workflow::2026-06-07T01:04:47+00:00",
+            },
+            "typed_blocker": {
+                "blocked_reason": "medical_prose_review_request_rehydrate_required",
+                "next_owner": "ai_reviewer",
+                "write_permitted": False,
+            },
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "schema_version": 1,
+                "status": "available",
+                "stage_name": "ai_reviewer_medical_prose_quality_review",
+                "current_owner": "ai_reviewer",
+                "problem_summary": "request rehydrate required",
+                "stage_goal": "Produce current AI reviewer medical prose review.",
+                "stage_work_done": ["Recorded typed owner blocker."],
+                "paper_work_done": ["Recorded typed owner blocker."],
+                "changed_stage_surfaces": [],
+                "changed_paper_surfaces": [],
+                "outcome": "blocked_with_domain_typed_blocker",
+                "remaining_blockers": [
+                    "medical_prose_review_request_rehydrate_required",
+                    "medical_prose_review_request_manuscript_ref_mismatch",
+                ],
+                "progress_delta_classification": "typed_blocker",
+            },
+            "closeout_refs": [
+                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/sat-rehydrate.closeout.json",
+                "typed-blocker:medical_prose_review_request_rehydrate_required",
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": quest_id,
+            "quest_root": str(profile.runtime_root / quest_id),
+            "quest_status": "active",
+            "decision": "blocked",
+            "reason": "publication_handoff_owner_gate",
+            "active_run_id": None,
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-event-after-closeout",
+                "runtime_liveness_status": "none",
+                "attempt_state": "blocked",
+            },
+        },
+    )
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+
+    handoff = result["opl_current_control_state_handoff"]
+    envelope = result["current_execution_envelope"]
+    assert handoff["blocked_reason"] == "medical_prose_review_request_rehydrate_required"
+    assert handoff["latest_typed_default_executor_closeout"]["receipt_ref"].endswith(
+        "sat-rehydrate.closeout.json"
+    )
+    assert result["current_execution_evidence"]["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["owner"] == "ai_reviewer"
+    assert envelope["next_work_unit"] is None
+    assert envelope["typed_blocker"]["blocker_type"] == "medical_prose_review_request_rehydrate_required"
+
+
+def test_study_progress_envelope_treats_handoff_owner_reason_as_running_context(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-06T10:30:00+00:00",
+            "authority": "observability_only",
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_status": "active",
+                    "active_run_id": "opl-stage-attempt://sat-live",
+                    "active_stage_attempt_id": "sat-live",
+                    "active_workflow_id": "wf-live",
+                    "running_provider_attempt": True,
+                    "runtime_health": {
+                        "health_status": "running",
+                        "runtime_liveness_status": "live",
+                    },
+                    "action_queue": [
+                        {
+                            "action_type": "run_gate_clearing_batch",
+                            "owner": "gate_clearing_batch",
+                            "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                        }
+                    ],
+                    "next_owner": "gate_clearing_batch",
+                    "blocked_reason": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": quest_id,
+            "quest_root": str(profile.runtime_root / quest_id),
+            "quest_status": "active",
+            "decision": "blocked",
+            "reason": "publication_handoff_owner_gate",
+            "active_run_id": None,
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-event-before-live-attempt",
+                "runtime_liveness_status": "queued",
+                "attempt_state": "queued",
+            },
+        },
+    )
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+
+    envelope = result["current_execution_envelope"]
+    assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is True
+    assert envelope["state_kind"] == "running_provider_attempt"
+    assert envelope["owner"] == "gate_clearing_batch"
+    assert envelope["next_work_unit"] == "sat-live"
+    assert envelope["typed_blocker"] is None
+
+
 def test_envelope_prefers_executable_action_over_reason_only_blocker() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 
@@ -396,6 +609,27 @@ def test_envelope_prefers_executable_action_over_reason_only_blocker() -> None:
     assert envelope["owner"] == "ai_reviewer"
     assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     assert envelope["typed_blocker"] is None
+
+
+def test_envelope_preserves_rehydrate_typed_closeout_over_stale_ai_reviewer_action() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        actions=[
+            {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "next_work_unit": "ai_reviewer_medical_prose_quality_review",
+            }
+        ],
+        blocked_reason="medical_prose_review_request_rehydrate_required",
+        next_owner="ai_reviewer",
+    )
+
+    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["owner"] == "ai_reviewer"
+    assert envelope["next_work_unit"] is None
+    assert envelope["typed_blocker"]["blocker_type"] == "medical_prose_review_request_rehydrate_required"
 
 
 def test_envelope_prefers_running_provider_attempt_over_stale_action_queue() -> None:
@@ -432,6 +666,39 @@ def test_envelope_prefers_running_provider_attempt_over_stale_action_queue() -> 
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
     assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
+    assert envelope["typed_blocker"] is None
+
+
+def test_envelope_prefers_running_provider_attempt_over_owner_route_reason() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        actions=[
+            {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "next_work_unit": "ai_reviewer_medical_prose_quality_review",
+            }
+        ],
+        blocked_reason="domain_transition_ai_reviewer_re_eval",
+        next_owner="ai_reviewer",
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_stage_attempt_id": "sat-live",
+            "active_workflow_id": "wf-live",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+        },
+        runtime_health={
+            "runtime_liveness_status": "live",
+            "provider_status": "running",
+            "work_unit_id": "ai_reviewer_medical_prose_quality_review",
+        },
+    )
+
+    assert envelope["state_kind"] == "running_provider_attempt"
+    assert envelope["owner"] == "ai_reviewer"
+    assert envelope["next_work_unit"] == "ai_reviewer_medical_prose_quality_review"
     assert envelope["typed_blocker"] is None
 
 

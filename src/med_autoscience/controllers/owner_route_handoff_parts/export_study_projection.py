@@ -102,8 +102,8 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
     )
     current_owner_action = (
         current_writer_owner_action
-        or current_readiness_owner_action
         or current_control_owner_action
+        or current_readiness_owner_action
     )
     if current_owner_action is not None:
         payload["current_owner_action"] = current_owner_action

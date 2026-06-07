@@ -336,6 +336,11 @@ def _study_line_payload(*, study_root: Path) -> Mapping[str, Any]:
 
 def _soak_matrix_payload(*, study_root: Path) -> Mapping[str, Any]:
     fixture_payload = _read_json(stable_capability_surface_path(study_root=study_root, surface_key="real_study_soak_matrix_evidence"))
+    if (
+        fixture_payload.get("surface") == "real_study_soak_matrix_evidence"
+        and _text(fixture_payload.get("overall_status"))
+    ):
+        return fixture_payload
     matrix_input = fixture_payload.get("multistudy_soak_matrix")
     if isinstance(matrix_input, list):
         projection = multistudy_soak_proof.build_multistudy_soak_matrix_projection(matrix_input)

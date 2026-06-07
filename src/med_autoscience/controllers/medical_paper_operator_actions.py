@@ -23,6 +23,7 @@ ACTION_SURFACE_KEYS: dict[str, str] = {
     "materialize_bounded_analysis_candidate_board": "bounded_analysis_candidate_board",
     "materialize_stop_loss_memo": "stop_loss_memo",
     "materialize_target_journal_writing_layer": "target_journal_writing_layer",
+    "materialize_real_study_soak_matrix_evidence": "real_study_soak_matrix_evidence",
     "materialize_route_decision": "route_decision_orchestrator",
     "resolve_statistical_blockers": "statistical_discipline_operations",
     "start_revision_rebuttal_loop": "revision_rebuttal_loop",

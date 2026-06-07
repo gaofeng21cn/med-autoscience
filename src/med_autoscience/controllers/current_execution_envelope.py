@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from med_autoscience.runtime_control.owner_route_attempt_protocol import owner_reason_contract
+
 
 ENVELOPE_KEYS = (
     "state_kind",
@@ -25,6 +27,18 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
         "quest_waiting_opl_runtime_owner_route",
         "runtime_recovery_not_authorized",
         "runtime_recovery_retry_budget_exhausted",
+    }
+)
+REASON_ONLY_TYPED_BLOCKERS = frozenset(
+    {
+        "medical_paper_readiness_missing",
+        "medical_paper_readiness_not_ready",
+        "medical_prose_review_request_rehydrate_required",
+        "paper_progress_stall_current_missing",
+        "paper_progress_stall_fingerprint_stale",
+        "paper_progress_stall_terminal",
+        "progress_first_owner_redrive_budget_exhausted",
+        "typed_closeout_packet_required",
     }
 )
 AUTHORITY_BOUNDARY = {
@@ -97,23 +111,23 @@ def build_current_execution_envelope(
             source_refs=resolved_source_refs,
             conflict_suppression_refs=resolved_suppression_refs,
         )
-    action = _first_action(action_items)
-    if action is not None and not _mapping(typed_blocker):
-        return _envelope(
-            state_kind="executable_owner_action",
-            owner=_text(action.get("owner")) or _text(action.get("recommended_owner")) or _text(next_owner) or "med-autoscience",
-            next_work_unit=_next_work_unit(action),
-            typed_blocker=None,
-            parked_state=None,
-            source_refs=resolved_source_refs,
-            conflict_suppression_refs=resolved_suppression_refs,
-        )
     if resolved_typed_blocker is not None:
         return _envelope(
             state_kind="typed_blocker",
             owner=_text(resolved_typed_blocker.get("owner")) or _text(next_owner) or "med-autoscience",
             next_work_unit=None,
             typed_blocker=resolved_typed_blocker,
+            parked_state=None,
+            source_refs=resolved_source_refs,
+            conflict_suppression_refs=resolved_suppression_refs,
+        )
+    action = _first_action(action_items)
+    if action is not None:
+        return _envelope(
+            state_kind="executable_owner_action",
+            owner=_text(action.get("owner")) or _text(action.get("recommended_owner")) or _text(next_owner) or "med-autoscience",
+            next_work_unit=_next_work_unit(action),
+            typed_blocker=None,
             parked_state=None,
             source_refs=resolved_source_refs,
             conflict_suppression_refs=resolved_suppression_refs,
@@ -199,6 +213,8 @@ def _typed_blocker(
     text = _text(blocked_reason)
     if text is None:
         return None
+    if not _reason_only_blocked_reason_is_typed_blocker(reason=text, owner=owner):
+        return None
     return _minimal_blocker(text, owner=owner)
 
 
@@ -255,6 +271,15 @@ def _running_attempt_can_supersede_blocker(blocker: Mapping[str, Any] | None) ->
     if not payload:
         return True
     return _text(payload.get("blocker_type")) in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS
+
+
+def _reason_only_blocked_reason_is_typed_blocker(*, reason: str, owner: str | None) -> bool:
+    if reason in REASON_ONLY_TYPED_BLOCKERS:
+        return True
+    contract = owner_reason_contract(reason=reason, owner=owner)
+    if contract.get("registered") is not True:
+        return True
+    return not any(_text(action) is not None for action in contract.get("allowed_actions") or [])
 
 
 def _source_refs(

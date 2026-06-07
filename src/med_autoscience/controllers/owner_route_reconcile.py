@@ -826,7 +826,10 @@ def _study_projection(
             "domain_authority_handoff": domain_handoff,
         },
     )
-    stage_artifact_projection_fields = stage_artifact_owner_actions.projection_fields(progress_payload)
+    stage_artifact_projection_fields = stage_artifact_owner_actions.projection_fields(
+        progress_payload,
+        actions=actions,
+    )
     return {
         "study_id": study_id,
         "handoff_generated_at": generated_at,

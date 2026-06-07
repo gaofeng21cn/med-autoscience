@@ -773,6 +773,9 @@ def current_consumer_dispatches(
     latest = dict(consumer_payload) if consumer_payload is not None else _read_json_object(consumer_latest_path)
     if latest is None:
         return []
+    inline_dispatch = _inline_default_executor_dispatch(latest, study_id=study_id)
+    if inline_dispatch is not None:
+        return [inline_dispatch]
     dispatches: list[dict[str, Any]] = []
     seen: set[tuple[str | None, str | None]] = set()
     for dispatch in latest.get("default_executor_dispatches") or []:
@@ -791,6 +794,21 @@ def current_consumer_dispatches(
         seen.add(key)
         dispatches.append(payload)
     return dispatches
+
+
+def _inline_default_executor_dispatch(payload: Mapping[str, Any], *, study_id: str) -> dict[str, Any] | None:
+    if _text(payload.get("surface")) != "default_executor_dispatch_request":
+        return None
+    if _text(payload.get("study_id")) != study_id:
+        return None
+    if _text(payload.get("dispatch_status")) != "ready":
+        return None
+    refs = _mapping(payload.get("refs"))
+    if not _text(refs.get("dispatch_path")):
+        return None
+    if not _text(payload.get("action_type")):
+        return None
+    return dict(payload)
 
 
 def owner_request_route(

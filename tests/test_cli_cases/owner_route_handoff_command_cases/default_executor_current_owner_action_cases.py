@@ -234,6 +234,115 @@ def test_domain_handler_export_prefers_current_control_action_queue_over_later_d
     assert tasks[0]["payload"]["next_executable_owner"] == "ai_reviewer"
 
 
+def test_domain_handler_export_prefers_current_control_action_queue_over_stale_readiness_blocker(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+
+    current_work_unit_id = "ai_reviewer_medical_prose_quality_review"
+    ai_route = _owner_route(
+        study_id=study_id,
+        next_owner="ai_reviewer",
+        owner_reason="domain_transition_ai_reviewer_re_eval",
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id=current_work_unit_id,
+        work_unit_fingerprint="domain-transition::ai-reviewer-current",
+        runtime_health_epoch="runtime-health-event-006663-current",
+        blocked_actions=["complete_medical_paper_readiness_surface", "run_gate_clearing_batch"],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="return_to_ai_reviewer_workflow.json",
+        action_type="return_to_ai_reviewer_workflow",
+        next_owner="ai_reviewer",
+        dispatch_authority="ai_reviewer_record_production_handoff",
+        generated_at="2026-06-06T23:49:15+00:00",
+        allowed_write_surfaces=[
+            "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        ],
+        owner_route=ai_route,
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "surface": "controller_decision",
+            "schema_version": 1,
+            "decision_type": "medical_paper_readiness_owner_blocker",
+            "generated_at": "2026-06-06T23:09:27Z",
+            "readiness_next_action": {
+                "action_id": "complete_medical_paper_readiness_surface",
+                "surface_key": "authoring_runtime_authorization",
+                "summary": "Old readiness blocker residue.",
+            },
+        },
+    )
+    _write_json(
+        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface_kind": "opl_current_control_state",
+            "schema_version": 1,
+            "generated_at": "2026-06-06T23:50:00Z",
+            "studies": [],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "owner_route": {
+                        **ai_route,
+                        "currentness_contract": {
+                            "basis": {
+                                "owner_reason": "domain_transition_ai_reviewer_re_eval",
+                                "runtime_health_epoch": "runtime-health-event-006663-current",
+                                "truth_epoch": "truth-event-000040-current",
+                                "work_unit_fingerprint": "domain-transition::ai-reviewer-current",
+                                "work_unit_id": current_work_unit_id,
+                            },
+                            "missing_required_fields": [],
+                            "required_fields": [
+                                "work_unit_fingerprint",
+                                "truth_epoch",
+                                "runtime_health_epoch_or_source_eval_id",
+                            ],
+                        },
+                    },
+                    "controller_next_work_unit": {
+                        "unit_id": current_work_unit_id,
+                        "owner": "ai_reviewer",
+                    },
+                    "consumption": {
+                        "state": "unconsumed",
+                        "first_seen_at": "2026-06-06T23:45:03Z",
+                    },
+                }
+            ],
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study = payload["studies"][0]
+    assert study["current_owner_action"]["source"] == "opl_current_control_state_action_queue"
+    assert study["current_owner_action"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert study["current_owner_action"]["work_unit_id"] == current_work_unit_id
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["return_to_ai_reviewer_workflow"]
+    assert tasks[0]["payload"]["work_unit_id"] == current_work_unit_id
+
+
 def test_domain_handler_export_prefers_current_writer_handoff_over_stale_current_control_action(
     tmp_path: Path,
     capsys,

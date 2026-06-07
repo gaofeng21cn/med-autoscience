@@ -123,6 +123,8 @@ def action_queue_with_terminal_publication_handoff(
     quest_id: str | None,
     decorate_action: Callable[..., dict[str, Any]],
 ) -> list[dict[str, Any]]:
+    if _has_current_controller_action(actions):
+        return actions
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
         return [decorate_action(study_id=study_id, quest_id=quest_id, action=followup)]
@@ -132,12 +134,14 @@ def action_queue_with_terminal_publication_handoff(
     return [decorate_action(study_id=study_id, quest_id=quest_id, action=action)]
 
 
-def projection_fields(progress: Mapping[str, Any]) -> dict[str, Any]:
+def projection_fields(progress: Mapping[str, Any], actions: list[Mapping[str, Any]] | None = None) -> dict[str, Any]:
     stage_artifact_index = _mapping(progress.get("stage_artifact_index"))
     current_action = _mapping(progress.get("current_executable_owner_action"))
     result: dict[str, Any] = {}
     if _text(stage_artifact_index.get("surface_kind")) == "stage_artifact_index":
         result["stage_artifact_index"] = stage_artifact_index
+    if _has_current_controller_action(actions or []):
+        return result
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
         result["current_executable_owner_action"] = _projection_action_from_followup(followup)
@@ -145,6 +149,13 @@ def projection_fields(progress: Mapping[str, Any]) -> dict[str, Any]:
     if _text(current_action.get("surface_kind")) == "current_executable_owner_action":
         result["current_executable_owner_action"] = current_action
     return result
+
+
+def _has_current_controller_action(actions: list[Mapping[str, Any]]) -> bool:
+    for action in actions:
+        if _mapping(action.get("controller_route")).get("decision_path"):
+            return True
+    return False
 
 
 def _stage_artifact_contract_refs(owner_action: Mapping[str, Any]) -> dict[str, str]:

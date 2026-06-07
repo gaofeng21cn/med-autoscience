@@ -108,6 +108,64 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
     assert [item["action_type"] for item in latest["executions"]] == ["publication_gate_specificity_required"]
 
 
+def test_execute_dispatch_accepts_single_dispatch_payload_shape(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "immutable"
+        / "publication_gate_specificity_required"
+        / "current.json"
+    )
+    current_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="publication_gate_specificity_required",
+        owner="publication_gate",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    current_dispatch["refs"] = {
+        "dispatch_path": str(dispatch_path),
+        "immutable_dispatch_path": str(dispatch_path),
+    }
+    _write_scan_latest(profile, study_id, dict(current_dispatch["owner_route"]))
+    executed_action_types: list[str] = []
+
+    def fake_publication_gate_specificity(**kwargs) -> dict[str, object]:
+        executed_action_types.append("publication_gate_specificity_required")
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "publication_gate.write_gate_files+_materialize_publication_eval_latest",
+        }
+
+    monkeypatch.setattr(module, "_execute_publication_gate_specificity", fake_publication_gate_specificity)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("publication_gate_specificity_required",),
+        mode="developer_apply_safe",
+        apply=True,
+        consumer_payload=current_dispatch,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["executions"][0]["dispatch_path"] == str(dispatch_path)
+    assert executed_action_types == ["publication_gate_specificity_required"]
+
+
 def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_stale(
     monkeypatch,
     tmp_path: Path,

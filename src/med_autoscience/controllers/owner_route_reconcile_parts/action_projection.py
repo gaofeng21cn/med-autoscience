@@ -14,6 +14,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import analysis_har
 from med_autoscience.controllers.owner_route_reconcile_parts import artifact_freshness
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import completion_evidence
+from med_autoscience.controllers.owner_route_reconcile_parts import controller_followthrough_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import current_controller_followthrough
 from med_autoscience.controllers.owner_route_reconcile_parts import current_ai_reviewer_record_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import currentness_preemption_actions
@@ -170,6 +171,22 @@ def action_queue(
         publication_eval_payload=publication_eval_payload,
         request_lifecycle=request_lifecycle,
     )
+    current_controller_action = _current_controller_action(
+        status=status,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if current_controller_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=current_controller_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     analysis_handoff_action = analysis_harmonization_ai_review.completed_ai_reviewer_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -404,42 +421,6 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    current_controller_ai_reviewer_action = _current_controller_ai_reviewer_action(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if current_controller_ai_reviewer_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=current_controller_ai_reviewer_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    current_controller_write_action = _current_controller_write_action(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if current_controller_write_action is not None:
-        current_controller_write_action = current_controller_followthrough.bind_ai_reviewer_owner_output_consumption(
-            action=current_controller_write_action,
-            status=status,
-            study_root=study_root,
-            publication_eval_payload=publication_eval_payload,
-        )
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=current_controller_write_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
     oracle_actions = domain_transition_actions.actions(status)
     if oracle_actions is not None:
         return [
@@ -567,28 +548,29 @@ def _explicit_ai_reviewer_record_current_manuscript_request_pending(
     )
 
 
-def _current_controller_ai_reviewer_action(
+def _current_controller_action(
     *,
+    status: Mapping[str, Any],
     study_root: Path,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    return current_controller_followthrough.current_controller_action(
+    controller_route = current_truth_owner.current_controller_runtime_route(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
-        action_type="return_to_ai_reviewer_workflow",
     )
-
-
-def _current_controller_write_action(
-    *,
-    study_root: Path,
-    publication_eval_payload: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    return current_controller_followthrough.current_controller_action(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-        action_type="run_quality_repair_batch",
-    )
+    if controller_route is None:
+        return None
+    action = controller_followthrough_actions.action_from_controller_route(controller_route)
+    if action is None:
+        return None
+    if _text(action.get("action_type")) == "run_quality_repair_batch":
+        return current_controller_followthrough.bind_ai_reviewer_owner_output_consumption(
+            action=action,
+            status=status,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+    return action
 
 
 def _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(

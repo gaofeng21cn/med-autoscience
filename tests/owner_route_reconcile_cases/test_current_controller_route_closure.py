@@ -91,6 +91,28 @@ def test_scan_projects_current_controller_ai_reviewer_route_over_runtime_recover
         "active_run_id": None,
         "supervision": {"active_run_id": None, "health_status": "parked"},
         "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "medical_paper_readiness": {
+            "overall_status": "blocked",
+            "next_action": {
+                "action_id": "complete_medical_paper_readiness_surface",
+                "surface_key": "authoring_runtime_authorization",
+            },
+        },
+        "stage_kernel_projection": {
+            "current_owner_delta": {
+                "owner": "MedAutoScience",
+                "action": "complete_medical_paper_readiness_surface",
+                "reason": "medical_paper_readiness_not_ready",
+                "required_input": "complete_medical_paper_readiness_surface",
+                "blocked_surface": "publication_handoff_owner_gate",
+                "surface_key": "authoring_runtime_authorization",
+                "source_ref": (
+                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/"
+                    "typed_blocker.json"
+                ),
+                "source_kind": "typed_blocker",
+            }
+        },
         "quality_review_loop": {"closure_state": "review_required"},
         "study_truth_snapshot": status_payload["study_truth_snapshot"],
         "ai_repair_lifecycle": {
@@ -130,6 +152,80 @@ def test_scan_projects_current_controller_ai_reviewer_route_over_runtime_recover
     assert study["owner_route"]["owner_reason"] == "domain_transition_ai_reviewer_re_eval"
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert study["owner_route"]["owner_route_attempt_protocol"]["dispatchable"] is True
+    assert study.get("current_executable_owner_action") is None
+
+
+def test_current_controller_route_uses_archived_domain_transition_when_readiness_blocker_overwrites_latest(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.current_truth_owner"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    work_unit_id = "ai_reviewer_medical_prose_quality_review"
+    work_unit_fingerprint = f"domain-transition::ai_reviewer_re_eval::{work_unit_id}"
+    study_root = write_study(tmp_path, study_id, quest_id=quest_id)
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": f"publication-eval::{study_id}::current",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "recommended_actions": [],
+    }
+    archived_decision_path = (
+        study_root
+        / "artifacts"
+        / "controller_decisions"
+        / "20260606T230046Z_study-decision-dm002-ai-reviewer-route.json"
+    )
+    _write_json(
+        archived_decision_path,
+        {
+            "schema_version": 1,
+            "decision_id": "dm002-current-ai-reviewer-route",
+            "decision_type": "continue_same_line",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "return_to_ai_reviewer_workflow"}],
+            "route_target": "review",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": {
+                "unit_id": work_unit_id,
+                "lane": "review",
+                "summary": "Re-run AI reviewer manuscript-quality review against the current package.",
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "surface": "controller_decision",
+            "decision_type": "medical_paper_readiness_owner_blocker",
+            "source": "medical_paper_readiness.complete_medical_paper_readiness_surface",
+            "route_decision": "stable_blocker",
+            "runtime_decision": "blocked",
+            "blocked_reason": "medical_paper_readiness_missing",
+            "requires_human_confirmation": False,
+            "readiness_next_action": {
+                "action_id": "complete_medical_paper_readiness_surface",
+                "surface_key": "authoring_runtime_authorization",
+            },
+        },
+    )
+
+    route = module.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval,
+    )
+
+    assert route is not None
+    assert route["decision_path"] == str(archived_decision_path.resolve())
+    assert route["route_target"] == "review"
+    assert route["work_unit_id"] == work_unit_id
+    assert route["work_unit_fingerprint"] == work_unit_fingerprint
 
 
 def test_current_controller_route_stays_open_for_unsettled_authority_lifecycle(tmp_path: Path) -> None:
