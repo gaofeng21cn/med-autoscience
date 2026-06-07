@@ -159,25 +159,120 @@ WORKSPACE_TOPOLOGY_PROFILE = {
     "surface_kind": "opl_workspace_topology_profile",
     "version": "workspace-topology-profile.v1",
     "profile_id": "opl.workspace_topology_profile.v1",
-    "stage_outputs_root": "artifacts/stage_outputs",
-    "default_workspace": {
-        "workspace_mode": "one_off",
-        "series_capable": True,
-        "project_collection_path": "deliverables/studies",
-    },
-    "domain_profiles": {
-        "mas": {
-            "workspace_mode": "portfolio",
-            "project_collection_path": "studies",
-            "stage_outputs_root": "artifacts/stage_outputs",
+    "topology_model": [
+        "workspace_group",
+        "project_unit",
+        "stage_artifact_unit",
+        "owner_receipt_or_typed_blocker",
+    ],
+    "workspace_modes": ["one_off", "series", "portfolio"],
+    "default_project_stage_outputs_root": "artifacts/stage_outputs",
+    "default_profiles": {
+        "one_off": {
+            "workspace_mode": "one_off",
+            "project_collection_path": "deliverables",
+            "series_capable_skeleton": True,
+            "shared_resource_roots": [
+                "shared/sources",
+                "shared/memory",
+                "shared/style_system",
+            ],
+            "project_stage_outputs_root": "artifacts/stage_outputs",
         },
-        "rca": {
+        "rca_series": {
             "workspace_mode": "series",
             "project_collection_path": "deliverables",
-            "stage_outputs_root": "artifacts/stage_outputs",
+            "shared_resource_roots": [
+                "shared/sources",
+                "shared/brand",
+                "shared/visual_memory",
+                "shared/style_system",
+                "shared/material_inventory",
+            ],
+            "project_stage_outputs_root": "artifacts/stage_outputs",
+        },
+        "mas_portfolio": {
+            "workspace_mode": "portfolio",
+            "project_collection_path": "studies",
+            "shared_resource_roots": [
+                "data",
+                "literature",
+                "memory",
+                "shared/sources",
+            ],
+            "project_stage_outputs_root": "artifacts/stage_outputs",
         },
     },
-    "allowed_workspace_modes": ["one_off", "series", "portfolio"],
+    "domain_profile_defaults": {
+        "mas": "mas_portfolio",
+        "mag": "one_off",
+        "rca": "rca_series",
+        "oma": "one_off",
+    },
+    "default_user_inspection_surface": {
+        "ordinary_user_default_surface": "workspace_local_project_stage_outputs",
+        "project_stage_outputs_pattern": "<project-root>/artifacts/stage_outputs/<stage-id>/",
+        "runtime_state_is_default_user_surface": False,
+        "product_views_are_stage_outputs": False,
+    },
+    "runtime_state_boundary": {
+        "role": "provider_backing_provenance_restore_audit",
+        "runtime_state_can_be_canonical_project_root": False,
+        "runtime_state_can_close_stage": False,
+        "runtime_state_can_replace_owner_receipt_or_typed_blocker": False,
+    },
+    "authority_boundary": {
+        "opl_can_define_topology_contract": True,
+        "opl_can_project_workspace_refs": True,
+        "opl_can_write_domain_truth": False,
+        "opl_can_mutate_artifact_body": False,
+        "opl_can_create_owner_receipt": False,
+        "opl_can_create_typed_blocker": False,
+        "runtime_state_counts_as_user_default_surface": False,
+    },
+    "workspace_initialization_policy": {
+        "default_workspace_mode": "one_off",
+        "one_off_still_uses_project_collection_path": "deliverables",
+        "infer_series_when_user_requests_multiple_related_deliverables": True,
+        "infer_portfolio_when_user_requests_shared_research_workspace_with_multiple_studies": True,
+        "upgrading_one_off_to_series_must_not_move_existing_project_roots": True,
+        "explicit_workspace_mode_declaration_preferred": True,
+    },
+    "example_project_layouts": {
+        "one_off": {
+            "project_collection_path": "deliverables",
+            "project_root_pattern": "deliverables/<project-id>",
+            "project_stage_outputs_pattern": (
+                "deliverables/<project-id>/artifacts/stage_outputs/<stage-id>/"
+            ),
+        },
+        "rca_series": {
+            "shared_roots": [
+                "shared/sources",
+                "shared/brand",
+                "shared/visual_memory",
+                "shared/style_system",
+                "shared/material_inventory",
+            ],
+            "project_collection_path": "deliverables",
+            "project_root_pattern": "deliverables/<deck-id>",
+            "project_stage_outputs_pattern": (
+                "deliverables/<deck-id>/artifacts/stage_outputs/<stage-id>/"
+            ),
+        },
+        "mas_portfolio": {
+            "shared_roots": [
+                "data",
+                "literature",
+                "memory",
+            ],
+            "project_collection_path": "studies",
+            "project_root_pattern": "studies/<study-id>",
+            "project_stage_outputs_pattern": (
+                "studies/<study-id>/artifacts/stage_outputs/<stage-id>/"
+            ),
+        },
+    },
 }
 
 FORBIDDEN_GENERIC_OWNER_ROLES = [
