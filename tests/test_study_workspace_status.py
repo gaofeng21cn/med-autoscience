@@ -159,3 +159,83 @@ def test_study_workspace_status_fails_closed_when_current_stage_lacks_manifest_o
     assert result["status"] == "blocked"
     assert "current_stage_manifest_missing:08-publication_package_handoff" in result["blockers"]
     assert "current_stage_owner_receipt_or_typed_blocker_missing:08-publication_package_handoff" in result["blockers"]
+
+
+def test_study_workspace_status_apply_materializes_workspace_index_and_migration_blocker(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_workspace_status")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "obesity_multicenter_phenotype_atlas"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_current_inputs(study_root)
+
+    dry_run = module.run_study_workspace_status(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=False,
+    )
+    dry_study = dry_run["studies"][0]
+    assert dry_study["status"] == "blocked"
+    assert "stage_outputs_root_missing" in dry_study["blockers"]
+    assert (study_root / "control" / "stage_index.json").exists() is False
+
+    result = module.run_study_workspace_status(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+
+    study = result["studies"][0]
+    stage_id = "00-workspace_target_state_migration"
+    stage_root = study_root / "artifacts" / "stage_outputs" / stage_id
+    workspace_index = json.loads((profile.workspace_root / "workspace_index.json").read_text(encoding="utf-8"))
+    stage_index = json.loads((study_root / "control" / "stage_index.json").read_text(encoding="utf-8"))
+    blocker = json.loads((stage_root / "receipts" / "typed_blocker.json").read_text(encoding="utf-8"))
+    package_status = json.loads((study_root / "publication" / "current_package" / "STATUS.json").read_text())
+
+    assert study["status"] == "typed_blocked"
+    assert study["blockers"] == ["workspace_target_state_migration_required"]
+    assert stage_index["current_stage_id"] == stage_id
+    assert stage_index["current_stage"]["typed_blocker_ref"].endswith("receipts/typed_blocker.json")
+    assert blocker["blocker_id"] == "workspace_target_state_migration_required"
+    assert blocker["authority_boundary"]["paper_body_mutation_allowed"] is False
+    assert package_status["status"] == "not_ready"
+    assert workspace_index["schema_version"] == "mas.workspace_index.v1"
+    assert workspace_index["studies"][0]["canonical_study_root"] == f"studies/{study_id}"
+    assert workspace_index["studies"][0]["runtime_root_is_current_paper_truth"] is False
+    assert (profile.workspace_root / "WORKSPACE_STATUS.md").is_file()
+    assert (profile.workspace_root / "workspace.yaml").is_file()
+
+
+def test_study_workspace_status_apply_keeps_missing_inputs_as_blockers_inside_migration_stage(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_workspace_status")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "001-lineage-pfs"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+
+    result = module.run_study_workspace_status(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+
+    study = result["studies"][0]
+    blocker = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "stage_outputs"
+            / "00-workspace_target_state_migration"
+            / "receipts"
+            / "typed_blocker.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert study["status"] == "blocked"
+    assert "current_manuscript_missing" in study["blockers"]
+    assert "workspace_target_state_migration_required" in study["blockers"]
+    assert blocker["hard_blockers"] == []
+    assert "current_manuscript_missing" in blocker["original_blockers"]
+    assert (study_root / "STUDY_STATUS.md").is_file()

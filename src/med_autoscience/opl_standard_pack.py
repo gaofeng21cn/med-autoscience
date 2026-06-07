@@ -93,6 +93,31 @@ SERIES_DESIGN_PROFILE = {
     },
 }
 
+WORKSPACE_TOPOLOGY_PROFILE = {
+    "surface_kind": "opl_workspace_topology_profile",
+    "version": "workspace-topology-profile.v1",
+    "profile_id": "opl.workspace_topology_profile.v1",
+    "stage_outputs_root": "artifacts/stage_outputs",
+    "default_workspace": {
+        "workspace_mode": "one_off",
+        "series_capable": True,
+        "project_collection_path": "deliverables/studies",
+    },
+    "domain_profiles": {
+        "mas": {
+            "workspace_mode": "portfolio",
+            "project_collection_path": "studies",
+            "stage_outputs_root": "artifacts/stage_outputs",
+        },
+        "rca": {
+            "workspace_mode": "series",
+            "project_collection_path": "deliverables",
+            "stage_outputs_root": "artifacts/stage_outputs",
+        },
+    },
+    "allowed_workspace_modes": ["one_off", "series", "portfolio"],
+}
+
 DOMAIN_SPECIFIC_PROFILE = {
     "profile_id": "mas_domain_specific_series_profile.v1",
     "series_members": ["MAS", "MAG", "RCA", "OMA"],
@@ -444,6 +469,7 @@ def _foundry_agent_series_contract(stage_control_plane: Mapping[str, Any]) -> di
         },
         "shared_policy_release": SHARED_POLICY_RELEASE,
         "series_design_profile": SERIES_DESIGN_PROFILE,
+        "workspace_topology_profile": WORKSPACE_TOPOLOGY_PROFILE,
         "domain_specific_profile": DOMAIN_SPECIFIC_PROFILE,
         "domain_id": "medautoscience",
         "foundry_agent_id": "medautoscience",

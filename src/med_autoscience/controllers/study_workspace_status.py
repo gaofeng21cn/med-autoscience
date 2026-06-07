@@ -22,8 +22,16 @@ from med_autoscience.controllers.study_workspace_status_parts import (
     STAGE_REQUIRED_DIRS,
     SURFACE_KIND,
     TARGET_STATE_REFERENCE_DOC,
+    WORKSPACE_MIGRATION_STAGE_ID,
     USER_ENTRY_REFS,
     workspace_taxonomy,
+)
+from med_autoscience.controllers.study_workspace_status_materialization import (
+    materialize_study_workspace_status_if_safe,
+    materialize_workspace_migration_stage_if_needed,
+    materialize_workspace_surfaces,
+    workspace_descriptor,
+    workspace_index,
 )
 
 
@@ -48,8 +56,7 @@ def run_study_workspace_status(
     ]
     if apply:
         for study in studies:
-            if not study["blockers"]:
-                _materialize_study_workspace_status(study=study, recorded_at=recorded_at)
+            materialize_workspace_migration_stage_if_needed(study=study, recorded_at=recorded_at)
         studies = [
             _study_status(
                 profile=profile,
@@ -60,8 +67,7 @@ def run_study_workspace_status(
             for study_id in selected_study_ids
         ]
         for study in studies:
-            if not study["blockers"]:
-                _materialize_study_workspace_status(study=study, recorded_at=recorded_at)
+            materialize_study_workspace_status_if_safe(study=study, recorded_at=recorded_at)
         studies = [
             _study_status(
                 profile=profile,
@@ -71,6 +77,12 @@ def run_study_workspace_status(
             )
             for study_id in selected_study_ids
         ]
+        materialize_workspace_surfaces(
+            profile=profile,
+            profile_path=resolved_profile_path,
+            studies=studies,
+            recorded_at=recorded_at,
+        )
     return {
         "schema_version": 1,
         "surface_kind": SURFACE_KIND,
@@ -81,6 +93,13 @@ def run_study_workspace_status(
         "target_state_reference_doc": TARGET_STATE_REFERENCE_DOC,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "workspace_taxonomy": workspace_taxonomy(profile),
+        "workspace_descriptor": workspace_descriptor(
+            profile=profile,
+            profile_path=resolved_profile_path,
+            studies=studies,
+            recorded_at=recorded_at,
+        ),
+        "workspace_index": workspace_index(profile=profile, studies=studies, recorded_at=recorded_at),
         "study_count": len(studies),
         "studies": studies,
         "next_required_actions": _workspace_next_actions(studies),
@@ -102,22 +121,21 @@ def build_study_workspace_status(
         study_root_override=study_root,
         recorded_at=timestamp,
     )
-    if apply and not study["blockers"]:
-        _materialize_study_workspace_status(study=study, recorded_at=timestamp)
+    if apply:
+        materialize_workspace_migration_stage_if_needed(study=study, recorded_at=timestamp)
         study = _study_status(
             profile=profile,
             study_id=study_id,
             study_root_override=study_root,
             recorded_at=timestamp,
         )
-        if not study["blockers"]:
-            _materialize_study_workspace_status(study=study, recorded_at=timestamp)
-            study = _study_status(
-                profile=profile,
-                study_id=study_id,
-                study_root_override=study_root,
-                recorded_at=timestamp,
-            )
+        materialize_study_workspace_status_if_safe(study=study, recorded_at=timestamp)
+        study = _study_status(
+            profile=profile,
+            study_id=study_id,
+            study_root_override=study_root,
+            recorded_at=timestamp,
+        )
     return study
 
 
@@ -401,6 +419,8 @@ def _stage_validation(
     if current_stage is None:
         blockers.append("current_stage_missing")
     else:
+        if current_stage.get("stage_id") == WORKSPACE_MIGRATION_STAGE_ID:
+            blockers.append("workspace_target_state_migration_required")
         if current_stage.get("manifest_present") is not True:
             blockers.append(f"current_stage_manifest_missing:{current_stage.get('stage_id')}")
         if not current_stage.get("receipt_ref") and not current_stage.get("typed_blocker_ref"):
@@ -664,10 +684,14 @@ def _blockers(
 
 def _status(*, blockers: list[str], missing_entry_surfaces: list[str], materialization_gaps: list[str]) -> str:
     if blockers:
-        return "blocked"
+        return "typed_blocked" if _has_only_workspace_migration_blocker(blockers) else "blocked"
     if missing_entry_surfaces or materialization_gaps:
         return "needs_materialization"
     return "ready"
+
+
+def _has_only_workspace_migration_blocker(blockers: list[str]) -> bool:
+    return bool(blockers) and all(item == "workspace_target_state_migration_required" for item in blockers)
 
 
 def _next_action(
@@ -722,131 +746,6 @@ def _next_action(
         "current_stage_id": stage_index.get("current_stage_id"),
         "current_package_status": package_status.get("status"),
     }
-
-
-def _materialize_study_workspace_status(*, study: Mapping[str, Any], recorded_at: str) -> None:
-    study_root = Path(str(study["study_root"]))
-    stage_index = dict(study["stage_index"])
-    current_stage = dict(stage_index.get("current_stage") or {})
-    package_status = dict(study["current_truth_map"]["package_status"])
-    next_action = dict(study["next_action"])
-    blockers_payload = _blockers_payload(study=study, recorded_at=recorded_at)
-    descriptor = {
-        **dict(study),
-        "status": "ready",
-        "entry_surface_materialized_at": recorded_at,
-    }
-    for relpath in PRODUCT_VIEW_DIRS:
-        (study_root / relpath).mkdir(parents=True, exist_ok=True)
-    _materialize_stage_required_dirs(study=study)
-    _write_text(study_root / USER_ENTRY_REFS["study_status"], _render_status_markdown(study=study))
-    _write_text(
-        study_root / USER_ENTRY_REFS["paper_metadata"],
-        yaml.safe_dump(_paper_yaml_payload(study=study), allow_unicode=True, sort_keys=False),
-    )
-    _write_json(study_root / USER_ENTRY_REFS["current_stage"], current_stage)
-    _write_json(study_root / USER_ENTRY_REFS["next_action"], next_action)
-    _write_json(study_root / USER_ENTRY_REFS["stage_index"], stage_index)
-    _write_json(study_root / USER_ENTRY_REFS["blockers"], blockers_payload)
-    _write_json(study_root / USER_ENTRY_REFS["current_package_status"], package_status)
-    _write_json(study_root / MIGRATION_MANIFEST_ROOT_RELPATH / "current_truth_map.json", study["current_truth_map"])
-    _write_json(study_root / MIGRATION_MANIFEST_ROOT_RELPATH / "legacy_provenance_map.json", study["legacy_provenance_map"])
-    _write_json(study_root / MIGRATION_MANIFEST_ROOT_RELPATH / "target_path_map.json", study["target_path_map"])
-    _write_json(study_root / MIGRATION_MANIFEST_ROOT_RELPATH / "materialization_plan.json", study["materialization_plan"])
-    _write_json(study_root / MIGRATION_MANIFEST_ROOT_RELPATH / "validation_result.json", descriptor)
-    _write_json(study_root / MIGRATION_HISTORY_ROOT_RELPATH / f"{_history_stamp(recorded_at)}.json", descriptor)
-
-
-def _materialize_stage_required_dirs(*, study: Mapping[str, Any]) -> None:
-    study_root = Path(str(study["study_root"]))
-    for stage in study["stage_index"].get("stages") or []:
-        stage_root = study_root / str(stage["stage_root"])
-        for relpath in STAGE_REQUIRED_DIRS:
-            (stage_root / relpath).mkdir(parents=True, exist_ok=True)
-
-
-def _blockers_payload(*, study: Mapping[str, Any], recorded_at: str) -> dict[str, Any]:
-    return {
-        "schema_version": 1,
-        "surface_kind": "study_workspace_blockers",
-        "study_id": study["study_id"],
-        "recorded_at": recorded_at,
-        "status": "blocked" if study["blockers"] else "clear",
-        "blockers": list(study["blockers"]),
-        "stage_blockers": list(study["validation"]["stage_native"].get("blockers", [])),
-        "target_state_reference_doc": TARGET_STATE_REFERENCE_DOC,
-    }
-
-
-def _paper_yaml_payload(*, study: Mapping[str, Any]) -> dict[str, Any]:
-    refs = {
-        item["surface_id"]: item
-        for item in study["current_truth_map"]["paper_inputs"]
-        if isinstance(item, Mapping)
-    }
-    return {
-        "schema_version": 1,
-        "surface_kind": "paper_metadata",
-        "study_id": study["study_id"],
-        "title": study.get("study_title"),
-        "study_archetype": study.get("study_archetype"),
-        "manuscript_family": study.get("manuscript_family"),
-        "canonical_study_root": study["study_root"],
-        "target_state_reference_doc": TARGET_STATE_REFERENCE_DOC,
-        "stage_index_ref": USER_ENTRY_REFS["stage_index"].as_posix(),
-        "current_stage_id": study["stage_index"].get("current_stage_id"),
-        "current_refs": {
-            key: refs[key]["selected_source_relative_path"]
-            for key in (
-                "current_manuscript",
-                "evidence_ledger",
-                "review_ledger",
-                "claim_evidence_map",
-                "medical_manuscript_blueprint",
-                "figure_catalog",
-                "table_catalog",
-            )
-            if key in refs and refs[key].get("present") is True
-        },
-        "package_status_ref": USER_ENTRY_REFS["current_package_status"].as_posix(),
-        "authority_boundary": dict(AUTHORITY_BOUNDARY),
-    }
-
-
-def _render_status_markdown(*, study: Mapping[str, Any]) -> str:
-    refs = {
-        item["surface_id"]: item
-        for item in study["current_truth_map"]["paper_inputs"]
-        if isinstance(item, Mapping)
-    }
-    package_status = study["current_truth_map"]["package_status"]
-    next_action = study["next_action"]
-    lines = [
-        f"# {study['study_id']}",
-        "",
-        f"- Status: `{study['status']}`",
-        f"- Canonical study root: `{study['study_root']}`",
-        f"- Runtime/provenance root: `{study['runtime_quest_root']}`",
-        f"- Target-state reference: `{TARGET_STATE_REFERENCE_DOC}`",
-        f"- Current stage: `{study['stage_index'].get('current_stage_id')}`",
-        f"- Stage index: `{USER_ENTRY_REFS['stage_index'].as_posix()}`",
-        f"- Current manuscript: `{_selected_ref(refs, 'current_manuscript')}`",
-        f"- Evidence ledger: `{_selected_ref(refs, 'evidence_ledger')}`",
-        f"- Review ledger: `{_selected_ref(refs, 'review_ledger')}`",
-        f"- Current package: `{package_status.get('status')}`",
-        f"- Next action: `{next_action.get('action_id')}`",
-        "",
-        "Runtime, legacy `.ds`, MDS archive, and submission mirrors are provenance or projections, not the user-facing paper root.",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-def _selected_ref(refs: Mapping[str, Mapping[str, Any]], surface_id: str) -> str:
-    ref = refs.get(surface_id) or {}
-    if ref.get("present") is True:
-        return str(ref.get("selected_source_relative_path") or ref.get("selected_source_path") or "")
-    return "missing"
 
 
 def _workspace_next_actions(studies: list[Mapping[str, Any]]) -> list[str]:

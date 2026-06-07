@@ -9,6 +9,9 @@ from med_autoscience.profiles import WorkspaceProfile
 SURFACE_KIND = "study_workspace_status"
 TARGET_STATE_REFERENCE_DOC = "docs/source/study_workspace_target_state.md"
 STAGE_INDEX_SCHEMA = "mas.study_stage_index.v1"
+WORKSPACE_INDEX_SCHEMA = "mas.workspace_index.v1"
+WORKSPACE_STATUS_SCHEMA = "mas.workspace_status.v1"
+WORKSPACE_MIGRATION_STAGE_ID = "00-workspace_target_state_migration"
 MIGRATION_MANIFEST_ROOT_RELPATH = Path("_archive") / "migration_manifest"
 MIGRATION_HISTORY_ROOT_RELPATH = MIGRATION_MANIFEST_ROOT_RELPATH / "history"
 PAPER_CLEAN_ROOM_DESCRIPTOR_RELPATH = Path("artifacts") / "supervision" / "paper_clean_room_rebuild" / "latest.json"
@@ -30,6 +33,13 @@ USER_ENTRY_REFS = {
     "stage_index": Path("control/stage_index.json"),
     "blockers": Path("control/blockers.json"),
     "current_package_status": Path("publication/current_package/STATUS.json"),
+}
+WORKSPACE_ENTRY_REFS = {
+    "workspace_status": Path("WORKSPACE_STATUS.md"),
+    "workspace_descriptor": Path("workspace.yaml"),
+    "workspace_index": Path("workspace_index.json"),
+    "reports_studies_index": Path("reports/studies_index.json"),
+    "reports_latest_status": Path("reports/latest_status.json"),
 }
 PRODUCT_VIEW_DIRS = (
     Path("paper"),
@@ -124,6 +134,8 @@ AUTHORITY_BOUNDARY = {
     "legacy_archive_import_allowed": False,
     "user_entry_surface_materialization_allowed": True,
     "stage_native_directory_materialization_allowed": True,
+    "stage_success_receipt_fabrication_allowed": False,
+    "stage_migration_typed_blocker_materialization_allowed": True,
     "stage_receipt_or_blocker_fabrication_allowed": False,
 }
 
