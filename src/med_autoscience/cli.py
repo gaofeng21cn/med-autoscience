@@ -77,9 +77,6 @@ owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_r
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
 study_config_migration = _LazyModuleProxy(lambda: _load_controller("study_config_migration"))
-legacy_control_surface_clean_migration = _LazyModuleProxy(
-    lambda: _load_controller("legacy_control_surface_clean_migration")
-)
 agent_lab_medical_manuscript_quality = _LazyModuleProxy(
     lambda: _load_controller("agent_lab_medical_manuscript_quality")
 )
@@ -635,15 +632,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "study-config-clean-migration":
         result = study_config_migration.run_study_config_clean_migration(
-            profile_path=Path(args.profile),
-            study_ids=tuple(args.studies or ()),
-            apply=bool(args.apply),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "legacy-control-surface-clean-migration":
-        result = legacy_control_surface_clean_migration.run_legacy_control_surface_clean_migration(
             profile_path=Path(args.profile),
             study_ids=tuple(args.studies or ()),
             apply=bool(args.apply),

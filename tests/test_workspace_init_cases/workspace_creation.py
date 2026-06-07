@@ -129,7 +129,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     study_progress = workspace_root / "ops" / "medautoscience" / "bin" / "study-progress"
     study_state_matrix = workspace_root / "ops" / "medautoscience" / "bin" / "study-state-matrix"
     domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
-    legacy_control_surface_clean_migration = (
+    retired_legacy_clean_migration = (
         workspace_root / "ops" / "medautoscience" / "bin" / "legacy-control-surface-clean-migration"
     )
     study_runtime_status = workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status"
@@ -156,7 +156,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert not progress_projection.exists()
     assert study_state_matrix.is_file()
     assert domain_health_diagnostic.is_file()
-    assert legacy_control_surface_clean_migration.is_file()
+    assert not retired_legacy_clean_migration.exists()
     assert not study_runtime_status.exists()
     assert not watch_runtime.exists()
     assert maintain_runtime_storage.is_file()
@@ -183,7 +183,6 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(study_progress, os.X_OK)
     assert os.access(study_state_matrix, os.X_OK)
     assert os.access(domain_health_diagnostic, os.X_OK)
-    assert os.access(legacy_control_surface_clean_migration, os.X_OK)
     assert os.access(maintain_runtime_storage, os.X_OK)
     assert os.access(storage_audit, os.X_OK)
     assert os.access(resolve_journal_shortlist, os.X_OK)
@@ -198,7 +197,6 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(runtime_bridge_stop, os.X_OK)
     study_state_matrix_text = study_state_matrix.read_text(encoding="utf-8")
     domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
-    legacy_control_surface_clean_migration_text = legacy_control_surface_clean_migration.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
     storage_audit_text = storage_audit.read_text(encoding="utf-8")
     bootstrap_text = bootstrap.read_text(encoding="utf-8")
@@ -234,11 +232,11 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert '[[ "${arg}" == "--apply" || "${arg}" == "--dry-run" || "${arg}" == "--request-opl-stage-attempts" || "${arg}" == "--request-opl-owner-route-reconcile" ]]' in domain_health_diagnostic_text
     assert '${apply_args[@]+"${apply_args[@]}"}' in domain_health_diagnostic_text
     assert "--loop" not in domain_health_diagnostic_text
-    assert (
-        'run_medautosci runtime legacy-control-surface-clean-migration \\'
-        in legacy_control_surface_clean_migration_text
+    assert "legacy-control-surface-clean-migration" not in "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (workspace_root / "ops" / "medautoscience" / "bin").iterdir()
+        if path.is_file()
     )
-    assert '--profile "${PROFILE_PATH}"' in legacy_control_surface_clean_migration_text
     assert 'run_medautosci runtime storage-audit --profile "${PROFILE_PATH}" "$@"' in storage_audit_text
     assert 'run_medautosci publication resolve-journal-shortlist "$@"' in resolve_journal_shortlist_text
     assert 'run_medautosci data init-memory "$@"' in init_portfolio_memory_text

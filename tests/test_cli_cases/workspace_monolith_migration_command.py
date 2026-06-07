@@ -194,53 +194,42 @@ def test_runtime_study_config_clean_migration_command_dispatches_controller(
     assert json.loads(captured.out)["surface_kind"] == "study_config_clean_migration"
 
 
-def test_runtime_legacy_control_surface_clean_migration_command_dispatches_controller(
-    monkeypatch,
+def test_retired_runtime_legacy_control_surface_clean_migration_command_fails_closed(
     tmp_path: Path,
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path, workspace_root=tmp_path / "workspace")
-    called: dict[str, object] = {}
 
-    def fake_run_legacy_control_surface_clean_migration(
-        *,
-        profile_path: Path,
-        study_ids: tuple[str, ...],
-        apply: bool,
-    ) -> dict[str, object]:
-        called["profile_path"] = profile_path
-        called["study_ids"] = study_ids
-        called["apply"] = apply
-        return {"surface_kind": "legacy_control_surface_clean_migration", "mode": "apply"}
-
-    monkeypatch.setattr(
-        cli.legacy_control_surface_clean_migration,
-        "run_legacy_control_surface_clean_migration",
-        fake_run_legacy_control_surface_clean_migration,
+    retired_argvs = (
+        (
+            [
+                "runtime",
+                "legacy-control-surface-clean-migration",
+                "--profile",
+                str(profile_path),
+                "--apply",
+            ],
+            "Grouped command requires a supported subcommand under `runtime`.",
+        ),
+        (
+            [
+                "legacy-control-surface-clean-migration",
+                "--profile",
+                str(profile_path),
+                "--apply",
+            ],
+            2,
+        ),
     )
 
-    exit_code = cli.main(
-        [
-            "runtime",
-            "legacy-control-surface-clean-migration",
-            "--profile",
-            str(profile_path),
-            "--studies",
-            "002-dm-china-us-mortality-attribution",
-            "--apply",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called == {
-        "profile_path": profile_path,
-        "study_ids": ("002-dm-china-us-mortality-attribution",),
-        "apply": True,
-    }
-    assert json.loads(captured.out)["surface_kind"] == "legacy_control_surface_clean_migration"
+    assert not hasattr(cli, "legacy_control_surface_clean_migration")
+    for argv, expected_code in retired_argvs:
+        with pytest.raises(SystemExit) as exc_info:
+            cli.main(argv)
+        assert exc_info.value.code == expected_code
+        capsys.readouterr()
 
 
 def test_agent_lab_medical_manuscript_quality_suite_command_dispatches_controller(
