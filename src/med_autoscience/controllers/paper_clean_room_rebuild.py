@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import study_workspace_status
 from med_autoscience.controllers.owner_route_reconcile_parts import study_identity
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
@@ -16,18 +17,78 @@ SURFACE_KIND = "paper_clean_room_rebuild"
 REBUILD_ROOT_RELPATH = Path("artifacts") / "stage_outputs" / "_paper_clean_room_rebuild"
 SUPERVISION_ROOT_RELPATH = Path("artifacts") / "supervision" / "paper_clean_room_rebuild"
 REQUIRED_INPUTS = (
-    ("study_yaml", Path("study.yaml")),
-    ("current_manuscript", Path("paper/draft.md")),
-    ("evidence_ledger", Path("paper/evidence_ledger.json")),
-    ("review_ledger", Path("paper/review/review_ledger.json")),
+    (
+        "study_yaml",
+        Path("study.yaml"),
+        (Path("study.yaml"),),
+    ),
+    (
+        "current_manuscript",
+        Path("paper/draft.md"),
+        (
+            Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper/draft.md"),
+            Path("paper/draft.md"),
+        ),
+    ),
+    (
+        "evidence_ledger",
+        Path("paper/evidence_ledger.json"),
+        (
+            Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper/evidence_ledger.json"),
+            Path(
+                "artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/manuscript/audit/evidence_ledger.json"
+            ),
+            Path("paper/evidence_ledger.json"),
+            Path("artifacts/evidence_ledger.json"),
+        ),
+    ),
+    (
+        "review_ledger",
+        Path("paper/review/review_ledger.json"),
+        (
+            Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper/review/review_ledger.json"),
+            Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/manuscript/review/review_ledger.json"),
+            Path("paper/review/review_ledger.json"),
+            Path("artifacts/review_ledger.json"),
+        ),
+    ),
 )
 OPTIONAL_STUDY_INPUTS = (
-    ("claim_evidence_map", Path("paper/claim_evidence_map.json")),
-    ("figure_catalog", Path("paper/figures/figure_catalog.json")),
-    ("table_catalog", Path("paper/tables/table_catalog.json")),
-    ("publication_eval_latest", Path("artifacts/publication_eval/latest.json")),
-    ("controller_decision_latest", Path("artifacts/controller_decisions/latest.json")),
-    ("paper_authority_cutover", Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/latest.json")),
+    (
+        "claim_evidence_map",
+        Path("paper/claim_evidence_map.json"),
+        (
+            Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper/claim_evidence_map.json"),
+            Path("paper/claim_evidence_map.json"),
+        ),
+    ),
+    (
+        "figure_catalog",
+        Path("paper/figures/figure_catalog.json"),
+        (
+            Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper/figures/figure_catalog.json"),
+            Path("paper/figures/figure_catalog.json"),
+        ),
+    ),
+    (
+        "table_catalog",
+        Path("paper/tables/table_catalog.json"),
+        (
+            Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/current_body/paper/tables/table_catalog.json"),
+            Path("paper/tables/table_catalog.json"),
+        ),
+    ),
+    ("publication_eval_latest", Path("artifacts/publication_eval/latest.json"), (Path("artifacts/publication_eval/latest.json"),)),
+    (
+        "controller_decision_latest",
+        Path("artifacts/controller_decisions/latest.json"),
+        (Path("artifacts/controller_decisions/latest.json"),),
+    ),
+    (
+        "paper_authority_cutover",
+        Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/latest.json"),
+        (Path("artifacts/stage_outputs/_body_authority/paper_authority_cutover/latest.json"),),
+    ),
 )
 NEXT_REQUIRED_ACTIONS = [
     "run_medical_publication_surface_from_clean_room",
@@ -98,6 +159,13 @@ def materialize_paper_clean_room_rebuild(
     clean_root = study_root / REBUILD_ROOT_RELPATH / "workspaces" / _history_stamp(timestamp)
     descriptor_path = study_root / SUPERVISION_ROOT_RELPATH / "latest.json"
     history_path = study_root / SUPERVISION_ROOT_RELPATH / "history" / f"{_history_stamp(timestamp)}.json"
+    workspace_status = study_workspace_status.build_study_workspace_status(
+        profile=profile,
+        study_id=study_id,
+        recorded_at=timestamp,
+        apply=apply,
+    )
+    workspace_blockers = list(workspace_status.get("blockers") or [])
     refs = _verified_input_refs(
         profile=profile,
         study_id=study_id,
@@ -119,9 +187,20 @@ def materialize_paper_clean_room_rebuild(
         recorded_at=timestamp,
         refs=refs,
         missing_required=missing_required,
+        workspace_status=workspace_status,
+        workspace_blockers=workspace_blockers,
     )
-    if apply:
+    if apply and descriptor["status"] == "ready":
         _materialize_verified_inputs(clean_root=clean_root, refs=refs)
+        _write_json(history_path, descriptor)
+        _write_json(descriptor_path, descriptor)
+        workspace_status = study_workspace_status.build_study_workspace_status(
+            profile=profile,
+            study_id=study_id,
+            recorded_at=timestamp,
+            apply=True,
+        )
+    elif apply:
         _write_json(history_path, descriptor)
         _write_json(descriptor_path, descriptor)
     return {
@@ -133,6 +212,9 @@ def materialize_paper_clean_room_rebuild(
         "history_path": str(history_path),
         "verified_input_count": len([ref for ref in refs if ref["present"] is True]),
         "missing_required_refs": missing_required,
+        "workspace_status_ref": descriptor["study_workspace_status_ref"],
+        "stage_index_ref": descriptor["stage_index_ref"],
+        "workspace_blockers": workspace_blockers,
         "legacy_residue_policy": dict(LEGACY_RESIDUE_POLICY),
         "next_required_actions": list(NEXT_REQUIRED_ACTIONS),
     }
@@ -149,11 +231,14 @@ def _descriptor(
     recorded_at: str,
     refs: list[dict[str, Any]],
     missing_required: list[str],
+    workspace_status: Mapping[str, Any],
+    workspace_blockers: list[str],
 ) -> dict[str, Any]:
+    status = "blocked_study_workspace_status" if workspace_blockers else "blocked_missing_required_refs" if missing_required else "ready"
     return {
         "schema_version": 1,
         "surface_kind": SURFACE_KIND,
-        "status": "blocked_missing_required_refs" if missing_required else "ready",
+        "status": status,
         "recorded_at": recorded_at,
         "workspace_root": str(profile.workspace_root.expanduser().resolve()),
         "study_id": study_id,
@@ -164,10 +249,23 @@ def _descriptor(
         "verified_input_root": str(clean_root / "verified_inputs"),
         "verified_input_refs": refs,
         "missing_required_refs": missing_required,
+        "workspace_blockers": workspace_blockers,
+        "study_workspace_status_ref": str(workspace_status.get("descriptor_path")),
+        "stage_index_ref": str(study_root / "control" / "stage_index.json"),
+        "target_state_reference_doc": study_workspace_status.TARGET_STATE_REFERENCE_DOC,
+        "stage_native_contract": {
+            "canonical_study_root_required": True,
+            "stage_index_required": True,
+            "current_stage_manifest_required": True,
+            "current_stage_receipt_or_typed_blocker_required": True,
+            "runtime_quest_root_current_truth_allowed": False,
+        },
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "legacy_residue_policy": dict(LEGACY_RESIDUE_POLICY),
         "source_selection_policy": {
             "copy_only_verified_current_refs": True,
+            "canonical_clean_room_destination_paths": True,
+            "stage_authority_current_body_preferred": True,
             "legacy_ds_runtime_state_allowed": False,
             "legacy_dispatch_ledger_allowed": False,
             "stale_read_model_allowed": False,
@@ -185,25 +283,27 @@ def _verified_input_refs(
     clean_root: Path,
 ) -> list[dict[str, Any]]:
     refs: list[dict[str, Any]] = []
-    for surface_id, relpath in REQUIRED_INPUTS:
+    for surface_id, canonical_relpath, candidate_relpaths in REQUIRED_INPUTS:
         refs.append(
             _input_ref(
                 profile=profile,
                 study_root=study_root,
                 clean_root=clean_root,
                 surface_id=surface_id,
-                source_path=study_root / relpath,
+                canonical_relpath=canonical_relpath,
+                source_candidates=tuple(study_root / relpath for relpath in candidate_relpaths),
                 required=True,
             )
         )
-    for surface_id, relpath in OPTIONAL_STUDY_INPUTS:
+    for surface_id, canonical_relpath, candidate_relpaths in OPTIONAL_STUDY_INPUTS:
         refs.append(
             _input_ref(
                 profile=profile,
                 study_root=study_root,
                 clean_root=clean_root,
                 surface_id=surface_id,
-                source_path=study_root / relpath,
+                canonical_relpath=canonical_relpath,
+                source_candidates=tuple(study_root / relpath for relpath in candidate_relpaths),
                 required=False,
             )
         )
@@ -213,7 +313,8 @@ def _verified_input_refs(
             study_root=study_root,
             clean_root=clean_root,
             surface_id="publishability_gate_latest",
-            source_path=profile.runtime_root / study_id / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+            canonical_relpath=Path("artifacts/reports/publishability_gate/latest.json"),
+            source_candidates=(profile.runtime_root / study_id / "artifacts" / "reports" / "publishability_gate" / "latest.json",),
             required=False,
         )
     )
@@ -226,24 +327,41 @@ def _input_ref(
     study_root: Path,
     clean_root: Path,
     surface_id: str,
-    source_path: Path,
+    canonical_relpath: Path,
+    source_candidates: tuple[Path, ...],
     required: bool,
 ) -> dict[str, Any]:
-    resolved = source_path.expanduser().resolve()
-    present = resolved.exists()
-    destination_relpath = _destination_relpath(
-        profile=profile,
-        study_root=study_root,
-        source_path=resolved,
-    )
+    candidates = [_candidate_ref(profile=profile, study_root=study_root, source_path=path) for path in source_candidates]
+    selected = next((candidate for candidate in candidates if candidate["present"] is True), None)
+    resolved = Path(str(selected["source_path"])) if selected else source_candidates[0].expanduser().resolve()
+    present = selected is not None
     return {
         "surface_id": surface_id,
         "required": required,
         "present": present,
         "valid": present,
         "source_path": str(resolved),
-        "destination_path": str(clean_root / "verified_inputs" / destination_relpath),
-        "destination_relative_path": destination_relpath.as_posix(),
+        "source_relative_path": selected["source_relative_path"] if selected else None,
+        "source_candidates": candidates,
+        "destination_path": str(clean_root / "verified_inputs" / canonical_relpath),
+        "destination_relative_path": canonical_relpath.as_posix(),
+        "kind": "directory" if resolved.is_dir() else "file",
+        "sha256": _sha256(resolved) if resolved.is_file() else None,
+    }
+
+
+def _candidate_ref(*, profile: WorkspaceProfile, study_root: Path, source_path: Path) -> dict[str, Any]:
+    resolved = source_path.expanduser().resolve()
+    present = resolved.exists()
+    return {
+        "source_path": str(resolved),
+        "source_relative_path": _destination_relpath(
+            profile=profile,
+            study_root=study_root,
+            source_path=resolved,
+        ).as_posix(),
+        "present": present,
+        "valid": present,
         "kind": "directory" if resolved.is_dir() else "file",
         "sha256": _sha256(resolved) if resolved.is_file() else None,
     }

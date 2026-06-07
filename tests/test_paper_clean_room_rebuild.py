@@ -42,6 +42,30 @@ def _write_profile(path: Path, profile) -> None:
     )
 
 
+def _write_stage(study_root: Path, stage_id: str = "08-publication_package_handoff") -> Path:
+    stage_root = study_root / "artifacts" / "stage_outputs" / stage_id
+    _write_json(
+        stage_root / "stage_manifest.json",
+        {
+            "surface_kind": "stage_manifest",
+            "stage_id": stage_id,
+            "artifact_refs": ["paper/draft.md"],
+            "typed_blocker_refs": [f"artifacts/stage_outputs/{stage_id}/receipts/typed_blocker.json"],
+        },
+    )
+    _write_json(stage_root / "inputs" / "consumed_artifact_refs.json", {"refs": ["paper/draft.md"]})
+    _write_json(stage_root / "receipts" / "typed_blocker.json", {"blocker_id": "publication_gate_blocked"})
+    _write_json(stage_root / "lineage" / "prov.json", {"stage_id": stage_id})
+    _write_json(
+        stage_root / "projection" / "current_owner_delta.json",
+        {
+            "latest_owner_answer_kind": "typed_blocker",
+            "latest_owner_answer_ref": f"artifacts/stage_outputs/{stage_id}/receipts/typed_blocker.json",
+        },
+    )
+    return stage_root
+
+
 def test_paper_clean_room_rebuild_apply_materializes_verified_input_workspace(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
     profile = make_profile(tmp_path)
@@ -61,6 +85,7 @@ def test_paper_clean_room_rebuild_apply_materializes_verified_input_workspace(tm
         quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
         {"status": "blocked", "blockers": ["medical_publication_surface_blocked"]},
     )
+    _write_stage(study_root)
     write_text(study_root / ".ds" / "runs" / "stale" / "stdout.jsonl", "{}\n")
 
     dry_run = module.run_paper_clean_room_rebuild(
@@ -90,6 +115,10 @@ def test_paper_clean_room_rebuild_apply_materializes_verified_input_workspace(tm
     assert result["mode"] == "apply"
     assert study["status"] == "ready"
     assert descriptor["surface_kind"] == "paper_clean_room_rebuild"
+    assert descriptor["study_workspace_status_ref"].endswith("_archive/migration_manifest/validation_result.json")
+    assert descriptor["stage_index_ref"].endswith("control/stage_index.json")
+    assert descriptor["target_state_reference_doc"] == "docs/source/study_workspace_target_state.md"
+    assert descriptor["stage_native_contract"]["current_stage_receipt_or_typed_blocker_required"] is True
     assert descriptor["authority_boundary"]["promote_to_current_authority_allowed"] is False
     assert descriptor["authority_boundary"]["old_runtime_residue_import_allowed"] is False
     assert (clean_root / "verified_inputs" / "paper" / "draft.md").read_text(encoding="utf-8") == (
@@ -105,6 +134,106 @@ def test_paper_clean_room_rebuild_apply_materializes_verified_input_workspace(tm
         "route_to_write_review_or_finalize_owner",
         "promote_only_after_publication_gate_passes",
     ]
+    next_action = json.loads((study_root / "control" / "next_action.json").read_text(encoding="utf-8"))
+    assert next_action["action_id"] == "run_medical_publication_surface_from_clean_room"
+    assert next_action["source_surface"] == "artifacts/supervision/paper_clean_room_rebuild/latest.json"
+
+
+def test_paper_clean_room_rebuild_prefers_stage_authority_current_body(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    current_body = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    write_text(study_root / "paper" / "draft.md", "legacy root draft\n")
+    write_text(current_body / "draft.md", "stage authority draft\n")
+    _write_json(current_body / "evidence_ledger.json", {"surface": "stage_current_evidence_ledger"})
+    _write_json(current_body / "review" / "review_ledger.json", {"surface": "stage_current_review_ledger"})
+    _write_stage(study_root)
+
+    result = module.run_paper_clean_room_rebuild(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+
+    study = result["studies"][0]
+    clean_root = Path(study["clean_workspace_root"])
+    descriptor = json.loads(Path(study["descriptor_path"]).read_text(encoding="utf-8"))
+    refs = {ref["surface_id"]: ref for ref in descriptor["verified_input_refs"]}
+    assert study["status"] == "ready"
+    assert (clean_root / "verified_inputs" / "paper" / "draft.md").read_text(encoding="utf-8") == (
+        "stage authority draft\n"
+    )
+    assert json.loads(
+        (clean_root / "verified_inputs" / "paper" / "evidence_ledger.json").read_text(encoding="utf-8")
+    ) == {"surface": "stage_current_evidence_ledger"}
+    assert refs["current_manuscript"]["source_relative_path"].endswith("current_body/paper/draft.md")
+    assert refs["evidence_ledger"]["source_relative_path"].endswith("current_body/paper/evidence_ledger.json")
+    assert refs["review_ledger"]["destination_relative_path"] == "paper/review/review_ledger.json"
+
+
+def test_paper_clean_room_rebuild_uses_artifact_evidence_ledger_fallback(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    write_text(study_root / "paper" / "draft.md", "current root draft\n")
+    _write_json(study_root / "artifacts" / "evidence_ledger.json", {"surface": "artifact_evidence_ledger"})
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"surface": "review_ledger"})
+    _write_stage(study_root)
+
+    result = module.run_paper_clean_room_rebuild(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+
+    study = result["studies"][0]
+    clean_root = Path(study["clean_workspace_root"])
+    descriptor = json.loads(Path(study["descriptor_path"]).read_text(encoding="utf-8"))
+    refs = {ref["surface_id"]: ref for ref in descriptor["verified_input_refs"]}
+    assert study["status"] == "ready"
+    assert refs["evidence_ledger"]["source_relative_path"] == "artifacts/evidence_ledger.json"
+    assert refs["evidence_ledger"]["destination_relative_path"] == "paper/evidence_ledger.json"
+    assert json.loads(
+        (clean_root / "verified_inputs" / "paper" / "evidence_ledger.json").read_text(encoding="utf-8")
+    ) == {"surface": "artifact_evidence_ledger"}
+
+
+def test_paper_clean_room_rebuild_blocks_when_evidence_ledger_candidates_are_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_clean_room_rebuild")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    write_text(study_root / "paper" / "draft.md", "current root draft\n")
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"surface": "review_ledger"})
+    _write_stage(study_root)
+
+    result = module.run_paper_clean_room_rebuild(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=False,
+    )
+
+    study = result["studies"][0]
+    assert study["status"] == "blocked_study_workspace_status"
+    assert study["missing_required_refs"] == ["evidence_ledger"]
+    assert "evidence_ledger_missing" in study["workspace_blockers"]
 
 
 def test_domain_owner_dispatch_executes_paper_clean_room_rebuild_action(
@@ -119,6 +248,7 @@ def test_domain_owner_dispatch_executes_paper_clean_room_rebuild_action(
     write_text(study_root / "paper" / "draft.md", "## Discussion\n\nA current paper delta.\n")
     _write_json(study_root / "paper" / "evidence_ledger.json", {"surface": "evidence_ledger"})
     _write_json(study_root / "paper" / "review" / "review_ledger.json", {"surface": "review_ledger"})
+    _write_stage(study_root)
     route = _owner_route(
         study_id=study_id,
         action_type="paper_clean_room_rebuild_required",
