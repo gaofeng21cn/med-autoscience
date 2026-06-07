@@ -388,7 +388,7 @@ def test_scan_domain_routes_uses_current_provider_readiness_for_same_tick_runtim
             },
             recorded_at=f"2026-05-28T10:4{sequence}:00+00:00",
         )
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     latest_path.parent.mkdir(parents=True, exist_ok=True)
     latest_path.write_text(
         json.dumps(

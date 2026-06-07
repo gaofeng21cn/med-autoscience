@@ -165,7 +165,7 @@ def test_domain_action_materializer_blocks_new_default_executor_task_until_runni
         },
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -212,7 +212,7 @@ def test_domain_action_materializer_blocks_new_default_executor_task_until_runni
     assert dispatch["progress_first_closeout_admission"]["export_new_default_executor_task"] is False
     assert dispatch["progress_first_closeout_admission"]["typed_blocker"]["work_unit_id"] == "publishability_repair_sprint"
     assert result["written_files"] == [
-        str(profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"),
+        str(profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"),
     ]
     assert not (
         profile.studies_root
@@ -446,7 +446,7 @@ def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
     }
     _write_json(dispatch_path, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -454,7 +454,7 @@ def test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_lineage(
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

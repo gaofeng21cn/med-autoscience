@@ -105,7 +105,7 @@ def test_execute_dispatch_uses_pending_ai_reviewer_request_when_scan_route_loses
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

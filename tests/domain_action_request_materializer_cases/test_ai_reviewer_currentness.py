@@ -115,7 +115,7 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -186,7 +186,7 @@ def test_materialize_domain_action_requests_honors_consumed_transition_owner_act
         allowed_actions=["return_to_ai_reviewer_workflow"],
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -400,7 +400,7 @@ def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_ref
         / "20260524T010000Z_publication_eval_record.json"
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -539,7 +539,7 @@ def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_reque
         | {"quality_assessment": quality_assessment},
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -687,7 +687,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
         }
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -798,7 +798,7 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_missing_current
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

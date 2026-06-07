@@ -133,7 +133,7 @@ def test_execute_dispatch_accepts_story_surface_materialization_bridge_owner_rou
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -258,7 +258,7 @@ def test_execute_dispatch_accepts_publication_owner_materialization_bridge(
         / "run_gate_clearing_batch.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
-    scan_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    scan_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         scan_path,
         {
@@ -399,7 +399,7 @@ def test_terminal_stall_accepts_current_publication_owner_materialization_bridge
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -524,7 +524,7 @@ def test_terminal_stall_rejects_gate_clearing_without_publication_owner_bridge(
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -648,7 +648,7 @@ def test_execute_dispatch_accepts_publication_gate_replay_materialization_bridge
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

@@ -352,7 +352,7 @@ def test_default_dispatch_current_stage_handoff_supersedes_consumed_transition_g
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

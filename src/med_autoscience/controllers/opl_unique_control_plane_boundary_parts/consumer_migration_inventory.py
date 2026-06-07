@@ -447,9 +447,9 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                 ),
                 "active_callers": [],
                 "writes_only": [
-                    "artifacts/runtime/progress_portal/latest.json",
-                    "artifacts/runtime/progress_portal/hosted_package.json",
-                    "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+                    "runtime/artifacts/progress_portal/latest.json",
+                    "runtime/artifacts/progress_portal/hosted_package.json",
+                    "runtime/artifacts/progress_portal/studies/<study_id>/latest.json",
                     "ops/mas/progress/index.html",
                     "ops/mas/progress/studies/<study_id>/index.html",
                 ],

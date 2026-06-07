@@ -6,6 +6,7 @@ from pathlib import Path
 import yaml
 
 from med_autoscience.controllers import workspace_literature as workspace_literature_controller
+from med_autoscience.workspace_paths import research_memory_root
 
 
 PORTFOLIO_MEMORY_SCHEMA_VERSION = 1
@@ -34,7 +35,7 @@ class PortfolioMemoryFile:
 
 
 def _portfolio_memory_root(workspace_root: Path) -> Path:
-    return workspace_root / "portfolio" / "research_memory"
+    return research_memory_root(workspace_root)
 
 
 def _registry_path(workspace_root: Path) -> Path:

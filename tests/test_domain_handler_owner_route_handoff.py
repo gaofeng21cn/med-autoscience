@@ -326,7 +326,7 @@ def test_domain_handler_export_uses_newer_opl_current_control_owner_route_over_s
     )
     assert task["payload"]["continuation_reason"] == "opl_stage_attempt_admission_required"
     assert task["payload"]["owner_route_handoff_ref"] == (
-        "artifacts/supervision/opl_current_control_state/latest.json"
+        "runtime/artifacts/supervision/opl_current_control_state/latest.json"
     )
     assert task["runtime_state_path"] == str(runtime_state_path)
     assert task["opl_runtime_owner_route_handoff"]["source"] == (
@@ -342,7 +342,7 @@ def test_domain_handler_export_uses_newer_opl_current_control_owner_route_over_s
         {
             "ref_kind": "repo_path",
             "role": "opl_current_control_state_owner_route",
-            "ref": "artifacts/supervision/opl_current_control_state/latest.json",
+            "ref": "runtime/artifacts/supervision/opl_current_control_state/latest.json",
             "exists": True,
         }
     ]

@@ -139,7 +139,7 @@ def _build_family_lifecycle_ledger_surface(
     refs = dict(adoption.get("refs") or {})
     sqlite_refs_index = dict(refs.get("sqlite_refs_index") or {})
     sqlite_ref = _non_empty_text(sqlite_refs_index.get("workspace_relative_path")) or (
-        "artifacts/runtime/domain_authority_refs.sqlite"
+        "runtime/artifacts/domain_authority_refs.sqlite"
     )
     return {
         "surface_kind": "family_lifecycle_ledger",

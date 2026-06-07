@@ -471,7 +471,7 @@ def test_domain_handler_dispatch_replays_paper_repair_when_owner_capability_chan
     }
     _write_json(task_path, task)
 
-    stale_receipt_dir = workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts"
+    stale_receipt_dir = workspace_root / "runtime" / "artifacts" / "opl_family_domain_handler" / "dispatch_receipts"
     stale_receipt_dir.mkdir(parents=True, exist_ok=True)
     stale_key = "paper-task-ai-reviewer-callable:reviewer-fp"
     stale_receipt_path = stale_receipt_dir / f"{hashlib.sha256(stale_key.encode('utf-8')).hexdigest()[:20]}.json"
@@ -509,7 +509,7 @@ def test_domain_handler_dispatch_replays_paper_repair_when_owner_capability_chan
     )
     assert len(calls) == 1
     assert calls[0]["action_types"] == ("return_to_ai_reviewer_workflow",)
-    assert payload["receipt_ref"].startswith("artifacts/runtime/opl_family_domain_handler/dispatch_receipts/")
+    assert payload["receipt_ref"].startswith("runtime/artifacts/opl_family_domain_handler/dispatch_receipts/")
     assert payload["receipt_ref"] != str(stale_receipt_path.relative_to(workspace_root))
 
 

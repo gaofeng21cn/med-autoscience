@@ -248,7 +248,7 @@ def test_execute_dispatch_rejects_dispatch_owner_route_when_scan_lacks_study_rou
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -352,7 +352,7 @@ def test_execute_dispatch_authorization_ignores_diagnostic_owner_reason_drift(
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -447,7 +447,7 @@ def test_execute_dispatch_blocks_when_current_macro_state_drifted(
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -517,7 +517,7 @@ def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -863,7 +863,7 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

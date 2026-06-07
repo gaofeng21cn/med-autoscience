@@ -174,7 +174,7 @@ def test_mas_persistence_lifecycle_owner_route_projection_is_refs_payload_only()
         "lifecycle": "opl_family_lifecycle_contract.v1",
         "owner_route": "opl_family_owner_route_contract.v1",
     }
-    assert "artifacts/runtime/domain_authority_refs.sqlite" in projection["source_surfaces"]
+    assert "runtime/artifacts/domain_authority_refs.sqlite" in projection["source_surfaces"]
     assert "owner_route_receipts" in projection["sqlite_tables"]
     assert "surface_refs" in projection["sqlite_tables"]
     assert projection["authority_boundary"] == (

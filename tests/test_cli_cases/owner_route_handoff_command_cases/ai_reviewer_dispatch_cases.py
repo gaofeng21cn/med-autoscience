@@ -235,6 +235,6 @@ def test_domain_handler_dispatch_preserves_ai_reviewer_record_production_handoff
     assert handoff["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert handoff["next_executable_owner"] == "ai_reviewer"
     assert payload["dispatch"]["downstream_worker_handoff"] == handoff
-    assert payload["receipt_ref"].startswith("artifacts/runtime/opl_family_domain_handler/dispatch_receipts/")
+    assert payload["receipt_ref"].startswith("runtime/artifacts/opl_family_domain_handler/dispatch_receipts/")
     assert (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").is_file()
     assert not (study_root / "manuscript" / "current_package").exists()

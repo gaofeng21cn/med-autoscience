@@ -105,7 +105,7 @@ def test_quality_repair_batch_ignores_nonterminal_stall_fingerprint_drift(
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

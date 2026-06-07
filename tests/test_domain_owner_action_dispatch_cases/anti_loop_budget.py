@@ -164,7 +164,7 @@ def test_execute_dispatch_allows_one_retry_then_suppresses_after_anti_loop_budge
     assert execution["anti_loop_budget"]["failure_count"] == 2
     assert execution["anti_loop_budget"]["escalation_route"] == "publishability_repair_sprint"
 
-    db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    db_path = profile.workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
     assert db_path.is_file()
     with sqlite3.connect(db_path) as conn:
         row = conn.execute(

@@ -43,7 +43,7 @@ SOAK_STAGE_REF_HINTS: dict[str, tuple[str, ...]] = {
     "runtime_recovery": (
         "artifacts/supervision/consumer/default_executor_execution/history.jsonl",
         "artifacts/runtime/runtime_status_summary.json",
-        "artifacts/supervision/opl_current_control_state/latest.json",
+        "runtime/artifacts/supervision/opl_current_control_state/latest.json",
     ),
     "finalize_rebuild": (
         "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",

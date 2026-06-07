@@ -21,7 +21,7 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -201,7 +201,7 @@ def test_stage_progress_log_alone_does_not_trigger_platform_repair_delta(
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -259,7 +259,7 @@ def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(
     status_module = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -358,7 +358,7 @@ def test_progress_projection_uses_opl_current_control_state_as_live_liveness_pro
     )
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text("quest_id: quest-001\nstudy_id: 001-risk\n", encoding="utf-8")
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -445,7 +445,7 @@ def test_progress_projection_uses_opl_live_attempt_when_runtime_state_waiting_fo
     )
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text("quest_id: quest-001\nstudy_id: 001-risk\n", encoding="utf-8")
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -528,7 +528,7 @@ def test_progress_projection_uses_live_opl_queue_attempt_when_handoff_is_stale(
     )
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text("quest_id: quest-001\nstudy_id: 001-risk\n", encoding="utf-8")
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -634,7 +634,7 @@ def test_progress_projection_uses_live_opl_attempt_when_quest_state_is_paused(
     )
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text("quest_id: quest-001\nstudy_id: 001-risk\n", encoding="utf-8")
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -755,7 +755,7 @@ def test_progress_projection_treats_terminal_opl_success_handoff_as_settled_not_
         action_type="run_quality_repair_batch",
         reason="Route the current paper blocker to the owner work unit.",
     )
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -845,7 +845,7 @@ def test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lack
         journal_shortlist=["Journal of Clinical Epidemiology"],
         minimum_sci_ready_evidence_package=["main_result_table", "claim_evidence_map"],
     )
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {

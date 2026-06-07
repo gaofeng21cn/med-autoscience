@@ -71,9 +71,9 @@ DOC_REFERENCE_FORBIDDEN_MDS_CLAIMS: tuple[str, ...] = (
     "contributor_history_import",
 )
 DOC_REFERENCE_MAS_PACKAGING_SURFACES: tuple[str, ...] = (
-    "artifacts/runtime/progress_portal/latest.json",
+    "runtime/artifacts/progress_portal/latest.json",
     "ops/mas/progress/index.html",
-    "artifacts/runtime/progress_portal/hosted_package.json",
+    "runtime/artifacts/progress_portal/hosted_package.json",
 )
 DOC_REFERENCE_FORBIDDEN_AUTHORITY_WRITES: tuple[str, ...] = (
     "progress_projection",
@@ -145,7 +145,7 @@ DOC_REFERENCE_HUB_ROLES: tuple[dict[str, Any], ...] = (
             "controller_decisions/latest.json",
         ],
         "materializes_only": [
-            "artifacts/runtime/progress_portal/latest.json",
+            "runtime/artifacts/progress_portal/latest.json",
             "ops/mas/progress/index.html",
         ],
         "may_control_runtime": False,

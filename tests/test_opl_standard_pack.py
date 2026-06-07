@@ -115,6 +115,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "prompts",
         "stages",
         "skills",
+        "tools",
         "knowledge",
         "quality_gates",
     ]
@@ -134,6 +135,27 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "opl_can_authorize_quality_or_export": False,
         "domain_owns_input_truth_and_output_authority": True,
     }
+    workspace_topology = foundry_series["workspace_topology_profile"]
+    assert workspace_topology["surface_kind"] == "opl_workspace_topology_profile"
+    assert workspace_topology["profile_id"] == "opl.workspace_topology_profile.v1"
+    assert workspace_topology["topology_model"] == [
+        "workspace_group",
+        "project_unit",
+        "stage_artifact_unit",
+        "owner_receipt_or_typed_blocker",
+    ]
+    assert workspace_topology["workspace_modes"] == ["one_off", "series", "portfolio"]
+    assert workspace_topology["default_profiles"]["mas_portfolio"][
+        "project_stage_outputs_root"
+    ] == "artifacts/stage_outputs"
+    assert workspace_topology["domain_profile_defaults"]["mas"] == "mas_portfolio"
+    assert workspace_topology["default_user_inspection_surface"][
+        "ordinary_user_default_surface"
+    ] == "workspace_local_project_stage_outputs"
+    assert workspace_topology["runtime_state_boundary"][
+        "runtime_state_can_close_stage"
+    ] is False
+    assert workspace_topology["authority_boundary"]["opl_can_write_domain_truth"] is False
     domain_profile = foundry_series["domain_specific_profile"]
     assert domain_profile["shared_agent_logic"] == (
         "same_opl_foundry_agent_lifecycle_with_domain_specific_medical_research_inputs_"
@@ -647,9 +669,9 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert "local_http_service_owner" in materializer_boundary["does_not_claim"]
     assert "runtime_control_owner" in materializer_boundary["does_not_claim"]
     assert materializer_boundary["writes_only"] == [
-        "artifacts/runtime/progress_portal/latest.json",
-        "artifacts/runtime/progress_portal/hosted_package.json",
-        "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+        "runtime/artifacts/progress_portal/latest.json",
+        "runtime/artifacts/progress_portal/hosted_package.json",
+        "runtime/artifacts/progress_portal/studies/<study_id>/latest.json",
         "ops/mas/progress/index.html",
         "ops/mas/progress/studies/<study_id>/index.html",
     ]

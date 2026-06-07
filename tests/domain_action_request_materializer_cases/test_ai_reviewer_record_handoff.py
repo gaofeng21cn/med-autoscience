@@ -91,7 +91,7 @@ def test_materialize_ai_reviewer_dispatch_uses_record_handoff_when_latest_is_for
         "priority_class": "ai_reviewer_currentness",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -234,7 +234,7 @@ def test_materialize_ai_reviewer_record_handoff_suppresses_ready_dispatch_after_
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

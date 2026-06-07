@@ -232,6 +232,13 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_workspace_status_mode.add_argument("--dry-run", action="store_true")
     study_workspace_status_mode.add_argument("--apply", action="store_true")
 
+    workspace_target_state_cleanup_parser = subparsers.add_parser("workspace-target-state-cleanup")
+    workspace_target_state_cleanup_parser.add_argument("--profile", required=True)
+    workspace_target_state_cleanup_parser.add_argument("--no-rewrite-refs", action="store_true")
+    workspace_target_state_cleanup_mode = workspace_target_state_cleanup_parser.add_mutually_exclusive_group(required=True)
+    workspace_target_state_cleanup_mode.add_argument("--dry-run", action="store_true")
+    workspace_target_state_cleanup_mode.add_argument("--apply", action="store_true")
+
     study_config_clean_migration_parser = subparsers.add_parser("study-config-clean-migration")
     study_config_clean_migration_parser.add_argument("--profile", required=True)
     study_config_clean_migration_parser.add_argument("--studies", nargs="+")

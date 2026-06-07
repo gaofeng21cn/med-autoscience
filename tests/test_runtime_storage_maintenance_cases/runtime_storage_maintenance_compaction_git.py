@@ -61,7 +61,7 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
             (str(quest_root.resolve()),),
         ).fetchone()[0]
     assert quest_ref_count == 13
-    workspace_db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    workspace_db_path = profile.workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
     with sqlite3.connect(workspace_db_path) as conn:
         workspace_ref_count = conn.execute(
             "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
@@ -250,7 +250,7 @@ def test_audit_workspace_storage_restore_proof_compaction_shards_codex_homes(
             "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
             (str(quest_root.resolve()),),
         ).fetchone()[0]
-    workspace_db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    workspace_db_path = profile.workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
     with sqlite3.connect(workspace_db_path) as conn:
         workspace_ref_count = conn.execute(
             "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
@@ -310,7 +310,7 @@ def test_maintain_legacy_ds_runtime_storage_archives_and_prunes_bare_ds_payload_
             "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",
             (str(legacy_root.resolve()),),
         ).fetchone()[0]
-    workspace_db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    workspace_db_path = profile.workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
     with sqlite3.connect(workspace_db_path) as conn:
         workspace_ref_count = conn.execute(
             "SELECT COUNT(*) FROM archive_refs WHERE quest_root = ?",

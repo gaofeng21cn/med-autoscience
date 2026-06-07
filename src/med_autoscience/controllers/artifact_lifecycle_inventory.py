@@ -21,6 +21,7 @@ from med_autoscience.controllers.submission_package_layout import (
     REPRODUCIBILITY_DIRNAME,
     has_legacy_root_audit_files,
 )
+from med_autoscience.workspace_paths import datasets_root
 
 
 DELIVERY_PACKAGE_LAYOUT_STATUSES = ("v2", "legacy", "unknown")
@@ -272,7 +273,7 @@ def _discover_registry_paths(
     workspace_root: Path,
     quest_root: Path | None,
 ) -> list[Path]:
-    roots = [study_root, workspace_root / "datasets"]
+    roots = [study_root, datasets_root(workspace_root)]
     if quest_root is not None:
         roots.append(quest_root / ".ds")
     seen: set[Path] = set()

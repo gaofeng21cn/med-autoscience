@@ -69,7 +69,7 @@ def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sid
     assert surface["surface_kind"] == "mas_opl_family_domain_authority_refs_adoption"
     assert surface["workspace_root"] == str(workspace_root.resolve())
     assert surface["refs"]["sqlite_refs_index"]["db_path"] == str(db_path.resolve())
-    assert surface["refs"]["sqlite_refs_index"]["workspace_relative_path"] == "artifacts/runtime/domain_authority_refs.sqlite"
+    assert surface["refs"]["sqlite_refs_index"]["workspace_relative_path"] == "runtime/artifacts/domain_authority_refs.sqlite"
     assert surface["refs"]["source_contract"] == "contracts/opl-framework/family-contract-adoption.json"
     assert surface["refs"]["domain_authority_refs_contract"] == (
         "med_autoscience.runtime_protocol.domain_authority_refs_index.domain_authority_refs_index_contract"
@@ -105,7 +105,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert adoption["refs"]["domain_authority_refs_contract"] == (
         "med_autoscience.runtime_protocol.domain_authority_refs_index.domain_authority_refs_index_contract"
     )
-    assert adoption["refs"]["sqlite_refs_index"]["workspace_relative_path"] == "artifacts/runtime/domain_authority_refs.sqlite"
+    assert adoption["refs"]["sqlite_refs_index"]["workspace_relative_path"] == "runtime/artifacts/domain_authority_refs.sqlite"
     assert adoption["payload"]["persistence"]["source_tables"] == [
         "authority_ref_metadata",
         "archive_refs",
@@ -123,7 +123,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     )
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["storage_role"] == "refs_only_domain_authority_ref_index"
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["ref"]["ref"] == (
-        "artifacts/runtime/domain_authority_refs.sqlite"
+        "runtime/artifacts/domain_authority_refs.sqlite"
     )
     assert payload["lifecycle_ledger"]["surface_kind"] == "family_lifecycle_ledger"
     assert payload["lifecycle_ledger"]["actions"][0]["sha256"] == "0" * 64

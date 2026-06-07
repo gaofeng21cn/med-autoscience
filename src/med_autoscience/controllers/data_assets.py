@@ -14,6 +14,7 @@ from med_autoscience.controllers.data_assets_parts.serialization import (
     normalize_string_map as _normalize_string_map,
     write_json as _write_json,
 )
+from med_autoscience.workspace_paths import data_assets_root, datasets_root
 
 
 PRIVATE_REGISTRY_BASENAME = "registry.json"
@@ -47,7 +48,7 @@ RELEASE_READINESS_READY_STATUSES = {"ready", "complete", "locked"}
 
 
 def _data_assets_root(workspace_root: Path) -> Path:
-    return workspace_root / "portfolio" / "data_assets"
+    return data_assets_root(workspace_root)
 
 
 def _private_root(workspace_root: Path) -> Path:
@@ -273,12 +274,12 @@ def _build_private_release(*, family_id: str, version_root: Path) -> dict[str, o
 
 
 def _scan_private_releases(workspace_root: Path) -> list[dict[str, object]]:
-    datasets_root = workspace_root / "datasets"
-    if not datasets_root.exists():
+    releases_root = datasets_root(workspace_root)
+    if not releases_root.exists():
         return []
 
     releases: list[dict[str, object]] = []
-    for family_root in sorted(path for path in datasets_root.iterdir() if path.is_dir()):
+    for family_root in sorted(path for path in releases_root.iterdir() if path.is_dir()):
         for version_root in sorted(path for path in family_root.iterdir() if path.is_dir() and path.name.startswith("v")):
             releases.append(_build_private_release(family_id=family_root.name, version_root=version_root))
     return releases
@@ -393,7 +394,7 @@ def _private_diff_count(workspace_root: Path) -> int:
 
 
 def _find_release_root(*, workspace_root: Path, family_id: str, version_id: str) -> Path:
-    release_root = workspace_root / "datasets" / family_id / version_id
+    release_root = datasets_root(workspace_root) / family_id / version_id
     if not release_root.exists():
         raise FileNotFoundError(f"Private release not found: {family_id}/{version_id}")
     return release_root

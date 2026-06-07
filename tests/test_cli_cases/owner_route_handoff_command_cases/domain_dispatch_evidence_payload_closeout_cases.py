@@ -135,7 +135,7 @@ def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_closeou
         f"default_executor_execution/{stage_attempt_id}.closeout.json"
     )
     typed_blocker_ref = (
-        "artifacts/supervision/opl_current_control_state/latest.json#/studies/0/"
+        "runtime/artifacts/supervision/opl_current_control_state/latest.json#/studies/0/"
         "domain_authority_handoff/typed_blocker"
     )
     write_profile(profile_path, workspace_root=workspace_root)
@@ -174,7 +174,7 @@ def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_closeou
                 closeout_ref,
                 "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/default_executor_execution/latest.json",
                 dispatch_ref,
-                "artifacts/supervision/opl_current_control_state/latest.json",
+                "runtime/artifacts/supervision/opl_current_control_state/latest.json",
             ],
             "typed_blocker_ref": typed_blocker_ref,
             "owner_receipt_ref": None,

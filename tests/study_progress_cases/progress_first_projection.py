@@ -21,7 +21,7 @@ def test_platform_only_repair_projects_next_forced_paper_delta_without_counting_
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifacts_root
+
 if TYPE_CHECKING:
     from med_autoscience.profiles import WorkspaceProfile
 
@@ -72,7 +74,7 @@ def _build_layout(
     resolved_quests_root = (quests_root or resolved_runtime_root / "quests").expanduser().resolve()
     mas_first = resolved_runtime_root == resolved_workspace_root / "runtime"
     startup_root = resolved_runtime_root if mas_first else resolved_ops_root
-    runtime_artifacts_root = resolved_workspace_root / "artifacts" / "runtime"
+    runtime_artifacts_root = workspace_runtime_artifacts_root(resolved_workspace_root)
     return WorkspaceRuntimeLayout(
         workspace_root=resolved_workspace_root,
         ops_root=resolved_ops_root,

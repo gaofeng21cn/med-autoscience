@@ -720,7 +720,7 @@ def _ai_reviewer_evidence(publication_eval: Mapping[str, Any], ai_reviewer_reque
 def _soak_source_refs(study_root: Path) -> list[dict[str, Any]]:
     refs = []
     for relative_ref in (
-        "artifacts/runtime/opl_family_domain_handler",
+        "runtime/artifacts/opl_family_domain_handler",
         "artifacts/controller/repair_execution_receipts/latest.json",
         "artifacts/controller/repair_execution_evidence/latest.json",
         "artifacts/controller/gate_replay_requests/latest.json",

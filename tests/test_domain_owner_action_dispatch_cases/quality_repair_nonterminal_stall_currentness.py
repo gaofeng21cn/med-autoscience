@@ -128,7 +128,7 @@ def test_execute_quality_repair_batch_allows_current_nonterminal_stall_after_saf
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -257,7 +257,7 @@ def test_execute_quality_repair_batch_escalates_after_two_same_auto_failures(
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

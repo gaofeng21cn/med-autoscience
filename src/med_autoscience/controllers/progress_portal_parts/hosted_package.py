@@ -101,7 +101,7 @@ def build_progress_portal_hosted_package(
             "writes_only": [
                 progress_payload_ref,
                 hosted_package_ref,
-                "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+                "runtime/artifacts/progress_portal/studies/<study_id>/latest.json",
                 progress_html_ref,
                 "ops/mas/progress/studies/<study_id>/index.html",
             ],

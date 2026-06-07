@@ -102,7 +102,7 @@ def test_materialize_domain_action_requests_dry_run_ignores_unsupported_action_w
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -135,7 +135,7 @@ def test_materialize_domain_action_requests_dry_run_ignores_unsupported_action_w
         }
     ]
     assert "repair_tasks" not in result
-    assert not (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
+    assert not (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
 
 
@@ -148,7 +148,7 @@ def test_materialize_domain_action_requests_apply_does_not_write_unsupported_act
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -165,7 +165,7 @@ def test_materialize_domain_action_requests_apply_does_not_write_unsupported_act
         apply=True,
     )
 
-    consumer_path = profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"
+    consumer_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"
     unsupported_packet_path = study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json"
     dispatch_path = (
         study_root
@@ -215,7 +215,7 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_unsuppor
     )
     action["owner_route"] = route
     action["handoff_packet"]["owner_route"] = route
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -270,7 +270,7 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_unsuppor
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["repeat_suppressed_count"] == 0
     consumer = json.loads(
-        (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").read_text(
+        (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").read_text(
             encoding="utf-8"
         )
     )
@@ -296,8 +296,8 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
         / "default_executor_dispatches"
         / "unsupported_supervisor_action.json"
     )
-    consumer_path = profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    consumer_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(stale_dispatch_path, {"surface": "default_executor_dispatch_request", "dispatch_status": "ready"})
     _write_json(
         consumer_path,
@@ -358,7 +358,7 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
         owner_reason="current_package_freshness_required",
         allowed_actions=["current_package_freshness_required", "return_to_ai_reviewer_workflow"],
     )
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -430,7 +430,7 @@ def test_materialize_domain_action_requests_uses_pull_request_route_for_non_owne
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -453,7 +453,7 @@ def test_materialize_domain_action_requests_uses_pull_request_route_for_non_owne
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["developer_supervisor_mode"]["repo_write_policy"]["route"] == "pull_request"
     assert result["developer_supervisor_mode"]["repo_write_policy"]["pull_request_required"] is True
-    assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
+    assert (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
 
 
@@ -466,7 +466,7 @@ def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -488,7 +488,7 @@ def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply
     assert result["runtime_control_owner"] == "one-person-lab"
     assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
-    assert not (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
+    assert not (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
 
 
@@ -501,7 +501,7 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     profile = make_profile(tmp_path)
     study_id = "001-dm-cvd-mortality-risk"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     gate_route = _owner_route(
         study_id=study_id,
         quest_id="quest-dm",
@@ -709,7 +709,7 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     assert "publication_eval" in ai_packet["consumer_does_not_mutate"]
     assert gate_packet["paper_package_mutation_allowed"] is False
     assert ai_packet["quality_gate_relaxation_allowed"] is False
-    assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
+    assert (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
 
 
 def test_materialize_domain_action_requests_request_handoff_requires_owner_route_allowed_action(
@@ -728,7 +728,7 @@ def test_materialize_domain_action_requests_request_handoff_requires_owner_route
         owner_reason="publication_gate_specificity_required",
         allowed_actions=[],
     )
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -785,7 +785,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dpcc")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -900,7 +900,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     assert blocked_tasks["publication_gate_specificity_required"]["blocked_reason"] == "owner_route_next_owner_mismatch"
     assert blocked_tasks["return_to_ai_reviewer_workflow"]["dispatch_status"] == "blocked"
     assert blocked_tasks["return_to_ai_reviewer_workflow"]["blocked_reason"] == "owner_route_next_owner_mismatch"
-    assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
+    assert (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
@@ -939,7 +939,7 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
         },
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

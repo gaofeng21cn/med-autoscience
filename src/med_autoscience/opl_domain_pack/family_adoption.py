@@ -898,10 +898,7 @@ def build_opl_family_adoption_surface(
             "domain_authority_refs_contract": DOMAIN_AUTHORITY_REFS_CONTRACT_REF,
             "sqlite_refs_index": {
                 "surface_kind": domain_authority_refs_index.SURFACE_KIND,
-                "workspace_relative_path": (
-                    "artifacts/runtime/"
-                    f"{domain_authority_refs_index.DEFAULT_DB_FILENAME}"
-                ),
+                "workspace_relative_path": _workspace_relative(resolved_db_path, resolved_workspace_root),
                 "db_path": str(resolved_db_path),
                 "status": inspection.get("status") or "missing",
             },
@@ -914,6 +911,13 @@ def build_opl_family_adoption_surface(
         },
         "payload": payload,
     }
+
+
+def _workspace_relative(path: Path, workspace_root: Path) -> str:
+    try:
+        return path.relative_to(workspace_root).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def build_product_entry_adoption_projection(
@@ -935,10 +939,7 @@ def build_product_entry_adoption_projection(
             "domain_authority_refs_contract": DOMAIN_AUTHORITY_REFS_CONTRACT_REF,
             "sqlite_refs_index": {
                 "surface_kind": domain_authority_refs_index.SURFACE_KIND,
-                "workspace_relative_path": (
-                    "artifacts/runtime/"
-                    f"{domain_authority_refs_index.DEFAULT_DB_FILENAME}"
-                ),
+                "workspace_relative_path": _workspace_relative(resolved_db_path, resolved_workspace_root),
                 "db_path": str(resolved_db_path),
             },
             "authority_boundary": {

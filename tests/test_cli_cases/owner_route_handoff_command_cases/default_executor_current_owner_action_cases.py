@@ -175,7 +175,7 @@ def test_domain_handler_export_prefers_current_control_action_queue_over_later_d
         owner_route=write_route,
     )
     _write_json(
-        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface_kind": "opl_current_control_state",
             "schema_version": 1,
@@ -284,7 +284,7 @@ def test_domain_handler_export_prefers_current_control_action_queue_over_stale_r
         },
     )
     _write_json(
-        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface_kind": "opl_current_control_state",
             "schema_version": 1,
@@ -467,7 +467,7 @@ def test_domain_handler_export_prefers_current_writer_handoff_over_stale_current
         },
     )
     _write_json(
-        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface_kind": "opl_current_control_state",
             "schema_version": 1,
@@ -715,7 +715,7 @@ def test_domain_handler_export_retire_writer_handoff_after_current_reviewer_reco
         owner_route=ai_route,
     )
     _write_json(
-        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface_kind": "opl_current_control_state",
             "schema_version": 1,
@@ -809,7 +809,7 @@ def test_domain_handler_export_accepts_required_fields_currentness_basis_without
         "work_unit_id": current_work_unit_id,
     }
     _write_json(
-        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface_kind": "opl_current_control_state",
             "schema_version": 1,
@@ -904,7 +904,7 @@ def test_domain_handler_export_does_not_fall_back_when_current_control_action_ha
         ),
     )
     _write_json(
-        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface_kind": "opl_current_control_state",
             "schema_version": 1,

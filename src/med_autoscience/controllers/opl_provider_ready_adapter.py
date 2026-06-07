@@ -130,9 +130,9 @@ def receipt_refs_for_profile(profile: WorkspaceProfile) -> dict[str, Any]:
     return {
         "surface_kind": "mas_opl_domain_handler_receipt_refs",
         "version": "mas-opl-domain-handler-receipt-refs.v1",
-        "dispatch_receipt_root": "artifacts/runtime/opl_family_domain_handler/dispatch_receipts",
+        "dispatch_receipt_root": "runtime/artifacts/opl_family_domain_handler/dispatch_receipts",
         "dispatch_receipt_ref_template": (
-            "artifacts/runtime/opl_family_domain_handler/dispatch_receipts/<sha256(task_id)[:20]>.json"
+            "runtime/artifacts/opl_family_domain_handler/dispatch_receipts/<sha256(task_id)[:20]>.json"
         ),
         "export_receipt_ref": "domain-handler export response body",
         "workspace_root": str(profile.workspace_root),
@@ -221,8 +221,8 @@ def _workspace_runtime_artifact_root_locator(*, profile: WorkspaceProfile) -> di
             "publication_eval": "studies/<study_id>/artifacts/publication_eval/latest.json",
             "controller_decisions": "studies/<study_id>/artifacts/controller_decisions/latest.json",
             "stage_knowledge_packet": "studies/<study_id>/artifacts/stage_knowledge/<stage>/latest.json",
-            "dispatch_receipts": "artifacts/runtime/opl_family_domain_handler/dispatch_receipts",
-            "domain_authority_refs_index": "artifacts/runtime/domain_authority_refs.sqlite",
+            "dispatch_receipts": "runtime/artifacts/opl_family_domain_handler/dispatch_receipts",
+            "domain_authority_refs_index": "runtime/artifacts/domain_authority_refs.sqlite",
         },
     }
 

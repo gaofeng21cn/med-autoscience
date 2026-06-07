@@ -12,6 +12,7 @@ import time
 from typing import Any, Mapping
 
 from med_autoscience.controllers import workspace_git_boundary
+from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
 
 
 GIT_TEMP_GARBAGE_MIN_AGE_SECONDS = 6 * 3600
@@ -387,7 +388,12 @@ def _retire_workspace_root_git(
         }
 
     run_id = _utc_run_id()
-    archive_root = workspace_root / "artifacts" / "runtime" / "lifecycle_migration" / "workspace_root_git_retirement" / run_id
+    archive_root = workspace_runtime_artifact_path(
+        workspace_root,
+        "lifecycle_migration",
+        "workspace_root_git_retirement",
+        run_id,
+    )
     archive_path = archive_root / "workspace_root_git.tar.gz"
     manifest_path = archive_root / "manifest.json"
     latest_path = archive_root.parent / "latest.json"

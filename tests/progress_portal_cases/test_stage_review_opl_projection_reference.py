@@ -71,7 +71,7 @@ def test_progress_portal_opl_projection_prefers_selected_study_stage_review_over
     assert study["study_id"] == "001-risk"
     assert study["stage_review"]["status"] == "available"
     assert study["stage_review"]["latest_review_page_ref"] == "studies/001-risk/artifacts/stage_reviews/write/latest.md"
-    assert study["links"]["progress_payload_ref"] == "artifacts/runtime/progress_portal/latest.json"
+    assert study["links"]["progress_payload_ref"] == "runtime/artifacts/progress_portal/latest.json"
 
 
 def test_progress_portal_projects_progress_first_next_delta_to_operator_surfaces() -> None:

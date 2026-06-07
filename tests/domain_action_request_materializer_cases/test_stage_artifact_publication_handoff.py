@@ -122,7 +122,7 @@ def test_materialize_domain_action_requests_dispatches_stage_artifact_publicatio
         "idempotency_key": "owner-route::dm002::publication-handoff-owner-gate",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -246,7 +246,7 @@ def test_materialize_domain_action_requests_dispatches_medical_paper_readiness_p
         "idempotency_key": "owner-route::dm002::medical-paper-readiness",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,

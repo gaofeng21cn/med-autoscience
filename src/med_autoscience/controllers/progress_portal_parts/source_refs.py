@@ -28,8 +28,8 @@ def display_source_refs(value: object) -> list[str]:
         "/artifacts/controller_decisions/",
         "/artifacts/publication_eval/",
         "/artifacts/truth/",
-        "/artifacts/runtime/progress_portal/",
-        "/artifacts/supervision/opl_current_control_state/",
+        "/runtime/artifacts/progress_portal/",
+        "/runtime/artifacts/supervision/opl_current_control_state/",
         "/runtime/quests/",
     )
     blocked_tokens = (

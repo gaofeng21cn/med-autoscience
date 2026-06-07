@@ -68,6 +68,6 @@ def test_domain_handler_dispatch_records_quality_repair_authority_gate_as_stable
     assert "publication_supervisor_state.bundle_tasks_downstream_only" in evidence["review_finding"]["message"]
     assert evidence["status"] == "blocked"
     assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
-    assert payload["receipt_ref"].startswith("artifacts/runtime/opl_family_domain_handler/dispatch_receipts/")
+    assert payload["receipt_ref"].startswith("runtime/artifacts/opl_family_domain_handler/dispatch_receipts/")
     assert (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").is_file()
     assert not (study_root / "manuscript" / "current_package").exists()

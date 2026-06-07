@@ -20,8 +20,8 @@ from .runtime_workbench_sections.common import (
 from .stage_review import runtime_stage_review_summary
 
 
-PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
-PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "artifacts/runtime/progress_portal/studies/{study_id}/latest.json"
+PROGRESS_PORTAL_PAYLOAD_REF = "runtime/artifacts/progress_portal/latest.json"
+PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "runtime/artifacts/progress_portal/studies/{study_id}/latest.json"
 STAGE_KERNEL_TRUTH_SOURCE = "stage_kernel_projection"
 REQUIRED_CROSS_DOMAIN_SOAK_LANES = ("MAS", "MAG", "OMA", "RCA")
 

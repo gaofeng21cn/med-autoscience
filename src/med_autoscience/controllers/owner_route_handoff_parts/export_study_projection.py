@@ -22,7 +22,7 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("paper_work_unit_outbox_receipts", Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl"), "paper_work_unit_receipts"),
     ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
 )
-_OPL_CURRENT_CONTROL_REF = Path("artifacts/supervision/opl_current_control_state/latest.json")
+_OPL_CURRENT_CONTROL_REF = Path("runtime/artifacts/supervision/opl_current_control_state/latest.json")
 _CURRENTNESS_BASIS_KEYS = (
     "owner_reason",
     "runtime_health_epoch",

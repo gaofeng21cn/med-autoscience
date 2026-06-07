@@ -901,7 +901,7 @@ def test_domain_handler_export_projects_ai_reviewer_default_executor_dispatch_re
             },
             "refs": {
                 "dispatch_path": str(dispatch_path),
-                "scan_latest": str(workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"),
+                "scan_latest": str(workspace_root / "runtime" / "artifacts" / "supervision" / "hourly" / "latest.json"),
             },
         },
     )

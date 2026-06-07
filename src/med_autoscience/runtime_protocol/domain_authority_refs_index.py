@@ -9,6 +9,8 @@ import sqlite3
 import subprocess
 from typing import Any
 
+from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
+
 SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_domain_authority_refs_index"
 DEFAULT_DB_FILENAME = "domain_authority_refs.sqlite"
@@ -88,7 +90,7 @@ def quest_authority_refs_index_path(quest_root: Path) -> Path:
 
 
 def workspace_authority_refs_index_path(workspace_root: Path) -> Path:
-    return Path(workspace_root).expanduser().resolve() / "artifacts" / "runtime" / DEFAULT_DB_FILENAME
+    return workspace_runtime_artifact_path(workspace_root, DEFAULT_DB_FILENAME)
 
 
 def record_archive_ref(

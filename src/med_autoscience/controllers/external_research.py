@@ -4,6 +4,7 @@ from datetime import date
 from pathlib import Path
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
+from med_autoscience.workspace_paths import research_memory_root
 
 
 EXTERNAL_RESEARCH_SCHEMA_VERSION = 1
@@ -12,7 +13,7 @@ DEFAULT_REPORT_NAMING_PATTERN = "YYYY-MM-DD-topic-opportunity-scout-<provider>.m
 
 
 def _research_memory_root(workspace_root: Path) -> Path:
-    return workspace_root / "portfolio" / "research_memory"
+    return research_memory_root(workspace_root)
 
 
 def _prompts_root(workspace_root: Path) -> Path:

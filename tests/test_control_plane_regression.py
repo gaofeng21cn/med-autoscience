@@ -138,7 +138,7 @@ def test_outer_supervision_slo_ignores_legacy_reconcile_latest_file(tmp_path: Pa
         preferred_study_archetypes=(),
         default_submission_targets=(),
     )
-    legacy_reconcile = workspace_root / "artifacts" / "supervision" / "reconcile" / "latest.json"
+    legacy_reconcile = workspace_root / "runtime" / "artifacts" / "supervision" / "reconcile" / "latest.json"
     legacy_reconcile.parent.mkdir(parents=True, exist_ok=True)
     legacy_reconcile.write_text(
         json.dumps(

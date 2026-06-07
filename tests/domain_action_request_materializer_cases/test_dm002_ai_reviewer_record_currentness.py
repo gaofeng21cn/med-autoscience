@@ -45,7 +45,7 @@ def test_dm002_same_tick_ai_reviewer_record_production_uses_domain_transition_ev
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

@@ -819,7 +819,7 @@ def test_paper_soak_memory_apply_proof_projects_controlled_readonly_receipt_refs
         study_root=study_root,
         workspace_root=workspace_root,
     )
-    domain_handler_receipt = workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts" / "r1.json"
+    domain_handler_receipt = workspace_root / "runtime" / "artifacts" / "opl_family_domain_handler" / "dispatch_receipts" / "r1.json"
     _write_json(
         domain_handler_receipt,
         {

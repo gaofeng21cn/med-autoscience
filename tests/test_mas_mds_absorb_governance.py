@@ -151,9 +151,9 @@ def test_doc_reference_semantic_guard_freezes_thin_hub_and_mas_owned_packaging()
         "contributor_history_import",
     ]
     assert guard["mas_owned_packaging_surfaces"] == [
-        "artifacts/runtime/progress_portal/latest.json",
+        "runtime/artifacts/progress_portal/latest.json",
         "ops/mas/progress/index.html",
-        "artifacts/runtime/progress_portal/hosted_package.json",
+        "runtime/artifacts/progress_portal/hosted_package.json",
     ]
 
     hubs = {item["surface_id"]: item for item in guard["hub_reference_roles"]}
@@ -163,7 +163,7 @@ def test_doc_reference_semantic_guard_freezes_thin_hub_and_mas_owned_packaging()
     assert hubs["progress_portal"]["hub_role"] == "materializer"
     assert hubs["display_quality_entrances"]["hub_role"] == "adapter"
     assert hubs["progress_portal"]["materializes_only"] == [
-        "artifacts/runtime/progress_portal/latest.json",
+        "runtime/artifacts/progress_portal/latest.json",
         "ops/mas/progress/index.html",
     ]
     for hub in hubs.values():

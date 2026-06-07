@@ -23,6 +23,7 @@ from med_autoscience.controllers import (
 )
 from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
+from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
 from med_autoscience.controllers.study_runtime_decision_parts import publication_stop_loss
 from med_autoscience.controllers.study_runtime_decision_parts.publication_eval_quality import (
     _publication_eval_gap_type,
@@ -195,7 +196,7 @@ def _opl_current_control_state_handoff_path(*, study_root: Path) -> Path:
         workspace_root = resolved_study_root.parent.parent
     else:
         workspace_root = resolved_study_root.parent
-    return workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    return workspace_runtime_artifact_path(workspace_root, "supervision", "opl_current_control_state", "latest.json")
 
 
 def _opl_current_control_state_study_entry(

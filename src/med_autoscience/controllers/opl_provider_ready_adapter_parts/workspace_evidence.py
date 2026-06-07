@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
 from .provider_readiness import DOMAIN_OWNER, TARGET_DOMAIN_ID
 
@@ -67,17 +68,18 @@ def build_workspace_runtime_evidence_receipt_surface(*, profile: WorkspaceProfil
 
 
 def _workspace_root_refs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
+    runtime_artifacts_root = build_workspace_runtime_layout_for_profile(profile).runtime_artifacts_root
     return [
         _ref("workspace_root", profile.workspace_root),
         _ref("runtime_root", profile.runtime_root),
         _ref("studies_root", profile.studies_root),
         _ref(
             "domain_handler_dispatch_receipt_root",
-            profile.workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts",
+            runtime_artifacts_root / "opl_family_domain_handler" / "dispatch_receipts",
         ),
         _ref(
             "domain_authority_refs_index",
-            profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite",
+            runtime_artifacts_root / "domain_authority_refs.sqlite",
         ),
     ]
 

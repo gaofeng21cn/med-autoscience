@@ -331,7 +331,7 @@ def _dm003_ai_reviewer_dispatch(profile, study_root: Path) -> dict[str, object]:
 
 def _write_consumer_latest(profile, dispatch_payload: dict[str, object]) -> None:
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

@@ -10,7 +10,7 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
 from med_autoscience.controllers.runtime_continuity_projection import runtime_continuity_projection
 
 
-PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
+PROGRESS_PORTAL_PAYLOAD_REF = "runtime/artifacts/progress_portal/latest.json"
 PROGRESS_PORTAL_HTML_REF = "ops/mas/progress/index.html"
 
 

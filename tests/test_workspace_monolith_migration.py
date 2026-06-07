@@ -233,7 +233,7 @@ def test_workspace_monolith_migration_dry_run_discovers_dynamic_studies_and_lega
     assert {item["study_id"] for item in report["duplicate"]} == {"012-duplicate-dynamic"}
     assert report["duplicate"][0]["reason"] == "multiple_quest_roots_for_study"
     assert report["hardcoded_study_id_policy"]["dynamic_discovery_only"] is True
-    assert not (workspace_root / "artifacts" / "runtime" / "monolith_migration" / "latest.json").exists()
+    assert not (workspace_root / "runtime" / "artifacts" / "monolith_migration" / "latest.json").exists()
 
 
 def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe_bindings(
@@ -250,7 +250,7 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
 
     report = migration.run_workspace_monolith_migration(profile_path=profile_path, apply=True)
 
-    latest_path = workspace_root / "artifacts" / "runtime" / "monolith_migration" / "latest.json"
+    latest_path = workspace_root / "runtime" / "artifacts" / "monolith_migration" / "latest.json"
     latest = json.loads(latest_path.read_text(encoding="utf-8"))
     history_path = Path(latest["history_path"])
     assert history_path.exists()

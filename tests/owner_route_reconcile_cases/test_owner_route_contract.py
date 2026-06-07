@@ -393,7 +393,7 @@ def test_scan_domain_routes_suppresses_repeated_owner_route_without_meaningful_a
         "idempotency_key": "owner-route::previous",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -483,7 +483,7 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
         "idempotency_key": "owner-route::dm002::truth-epoch-dm002::ai_reviewer::ai_reviewer_assessment_required::abc123",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
@@ -632,7 +632,7 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
     dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_json(dispatch_path, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "default_executor_dispatch_count": 1,
@@ -640,7 +640,7 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "opl_current_control_state_handoff",
             "studies": [

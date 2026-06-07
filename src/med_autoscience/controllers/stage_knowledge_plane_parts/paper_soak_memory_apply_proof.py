@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
 from med_autoscience.stage_knowledge_contract import (
     PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE,
     SCHEMA_VERSION,
@@ -207,7 +208,7 @@ def _workspace_writeback_receipt_refs(*, pack_root: Path) -> list[dict[str, Any]
 
 def _domain_handler_dispatch_receipt_refs(*, workspace_root: Path, study_id: str) -> list[dict[str, Any]]:
     refs = []
-    receipt_root = workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts"
+    receipt_root = workspace_runtime_artifact_path(workspace_root, "opl_family_domain_handler", "dispatch_receipts")
     for path in sorted(receipt_root.glob("*.json")):
         payload = _read_json(path)
         dispatch = payload.get("dispatch") if isinstance(payload.get("dispatch"), Mapping) else {}

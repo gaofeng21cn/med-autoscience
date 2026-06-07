@@ -55,7 +55,7 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
         ),
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "default_executor_dispatch_count": 1,
@@ -249,7 +249,7 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
         {"assessment_provenance": {"owner": "ai_reviewer"}},
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "default_executor_dispatch_count": 1,
@@ -451,7 +451,7 @@ def test_execute_dispatch_ignores_stale_consumer_dispatch_after_consumed_transit
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -574,7 +574,7 @@ def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
     _write_json(dispatch_path, dispatch_payload)
     _write_scan_latest(profile, study_id, route)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -692,7 +692,7 @@ def test_execute_dispatch_reports_per_study_progress_first_dispatch_accounting(
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -875,7 +875,7 @@ def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_st
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

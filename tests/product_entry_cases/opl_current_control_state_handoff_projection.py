@@ -45,7 +45,7 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     handoff_payload = {
         "surface": "opl_current_control_state_handoff_projection",
         "schema_version": 1,
@@ -193,7 +193,7 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
                     {
                         "capability_id": "opl_current_control_state_handoff",
                         "owner": "MedAutoScience",
-                        "truth_surface": "artifacts/supervision/opl_current_control_state/latest.json",
+                        "truth_surface": "runtime/artifacts/supervision/opl_current_control_state/latest.json",
                         "summary": "Supervisor queue dashboard projection.",
                     }
                 ],

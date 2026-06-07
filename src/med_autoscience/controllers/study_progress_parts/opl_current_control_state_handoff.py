@@ -6,6 +6,7 @@ from typing import Any
 
 from med_autoscience.controllers import autonomy_ai_doctor
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
 from .opl_current_control_state_handoff_values import (
     _copy_mapping_keys,
@@ -145,7 +146,12 @@ def build_readonly_ai_repair_lifecycle_projection(
 
 
 def opl_current_control_state_handoff_path(*, profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    return (
+        build_workspace_runtime_layout_for_profile(profile).runtime_artifacts_root
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
 
 
 def _opl_current_control_state_mode_fields(payload: Mapping[str, Any]) -> dict[str, Any]:

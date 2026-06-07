@@ -38,7 +38,7 @@ def test_execute_dispatch_blocks_dispatch_without_owner_route(monkeypatch, tmp_p
     _write_json(dispatch_path, dispatch)
     _write_scan_latest(profile, study_id, route)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -105,7 +105,7 @@ def test_execute_dispatch_accepts_current_action_queue_owner_route(monkeypatch, 
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,
@@ -227,7 +227,7 @@ def test_execute_dispatch_uses_action_queue_route_when_scan_owner_route_is_not_d
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

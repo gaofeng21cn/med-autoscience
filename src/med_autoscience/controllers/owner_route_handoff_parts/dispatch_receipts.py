@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
 
 
 JsonReader = Callable[[Path], dict[str, Any] | None]
@@ -81,7 +82,12 @@ def _receipt_path(
         parts.append(owner_capability_fingerprint)
     receipt_key = ":".join(parts)
     digest = hashlib.sha256(receipt_key.encode("utf-8")).hexdigest()[:20]
-    return profile.workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts" / f"{digest}.json"
+    return workspace_runtime_artifact_path(
+        profile.workspace_root,
+        "opl_family_domain_handler",
+        "dispatch_receipts",
+        f"{digest}.json",
+    )
 
 
 def _conflicting_dispatch_receipt(

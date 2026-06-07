@@ -117,7 +117,7 @@ def test_execute_dispatch_prefers_persisted_record_only_handoff_over_stale_consu
     stale_inline_dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_current_dispatch(dispatch_path, profile, persisted_handoff)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

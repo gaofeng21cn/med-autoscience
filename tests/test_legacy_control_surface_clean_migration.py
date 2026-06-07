@@ -102,7 +102,7 @@ def _build_fixture(tmp_path: Path) -> tuple[Path, Path]:
     _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
     _write_text(quest_root / "quest.yaml", f"quest_id: {study_id}\nstudy_id: {study_id}\n")
     _write_json(
-        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface_kind": "opl_current_control_state",
             "action_queue": [
@@ -242,7 +242,7 @@ def test_legacy_control_surface_clean_migration_dry_run_reports_residue_without_
     }
     assert study["manual_pause"]["migration_required"] is True
     assert study["manual_pause"]["runtime_state_migration_required"] is True
-    assert not (workspace_root / "artifacts" / "runtime" / "legacy_control_surface_clean_migration").exists()
+    assert not (workspace_root / "runtime" / "artifacts" / "legacy_control_surface_clean_migration").exists()
 
 
 def test_legacy_control_surface_clean_migration_apply_tombstones_old_active_material(
@@ -272,7 +272,7 @@ def test_legacy_control_surface_clean_migration_apply_tombstones_old_active_mate
         (quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json").read_text(encoding="utf-8")
     )
     latest_receipt = json.loads(
-        (workspace_root / "artifacts" / "runtime" / "legacy_control_surface_clean_migration" / "latest.json").read_text(
+        (workspace_root / "runtime" / "artifacts" / "legacy_control_surface_clean_migration" / "latest.json").read_text(
             encoding="utf-8"
         )
     )
@@ -310,7 +310,7 @@ def test_legacy_control_surface_clean_migration_tombstones_completed_study_stale
     _write_text(study_root / "manuscript" / "submission_package.zip", "zip\n")
     _write_text(workspace_root / "runtime" / "quests" / study_id / "quest.yaml", f"quest_id: {study_id}\n")
     _write_json(
-        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {"surface_kind": "opl_current_control_state", "action_queue": []},
     )
     _write_json(

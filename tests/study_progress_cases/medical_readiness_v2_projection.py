@@ -247,7 +247,7 @@ def test_compact_mcp_progress_projection_preserves_runtime_continuity_domain_aut
             "surface_kind": "opl_current_control_state_study_handoff",
             "read_model": "workspace_opl_current_control_state_handoff_projection",
             "authority": "observability_only",
-            "source_path": "/workspace/artifacts/supervision/opl_current_control_state/latest.json",
+            "source_path": "/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
             "study_id": "003-dpcc",
             "quest_status": "running",
             "active_run_id": "run-stale-003",
@@ -263,7 +263,7 @@ def test_compact_mcp_progress_projection_preserves_runtime_continuity_domain_aut
             "status": "blocked",
             "owner_route": "ai_reviewer",
             "typed_blocker": "runtime_recovery_retry_budget_exhausted",
-            "action_refs": ["artifacts/supervision/opl_current_control_state/latest.json"],
+            "action_refs": ["runtime/artifacts/supervision/opl_current_control_state/latest.json"],
             "authority": {
                 "writes_authority_surface": False,
                 "quality_ready_authorized": False,

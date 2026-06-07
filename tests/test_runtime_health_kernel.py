@@ -378,7 +378,7 @@ def test_runtime_health_provider_ready_handoff_starts_new_recovery_budget_epoch(
         },
         "supervisor_tick_audit": {
             "status": "fresh",
-            "latest_report_path": "/tmp/workspace/artifacts/supervision/opl_current_control_state/latest.json",
+            "latest_report_path": "/tmp/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
         },
         "opl_current_control_state_handoff": {
             "surface_kind": "opl_current_control_state_handoff",

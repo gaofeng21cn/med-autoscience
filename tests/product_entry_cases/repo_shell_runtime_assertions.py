@@ -188,7 +188,7 @@ def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile
     assert policy["lifecycle_ref_indexes"][0]["storage_role"] == "refs_only_domain_authority_ref_index"
     assert policy["lifecycle_ref_indexes"][0]["owner"] == "one-person-lab"
     assert policy["lifecycle_ref_indexes"][0]["surface_role"] == "domain_authority_refs_index"
-    assert policy["lifecycle_ref_indexes"][0]["ref"]["ref"] == "artifacts/runtime/domain_authority_refs.sqlite"
+    assert policy["lifecycle_ref_indexes"][0]["ref"]["ref"] == "runtime/artifacts/domain_authority_refs.sqlite"
     assert policy["projection_caches"][0]["storage_role"] == "projection_cache"
     assert policy["explicit_archive_import_refs"][0]["storage_role"] == "explicit_archive_import_ref_only"
 

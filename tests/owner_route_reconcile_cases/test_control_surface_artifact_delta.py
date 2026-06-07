@@ -71,7 +71,7 @@ def test_scan_domain_routes_does_not_count_control_surface_progress_as_artifact_
         "idempotency_key": "owner-route::control-only",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,

@@ -7,6 +7,7 @@ from typing import Any
 import webbrowser
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
 from .hosted_package import (
     build_progress_portal_hosted_package as build_hosted_package,
@@ -17,10 +18,10 @@ from .payload_helpers import _mapping, _mapping_list, _non_empty_text, _string_l
 from .workspace_overview import study_detail_href, workspace_portal_navigation
 
 
-PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
+PROGRESS_PORTAL_PAYLOAD_REF = "runtime/artifacts/progress_portal/latest.json"
 PROGRESS_PORTAL_HTML_REF = "ops/mas/progress/index.html"
-PROGRESS_PORTAL_HOSTED_PACKAGE_REF = "artifacts/runtime/progress_portal/hosted_package.json"
-PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "artifacts/runtime/progress_portal/studies/{study_id}/latest.json"
+PROGRESS_PORTAL_HOSTED_PACKAGE_REF = "runtime/artifacts/progress_portal/hosted_package.json"
+PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "runtime/artifacts/progress_portal/studies/{study_id}/latest.json"
 PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE = "ops/mas/progress/studies/{study_id}/index.html"
 
 PayloadBuilder = Callable[..., dict[str, Any]]
@@ -115,8 +116,9 @@ def materialize_progress_portal(
     )
     if detail_payload is not None:
         _ensure_workspace_has_selected_study(payload, detail_payload)
-    payload_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "latest.json"
-    hosted_package_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
+    layout = build_workspace_runtime_layout_for_profile(profile)
+    payload_path = layout.runtime_artifacts_root / "progress_portal" / "latest.json"
+    hosted_package_path = layout.runtime_artifacts_root / "progress_portal" / "hosted_package.json"
     html_path = profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
     payload_path.parent.mkdir(parents=True, exist_ok=True)
     html_path.parent.mkdir(parents=True, exist_ok=True)
@@ -243,7 +245,11 @@ def _materialize_study_pages(
             )
         html_path = profile.workspace_root / "ops" / "mas" / "progress" / "studies" / study_id / "index.html"
         payload_path = (
-            profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "studies" / study_id / "latest.json"
+            build_workspace_runtime_layout_for_profile(profile).runtime_artifacts_root
+            / "progress_portal"
+            / "studies"
+            / study_id
+            / "latest.json"
         )
         html_path.parent.mkdir(parents=True, exist_ok=True)
         payload_path.parent.mkdir(parents=True, exist_ok=True)

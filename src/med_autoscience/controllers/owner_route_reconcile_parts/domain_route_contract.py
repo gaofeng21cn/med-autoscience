@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 
-SUPERVISION_LATEST_RELATIVE_PATH = Path("artifacts/supervision/opl_current_control_state/latest.json")
-SUPERVISION_HISTORY_RELATIVE_PATH = Path("artifacts/supervision/opl_current_control_state/history.jsonl")
-SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES = ["artifacts/supervision/**"]
+SUPERVISION_LATEST_RELATIVE_PATH = Path("runtime/artifacts/supervision/opl_current_control_state/latest.json")
+SUPERVISION_HISTORY_RELATIVE_PATH = Path("runtime/artifacts/supervision/opl_current_control_state/history.jsonl")
+SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES = ["runtime/artifacts/supervision/**"]
 SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES = [
-    "artifacts/supervision/**",
+    "runtime/artifacts/supervision/**",
     "artifacts/autonomy/repair_lifecycle/latest.json",
     "artifacts/autonomy/repair_actions/latest.json",
 ]

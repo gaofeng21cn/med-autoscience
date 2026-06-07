@@ -367,7 +367,7 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
                 packet_id="owner_receipt_ref_packet",
                 required_role="owner_receipt_ref",
                 owner_surface="artifacts/runtime/owner_route/latest.json",
-                fallback_owner_surface="artifacts/runtime/opl_family_domain_handler/dispatch_receipts/<sha256(task_id)[:20]>.json",
+                fallback_owner_surface="runtime/artifacts/opl_family_domain_handler/dispatch_receipts/<sha256(task_id)[:20]>.json",
             ),
             _paper_line_scaleout_ref_packet(
                 packet_id="progress_delta_ref_packet",

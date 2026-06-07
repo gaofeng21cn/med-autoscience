@@ -504,7 +504,7 @@ def test_progress_portal_payload_exposes_family_level_opl_handoff_without_new_tr
     assert handoff["role"] == "family_level_projection"
     assert handoff["authority"] == "display_artifact_only"
     assert handoff["opl_role"] == "family_level_projection_consumer_only"
-    assert handoff["payload_refs"]["progress_portal"] == "artifacts/runtime/progress_portal/latest.json"
+    assert handoff["payload_refs"]["progress_portal"] == "runtime/artifacts/progress_portal/latest.json"
     assert handoff["payload_refs"]["source_payloads"] == payload["source_payloads"]
     assert handoff["freshness"] == payload["freshness"]
     assert handoff["source_refs"] == payload["source_refs"]
@@ -549,7 +549,7 @@ def test_progress_portal_payload_exposes_opl_runtime_workbench_projection_withou
     }
     assert projection["studies"][0]["study_id"] == "001-risk"
     assert projection["studies"][0]["macro_state"] == "质量修复/复审中"
-    assert projection["studies"][0]["links"]["progress_payload_ref"] == "artifacts/runtime/progress_portal/latest.json"
+    assert projection["studies"][0]["links"]["progress_payload_ref"] == "runtime/artifacts/progress_portal/latest.json"
     assert "conversation_read_model_ref" not in projection["studies"][0]["links"]
     assert projection["studies"][0]["actions"]["pause"]["owner"] == "one-person-lab"
     assert projection["studies"][0]["actions"]["stop"]["confirmation_required"] is True

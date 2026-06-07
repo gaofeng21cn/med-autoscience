@@ -152,7 +152,7 @@ def test_init_workspace_defaults_to_mas_first_runtime_layout_without_legacy_ques
     assert (workspace_root / "runtime" / "quests").is_dir()
     assert (workspace_root / "runtime" / "archives").is_dir()
     assert (workspace_root / "runtime" / "restore_index").is_dir()
-    assert (workspace_root / "artifacts" / "runtime").is_dir()
+    assert (workspace_root / "runtime" / "artifacts").is_dir()
     assert not (workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests").exists()
     assert result["workspace_git"]["quest_local_git_policy"] == {
         "status": "retired",
@@ -371,7 +371,7 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     )
     assert check_local_runtime_config.returncode == 0
 
-    authority_refs_db = workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    authority_refs_db = workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite"
     authority_refs_db.parent.mkdir(parents=True, exist_ok=True)
     authority_refs_db.write_text("sqlite placeholder\n", encoding="utf-8")
     check_authority_refs_db = subprocess.run(
@@ -383,7 +383,7 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     )
     assert check_authority_refs_db.returncode == 0
 
-    authority_refs_wal = workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite-wal"
+    authority_refs_wal = workspace_root / "runtime" / "artifacts" / "domain_authority_refs.sqlite-wal"
     authority_refs_wal.write_text("wal placeholder\n", encoding="utf-8")
     check_authority_refs_wal = subprocess.run(
         ["git", "check-ignore", str(authority_refs_wal.relative_to(workspace_root))],

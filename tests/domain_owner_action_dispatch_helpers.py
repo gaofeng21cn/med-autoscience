@@ -118,7 +118,7 @@ def dispatch(
 
 def write_scan_latest(profile, study_id: str, owner_route: dict[str, object]) -> None:
     write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -131,7 +131,7 @@ def write_current_dispatch(path: Path, profile, dispatch: dict[str, object]) -> 
     write_json(path, dispatch)
     write_scan_latest(profile, str(dispatch["study_id"]), dict(dispatch["owner_route"]))
     write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
         {
             "surface": "domain_action_request_materializer",
             "schema_version": 1,

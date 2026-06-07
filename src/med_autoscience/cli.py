@@ -78,6 +78,7 @@ workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("worksp
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
 paper_clean_room_rebuild = _LazyModuleProxy(lambda: _load_controller("paper_clean_room_rebuild"))
 study_workspace_status = _LazyModuleProxy(lambda: _load_controller("study_workspace_status"))
+workspace_target_state_cleanup = _LazyModuleProxy(lambda: _load_controller("workspace_target_state_cleanup"))
 study_config_migration = _LazyModuleProxy(lambda: _load_controller("study_config_migration"))
 agent_lab_medical_manuscript_quality = _LazyModuleProxy(
     lambda: _load_controller("agent_lab_medical_manuscript_quality")
@@ -646,6 +647,15 @@ def main(argv: list[str] | None = None) -> int:
             profile_path=Path(args.profile),
             study_ids=tuple(args.studies or ()),
             apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "workspace-target-state-cleanup":
+        result = workspace_target_state_cleanup.run_workspace_target_state_cleanup(
+            profile_path=Path(args.profile),
+            apply=bool(args.apply),
+            rewrite_refs=not bool(args.no_rewrite_refs),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

@@ -28,7 +28,7 @@ def test_scan_domain_routes_aggregates_queue_slo_from_repeat_action_fingerprints
         lambda: "2026-05-04T06:00:00+00:00",
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,

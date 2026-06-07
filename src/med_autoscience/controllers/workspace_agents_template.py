@@ -48,7 +48,7 @@ def render_workspace_agents(*, workspace_name: str) -> str:
         "## Workspace 边界\n\n"
         "- 当前 workspace 的 `AGENTS.md` 只约束 Codex 进入本目录后的工作方式、MAS 入口选择和本地文件边界。\n"
         "- 研究设计、统计方法、投稿判断、publication gate 与 study 质量判断归属 MAS / MDS 的 controller、overlay skill、contract 与 study 文档。\n"
-        "- `refs/`、历史记录或人工材料只作为 workspace 证据来源；是否升级为正式 contract 由 MAS / MDS 的对应流程判断。\n\n"
+        "- `archive/`、历史记录或人工材料只作为 workspace provenance；是否升级为正式 current truth 由 MAS owner surface 判断。\n\n"
         "## 基座回灌约束\n\n"
         "- 在论文、study 或 workspace 执行过程中，如果遇到的 bug 属于流程问题、运行时问题、controller / contract 问题、overlay 问题、prompt / skill 问题，或依赖环境本身的问题，必须回到对应依赖仓进行正式修复。\n"
         "- 优先在 `med-autoscience` 与 `med-deepscientist` repo 中完成基座层修复，再回到当前 workspace 验证修复后的行为。\n"

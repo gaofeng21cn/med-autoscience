@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
 
 def build_opl_substrate_adapter_projection(
@@ -100,6 +101,7 @@ def _opaque_ref(
 
 
 def _workspace_substrate_refs(*, profile: WorkspaceProfile) -> list[dict[str, Any]]:
+    runtime_artifacts_root = build_workspace_runtime_layout_for_profile(profile).runtime_artifacts_root
     return [
         _opaque_ref(role="workspace_root", ref=profile.workspace_root),
         _opaque_ref(role="runtime_root", ref=profile.runtime_root),
@@ -107,11 +109,11 @@ def _workspace_substrate_refs(*, profile: WorkspaceProfile) -> list[dict[str, An
         _opaque_ref(role="portfolio_root", ref=profile.portfolio_root),
         _opaque_ref(
             role="domain_authority_refs_index",
-            ref=profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite",
+            ref=runtime_artifacts_root / "domain_authority_refs.sqlite",
         ),
         _opaque_ref(
             role="domain_handler_dispatch_receipt_root",
-            ref=profile.workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts",
+            ref=runtime_artifacts_root / "opl_family_domain_handler" / "dispatch_receipts",
         ),
     ]
 

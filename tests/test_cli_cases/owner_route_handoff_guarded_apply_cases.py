@@ -352,7 +352,7 @@ def test_domain_handler_dispatch_keys_guarded_apply_receipts_by_task_source_fing
     assert first_payload["accepted"] is True
     assert first_payload["source_fingerprint"] == "proof-fingerprint-v1"
     assert first_payload["dispatch"]["result"]["source_fingerprint"] == "stable-domain-result"
-    assert first_payload["receipt_ref"].startswith("artifacts/runtime/opl_family_domain_handler/dispatch_receipts/")
+    assert first_payload["receipt_ref"].startswith("runtime/artifacts/opl_family_domain_handler/dispatch_receipts/")
 
     repeat_exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     repeat_payload = json.loads(capsys.readouterr().out)

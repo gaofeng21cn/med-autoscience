@@ -25,8 +25,8 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert str(workspace_root / "runtime" / "quests") in result["created_directories"]
     assert str(workspace_root / "runtime" / "archives") in result["created_directories"]
     assert str(workspace_root / "runtime" / "restore_index") in result["created_directories"]
-    assert str(workspace_root / "artifacts" / "runtime") in result["created_directories"]
-    assert str(workspace_root / "artifacts" / "runtime" / "progress_portal") in result["created_directories"]
+    assert str(workspace_root / "runtime" / "artifacts") in result["created_directories"]
+    assert str(workspace_root / "runtime" / "artifacts" / "progress_portal") in result["created_directories"]
     assert str(workspace_root / "ops" / "mas" / "bin") in result["created_directories"]
     assert str(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests") not in result["created_directories"]
     assert str(workspace_root / "ops" / "med-deepscientist" / "config.env") not in result["created_files"]
@@ -48,22 +48,22 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
 
     assert result["dry_run"] is False
     assert workspace_root.exists()
-    assert (workspace_root / "datasets").is_dir()
-    assert (workspace_root / "contracts").is_dir()
+    assert (workspace_root / "data" / "datasets").is_dir()
+    assert not (workspace_root / "contracts").exists()
     assert (workspace_root / "studies").is_dir()
-    assert (workspace_root / "portfolio" / "data_assets").is_dir()
-    assert (workspace_root / "portfolio" / "research_memory").is_dir()
-    assert (workspace_root / "portfolio" / "research_memory" / "literature").is_dir()
-    assert (workspace_root / "portfolio" / "research_memory" / "literature" / "coverage").is_dir()
-    assert (workspace_root / "portfolio" / "research_memory" / "prompts").is_dir()
-    assert (workspace_root / "portfolio" / "research_memory" / "external_reports").is_dir()
+    assert (workspace_root / "memory" / "portfolio" / "data_assets").is_dir()
+    assert (workspace_root / "memory" / "portfolio" / "research_memory").is_dir()
+    assert (workspace_root / "memory" / "portfolio" / "research_memory" / "literature").is_dir()
+    assert (workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "coverage").is_dir()
+    assert (workspace_root / "memory" / "portfolio" / "research_memory" / "prompts").is_dir()
+    assert (workspace_root / "memory" / "portfolio" / "research_memory" / "external_reports").is_dir()
     assert (workspace_root / "ops" / "medautoscience" / "bin").is_dir()
     assert (workspace_root / "ops" / "mas" / "bin").is_dir()
     assert (workspace_root / "runtime" / "quests").is_dir()
     assert (workspace_root / "runtime" / "archives").is_dir()
     assert (workspace_root / "runtime" / "restore_index").is_dir()
-    assert (workspace_root / "artifacts" / "runtime").is_dir()
-    assert (workspace_root / "artifacts" / "runtime" / "progress_portal").is_dir()
+    assert (workspace_root / "runtime" / "artifacts").is_dir()
+    assert (workspace_root / "runtime" / "artifacts" / "progress_portal").is_dir()
     assert not (workspace_root / "ops" / "mas" / "progress").exists()
     assert not (workspace_root / "ops" / "med-deepscientist").exists()
 
@@ -263,9 +263,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "ops/medautoscience/bin/study-state-matrix --format json" in agents_text
     assert "ops/medautoscience/bin/progress-projection" not in agents_text
 
-    portfolio_memory_readme = workspace_root / "portfolio" / "research_memory" / "README.md"
-    portfolio_memory_registry = workspace_root / "portfolio" / "research_memory" / "registry.yaml"
-    workspace_literature_registry = workspace_root / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
+    portfolio_memory_readme = workspace_root / "memory" / "portfolio" / "research_memory" / "README.md"
+    portfolio_memory_registry = workspace_root / "memory" / "portfolio" / "research_memory" / "registry.yaml"
+    workspace_literature_registry = workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
     assert portfolio_memory_readme.is_file()
     assert portfolio_memory_registry.is_file()
     assert workspace_literature_registry.is_file()
@@ -282,7 +282,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "ops/mas/progress/index.html" not in root_readme_text
     assert "ops/mas/" in root_readme_text
     assert "ops/med-deepscientist" not in root_readme_text
-    assert "portfolio/research_memory/" in root_readme_text
+    assert "memory/portfolio/research_memory/" in root_readme_text
 
     ops_readme = workspace_root / "ops" / "medautoscience" / "README.md"
     assert ops_readme.is_file()
@@ -522,7 +522,7 @@ def test_init_workspace_merges_profile_root_keys_before_existing_tables(monkeypa
                 f'workspace_root = "{workspace_root}"',
                 f'runtime_root = "{workspace_root / "runtime" / "quests"}"',
                 f'studies_root = "{workspace_root / "studies"}"',
-                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'portfolio_root = "{workspace_root / "memory" / "portfolio"}"',
                 "",
                 "[explicit_archive_import_ref]",
                 'runtime_root = "/tmp/archive"',
@@ -568,7 +568,7 @@ def test_bootstrap_repairs_table_misnested_developer_profile_keys(monkeypatch, t
                 f'workspace_root = "{workspace_root}"',
                 f'runtime_root = "{workspace_root / "runtime" / "quests"}"',
                 f'studies_root = "{workspace_root / "studies"}"',
-                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'portfolio_root = "{workspace_root / "memory" / "portfolio"}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "",

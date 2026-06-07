@@ -14,6 +14,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("workspace", "init"): "init-workspace",
     ("workspace", "profile-cycles"): "workspace-profile-cycles",
     ("workspace", "study-status"): "study-workspace-status",
+    ("workspace", "target-state-cleanup"): "workspace-target-state-cleanup",
     ("data", "init-assets"): "init-data-assets",
     ("data", "assets-status"): "data-assets-status",
     ("data", "init-memory"): "init-portfolio-memory",

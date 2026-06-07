@@ -49,6 +49,7 @@ from med_autoscience.controllers.workspace_init_parts.profile_config import (
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
+from med_autoscience.workspace_paths import data_assets_root, datasets_root, research_memory_root
 
 
 @dataclass(frozen=True)
@@ -108,17 +109,16 @@ def _workspace_profile_path(*, workspace_root: Path, workspace_name: str) -> Pat
 
 def _workspace_directories(workspace_root: Path) -> list[Path]:
     layout = build_workspace_runtime_layout(workspace_root=workspace_root)
+    memory_root = research_memory_root(workspace_root)
     return [
-        workspace_root / "datasets",
-        workspace_root / "contracts",
+        datasets_root(workspace_root),
         workspace_root / "studies",
-        workspace_root / "portfolio" / "data_assets",
-        workspace_root / "portfolio" / "research_memory",
-        workspace_root / "portfolio" / "research_memory" / "literature",
-        workspace_root / "portfolio" / "research_memory" / "literature" / "coverage",
-        workspace_root / "portfolio" / "research_memory" / "prompts",
-        workspace_root / "portfolio" / "research_memory" / "external_reports",
-        workspace_root / "refs",
+        data_assets_root(workspace_root),
+        memory_root,
+        memory_root / "literature",
+        memory_root / "literature" / "coverage",
+        memory_root / "prompts",
+        memory_root / "external_reports",
         workspace_root / "ops" / "medautoscience" / "bin",
         workspace_root / "ops" / "medautoscience" / "logs",
         workspace_root / "ops" / "medautoscience" / "profiles",
@@ -152,11 +152,11 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "7. 如需查看 stage attempt、provider、terminal/log stream、retry/dead-letter 或 App/workbench drilldown，读取 OPL current_control_state；MAS 不生成私有 runtime console、workspace workbench 或 runtime read model。\n\n"
         "8. 如需检查 MAS domain health，运行 `medautosci runtime domain-health-diagnostic --runtime-root <runtime_root>`；stage/runtime lifecycle 只读 OPL current_control_state refs-only handoff。\n\n"
         "9. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
-        "10. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
+        "10. 优先维护 `memory/portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
         "11. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
-        "- `runtime/` 保存运行态，`artifacts/runtime/` 保存 SQLite refs index 与维护 ledger，`ops/mas/` 只保留薄运维桥。\n"
+        "- `runtime/` 保存运行态，`runtime/artifacts/` 保存 SQLite refs index 与维护 ledger，`ops/mas/` 只保留薄运维桥。\n"
         "- 不要直接通过外部后端 UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
         "- 如果需要启动、查看或停止 runtime，必须走 OPL stage/runtime 控制面；MAS 不提供私有 scheduler、runner、attempt 或 runtime console 入口。\n"
     )

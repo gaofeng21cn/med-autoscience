@@ -8,6 +8,7 @@ import tomllib
 from med_autoscience.controllers import workspace_entry_rendering as workspace_entry_rendering_controller
 from med_autoscience.developer_supervisor_mode import EXPECTED_DEVELOPER_GITHUB_LOGIN
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
+from med_autoscience.workspace_paths import portfolio_root
 
 
 PROFILE_TABLE_MISNESTED_TOP_LEVEL_KEYS = {
@@ -39,7 +40,7 @@ def render_workspace_profile_entries(
         ("runtime_root", f"runtime_root = {quote_toml_string(layout.quests_root)}"),
         ("managed_runtime_home", f"managed_runtime_home = {quote_toml_string(layout.runtime_root)}"),
         ("studies_root", f"studies_root = {quote_toml_string(workspace_root / 'studies')}"),
-        ("portfolio_root", f"portfolio_root = {quote_toml_string(workspace_root / 'portfolio')}"),
+        ("portfolio_root", f"portfolio_root = {quote_toml_string(portfolio_root(workspace_root))}"),
     ]
     if hermes_agent_repo_root is not None:
         entries.append(

@@ -24,7 +24,7 @@ def test_scan_domain_routes_can_project_without_overwriting_workspace_latest(
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dpcc")
     quest_root = profile.runtime_root / "quest-dpcc"
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -85,7 +85,7 @@ def test_scan_domain_routes_can_project_without_overwriting_workspace_latest(
 
     assert result["studies"][0]["study_id"] == study_id
     assert latest_path.read_text(encoding="utf-8") == before
-    assert not (profile.workspace_root / "artifacts" / "supervision" / "hourly" / "history.jsonl").exists()
+    assert not (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "hourly" / "history.jsonl").exists()
 
 
 def test_external_observe_scan_reads_progress_without_materializing_controller_decisions(
@@ -155,7 +155,7 @@ def test_persisted_single_study_scan_preserves_unscanned_study_handoff(
     retained_root = write_study(profile.workspace_root, retained_study_id, quest_id="quest-dm002")
     scanned_root = write_study(profile.workspace_root, scanned_study_id, quest_id="quest-dpcc")
     scanned_quest_root = profile.runtime_root / "quest-dpcc"
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {

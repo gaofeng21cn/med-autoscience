@@ -14,7 +14,7 @@ def _write_json(path, payload: object) -> None:
 def test_study_progress_opl_current_control_state_handoff_projection_reads_developer_supervisor_mode(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -54,7 +54,7 @@ def test_study_progress_opl_current_control_state_handoff_projection_reads_devel
 def test_study_progress_opl_current_control_state_handoff_projection_preserves_string_why_not_applied(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -80,7 +80,7 @@ def test_study_progress_opl_current_control_state_handoff_projection_preserves_s
 def test_study_progress_opl_current_control_state_handoff_projects_latest_terminal_stage_log(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -190,7 +190,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
 def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -339,7 +339,7 @@ def test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard() 
             "surface_kind": "opl_current_control_state_study_handoff",
             "read_model": "workspace_opl_current_control_state_handoff_projection",
             "authority": "observability_only",
-            "source_path": "/tmp/workspace/artifacts/supervision/opl_current_control_state/latest.json",
+            "source_path": "/tmp/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
             "study_id": "001-risk",
             "mode": "developer_apply_safe",
             "mode_label": "Developer Supervisor Mode",
@@ -498,7 +498,7 @@ def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
 def test_latest_terminal_stage_log_marks_missing_observability(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -553,7 +553,7 @@ def test_latest_terminal_stage_log_marks_missing_observability(tmp_path) -> None
 def test_latest_terminal_stage_log_preserves_zero_observability_values(tmp_path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
     profile = make_profile(tmp_path)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {

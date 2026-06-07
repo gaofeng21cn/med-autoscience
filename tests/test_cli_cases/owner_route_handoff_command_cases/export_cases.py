@@ -274,7 +274,7 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert provider["workspace_runtime_artifact_root_locator"]["repo_root_tracks_real_artifacts"] is False
     assert provider["domain_handler_contract"]["queue_hydration_source"] == "/pending_family_tasks"
     assert payload["dispatch"]["receipt_refs"]["dispatch_receipt_root"] == (
-        "artifacts/runtime/opl_family_domain_handler/dispatch_receipts"
+        "runtime/artifacts/opl_family_domain_handler/dispatch_receipts"
     )
     assert "family_runtime_supervision" not in payload
     family_handoff = payload["family_opl_current_control_state_handoff"]
@@ -688,7 +688,7 @@ def test_domain_handler_export_suppresses_auxiliary_paper_tasks_when_opl_current
     _write_json(study_root / "paper" / "review" / "review_ledger.json", {"review_refs": ["review-ref:ledger"]})
     _write_json(study_root / "paper" / "claim_evidence_map.json", {"claim_refs": ["claim-ref:main"]})
     _write_json(
-        workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "opl_current_control_state_handoff",
             "generated_at": "2026-06-02T00:00:00Z",

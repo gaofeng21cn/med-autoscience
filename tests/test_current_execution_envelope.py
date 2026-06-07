@@ -152,7 +152,7 @@ def test_study_progress_envelope_treats_opl_queue_as_evidence_under_explicit_res
     study_id = "002-dm-cvd-mortality-risk"
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -232,7 +232,7 @@ def test_study_progress_envelope_prefers_live_opl_attempt_over_handoff_action_qu
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -311,7 +311,7 @@ def test_study_progress_envelope_preserves_non_superseded_handoff_blocker_over_l
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -386,7 +386,7 @@ def test_study_progress_envelope_preserves_latest_default_executor_typed_closeou
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -524,7 +524,7 @@ def test_study_progress_envelope_treats_handoff_owner_reason_as_running_context(
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     quest_id = study_id
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {

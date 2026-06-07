@@ -616,7 +616,7 @@ def test_paper_soak_memory_proof_cli_materializes_readonly_proof(tmp_path: Path,
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "S1"
-    domain_handler_receipt = workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts" / "r1.json"
+    domain_handler_receipt = workspace_root / "runtime" / "artifacts" / "opl_family_domain_handler" / "dispatch_receipts" / "r1.json"
     _write_json(
         domain_handler_receipt,
         {

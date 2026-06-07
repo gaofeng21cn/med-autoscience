@@ -13,6 +13,7 @@ from med_autoscience.controllers.medical_paper_operator_actions import (
 )
 from med_autoscience.controllers.medical_paper_v3_action_truth import LITERATURE_SURFACE_KEYS
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
 
 from med_autoscience.controllers.product_entry_parts.shared_labels import _non_empty_text
 
@@ -435,7 +436,12 @@ def _workspace_opl_current_control_state_handoff_dashboard(
     profile: WorkspaceProfile,
     studies: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    source_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    source_path = workspace_runtime_artifact_path(
+        profile.workspace_root,
+        "supervision",
+        "opl_current_control_state",
+        "latest.json",
+    )
     projected_studies = [
         dict(item.get("opl_current_control_state_handoff") or {})
         for item in studies

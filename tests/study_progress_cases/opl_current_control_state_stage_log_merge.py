@@ -26,7 +26,7 @@ def test_study_progress_merges_live_stage_log_when_handoff_study_entry_lacks_it(
         journal_shortlist=["Journal of Clinical Epidemiology"],
         minimum_sci_ready_evidence_package=["main_result_table", "claim_evidence_map"],
     )
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -149,7 +149,7 @@ def test_study_progress_live_opl_attempt_supersedes_stale_handoff_blocker(
         journal_shortlist=["Journal of Clinical Epidemiology"],
         minimum_sci_ready_evidence_package=["main_result_table"],
     )
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {
@@ -268,7 +268,7 @@ def test_study_progress_projects_live_opl_attempt_without_stage_progress_log(
         journal_shortlist=["Journal of Clinical Epidemiology"],
         minimum_sci_ready_evidence_package=["main_result_table"],
     )
-    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         handoff_path,
         {

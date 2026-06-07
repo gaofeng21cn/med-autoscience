@@ -141,7 +141,7 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     assert domain_handler["dispatch_receipt_surface_kind"] == "mas_family_domain_handler_dispatch_receipt"
     assert domain_handler["bridge_policy"] == "controlled_bridge_to_mas_owner_surface"
     assert domain_handler["allowed_bridge_writes"] == [
-        "artifacts/runtime/opl_family_domain_handler/dispatch_receipts/*.json",
+        "runtime/artifacts/opl_family_domain_handler/dispatch_receipts/*.json",
     ]
     assert "domain_route/reconcile-apply" in domain_handler["allowed_task_kinds"]
     assert "notification/receipt" in domain_handler["allowed_task_kinds"]

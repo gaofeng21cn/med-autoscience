@@ -9,6 +9,7 @@ from uuid import uuid4
 import yaml
 
 from med_autoscience.controllers import data_assets, startup_data_readiness
+from med_autoscience.workspace_paths import datasets_root
 
 
 MUTATION_LOG_SCHEMA_VERSION = 1
@@ -213,7 +214,7 @@ def _upsert_private_release_manifest(*, workspace_root: Path, payload: dict[str,
     normalized_main_outputs = data_assets._normalize_string_map(main_outputs)
     if not normalized_main_outputs:
         raise ValueError("upsert_private_release_manifest requires manifest.main_outputs")
-    version_root = workspace_root / "datasets" / family_id / version_id
+    version_root = datasets_root(workspace_root) / family_id / version_id
     if not version_root.exists():
         raise FileNotFoundError(f"Release root does not exist: {family_id}/{version_id}")
     missing_outputs = sorted(

@@ -33,6 +33,7 @@ from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.mark
 from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.operational_summary import (
     build_lifecycle_operational_summary,
 )
+from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
 from med_autoscience.controllers.artifact_lifecycle_operations_report_parts.study_projection import (
     PROJECTION_SURFACES as _PROJECTION_SURFACES,
     aggregate_historical_backfill_plan_count as _aggregate_historical_backfill_plan_count,
@@ -491,8 +492,8 @@ def _storage_snapshot_for_directory(
 def _storage_snapshot_paths(workspace_root: Path) -> tuple[Path, ...]:
     return (
         workspace_root / "storage_audit" / "latest.json",
-        workspace_root / "artifacts" / "runtime_storage" / "latest.json",
-        workspace_root / "artifacts" / "runtime" / "storage_audit_latest.json",
+        workspace_runtime_artifact_path(workspace_root, "runtime_storage", "latest.json"),
+        workspace_runtime_artifact_path(workspace_root, "storage_audit_latest.json"),
     )
 
 

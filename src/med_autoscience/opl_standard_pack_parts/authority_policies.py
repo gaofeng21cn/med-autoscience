@@ -1,0 +1,181 @@
+from __future__ import annotations
+
+FORBIDDEN_GENERIC_OWNER_ROLES = [
+    "generic_scheduler_owner",
+    "generic_daemon_owner",
+    "generic_lifecycle_owner",
+    "generic_queue_owner",
+    "generic_attempt_ledger_owner",
+    "generic_state_machine_runner_owner",
+    "generic_cli_mcp_product_wrapper_owner",
+    "generic_sidecar_owner",
+    "generic_session_store_owner",
+    "generic_status_workbench_owner",
+    "generic_workspace_source_intake_owner",
+    "generic_memory_transport_owner",
+    "generic_artifact_gallery_owner",
+    "generic_operator_workbench_owner",
+    "generic_observability_slo_owner",
+    "generic_persistence_engine_owner",
+    "generic_sqlite_lifecycle_owner",
+    "generic_native_helper_envelope_owner",
+    "generic_review_repair_transport_owner",
+    "generated_surface_owner_in_domain_repo",
+]
+
+GENERATED_SURFACES = [
+    "cli",
+    "mcp",
+    "skill",
+    "product_entry_manifest",
+    "domain_handler",
+    "status_read_model",
+    "workbench_drilldown",
+    "functional_harness_cases",
+]
+
+DECLARATIVE_DOMAIN_PACK = [
+    "agent_canonical_semantic_pack",
+    "stage_prompts",
+    "stage_policies",
+    "domain_skill_policies",
+    "knowledge_refs",
+    "hypothesis_portfolio_evidence_pack_refs",
+    "stage_descriptors",
+    "action_catalog",
+    "domain_transition_table",
+    "publication_route_memory_policy",
+    "artifact_authority_policy",
+    "source_readiness_policy",
+    "owner_receipt_schema",
+    "quality_gate_refs",
+]
+
+MINIMAL_AUTHORITY_FUNCTIONS = [
+    "publication_quality_stage_gate_boundary",
+    "ai_reviewer_quality_stage_gate_boundary",
+    "artifact_mutation_stage_gate_boundary",
+    "publication_route_memory_accept_reject_stage_gate_boundary",
+    "source_readiness_stage_gate_boundary",
+    "owner_receipt_signer",
+    "medical_native_helper_implementation",
+]
+FORBIDDEN_MECHANICAL_DECISION_SURFACES = [
+    "script_exit_code_as_publication_quality_verdict",
+    "function_return_value_as_ai_reviewer_quality_decision",
+    "test_pass_as_artifact_mutation_authorization",
+    "queue_completion_as_publication_route_memory_accept_reject",
+    "file_presence_as_source_readiness_verdict",
+]
+ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES = [
+    "ai_first_stage_gate",
+    "ai_first_record_validator",
+    "mechanical_guard",
+]
+AI_FIRST_STAGE_GATE_FUNCTION_IDS = [
+    "publication_quality_verdict",
+    "ai_reviewer_quality_decision",
+    "publication_route_memory_accept_reject",
+    "source_readiness_verdict",
+]
+AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS = ["artifact_mutation_authorization"]
+MECHANICAL_GUARD_FUNCTION_IDS = ["owner_receipt_signer", "medical_helper_implementation"]
+INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY = {
+    "surface_kind": "independent_executor_reviewer_agent_policy",
+    "required": True,
+    "executor_agent_role": "stage_work_executor",
+    "reviewer_auditor_agent_role": "quality_gate_reviewer_or_auditor",
+    "separate_invocation_required": True,
+    "separate_context_record_required": True,
+    "separate_task_record_required": True,
+    "separate_receipt_required": True,
+    "self_review_closes_quality_gate": False,
+    "codex_cli_may_serve_both_roles_only_as_separate_invocations": True,
+    "missing_independent_reviewer_record_policy": "fail_closed_or_route_back",
+}
+STAGE_QUALITY_GATE_BOUNDARIES = [
+    {
+        "boundary_id": "publication_quality_stage_gate_boundary",
+        "program_role": "validator",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "stage_quality_pack:publication_quality",
+            "publication_eval/latest.json",
+            "review_ledger",
+            "evidence_ledger",
+        ],
+        "required_record_refs": ["ai_reviewer_record", "quality_pack_evidence_refs"],
+        "route_back_semantics": "route_back_to_review_or_revision_stage",
+        "typed_blocker_semantics": "publication_quality_blocker",
+    },
+    {
+        "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
+        "program_role": "validator",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "AI reviewer workflow",
+            "AI reviewer-backed publication eval",
+            "stage_quality_pack:ai_reviewer_quality",
+        ],
+        "required_record_refs": ["ai_reviewer_record", "reviewer_operating_system_trace"],
+        "route_back_semantics": "route_back_to_ai_reviewer_repair_stage",
+        "typed_blocker_semantics": "ai_reviewer_quality_blocker",
+    },
+    {
+        "boundary_id": "artifact_mutation_stage_gate_boundary",
+        "program_role": "materializer",
+        "judgment_mode": "ai_first_record_validator",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "stage_quality_pack:artifact_materialization",
+            "canonical manuscript",
+            "current_package",
+            "artifact rebuild proof",
+        ],
+        "required_record_refs": ["quality_pack_evidence_refs", "artifact_rebuild_proof"],
+        "route_back_semantics": "route_back_to_artifact_rebuild_or_source_revision_stage",
+        "typed_blocker_semantics": "artifact_mutation_blocker",
+    },
+    {
+        "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
+        "program_role": "guard",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "publication-route memory body",
+            "memory writeback proposal",
+            "memory writeback router receipt",
+            "stage_quality_pack:publication_route_memory",
+        ],
+        "required_record_refs": ["publication_route_memory_body", "memory_writeback_receipt_refs"],
+        "route_back_semantics": "route_back_to_memory_writeback_repair_stage",
+        "typed_blocker_semantics": "publication_route_memory_writeback_blocker",
+    },
+    {
+        "boundary_id": "source_readiness_stage_gate_boundary",
+        "program_role": "validator",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "study charter",
+            "source readiness checks",
+            "evidence ledger",
+            "stage_quality_pack:source_readiness",
+        ],
+        "required_record_refs": ["study_charter", "quality_pack_evidence_refs"],
+        "route_back_semantics": "route_back_to_source_intake_or_study_design_stage",
+        "typed_blocker_semantics": "source_readiness_blocker",
+    },
+]

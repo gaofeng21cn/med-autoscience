@@ -26,10 +26,10 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     html_path = Path(result["html_path"])
     workspace_html_path = Path(result["workspace_html_path"])
     hosted_package_path = Path(result["hosted_package_path"])
-    assert payload_path == profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "latest.json"
+    assert payload_path == profile.workspace_root / "runtime" / "artifacts" / "progress_portal" / "latest.json"
     assert html_path == profile.workspace_root / "ops" / "mas" / "progress" / "studies" / "001-risk" / "index.html"
     assert workspace_html_path == profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
-    assert hosted_package_path == profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
+    assert hosted_package_path == profile.workspace_root / "runtime" / "artifacts" / "progress_portal" / "hosted_package.json"
     assert payload_path.exists()
     assert html_path.exists()
     assert workspace_html_path.exists()
@@ -38,8 +38,8 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     written_study_payload = json.loads(
         (
             profile.workspace_root
-            / "artifacts"
             / "runtime"
+            / "artifacts"
             / "progress_portal"
             / "studies"
             / "001-risk"
@@ -61,21 +61,21 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     assert hosted_package["default_diagnostic_requires_external_mds"] is False
     assert hosted_package["mds_webui_dependency_allowed"] is False
     assert hosted_package["default_webui"] == "mas_progress_portal"
-    assert hosted_package["package_refs"]["hosted_package_ref"] == "artifacts/runtime/progress_portal/hosted_package.json"
-    assert hosted_package["package_refs"]["progress_payload_ref"] == "artifacts/runtime/progress_portal/latest.json"
+    assert hosted_package["package_refs"]["hosted_package_ref"] == "runtime/artifacts/progress_portal/hosted_package.json"
+    assert hosted_package["package_refs"]["progress_payload_ref"] == "runtime/artifacts/progress_portal/latest.json"
     assert hosted_package["package_refs"]["html_ref"] == "ops/mas/progress/index.html"
     assert hosted_package["package_refs"]["workspace_relative"] == {
-        "hosted_package": "artifacts/runtime/progress_portal/hosted_package.json",
-        "progress_payload": "artifacts/runtime/progress_portal/latest.json",
+        "hosted_package": "runtime/artifacts/progress_portal/hosted_package.json",
+        "progress_payload": "runtime/artifacts/progress_portal/latest.json",
         "html": "ops/mas/progress/index.html",
     }
     assert hosted_package["package_refs"]["study_pages"]["001-risk"] == {
-        "payload": "artifacts/runtime/progress_portal/studies/001-risk/latest.json",
+        "payload": "runtime/artifacts/progress_portal/studies/001-risk/latest.json",
         "html": "ops/mas/progress/studies/001-risk/index.html",
     }
     assert hosted_package["entrypoints"] == {
         "opl_hosted_workbench_consumer": "OPL App/workbench consumes MAS progress payload refs",
-        "progress_payload_ref": "artifacts/runtime/progress_portal/latest.json",
+        "progress_payload_ref": "runtime/artifacts/progress_portal/latest.json",
     }
     assert "hosted_runtime_carrier_contract" not in hosted_package
     materializer = hosted_package["read_model_materializer_boundary"]
@@ -92,9 +92,9 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     assert materializer["active_callers"] == []
     assert materializer["domain_repo_physical_delete_authorized"] is False
     assert materializer["writes_only"] == [
-        "artifacts/runtime/progress_portal/latest.json",
-        "artifacts/runtime/progress_portal/hosted_package.json",
-        "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+        "runtime/artifacts/progress_portal/latest.json",
+        "runtime/artifacts/progress_portal/hosted_package.json",
+        "runtime/artifacts/progress_portal/studies/<study_id>/latest.json",
         "ops/mas/progress/index.html",
         "ops/mas/progress/studies/<study_id>/index.html",
     ]
@@ -106,13 +106,13 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     assert materializer["domain_repo_physical_delete_authorized"] is False
     assert "local_http_service_owner" in materializer["does_not_claim"]
     assert materializer["writes_only"] == [
-        "artifacts/runtime/progress_portal/latest.json",
-        "artifacts/runtime/progress_portal/hosted_package.json",
-        "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+        "runtime/artifacts/progress_portal/latest.json",
+        "runtime/artifacts/progress_portal/hosted_package.json",
+        "runtime/artifacts/progress_portal/studies/<study_id>/latest.json",
         "ops/mas/progress/index.html",
         "ops/mas/progress/studies/<study_id>/index.html",
     ]
-    assert result["opl_handoff"]["payload_ref"].endswith("artifacts/runtime/progress_portal/studies/001-risk/latest.json")
+    assert result["opl_handoff"]["payload_ref"].endswith("runtime/artifacts/progress_portal/studies/001-risk/latest.json")
     assert result["opl_handoff"]["deep_link"] == str(html_path)
     assert result["hosted_package"]["package_refs"]["hosted_package"] == str(hosted_package_path)
     assert html_path.read_text(encoding="utf-8").startswith("<!doctype html>")
@@ -135,8 +135,8 @@ def test_materialized_study_page_renders_stage_review_table_without_writing_trut
 
     study_payload_path = (
         profile.workspace_root
-        / "artifacts"
         / "runtime"
+        / "artifacts"
         / "progress_portal"
         / "studies"
         / "001-risk"
@@ -191,8 +191,8 @@ def test_materialized_study_page_reads_existing_stage_review_locator_without_wri
 
     study_payload_path = (
         profile.workspace_root
-        / "artifacts"
-        / "runtime"
+            / "runtime"
+            / "artifacts"
         / "progress_portal"
         / "studies"
         / "001-risk"
@@ -352,8 +352,8 @@ def test_materialized_study_page_projects_real_paper_line_workspace_proof_as_rea
     payload = json.loads(
         (
             profile.workspace_root
-            / "artifacts"
             / "runtime"
+            / "artifacts"
             / "progress_portal"
             / "studies"
             / "001-risk"
@@ -434,8 +434,8 @@ def test_materialized_study_page_fails_closed_when_paper_line_workspace_proof_re
     payload = json.loads(
         (
             profile.workspace_root
-            / "artifacts"
             / "runtime"
+            / "artifacts"
             / "progress_portal"
             / "studies"
             / "001-risk"

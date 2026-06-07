@@ -177,7 +177,7 @@ def test_progress_first_monitoring_keeps_paper_line_owner_delta_and_platform_rep
                 "deliverable_progress_delta": {"count": 0},
                 "platform_repair_delta": {
                     "count": 1,
-                    "refs": ["artifacts/supervision/opl_current_control_state/latest.json#read_model_hygiene"],
+                    "refs": ["runtime/artifacts/supervision/opl_current_control_state/latest.json#read_model_hygiene"],
                 },
             },
             "opl_current_control_state_handoff": {
