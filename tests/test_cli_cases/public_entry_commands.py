@@ -156,9 +156,81 @@ def test_public_help_prints_grouped_surface(capsys) -> None:
 
     assert exit_code == 0
     assert "Usage: medautosci <group> <command> [options]" in captured.out
+    assert "Series: OPL Foundry Agent" in captured.out
+    assert "Agent id: mas" in captured.out
+    assert "Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff" in captured.out
+    assert "medautosci foundry status --format json" in captured.out
     assert "doctor" in captured.out
     assert "publication" in captured.out
     assert "authority governance" in captured.out
+
+
+def test_foundry_status_exposes_series_spine(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["foundry", "status", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["series"] == "opl_foundry_agent_series.v1"
+    assert payload["series_label"] == "OPL Foundry Agent"
+    assert payload["agent_id"] == "mas"
+    assert payload["brand_cli"] == "mas"
+    assert payload["direct_domain_cli"] == "medautosci"
+    assert payload["direct_cli"] == "medautosci"
+    assert payload["work_object"]["natural_alias"] == "study"
+    assert payload["interfaces"]["work"]["domain_alias"] == "study"
+    assert payload["mcp_projection"]["mcp_descriptor_must_delegate_to_series_spine"] is True
+    assert payload["authority_boundary"]["generated_surface_can_create_owner_receipt"] is False
+    assert payload["ordinary_golden_path"]["readiness_claims"]["study_ready"] is False
+
+
+def test_top_level_status_alias_dispatches_foundry_status_json(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["status", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["operation"] == "status"
+    assert payload["series_label"] == "OPL Foundry Agent"
+
+
+def test_foundry_peers_lists_series_members_without_domain_ready_claim(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["foundry", "peers", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["peers"] == ["MAS", "MAG", "RCA", "OMA"]
+    assert payload["conformance"]["domain_ready"] is False
+
+
+def test_foundry_doctor_passes_without_profile_or_runtime_dependencies(capsys, monkeypatch) -> None:
+    sys.modules.pop("med_autoscience.cli", None)
+    sys.modules.pop("med_autoscience.doctor", None)
+
+    real_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "opl_harness_shared" or name.startswith("opl_harness_shared."):
+            raise ModuleNotFoundError("No module named 'opl_harness_shared'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    cli = importlib.import_module("med_autoscience.cli")
+    exit_code = cli.main(["foundry", "doctor", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["status"]["state"] == "available"
+    assert payload["focus"]["conformance"]["status"] == "read_only_series_projection"
 def test_group_help_lists_subcommands(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 

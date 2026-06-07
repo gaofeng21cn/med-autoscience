@@ -1,6 +1,16 @@
 from __future__ import annotations
 
+from med_autoscience.foundry_frontdoor import (
+    FOUNDRY_GROUP,
+    FOUNDRY_TOP_LEVEL_ALIASES,
+    PUBLIC_HELP_LINES,
+    grouped_command_aliases,
+    grouped_command_summaries,
+    normalize_foundry_argv,
+)
+
 GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
+    **grouped_command_aliases(),
     ("doctor", "report"): "doctor",
     ("doctor", "profile"): "show-profile",
     ("doctor", "mainline-status"): "mainline-status",
@@ -96,6 +106,7 @@ GROUPED_COMMAND_PROGS = {
     for (group, subcommand), flat_command in GROUPED_COMMAND_ALIASES.items()
 }
 GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
+    **grouped_command_summaries(),
     "doctor": "doctor 审计、profile、mainline 与 stage-route contract 检查。",
     "workspace": "workspace 初始化与 data/literature readiness。",
     "data": "研究资产、public data、registry 与 literature/memory 准备。",
@@ -113,15 +124,19 @@ GROUPED_SUBCOMMANDS: dict[str, tuple[str, ...]] = {
 def print_public_help() -> None:
     lines = [
         "Usage: medautosci <group> <command> [options]",
+        *PUBLIC_HELP_LINES,
         "",
         "Public command groups:",
     ]
-    for group in ("doctor", "workspace", "data", "runtime", "study", "publication", "product"):
+    for group in (FOUNDRY_GROUP, "doctor", "workspace", "data", "runtime", "study", "publication", "product"):
         lines.append(f"  {group:<12}{GROUPED_COMMAND_SUMMARIES[group]}")
     lines.extend(
         [
             "",
             "Examples:",
+            "  mas foundry status --format json",
+            "  medautosci foundry interfaces --format json",
+            "  mas status --format json",
             "  medautosci doctor report --profile <profile>",
             "  medautosci study progress --profile <profile> --study-id <study_id>",
             "  medautosci product governance-report --workspace-root <workspace>",
@@ -159,8 +174,13 @@ def normalize_public_command_argv(argv: list[str] | None) -> list[str] | None:
     if not argv:
         return argv
 
+    argv = normalize_foundry_argv(argv)
+
     if len(argv) >= 2 and (argv[0], argv[1]) in GROUPED_COMMAND_ALIASES:
         return [GROUPED_COMMAND_ALIASES[(argv[0], argv[1])], *argv[2:]]
+
+    if argv[0] in FOUNDRY_TOP_LEVEL_ALIASES:
+        return [f"foundry-{argv[0]}", *argv[1:]]
 
     if argv[0] in GROUPED_COMMAND_NAMES:
         raise SystemExit(f"Grouped command requires a supported subcommand under `{argv[0]}`.")

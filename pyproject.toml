@@ -37,6 +37,7 @@ analysis = [
 ]
 
 [project.scripts]
+mas = "med_autoscience.cli:entrypoint"
 medautosci = "med_autoscience.cli:entrypoint"
 medautosci-mcp = "med_autoscience.mcp_server:entrypoint"
 

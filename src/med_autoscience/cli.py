@@ -30,6 +30,12 @@ from med_autoscience.cli_parts.study_read_commands import handle_study_read_comm
 from med_autoscience.cli_parts.domain_health_diagnostic_commands import handle_domain_health_diagnostic_command
 from med_autoscience.cli_parts.domain_handler_commands import handle_domain_handler_command
 from med_autoscience.cli_parts.workspace_data_commands import handle_workspace_data_command
+from med_autoscience.foundry_frontdoor import (
+    build_foundry_frontdoor_projection,
+    is_foundry_command,
+    operation_from_command,
+    render_foundry_frontdoor_text,
+)
 
 @lru_cache(maxsize=None)
 def _load_module(module_name: str) -> Any:
@@ -257,6 +263,13 @@ def main(argv: list[str] | None = None) -> int:
         return help_result
     parser = build_parser()
     args = parser.parse_args(normalize_public_command_argv(resolved_argv))
+    if is_foundry_command(args.command):
+        payload = build_foundry_frontdoor_projection(operation=operation_from_command(args.command))
+        if args.format == "json":
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print(render_foundry_frontdoor_text(payload), end="")
+        return 0
     authority_result = handle_authority_operation_command(
         args,
         controller_modules={

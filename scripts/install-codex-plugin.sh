@@ -86,6 +86,7 @@ resolve_python() {
 
 install_python_tools() {
   mkdir -p "${INSTALL_HOME}/.local/bin"
+  write_clean_runner_entrypoint mas med_autoscience.cli
   write_clean_runner_entrypoint medautosci med_autoscience.cli
   write_clean_runner_entrypoint medautosci-mcp med_autoscience.mcp_server
 }

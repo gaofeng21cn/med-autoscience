@@ -5,12 +5,19 @@ description: Use when Codex should operate MedAutoScience through its stable run
 
 # MAS App Skill
 
+Series: OPL Foundry Agent
+Agent id: mas
+Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff
+Executable frontdoor: `medautosci foundry status|inspect|interfaces|validate|doctor|peers --format json`
+OPL series frontdoor: `opl foundry agents inspect mas --json`
+
 当 Codex 需要通过稳定运行面操作 `MedAutoScience`，而不是把仓库当成临时脚本集合来直接拼装时，使用这个 app skill。
 
 ## 这个 app skill 是什么
 
 - `MedAutoScience` 的 direct domain entry / handler target；它把 Codex 调回 MAS owner surface，而不是让本仓长期拥有 Skill descriptor。
 - OPL generated descriptors 是 CLI、MCP、Skill、product-entry、status、workbench metadata 的统一 owner；MAS repo-local skill 文件只保留当前 direct path 约束、handler target 说明和 domain authority 护栏。
+- `medautosci foundry ...` 是 MAS 的只读 OPL Foundry Agent series identity / interface surface；顶层 `medautosci status|inspect|interfaces|validate|doctor` 是同一读面的薄 alias。`mas` 是 series agent id / brand shorthand，不作为本机 PATH readiness 的唯一证据。旧 `runtime`、`index`、`stage-artifact`、裸 MCP/server 细节只作为 diagnostic 或 handler target，不是新用户 frontdoor。
 - MAS 保留 `MedAutoScienceDomainEntry`、CLI/controller/workspace commands、study truth、publication quality、artifact gate、current package authority、memory writeback decision 和 owner receipt signer。
 - skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`product-entry-status` 等命令是 MAS domain handler contract，供 OPL generated surfaces 或 direct path 调用。
 - `product-entry manifest` 暴露 MAS-owned domain action intents、handler target refs 与 authority boundaries；CLI、MCP、Skill、product/status/workbench descriptors 由 OPL 从同一份 pack/compiler input 生成或托管。

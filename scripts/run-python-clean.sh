@@ -153,6 +153,7 @@ write_launcher() {
   chmod +x "${path}"
 }
 
+write_launcher mas med_autoscience.cli
 write_launcher medautosci med_autoscience.cli
 write_launcher medautosci-mcp med_autoscience.mcp_server
 export PATH="${entrypoint_bin}:${PATH}"
