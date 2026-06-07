@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Mapping
+from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.default_executor_action_policy import (
     SUPPORTED_ACTION_TYPES,
+    request_owner_for_action_type,
 )
+from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.owner_route_reconcile_parts import (
     action_decorators,
     domain_route_contract,
@@ -16,6 +20,7 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 
 def current_actions_for_studies(
     *,
+    profile: WorkspaceProfile | None = None,
     scan_payload: Mapping[str, Any],
     study_ids: tuple[str, ...],
 ) -> tuple[list[dict[str, Any]] | None, list[dict[str, Any]]]:
@@ -25,6 +30,10 @@ def current_actions_for_studies(
         return (list(actions), ignored) if isinstance(actions, list) else (None, ignored)
     per_study_actions: list[dict[str, Any]] = []
     requested = set(study_ids)
+    stage_native_actions = _stage_native_next_actions(profile=profile, study_ids=study_ids)
+    stage_native_by_study = {
+        study_id: action for action in stage_native_actions if (study_id := _text(action.get("study_id"))) is not None
+    }
     top_level_actions = [
         dict(action) for action in scan_payload.get("action_queue") or [] if isinstance(action, Mapping)
     ]
@@ -35,16 +44,164 @@ def current_actions_for_studies(
         if study_id not in requested:
             continue
         matched_requested_study = True
+        if study_id in stage_native_by_study:
+            per_study_actions.append(stage_native_by_study[study_id])
+            ignored.extend(
+                _ignored_action(action, "superseded_by_stage_native_next_action")
+                for action in [
+                    *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                    ],
+                ]
+            )
+            continue
         study_actions, study_ignored = _current_study_actions(
             study=study_payload,
             top_level_actions=top_level_actions,
         )
         per_study_actions.extend(study_actions)
         ignored.extend(study_ignored)
+    for study_id, action in stage_native_by_study.items():
+        if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
+            per_study_actions.append(action)
     if per_study_actions or matched_requested_study:
         return per_study_actions, ignored
     actions = scan_payload.get("action_queue")
     return (list(actions), ignored) if isinstance(actions, list) else (None, ignored)
+
+
+def _stage_native_next_actions(
+    *,
+    profile: WorkspaceProfile | None,
+    study_ids: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    if profile is None:
+        return []
+    actions: list[dict[str, Any]] = []
+    for study_id in study_ids:
+        action = _stage_native_next_action(profile=profile, study_id=study_id)
+        if action is not None:
+            actions.append(action)
+    return actions
+
+
+def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
+    study_root = profile.studies_root / study_id
+    next_action = _read_json_mapping(study_root / "control" / "next_action.json")
+    if next_action is None:
+        return None
+    action_type = _text(next_action.get("action_id")) or _text(next_action.get("action_type"))
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return None
+    if _text(next_action.get("status")) != "ready_for_owner_action":
+        return None
+    owner = _text(next_action.get("owner")) or request_owner_for_action_type(action_type)
+    quest_id = _read_quest_id(study_root=study_root, fallback=study_id)
+    owner_route = _stage_native_owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        action_type=action_type,
+        owner=owner,
+        next_action=next_action,
+    )
+    return {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": action_type,
+        "action_id": f"stage-native-next-action::{study_id}::{action_type}",
+        "reason": action_type,
+        "owner": owner,
+        "request_owner": owner,
+        "recommended_owner": owner,
+        "authority": "stage_native_workspace_next_action",
+        "required_output_surface": _text(next_action.get("target_surface"))
+        or _text(next_action.get("required_output_surface"))
+        or "artifacts/reports/medical_publication_surface/latest.json",
+        "source_surface": _text(next_action.get("source_surface")),
+        "stage_index_ref": _text(next_action.get("stage_index_ref")),
+        "current_stage_id": _text(next_action.get("current_stage_id")),
+        "current_package_status": _text(next_action.get("current_package_status")),
+        "owner_route": owner_route,
+        "handoff_packet": {
+            "owner": owner,
+            "request_owner": owner,
+            "recommended_owner": owner,
+            "next_executable_owner": owner,
+            "owner_route": owner_route,
+            "source_surface": _text(next_action.get("source_surface")),
+        },
+    }
+
+
+def _stage_native_owner_route(
+    *,
+    study_id: str,
+    quest_id: str,
+    action_type: str,
+    owner: str,
+    next_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_stage_id = _text(next_action.get("current_stage_id")) or "unknown_stage"
+    source_surface = _text(next_action.get("source_surface")) or "control/next_action.json"
+    fingerprint = f"stage-native-next-action::{current_stage_id}::{action_type}::{source_surface}"
+    epoch = f"stage-native-next-action::{study_id}::{current_stage_id}"
+    return {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "truth_epoch": epoch,
+        "runtime_health_epoch": epoch,
+        "work_unit_fingerprint": fingerprint,
+        "failure_signature": action_type,
+        "trace_id": f"owner-route-trace::{study_id}::{action_type}",
+        "route_epoch": epoch,
+        "source_fingerprint": fingerprint,
+        "current_owner": "mas_controller",
+        "next_owner": owner,
+        "owner_reason": action_type,
+        "active_run_id": None,
+        "allowed_actions": [action_type],
+        "blocked_actions": sorted(item for item in SUPPORTED_ACTION_TYPES if item != action_type),
+        "source_refs": {
+            "work_unit_id": action_type,
+            "work_unit_fingerprint": fingerprint,
+            "source_surface": source_surface,
+            "stage_index_ref": _text(next_action.get("stage_index_ref")),
+            "current_stage_id": current_stage_id,
+            "owner_route_currentness_basis": {
+                "truth_epoch": epoch,
+                "runtime_health_epoch": epoch,
+                "work_unit_id": action_type,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+        "idempotency_key": f"owner-route::{study_id}::{epoch}::{owner}::{action_type}",
+    }
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _read_quest_id(*, study_root: Path, fallback: str) -> str:
+    study_yaml = study_root / "study.yaml"
+    try:
+        text = study_yaml.read_text(encoding="utf-8")
+    except OSError:
+        return fallback
+    for line in text.splitlines():
+        key, separator, value = line.partition(":")
+        if separator and key.strip() == "quest_id":
+            return value.strip().strip("\"'") or fallback
+    return fallback
 
 
 def _current_study_actions(

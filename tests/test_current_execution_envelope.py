@@ -632,6 +632,49 @@ def test_envelope_preserves_rehydrate_typed_closeout_over_stale_ai_reviewer_acti
     assert envelope["typed_blocker"]["blocker_type"] == "medical_prose_review_request_rehydrate_required"
 
 
+def test_envelope_does_not_let_stale_waiting_user_decision_hide_executable_route() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        status={
+            "auto_runtime_parked": {
+                "parked": True,
+                "parked_state": "waiting_user_decision",
+                "parked_owner": "user",
+                "source_reason": "quest_waiting_for_user",
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "continue_owner_route",
+                "runtime_liveness_status": "idle",
+            },
+        },
+        progress={
+            "auto_runtime_parked": {
+                "parked": True,
+                "parked_state": "waiting_user_decision",
+                "parked_owner": "user",
+            },
+            "parked_state": "waiting_user_decision",
+            "parked_owner": "user",
+        },
+        actions=[
+            {
+                "action_type": "run_gate_clearing_batch",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            }
+        ],
+        blocked_reason="domain_transition_publication_gate_blocker",
+        next_owner="gate_clearing_batch",
+    )
+
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "gate_clearing_batch"
+    assert envelope["next_work_unit"] == "publication_gate_replay"
+    assert envelope["typed_blocker"] is None
+    assert envelope["parked_state"] is None
+
+
 def test_envelope_prefers_running_provider_attempt_over_stale_action_queue() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 

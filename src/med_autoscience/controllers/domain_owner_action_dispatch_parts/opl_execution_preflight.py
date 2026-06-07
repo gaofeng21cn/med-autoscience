@@ -11,6 +11,9 @@ from med_autoscience.controllers.opl_execution_boundary import (
 )
 from . import current_writer_handoff
 
+_CLEAN_ROOM_PUBLICATION_SURFACE_ACTION = "run_medical_publication_surface_from_clean_room"
+_CLEAN_ROOM_DESCRIPTOR_SURFACE = "artifacts/supervision/paper_clean_room_rebuild/latest.json"
+
 
 def block_if_missing_authorization(
     *,
@@ -55,6 +58,11 @@ def _authorized(
     owner_route_basis: str | None,
     current_study: Mapping[str, Any],
 ) -> bool:
+    if _stage_native_clean_room_publication_surface_authorized(
+        dispatch=dispatch,
+        owner_route_basis=owner_route_basis,
+    ):
+        return True
     if owner_route_basis in {"bridged_writer_handoff", "current_writer_handoff"} and (
         current_writer_handoff.self_authorized_quality_repair_writer_handoff(
             study_id=_text(dispatch.get("study_id")) or "",
@@ -78,6 +86,26 @@ def _authorized(
         _mapping(dispatch.get("owner_route")).get("opl_execution_authorization"),
         _mapping(dispatch.get("owner_route")).get("opl_provider_attempt"),
     ) is not None
+
+
+def _stage_native_clean_room_publication_surface_authorized(
+    *,
+    dispatch: Mapping[str, Any],
+    owner_route_basis: str | None,
+) -> bool:
+    if owner_route_basis != "stage_native_workspace_next_action":
+        return False
+    if _text(dispatch.get("action_type")) != _CLEAN_ROOM_PUBLICATION_SURFACE_ACTION:
+        return False
+    source_action = _mapping(dispatch.get("source_action"))
+    owner_route = _mapping(dispatch.get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    source_surface = (
+        _text(source_action.get("source_surface"))
+        or _text(source_refs.get("source_surface"))
+        or _text(_mapping(dispatch.get("prompt_contract")).get("source_surface"))
+    )
+    return source_surface == _CLEAN_ROOM_DESCRIPTOR_SURFACE
 
 
 def with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[str, Any]:

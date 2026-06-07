@@ -12,6 +12,8 @@ SUPPORTED_ACTION_TYPES = frozenset(
         "run_quality_repair_batch",
         "run_gate_clearing_batch",
         "complete_medical_paper_readiness_surface",
+        "paper_clean_room_rebuild_required",
+        "run_medical_publication_surface_from_clean_room",
         "unit_harmonized_external_validation_rerun",
         "recover_transport_model_provenance",
         "methodology_reframe_route_decision",
@@ -45,6 +47,9 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/requests/quality_repair_batch/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/gate_clearing_batch/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/medical_paper_readiness/latest.json",
+    "studies/<study_id>/artifacts/supervision/requests/paper_clean_room_rebuild/latest.json",
+    "studies/<study_id>/artifacts/supervision/paper_clean_room_rebuild/**",
+    "studies/<study_id>/artifacts/reports/medical_publication_surface/**",
     "studies/<study_id>/artifacts/supervision/requests/analysis_harmonization/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/source_provenance/latest.json",
     "studies/<study_id>/artifacts/supervision/requests/decision/latest.json",
@@ -109,6 +114,7 @@ SOURCE_ACTION_REF_FIELDS = (
     "route_key_question",
     "route_rationale",
     "source_ref",
+    "source_surface",
     "stale_record_ref",
     "required_currentness_refs",
     "record_only_surface",
@@ -151,6 +157,8 @@ REQUEST_OWNER_BY_ACTION_TYPE = {
     "run_quality_repair_batch": "write",
     "run_gate_clearing_batch": "gate_clearing_batch",
     "complete_medical_paper_readiness_surface": "MedAutoScience",
+    "paper_clean_room_rebuild_required": "MedAutoScience",
+    "run_medical_publication_surface_from_clean_room": "MedAutoScience",
     "unit_harmonized_external_validation_rerun": "analysis_harmonization_owner",
     "recover_transport_model_provenance": "source_provenance_owner",
     "methodology_reframe_route_decision": "decision",
@@ -176,6 +184,8 @@ REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE = {
         "artifacts/medical_paper/<surface_key>.json or "
         "typed blocker:medical_paper_readiness_surface_input_required"
     ),
+    "paper_clean_room_rebuild_required": "artifacts/supervision/paper_clean_room_rebuild/latest.json",
+    "run_medical_publication_surface_from_clean_room": "artifacts/reports/medical_publication_surface/latest.json",
     "unit_harmonized_external_validation_rerun": (
         "unit-harmonized external-validation rerun evidence or "
         "typed blocker:unit_harmonized_rerun_required"
@@ -233,6 +243,8 @@ REQUEST_PACKET_REF_BY_ACTION_TYPE = {
     "run_quality_repair_batch": "artifacts/supervision/requests/quality_repair_batch/latest.json",
     "run_gate_clearing_batch": "artifacts/supervision/requests/gate_clearing_batch/latest.json",
     "complete_medical_paper_readiness_surface": "artifacts/supervision/requests/medical_paper_readiness/latest.json",
+    "paper_clean_room_rebuild_required": "artifacts/supervision/requests/paper_clean_room_rebuild/latest.json",
+    "run_medical_publication_surface_from_clean_room": "artifacts/supervision/requests/clean_room_publication_surface/latest.json",
     "unit_harmonized_external_validation_rerun": "artifacts/supervision/requests/analysis_harmonization/latest.json",
     "recover_transport_model_provenance": "artifacts/supervision/requests/source_provenance/latest.json",
     "methodology_reframe_route_decision": "artifacts/supervision/requests/decision/latest.json",

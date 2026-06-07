@@ -23,6 +23,7 @@ ROUTED_ACTION_TYPES = (
     "run_quality_repair_batch",
     "run_gate_clearing_batch",
     "complete_medical_paper_readiness_surface",
+    "paper_clean_room_rebuild_required",
 )
 ALLOWED_ACTION_TYPES = (
     *ROUTED_ACTION_TYPES,

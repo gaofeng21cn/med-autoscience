@@ -76,6 +76,8 @@ stage_artifact_materializer = _LazyModuleProxy(lambda: _load_controller("stage_a
 owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
+paper_clean_room_rebuild = _LazyModuleProxy(lambda: _load_controller("paper_clean_room_rebuild"))
+study_workspace_status = _LazyModuleProxy(lambda: _load_controller("study_workspace_status"))
 study_config_migration = _LazyModuleProxy(lambda: _load_controller("study_config_migration"))
 agent_lab_medical_manuscript_quality = _LazyModuleProxy(
     lambda: _load_controller("agent_lab_medical_manuscript_quality")
@@ -623,6 +625,24 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "paper-authority-clean-migration":
         result = paper_authority_migration.run_paper_authority_clean_migration(
+            profile_path=Path(args.profile),
+            study_ids=tuple(args.studies or ()),
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "paper-clean-room-rebuild":
+        result = paper_clean_room_rebuild.run_paper_clean_room_rebuild(
+            profile_path=Path(args.profile),
+            study_ids=tuple(args.studies or ()),
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "study-workspace-status":
+        result = study_workspace_status.run_study_workspace_status(
             profile_path=Path(args.profile),
             study_ids=tuple(args.studies or ()),
             apply=bool(args.apply),

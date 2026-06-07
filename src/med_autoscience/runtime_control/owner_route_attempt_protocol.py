@@ -11,6 +11,23 @@ from med_autoscience.runtime_control import decision_trace_ledger
 
 
 PROTOCOL_VERSION = "mas-owner-route-attempt-protocol.v1"
+ROUTE_TO_ATTEMPT_CONTRACT = {
+    "surface_kind": "mas_route_to_attempt_contract",
+    "version": "mas-route-to-attempt-contract.v1",
+    "when_dispatchable": "materialize_running_provider_attempt_or_executable_owner_action_or_typed_blocker",
+    "allowed_current_execution_state_kinds": [
+        "running_provider_attempt",
+        "executable_owner_action",
+        "typed_blocker",
+    ],
+    "forbidden_idle_states": [
+        "parked_without_human_gate",
+        "quest_marked_running_but_no_live_session",
+        "stale_handoff_only",
+        "downstream_bundle_only_idle",
+    ],
+    "human_gate_exception_requires_typed_blocker": True,
+}
 PRIORITY_LATTICE = [
     "hard_methodology_or_source_blocker",
     "pending_ai_reviewer_request",
@@ -189,6 +206,7 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
         "dispatchable": bool(allowed_actions and not route["currentness_contract"]["missing_required_fields"]),
         "priority_class": reason_contract["priority_class"],
         "currentness_contract": route["currentness_contract"]["status"],
+        "route_to_attempt_contract": _route_to_attempt_contract(),
         "authority_boundary": _authority_boundary(),
         "runtime_completion_guard": _runtime_completion_guard(),
         "completion_boundary": default_executor_typed_closeout_contract(
@@ -626,6 +644,21 @@ _REASON_REGISTRY = {
         priority_class="ai_reviewer_currentness",
         regression_refs=("tests/owner_route_reconcile_cases",),
     ),
+    "paper_clean_room_rebuild_required": _entry(
+        owner="MedAutoScience",
+        allowed_actions=["paper_clean_room_rebuild_required"],
+        required_output="artifacts/supervision/paper_clean_room_rebuild/latest.json",
+        priority_class="write_route_back",
+        regression_refs=("tests/test_paper_clean_room_rebuild.py",),
+        forbidden_surfaces=(
+            "manuscript/**",
+            "current_package/**",
+            "paper/current_package/**",
+            "manuscript/current_package/**",
+            "artifacts/publication_eval/latest.json",
+            "artifacts/controller_decisions/latest.json",
+        ),
+    ),
     "study_completion_contract_not_ready": _entry(
         owner="controller_stop",
         allowed_actions=[],
@@ -708,6 +741,7 @@ _ROUTED_ACTION_TYPES = (
     "run_quality_repair_batch",
     "run_gate_clearing_batch",
     "complete_medical_paper_readiness_surface",
+    "paper_clean_room_rebuild_required",
 )
 
 
@@ -864,6 +898,16 @@ def _runtime_completion_guard() -> dict[str, Any]:
     }
 
 
+def _route_to_attempt_contract() -> dict[str, Any]:
+    return {
+        **ROUTE_TO_ATTEMPT_CONTRACT,
+        "allowed_current_execution_state_kinds": list(
+            ROUTE_TO_ATTEMPT_CONTRACT["allowed_current_execution_state_kinds"]
+        ),
+        "forbidden_idle_states": list(ROUTE_TO_ATTEMPT_CONTRACT["forbidden_idle_states"]),
+    }
+
+
 def _list_field(
     dispatch: Mapping[str, Any],
     prompt_contract: Mapping[str, Any],
@@ -898,6 +942,7 @@ __all__ = [
     "AUTHORITY_BOUNDARY",
     "PRIORITY_LATTICE",
     "PROTOCOL_VERSION",
+    "ROUTE_TO_ATTEMPT_CONTRACT",
     "RUNTIME_COMPLETION_GUARD",
     "closeout_packet_for_transport",
     "currentness_basis",

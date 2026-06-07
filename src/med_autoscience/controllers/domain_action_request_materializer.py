@@ -660,7 +660,11 @@ def _selected_actions(
         if current_action is not None:
             current_writer_handoff_actions[study_id] = current_action
     request_selected.extend(current_writer_handoff_actions.values())
-    actions, preignored = _current_actions_for_studies(scan_payload=scan_payload, study_ids=study_ids)
+    actions, preignored = _current_actions_for_studies(
+        profile=profile,
+        scan_payload=scan_payload,
+        study_ids=study_ids,
+    )
     ignored.extend(preignored)
     if not isinstance(actions, list):
         return request_selected, ignored
@@ -690,10 +694,12 @@ def _selected_actions(
 
 def _current_actions_for_studies(
     *,
+    profile: WorkspaceProfile,
     scan_payload: Mapping[str, Any],
     study_ids: tuple[str, ...],
 ) -> tuple[list[dict[str, Any]] | None, list[dict[str, Any]]]:
     return current_action_selection.current_actions_for_studies(
+        profile=profile,
         scan_payload=scan_payload,
         study_ids=study_ids,
     )

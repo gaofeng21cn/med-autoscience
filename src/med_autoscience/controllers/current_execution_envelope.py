@@ -100,17 +100,23 @@ def build_current_execution_envelope(
                 source_refs=resolved_source_refs,
                 conflict_suppression_refs=resolved_suppression_refs,
             )
+    action = _first_action(action_items)
     parked = _parked_state(status_payload, progress_payload)
     if parked is not None:
-        return _envelope(
-            state_kind="parked",
-            owner=parked["owner"],
-            next_work_unit=None,
-            typed_blocker=None,
-            parked_state=parked["parked_state"],
-            source_refs=resolved_source_refs,
-            conflict_suppression_refs=resolved_suppression_refs,
-        )
+        if action is None or _parked_state_requires_human_resume(
+            status=status_payload,
+            progress=progress_payload,
+            parked=parked,
+        ):
+            return _envelope(
+                state_kind="parked",
+                owner=parked["owner"],
+                next_work_unit=None,
+                typed_blocker=None,
+                parked_state=parked["parked_state"],
+                source_refs=resolved_source_refs,
+                conflict_suppression_refs=resolved_suppression_refs,
+            )
     if resolved_typed_blocker is not None:
         return _envelope(
             state_kind="typed_blocker",
@@ -121,7 +127,6 @@ def build_current_execution_envelope(
             source_refs=resolved_source_refs,
             conflict_suppression_refs=resolved_suppression_refs,
         )
-    action = _first_action(action_items)
     if action is not None:
         return _envelope(
             state_kind="executable_owner_action",
@@ -200,6 +205,21 @@ def _parked_state(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dic
             "owner": _text(progress.get("parked_owner")) or "user",
         }
     return None
+
+
+def _parked_state_requires_human_resume(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    parked: Mapping[str, Any],
+) -> bool:
+    if _text(parked.get("parked_state")) == "explicit_resume_pending":
+        return True
+    auto_parked = _mapping(status.get("auto_runtime_parked")) or _mapping(progress.get("auto_runtime_parked"))
+    if auto_parked.get("awaiting_explicit_wakeup") is True:
+        return True
+    runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
+    return _text(runtime_health.get("canonical_runtime_action")) == "await_explicit_resume"
 
 
 def _typed_blocker(

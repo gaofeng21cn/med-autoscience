@@ -218,6 +218,20 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     paper_authority_clean_migration_mode.add_argument("--dry-run", action="store_true")
     paper_authority_clean_migration_mode.add_argument("--apply", action="store_true")
 
+    paper_clean_room_rebuild_parser = subparsers.add_parser("paper-clean-room-rebuild")
+    paper_clean_room_rebuild_parser.add_argument("--profile", required=True)
+    paper_clean_room_rebuild_parser.add_argument("--studies", nargs="+")
+    paper_clean_room_rebuild_mode = paper_clean_room_rebuild_parser.add_mutually_exclusive_group(required=True)
+    paper_clean_room_rebuild_mode.add_argument("--dry-run", action="store_true")
+    paper_clean_room_rebuild_mode.add_argument("--apply", action="store_true")
+
+    study_workspace_status_parser = subparsers.add_parser("study-workspace-status")
+    study_workspace_status_parser.add_argument("--profile", required=True)
+    study_workspace_status_parser.add_argument("--studies", nargs="+")
+    study_workspace_status_mode = study_workspace_status_parser.add_mutually_exclusive_group(required=True)
+    study_workspace_status_mode.add_argument("--dry-run", action="store_true")
+    study_workspace_status_mode.add_argument("--apply", action="store_true")
+
     study_config_clean_migration_parser = subparsers.add_parser("study-config-clean-migration")
     study_config_clean_migration_parser.add_argument("--profile", required=True)
     study_config_clean_migration_parser.add_argument("--studies", nargs="+")
