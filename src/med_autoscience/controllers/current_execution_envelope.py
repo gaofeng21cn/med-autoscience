@@ -103,7 +103,7 @@ def build_current_execution_envelope(
     action = _first_action(action_items)
     parked = _parked_state(status_payload, progress_payload)
     if parked is not None:
-        if action is None or _parked_state_requires_human_resume(
+        if _parked_state_requires_human_resume(
             status=status_payload,
             progress=progress_payload,
             parked=parked,
@@ -117,6 +117,29 @@ def build_current_execution_envelope(
                 source_refs=resolved_source_refs,
                 conflict_suppression_refs=resolved_suppression_refs,
             )
+        if action is None:
+            return _envelope(
+                state_kind="parked",
+                owner=parked["owner"],
+                next_work_unit=None,
+                typed_blocker=None,
+                parked_state=parked["parked_state"],
+                source_refs=resolved_source_refs,
+                conflict_suppression_refs=resolved_suppression_refs,
+            )
+    if action is not None and _action_supersedes_typed_blocker(
+        action=action,
+        blocker=resolved_typed_blocker,
+    ):
+        return _envelope(
+            state_kind="executable_owner_action",
+            owner=_action_owner(action, next_owner=next_owner),
+            next_work_unit=_next_work_unit(action),
+            typed_blocker=None,
+            parked_state=None,
+            source_refs=resolved_source_refs,
+            conflict_suppression_refs=resolved_suppression_refs,
+        )
     if resolved_typed_blocker is not None:
         return _envelope(
             state_kind="typed_blocker",
@@ -130,7 +153,7 @@ def build_current_execution_envelope(
     if action is not None:
         return _envelope(
             state_kind="executable_owner_action",
-            owner=_text(action.get("owner")) or _text(action.get("recommended_owner")) or _text(next_owner) or "med-autoscience",
+            owner=_action_owner(action, next_owner=next_owner),
             next_work_unit=_next_work_unit(action),
             typed_blocker=None,
             parked_state=None,
@@ -216,7 +239,12 @@ def _parked_state_requires_human_resume(
     if _text(parked.get("parked_state")) == "explicit_resume_pending":
         return True
     auto_parked = _mapping(status.get("auto_runtime_parked")) or _mapping(progress.get("auto_runtime_parked"))
+    if auto_parked.get("auto_execution_complete") is True:
+        return True
     if auto_parked.get("awaiting_explicit_wakeup") is True:
+        if _text(parked.get("parked_state")) == "waiting_user_decision":
+            classification = _mapping(auto_parked.get("runtime_failure_classification"))
+            return classification.get("requires_human_gate") is True
         return True
     runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
     return _text(runtime_health.get("canonical_runtime_action")) == "await_explicit_resume"
@@ -256,10 +284,20 @@ def _next_work_unit(action: Mapping[str, Any]) -> object:
     text = _text(next_work_unit)
     if text is not None:
         return text
-    for key in ("executable_work_unit", "controller_work_unit_id", "action_type"):
+    for key in ("executable_work_unit", "controller_work_unit_id", "work_unit_id", "action_type"):
         if (value := _text(action.get(key))) is not None:
             return value
     return None
+
+
+def _action_owner(action: Mapping[str, Any], *, next_owner: str | None) -> str:
+    return (
+        _text(action.get("owner"))
+        or _text(action.get("recommended_owner"))
+        or _text(action.get("next_owner"))
+        or _text(next_owner)
+        or "med-autoscience"
+    )
 
 
 def _running_provider_attempt_state(
@@ -291,6 +329,22 @@ def _running_attempt_can_supersede_blocker(blocker: Mapping[str, Any] | None) ->
     if not payload:
         return True
     return _text(payload.get("blocker_type")) in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS
+
+
+def _action_supersedes_typed_blocker(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any] | None,
+) -> bool:
+    payload = _mapping(blocker)
+    if not payload:
+        return True
+    blocker_type = _text(payload.get("blocker_type"))
+    if blocker_type != "medical_paper_readiness_not_ready":
+        return False
+    if _text(action.get("action_type")) == "complete_medical_paper_readiness_surface":
+        return True
+    return "complete_medical_paper_readiness_surface" in _text_items(action.get("allowed_actions"))
 
 
 def _reason_only_blocked_reason_is_typed_blocker(*, reason: str, owner: str | None) -> bool:
@@ -356,6 +410,20 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, (list, tuple, set)):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
 
 
 __all__ = [

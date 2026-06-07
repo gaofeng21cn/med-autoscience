@@ -19,6 +19,10 @@ from .current_owner_handoff_projection import (
     current_owner_redrive_domain_transition,
 )
 from .current_executable_owner_action import build_current_executable_owner_action
+from .current_owner_action_projection_reconcile import (
+    current_execution_envelope_actions,
+    reconcile_current_owner_action_projection,
+)
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .parked_projection import parked_progress_fields
 from .progress_first_projection import build_progress_first_projection
@@ -690,22 +694,26 @@ def assemble_study_progress_payload(
         status,
         study_id=study_id,
     )
-    payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
     payload["current_executable_owner_action"] = build_current_executable_owner_action(payload)
+    payload = reconcile_current_owner_action_projection(payload)
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    envelope_actions = current_execution_envelope_actions(
+        handoff=handoff,
+        current_executable_owner_action=_mapping_copy(payload.get("current_executable_owner_action")),
+    )
     payload["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
         status=status,
         progress=payload,
-        actions=handoff.get("action_queue") if isinstance(handoff.get("action_queue"), list) else [],
+        actions=envelope_actions,
         blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
         next_owner=_non_empty_text(handoff.get("next_owner")),
         runtime_health=runtime_health_snapshot,
         live_provider_attempt=handoff,
     )
     payload["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
-        action_queue=handoff.get("action_queue") if isinstance(handoff.get("action_queue"), list) else [],
+        action_queue=envelope_actions,
         runtime_health=runtime_health_snapshot,
         extra={
             "opl_current_control_state_handoff": handoff or None,
@@ -722,6 +730,7 @@ def assemble_study_progress_payload(
         study_root=study_root,
         generated_at=generated_at,
     )
+
 
 def _apply_runtime_medical_publication_surface_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
     blockers = _current_runtime_medical_publication_surface_blockers(payload)

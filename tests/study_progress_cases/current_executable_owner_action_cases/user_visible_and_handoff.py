@@ -179,4 +179,69 @@ def test_current_owner_handoff_decision_uses_current_executable_owner_action_nex
     assert result["user_visible_projection"]["next_owner"] == "finalize"
     assert result["status_narration_contract"]["next_step"] == result["next_system_action"]
 
+
+def test_current_owner_action_projection_suppresses_non_human_stale_user_park() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
+
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_stage": "auto_runtime_parked",
+        "current_stage_summary": "旧 user park 投影。",
+        "next_system_action": "等待用户明确确认后，再继续下一步托管推进。",
+        "status_narration_contract": {
+            "stage": {"current_stage": "auto_runtime_parked"},
+            "next_step": "等待用户明确确认后，再继续下一步托管推进。",
+        },
+        "auto_runtime_parked": {
+            "surface_kind": "auto_runtime_parked",
+            "schema_version": 1,
+            "parked": True,
+            "parked_state": "waiting_user_decision",
+            "parked_owner": "user",
+            "awaiting_explicit_wakeup": True,
+            "auto_execution_complete": False,
+            "source_reason": "quest_waiting_for_user",
+            "runtime_failure_classification": {
+                "requires_human_gate": False,
+                "auto_recovery_allowed": True,
+                "blocker_class": "none",
+            },
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "stage_kernel_projection.current_owner_delta",
+            "next_owner": "MedAutoScience",
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "allowed_actions": ["complete_medical_paper_readiness_surface"],
+            "source_ref": (
+                "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+            ),
+        },
+    }
+
+    result = module.reconcile_current_owner_action_projection(payload)
+
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["superseded_by_current_owner_action"] is True
+    assert result["parked_state"] is None
+    assert result["parked_owner"] is None
+    assert result["needs_user_decision"] is False
+    assert result["needs_physician_decision"] is False
+    assert result["current_stage"] == "publication_supervision"
+    assert result["study_macro_state"]["writer_state"] == "queued"
+    assert result["study_macro_state"]["user_next"] == "repair"
+    assert result["study_macro_state"]["reason"] == "quality"
+    assert result["study_macro_state"]["details"]["decision_owner"] == "MedAutoScience"
+    assert result["status_narration_contract"]["next_step"] == (
+        "等待 MedAutoScience owner 执行 complete_medical_paper_readiness_surface，"
+        "处理 work unit complete_medical_paper_readiness_surface，"
+        "产出 owner receipt、typed blocker 或下一 owner handoff。"
+    )
+
+
 __all__ = [name for name in globals() if name.startswith("test_")]

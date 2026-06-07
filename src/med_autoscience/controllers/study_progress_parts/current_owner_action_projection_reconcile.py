@@ -1,0 +1,176 @@
+from __future__ import annotations
+
+from typing import Any, Mapping
+
+from .current_executable_owner_action import owner_action_next_step
+from .macro_state_projection import compact_study_macro_state_from_payload
+from .shared import _mapping_copy, _non_empty_text
+
+CURRENT_OWNER_ACTION_SOURCES = frozenset(
+    {
+        "stage_kernel_projection.current_owner_delta",
+        "stage_artifact_index.next_owner_action",
+        "study_progress.next_forced_delta.owner_action",
+        "domain_transition",
+    }
+)
+
+
+def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[str, Any]:
+    action = _mapping_copy(payload.get("current_executable_owner_action"))
+    if not current_owner_action_supersedes_stale_user_park(payload, action):
+        payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
+        return payload
+    updated = dict(payload)
+    auto_parked = _mapping_copy(updated.get("auto_runtime_parked"))
+    next_step = owner_action_next_step(action)
+    auto_parked.update(
+        {
+            "parked": False,
+            "parked_state": None,
+            "parked_state_label": None,
+            "parked_owner": None,
+            "resource_release_expected": False,
+            "awaiting_explicit_wakeup": False,
+            "auto_execution_complete": False,
+            "superseded_by_current_owner_action": True,
+            "summary": "Stage Native current owner action is available; stale user-park projection is not the current execution owner.",
+            "next_action_summary": next_step,
+        }
+    )
+    updated["auto_runtime_parked"] = auto_parked
+    for key in (
+        "parked_state",
+        "parked_owner",
+        "resource_release_expected",
+        "awaiting_explicit_wakeup",
+        "auto_execution_complete",
+    ):
+        updated[key] = auto_parked.get(key)
+    study_id = _non_empty_text(updated.get("study_id"))
+    current_stage = _non_empty_text(updated.get("current_stage"))
+    if current_stage == "auto_runtime_parked":
+        updated["current_stage"] = "publication_supervision"
+    if next_step is not None:
+        updated["next_system_action"] = next_step
+        updated["next_step"] = next_step
+        status_contract = _mapping_copy(updated.get("status_narration_contract"))
+        if status_contract:
+            status_contract["next_step"] = next_step
+            updated["status_narration_contract"] = status_contract
+        operator_status = _mapping_copy(updated.get("operator_status_card"))
+        if operator_status:
+            operator_status["current_focus"] = next_step
+            updated["operator_status_card"] = operator_status
+    updated["needs_user_decision"] = False
+    updated["needs_physician_decision"] = False
+    updated["physician_decision_summary"] = None
+    updated["user_decision_summary"] = None
+    updated["study_macro_state"] = {
+        "surface": "study_macro_state",
+        "schema_version": 1,
+        "study_id": study_id,
+        "writer_state": "queued",
+        "user_next": "repair",
+        "reason": "quality",
+        "details": {
+            "decision_owner": _non_empty_text(action.get("next_owner")),
+            "route_owner": _non_empty_text(action.get("next_owner")),
+            "next_work_unit": _non_empty_text(action.get("work_unit_id")),
+            "source_ref": _non_empty_text(action.get("source_ref")),
+            "source": _non_empty_text(action.get("source")),
+        },
+        "conditions": [
+            {
+                "type": "CurrentOwnerActionSupersedesStaleUserPark",
+                "status": "true",
+                "reason": "Stage Native current owner action exists and runtime failure classification does not require a human gate.",
+            }
+        ],
+    }
+    return updated
+
+
+def current_owner_action_supersedes_stale_user_park(
+    payload: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(action.get("surface_kind")) != "current_executable_owner_action":
+        return False
+    if _non_empty_text(action.get("source")) not in CURRENT_OWNER_ACTION_SOURCES:
+        return False
+    auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
+    if auto_parked.get("parked") is not True:
+        return False
+    if _non_empty_text(auto_parked.get("parked_state")) != "waiting_user_decision":
+        return False
+    classification = _mapping_copy(auto_parked.get("runtime_failure_classification"))
+    if classification.get("requires_human_gate") is True:
+        return False
+    if auto_parked.get("auto_execution_complete") is True:
+        return False
+    if _non_empty_text(action.get("next_owner")) == "user":
+        return False
+    return bool(
+        _non_empty_text(action.get("next_owner"))
+        or _non_empty_text(action.get("work_unit_id"))
+        or _text_items(action.get("allowed_actions"))
+    )
+
+
+def current_execution_envelope_actions(
+    *,
+    handoff: Mapping[str, Any],
+    current_executable_owner_action: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    handoff_actions = [
+        dict(item)
+        for item in handoff.get("action_queue") or []
+        if isinstance(item, Mapping)
+    ]
+    if handoff_actions:
+        return handoff_actions
+    if _non_empty_text(current_executable_owner_action.get("surface_kind")) != "current_executable_owner_action":
+        return []
+    allowed_actions = _text_items(current_executable_owner_action.get("allowed_actions"))
+    action_type = allowed_actions[0] if allowed_actions else _non_empty_text(
+        current_executable_owner_action.get("action_type")
+    )
+    owner = _non_empty_text(current_executable_owner_action.get("next_owner"))
+    work_unit_id = _non_empty_text(current_executable_owner_action.get("work_unit_id"))
+    if action_type is None and owner is None and work_unit_id is None:
+        return []
+    return [
+        {
+            "action_type": action_type,
+            "owner": owner,
+            "recommended_owner": owner,
+            "next_owner": owner,
+            "next_work_unit": work_unit_id or action_type,
+            "work_unit_id": work_unit_id,
+            "allowed_actions": allowed_actions,
+            "source_surface": _non_empty_text(current_executable_owner_action.get("source")),
+            "source_ref": _non_empty_text(current_executable_owner_action.get("source_ref")),
+        }
+    ]
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _non_empty_text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _non_empty_text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
+
+
+__all__ = [
+    "current_execution_envelope_actions",
+    "current_owner_action_supersedes_stale_user_park",
+    "reconcile_current_owner_action_projection",
+]
