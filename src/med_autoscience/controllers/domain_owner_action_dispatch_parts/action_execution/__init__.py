@@ -11,6 +11,7 @@ from med_autoscience.controllers import gate_clearing_batch, publication_gate
 
 from ... import (
     analysis_harmonization_owner,
+    ai_reviewer_publication_eval_workflow,
     quest_hydration,
     domain_status_projection,
 )
