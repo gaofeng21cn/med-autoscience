@@ -109,7 +109,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile /
 
 - `repo_check` 能看到目标 upstream 差异
 - 当前 controlled fork 身份仍正常
-- workspace / overlay / behavior gate 没有额外阻断
+- workspace / overlay / retired behavior-equivalence provenance 没有额外 legacy/import 阻断；不要把旧 gate 写回 active MAS runtime readiness
 
 ### 3. 明确选中要吸收的提交
 

@@ -180,6 +180,47 @@ def test_inspect_workspace_contracts_accepts_mas_first_runtime_bridge(tmp_path: 
         runtime_bridge_root / "config.env"
     )
     assert result["behavior_gate"]["path"] == str(runtime_bridge_root / "behavior_equivalence_gate.yaml")
+    assert result["behavior_gate"]["retired"] is True
+
+
+def test_inspect_workspace_contracts_accepts_clean_mas_first_workspace_without_legacy_bridge(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.workspace_contracts")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "workspace"
+    profile = profiles.WorkspaceProfile(
+        name="nfpitnet",
+        workspace_root=workspace_root,
+        runtime_root=workspace_root / "runtime" / "quests",
+        studies_root=workspace_root / "studies",
+        portfolio_root=workspace_root / "memory" / "portfolio",
+        med_deepscientist_runtime_root=workspace_root / "runtime",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=True,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=("scout", "idea", "decision", "write", "finalize"),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=("clinical_classifier",),
+        default_submission_targets=(),
+    )
+    profile.runtime_root.mkdir(parents=True)
+    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
+
+    medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
+    medautosci_config.parent.mkdir(parents=True, exist_ok=True)
+    medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
+
+    result = module.inspect_workspace_contracts(profile)
+
+    assert result["runtime_contract"]["ready"] is True
+    assert result["launcher_contract"]["ready"] is True
+    assert result["launcher_contract"]["checks"]["controlled_backend_config_env_exists"] is False
+    assert result["launcher_contract"]["checks"]["controlled_backend_bin_dir_exists"] is False
+    assert result["behavior_gate"]["surface_kind"] == "retired_behavior_equivalence_gate"
+    assert result["behavior_gate"]["ready"] is True
+    assert result["behavior_gate"]["current_readiness_gate"] is False
+    assert result["overall_ready"] is True
 
 
 def test_inspect_workspace_contracts_rejects_invalid_override_shape(tmp_path: Path) -> None:

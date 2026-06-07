@@ -18,6 +18,9 @@ from med_autoscience.controllers.owner_route_reconcile_parts import (
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
+READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
+
+
 def current_actions_for_studies(
     *,
     profile: WorkspaceProfile | None = None,
@@ -44,6 +47,27 @@ def current_actions_for_studies(
         if study_id not in requested:
             continue
         matched_requested_study = True
+        readiness_followup = _current_readiness_followup_action(study_payload)
+        if readiness_followup is not None:
+            per_study_actions.append(readiness_followup)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_current_stage_readiness_followup")
+                for action in [
+                    *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                        and _text(item.get("action_type")) != READINESS_ACTION_TYPE
+                    ],
+                    *(
+                        [stage_native_by_study[study_id]]
+                        if study_id in stage_native_by_study
+                        else []
+                    ),
+                ]
+            )
+            continue
         if study_id in stage_native_by_study:
             per_study_actions.append(stage_native_by_study[study_id])
             ignored.extend(
@@ -71,6 +95,89 @@ def current_actions_for_studies(
         return per_study_actions, ignored
     actions = scan_payload.get("action_queue")
     return (list(actions), ignored) if isinstance(actions, list) else (None, ignored)
+
+
+def _current_readiness_followup_action(study: Mapping[str, Any]) -> dict[str, Any] | None:
+    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
+    if not _route_allows_readiness_followup(owner_route):
+        return None
+    study_id = _text(study.get("study_id"))
+    if study_id is None:
+        return None
+    quest_id = _text(study.get("quest_id"))
+    for action in study.get("action_queue") or []:
+        payload = _mapping(action)
+        if _text(payload.get("action_type")) != READINESS_ACTION_TYPE:
+            continue
+        if not _current_readiness_owner_action_matches(study, payload):
+            continue
+        payload["study_id"] = _text(payload.get("study_id")) or study_id
+        if quest_id is not None:
+            payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
+        return _attach_owner_route_if_missing(payload, owner_route)
+    action = _mapping(study.get("current_executable_owner_action"))
+    if not _current_readiness_owner_action_matches(study, action):
+        return None
+    owner = _text(action.get("next_owner")) or _text(owner_route.get("next_owner")) or "MedAutoScience"
+    payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": READINESS_ACTION_TYPE,
+        "action_id": f"current-stage-readiness-followup::{study_id}",
+        "reason": "medical_paper_readiness_not_ready",
+        "owner": owner,
+        "request_owner": owner,
+        "recommended_owner": owner,
+        "authority": "mas_owner_surface",
+        "required_output_surface": READINESS_ACTION_TYPE,
+        "surface_key": _text(action.get("surface_key")) or _text(_mapping(action.get("target_surface")).get("surface_key")),
+        "source_surface": _text(action.get("source")) or "current_executable_owner_action",
+        "source_ref": _text(action.get("source_ref")),
+        "work_unit_id": READINESS_ACTION_TYPE,
+        "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint"))
+        or _text(_mapping(owner_route.get("source_refs")).get("work_unit_fingerprint")),
+        "owner_route": owner_route,
+        "handoff_packet": {
+            "action_type": READINESS_ACTION_TYPE,
+            "request_owner": owner,
+            "recommended_owner": owner,
+            "surface_key": _text(action.get("surface_key"))
+            or _text(_mapping(action.get("target_surface")).get("surface_key")),
+            "source": _text(action.get("source")) or "current_executable_owner_action",
+            "owner_route": owner_route,
+            "idempotency_key": _text(owner_route.get("idempotency_key")),
+        },
+    }
+    return {key: value for key, value in payload.items() if value is not None}
+
+
+def _route_allows_readiness_followup(owner_route: Mapping[str, Any]) -> bool:
+    allowed_actions = {_text(item) for item in owner_route.get("allowed_actions") or []}
+    allowed_actions.discard(None)
+    return _text(owner_route.get("next_owner")) == "MedAutoScience" and READINESS_ACTION_TYPE in allowed_actions
+
+
+def _current_readiness_owner_action_matches(study: Mapping[str, Any], action: Mapping[str, Any]) -> bool:
+    if _text(action.get("action_type")) == READINESS_ACTION_TYPE:
+        return True
+    allowed_actions = {_text(item) for item in action.get("allowed_actions") or []}
+    allowed_actions.discard(None)
+    if READINESS_ACTION_TYPE not in allowed_actions:
+        return False
+    if _text(action.get("work_unit_id")) not in {READINESS_ACTION_TYPE, None}:
+        return False
+    source = _text(action.get("source")) or _text(action.get("source_surface"))
+    if source not in {
+        "stage_kernel_projection.current_owner_delta",
+        "current_executable_owner_action",
+    }:
+        return False
+    current = _mapping(study.get("current_executable_owner_action"))
+    if current:
+        current_allowed = {_text(item) for item in current.get("allowed_actions") or []}
+        current_allowed.discard(None)
+        return READINESS_ACTION_TYPE in current_allowed
+    return True
 
 
 def _stage_native_next_actions(

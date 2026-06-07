@@ -9,13 +9,6 @@ from typing import Any, Mapping
 import yaml
 
 from med_autoscience.controllers import workspace_entry_rendering as workspace_entry_rendering_controller
-from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
-    _render_behavior_equivalence_gate,
-    _render_mas_runtime_bridge_forward,
-    _render_mas_runtime_bridge_shared,
-    _render_mas_runtime_bridge_show_config,
-    _render_mas_runtime_bridge_stop_script,
-)
 from med_autoscience.controllers.workspace_init_parts.retired_entries import (
     retired_file_cleanup_reason,
     retired_workspace_service_paths,
@@ -377,44 +370,6 @@ def _write_runtime_configs(*, profile: WorkspaceProfile, profile_path: Path) -> 
     med_readme_path.write_text(
         workspace_entry_rendering_controller.render_medautoscience_readme(profile_relpath=profile_relpath),
         encoding="utf-8",
-    )
-    mas_config_path = workspace_root / "ops" / "mas" / "config.env"
-    mas_config_path.parent.mkdir(parents=True, exist_ok=True)
-    mas_config_path.write_text(
-        workspace_entry_rendering_controller.render_mas_runtime_bridge_config(),
-        encoding="utf-8",
-    )
-    mas_example_path = workspace_root / "ops" / "mas" / "config.env.example"
-    mas_example_path.write_text(
-        workspace_entry_rendering_controller.render_mas_runtime_bridge_config(),
-        encoding="utf-8",
-    )
-    mas_readme_path = workspace_root / "ops" / "mas" / "README.md"
-    mas_readme_path.write_text(
-        workspace_entry_rendering_controller.render_mas_runtime_bridge_readme(),
-        encoding="utf-8",
-    )
-    behavior_gate_path = workspace_root / "ops" / "mas" / "behavior_equivalence_gate.yaml"
-    behavior_gate_path.write_text(_render_behavior_equivalence_gate(), encoding="utf-8")
-    _write_executable(
-        workspace_root / "ops" / "mas" / "bin" / "_shared.sh",
-        _render_mas_runtime_bridge_shared(),
-    )
-    _write_executable(
-        workspace_root / "ops" / "mas" / "bin" / "doctor",
-        _render_mas_runtime_bridge_forward("doctor report"),
-    )
-    _write_executable(
-        workspace_root / "ops" / "mas" / "bin" / "show-config",
-        _render_mas_runtime_bridge_show_config(),
-    )
-    _write_executable(
-        workspace_root / "ops" / "mas" / "bin" / "status",
-        _render_mas_runtime_bridge_forward("workspace cockpit", command_suffix=" --format json"),
-    )
-    _write_executable(
-        workspace_root / "ops" / "mas" / "bin" / "stop",
-        _render_mas_runtime_bridge_stop_script(),
     )
     _cleanup_retired_workspace_scheduler_entries(workspace_root)
 

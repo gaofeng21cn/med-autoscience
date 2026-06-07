@@ -19,13 +19,8 @@ from med_autoscience.controllers.workspace_git_boundary import (
     workspace_git_plan,
 )
 from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
-    _render_behavior_equivalence_gate,
     _render_forward_script,
     _render_bootstrap_script,
-    _render_mas_runtime_bridge_forward,
-    _render_mas_runtime_bridge_shared,
-    _render_mas_runtime_bridge_show_config,
-    _render_mas_runtime_bridge_stop_script,
     _render_medautosci_shared,
     _render_profile_optional_forward_script,
     _render_materialize_domain_action_requests_script,
@@ -122,7 +117,6 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         workspace_root / "ops" / "medautoscience" / "bin",
         workspace_root / "ops" / "medautoscience" / "logs",
         workspace_root / "ops" / "medautoscience" / "profiles",
-        layout.bin_root,
         layout.runtime_root,
         layout.quests_root,
         layout.archives_root,
@@ -146,17 +140,17 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "1. 整理原始数据、变量定义、终点定义和参考资料。\n"
         f"2. 编辑 `{profile_relpath.as_posix()}`，补全 publication profile、citation style 与 workspace 路径信息。\n"
         "3. 编辑 `ops/medautoscience/config.env`，设置共享 `MedAutoScience` 仓库路径。\n"
-        "4. `ops/mas/config.env` 是 MAS domain refs bridge 配置面，默认不需要外部 MDS launcher。\n"
-        "5. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
-        "6. 通过 OPL stage 控制面提交或恢复正式研究流程；MAS workspace 只暴露 domain authority refs 与只读进度投影。\n\n"
-        "7. 如需查看 stage attempt、provider、terminal/log stream、retry/dead-letter 或 App/workbench drilldown，读取 OPL current_control_state；MAS 不生成私有 runtime console、workspace workbench 或 runtime read model。\n\n"
-        "8. 如需检查 MAS domain health，运行 `medautosci runtime domain-health-diagnostic --runtime-root <runtime_root>`；stage/runtime lifecycle 只读 OPL current_control_state refs-only handoff。\n\n"
-        "9. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
-        "10. 优先维护 `memory/portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
-        "11. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
+        "4. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
+        "5. 通过 OPL stage 控制面提交或恢复正式研究流程；MAS workspace 只暴露 domain authority refs 与只读进度投影。\n\n"
+        "6. 如需查看 stage attempt、provider、terminal/log stream、retry/dead-letter 或 App/workbench drilldown，读取 OPL current_control_state；MAS 不生成私有 runtime console、workspace workbench 或 runtime read model。\n\n"
+        "7. 如需检查 MAS domain health，运行 `medautosci runtime domain-health-diagnostic --runtime-root <runtime_root>`；stage/runtime lifecycle 只读 OPL current_control_state refs-only handoff。\n\n"
+        "8. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
+        "9. 优先维护 `memory/portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
+        "10. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
-        "- `runtime/` 保存运行态，`runtime/artifacts/` 保存 SQLite refs index 与维护 ledger，`ops/mas/` 只保留薄运维桥。\n"
+        "- `runtime/` 保存运行态，`runtime/artifacts/` 保存 SQLite refs index 与维护 ledger，`ops/medautoscience/` 是唯一 MAS workspace ops 入口。\n"
+        "- `ops/mas/progress/` 只保留 Progress Portal 静态只读投影，不提供运行控制入口。\n"
         "- 不要直接通过外部后端 UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
         "- 如果需要启动、查看或停止 runtime，必须走 OPL stage/runtime 控制面；MAS 不提供私有 scheduler、runner、attempt 或 runtime console 入口。\n"
     )
@@ -392,24 +386,8 @@ def _rendered_files(
             ),
         ),
         RenderedFile(
-            path=layout.config_env_path,
-            content=workspace_entry_rendering_controller.render_mas_runtime_bridge_config(),
-        ),
-        RenderedFile(
-            path=layout.config_env_example_path,
-            content=workspace_entry_rendering_controller.render_mas_runtime_bridge_config(),
-        ),
-        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "README.md",
             content=workspace_entry_rendering_controller.render_medautoscience_readme(profile_relpath=profile_relpath),
-        ),
-        RenderedFile(
-            path=layout.readme_path,
-            content=workspace_entry_rendering_controller.render_mas_runtime_bridge_readme(),
-        ),
-        RenderedFile(
-            path=layout.behavior_gate_path,
-            content=_render_behavior_equivalence_gate(),
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh",
@@ -534,31 +512,6 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "sync-delivery",
             content=_render_forward_script("study delivery-sync"),
-            executable=True,
-        ),
-        RenderedFile(
-            path=layout.bin_root / "_shared.sh",
-            content=_render_mas_runtime_bridge_shared(),
-            executable=True,
-        ),
-        RenderedFile(
-            path=layout.bin_root / "doctor",
-            content=_render_mas_runtime_bridge_forward("doctor report"),
-            executable=True,
-        ),
-        RenderedFile(
-            path=layout.bin_root / "show-config",
-            content=_render_mas_runtime_bridge_show_config(),
-            executable=True,
-        ),
-        RenderedFile(
-            path=layout.bin_root / "status",
-            content=_render_mas_runtime_bridge_forward("workspace cockpit", command_suffix=" --format json"),
-            executable=True,
-        ),
-        RenderedFile(
-            path=layout.bin_root / "stop",
-            content=_render_mas_runtime_bridge_stop_script(),
             executable=True,
         ),
     ]

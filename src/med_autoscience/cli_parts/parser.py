@@ -235,6 +235,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     workspace_target_state_cleanup_parser = subparsers.add_parser("workspace-target-state-cleanup")
     workspace_target_state_cleanup_parser.add_argument("--profile", required=True)
     workspace_target_state_cleanup_parser.add_argument("--no-rewrite-refs", action="store_true")
+    workspace_target_state_cleanup_parser.add_argument("--visual-clean", action="store_true")
     workspace_target_state_cleanup_mode = workspace_target_state_cleanup_parser.add_mutually_exclusive_group(required=True)
     workspace_target_state_cleanup_mode.add_argument("--dry-run", action="store_true")
     workspace_target_state_cleanup_mode.add_argument("--apply", action="store_true")

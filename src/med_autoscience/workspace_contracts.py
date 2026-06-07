@@ -229,6 +229,27 @@ def inspect_behavior_equivalence_gate(gate_path: Path) -> dict[str, object]:
     }
 
 
+def _retired_behavior_gate_contract(gate_path: Path) -> dict[str, object]:
+    if gate_path.exists():
+        payload = inspect_behavior_equivalence_gate(gate_path)
+    else:
+        payload = {
+            "path": str(gate_path),
+            "ready": True,
+            "checks": {"gate_file_exists": False},
+            "issues": [],
+            "schema_version": None,
+            "phase_25_ready": None,
+            "critical_overrides": [],
+        }
+    payload["surface_kind"] = "retired_behavior_equivalence_gate"
+    payload["retired"] = True
+    payload["read_only"] = True
+    payload["current_readiness_gate"] = False
+    payload["current_truth"] = False
+    return payload
+
+
 def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     layout = build_workspace_runtime_layout_for_profile(profile)
     runtime_root_expected = layout.quests_root
@@ -321,7 +342,11 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         },
     }
 
-    behavior_gate = inspect_behavior_equivalence_gate(layout.behavior_gate_path)
+    behavior_gate = (
+        _retired_behavior_gate_contract(layout.behavior_gate_path)
+        if profile.managed_runtime_home.expanduser().resolve() == profile.workspace_root.expanduser().resolve() / "runtime"
+        else inspect_behavior_equivalence_gate(layout.behavior_gate_path)
+    )
     external_runtime_contract = legacy_external_runtime_tombstone_contract()
     return {
         "runtime_contract": runtime_contract,

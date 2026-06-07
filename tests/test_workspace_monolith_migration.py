@@ -335,15 +335,8 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert migrated_runtime_handoff["historical_fixture_ref"]["old_quest_root"].endswith(
         "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
     )
-    mas_bin_root = workspace_root / "ops" / "mas" / "bin"
-    behavior_gate = workspace_root / "ops" / "mas" / "behavior_equivalence_gate.yaml"
-    assert mas_bin_root.is_dir()
-    assert (mas_bin_root / "_shared.sh").is_file()
-    assert (mas_bin_root / "status").is_file()
-    assert (mas_bin_root / "stop").is_file()
-    assert behavior_gate.read_text(encoding="utf-8") == (
-        "schema_version: v1\nphase_25_ready: true\ncritical_overrides: []\n"
-    )
+    assert not (workspace_root / "ops" / "mas" / "bin").exists()
+    assert not (workspace_root / "ops" / "mas" / "behavior_equivalence_gate.yaml").exists()
     med_readme_text = (workspace_root / "ops" / "medautoscience" / "README.md").read_text(encoding="utf-8")
     assert "install-watch-runtime-service" not in med_readme_text
     assert "watch-runtime-service-status" not in med_readme_text
@@ -364,6 +357,7 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert contracts["runtime_contract"]["ready"] is True
     assert contracts["launcher_contract"]["ready"] is True
     assert contracts["behavior_gate"]["ready"] is True
+    assert contracts["behavior_gate"]["current_readiness_gate"] is False
     assert contracts["overall_ready"] is True
 
     assert live_binding.read_text(encoding="utf-8") == live_binding_before

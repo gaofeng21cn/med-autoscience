@@ -12,7 +12,7 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_scan_projects_current_controller_ai_reviewer_route_over_runtime_recovery_blocker(
+def test_scan_projects_stage_readiness_followup_over_current_controller_ai_reviewer_route(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -137,22 +137,33 @@ def test_scan_projects_current_controller_ai_reviewer_route_over_runtime_recover
     )
 
     study = result["studies"][0]
-    assert [action["action_type"] for action in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert [action["action_type"] for action in study["action_queue"]] == [
+        "complete_medical_paper_readiness_surface"
+    ]
     action = study["action_queue"][0]
-    assert action["owner"] == "ai_reviewer"
-    assert action["reason"] == "domain_transition_ai_reviewer_re_eval"
-    assert action["next_work_unit"] == work_unit_id
-    assert action["executable_work_unit"] == work_unit_id
-    assert action["controller_work_unit_id"] == work_unit_id
-    assert action["controller_route"]["work_unit_fingerprint"] == work_unit_fingerprint
-    assert study["why_not_applied"] == "domain_transition_ai_reviewer_re_eval"
-    assert study["blocked_reason"] == "domain_transition_ai_reviewer_re_eval"
-    assert study["next_owner"] == "ai_reviewer"
-    assert study["owner_route"]["next_owner"] == "ai_reviewer"
-    assert study["owner_route"]["owner_reason"] == "domain_transition_ai_reviewer_re_eval"
-    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert action["owner"] == "MedAutoScience"
+    assert action["reason"] == "medical_paper_readiness_not_ready"
+    assert action["source_surface"] == "stage_kernel_projection.current_owner_delta"
+    assert action["source_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/"
+        "typed_blocker.json"
+    )
+    assert action["surface_key"] == "authoring_runtime_authorization"
+    assert action["work_unit_fingerprint"] == (
+        "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
+        "authoring_runtime_authorization::"
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    assert study["why_not_applied"] == "medical_paper_readiness_not_ready"
+    assert study["blocked_reason"] == "medical_paper_readiness_not_ready"
+    assert study["next_owner"] == "MedAutoScience"
+    assert study["owner_route"]["next_owner"] == "MedAutoScience"
+    assert study["owner_route"]["owner_reason"] == "medical_paper_readiness_not_ready"
+    assert study["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
     assert study["owner_route"]["owner_route_attempt_protocol"]["dispatchable"] is True
-    assert study.get("current_executable_owner_action") is None
+    assert study["current_executable_owner_action"]["allowed_actions"] == [
+        "complete_medical_paper_readiness_surface"
+    ]
 
 
 def test_current_controller_route_uses_archived_domain_transition_when_readiness_blocker_overwrites_latest(

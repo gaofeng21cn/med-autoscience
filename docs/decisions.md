@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-07：workspace target-state cleanup 收敛 `ops/mas` 私有桥接面
+
+- 决策：新 workspace / bootstrap / monolith migration 不再生成 `ops/mas/bin/*`、`ops/mas/config.env`、`ops/mas/README.md` 或 `ops/mas/behavior_equivalence_gate.yaml`。`ops/medautoscience/` 是唯一 MAS workspace ops 入口；`ops/mas/progress/` 只保留 Progress Portal 静态只读投影，不提供 runtime control、launcher config、doctor/status/stop wrapper 或 behavior gate。
+- 决策：`medautosci workspace-target-state-cleanup --visual-clean` 是受控 workspace 视觉/拓扑清理入口。它只归档已知 legacy study-local residue、旧 `ops/mas` bridge surface、legacy backup/log/cache 和 broken symlink；遇到未分类 study root 或 ops entry 必须 fail closed 到 blocker，不猜测删除。归档写入 workspace 内 `_archive/legacy_surfaces/<stamp>` 或 `archive/legacy_ops_surfaces/<stamp>`，并保留 manifest、target path map、legacy provenance map 和 locator-tail blockers。
+- 决策：`runtime_binding.yaml` 当前仍作为 active locator tail 保留，直到 runtime-binding control-surface migration 落地；`ops/mas/progress/` 仍是 Progress Portal display ref。除此之外，旧 `ops/mas` config、bin wrapper、behavior gate、README 和 live-console/control residue 都只能作为 archive/provenance 读取。
+- 理由：OPL/MAS 当前目标是 `Declarative Medical Research Pack + OPL hosted runtime + MAS minimal authority functions`。继续生成或保留 `ops/mas` 私有 runtime bridge 会让 operator 误以为 MAS 仍持有 launcher/runtime control，从而拖慢 owner handoff 和 cleanup 判断。
+- 影响：这是 platform repair / workspace topology hygiene，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、artifact body、memory body、`current_package` 或 owner receipt。它减少默认入口和目录噪音，但不声明 paper-line progress、publication-ready、domain-ready 或 production-ready。
+
 ## 2026-06-07：preferred line budget 是 advisory，strict 入口才可阻断
 
 - 决策：`scripts/line_budget.py` 默认只报告 preferred line budget advisory，不因 1000 行 preferred boundary、缺 reviewed baseline 或超过旧 baseline 而返回失败。需要把超线作为硬门时，必须显式使用 `scripts/line_budget.py --strict` 或 `MAS_LINE_BUDGET_STRICT=1`。
@@ -740,7 +748,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-26：generated workspace wrapper 模板变化必须由 bootstrap 自动升级既有 workspace
 
-- 决策：`init_workspace` / `workspace bootstrap` 生成的 `ops/medautoscience/bin/*` 与 `ops/mas/bin/*` 薄 wrapper 属于 MAS-owned generated workspace surface。只要现有文件带有 MAS 生成脚本特征、内容与当前模板不同，bootstrap 必须把它列入 `upgraded_files` 并重写为当前模板；不要求用户手工删除或使用 `force`。
+- 决策：`init_workspace` / `workspace bootstrap` 生成的 `ops/medautoscience/bin/*` 薄 wrapper 属于 MAS-owned generated workspace surface。只要现有文件带有 MAS 生成脚本特征、内容与当前模板不同，bootstrap 必须把它列入 `upgraded_files` 并重写为当前模板；不要求用户手工删除或使用 `force`。旧 `ops/mas/bin/*` 只按 2026-06-07 `workspace target-state cleanup` 决策读取为 retired bridge surface，不再作为 generated workspace wrapper 模板升级目标。
 - 决策：wrapper 内部需要兼容 macOS `/bin/bash` + `set -u`。对可能为空的数组参数，生成模板必须使用 nounset-safe 展开，保证 `progress-projection <study_id>`、`resolve-submission-targets`、`export-submission` 这类 no-extra-arg 调用不会在 shell 层失败。
 - 理由：DM002 workspace 暴露出 MAS main 已修正 wrapper 模板后，既有论文目录仍因 bootstrap 只 skip 已存在 generated wrapper 而保留旧脚本，导致新版 MAS/OPL 拓扑验证时 `progress-projection 002...` 仍失败在 `args[@]: unbound variable`。这属于 workspace generated surface 迁移缺口，不是论文 truth 或 OPL queue 问题。
 - 影响：该规则只升级 MAS-generated entry wrappers，不写 study truth、runtime-owned `.ds`、paper、submission package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。自定义非生成脚本不因内容不同被覆盖；需要覆盖仍走显式 `force` 或更具体迁移规则。

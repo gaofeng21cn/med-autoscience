@@ -8,6 +8,22 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.controllers.study_workspace_status_parts import TARGET_STATE_REFERENCE_DOC
+from med_autoscience.controllers.workspace_target_state_cleanup_parts.shared import (
+    add_symlink_target,
+    blocker_slug,
+    decision_counts,
+    dedupe,
+    logical_abs,
+    path_kind,
+    path_present,
+    relative_ref,
+)
+from med_autoscience.controllers.workspace_target_state_cleanup_parts.visual_clean import (
+    apply_ops_visual_cleanup_plan,
+    apply_study_visual_cleanup_plan,
+    ops_visual_cleanup_plan,
+    study_visual_cleanup_plan,
+)
 
 
 SURFACE_KIND = "workspace_target_state_cleanup"
@@ -205,6 +221,7 @@ def run_workspace_target_state_cleanup(
     profile_path: Path,
     apply: bool,
     rewrite_refs: bool = True,
+    visual_clean: bool = False,
 ) -> dict[str, Any]:
     resolved_profile_path = Path(profile_path).expanduser().resolve()
     profile = load_profile(resolved_profile_path)
@@ -223,9 +240,21 @@ def run_workspace_target_state_cleanup(
         archive_stamp=archive_stamp,
         path_ref_plan=path_ref_plan,
     )
+    study_visual_plan = study_visual_cleanup_plan(
+        workspace_root=workspace_root,
+        archive_stamp=archive_stamp,
+        enabled=visual_clean,
+    )
+    ops_visual_plan = ops_visual_cleanup_plan(
+        workspace_root=workspace_root,
+        archive_stamp=archive_stamp,
+        enabled=visual_clean,
+    )
 
     applied_path_ref_updates: list[dict[str, Any]] = []
     applied_root_actions: list[dict[str, Any]] = []
+    applied_study_visual_actions: list[dict[str, Any]] = []
+    applied_ops_visual_actions: list[dict[str, Any]] = []
     if apply:
         _ensure_target_roots(workspace_root)
         if rewrite_refs:
@@ -243,7 +272,20 @@ def run_workspace_target_state_cleanup(
                 archive_stamp=archive_stamp,
                 path_ref_plan=path_ref_plan,
             )
+            study_visual_plan = study_visual_cleanup_plan(
+                workspace_root=workspace_root,
+                archive_stamp=archive_stamp,
+                enabled=visual_clean,
+            )
+            ops_visual_plan = ops_visual_cleanup_plan(
+                workspace_root=workspace_root,
+                archive_stamp=archive_stamp,
+                enabled=visual_clean,
+            )
         applied_root_actions = _apply_root_plan(root_plan)
+        if visual_clean:
+            applied_study_visual_actions = apply_study_visual_cleanup_plan(study_visual_plan)
+            applied_ops_visual_actions = apply_ops_visual_cleanup_plan(ops_visual_plan)
 
     post_path_ref_plan = (
         _path_ref_plan(
@@ -265,6 +307,24 @@ def run_workspace_target_state_cleanup(
         if apply
         else root_plan
     )
+    post_study_visual_plan = (
+        study_visual_cleanup_plan(
+            workspace_root=workspace_root,
+            archive_stamp=archive_stamp,
+            enabled=visual_clean,
+        )
+        if apply
+        else study_visual_plan
+    )
+    post_ops_visual_plan = (
+        ops_visual_cleanup_plan(
+            workspace_root=workspace_root,
+            archive_stamp=archive_stamp,
+            enabled=visual_clean,
+        )
+        if apply
+        else ops_visual_plan
+    )
     manifest = _manifest(
         profile=profile,
         profile_path=resolved_profile_path,
@@ -273,8 +333,13 @@ def run_workspace_target_state_cleanup(
         archive_stamp=archive_stamp,
         path_ref_plan=post_path_ref_plan,
         root_plan=post_root_plan,
+        study_visual_plan=post_study_visual_plan,
+        ops_visual_plan=post_ops_visual_plan,
         applied_path_ref_updates=applied_path_ref_updates,
         applied_root_actions=applied_root_actions,
+        applied_study_visual_actions=applied_study_visual_actions,
+        applied_ops_visual_actions=applied_ops_visual_actions,
+        visual_clean=visual_clean,
     )
     if apply:
         _write_manifest(workspace_root=workspace_root, manifest=manifest, recorded_at=recorded_at)
@@ -291,7 +356,7 @@ def _path_ref_plan(
     candidates = _path_ref_candidates(workspace_root=workspace_root, profile_path=profile_path)
     file_updates: list[dict[str, Any]] = []
     for file_path in candidates:
-        relpath = _relative_ref(workspace_root, file_path)
+        relpath = relative_ref(workspace_root, file_path)
         text = _read_text_or_none(file_path)
         if text is None:
             continue
@@ -324,7 +389,7 @@ def _path_ref_plan(
             "excluded_provenance_filenames": sorted(PROVENANCE_REF_EXCLUDED_FILENAMES),
         },
         "candidate_file_count": len(candidates),
-        "candidate_files": [_relative_ref(workspace_root, path) for path in candidates],
+        "candidate_files": [relative_ref(workspace_root, path) for path in candidates],
         "replacement_rules": [
             {"rule_id": rule_id, "to": target}
             for rule_id, _, target in _path_ref_replacement_rules(archive_stamp=archive_stamp)
@@ -424,7 +489,7 @@ def _root_plan(
                 entry,
                 role="unclassified_root_entry",
                 decision="blocked_unclassified_root",
-                blocker_id=f"unclassified_root_entry_{_blocker_slug(name)}",
+                blocker_id=f"unclassified_root_entry_{blocker_slug(name)}",
             )
         )
     blockers = [
@@ -442,9 +507,9 @@ def _root_plan(
         "target_state_reference_doc": TARGET_STATE_REFERENCE_DOC,
         "archive_stamp": archive_stamp,
         "root_actions": actions,
-        "root_action_counts": _decision_counts(actions),
+        "root_action_counts": decision_counts(actions),
         "expected_root_entries_after_apply": root_entries_after_apply,
-        "blockers": _dedupe(blockers),
+        "blockers": dedupe(blockers),
     }
 
 
@@ -470,14 +535,14 @@ def _apply_root_plan(root_plan: dict[str, Any]) -> list[dict[str, Any]]:
             continue
         source = Path(str(action["absolute_path"]))
         target = Path(str(action["target_absolute_path"]))
-        if not source.exists():
+        if not path_present(source):
             applied.append({**dict(action), "applied": False, "skip_reason": "source_missing"})
             continue
         if decision == "move" and action.get("source_relative_path") == "artifacts":
             _migrate_root_artifacts(source=source, target=target)
             applied.append({**dict(action), "applied": True, "migration_kind": "root_artifacts_to_runtime_artifacts"})
             continue
-        if target.exists():
+        if path_present(target):
             if source.is_dir() and target.is_dir():
                 _merge_directory(source=source, target=target)
                 applied.append({**dict(action), "applied": True, "merge_target_existed": True})
@@ -493,7 +558,7 @@ def _apply_root_plan(root_plan: dict[str, Any]) -> list[dict[str, Any]]:
 def _merge_directory(*, source: Path, target: Path) -> None:
     for child in sorted(source.iterdir(), key=lambda item: item.name):
         destination = target / child.name
-        if destination.exists():
+        if path_present(destination):
             if child.is_dir() and destination.is_dir():
                 _merge_directory(source=child, target=destination)
                 continue
@@ -509,7 +574,7 @@ def _migrate_root_artifacts(*, source: Path, target: Path) -> None:
             _merge_directory(source=child, target=target)
             continue
         destination = target / child.name
-        if destination.exists():
+        if path_present(destination):
             if child.is_dir() and destination.is_dir():
                 _merge_directory(source=child, target=destination)
                 continue
@@ -527,11 +592,21 @@ def _manifest(
     archive_stamp: str,
     path_ref_plan: dict[str, Any],
     root_plan: dict[str, Any],
+    study_visual_plan: dict[str, Any],
+    ops_visual_plan: dict[str, Any],
     applied_path_ref_updates: list[dict[str, Any]],
     applied_root_actions: list[dict[str, Any]],
+    applied_study_visual_actions: list[dict[str, Any]],
+    applied_ops_visual_actions: list[dict[str, Any]],
+    visual_clean: bool,
 ) -> dict[str, Any]:
     workspace_root = profile.workspace_root.expanduser().resolve()
-    validation = _validation(path_ref_plan=path_ref_plan, root_plan=root_plan)
+    validation = _validation(
+        path_ref_plan=path_ref_plan,
+        root_plan=root_plan,
+        study_visual_plan=study_visual_plan,
+        ops_visual_plan=ops_visual_plan,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
@@ -542,6 +617,7 @@ def _manifest(
         "workspace_root": str(workspace_root),
         "target_state_reference_doc": TARGET_STATE_REFERENCE_DOC,
         "archive_stamp": archive_stamp,
+        "visual_clean_enabled": visual_clean,
         "authority_boundary": {
             "paper_body_mutation_allowed": False,
             "publication_eval_write_allowed": False,
@@ -563,21 +639,42 @@ def _manifest(
         "legacy_provenance_map": _legacy_provenance_map(
             root_plan=root_plan,
             applied_root_actions=applied_root_actions,
+            ops_visual_plan=ops_visual_plan,
+            applied_ops_visual_actions=applied_ops_visual_actions,
         ),
         "target_path_map": _target_path_map(
             root_plan=root_plan,
             applied_root_actions=applied_root_actions,
+            ops_visual_plan=ops_visual_plan,
+            applied_ops_visual_actions=applied_ops_visual_actions,
         ),
         "path_ref_migration": path_ref_plan,
         "root_cleanup": root_plan,
+        "study_visual_cleanup": study_visual_plan,
+        "ops_visual_cleanup": ops_visual_plan,
         "applied_path_ref_updates": applied_path_ref_updates,
         "applied_root_actions": applied_root_actions,
+        "applied_study_visual_actions": applied_study_visual_actions,
+        "applied_ops_visual_actions": applied_ops_visual_actions,
         "validation": validation,
     }
 
 
-def _validation(*, path_ref_plan: dict[str, Any], root_plan: dict[str, Any]) -> dict[str, Any]:
-    blockers = _dedupe([*path_ref_plan.get("blockers", []), *root_plan.get("blockers", [])])
+def _validation(
+    *,
+    path_ref_plan: dict[str, Any],
+    root_plan: dict[str, Any],
+    study_visual_plan: dict[str, Any],
+    ops_visual_plan: dict[str, Any],
+) -> dict[str, Any]:
+    blockers = dedupe(
+        [
+            *path_ref_plan.get("blockers", []),
+            *root_plan.get("blockers", []),
+            *study_visual_plan.get("blockers", []),
+            *ops_visual_plan.get("blockers", []),
+        ]
+    )
     non_terminal_blockers = [
         blocker
         for blocker in blockers
@@ -599,6 +696,19 @@ def _validation(*, path_ref_plan: dict[str, Any], root_plan: dict[str, Any]) -> 
             for action in root_plan.get("root_actions") or []
             if action.get("decision") == "blocked_active_caller"
         ],
+        "study_visual_clean_enabled": bool(study_visual_plan.get("enabled")),
+        "ops_visual_clean_enabled": bool(ops_visual_plan.get("enabled")),
+        "study_visual_locator_tails": [
+            {
+                "study_id": action.get("study_id"),
+                "source": action.get("source_relative_path"),
+                "role": action.get("role"),
+                "blocker_id": action.get("blocker_id"),
+            }
+            for action in study_visual_plan.get("study_actions") or []
+            if action.get("decision") == "keep_active_locator_tail"
+        ],
+        "legacy_ops_current_truth": False,
     }
 
 
@@ -614,13 +724,21 @@ def _legacy_provenance_map(
     *,
     root_plan: dict[str, Any],
     applied_root_actions: list[dict[str, Any]],
+    ops_visual_plan: dict[str, Any],
+    applied_ops_visual_actions: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     mapped = []
-    for action in [*applied_root_actions, *(root_plan.get("root_actions") or [])]:
+    all_actions = [
+        *applied_root_actions,
+        *(root_plan.get("root_actions") or []),
+        *applied_ops_visual_actions,
+        *(ops_visual_plan.get("ops_actions") or []),
+    ]
+    for action in all_actions:
         if action.get("decision") in {"archive", "blocked_active_caller", "blocked_until_path_refs_rewritten"}:
             mapped.append(
                 {
-                    "source": action.get("source_relative_path"),
+                    "source": action.get("workspace_relative_path") or action.get("source_relative_path"),
                     "role": action.get("role"),
                     "current_truth": False,
                     "decision": action.get("decision"),
@@ -635,13 +753,21 @@ def _target_path_map(
     *,
     root_plan: dict[str, Any],
     applied_root_actions: list[dict[str, Any]],
+    ops_visual_plan: dict[str, Any],
+    applied_ops_visual_actions: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     mapped = []
-    for action in [*applied_root_actions, *(root_plan.get("root_actions") or [])]:
+    all_actions = [
+        *applied_root_actions,
+        *(root_plan.get("root_actions") or []),
+        *applied_ops_visual_actions,
+        *(ops_visual_plan.get("ops_actions") or []),
+    ]
+    for action in all_actions:
         if action.get("target_relative_path"):
             mapped.append(
                 {
-                    "source": action.get("source_relative_path"),
+                    "source": action.get("workspace_relative_path") or action.get("source_relative_path"),
                     "target": action.get("target_relative_path"),
                     "decision": action.get("decision"),
                     "role": action.get("role"),
@@ -668,7 +794,7 @@ def _path_ref_blockers(*, file_updates: list[dict[str, Any]]) -> list[str]:
             blockers.append("legacy_root_venv_ref_remaining")
         if path:
             blockers.append("path_ref_migration_pending")
-    return _dedupe(blockers)
+    return dedupe(blockers)
 
 
 def _profile_ref_status(*, workspace_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
@@ -683,7 +809,7 @@ def _profile_root_ref(*, workspace_root: Path, path: Path) -> dict[str, Any]:
     resolved = path.expanduser().resolve()
     return {
         "absolute_path": str(resolved),
-        "workspace_relative_path": _relative_ref(workspace_root, resolved),
+        "workspace_relative_path": relative_ref(workspace_root, resolved),
         "exists": resolved.exists(),
     }
 
@@ -825,22 +951,23 @@ def _action(
     blocker_id: str | None = None,
     reason: str | None = None,
 ) -> dict[str, Any]:
-    source_abs = source.expanduser().resolve()
+    source_abs = logical_abs(source)
     workspace_root = source_abs.parent
     payload = {
         "source_relative_path": source.name,
         "absolute_path": str(source_abs),
-        "exists": source.exists(),
-        "kind": "directory" if source.is_dir() else "file",
+        "exists": path_present(source),
+        "kind": path_kind(source),
         "role": role,
         "decision": decision,
         "current_truth": decision == "keep_active_root",
         "applied": False,
     }
+    add_symlink_target(payload, source)
     if target is not None:
-        payload["target_relative_path"] = _relative_ref(workspace_root, target)
+        payload["target_relative_path"] = relative_ref(workspace_root, target)
         payload["target_absolute_path"] = str(target)
-        payload["target_exists"] = target.exists()
+        payload["target_exists"] = path_present(target)
     if blocker_id:
         payload["blocker_id"] = blocker_id
     if reason:
@@ -857,32 +984,6 @@ def _expected_root_entries(actions: list[dict[str, Any]]) -> list[str]:
     return sorted(entries)
 
 
-def _decision_counts(actions: list[dict[str, Any]]) -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for action in actions:
-        decision = str(action.get("decision") or "unknown")
-        counts[decision] = counts.get(decision, 0) + 1
-    return counts
-
-
-def _relative_ref(workspace_root: Path, path: Path) -> str:
-    try:
-        return path.resolve().relative_to(workspace_root.resolve()).as_posix()
-    except ValueError:
-        return str(path)
-
-
-def _dedupe(items: list[str]) -> list[str]:
-    result: list[str] = []
-    seen: set[str] = set()
-    for item in items:
-        if not item or item in seen:
-            continue
-        seen.add(item)
-        result.append(item)
-    return result
-
-
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -895,10 +996,5 @@ def _utc_now() -> str:
 def _stamp(recorded_at: str) -> str:
     text = recorded_at.replace("+00:00", "Z")
     return re.sub(r"[^0-9A-Za-z]+", "", text)
-
-
-def _blocker_slug(text: str) -> str:
-    return re.sub(r"[^0-9A-Za-z]+", "_", text).strip("_").lower() or "root"
-
 
 __all__ = ["run_workspace_target_state_cleanup"]

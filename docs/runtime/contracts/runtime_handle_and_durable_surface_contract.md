@@ -156,8 +156,8 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 
 前者不能被后者替代；后者也不能被误写成产品 runtime truth。
 
-当前仍未被 repo 单独清除的真实 blocker 是：
+当前仍未被 repo 单独清除的真实 legacy / external evidence tail 是：
 
 - explicit `hermes_agent` executor/proof evidence 或旧 Hermes hosted runtime provenance
-- `MedDeepScientist` controlled fork 与 `behavior_equivalence_gate`
+- `MedDeepScientist` controlled fork 与 retired behavior-equivalence provenance
 - external workspace / paper truth gap / human-required interaction

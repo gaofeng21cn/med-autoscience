@@ -73,7 +73,7 @@ OPL App / OPL Runtime Manager 可以消费 MAS 暴露的 refs：
 - attention, blocker, running/recent and artifact locator fields
 - workspace-local Portal deep link
 
-OPL App 的最优 UI 是 App-native Runtime Workbench，而不是复制 MAS Portal 的静态 HTML。family-level dashboard 负责跨 workspace 的进度条目、attention queue、running/recent items 和交付物入口；用户需要深看 MAS 医学研究线时，在 OPL App 内进入 MAS study workbench。`ops/mas/progress/index.html` 与 `ops/mas/live-console/index.html` 保留为 legacy_restore_import / evidence / operator debug 入口。
+OPL App 的最优 UI 是 App-native Runtime Workbench，而不是复制 MAS Portal 的静态 HTML。family-level dashboard 负责跨 workspace 的进度条目、attention queue、running/recent items 和交付物入口；用户需要深看 MAS 医学研究线时，在 OPL App 内进入 MAS study workbench。`ops/mas/progress/index.html` 保留为 Progress Portal 静态只读 evidence 入口；旧 `ops/mas/live-console/index.html` 只能作为 legacy_restore_import / history provenance 读取，不能作为新 workspace operator debug、runtime control 或 doctor/status/stop bridge。
 
 OPL App 的 MAS study workbench 应直接消费以下 MAS read model 或它们的稳定 projection：
 

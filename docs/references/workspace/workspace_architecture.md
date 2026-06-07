@@ -317,10 +317,12 @@ wrapper 不应继续硬编码：
 
 - `ops/medautoscience/config.env`
   - 显式指定外部共享 `MedAutoScience` repo
-- `ops/mas/config.env`
-  - 显式指定 MAS runtime / supervision 配置；旧 `ops/med-deepscientist/config.env` 只作为 legacy diagnostic / restore reference
+- `ops/medautoscience/bin/*`
+  - 唯一 MAS workspace ops 入口，承载 bootstrap、profile、diagnostic、storage maintenance、progress projection 和 domain authority refs helper
+- `ops/mas/progress/`
+  - Progress Portal 静态只读投影；`ops/mas` 不再承载 runtime launcher config、behavior gate、doctor/status/stop wrapper 或 supervision 控制面
 
-当前阶段 `med_deepscientist_repo_root` 仍作为 profile TOML 输入兼容字段存在，但 JSON / doctor-facing 输出只在 `source_provenance`、`historical_fixture_ref` 或 `explicit_archive_import_ref` 这类 read-only reference 下暴露它。它主要为 `backend-upgrade-check`、upstream intake、parity oracle 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，也不是默认 product entry 或 executor owner。当前 repo-side 的 profile runtime ref 是 `opl_runtime_ref=opl_hosted_stage_runtime`，对应 engine id 是 `opl-hosted-stage-runtime`；默认 generic runtime owner / topology 归 OPL provider-backed stage runtime，`mas_runtime_core` 只作为 retired provenance / delegated MAS domain adapter / diagnostic context；默认 scheduler owner 已迁到 OPL replacement，显式 local scheduler 只保留 tombstone/provenance refs，Hermes 只承担非默认 executor adapter、proof lane、diagnostic 或历史参考。MAS 默认 study/status/progress/cockpit 路径不依赖外部 `med-deepscientist` checkout。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这只说明 optional audit/oracle/intake reference 身份已受控，不说明旧 MDS resident daemon 行为已完全等价。新 workspace 必须在 `ops/mas/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact；旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`；这些字段只服务 audit-level 合约，不得把外部 MDS 恢复成默认运行依赖。
+当前阶段 `med_deepscientist_repo_root` 仍作为 profile TOML 输入兼容字段存在，但 JSON / doctor-facing 输出只在 `source_provenance`、`historical_fixture_ref` 或 `explicit_archive_import_ref` 这类 read-only reference 下暴露它。它主要为 `backend-upgrade-check`、upstream intake、parity oracle 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，也不是默认 product entry 或 executor owner。当前 repo-side 的 profile runtime ref 是 `opl_runtime_ref=opl_hosted_stage_runtime`，对应 engine id 是 `opl-hosted-stage-runtime`；默认 generic runtime owner / topology 归 OPL provider-backed stage runtime，`mas_runtime_core` 只作为 retired provenance / delegated MAS domain adapter / diagnostic context；默认 scheduler owner 已迁到 OPL replacement，显式 local scheduler 只保留 tombstone/provenance refs，Hermes 只承担非默认 executor adapter、proof lane、diagnostic 或历史参考。MAS 默认 study/status/progress/cockpit 路径不依赖外部 `med-deepscientist` checkout。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这只说明 optional audit/oracle/intake reference 身份已受控，不说明旧 MDS resident daemon 行为已完全等价。旧 `ops/mas/behavior_equivalence_gate.yaml` 已降为 retired behavior gate contract；新 workspace 不再生成该 artifact，`workspace_contracts` 对 MAS-first `runtime/` workspace 返回 read-only retired gate payload。旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference。行为等价审计若仍需读取旧 gate，只能服务 audit-level provenance，不得把外部 MDS 恢复成默认运行依赖。
 ## 当前实现下的最小可运行 workspace 契约
 
 这份文档描述的是目标架构，但在当前实现里，新 workspace 还不是“只靠 6 个路径字段就能直接启动”的完全抽象状态。
@@ -488,7 +490,7 @@ wrapper 不应继续做：
 
 这是后续迁移的审计基线。
 
-目前 Phase 1 只完成 state contract、launcher/runtime contract 与 behavior equivalence gate 的文档梳理与校验，真实执行仍可能是 workspace 内 legacy 的 `site-packages` overlay 或本地补丁。只有当 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 里的 `phase_25_ready` 显式变为 `true`，并且 `critical_overrides` 中提到的 site-packages 层补丁都被明确迁出或替换后，`backend-upgrade-check` 才会放行 Phase 2 及以后的外部执行迁移工作；在这之前不能宣称已经完成对外执行源的切换。
+这段历史 Phase 1 只留下 state contract、launcher/runtime contract 与 behavior-equivalence provenance 的迁移审计脉络；它不是当前新 workspace 的 active gate。当前新 workspace / bootstrap / monolith migration 不再生成 `ops/mas` 私有 runtime bridge 或 `ops/mas/behavior_equivalence_gate.yaml`。旧 workspace 若仍有 `ops/med-deepscientist/behavior_equivalence_gate.yaml`、`ops/mas/behavior_equivalence_gate.yaml`、site-packages overlay 或本地补丁，只能按 legacy diagnostic / archive provenance 读取，并通过 `workspace-target-state-cleanup --visual-clean` 或对应 migration lane 归档、阻断或迁出；不得作为 active MAS runtime readiness、doctor/status/stop bridge 或默认执行源放行条件。
 ### Phase 2: wrapper 全量 profile-driven
 
 先改 workspace 入口层，而不是先动 quest。
@@ -497,11 +499,11 @@ wrapper 不应继续做：
 
 - `ops/medautoscience/bin/*` 只从 profile 取 runtime 路径
 - 不再在 wrapper 或 workspace scaffold 中散落硬编码 `ops/med-deepscientist/runtime/quests`
-- 为未来新 workspace 直接复制 wrapper 打基础
+- 新 workspace 只保留 `ops/medautoscience/` 受控入口与 `ops/mas/progress/` 静态只读投影，不复制旧 `ops/mas` launcher/config/gate/doctor/status/stop bridge
 
 ### Phase 2.5: 行为等价门
 
-在进入 Phase 3 或 Phase 4 之前，必须先确认 legacy workspace 当前可工作的“行为性补丁”已经满足下面条件之一：
+在处理 legacy workspace 的旧外部化 / cleanup 尾项前，必须先确认 legacy workspace 当前可工作的“行为性补丁”已经满足下面条件之一：
 
 - 已经通过 `MedAutoScience` overlay、startup contract、workspace policy 或正式迁移面显式迁出
 - 或已经验证删除后不会改变当前项目的关键行为
@@ -512,9 +514,9 @@ wrapper 不应继续做：
 - 影响 write / finalize / publication gate 的程序级 patch
 - 影响当前 quest 自动推进逻辑的 runtime 层修改
 
-如果这个门没有通过，就不能先切到外部共享程序来源再回头补救；否则会先丢行为，再谈迁移。
+如果这个 legacy provenance 审计没有通过，就不能把旧 workspace 的外部共享程序来源切换写成已完成；否则会先丢行为，再谈迁移。它不恢复 `ops/mas` active behavior gate，也不阻断干净 MAS-first 新 workspace 的默认创建。
 
-`behavior_equivalence_gate.yaml` 是 workspace 的长期 artifact，新 workspace 必须放在 `ops/mas/`，旧 `ops/med-deepscientist/` 版本只作为 legacy diagnostic / restore reference。这个文件会验证 `schema_version`、`phase_25_ready`、`critical_overrides`，其中 `critical_overrides` 正是对可能仍在 `site-packages` 或 controller 目录执行的本地补丁的清单；只有这些补丁被显式迁走、`phase_25_ready` 变为 `true` 时，才认定行为等价门通过，否则就会产生 `behavior_gate.phase_25_ready_false` 之类的阻断信息，`backend-upgrade-check` 会把 `behavior_gate` 直接标记为阻塞，从而避免我们在还没确认等价的情况下把 legacy diagnostic backend repo root 当作真实执行源。Phase 1 的 `MEDICAL_FORK_MANIFEST.json` 只是 repo-level 受控身份 artifact；它不能替代这道门。这道门既是 Phase 1 审计的结果，也是 Phase 2.5 对 site-packages overlay 级别补丁的最终挡板。
+`behavior_equivalence_gate.yaml` 不再是新 workspace 的长期 active artifact。当前 MAS-first workspace 的默认 readiness gate 来自 `ops/medautoscience/`、runtime/domain authority refs、owner receipt、typed blocker 和 OPL current-control/provider refs；旧 `ops/mas/behavior_equivalence_gate.yaml` 只作为 retired read-only contract / archive provenance 读取。若旧 workspace 仍带该文件，`workspace-target-state-cleanup --visual-clean` 会把它归档到 legacy ops surfaces；若仍需审计 `schema_version`、`phase_25_ready`、`critical_overrides`，只能把结果解释为 legacy behavior-equivalence provenance，不得作为 active MAS runtime readiness、外部 MDS 恢复或默认执行源。
 ### Phase 3: MedDeepScientist 调用外部程序化
 
 这一阶段的核心不是迁走项目状态，而是迁走程序本体依赖。
@@ -527,7 +529,7 @@ wrapper 不应继续做：
 
 如果 Phase 1 已经切到受控的 `med-deepscientist` fork，那么这里的 legacy diagnostic controlled backend repo root 可以具体落到该 fork。
 
-进入本阶段前，必须已经通过 Phase 2.5 的行为等价门。
+进入本阶段前，必须已经完成 Phase 2.5 的 legacy behavior-equivalence provenance 审计。
 
 ### Phase 4: 重依赖外置
 
@@ -556,7 +558,7 @@ wrapper 不应继续做：
 - 直接修改 `site-packages` 来偷偷重定向路径
 - 让不同疾病 workspace 共用同一个 quest / memory / logs 真相面
 
-进入本阶段前，也必须已经通过 Phase 2.5 的行为等价门。
+进入本阶段前，也必须已经完成 Phase 2.5 的 legacy behavior-equivalence provenance 审计。
 
 ### Phase 5: 去 site-packages 魔改
 

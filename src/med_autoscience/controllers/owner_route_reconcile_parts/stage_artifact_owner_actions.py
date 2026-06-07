@@ -123,11 +123,11 @@ def action_queue_with_terminal_publication_handoff(
     quest_id: str | None,
     decorate_action: Callable[..., dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    if _has_current_controller_action(actions):
-        return actions
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
         return [decorate_action(study_id=study_id, quest_id=quest_id, action=followup)]
+    if _has_current_controller_action(actions):
+        return actions
     action = terminal_publication_handoff_action(progress)
     if action is None:
         return actions
@@ -140,11 +140,11 @@ def projection_fields(progress: Mapping[str, Any], actions: list[Mapping[str, An
     result: dict[str, Any] = {}
     if _text(stage_artifact_index.get("surface_kind")) == "stage_artifact_index":
         result["stage_artifact_index"] = stage_artifact_index
-    if _has_current_controller_action(actions or []):
-        return result
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
         result["current_executable_owner_action"] = _projection_action_from_followup(followup)
+        return result
+    if _has_current_controller_action(actions or []):
         return result
     if _text(current_action.get("surface_kind")) == "current_executable_owner_action":
         result["current_executable_owner_action"] = current_action

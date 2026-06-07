@@ -314,7 +314,6 @@ def test_init_workspace_upgrades_generated_guidance_and_removes_private_control_
     readme_path = workspace_root / "README.md"
     rules_path = workspace_root / "WORKSPACE_AUTOSCIENCE_RULES.md"
     ops_readme_path = workspace_root / "ops" / "medautoscience" / "README.md"
-    mas_readme_path = workspace_root / "ops" / "mas" / "README.md"
     bin_root = workspace_root / "ops" / "medautoscience" / "bin"
     supervisor_root = workspace_root / "ops" / "medautoscience" / "supervisor"
     legacy_wrappers = [
@@ -366,18 +365,6 @@ def test_init_workspace_upgrades_generated_guidance_and_removes_private_control_
         "`medautosci runtime ensure-supervision --profile <profile>`、"
         "`medautosci runtime supervision-status --profile <profile>` 与 "
         "`medautosci runtime remove-supervision --profile <profile>`。\n",
-        encoding="utf-8",
-    )
-    mas_readme_path.write_text(
-        "# MAS Runtime Bridge\n\n"
-        "这个目录保留当前 workspace 的 MAS-native 运维薄入口脚本。\n\n"
-        "它是 MAS-first runtime 运维面，不是研究入口。\n\n"
-        "请遵守下面的边界：\n\n"
-        "- 研究 quest 的创建、恢复、门禁判断统一走 `MedAutoScience`。\n"
-        "- 需要进入 study 时，使用 `ops/medautoscience/bin/enter-study`、"
-        "`ops/medautoscience/bin/bootstrap`、`ensure-study-runtime` 等受管入口。\n"
-        "- 如果需要查看或维护 runtime，本目录下脚本只调用 MAS CLI / read-model / controlled pause surface，"
-        "不调用外部 MDS launcher、daemon 或 WebUI。\n",
         encoding="utf-8",
     )
     for path in legacy_wrappers:
@@ -451,14 +438,13 @@ def test_init_workspace_upgrades_generated_guidance_and_removes_private_control_
     for path in legacy_wrappers:
         assert str(path) in result["removed_files"]
         assert not path.exists()
-    for path in (agents_path, readme_path, rules_path, ops_readme_path, mas_readme_path):
+    for path in (agents_path, readme_path, rules_path, ops_readme_path):
         assert str(path) in result["upgraded_files"]
     agents_text = agents_path.read_text(encoding="utf-8")
     readme_text = readme_path.read_text(encoding="utf-8")
     rules_text = rules_path.read_text(encoding="utf-8")
     ops_readme_text = ops_readme_path.read_text(encoding="utf-8")
-    mas_readme_text = mas_readme_path.read_text(encoding="utf-8")
-    for text in (agents_text, readme_text, rules_text, ops_readme_text, mas_readme_text):
+    for text in (agents_text, readme_text, rules_text, ops_readme_text):
         assert "watch-runtime" not in text
         assert "study-runtime-status" not in text
         assert "ensure-study-runtime" not in text
@@ -474,7 +460,3 @@ def test_init_workspace_upgrades_generated_guidance_and_removes_private_control_
     assert "MAS 不提供私有 scheduler、runner、attempt 或 runtime console 入口" in readme_text
     assert "默认 cadence / wakeup / provider SLO 由 OPL provider/runtime manager 承载" in rules_text
     assert "OPL current_control_state refs-only handoff" in ops_readme_text
-    assert "MAS domain refs 运维薄入口脚本" in mas_readme_text
-    assert "OPL current-control-state" in mas_readme_text
-    assert "只调用 MAS domain refs / diagnostic surface" in mas_readme_text
-    assert "MAS-first runtime 运维面" not in mas_readme_text

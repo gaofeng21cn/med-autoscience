@@ -656,6 +656,7 @@ def main(argv: list[str] | None = None) -> int:
             profile_path=Path(args.profile),
             apply=bool(args.apply),
             rewrite_refs=not bool(args.no_rewrite_refs),
+            visual_clean=bool(args.visual_clean),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
