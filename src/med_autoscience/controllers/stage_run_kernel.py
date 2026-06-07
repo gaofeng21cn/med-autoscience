@@ -5,6 +5,13 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.opl_artifact_operating_contract import (
+    CONSUMABILITY_REQUIRED_CHECKS,
+    consumability_authority_boundary,
+    consumability_failed_checks,
+    consumability_insufficient_authority_refs,
+    consumability_next_owner_delta,
+)
 from med_autoscience.controllers.mas_stage_semantic_receipts import (
     validate_mas_stage_semantic_receipt,
 )
@@ -43,6 +50,14 @@ def stage_run_kernel_projection_from_stage_folder(
     )
     if status is None:
         status = _non_terminal_status(manifest)
+    artifact_consumability_gate = _artifact_consumability_gate(
+        manifest=manifest,
+        manifest_path=manifest_path,
+        stage_id=stage_id,
+        attempt_id=attempt_id,
+        owner_receipt=owner_receipt,
+        typed_blocker=typed_blocker,
+    )
     current_owner_delta = _current_owner_delta(
         status=status,
         stage_id=stage_id,
@@ -74,14 +89,18 @@ def stage_run_kernel_projection_from_stage_folder(
             owner_receipt=owner_receipt,
             typed_blocker=typed_blocker,
         ),
+        "artifact_consumability_gate": artifact_consumability_gate,
         "evidence_projection": _evidence_projection(manifest=manifest, source_payload=source_payload),
         "state_invariants": {
             "owner_receipt_or_typed_blocker_required": True,
+            "artifact_consumability_gate_required": True,
             "file_presence_counts_as_completion": False,
+            "manifest_hash_counts_as_consumable": False,
             "provider_completed_counts_as_completion": False,
             "latest_json_counts_as_completion": False,
             "latest_json_counts_as_transition_authority": False,
             "read_model_counts_as_transition_authority": False,
+            "read_model_counts_as_consumable": False,
             "manifest_backed_receipt_or_blocker_required": True,
         },
         "authority": {
@@ -91,6 +110,62 @@ def stage_run_kernel_projection_from_stage_folder(
             "claims_publication_ready": False,
             "can_authorize_quality_verdict": False,
         },
+        "body_included": False,
+    }
+
+
+def _artifact_consumability_gate(
+    *,
+    manifest: Mapping[str, Any],
+    manifest_path: Path,
+    stage_id: str,
+    attempt_id: str | None,
+    owner_receipt: Mapping[str, Any] | None,
+    typed_blocker: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    checks = {
+        "role": bool(
+            _text_list(manifest.get("required_outputs"))
+            or _text_list(manifest.get("artifact_refs"))
+            or _mapping_items(manifest.get("required_role_artifacts"))
+        ),
+        "hash": bool(_mapping_items(manifest.get("output_hashes"))),
+        "source": bool(_text_list(manifest.get("present_outputs"))),
+        "current_truth": _text(manifest.get("current_pointer_state")) == "current_pointer_promoted",
+        "receipt_authority": owner_receipt is not None or typed_blocker is not None,
+        "lineage": bool(
+            _text_list(manifest.get("lineage_refs"))
+            or _text(manifest.get("lineage_ref"))
+            or _text(manifest.get("prov_ref"))
+        ),
+        "retention_restore": bool(
+            _text_list(manifest.get("retention_refs"))
+            or _text_list(manifest.get("restore_refs"))
+            or _text(manifest.get("retention_ref"))
+            or _text(manifest.get("restore_ref"))
+        ),
+        "domain_validation": bool(
+            owner_receipt is not None
+            or typed_blocker is not None
+            or _text_list(manifest.get("domain_decision_receipt_refs"))
+        ),
+    }
+    failed_checks = consumability_failed_checks(checks)
+    return {
+        "surface_kind": "stage_artifact_consumability_projection",
+        "required_checks": list(CONSUMABILITY_REQUIRED_CHECKS),
+        "status": "passed" if not failed_checks else "blocked",
+        "fail_closed": bool(failed_checks),
+        "checks": checks,
+        "failed_checks": failed_checks,
+        "next_owner_delta": consumability_next_owner_delta(
+            stage_id=stage_id,
+            attempt_id=attempt_id,
+            failed_checks=failed_checks,
+            source_ref=str(manifest_path),
+        ),
+        "insufficient_authority_refs": consumability_insufficient_authority_refs(),
+        "authority_boundary": consumability_authority_boundary(),
         "body_included": False,
     }
 
@@ -310,6 +385,12 @@ def _read_json_object(path: Path | None) -> dict[str, Any]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _mapping_items(value: object) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list | tuple):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
 
 
 def _text_list(value: object) -> list[str]:

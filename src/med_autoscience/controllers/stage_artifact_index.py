@@ -5,8 +5,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers.opl_artifact_operating_contract import (
+    CONSUMABILITY_REQUIRED_CHECKS,
     CONTRACT_REF as OPL_ARTIFACT_OPERATING_CONTRACT_REF,
+    consumability_authority_boundary,
+    consumability_failed_checks,
     consumability_gate_projection,
+    consumability_insufficient_authority_refs,
+    consumability_next_owner_delta,
     current_pointer_contract_projection,
     load_opl_artifact_operating_contract,
     operating_contract_projection,
@@ -229,6 +234,9 @@ def _build_stage_artifact_state(
         "physical_stage_folder_kernel": dict(physical_stage_kernel),
         "current_pointer": current_pointer,
         "consumability_gate": _stage_consumability_gate(
+            stage_id=stage_id,
+            attempt_id=_text(artifact_classification.get("latest_attempt_id")),
+            source_ref=str(manifest_requirements["ref"]),
             consumability_gate=consumability_gate,
             current_pointer=current_pointer,
         ),
@@ -868,19 +876,47 @@ def _current_pointer_promotion_state(
 
 def _stage_consumability_gate(
     *,
+    stage_id: str,
+    attempt_id: str | None,
+    source_ref: str,
     consumability_gate: Mapping[str, Any],
     current_pointer: Mapping[str, Any],
 ) -> dict[str, Any]:
-    status = (
-        "ready_for_consumability_validation"
-        if current_pointer["promotion_state"] == "current_pointer_promoted"
-        else "blocked"
-    )
+    checks = _stage_consumability_gate_checks(current_pointer=current_pointer)
+    failed_checks = consumability_failed_checks(checks)
+    status = "ready_for_consumability_validation" if not failed_checks else "blocked"
     return {
         **dict(consumability_gate),
+        "surface_kind": "stage_artifact_consumability_gate",
+        "required_checks": list(CONSUMABILITY_REQUIRED_CHECKS),
         "status": status,
+        "fail_closed": bool(failed_checks),
+        "checks": checks,
+        "failed_checks": failed_checks,
+        "next_owner_delta": consumability_next_owner_delta(
+            stage_id=stage_id,
+            attempt_id=attempt_id,
+            failed_checks=failed_checks,
+            source_ref=source_ref,
+        ),
+        "insufficient_authority_refs": consumability_insufficient_authority_refs(),
+        "authority_boundary": consumability_authority_boundary(),
         "blocked_reason": None if status != "blocked" else current_pointer["promotion_state"],
         "current_pointer_promotion_state": current_pointer["promotion_state"],
+    }
+
+
+def _stage_consumability_gate_checks(*, current_pointer: Mapping[str, Any]) -> dict[str, bool]:
+    current_pointer_promoted = current_pointer["promotion_state"] == "current_pointer_promoted"
+    return {
+        "role": current_pointer_promoted,
+        "hash": current_pointer_promoted,
+        "source": current_pointer_promoted,
+        "current_truth": current_pointer_promoted,
+        "receipt_authority": current_pointer_promoted,
+        "lineage": current_pointer_promoted,
+        "retention_restore": current_pointer_promoted,
+        "domain_validation": current_pointer_promoted,
     }
 
 

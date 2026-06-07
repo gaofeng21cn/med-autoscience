@@ -5,6 +5,14 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers.opl_artifact_operating_contract import (
+    CONSUMABILITY_REQUIRED_CHECKS,
+    consumability_authority_boundary,
+    consumability_failed_checks,
+    consumability_insufficient_authority_refs,
+    consumability_next_owner_delta,
+)
+
 STAGE_ARTIFACT_RUNTIME_CONTRACT_REF = "contracts/opl-framework/stage-artifact-runtime-contract.json"
 
 
@@ -185,6 +193,9 @@ def _stage_projection(
         manifest_hash_refs=manifest_hash_refs,
     )
     consumability = _consumability_projection(
+        stage_id=stage_id,
+        attempt_id=latest_attempt_id,
+        manifest_ref=manifest_ref,
         required_outputs=required_outputs,
         present_outputs=present_outputs,
         manifest_hash_refs=manifest_hash_refs,
@@ -333,6 +344,9 @@ def _semantic_validation_projection(
 
 def _consumability_projection(
     *,
+    stage_id: str,
+    attempt_id: str,
+    manifest_ref: Path,
     required_outputs: list[str],
     present_outputs: list[str],
     manifest_hash_refs: list[dict[str, str]],
@@ -352,12 +366,22 @@ def _consumability_projection(
         "retention_restore": retention.get("status") == "covered",
         "domain_validation": semantic_validation.get("status") == "accepted",
     }
-    failed = [name for name, passed in checks.items() if not passed]
+    failed = consumability_failed_checks(checks)
     return {
         "surface_kind": "stage_artifact_consumability_projection",
+        "required_checks": list(CONSUMABILITY_REQUIRED_CHECKS),
         "status": "passed" if not failed else "blocked",
+        "fail_closed": bool(failed),
         "checks": checks,
         "failed_checks": failed,
+        "next_owner_delta": consumability_next_owner_delta(
+            stage_id=stage_id,
+            attempt_id=attempt_id,
+            failed_checks=failed,
+            source_ref=str(manifest_ref),
+        ),
+        "insufficient_authority_refs": consumability_insufficient_authority_refs(),
+        "authority_boundary": consumability_authority_boundary(),
         "body_included": False,
     }
 

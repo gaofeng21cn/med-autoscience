@@ -76,6 +76,7 @@ def stage_kernel_projection_from_artifact_index(
         "accepted_receipts": _text_list(artifact_classification.get("owner_receipt_refs")),
         "semantic_validation": semantic_validation,
         "consumability": consumability,
+        "artifact_consumability_gate": consumability,
         "lineage": _mapping_copy(artifact_classification.get("lineage")),
         "retention": _mapping_copy(artifact_classification.get("retention")),
         "current_pointer": current_pointer,
