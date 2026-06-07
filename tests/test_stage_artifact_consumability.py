@@ -155,6 +155,17 @@ def test_stage_artifact_index_stage_gate_declares_required_checks_and_non_author
     assert gate["surface_kind"] == "stage_artifact_consumability_gate"
     assert gate["required_checks"] == REQUIRED_CHECKS
     assert gate["status"] == "ready_for_consumability_validation"
+    assert gate["checks"]["retention_restore"]["required_before_cleanup"] is True
+    assert gate["observed_checks"] == {
+        "role": True,
+        "hash": True,
+        "source": True,
+        "current_truth": True,
+        "receipt_authority": True,
+        "lineage": True,
+        "retention_restore": True,
+        "domain_validation": True,
+    }
     assert gate["failed_checks"] == []
     assert gate["next_owner_delta"] is None
     assert gate["insufficient_authority_refs"] == [

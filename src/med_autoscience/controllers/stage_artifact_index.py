@@ -987,7 +987,7 @@ def _stage_consumability_gate(
         "required_checks": list(CONSUMABILITY_REQUIRED_CHECKS),
         "status": status,
         "fail_closed": bool(failed_checks),
-        "checks": checks,
+        "observed_checks": checks,
         "failed_checks": failed_checks,
         "next_owner_delta": consumability_next_owner_delta(
             stage_id=stage_id,
