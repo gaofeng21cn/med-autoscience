@@ -31,6 +31,7 @@ def execute_owner_dispatch_action(
         "artifact_display_surface_materialization_required": action_execution.execute_artifact_display_materialization,
         "return_to_ai_reviewer_workflow": execute_ai_reviewer_workflow,
         "canonical_paper_inputs_rehydrate_required": action_execution.execute_canonical_paper_inputs_rehydrate,
+        "paper_clean_room_rebuild_required": action_execution.execute_paper_clean_room_rebuild,
     }
     if action_type == "unit_harmonized_external_validation_rerun":
         return action_execution.execute_unit_harmonized_external_validation_rerun(

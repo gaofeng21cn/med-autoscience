@@ -5,6 +5,22 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-07：dispatchable owner route 不得停在无 human gate 的 idle/parked 状态
+
+- 决策：Owner-Route Attempt Protocol 必须暴露 `route_to_attempt_contract`。任何 `dispatchable=true` 的 owner route 在当前执行读面上都必须落成三类之一：`running_provider_attempt`、`executable_owner_action` 或 `typed_blocker`。`parked_without_human_gate`、`quest_marked_running_but_no_live_session`、`stale_handoff_only` 和 `downstream_bundle_only_idle` 不是可接受终态。
+- 决策：`current_execution_envelope` 只有在 parked payload 明确携带 `explicit_resume_pending`、`awaiting_explicit_wakeup=true` 或 `canonical_runtime_action=await_explicit_resume` 时，才允许 parked/human resume gate 压过 executable owner action。旧 waiting-user-decision、stale parked projection、read-model residue 或下游 bundle idle 不得遮蔽当前可执行 route。
+- 决策：缺 running proof 时，系统必须显式给出 executable owner action 或 typed blocker；不得把 `active_run_id`、dispatch file、refs-only ledger、stage cockpit、consumer/latest 或 stale parked status 写成 paper-line 正在推进。
+- 理由：DM002 / DM003 暴露出 owner route 已经给出 write/review/finalize 或 MAS owner action 后，旧 parked/read-model/currentness residue 仍能让 operator 看到 idle，导致几十小时消耗在 status/reconcile 而不是实际 owner attempt。
+- 影响：这是 runtime/currentness contract 修复，不写 DM-CVD study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package 或 `current_package`。后续 paper progress 仍以 owner receipt、artifact/paper delta、AI reviewer/gate delta、human gate、route-back 或 stable typed blocker 为准。
+
+## 2026-06-07：paper clean-room rebuild 是 MAS owner action，不是投稿包 promotion
+
+- 决策：`paper_clean_room_rebuild_required` 注册为 MAS owner reason、routed action、default-executor supported action、domain-owner dispatch executor 和 CLI command。稳定入口是 `paper-clean-room-rebuild --profile <profile> --studies <study_id>... --dry-run|--apply`，public grouped alias 是 `medautosci runtime paper-clean-room-rebuild` 与 `medautosci publication clean-room-rebuild`。
+- 决策：clean-room rebuild 只生成 `artifacts/supervision/paper_clean_room_rebuild/latest.json`、history record 和 `artifacts/stage_outputs/_paper_clean_room_rebuild/workspaces/<timestamp>/verified_inputs/`。required current refs 是 `study.yaml`、`paper/draft.md`、`paper/evidence_ledger.json`、`paper/review/review_ledger.json`；optional refs 可包括 claim map、figure/table catalog、publication eval latest、controller decision latest、paper authority cutover 和 publishability gate latest。
+- 决策：该 action 的 authority boundary 固定为：不写 paper body、不写 `publication_eval/latest.json`、不写 `controller_decisions/latest.json`、不写 `current_package`、不重建 submission package、不 promotion 到 current authority、不导入 `.ds` / legacy runtime / legacy logs / legacy control surface。后续必须由 clean workspace 上的 write/review/finalize owner、AI reviewer、publication gate 或 typed blocker 继续推进。
+- 理由：当论文目录和 runtime residue 太脏时，从 verified current refs 新建干净论文工作目录比继续在旧 `.ds`、dispatch ledger、stale read-model 和重复 receipt 上做局部 reconcile 更有效；但它必须是 MAS owner-controlled descriptor contract，不能变成手工复制论文或绕过 publication gate。
+- 影响：这是平台级 clean workspace 重建入口。它不声明 DM002 / DM003 paper closure、publication-ready、submission-ready、AI reviewer pass、publication gate pass、current package freshness 或投稿包完成。
+
 ## 2026-06-06：medical paper readiness owner dispatch 必须返回显式 owner-delta result
 
 - 决策：`complete_medical_paper_readiness_surface` 是当前 `MedAutoScience` owner callable。`domain-action-request-materialize` 和 supervisor request packet 可以从 dispatch / owner request / existing literature intelligence / provider adapters 补齐 MAS-authored operator payload；`domain-owner-action-dispatch` 执行该 callable 后，顶层 execution payload 必须返回 `owner_delta_result`，其 `result_kind` 只能落在 `owner_receipt`、`quality_gate_receipt`、`quality_gate_receipt_with_stable_typed_blocker`、`stable_typed_blocker` 或 `missing_owner_delta_result`。

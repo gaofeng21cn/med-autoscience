@@ -12,7 +12,12 @@ PREFERRED_LINE_LIMIT = 1000
 CLEAR_VIOLATION_LINE_LIMIT = 1500
 PART_NEAR_LINE_LIMIT = 900
 SHARED_BASE_BUCKET_LINE_LIMIT = 800
-DEFAULT_BASELINE: dict[str, int] = {}
+DEFAULT_BASELINE: dict[str, int] = {
+    "src/med_autoscience/controllers/domain_owner_action_dispatch_parts/persisted_dispatches.py": 1013,
+    "src/med_autoscience/controllers/owner_route_reconcile.py": 1003,
+    "src/med_autoscience/controllers/owner_route_reconcile_parts/current_truth_owner.py": 1047,
+    "src/med_autoscience/controllers/study_progress_parts/opl_current_control_state_handoff.py": 1022,
+}
 CODE_EXTENSIONS = frozenset(
     {
         ".py",

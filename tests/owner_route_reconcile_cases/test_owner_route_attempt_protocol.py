@@ -92,6 +92,58 @@ def test_owner_route_registers_dm002_clean_migration_publication_gate_replay() -
         "artifacts/controller/gate_clearing_batch/latest.json"
     )
     assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
+    assert decorated["owner_route_attempt_protocol"]["route_to_attempt_contract"] == {
+        "surface_kind": "mas_route_to_attempt_contract",
+        "version": "mas-route-to-attempt-contract.v1",
+        "when_dispatchable": "materialize_running_provider_attempt_or_executable_owner_action_or_typed_blocker",
+        "allowed_current_execution_state_kinds": [
+            "running_provider_attempt",
+            "executable_owner_action",
+            "typed_blocker",
+        ],
+        "forbidden_idle_states": [
+            "parked_without_human_gate",
+            "quest_marked_running_but_no_live_session",
+            "stale_handoff_only",
+            "downstream_bundle_only_idle",
+        ],
+        "human_gate_exception_requires_typed_blocker": True,
+    }
+
+
+def test_owner_route_registers_paper_clean_room_rebuild_action() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    decorated = protocol.decorate_owner_route(
+        {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "truth_epoch": "truth-epoch::dm003::clean-room",
+            "runtime_health_epoch": "runtime-health::dm003::clean-room",
+            "source_fingerprint": "truth-source::dm003::clean-room",
+            "work_unit_fingerprint": "paper-clean-room::dm003::current",
+            "next_owner": "MedAutoScience",
+            "owner_reason": "paper_clean_room_rebuild_required",
+            "failure_signature": "paper_clean_room_rebuild_required",
+            "allowed_actions": ["paper_clean_room_rebuild_required"],
+            "idempotency_key": "owner-route::dm003::paper-clean-room",
+            "source_refs": {
+                "work_unit_id": "paper_clean_room_rebuild",
+                "work_unit_fingerprint": "paper-clean-room::dm003::current",
+                "runtime_health_epoch": "runtime-health::dm003::clean-room",
+            },
+        }
+    )
+
+    assert decorated["owner_reason_contract"]["registered"] is True
+    assert decorated["owner_reason_contract"]["owner"] == "MedAutoScience"
+    assert decorated["owner_reason_contract"]["allowed_actions"] == ["paper_clean_room_rebuild_required"]
+    assert decorated["owner_reason_contract"]["required_output"] == (
+        "artifacts/supervision/paper_clean_room_rebuild/latest.json"
+    )
+    assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
 
 
 def test_owner_route_executable_identity_ignores_projection_counter_churn() -> None:

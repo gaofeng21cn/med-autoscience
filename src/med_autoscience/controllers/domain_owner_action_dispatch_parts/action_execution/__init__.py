@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Mapping
 from pathlib import Path
@@ -7,7 +8,7 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
-from med_autoscience.controllers import gate_clearing_batch, publication_gate
+from med_autoscience.controllers import gate_clearing_batch, paper_clean_room_rebuild, publication_gate
 
 from ... import (
     analysis_harmonization_owner,
@@ -119,6 +120,30 @@ def execute_complete_medical_paper_readiness_surface(
         apply=apply,
         dispatch=dispatch,
     )
+
+
+def execute_paper_clean_room_rebuild(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    owner_result = paper_clean_room_rebuild.materialize_paper_clean_room_rebuild(
+        profile=profile,
+        study_id=study_id,
+        apply=apply,
+    )
+    missing_required_refs = owner_result.get("missing_required_refs") or []
+    blocked_reason = "paper_clean_room_required_refs_missing" if missing_required_refs else None
+    return {
+        "execution_status": "blocked" if apply and blocked_reason else ("executed" if apply else "dry_run"),
+        "blocked_reason": blocked_reason,
+        "owner_callable_surface": "paper_clean_room_rebuild.materialize_paper_clean_room_rebuild",
+        "owner_result": owner_result,
+        "descriptor_path": owner_result.get("descriptor_path"),
+        "clean_workspace_root": owner_result.get("clean_workspace_root"),
+    }
 
 
 def execute_artifact_display_materialization(
@@ -342,6 +367,7 @@ __all__ = [
     "execute_current_package_freshness",
     "execute_gate_clearing_batch",
     "execute_methodology_reframe_route_decision",
+    "execute_paper_clean_room_rebuild",
     "execute_publication_gate_specificity",
     "execute_provenance_limited_harmonization_audit",
     "execute_recover_transport_model_provenance",
