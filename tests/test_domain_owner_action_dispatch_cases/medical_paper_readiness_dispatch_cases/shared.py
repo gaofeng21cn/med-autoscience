@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.stage_artifact_materializer import materialize_stage_artifact_delta
+
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     write_json as _write_json,
@@ -15,6 +17,7 @@ from tests.test_literature_provider_runtime import _complete_provider_payload
 
 
 ACTION_TYPE = "complete_medical_paper_readiness_surface"
+TERMINAL_HANDOFF_STAGE_ID = "08-publication_package_handoff"
 
 
 def _readiness_dispatch(*, study_id: str) -> dict[str, object]:
@@ -92,6 +95,16 @@ def _write_readiness_dispatch(study_root: Path, profile, dispatch: dict[str, obj
         / f"{ACTION_TYPE}.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)
+
+
+def _materialize_publication_handoff_stage(study_root: Path, profile, study_id: str) -> None:
+    materialize_stage_artifact_delta(
+        study_id=study_id,
+        study_root=study_root,
+        workspace_root=profile.workspace_root,
+        stage_ids=(TERMINAL_HANDOFF_STAGE_ID,),
+        apply=True,
+    )
 
 
 def _drop_opl_execution_authorization(dispatch: dict[str, object]) -> None:

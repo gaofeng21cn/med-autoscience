@@ -13,6 +13,8 @@ from med_autoscience.controllers import medical_paper_readiness_payload_authorin
 from med_autoscience.controllers.domain_owner_action_dispatch_parts import owner_request_paths
 from med_autoscience.profiles import WorkspaceProfile
 
+from . import medical_paper_readiness_stage_closeout
+
 
 ACTION_TYPE = "complete_medical_paper_readiness_surface"
 CALLABLE_SURFACE = "medical_paper_readiness.complete_medical_paper_readiness_surface"
@@ -113,16 +115,25 @@ def execute_complete_medical_paper_readiness_surface(
                 writes_owner_blocker=bool(apply),
             ),
         }
-        return _blocked(
+        owner_delta_result = _owner_delta_result(
+            study_id=study_id,
+            study_root=study_root,
+            owner_result=owner_result,
+            closeout_binding=closeout_binding,
+        )
+        return _with_stage_native_closeout(
+            _blocked(
+                reason="medical_paper_readiness_surface_input_required",
+                study_root=study_root,
+                owner_result=owner_result,
+                owner_delta_result=owner_delta_result,
+            ),
             reason="medical_paper_readiness_surface_input_required",
             study_root=study_root,
             owner_result=owner_result,
-            owner_delta_result=_owner_delta_result(
-                study_id=study_id,
-                study_root=study_root,
-                owner_result=owner_result,
-                closeout_binding=closeout_binding,
-            ),
+            owner_delta_result=owner_delta_result,
+            closeout_binding=closeout_binding,
+            apply=apply,
         )
 
     if not surface_key:
@@ -144,16 +155,25 @@ def execute_complete_medical_paper_readiness_surface(
                 writes_owner_blocker=bool(apply),
             ),
         }
-        return _blocked(
+        owner_delta_result = _owner_delta_result(
+            study_id=study_id,
+            study_root=study_root,
+            owner_result=owner_result,
+            closeout_binding=closeout_binding,
+        )
+        return _with_stage_native_closeout(
+            _blocked(
+                reason="medical_paper_readiness_surface_key_required",
+                study_root=study_root,
+                owner_result=owner_result,
+                owner_delta_result=owner_delta_result,
+            ),
             reason="medical_paper_readiness_surface_key_required",
             study_root=study_root,
             owner_result=owner_result,
-            owner_delta_result=_owner_delta_result(
-                study_id=study_id,
-                study_root=study_root,
-                owner_result=owner_result,
-                closeout_binding=closeout_binding,
-            ),
+            owner_delta_result=owner_delta_result,
+            closeout_binding=closeout_binding,
+            apply=apply,
         )
 
     action_id = _action_id(dispatch_payload, surface_key)
@@ -194,19 +214,28 @@ def execute_complete_medical_paper_readiness_surface(
         ),
     }
     if _text(readiness.get("overall_status")) == "ready":
-        return {
-            "execution_status": "executed" if apply else "dry_run",
-            "blocked_reason": None,
-            "owner_callable_surface": CALLABLE_SURFACE,
-            "owner_result": owner_result,
-            "owner_delta_result": _owner_delta_result(
-                study_id=study_id,
-                study_root=study_root,
-                owner_result=owner_result,
-                closeout_binding=closeout_binding,
-            ),
-            "quest_root": str(profile.runtime_root / study_id),
-        }
+        owner_delta_result = _owner_delta_result(
+            study_id=study_id,
+            study_root=study_root,
+            owner_result=owner_result,
+            closeout_binding=closeout_binding,
+        )
+        return _with_stage_native_closeout(
+            {
+                "execution_status": "executed" if apply else "dry_run",
+                "blocked_reason": None,
+                "owner_callable_surface": CALLABLE_SURFACE,
+                "owner_result": owner_result,
+                "owner_delta_result": owner_delta_result,
+                "quest_root": str(profile.runtime_root / study_id),
+            },
+            reason="medical_paper_readiness_ready",
+            study_root=study_root,
+            owner_result=owner_result,
+            owner_delta_result=owner_delta_result,
+            closeout_binding=closeout_binding,
+            apply=apply,
+        )
     blocker = medical_paper_readiness_owner_blocker.materialize_readiness_owner_blocker(
         study_root=study_root,
         source=CALLABLE_SURFACE,
@@ -217,16 +246,25 @@ def execute_complete_medical_paper_readiness_surface(
         writes_readiness=bool(apply) and _text(action_result.get("status")) not in {"blocked", "missing"},
         writes_owner_blocker=bool(apply),
     )
-    return _blocked(
+    owner_delta_result = _owner_delta_result(
+        study_id=study_id,
+        study_root=study_root,
+        owner_result=owner_result,
+        closeout_binding=closeout_binding,
+    )
+    return _with_stage_native_closeout(
+        _blocked(
+            reason=_text(action_result.get("missing_reason")) or "medical_paper_readiness_not_ready",
+            study_root=study_root,
+            owner_result=owner_result,
+            owner_delta_result=owner_delta_result,
+        ),
         reason=_text(action_result.get("missing_reason")) or "medical_paper_readiness_not_ready",
         study_root=study_root,
         owner_result=owner_result,
-        owner_delta_result=_owner_delta_result(
-            study_id=study_id,
-            study_root=study_root,
-            owner_result=owner_result,
-            closeout_binding=closeout_binding,
-        ),
+        owner_delta_result=owner_delta_result,
+        closeout_binding=closeout_binding,
+        apply=apply,
     )
 
 
@@ -247,6 +285,33 @@ def _blocked(
     if isinstance(owner_delta_result, Mapping):
         payload["owner_delta_result"] = dict(owner_delta_result)
     return payload
+
+
+def _with_stage_native_closeout(
+    payload: Mapping[str, Any],
+    *,
+    reason: str,
+    study_root: Path,
+    owner_result: Mapping[str, Any],
+    owner_delta_result: Mapping[str, Any],
+    closeout_binding: Mapping[str, Any],
+    apply: bool,
+) -> dict[str, Any]:
+    result = dict(payload)
+    stage_closeout = medical_paper_readiness_stage_closeout.materialize_stage_native_owner_answer(
+        study_id=_text(owner_delta_result.get("study_id")) or study_root.name,
+        study_root=study_root,
+        owner_result=owner_result,
+        owner_delta_result=owner_delta_result,
+        closeout_binding=closeout_binding,
+        apply=apply,
+    )
+    result["stage_native_closeout"] = stage_closeout
+    result["stage_native_closeout_reason"] = reason
+    if _text(stage_closeout.get("status")) == "materialized":
+        result["stage_native_owner_answer_ref"] = _text(stage_closeout.get("written_ref"))
+        result["stage_native_terminal_outcome_kind"] = _text(stage_closeout.get("terminal_outcome_kind"))
+    return result
 
 
 def _projected_readiness_after_action(

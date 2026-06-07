@@ -84,7 +84,7 @@ def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[s
             {
                 "type": "CurrentOwnerActionSupersedesStaleUserPark",
                 "status": "true",
-                "reason": "Stage Native current owner action exists and runtime failure classification does not require a human gate.",
+                "reason": "Stage Native current owner action exists and no current human-gate authority ref is present.",
             }
         ],
     }
@@ -105,7 +105,10 @@ def current_owner_action_supersedes_stale_user_park(
     if _non_empty_text(auto_parked.get("parked_state")) != "waiting_user_decision":
         return False
     classification = _mapping_copy(auto_parked.get("runtime_failure_classification"))
-    if classification.get("requires_human_gate") is True:
+    if (
+        classification.get("requires_human_gate") is True
+        and _has_human_gate_authority_ref(payload)
+    ):
         return False
     if auto_parked.get("auto_execution_complete") is True:
         return False
@@ -167,6 +170,49 @@ def _text_items(value: object) -> list[str]:
         if text is not None and text not in result:
             result.append(text)
     return result
+
+
+def _has_human_gate_authority_ref(payload: Mapping[str, Any]) -> bool:
+    auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
+    for surface in (
+        payload,
+        auto_parked,
+        _mapping_copy(payload.get("refs")),
+        _mapping_copy(auto_parked.get("refs")),
+    ):
+        if _surface_has_human_gate_ref(surface):
+            return True
+    return False
+
+
+def _surface_has_human_gate_ref(surface: Mapping[str, Any]) -> bool:
+    for key in (
+        "human_gate_ref",
+        "human_gate_resume_ref",
+        "human_gate_or_resume_ref",
+        "human_gate_authority_ref",
+        "decision_ref",
+        "receipt_ref",
+        "source_artifact_path",
+    ):
+        if _non_empty_text(surface.get(key)) is not None:
+            return True
+    for key in (
+        "human_gate_refs",
+        "human_gate_resume_refs",
+        "human_gate_or_resume_refs",
+        "human_gate_authority_refs",
+    ):
+        if _text_items(surface.get(key)):
+            return True
+    for gate in surface.get("family_human_gates") or []:
+        gate_payload = _mapping_copy(gate)
+        if _surface_has_human_gate_ref(gate_payload):
+            return True
+        for evidence in gate_payload.get("evidence_refs") or []:
+            if _non_empty_text(_mapping_copy(evidence).get("ref")) is not None:
+                return True
+    return False
 
 
 __all__ = [

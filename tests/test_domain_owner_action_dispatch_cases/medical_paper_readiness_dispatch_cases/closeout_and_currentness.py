@@ -123,6 +123,7 @@ def test_execute_dispatch_materializes_provider_payload_from_readiness_request_r
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _materialize_publication_handoff_stage(study_root, profile, study_id)
     request_ref = "artifacts/supervision/requests/medical_paper_readiness/latest.json"
     _write_json(
         study_root / request_ref,
@@ -146,6 +147,18 @@ def test_execute_dispatch_materializes_provider_payload_from_readiness_request_r
     dispatch["prompt_contract"]["operator_payload_ref"] = request_ref
     dispatch["prompt_contract"]["medical_paper_readiness_payload_ref"] = request_ref
     binding = _attach_readiness_closeout_binding(dispatch, study_id=study_id)
+    binding["stage_run_id"] = (
+        f"opl-stage-run::{study_id}::{ACTION_TYPE}::preserve-source-binding"
+    )
+    binding["stage_run_ref"] = binding["stage_run_id"]
+    binding["stage_manifest_ref"] = (
+        "opl://stage-manifests/domain_owner%2Fdefault-executor-dispatch"
+    )
+    binding["current_pointer_ref"] = (
+        f"opl://stage-runs/{binding['stage_run_id']}/current"
+    )
+    dispatch["closeout_binding"] = binding
+    dispatch["prompt_contract"]["closeout_binding"] = binding
     _write_readiness_dispatch(study_root, profile, dispatch)
 
     result = module.dispatch_domain_owner_actions(
@@ -186,6 +199,77 @@ def test_execute_dispatch_materializes_provider_payload_from_readiness_request_r
     assert owner_delta["closeout_binding"]["attempt_lease_status"] == "active"
     assert owner_delta["idempotency_key"] == f"owner-route::{study_id}::{ACTION_TYPE}::MedAutoScience"
     assert owner_delta["authority_boundary"]["writes_publication_eval"] is False
+    stage_closeout = execution["stage_native_closeout"]
+    assert stage_closeout["status"] == "materialized"
+    assert stage_closeout["terminal_outcome_kind"] == "typed_blocker"
+    assert stage_closeout["closeout_binding"]["stage_run_id"] == binding["stage_run_id"]
+    assert stage_closeout["written_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    blocker_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "typed_blocker.json"
+    )
+    assert blocker_path.is_file()
+    assert not (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "owner_receipt.json"
+    ).exists()
+    blocker = json.loads(blocker_path.read_text(encoding="utf-8"))
+    assert blocker["authority_type"] == "typed_blocker"
+    assert blocker["blocker_id"] == "medical_paper_readiness_missing"
+    assert blocker["blocked_surface"] == "publication_handoff_owner_gate"
+    assert blocker["next_safe_action"] == ACTION_TYPE
+    assert blocker["closeout_binding"]["stage_run_id"] == binding["stage_run_id"]
+    assert blocker["closeout_binding"]["provider_attempt_ref"] == (
+        f"opl://stage-attempts/{study_id}/{ACTION_TYPE}"
+    )
+    manifest = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "stage_outputs"
+            / "08-publication_package_handoff"
+            / "stage_manifest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert manifest["terminal_status"] == "blocked"
+    assert manifest["owner_receipt_refs"] == []
+    assert manifest["typed_blocker_refs"] == ["receipts/typed_blocker.json"]
+    current_pointer = json.loads((blocker_path.parents[1] / "current.json").read_text(encoding="utf-8"))
+    assert current_pointer["current_stage"]["status"] == "blocked"
+    assert current_pointer["current_stage"]["terminal_outcome_kind"] == "typed_blocker"
+    assert current_pointer["current_stage"]["terminal_outcome_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    current_owner_delta = json.loads(
+        (blocker_path.parents[1] / "projection" / "current_owner_delta.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert current_owner_delta["latest_owner_answer_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    assert current_owner_delta["latest_owner_answer_kind"] == "typed_blocker"
+    assert current_owner_delta["action"] == ACTION_TYPE
+    assert current_owner_delta["stage_run_id"] == binding["stage_run_id"]
+    assert current_owner_delta["provider_attempt_ref"] == (
+        f"opl://stage-attempts/{study_id}/{ACTION_TYPE}"
+    )
+    assert current_owner_delta["attempt_lease_ref"] == (
+        f"opl://stage-attempts/{study_id}/{ACTION_TYPE}/leases/current"
+    )
+    assert current_owner_delta["execution_authorization_decision_ref"] == (
+        f"opl://stage-attempts/{study_id}/{ACTION_TYPE}/execution-authorizations/current"
+    )
     provider_surface = json.loads(
         (study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json").read_text(
             encoding="utf-8"
@@ -193,6 +277,60 @@ def test_execute_dispatch_materializes_provider_payload_from_readiness_request_r
     )
     assert provider_surface["surface"] == "literature_provider_runtime"
     assert provider_surface["status"] == "ready"
+
+def test_execute_dispatch_rejects_incomplete_stage_closeout_binding(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _materialize_publication_handoff_stage(study_root, profile, study_id)
+    request_ref = "artifacts/supervision/requests/medical_paper_readiness/latest.json"
+    _write_json(
+        study_root / request_ref,
+        {
+            "surface": "supervisor_request_handoff_packet",
+            "action_type": ACTION_TYPE,
+            "surface_key": "literature_provider_runtime",
+            "operator_payload": _complete_provider_payload(),
+            "quality_claim_authorized": False,
+            "mechanical_projection_can_authorize_quality": False,
+        },
+    )
+    dispatch = _readiness_dispatch(study_id=study_id)
+    dispatch["operator_payload_ref"] = request_ref
+    dispatch["medical_paper_readiness_payload_ref"] = request_ref
+    dispatch["prompt_contract"]["operator_payload_ref"] = request_ref
+    dispatch["prompt_contract"]["medical_paper_readiness_payload_ref"] = request_ref
+    binding = _attach_readiness_closeout_binding(dispatch, study_id=study_id)
+    binding.pop("stage_manifest_ref", None)
+    dispatch["closeout_binding"] = binding
+    dispatch["prompt_contract"]["closeout_binding"] = binding
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    stage_closeout = execution["stage_native_closeout"]
+    assert stage_closeout["status"] == "blocked"
+    assert stage_closeout["blocked_reason"] == "trusted_opl_execution_authorization_required"
+    assert not (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "typed_blocker.json"
+    ).exists()
 
 def test_execute_dispatch_allows_owner_authorized_readiness_surface_when_stall_scan_missing(
     monkeypatch,

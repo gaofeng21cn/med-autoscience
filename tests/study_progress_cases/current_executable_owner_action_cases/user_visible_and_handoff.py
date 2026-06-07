@@ -244,4 +244,105 @@ def test_current_owner_action_projection_suppresses_non_human_stale_user_park() 
     )
 
 
+def test_current_owner_action_projection_requires_human_gate_authority_ref() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
+
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_stage": "auto_runtime_parked",
+        "auto_runtime_parked": {
+            "surface_kind": "auto_runtime_parked",
+            "schema_version": 1,
+            "parked": True,
+            "parked_state": "waiting_user_decision",
+            "parked_owner": "user",
+            "awaiting_explicit_wakeup": True,
+            "auto_execution_complete": False,
+            "source_reason": "quest_waiting_for_user",
+            "runtime_failure_classification": {
+                "requires_human_gate": True,
+                "auto_recovery_allowed": False,
+                "blocker_class": "publication_gate_recheck",
+            },
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "stage_kernel_projection.current_owner_delta",
+            "next_owner": "MedAutoScience",
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "allowed_actions": ["complete_medical_paper_readiness_surface"],
+            "source_ref": (
+                "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+            ),
+        },
+    }
+
+    result = module.reconcile_current_owner_action_projection(payload)
+
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["superseded_by_current_owner_action"] is True
+    assert result["parked_state"] is None
+    assert result["needs_user_decision"] is False
+    assert result["current_stage"] == "publication_supervision"
+    assert result["study_macro_state"]["details"]["decision_owner"] == "MedAutoScience"
+
+
+def test_current_owner_action_projection_preserves_authorized_human_gate() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
+
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_stage": "auto_runtime_parked",
+        "auto_runtime_parked": {
+            "surface_kind": "auto_runtime_parked",
+            "schema_version": 1,
+            "parked": True,
+            "parked_state": "waiting_user_decision",
+            "parked_owner": "user",
+            "awaiting_explicit_wakeup": True,
+            "auto_execution_complete": False,
+            "source_reason": "quest_waiting_for_user",
+            "runtime_failure_classification": {
+                "requires_human_gate": True,
+                "auto_recovery_allowed": False,
+                "blocker_class": "publication_gate_recheck",
+            },
+        },
+        "family_human_gates": [
+            {
+                "gate_id": "status-waiting-dm003-publication-gate-recheck",
+                "evidence_refs": [
+                    {
+                        "ref_kind": "repo_path",
+                        "ref": "artifacts/controller_decisions/latest.json",
+                        "label": "controller_human_gate_decision",
+                    }
+                ],
+            }
+        ],
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "stage_kernel_projection.current_owner_delta",
+            "next_owner": "MedAutoScience",
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "allowed_actions": ["complete_medical_paper_readiness_surface"],
+        },
+    }
+
+    result = module.reconcile_current_owner_action_projection(payload)
+
+    assert result["auto_runtime_parked"]["parked"] is True
+    assert "superseded_by_current_owner_action" not in result["auto_runtime_parked"]
+    assert result["study_macro_state"]["writer_state"] == "parked"
+
+
 __all__ = [name for name in globals() if name.startswith("test_")]

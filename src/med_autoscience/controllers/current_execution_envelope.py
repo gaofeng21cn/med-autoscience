@@ -244,7 +244,10 @@ def _parked_state_requires_human_resume(
     if auto_parked.get("awaiting_explicit_wakeup") is True:
         if _text(parked.get("parked_state")) == "waiting_user_decision":
             classification = _mapping(auto_parked.get("runtime_failure_classification"))
-            return classification.get("requires_human_gate") is True
+            return (
+                classification.get("requires_human_gate") is True
+                and _has_human_gate_authority_ref(status=status, progress=progress)
+            )
         return True
     runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
     return _text(runtime_health.get("canonical_runtime_action")) == "await_explicit_resume"
@@ -369,6 +372,54 @@ def _source_refs(
     refs.extend(_refs_from(_mapping(progress.get("refs"))))
     refs.extend(_refs_from(_mapping(status.get("refs"))))
     return sorted(dict.fromkeys(refs))
+
+
+def _has_human_gate_authority_ref(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    for surface in (
+        status,
+        progress,
+        _mapping(status.get("auto_runtime_parked")),
+        _mapping(progress.get("auto_runtime_parked")),
+        _mapping(status.get("refs")),
+        _mapping(progress.get("refs")),
+    ):
+        if _surface_has_human_gate_ref(surface):
+            return True
+    return False
+
+
+def _surface_has_human_gate_ref(surface: Mapping[str, Any]) -> bool:
+    for key in (
+        "human_gate_ref",
+        "human_gate_resume_ref",
+        "human_gate_or_resume_ref",
+        "human_gate_authority_ref",
+        "decision_ref",
+        "receipt_ref",
+        "source_artifact_path",
+    ):
+        if _text(surface.get(key)) is not None:
+            return True
+    for key in (
+        "human_gate_refs",
+        "human_gate_resume_refs",
+        "human_gate_or_resume_refs",
+        "human_gate_authority_refs",
+    ):
+        if _text_items(surface.get(key)):
+            return True
+    for gate in surface.get("family_human_gates") or []:
+        gate_payload = _mapping(gate)
+        if _surface_has_human_gate_ref(gate_payload):
+            return True
+        for evidence in gate_payload.get("evidence_refs") or []:
+            if _text(_mapping(evidence).get("ref")) is not None:
+                return True
+    return False
 
 
 def _refs_from(value: Mapping[str, Any]) -> list[str]:
