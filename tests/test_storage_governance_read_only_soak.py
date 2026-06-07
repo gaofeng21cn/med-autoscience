@@ -27,7 +27,7 @@ def _add_storage_growth_buckets(workspace_root: Path) -> None:
     runtime_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"
     runtime_root.mkdir(parents=True, exist_ok=True)
     (runtime_root / "quest.log").write_text("runtime fixture\n", encoding="utf-8")
-    release_root = workspace_root / "datasets" / "release"
+    release_root = workspace_root / "data" / "datasets" / "release"
     release_root.mkdir(parents=True, exist_ok=True)
     (release_root / "release.csv").write_text("id,value\n1,1\n", encoding="utf-8")
     _write_json(

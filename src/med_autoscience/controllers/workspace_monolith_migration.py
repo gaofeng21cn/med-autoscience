@@ -30,7 +30,7 @@ from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layo
 
 
 SURFACE_KIND = "workspace_monolith_migration"
-MIGRATION_ROOT_RELPATH = Path("artifacts") / "runtime" / "monolith_migration"
+MIGRATION_ROOT_RELPATH = Path("runtime") / "artifacts" / "monolith_migration"
 PARKED_RUNTIME_STATUSES = {
     "completed",
     "manual_hold",

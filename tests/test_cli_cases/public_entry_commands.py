@@ -915,7 +915,7 @@ def test_init_portfolio_memory_command_dispatches_controller(monkeypatch, tmp_pa
 
     def fake_init(*, workspace_root: Path) -> dict[str, object]:
         called["workspace_root"] = workspace_root
-        return {"portfolio_memory_root": str(workspace_root / "portfolio" / "research_memory"), "created_files": []}
+        return {"portfolio_memory_root": str(workspace_root / "memory" / "portfolio" / "research_memory"), "created_files": []}
 
     monkeypatch.setattr(cli.portfolio_memory_controller, "init_portfolio_memory", fake_init)
 
@@ -948,7 +948,7 @@ def test_init_workspace_literature_command_dispatches_controller(monkeypatch, tm
     def fake_init(*, workspace_root: Path) -> dict[str, object]:
         called["workspace_root"] = workspace_root
         return {
-            "workspace_literature_root": str(workspace_root / "portfolio" / "research_memory" / "literature"),
+            "workspace_literature_root": str(workspace_root / "memory" / "portfolio" / "research_memory" / "literature"),
             "created_files": [],
         }
 

@@ -27,7 +27,7 @@ def _write_profile(path: Path, workspace_root: Path) -> None:
                 f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'managed_runtime_home = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
                 f'studies_root = "{workspace_root / "studies"}"',
-                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'portfolio_root = "{workspace_root / "memory" / "portfolio"}"',
                 f'med_deepscientist_runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',

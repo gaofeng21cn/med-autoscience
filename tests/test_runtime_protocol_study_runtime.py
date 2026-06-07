@@ -18,7 +18,7 @@ def make_profile(tmp_path: Path):
         workspace_root=workspace_root,
         runtime_root=workspace_root / "runtime" / "quests",
         studies_root=workspace_root / "studies",
-        portfolio_root=workspace_root / "portfolio",
+        portfolio_root=workspace_root / "memory" / "portfolio",
         med_deepscientist_runtime_root=workspace_root / "legacy" / "med-deepscientist" / "runtime",
         med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",
@@ -496,7 +496,7 @@ def test_build_hydration_payload_includes_workspace_literature_and_study_referen
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     workspace_root = tmp_path / "workspace"
-    workspace_registry_path = workspace_root / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
+    workspace_registry_path = workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
 
     monkeypatch.setattr(
         module,
@@ -545,13 +545,13 @@ def test_build_hydration_payload_includes_workspace_literature_and_study_referen
         "workspace_literature_status",
         lambda *, workspace_root: {
             "workspace_literature_exists": True,
-            "workspace_literature_root": str(workspace_root / "portfolio" / "research_memory" / "literature"),
+            "workspace_literature_root": str(workspace_root / "memory" / "portfolio" / "research_memory" / "literature"),
             "registry_path": str(workspace_registry_path),
             "references_bib_path": str(
-                workspace_root / "portfolio" / "research_memory" / "literature" / "references.bib"
+                workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "references.bib"
             ),
             "coverage_report_path": str(
-                workspace_root / "portfolio" / "research_memory" / "literature" / "coverage" / "latest.json"
+                workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "coverage" / "latest.json"
             ),
             "record_count": 1,
             "references_bib_entry_count": 1,

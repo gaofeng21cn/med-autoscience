@@ -1879,9 +1879,9 @@
               "retention_reason": "The retained module materializes MAS-owned read-model evidence and hosted package refs; it is not a workspace helper, service wrapper, or runtime control owner.",
               "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
               "writes_only": [
-                "artifacts/runtime/progress_portal/latest.json",
-                "artifacts/runtime/progress_portal/hosted_package.json",
-                "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+                "runtime/artifacts/progress_portal/latest.json",
+                "runtime/artifacts/progress_portal/hosted_package.json",
+                "runtime/artifacts/progress_portal/studies/<study_id>/latest.json",
                 "ops/mas/progress/index.html",
                 "ops/mas/progress/studies/<study_id>/index.html"
               ]
@@ -2668,7 +2668,7 @@
           "notification/receipt"
         ],
         "allowed_bridge_writes": [
-          "artifacts/runtime/opl_family_domain_handler/dispatch_receipts/*.json"
+          "runtime/artifacts/opl_family_domain_handler/dispatch_receipts/*.json"
         ]
       },
       "entry_projection_surfaces": {

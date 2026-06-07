@@ -106,7 +106,7 @@ _ROLE_SOURCE_CANDIDATES: dict[str, tuple[str, ...]] = {
     ),
     "memory_accept_reject_receipts": (
         "artifacts/stage_knowledge/memory_write_router_receipts",
-        "portfolio/research_memory",
+        "memory/portfolio/research_memory",
         "literature",
     ),
     "manuscript_draft_package": (

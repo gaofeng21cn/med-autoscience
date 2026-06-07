@@ -85,13 +85,13 @@ def write_structured_disclosure_audit_fixture(paper_root: Path) -> None:
             "privacy": {
                 "status": "pass",
                 "statement": "Only deidentified locked analysis outputs are used on paper-facing surfaces.",
-                "evidence_refs": ["portfolio/data_assets/private/registry.json"],
+                "evidence_refs": ["memory/portfolio/data_assets/private/registry.json"],
                 "manuscript_action": "State privacy limits without promising unrestricted patient-level release.",
             },
             "data_availability": {
                 "status": "acceptable_with_boundary",
                 "statement": "Private clinical data are available subject to institutional and privacy approval.",
-                "evidence_refs": ["portfolio/data_assets/impact/latest_impact_report.json"],
+                "evidence_refs": ["memory/portfolio/data_assets/impact/latest_impact_report.json"],
                 "manuscript_action": "Use bounded data-availability wording tied to registry evidence.",
             },
             "ai_disclosure": {
@@ -101,7 +101,7 @@ def write_structured_disclosure_audit_fixture(paper_root: Path) -> None:
                 "manuscript_action": "Keep AI disclosure separate from scientific evidence claims.",
             },
             "data_asset_evidence": {
-                "registry_refs": ["portfolio/data_assets/private/registry.json"],
+                "registry_refs": ["memory/portfolio/data_assets/private/registry.json"],
                 "access_evidence": ["access_tier: analysis_ready_standardized"],
                 "privacy_evidence": ["deidentified analysis release"],
                 "license_evidence": ["institutional clinical data; public reuse not unrestricted"],

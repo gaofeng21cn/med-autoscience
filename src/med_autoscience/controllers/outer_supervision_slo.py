@@ -16,7 +16,7 @@ SURFACE_KIND = "outer_supervision_slo"
 DEFAULT_INTERVAL_SECONDS = 5 * 60
 FRESH_MULTIPLIER = 2
 STALE_MULTIPLIER = 4
-RECONCILE_LATEST_RELATIVE_PATH = Path("artifacts/supervision/reconcile/latest.json")
+RECONCILE_LATEST_RELATIVE_PATH = Path("runtime/artifacts/supervision/reconcile/latest.json")
 
 
 def build_outer_supervision_slo_projection(

@@ -353,7 +353,7 @@ def test_init_workspace_upgrades_configured_active_profile_with_explicit_hermes_
                 f'workspace_root = "{workspace_root}"',
                 f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'studies_root = "{workspace_root / "studies"}"',
-                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'portfolio_root = "{workspace_root / "memory" / "portfolio"}"',
                 f'med_deepscientist_runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
                 'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
                 'default_publication_profile = "general_medical_journal"',

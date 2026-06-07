@@ -109,7 +109,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": True,
         "production_path": "incident_learning_and_repeat_avoidance",
         "rationale": "Memory is evidence-only, but losing lesson intake can reintroduce repeated failed work patterns.",
-        "required_guard_surface": "portfolio/research_memory and incident learning read models",
+        "required_guard_surface": "memory/portfolio/research_memory and incident learning read models",
     },
     "team_multiagent_coordination": {
         "classification": "production_risk",

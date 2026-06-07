@@ -64,8 +64,8 @@ def write_private_release_manifest(
 def test_startup_data_readiness_summarizes_private_and_public_opportunities(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_v1 = workspace_root / "datasets" / "master" / "v2026-03-28"
-    release_v2 = workspace_root / "datasets" / "master" / "v2026-04-10"
+    release_v1 = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
+    release_v2 = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
     release_v1.mkdir(parents=True, exist_ok=True)
     release_v2.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
@@ -100,7 +100,7 @@ def test_startup_data_readiness_summarizes_private_and_public_opportunities(tmp_
         version="v2026-04-10",
     )
 
-    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     public_registry_path.parent.mkdir(parents=True, exist_ok=True)
     public_registry_path.write_text(
         json.dumps(
@@ -201,8 +201,8 @@ def test_startup_data_readiness_write_json_does_not_truncate_final_path(monkeypa
 def test_startup_data_readiness_treats_locked_older_wave_as_clear_historical_comparator(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    baseline_root = workspace_root / "datasets" / "master" / "v2026-03-28"
-    current_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    baseline_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
+    current_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
     baseline_root.mkdir(parents=True, exist_ok=True)
     current_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
@@ -240,8 +240,8 @@ def test_startup_data_readiness_treats_locked_older_wave_as_clear_historical_com
 def test_startup_data_readiness_reports_declared_successor_as_latest(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    row_release_root = workspace_root / "datasets" / "standardized_longitudinal" / "v2026-04-27-visits-site-corrected-standardized"
-    episode_release_root = workspace_root / "datasets" / "standardized_longitudinal" / "v2026-04-27-visit-episodes-7d-site-corrected-standardized"
+    row_release_root = workspace_root / "data" / "datasets" / "standardized_longitudinal" / "v2026-04-27-visits-site-corrected-standardized"
+    episode_release_root = workspace_root / "data" / "datasets" / "standardized_longitudinal" / "v2026-04-27-visit-episodes-7d-site-corrected-standardized"
     row_release_root.mkdir(parents=True, exist_ok=True)
     episode_release_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
@@ -287,7 +287,7 @@ def test_startup_data_readiness_reports_declared_successor_as_latest(tmp_path: P
 def test_startup_data_readiness_excludes_rejected_public_datasets_from_opportunities(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     release_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
         release_root / "dataset_manifest.yaml",
@@ -305,7 +305,7 @@ def test_startup_data_readiness_excludes_rejected_public_datasets_from_opportuni
         version="v2026-03-28",
     )
 
-    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     public_registry_path.parent.mkdir(parents=True, exist_ok=True)
     public_registry_path.write_text(
         json.dumps(
@@ -345,8 +345,8 @@ def test_startup_data_readiness_excludes_rejected_public_datasets_from_opportuni
 def test_startup_data_readiness_summarizes_data_availability_and_fair_blockers(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    ready_root = workspace_root / "datasets" / "ready" / "v2026-05-10"
-    blocked_root = workspace_root / "datasets" / "blocked" / "v2026-05-10"
+    ready_root = workspace_root / "data" / "datasets" / "ready" / "v2026-05-10"
+    blocked_root = workspace_root / "data" / "datasets" / "blocked" / "v2026-05-10"
     ready_root.mkdir(parents=True, exist_ok=True)
     blocked_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
@@ -438,7 +438,7 @@ def test_startup_data_readiness_summarizes_data_availability_and_fair_blockers(t
 def test_startup_data_readiness_flags_unresolved_private_contracts(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     release_root.mkdir(parents=True, exist_ok=True)
     (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
     write_study_manifest(
@@ -458,7 +458,7 @@ def test_startup_data_readiness_flags_unresolved_private_contracts(tmp_path: Pat
 def test_startup_data_readiness_accepts_public_registry_backed_locked_inputs(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-03-30"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-30"
     release_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
         release_root / "dataset_manifest.yaml",
@@ -470,7 +470,7 @@ def test_startup_data_readiness_accepts_public_registry_backed_locked_inputs(tmp
     )
     (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
 
-    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     public_registry_path.parent.mkdir(parents=True, exist_ok=True)
     public_registry_path.write_text(
         json.dumps(
@@ -535,7 +535,7 @@ def test_startup_data_readiness_accepts_public_registry_backed_locked_inputs(tmp
 def test_startup_data_readiness_includes_study_yaml_dataset_inputs_when_manifest_is_absent(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     release_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
         release_root / "dataset_manifest.yaml",
@@ -566,7 +566,7 @@ def test_startup_data_readiness_resolves_study_yaml_dataset_inputs_without_path_
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     release_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
         release_root / "dataset_manifest.yaml",
@@ -593,7 +593,7 @@ def test_startup_data_readiness_resolves_study_yaml_dataset_inputs_without_path_
 def test_startup_data_readiness_blocks_treatment_study_without_standardized_release(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "deidentified_longitudinal" / "v2026-04-23"
+    release_root = workspace_root / "data" / "datasets" / "deidentified_longitudinal" / "v2026-04-23"
     release_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
         release_root / "dataset_manifest.yaml",
@@ -623,7 +623,7 @@ def test_startup_data_readiness_blocks_treatment_study_without_standardized_rele
 def test_startup_data_readiness_accepts_treatment_study_with_standardized_release(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "standardized_longitudinal" / "v2026-04-25"
+    release_root = workspace_root / "data" / "datasets" / "standardized_longitudinal" / "v2026-04-25"
     release_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
         release_root / "dataset_manifest.yaml",
@@ -659,7 +659,7 @@ def test_startup_data_readiness_accepts_treatment_study_with_standardized_releas
 def test_startup_data_readiness_blocks_release_missing_dictionary_and_cohort_flow(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-05-04"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-05-04"
     release_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
         release_root / "dataset_manifest.yaml",
@@ -706,7 +706,7 @@ def test_startup_data_readiness_blocks_release_missing_dictionary_and_cohort_flo
 def test_startup_data_readiness_accepts_complete_dictionary_codebook_and_cohort_flow(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-05-04"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-05-04"
     release_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
         release_root / "dataset_manifest.yaml",

@@ -20,7 +20,7 @@ def _write_profile(workspace: Path, profile_path: Path) -> None:
                 f'workspace_root = "{workspace}"',
                 f'runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'studies_root = "{workspace / "studies"}"',
-                f'portfolio_root = "{workspace / "portfolio"}"',
+                f'portfolio_root = "{workspace / "memory" / "portfolio"}"',
                 f'med_deepscientist_runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime"}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
@@ -61,7 +61,7 @@ def _ready_matrix_payload(study_id: str) -> dict[str, object]:
 
 def _write_display_refs(workspace: Path) -> None:
     _write_json(
-        workspace / "artifacts" / "runtime" / "progress_portal" / "latest.json",
+        workspace / "runtime" / "artifacts" / "progress_portal" / "latest.json",
         {"surface_kind": "mas_progress_portal", "study": {"study_id": "001-active"}},
     )
     (workspace / "ops" / "mas" / "progress").mkdir(parents=True, exist_ok=True)
@@ -79,7 +79,7 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
     workspace = tmp_path / "Yang" / "Fixture"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "fixture.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     status_path = _write_json(
         workspace / "studies" / "001-active" / "artifacts" / "runtime" / "runtime_status_summary.json",
         {
@@ -166,7 +166,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "fixture.workspace.toml"
     study_root = workspace / "studies" / "001-active"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     _write_display_refs(workspace)
     _write_json(
         study_root / "artifacts" / "runtime" / "runtime_status_summary.json",

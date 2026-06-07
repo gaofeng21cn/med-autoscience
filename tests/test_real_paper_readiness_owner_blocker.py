@@ -24,7 +24,7 @@ def _write_profile(workspace: Path, profile_path: Path) -> None:
                 f'workspace_root = "{workspace}"',
                 f'runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'studies_root = "{workspace / "studies"}"',
-                f'portfolio_root = "{workspace / "portfolio"}"',
+                f'portfolio_root = "{workspace / "memory" / "portfolio"}"',
                 f'med_deepscientist_runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime"}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
@@ -68,7 +68,7 @@ def _dm002_fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
     return yang_root, profile_path, dm002

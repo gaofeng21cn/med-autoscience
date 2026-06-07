@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.literature_records import LiteratureRecord
+from med_autoscience.workspace_paths import literature_root
 
 
 WORKSPACE_LITERATURE_SCHEMA_VERSION = 1
@@ -37,7 +38,7 @@ def workspace_literature_status(*, workspace_root: Path) -> dict[str, object]:
 
 
 def _workspace_literature_root(workspace_root: Path) -> Path:
-    return workspace_root / "portfolio" / "research_memory" / "literature"
+    return literature_root(workspace_root)
 
 
 def _registry_path(workspace_root: Path) -> Path:

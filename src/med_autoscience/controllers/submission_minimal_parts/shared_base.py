@@ -21,6 +21,7 @@ from med_autoscience.controllers import workspace_literature as workspace_litera
 from med_autoscience.controllers import study_delivery_sync
 from med_autoscience.literature_records import LiteratureRecord
 from med_autoscience.display_pack_resolver import get_pack_id
+from med_autoscience.workspace_paths import literature_root
 from med_autoscience.publication_profiles import (
     FRONTIERS_FAMILY_HARVARD_PROFILE,
     GENERAL_MEDICAL_JOURNAL_PROFILE,
@@ -828,7 +829,7 @@ def resolve_submission_references_source(*, paper_root: Path) -> tuple[Path | No
     if paper_references.exists():
         return paper_references, "paper_references"
     for ancestor in resolved_paper_root.parents:
-        candidate = ancestor / "portfolio" / "research_memory" / "literature" / "references.bib"
+        candidate = literature_root(ancestor) / "references.bib"
         if candidate.exists():
             return candidate, "workspace_literature"
     return None, None

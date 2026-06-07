@@ -229,7 +229,7 @@ def test_mcp_default_status_progress_does_not_require_external_mds_repo(tmp_path
                 f'workspace_root = "{workspace_root}"',
                 f'runtime_root = "{workspace_root / "runtime" / "quests"}"',
                 f'studies_root = "{workspace_root / "studies"}"',
-                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'portfolio_root = "{workspace_root / "memory" / "portfolio"}"',
                 f'med_deepscientist_runtime_root = "{workspace_root / "runtime"}"',
                 'med_deepscientist_repo_root = ""',
                 f'hermes_agent_repo_root = "{tmp_path / "_external" / "hermes-agent"}"',
@@ -833,7 +833,7 @@ def test_mcp_server_can_call_prepare_external_research_tool(monkeypatch) -> None
     def fake_prepare(*, workspace_root: Path, as_of_date: str | None) -> dict[str, object]:
         captured["workspace_root"] = workspace_root
         captured["as_of_date"] = as_of_date
-        return {"status": "ready", "prompt_path": "/tmp/medautosci-demo/portfolio/research_memory/prompts/x.md"}
+        return {"status": "ready", "prompt_path": "/tmp/medautosci-demo/memory/portfolio/research_memory/prompts/x.md"}
 
     monkeypatch.setattr(module.external_research, "prepare_external_research", fake_prepare)
 

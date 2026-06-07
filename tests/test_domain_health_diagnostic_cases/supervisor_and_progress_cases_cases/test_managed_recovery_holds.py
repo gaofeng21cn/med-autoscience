@@ -20,7 +20,7 @@ def test_watch_runtime_does_not_auto_recover_package_ready_handoff(
         workspace_root=workspace_root,
         runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests",
         studies_root=workspace_root / "studies",
-        portfolio_root=workspace_root / "portfolio",
+        portfolio_root=workspace_root / "memory" / "portfolio",
         med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
         med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",

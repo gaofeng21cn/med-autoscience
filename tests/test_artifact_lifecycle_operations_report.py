@@ -37,7 +37,7 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
     _write(study_root / "manuscript" / "current_package.zip", "zip\n")
     _write(study_root / "paper" / "submission_minimal" / "paper.pdf")
     _write(study_root / "artifacts" / "runtime" / "latest.json", "{}\n")
-    _write(workspace_root / "datasets" / "release" / "dataset_manifest.yaml")
+    _write(workspace_root / "data" / "datasets" / "release" / "dataset_manifest.yaml")
     _write(workspace_root / ".ds" / "runs" / "run-1" / "stdout.jsonl")
 
     report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
@@ -336,7 +336,7 @@ def test_lifecycle_operations_report_default_does_not_walk_nested_runtime_or_wor
         / "quest-001"
         / "payload"
         / "huge.bin",
-        workspace_root / "datasets" / "raw" / "release" / "nested" / "rows.csv",
+        workspace_root / "data" / "datasets" / "raw" / "release" / "nested" / "rows.csv",
     ]
     for path in forbidden_files:
         _write(path, "large\n")
@@ -350,7 +350,7 @@ def test_lifecycle_operations_report_default_does_not_walk_nested_runtime_or_wor
     assert report["scan_policy"]["deep_scan_enabled"] is False
     assert "studies/001-risk/paper/source/manuscript_source.md" in touched_relative_paths
     assert "ops/med-deepscientist/runtime/quests/quest-001/payload/huge.bin" not in touched_relative_paths
-    assert "datasets/raw/release/nested/rows.csv" not in touched_relative_paths
+    assert "data/datasets/raw/release/nested/rows.csv" not in touched_relative_paths
     assert ".ds/worktrees/lane-a/nested/payload.bin" not in touched_relative_paths
     source_totals = report["source_totals"]
     assert source_totals["runtime"]["scan_mode"] == "statistical_only"
@@ -432,8 +432,8 @@ def test_lifecycle_operations_report_deep_scan_walks_bounded_operational_payload
     _write(workspace_root / "studies" / "001-risk" / "paper" / "source" / "manuscript_source.md")
     _write(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001" / "a.txt")
     _write(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001" / "nested" / "b.txt")
-    _write(workspace_root / "datasets" / "raw" / "release" / "nested" / "rows.csv")
-    _write(workspace_root / "datasets" / "raw" / "release" / "nested" / "rows-2.csv")
+    _write(workspace_root / "data" / "datasets" / "raw" / "release" / "nested" / "rows.csv")
+    _write(workspace_root / "data" / "datasets" / "raw" / "release" / "nested" / "rows-2.csv")
 
     report = module.run_lifecycle_operations_report(
         workspace_roots=[workspace_root],
@@ -450,9 +450,9 @@ def test_lifecycle_operations_report_deep_scan_walks_bounded_operational_payload
     assert stats_by_path["ops/med-deepscientist/runtime/quests"]["scan_mode"] == "deep_statistical"
     assert stats_by_path["ops/med-deepscientist/runtime/quests"]["file_count"] == 1
     assert stats_by_path["ops/med-deepscientist/runtime/quests"]["truncated"] is True
-    assert stats_by_path["datasets/raw"]["scan_mode"] == "deep_statistical"
-    assert stats_by_path["datasets/raw"]["file_count"] == 1
-    assert stats_by_path["datasets/raw"]["truncated"] is True
+    assert stats_by_path["data/datasets/raw"]["scan_mode"] == "deep_statistical"
+    assert stats_by_path["data/datasets/raw"]["file_count"] == 1
+    assert stats_by_path["data/datasets/raw"]["truncated"] is True
 
 
 def test_lifecycle_operations_report_deep_classified_scan_uses_workspace_budget(
@@ -502,7 +502,7 @@ def test_lifecycle_operations_report_adds_compact_storage_budget_operational_sum
     _write(study_root / "manuscript" / "current_package" / "manuscript.docx", "d" * 100)
     _write(study_root / "manuscript" / "current_package.zip", "z" * 50)
     _write(workspace_root / ".ds" / "runs" / "run-1" / "stdout.jsonl", "runtime\n")
-    _write(workspace_root / "datasets" / "release" / "dataset_manifest.yaml", "dataset\n")
+    _write(workspace_root / "data" / "datasets" / "release" / "dataset_manifest.yaml", "dataset\n")
     _write(
         workspace_root / "storage_audit" / "latest.json",
         (

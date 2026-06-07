@@ -278,7 +278,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         },
         "behavior_difference": "MAS preserves the research-memory purpose through stage entry consumption and controlled closeout writeback, while splitting authority across workspace, study, quest, evidence, review, and controller owners instead of exposing a generic autonomous memory truth service.",
         "default_user_impact": "Codex stages can consume high-signal memory and literature at entry and submit reusable lessons, citation gaps, failed paths, reference-role updates, and claim-boundary decisions at closeout; those writes remain receipt-gated and cannot authorize quality, route, claim expansion, or publication readiness.",
-        "mas_contract": "stage_knowledge_packet, stage_memory_closeout_packet, memory_write_router_receipt, stage_recall_index, portfolio/research_memory, canonical literature, reference context, evidence/review ledgers, and controller decisions share authority by owner boundary.",
+        "mas_contract": "stage_knowledge_packet, stage_memory_closeout_packet, memory_write_router_receipt, stage_recall_index, memory/portfolio/research_memory, canonical literature, reference context, evidence/review ledgers, and controller decisions share authority by owner boundary.",
         "remaining_gap_until_soak": "real-paper stage injection soak must keep proving consumed refs, accepted/rejected writes, route impact, and next owner in Progress/Portal surfaces.",
         "recommended_operator_action": "use_mas_default",
     },

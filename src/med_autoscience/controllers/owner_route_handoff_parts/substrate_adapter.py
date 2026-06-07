@@ -5,6 +5,7 @@ from typing import Any, Callable, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
+from med_autoscience.workspace_paths import publication_route_memory_root
 
 
 def build_opl_substrate_adapter_projection(
@@ -191,7 +192,7 @@ def _memory_substrate_refs(
     text: Callable[[object], str | None],
     mapping: Callable[[object], Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
-    route_memory_root = profile.portfolio_root / "research_memory" / "publication_route_memory"
+    route_memory_root = publication_route_memory_root(profile.workspace_root)
     refs = [
         _opaque_ref(role="publication_route_memory_pack", ref=route_memory_root / "memory_pack.json"),
         _opaque_ref(role="publication_route_memory_migration_receipt_root", ref=route_memory_root / "migration_receipts"),

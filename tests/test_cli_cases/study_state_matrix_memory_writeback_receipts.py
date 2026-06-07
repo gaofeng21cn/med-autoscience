@@ -105,6 +105,7 @@ def test_study_state_matrix_consumes_publication_route_memory_writeback_receipt(
     study_root = _study_root(workspace_root, study_id)
     expected_writeback_receipt_ref = (
         workspace_root
+        / "memory"
         / "portfolio"
         / "research_memory"
         / "publication_route_memory"

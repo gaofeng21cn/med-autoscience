@@ -15,7 +15,7 @@ def test_prepare_external_research_command_dispatches_controller(monkeypatch, tm
     def fake_prepare(*, workspace_root: Path, as_of_date: str | None) -> dict[str, object]:
         called["workspace_root"] = workspace_root
         called["as_of_date"] = as_of_date
-        return {"status": "ready", "prompt_path": str(workspace_root / "portfolio" / "research_memory" / "prompts" / "x.md")}
+        return {"status": "ready", "prompt_path": str(workspace_root / "memory" / "portfolio" / "research_memory" / "prompts" / "x.md")}
 
     monkeypatch.setattr(cli.external_research_controller, "prepare_external_research", fake_prepare)
 

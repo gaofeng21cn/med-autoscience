@@ -126,7 +126,7 @@ def test_outer_supervision_slo_ignores_legacy_reconcile_latest_file(tmp_path: Pa
         workspace_root=workspace_root,
         runtime_root=workspace_root / "runtime" / "quests",
         studies_root=workspace_root / "studies",
-        portfolio_root=workspace_root / "portfolio",
+        portfolio_root=workspace_root / "memory" / "portfolio",
         med_deepscientist_runtime_root=workspace_root / "legacy" / "runtime",
         med_deepscientist_repo_root=workspace_root / "legacy" / "repo",
         default_publication_profile="general_medical_journal",

@@ -246,10 +246,10 @@ Before opening the web, check what the quest already knows.
 
 At minimum:
 
-- inspect `portfolio/research_memory/registry.yaml` and linked assets when the workspace already has cross-study research memory
-- inspect `portfolio/research_memory/topic_landscape.md` before re-deriving disease hot directions
-- inspect `portfolio/research_memory/dataset_question_map.md` before proposing new study directions from the same core data
-- inspect `portfolio/research_memory/venue_intelligence.md` before re-deriving journal neighborhoods or target-journal bands
+- inspect `memory/portfolio/research_memory/registry.yaml` and linked assets when the workspace already has cross-study research memory
+- inspect `memory/portfolio/research_memory/topic_landscape.md` before re-deriving disease hot directions
+- inspect `memory/portfolio/research_memory/dataset_question_map.md` before proposing new study directions from the same core data
+- inspect `memory/portfolio/research_memory/venue_intelligence.md` before re-deriving journal neighborhoods or target-journal bands
 - inspect recent quest `papers`, `knowledge`, and `decisions`
 - inspect recent global `papers`, `knowledge`, and `templates` when the topic or benchmark looks reusable
 - run `memory.search(...)` over:
@@ -267,9 +267,9 @@ Then classify the current state:
 
 If the frame is still missing broader disease-topic or venue-neighborhood context after local memory reuse, you may use the managed optional enrichment surface:
 
-- use `prepare-external-research` to scaffold a workspace-level Deep Research prompt under `portfolio/research_memory/prompts/`
+- use `prepare-external-research` to scaffold a workspace-level Deep Research prompt under `memory/portfolio/research_memory/prompts/`
 - treat external AI research as optional enrichment, not as a required gate before the study can continue
-- store raw external AI returns under `portfolio/research_memory/external_reports/YYYY-MM-DD-topic-opportunity-scout-<provider>.md`
+- store raw external AI returns under `memory/portfolio/research_memory/external_reports/YYYY-MM-DD-topic-opportunity-scout-<provider>.md`
 - write stable cross-study conclusions back into `topic_landscape.md`, `dataset_question_map.md`, and `venue_intelligence.md`
 
 If the frame is already explicit after memory reuse, stop and record the next anchor.

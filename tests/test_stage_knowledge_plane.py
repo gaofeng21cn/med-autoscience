@@ -447,7 +447,7 @@ def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cros
         / "writeback_proposals"
         / "stage_memory_updates.jsonl"
     )
-    pack_receipt_root = workspace_root / "portfolio" / "research_memory" / "publication_route_memory" / "writeback_receipts"
+    pack_receipt_root = workspace_root / "memory" / "portfolio" / "research_memory" / "publication_route_memory" / "writeback_receipts"
     failed_path = study_root / "artifacts" / "controller" / "failed_path_history.jsonl"
     assert len(proposal_path.read_text(encoding="utf-8").splitlines()) == 1
     assert len(list(pack_receipt_root.glob("*.json"))) == 1

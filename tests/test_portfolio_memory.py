@@ -10,7 +10,7 @@ def test_init_portfolio_memory_creates_scaffold_and_status(tmp_path: Path) -> No
 
     result = module.init_portfolio_memory(workspace_root=workspace_root)
 
-    root = workspace_root / "portfolio" / "research_memory"
+    root = workspace_root / "memory" / "portfolio" / "research_memory"
     assert result["workspace_root"] == str(workspace_root.resolve())
     assert root.is_dir()
     assert (root / "README.md").is_file()
@@ -61,7 +61,7 @@ def test_init_portfolio_memory_is_idempotent_and_preserves_existing_files(tmp_pa
     workspace_root = tmp_path / "workspace"
 
     module.init_portfolio_memory(workspace_root=workspace_root)
-    topic_landscape = workspace_root / "portfolio" / "research_memory" / "topic_landscape.md"
+    topic_landscape = workspace_root / "memory" / "portfolio" / "research_memory" / "topic_landscape.md"
     topic_landscape.write_text("# custom\n", encoding="utf-8")
 
     result = module.init_portfolio_memory(workspace_root=workspace_root)
@@ -75,7 +75,7 @@ def test_portfolio_memory_status_counts_seeded_assets_from_registry(tmp_path: Pa
     workspace_root = tmp_path / "workspace"
     module.init_portfolio_memory(workspace_root=workspace_root)
 
-    registry_path = workspace_root / "portfolio" / "research_memory" / "registry.yaml"
+    registry_path = workspace_root / "memory" / "portfolio" / "research_memory" / "registry.yaml"
     registry_path.write_text(
         "\n".join(
             [

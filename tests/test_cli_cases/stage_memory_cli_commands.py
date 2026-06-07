@@ -216,7 +216,7 @@ def test_publication_route_memory_inventory_cli_groups_stale_and_deprecated_revi
     )
     capsys.readouterr()
 
-    pack_path = workspace_root / "portfolio" / "research_memory" / "publication_route_memory" / "memory_pack.json"
+    pack_path = workspace_root / "memory" / "portfolio" / "research_memory" / "publication_route_memory" / "memory_pack.json"
     pack = json.loads(pack_path.read_text(encoding="utf-8"))
     pack["cards"][0]["status"] = "stale_seed"
     pack["cards"][1]["status"] = "deprecated_seed"
@@ -465,7 +465,7 @@ def test_stage_knowledge_packet_cli_materializes_packet(tmp_path: Path, capsys) 
     study_root = workspace_root / "studies" / "S1"
     _write_json(study_root / "artifacts" / "reference_context" / "latest.json", {"status": "present"})
     _write_json(
-        workspace_root / "portfolio" / "research_memory" / "literature" / "coverage" / "latest.json",
+        workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "coverage" / "latest.json",
         {"status": "present"},
     )
     cli.main(

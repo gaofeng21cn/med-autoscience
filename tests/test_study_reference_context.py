@@ -55,7 +55,7 @@ def test_build_study_reference_context_writes_artifact_and_promotes_workspace_re
     )
 
     artifact_path = study_root / "artifacts" / "reference_context" / "latest.json"
-    registry_path = workspace_root / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
+    registry_path = workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
 
     assert artifact_path.is_file()
     assert context["artifact_path"] == str(artifact_path)

@@ -20,6 +20,7 @@ from med_autoscience.opl_runtime_contract import (
     engine_id_for_runtime_ref,
     opl_runtime_default_operation_contract,
 )
+from med_autoscience.workspace_paths import portfolio_root as canonical_portfolio_root
 
 SUPPORTED_STARTUP_ANCHOR_POLICIES = (
     "scout_first_for_continue_existing_state",
@@ -74,6 +75,16 @@ class WorkspaceProfile:
     mas_developer_github_usernames: tuple[str, ...] = (EXPECTED_DEVELOPER_GITHUB_LOGIN,)
     profile_ref: Path | None = None
 
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "portfolio_root",
+            _normalize_portfolio_root(
+                workspace_root=self.workspace_root,
+                configured_portfolio_root=self.portfolio_root,
+            ),
+        )
+
     @property
     def managed_runtime_home(self) -> Path:
         return self.runtime_root.parent
@@ -88,6 +99,15 @@ def _require_string(payload: dict[str, object], key: str) -> str:
     if not isinstance(value, str):
         raise TypeError(f"{key} must be a string")
     return value
+
+
+def _normalize_portfolio_root(*, workspace_root: Path, configured_portfolio_root: Path) -> Path:
+    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
+    resolved_portfolio_root = Path(configured_portfolio_root).expanduser().resolve()
+    legacy_default = (resolved_workspace_root / "portfolio").resolve()
+    if resolved_portfolio_root == legacy_default:
+        return canonical_portfolio_root(resolved_workspace_root)
+    return resolved_portfolio_root
 
 
 def _optional_string(payload: dict[str, object], key: str, *, empty_as_none: bool = False) -> str | None:

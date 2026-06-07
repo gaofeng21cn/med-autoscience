@@ -31,7 +31,7 @@ def _write_profile(workspace: Path, profile_path: Path) -> None:
                 f'workspace_root = "{workspace}"',
                 f'runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'studies_root = "{workspace / "studies"}"',
-                f'portfolio_root = "{workspace / "portfolio"}"',
+                f'portfolio_root = "{workspace / "memory" / "portfolio"}"',
                 f'med_deepscientist_runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime"}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
@@ -49,7 +49,7 @@ def test_real_paper_autonomy_soak_inventory_is_dry_run_and_reports_legacy_eviden
     workspace = yang_root / "Fixture"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "fixture.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     (workspace / "ops" / "med-deepscientist" / "runtime" / "quests").mkdir(parents=True)
     (workspace / "ops" / "medautoscience" / "bin").mkdir(parents=True)
     launcher = workspace / "ops" / "medautoscience" / "bin" / "watch-runtime"
@@ -93,7 +93,7 @@ def test_real_paper_autonomy_soak_inventory_reports_active_as_audit_only(tmp_pat
     workspace = yang_root / "Active"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "active.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     _write_json(
         workspace / "studies" / "002-active" / "artifacts" / "runtime" / "runtime_status_summary.json",
         {
@@ -119,7 +119,7 @@ def test_real_paper_autonomy_soak_inventory_script_outputs_json_without_writes(
     workspace = yang_root / "Script"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "script.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     _write_json(
         workspace / "studies" / "003-complete" / "artifacts" / "runtime" / "runtime_status_summary.json",
         {"study_id": "003-complete", "quest_status": "completed", "runtime_reason": "done"},
@@ -154,7 +154,7 @@ def test_real_paper_autonomy_soak_projection_reports_dispatch_and_evidence_witho
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     study_root = workspace / "studies" / "DM002"
     domain_handler_task = {
         "domain_id": "medautoscience",
@@ -222,7 +222,7 @@ def test_real_paper_autonomy_soak_projection_accepts_common_study_aliases(tmp_pa
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     for study_id in (
         "002-dm-china-us-mortality-attribution",
         "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -254,7 +254,7 @@ def test_real_paper_autonomy_soak_closeout_projection_is_opl_ingestable_refs_onl
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     dm003 = workspace / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     obesity = workspace / "studies" / "obesity_multicenter_phenotype_atlas"
@@ -331,7 +331,7 @@ def test_real_paper_autonomy_provider_hosted_paper_proof_is_readonly_and_guarded
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     dm003 = workspace / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     obesity = workspace / "studies" / "obesity_multicenter_phenotype_atlas"
@@ -409,7 +409,7 @@ def test_real_paper_autonomy_guarded_apply_proof_blocks_without_mas_owner_apply_
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     dm003 = workspace / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     obesity = workspace / "studies" / "obesity_multicenter_phenotype_atlas"
@@ -508,7 +508,7 @@ def test_real_paper_autonomy_guarded_apply_proof_accepts_existing_mas_owner_prog
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
     _write_json(
@@ -619,7 +619,7 @@ def test_real_paper_autonomy_guarded_apply_proof_accepts_mas_owner_route_receipt
         workspace = yang_root / "DM"
         profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
         _write_profile(workspace, profile_path)
-        (workspace / "portfolio").mkdir(parents=True)
+        (workspace / "memory" / "portfolio").mkdir(parents=True)
         dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
         _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
         if expected_ref_suffix == "artifacts/controller_decisions/latest.json":
@@ -661,7 +661,7 @@ def test_real_paper_autonomy_guarded_apply_proof_keeps_ai_reviewer_eval_read_onl
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
     _write_json(
@@ -694,7 +694,7 @@ def test_real_paper_line_provider_canary_closeout_uses_existing_evidence_surface
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
     _write_json(
@@ -732,7 +732,7 @@ def test_real_paper_autonomy_guarded_apply_proof_blocks_evidence_without_owner_r
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
     _write_json(
@@ -763,7 +763,7 @@ def test_real_paper_autonomy_soak_script_outputs_closeout_mode(tmp_path: Path) -
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     study_root = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     _write_json(study_root / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": study_root.name})
     _write_json(
@@ -810,7 +810,7 @@ def test_real_paper_autonomy_soak_script_outputs_provider_proof_mode(tmp_path: P
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     study_root = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     _write_json(study_root / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": study_root.name})
     _write_json(
@@ -851,7 +851,7 @@ def test_real_paper_autonomy_soak_script_outputs_guarded_apply_proof_mode(tmp_pa
     workspace = yang_root / "DM"
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
-    (workspace / "portfolio").mkdir(parents=True)
+    (workspace / "memory" / "portfolio").mkdir(parents=True)
     study_root = workspace / "studies" / "002-dm-china-us-mortality-attribution"
     _write_json(study_root / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": study_root.name})
     _write_json(

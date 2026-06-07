@@ -34,7 +34,7 @@ def test_init_workspace_literature_creates_canonical_scaffold_and_status(tmp_pat
 
     result = module.init_workspace_literature(workspace_root=workspace_root)
 
-    literature_root = workspace_root / "portfolio" / "research_memory" / "literature"
+    literature_root = workspace_root / "memory" / "portfolio" / "research_memory" / "literature"
     registry_path = literature_root / "registry.jsonl"
     bibliography_path = literature_root / "references.bib"
     coverage_path = literature_root / "coverage" / "latest.json"
@@ -71,9 +71,9 @@ def test_sync_workspace_literature_dedupes_same_identifier_into_canonical_regist
         ],
     )
 
-    registry_path = workspace_root / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
-    bibliography_path = workspace_root / "portfolio" / "research_memory" / "literature" / "references.bib"
-    coverage_path = workspace_root / "portfolio" / "research_memory" / "literature" / "coverage" / "latest.json"
+    registry_path = workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
+    bibliography_path = workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "references.bib"
+    coverage_path = workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "coverage" / "latest.json"
     registry_lines = [line for line in registry_path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
     assert result["record_count"] == 1

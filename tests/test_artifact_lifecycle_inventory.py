@@ -21,7 +21,7 @@ def test_artifact_inventory_classifies_roles_and_lifecycle(tmp_path: Path) -> No
         "runtime_ephemeral": _write(quest_root / ".ds" / "runs" / "run-001" / "stdout.jsonl"),
         "derived_projection": _write(study_root / "manuscript" / "current_package" / "manuscript.docx"),
         "human_handoff_mirror": _write(study_root / "manuscript" / "README.md"),
-        "data_release": _write(tmp_path / "datasets" / "master" / "v1" / "dataset_manifest.yaml"),
+        "data_release": _write(tmp_path / "data" / "datasets" / "master" / "v1" / "dataset_manifest.yaml"),
         "cold_archive": _write(quest_root / ".ds" / "cold_archive" / "worktree_runtime_payloads" / "run.tar.gz"),
         "audit_log": _write(study_root / "artifacts" / "runtime" / "runtime_storage_maintenance" / "latest.json"),
     }
@@ -79,7 +79,7 @@ def test_artifact_inventory_treats_inbox_and_dataset_zip_as_raw_intake_not_deliv
     module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_inventory")
     study_root = tmp_path / "studies" / "001-risk"
     inbox_zip = _write(tmp_path / "inbox" / "source_extract.zip", "zip\n")
-    dataset_zip = _write(tmp_path / "datasets" / "master" / "v1" / "source_extract.zip", "zip\n")
+    dataset_zip = _write(tmp_path / "data" / "datasets" / "master" / "v1" / "source_extract.zip", "zip\n")
 
     inventory = module.build_artifact_lifecycle_inventory(
         study_root=study_root,
@@ -112,7 +112,7 @@ def test_study_artifact_registry_discovers_surfaces_and_blocks_generated_authori
     runtime_log = _write(quest_root / ".ds" / "runs" / "run-live" / "stdout.jsonl")
     cold_archive = _write(quest_root / ".ds" / "cold_archive" / "payload.tar.gz")
     audit_log = _write(study_root / "artifacts" / "runtime" / "latest.json")
-    data_manifest = _write(workspace_root / "datasets" / "master" / "v1" / "dataset_manifest.yaml")
+    data_manifest = _write(workspace_root / "data" / "datasets" / "master" / "v1" / "dataset_manifest.yaml")
 
     registry = module.build_study_artifact_lifecycle_registry(
         study_root=study_root,
@@ -462,7 +462,7 @@ def test_delivery_inspector_reads_legacy_surface_without_materializing_v2_layout
                 f'workspace_root = "{workspace_root}"',
                 f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'studies_root = "{workspace_root / "studies"}"',
-                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'portfolio_root = "{workspace_root / "memory" / "portfolio"}"',
                 f'med_deepscientist_runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
                 f'med_deepscientist_repo_root = "{workspace_root.parent / "med-deepscientist"}"',
                 f'hermes_agent_repo_root = "{workspace_root.parent / "_external" / "hermes-agent"}"',

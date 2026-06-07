@@ -47,7 +47,7 @@ def test_apply_data_asset_update_upserts_public_dataset_and_writes_mutation_log(
         },
     )
 
-    registry = load_json(workspace_root / "portfolio" / "data_assets" / "public" / "registry.json")
+    registry = load_json(workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json")
     assert registry["schema_version"] == 2
     assert registry["discovery"]["status"] == "not_started"
     assert registry["datasets"][0]["dataset_id"] == "geo-gse000001"
@@ -63,7 +63,7 @@ def test_apply_data_asset_update_upserts_public_dataset_and_writes_mutation_log(
 def test_apply_data_asset_update_updates_public_dataset_status_and_appends_note(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
     workspace_root = tmp_path / "workspace"
-    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     public_registry_path.parent.mkdir(parents=True, exist_ok=True)
     public_registry_path.write_text(
         json.dumps(
@@ -120,7 +120,7 @@ def test_apply_data_asset_update_updates_public_dataset_status_and_appends_note(
 def test_apply_data_asset_update_preserves_public_dataset_discovery_when_updating_status(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
     workspace_root = tmp_path / "workspace"
-    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path = workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json"
     public_registry_path.parent.mkdir(parents=True, exist_ok=True)
     public_registry_path.write_text(
         json.dumps(
@@ -188,7 +188,7 @@ def test_apply_data_asset_update_records_completed_public_dataset_discovery(tmp_
         },
     )
 
-    registry = load_json(workspace_root / "portfolio" / "data_assets" / "public" / "registry.json")
+    registry = load_json(workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json")
     assert registry["discovery"] == {
         "status": "completed",
         "last_scouted_on": "2026-04-08",
@@ -203,7 +203,7 @@ def test_apply_data_asset_update_records_completed_public_dataset_discovery(tmp_
 def test_apply_data_asset_update_upserts_private_release_manifest(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
     release_root.mkdir(parents=True, exist_ok=True)
     (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
 
@@ -239,7 +239,7 @@ def test_apply_data_asset_update_upserts_private_release_manifest(tmp_path: Path
 def test_apply_data_asset_update_upserts_private_release_manifest_semantic_readiness_fields(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-05-04"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-05-04"
     release_root.mkdir(parents=True, exist_ok=True)
     (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
 
@@ -319,7 +319,7 @@ def test_apply_data_asset_update_rejects_incomplete_private_release_manifest(tmp
 def test_apply_data_asset_update_writes_refresh_failure_audit_log(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
     release_root.mkdir(parents=True, exist_ok=True)
     (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
     (release_root / "dataset_manifest.yaml").write_text(
@@ -365,13 +365,13 @@ def test_apply_data_asset_update_writes_refresh_failure_audit_log(tmp_path: Path
     else:
         raise AssertionError("Expected FileNotFoundError during refresh")
 
-    mutation_logs = sorted((workspace_root / "portfolio" / "data_assets" / "mutations").glob("*.json"))
+    mutation_logs = sorted((workspace_root / "memory" / "portfolio" / "data_assets" / "mutations").glob("*.json"))
     assert len(mutation_logs) == 1
     mutation_log = load_json(mutation_logs[0])
     assert mutation_log["status"] == "refresh_failed"
     assert mutation_log["mutation"]["dataset_id"] == "geo-gse000001"
     assert mutation_log["refresh_error"]["type"] == "FileNotFoundError"
-    registry = load_json(workspace_root / "portfolio" / "data_assets" / "public" / "registry.json")
+    registry = load_json(workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json")
     assert registry["datasets"][0]["dataset_id"] == "geo-gse000001"
 
 
@@ -398,18 +398,18 @@ def test_apply_data_asset_update_rejects_invalid_public_dataset_enums_and_logs_f
     else:
         raise AssertionError("Expected ValueError for invalid public dataset enums")
 
-    mutation_logs = sorted((workspace_root / "portfolio" / "data_assets" / "mutations").glob("*.json"))
+    mutation_logs = sorted((workspace_root / "memory" / "portfolio" / "data_assets" / "mutations").glob("*.json"))
     assert len(mutation_logs) == 1
     mutation_log = load_json(mutation_logs[0])
     assert mutation_log["status"] == "mutation_failed"
     assert mutation_log["error"]["type"] == "ValueError"
-    assert not (workspace_root / "portfolio" / "data_assets" / "public" / "registry.json").exists()
+    assert not (workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json").exists()
 
 
 def test_apply_data_asset_update_requires_existing_release_root_before_manifest_upsert(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
     workspace_root = tmp_path / "workspace"
-    target_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    target_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
 
     try:
         module.apply_data_asset_update(
@@ -437,7 +437,7 @@ def test_apply_data_asset_update_requires_existing_release_root_before_manifest_
 def test_apply_data_asset_update_rejects_private_manifest_with_missing_outputs(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
     workspace_root = tmp_path / "workspace"
-    release_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
     release_root.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -472,5 +472,5 @@ def test_apply_data_asset_update_uses_unique_log_paths_for_same_timestamp(tmp_pa
     second = module.apply_data_asset_update(workspace_root=workspace_root, payload={"action": "refresh_all"})
 
     assert first["mutation_log_path"] != second["mutation_log_path"]
-    mutation_logs = sorted((workspace_root / "portfolio" / "data_assets" / "mutations").glob("*.json"))
+    mutation_logs = sorted((workspace_root / "memory" / "portfolio" / "data_assets" / "mutations").glob("*.json"))
     assert len(mutation_logs) == 2

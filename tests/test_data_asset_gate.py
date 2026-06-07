@@ -73,10 +73,10 @@ def write_locked_version_manifest(path: Path, *, dataset_id: str, versions: list
 def test_build_gate_report_blocks_when_private_release_is_outdated(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     workspace_root, quest_root = make_workspace_with_quest(tmp_path)
-    (workspace_root / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
-    (workspace_root / "datasets" / "master" / "v2026-04-10").mkdir(parents=True, exist_ok=True)
-    (workspace_root / "datasets" / "master" / "v2026-03-28" / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
-    (workspace_root / "datasets" / "master" / "v2026-04-10" / "analysis.csv").write_text("id\n1\n2\n", encoding="utf-8")
+    (workspace_root / "data" / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
+    (workspace_root / "data" / "datasets" / "master" / "v2026-04-10").mkdir(parents=True, exist_ok=True)
+    (workspace_root / "data" / "datasets" / "master" / "v2026-03-28" / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (workspace_root / "data" / "datasets" / "master" / "v2026-04-10" / "analysis.csv").write_text("id\n1\n2\n", encoding="utf-8")
     write_dataset_manifest(
         workspace_root / "studies" / "002-early-residual-risk" / "data_input" / "dataset_manifest.yaml",
         dataset_id="nfpitnet_master",
@@ -110,8 +110,8 @@ def test_resolve_workspace_root_keeps_legacy_ops_runtime_layout(tmp_path: Path) 
 def test_build_gate_report_allows_locked_historical_wave_when_latest_release_is_present(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     workspace_root, quest_root = make_workspace_with_quest(tmp_path)
-    baseline_root = workspace_root / "datasets" / "master" / "v2026-03-28"
-    current_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    baseline_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
+    current_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
     baseline_root.mkdir(parents=True, exist_ok=True)
     current_root.mkdir(parents=True, exist_ok=True)
     (baseline_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
@@ -162,7 +162,7 @@ def test_build_gate_report_allows_locked_historical_wave_when_latest_release_is_
 def test_build_gate_report_blocks_when_private_contract_is_unresolved(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     workspace_root, quest_root = make_workspace_with_quest(tmp_path)
-    version_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    version_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     version_root.mkdir(parents=True, exist_ok=True)
     (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
     write_dataset_manifest(
@@ -182,7 +182,7 @@ def test_build_gate_report_blocks_when_private_contract_is_unresolved(tmp_path: 
 def test_run_controller_enqueues_advisory_message_when_public_extension_available(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     workspace_root, quest_root = make_workspace_with_quest(tmp_path)
-    version_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    version_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     version_root.mkdir(parents=True, exist_ok=True)
     (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
     (version_root / "dataset_manifest.yaml").write_text(
@@ -205,7 +205,7 @@ def test_run_controller_enqueues_advisory_message_when_public_extension_availabl
         relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
     )
     dump_json(
-        workspace_root / "portfolio" / "data_assets" / "public" / "registry.json",
+        workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json",
         {
             "schema_version": 2,
             "datasets": [
@@ -237,7 +237,7 @@ def test_run_controller_enqueues_advisory_message_when_public_extension_availabl
 def test_run_controller_reports_unresolved_dataset_ids_in_hard_block_message(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     workspace_root, quest_root = make_workspace_with_quest(tmp_path)
-    version_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    version_root = workspace_root / "data" / "datasets" / "master" / "v2026-03-28"
     version_root.mkdir(parents=True, exist_ok=True)
     (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
     write_dataset_manifest(

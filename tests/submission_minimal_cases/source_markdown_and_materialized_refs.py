@@ -407,7 +407,7 @@ def test_create_submission_minimal_package_uses_workspace_literature_references_
     paper_root = make_current_draft_workspace(tmp_path)
     workspace_root = paper_root.parent
     (paper_root / "references.bib").unlink()
-    workspace_references_path = workspace_root / "portfolio" / "research_memory" / "literature" / "references.bib"
+    workspace_references_path = workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "references.bib"
     write_text(
         workspace_references_path,
         """@article{ref1,
@@ -431,7 +431,7 @@ def test_create_submission_minimal_package_uses_workspace_literature_references_
     assert copied_references_path.read_text(encoding="utf-8") == workspace_references_path.read_text(
         encoding="utf-8"
     )
-    assert manifest["references"]["source_path"] == "portfolio/research_memory/literature/references.bib"
+    assert manifest["references"]["source_path"] == "memory/portfolio/research_memory/literature/references.bib"
     assert manifest["references"]["source_kind"] == "workspace_literature"
     assert manifest["references"]["coverage"] == {
         "status": "complete",

@@ -10,7 +10,7 @@ def test_prepare_external_research_creates_scaffold_prompt_and_status(tmp_path: 
 
     result = module.prepare_external_research(workspace_root=workspace_root, as_of_date="2026-03-30")
 
-    research_memory_root = workspace_root / "portfolio" / "research_memory"
+    research_memory_root = workspace_root / "memory" / "portfolio" / "research_memory"
     prompts_root = research_memory_root / "prompts"
     external_reports_root = research_memory_root / "external_reports"
     prompt_path = prompts_root / "2026-03-30-workspace-topic-opportunity-deep-research-prompt.md"
@@ -40,6 +40,7 @@ def test_prepare_external_research_is_idempotent_and_preserves_existing_prompt(t
     module.prepare_external_research(workspace_root=workspace_root, as_of_date="2026-03-30")
     prompt_path = (
         workspace_root
+        / "memory"
         / "portfolio"
         / "research_memory"
         / "prompts"
@@ -58,7 +59,7 @@ def test_external_research_status_counts_reports_and_write_back_recommendation(t
     workspace_root = tmp_path / "workspace"
 
     module.prepare_external_research(workspace_root=workspace_root, as_of_date="2026-03-30")
-    external_reports_root = workspace_root / "portfolio" / "research_memory" / "external_reports"
+    external_reports_root = workspace_root / "memory" / "portfolio" / "research_memory" / "external_reports"
     (external_reports_root / "2026-03-30-topic-opportunity-scout-gemini.md").write_text("# report 1\n", encoding="utf-8")
     (external_reports_root / "2026-03-30-topic-opportunity-scout-chatgpt.md").write_text("# report 2\n", encoding="utf-8")
 

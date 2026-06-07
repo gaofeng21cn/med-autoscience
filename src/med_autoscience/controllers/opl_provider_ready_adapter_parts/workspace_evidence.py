@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
+from med_autoscience.workspace_paths import publication_route_memory_root
 
 from .provider_readiness import DOMAIN_OWNER, TARGET_DOMAIN_ID
 
@@ -105,7 +106,7 @@ def _study_refs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
 
 
 def _portfolio_refs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
-    route_memory_root = profile.portfolio_root / "research_memory" / "publication_route_memory"
+    route_memory_root = publication_route_memory_root(profile.workspace_root)
     return [
         _ref("publication_route_memory_pack", route_memory_root / "memory_pack.json"),
         _ref("publication_route_memory_migration_receipt_root", route_memory_root / "migration_receipts"),

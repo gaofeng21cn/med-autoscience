@@ -137,7 +137,7 @@ def test_inspect_workspace_contracts_accepts_mas_first_runtime_bridge(tmp_path: 
         workspace_root=workspace_root,
         runtime_root=workspace_root / "runtime" / "quests",
         studies_root=workspace_root / "studies",
-        portfolio_root=workspace_root / "portfolio",
+        portfolio_root=workspace_root / "memory" / "portfolio",
         med_deepscientist_runtime_root=workspace_root / "runtime",
         med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",

@@ -429,7 +429,7 @@ def test_paper_soak_memory_apply_proof_links_opl_attempt_domain_handler_closeout
             "surface": "memory_write_router_receipt",
             "status": "applied",
             "idempotency_key": "closeout-001",
-            "receipt_ref": "portfolio/research_memory/publication_route_memory/writeback_receipts/closeout-001.json",
+            "receipt_ref": "memory/portfolio/research_memory/publication_route_memory/writeback_receipts/closeout-001.json",
         },
         progress_delta={
             "delta_id": "progress-delta-001",

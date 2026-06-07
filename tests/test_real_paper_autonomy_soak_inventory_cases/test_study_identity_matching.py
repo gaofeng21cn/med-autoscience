@@ -25,7 +25,7 @@ def _write_profile(workspace: Path, profile_path: Path) -> None:
                 f'workspace_root = "{workspace}"',
                 f'runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'studies_root = "{workspace / "studies"}"',
-                f'portfolio_root = "{workspace / "portfolio"}"',
+                f'portfolio_root = "{workspace / "memory" / "portfolio"}"',
                 f'med_deepscientist_runtime_root = "{workspace / "ops" / "med-deepscientist" / "runtime"}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
@@ -44,8 +44,8 @@ def test_guarded_apply_preserves_cross_profile_numeric_study_identity(tmp_path: 
     nf_profile = nf_workspace / "ops" / "medautoscience" / "profiles" / "nf.workspace.toml"
     _write_profile(dm_workspace, dm_profile)
     _write_profile(nf_workspace, nf_profile)
-    (dm_workspace / "portfolio").mkdir(parents=True)
-    (nf_workspace / "portfolio").mkdir(parents=True)
+    (dm_workspace / "memory" / "portfolio").mkdir(parents=True)
+    (nf_workspace / "memory" / "portfolio").mkdir(parents=True)
     target_studies = (
         "002-dm-china-us-mortality-attribution",
         "003-dpcc-primary-care-phenotype-treatment-gap",
