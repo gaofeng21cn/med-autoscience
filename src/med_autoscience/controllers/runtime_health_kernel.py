@@ -6,12 +6,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
 from med_autoscience.controllers.runtime_health_kernel_parts import (
     event_log,
     explicit_resume,
     provider_readiness,
     run_epoch_budget,
+    status_payload as status_payload_events,
 )
 
 
@@ -678,213 +678,12 @@ def rebuild_runtime_health_snapshot(*, study_root: Path, study_id: str, quest_id
     return _snapshot_from_events(study_root=study_root, study_id=study_id, quest_id=quest_id, events=events)
 
 
-def _transient_event(
-    *,
-    study_id: str,
-    quest_id: str,
-    event_type: str,
-    payload: Mapping[str, Any],
-    recorded_at: str,
-    sequence: int,
-) -> dict[str, Any]:
-    return {
-        "schema_version": SCHEMA_VERSION,
-            "event_id": event_log.build_event_id(
-            study_id=study_id,
-            quest_id=quest_id,
-            event_type=event_type,
-            payload=payload,
-            recorded_at=recorded_at,
-            sequence=sequence,
-        ),
-        "sequence": sequence,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "event_type": event_type,
-        "recorded_at": recorded_at,
-        "payload": dict(payload),
-        "source_signature": _event_source_signature(event_type, payload),
-        "transient": True,
-    }
 
 
-def _candidate_path(value: object) -> Path | None:
-    text = _text(value)
-    if text is None:
-        return None
-    return Path(text).expanduser().resolve()
 
 
-def _launch_report_event_payload(status_payload: Mapping[str, Any]) -> dict[str, Any]:
-    direct_report = _mapping(status_payload.get("last_launch_report"))
-    launch_report_path = _candidate_path(status_payload.get("launch_report_path"))
-    file_report = _read_json(launch_report_path) if launch_report_path is not None else None
-    report = direct_report or _mapping(file_report)
-    if not report:
-        return {}
-    active_run_id = _first_text(
-        report.get("active_run_id"),
-        _mapping(report.get("autonomous_runtime_notice")).get("active_run_id"),
-        _mapping(report.get("runtime_liveness_audit")).get("active_run_id"),
-    )
-    if active_run_id is None and _text(report.get("last_action")) is None:
-        return {}
-    return {
-        "attempt_state": _text(report.get("dispatch_status")) or _text(report.get("status")) or "observed",
-        "active_run_id": active_run_id,
-        "last_action": _text(report.get("last_action")),
-        "summary_ref": str(launch_report_path) if launch_report_path is not None else None,
-    }
 
 
-def _status_payload_runtime_health_events(
-    *,
-    study_id: str,
-    quest_id: str,
-    status_payload: Mapping[str, Any],
-    recorded_at: str,
-    first_sequence: int,
-) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    sequence = first_sequence
-    facts = resolve_opl_runtime_refs(status_payload)
-    runtime_liveness_audit = _mapping(status_payload.get("runtime_liveness_audit"))
-    runtime_audit = _mapping(runtime_liveness_audit.get("runtime_audit"))
-    stable_runtime_audit = _stable_runtime_audit(runtime_audit)
-    stable_runtime_liveness_audit = _stable_runtime_liveness_audit(runtime_liveness_audit)
-    runtime_payload = {
-        "quest_status": _text(status_payload.get("quest_status")),
-        "decision": _text(status_payload.get("decision")),
-        "reason": _text(status_payload.get("reason")),
-        "runtime_liveness_status": facts.runtime_liveness_status,
-        "worker_running": facts.worker_running,
-        "worker_pending": facts.worker_pending,
-        "stop_requested": facts.stop_requested,
-        "active_run_id": facts.active_run_id if facts.strict_live else None,
-        "observed_at": recorded_at,
-        "runtime_audit": stable_runtime_audit or None,
-        "runtime_liveness_audit": stable_runtime_liveness_audit or None,
-        "liveness_guard_reason": _text(runtime_liveness_audit.get("liveness_guard_reason")),
-        "autonomy_slo": _mapping(status_payload.get("autonomy_slo")) or None,
-        "progress_freshness": _mapping(status_payload.get("progress_freshness")) or None,
-    }
-    runtime_payload = {key: value for key, value in runtime_payload.items() if value is not None}
-    if runtime_payload:
-        sequence += 1
-        events.append(
-            _transient_event(
-                study_id=study_id,
-                quest_id=quest_id,
-                event_type="runtime_state_observed",
-                payload=runtime_payload,
-                recorded_at=recorded_at,
-                sequence=sequence,
-            )
-        )
-
-    supervisor_tick_audit = _mapping(status_payload.get("supervisor_tick_audit"))
-    if supervisor_tick_audit:
-        supervisor_payload = {
-            key: value
-            for key, value in supervisor_tick_audit.items()
-            if key not in _VOLATILE_SUPERVISOR_KEYS
-        }
-        if "provider_readiness" not in supervisor_payload:
-            readiness_payload = provider_readiness.provider_readiness_from_status_payload(
-                status_payload,
-                mapping=_mapping,
-            )
-            if readiness_payload:
-                supervisor_payload["provider_readiness"] = readiness_payload
-        supervisor_payload["supervisor_tick_status"] = _text(supervisor_tick_audit.get("status"))
-        sequence += 1
-        events.append(
-            _transient_event(
-                study_id=study_id,
-                quest_id=quest_id,
-                event_type="supervisor_tick",
-                payload=supervisor_payload,
-                recorded_at=recorded_at,
-                sequence=sequence,
-            )
-        )
-        if provider_readiness.recovered_supervisor_tick(
-            supervisor_payload,
-            mapping=_mapping,
-            text=_text,
-            bool_value=_bool,
-        ):
-            sequence += 1
-            events.append(
-                _transient_event(
-                    study_id=study_id,
-                    quest_id=quest_id,
-                    event_type="attempt_released",
-                    payload={
-                        "release_reason": "provider_recovered_after_runtime_retry_exhaustion",
-                        "decision": _text(status_payload.get("decision")),
-                        "reason": _text(status_payload.get("reason")),
-                        "previous_budget_scope": "terminal_runtime_recovery",
-                        "provider_ready": True,
-                        "worker_ready": True,
-                        "managed_worker_source_current": True,
-                    },
-                    recorded_at=recorded_at,
-                    sequence=sequence,
-                )
-            )
-
-    launch_payload = _launch_report_event_payload(status_payload)
-    if launch_payload:
-        sequence += 1
-        events.append(
-            _transient_event(
-                study_id=study_id,
-                quest_id=quest_id,
-                event_type="launch_attempt",
-                payload=launch_payload,
-                recorded_at=recorded_at,
-                sequence=sequence,
-            )
-        )
-
-    decision = _text(status_payload.get("decision"))
-    if decision in _RECOVERY_DECISIONS:
-        event_type = "relaunch_attempt" if decision == "relaunch_stopped" else "recover_attempt"
-        if event_type == "relaunch_attempt":
-            sequence += 1
-            events.append(
-                _transient_event(
-                    study_id=study_id,
-                    quest_id=quest_id,
-                    event_type="attempt_released",
-                    payload={
-                        "release_reason": "explicit_relaunch_stopped",
-                        "decision": decision,
-                        "reason": _text(status_payload.get("reason")),
-                        "previous_budget_scope": "terminal_runtime_recovery",
-                    },
-                    recorded_at=recorded_at,
-                    sequence=sequence,
-                )
-            )
-        sequence += 1
-        events.append(
-            _transient_event(
-                study_id=study_id,
-                quest_id=quest_id,
-                event_type=event_type,
-                payload={
-                    "attempt_state": "requested",
-                    "decision": decision,
-                    "reason": _text(status_payload.get("reason")),
-                    "active_run_id": facts.active_run_id if facts.strict_live else None,
-                },
-                recorded_at=recorded_at,
-                sequence=sequence,
-            )
-        )
-    return events
 
 
 def derive_runtime_health_snapshot_from_status_payload(
@@ -904,12 +703,21 @@ def derive_runtime_health_snapshot_from_status_payload(
         (str(event.get("event_type") or ""), _source_signature_for_event(event))
         for event in persisted_events
     }
-    transient_events = _status_payload_runtime_health_events(
+    transient_events = status_payload_events.status_payload_runtime_health_events(
+        schema_version=SCHEMA_VERSION,
+        recovery_decisions=_RECOVERY_DECISIONS,
+        volatile_supervisor_keys=_VOLATILE_SUPERVISOR_KEYS,
         study_id=study_id,
         quest_id=quest_id,
         status_payload=status_payload,
         recorded_at=recorded_at,
         first_sequence=len(persisted_events),
+        read_json=_read_json,
+        mapping=_mapping,
+        text=_text,
+        event_source_signature=_event_source_signature,
+        stable_runtime_audit=_stable_runtime_audit,
+        stable_runtime_liveness_audit=_stable_runtime_liveness_audit,
     )
     deduped_transient_events: list[dict[str, Any]] = []
     for event in transient_events:
@@ -953,12 +761,21 @@ def reconcile_runtime_health_snapshot_from_status_payload(
         (str(event.get("event_type") or ""), _source_signature_for_event(event))
         for event in persisted_for_quest
     }
-    transient_events = _status_payload_runtime_health_events(
+    transient_events = status_payload_events.status_payload_runtime_health_events(
+        schema_version=SCHEMA_VERSION,
+        recovery_decisions=_RECOVERY_DECISIONS,
+        volatile_supervisor_keys=_VOLATILE_SUPERVISOR_KEYS,
         study_id=study_id,
         quest_id=quest_id,
         status_payload=status_payload,
         recorded_at=recorded_at,
         first_sequence=len(persisted_events),
+        read_json=_read_json,
+        mapping=_mapping,
+        text=_text,
+        event_source_signature=_event_source_signature,
+        stable_runtime_audit=_stable_runtime_audit,
+        stable_runtime_liveness_audit=_stable_runtime_liveness_audit,
     )
     appended: list[dict[str, Any]] = []
     for event in transient_events:
