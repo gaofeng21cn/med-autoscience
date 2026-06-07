@@ -159,7 +159,7 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
                 + " --study-id <study_id> --format json"
             ),
             "check_runtime_status": (
-                "uv run python -m med_autoscience.cli study progress-projection --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id <study_id> --format json"
             ),

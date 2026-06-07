@@ -702,9 +702,9 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
                 + " --study-id 001-risk --format json"
             ),
             "check_runtime_status": (
-                "uv run python -m med_autoscience.cli study progress-projection --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
-                + " --study-id 001-risk"
+                + " --study-id 001-risk --format json"
             ),
         },
         "research_gate_surface": {

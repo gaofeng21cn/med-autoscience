@@ -265,7 +265,7 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
             + " --study-id <study_id> --format json"
         ),
         "recommended_artifact_command": (
-            "uv run python -m med_autoscience.cli study progress-projection --profile "
+            "uv run python -m med_autoscience.cli study progress --profile "
             + str(profile_ref.resolve())
             + " --study-id <study_id> --format json"
         ),

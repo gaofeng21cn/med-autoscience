@@ -219,8 +219,8 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         {
             "surface_kind": "progress_projection.autonomous_runtime_notice",
             "command": (
-                "uv run python -m med_autoscience.cli study progress-projection --profile <profile> "
-                "--study-id <study_id>"
+                "uv run python -m med_autoscience.cli study progress --profile <profile> "
+                "--study-id <study_id> --format json"
             ),
         },
         {

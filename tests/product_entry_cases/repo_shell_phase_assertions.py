@@ -114,9 +114,9 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             {
                 "surface_kind": "progress_projection.autonomous_runtime_notice",
                 "command": (
-                    "uv run python -m med_autoscience.cli study progress-projection --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
-                    + " --study-id <study_id>"
+                    + " --study-id <study_id> --format json"
                 ),
             },
             {
