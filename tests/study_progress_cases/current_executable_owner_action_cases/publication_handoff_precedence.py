@@ -138,4 +138,76 @@ def test_progress_first_monitoring_prefers_handoff_typed_blocker_readiness_follo
     assert action["target_surface"]["surface_key"] == "literature_provider_runtime"
     assert action["artifact_first_precedence"]["typed_blocker_followup_takes_precedence"] is True
 
+
+def test_progress_first_monitoring_accepts_current_stage_run_typed_blocker_answer() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "medical_paper_readiness": {"overall_status": "blocked"},
+            "stage_artifact_index": {
+                "surface_kind": "stage_artifact_index",
+                "current_stage": {
+                    "stage_id": "08-publication_package_handoff",
+                    "artifact_status": "missing_manifest_or_receipt",
+                    "next_missing_surface": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "publication_package_manifest.json"
+                    ),
+                },
+                "next_owner_action": {
+                    "owner": "08-publication_package_handoff",
+                    "next_owner": "08-publication_package_handoff",
+                    "action_type": "materialize_stage_artifact_delta",
+                    "allowed_actions": ["materialize_stage_artifact_delta"],
+                    "required_delta_kind": "stage_artifact_delta",
+                    "work_unit_id": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "publication_package_manifest.json"
+                    ),
+                },
+            },
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "owner": "MedAutoScience",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "reason": "medical_paper_readiness_missing",
+                    "required_input": "complete_medical_paper_readiness_surface",
+                    "blocked_surface": "publication_handoff_owner_gate",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                    "source_kind": "typed_blocker",
+                },
+                "stage_run_kernel": {
+                    "status": "TypedBlocked",
+                    "typed_blocker_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+        }
+    )
+
+    action = monitoring["current_executable_owner_action"]
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["next_owner"] == "MedAutoScience"
+    assert monitoring["controller_action"] == "complete_medical_paper_readiness_surface"
+    assert monitoring["next_work_unit"] == "complete_medical_paper_readiness_surface"
+    assert action["source"] == "stage_kernel_projection.current_owner_delta"
+    assert action["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
+    assert action["source_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    assert action["artifact_first_precedence"] == {
+        "superseded_stage_artifact_action": "publication_handoff_owner_gate",
+        "reason": "medical_paper_readiness_missing",
+        "typed_blocker_followup_takes_precedence": True,
+    }
+
 __all__ = [name for name in globals() if name.startswith("test_")]

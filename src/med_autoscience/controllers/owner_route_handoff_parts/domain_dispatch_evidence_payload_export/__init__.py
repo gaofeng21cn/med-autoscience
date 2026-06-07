@@ -26,6 +26,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
     PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT,
     PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER,
+    READINESS_ACTION_TYPE,
     SUPPORTED_SUPERSEDED_ACTION_TYPE,
     SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE,
     SURFACE_KIND,
@@ -65,6 +66,7 @@ def build_dispatch_evidence_payload_export(
         SUPPORTED_SUPERSEDED_ACTION_TYPE,
         SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE,
         GATE_CLEARING_ACTION_TYPE,
+        READINESS_ACTION_TYPE,
     }:
         return _blocked(
             profile=profile,
@@ -177,6 +179,7 @@ def build_dispatch_evidence_payload_export(
     explanation = blocker_explanation(payload_blocker_class)
     stage_attempt_source_fingerprint = text(target_identity.get("source_fingerprint"))
     domain_source_fingerprint = text(target_identity.get("domain_source_fingerprint"))
+    closeout_binding = _opl_stage_run_closeout_binding(target_identity)
     evidence_payload = build_domain_dispatch_evidence_record_payload(
         task_kind=text(target_identity.get("task_kind")) or TASK_KIND,
         study_id=study_id,
@@ -192,6 +195,7 @@ def build_dispatch_evidence_payload_export(
         source_fingerprint=domain_source_fingerprint,
         stage_attempt_source_fingerprint=stage_attempt_source_fingerprint,
         profile_name=text(target_identity.get("profile_name")) or profile.name,
+        opl_stage_run_closeout_binding=closeout_binding,
     )
     return {
         "surface_kind": SURFACE_KIND,
@@ -241,6 +245,40 @@ def _blocked(
         "dispatch_identity_fields": dict(mapping(workorder.get("dispatch_identity_fields"))),
         "authority_boundary": authority_boundary(),
     }
+
+
+def _opl_stage_run_closeout_binding(target_identity: Mapping[str, Any]) -> dict[str, Any]:
+    binding = {
+        "surface_kind": "opl_stage_run_closeout_binding",
+        "trusted_opl_execution_authorization": True,
+        "bound_to_stage_run": True,
+        "bound_to_stage_manifest": True,
+        "bound_to_current_pointer": True,
+        "bound_to_source_fingerprint": True,
+        "stage_run_id": text(target_identity.get("stage_run_id")),
+        "stage_manifest_ref": text(target_identity.get("stage_manifest_ref")),
+        "current_pointer_ref": text(target_identity.get("current_pointer_ref")),
+        "source_fingerprint": text(target_identity.get("source_fingerprint")),
+        "idempotency_key": text(target_identity.get("idempotency_key")),
+        "provider_attempt_ref": text(target_identity.get("provider_attempt_ref")),
+        "attempt_lease_ref": text(target_identity.get("attempt_lease_ref")),
+        "execution_authorization_decision_ref": text(
+            target_identity.get("execution_authorization_decision_ref")
+        ),
+    }
+    required = (
+        "stage_run_id",
+        "stage_manifest_ref",
+        "current_pointer_ref",
+        "source_fingerprint",
+        "idempotency_key",
+        "provider_attempt_ref",
+        "attempt_lease_ref",
+        "execution_authorization_decision_ref",
+    )
+    if any(binding.get(field) is None for field in required):
+        return {}
+    return binding
 
 
 def _evidence_refs(

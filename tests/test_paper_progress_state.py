@@ -496,6 +496,43 @@ def test_dm003_opl_live_provider_attempt_with_paper_delta_is_progressing() -> No
     assert state["why_not_progressing"] is None
 
 
+def test_stale_paper_delta_refs_do_not_count_as_active_progress() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "study_macro_state": {
+                "writer_state": "queued",
+                "user_next": "repair",
+                "reason": "quality",
+                "details": {"package_delivered": False},
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "stale",
+                    "latest_progress_at": "2026-06-07T01:53:49+00:00",
+                    "changed_refs": [
+                        (
+                            "artifacts/stage_outputs/_body_authority/paper_authority_cutover/"
+                            "current_body/paper/figures/generated/F1_cohort_flow.png"
+                        ),
+                    ],
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "next_owner": "08-publication_package_handoff",
+                "allowed_actions": ["materialize_stage_artifact_delta"],
+            },
+        }
+    )
+
+    assert state["actual_write_active"] is False
+    assert state["meaningful_artifact_delta"] is False
+    assert state["paper_facing_progress_slo"]["visible_as_progressing"] is False
+    assert state["paper_facing_progress_slo"]["changed_refs"] == []
+
+
 def test_paper_facing_stage_log_refs_count_as_meaningful_delta() -> None:
     state = _module().build_paper_progress_state(
         {

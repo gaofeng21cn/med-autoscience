@@ -917,6 +917,51 @@ def test_envelope_prefers_running_provider_attempt_over_stale_parked_projection(
     assert envelope["parked_state"] is None
 
 
+def test_envelope_ignores_stale_running_attempt_when_owner_action_supersedes_user_park() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        progress={
+            "opl_runtime_refs": {
+                "strict_live": False,
+                "active_run_id": None,
+                "runtime_liveness_status": "unknown",
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+                "source_reason": "quest_waiting_for_user",
+            },
+        },
+        actions=[
+            {
+                "action_type": "materialize_stage_artifact_delta",
+                "owner": "08-publication_package_handoff",
+                "next_work_unit": "materialize_stage_artifact_delta",
+            }
+        ],
+        next_owner="08-publication_package_handoff",
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_stage_attempt_id": "sat-terminal-stale",
+            "active_workflow_id": "wf-terminal-stale",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+        },
+        runtime_health={
+            "canonical_runtime_action": "continue_supervising_runtime",
+            "runtime_liveness_status": "unknown",
+        },
+    )
+
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "08-publication_package_handoff"
+    assert envelope["next_work_unit"] == "materialize_stage_artifact_delta"
+    assert envelope["typed_blocker"] is None
+
+
 def test_envelope_preserves_explicit_typed_blocker_over_action_queue() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 

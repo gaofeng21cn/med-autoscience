@@ -79,6 +79,8 @@ def build_current_execution_envelope(
         runtime_health=runtime_health,
         owner=next_owner,
     )
+    if running_attempt is not None and _running_attempt_invalidated_by_progress(progress_payload):
+        running_attempt = None
     if running_attempt is not None:
         if _running_attempt_can_supersede_blocker(resolved_typed_blocker):
             return _envelope(
@@ -324,6 +326,24 @@ def _running_provider_attempt_state(
     return {
         "owner": _text(owner) or "supervisor_only/live_provider_attempt",
         "next_work_unit": next_work_unit,
+    }
+
+
+def _running_attempt_invalidated_by_progress(progress: Mapping[str, Any]) -> bool:
+    runtime_refs = _mapping(progress.get("opl_runtime_refs"))
+    if runtime_refs.get("strict_live") is not False:
+        return False
+    if _text(runtime_refs.get("active_run_id")) is not None:
+        return False
+    auto_parked = _mapping(progress.get("auto_runtime_parked"))
+    if auto_parked.get("superseded_by_current_owner_action") is not True:
+        return False
+    return _text(runtime_refs.get("runtime_liveness_status")) in {
+        "unknown",
+        "none",
+        "not_live",
+        "stale",
+        "parked",
     }
 
 

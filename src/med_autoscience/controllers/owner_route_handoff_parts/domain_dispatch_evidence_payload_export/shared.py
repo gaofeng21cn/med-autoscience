@@ -83,6 +83,7 @@ WRITE_OWNER = "write"
 WRITE_ACTION_TYPE = "run_quality_repair_batch"
 GATE_CLEARING_OWNER = "gate_clearing_batch"
 GATE_CLEARING_ACTION_TYPE = "run_gate_clearing_batch"
+READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
 
 
 def mapping(value: object) -> Mapping[str, Any]:

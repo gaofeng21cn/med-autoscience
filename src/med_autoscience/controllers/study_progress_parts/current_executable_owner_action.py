@@ -58,9 +58,9 @@ def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[st
     if _non_empty_text(readiness.get("overall_status")) == "ready":
         return None
     delta = _current_owner_delta(payload)
-    if _non_empty_text(delta.get("action")) != READINESS_ACTION:
+    if _readiness_action(delta) != READINESS_ACTION:
         return None
-    if _non_empty_text(delta.get("reason")) != READINESS_BLOCKER:
+    if not _is_stage_kernel_typed_blocker_followup(delta):
         return None
     source_ref = _non_empty_text(delta.get("source_ref"))
     next_action = _readiness_next_action(readiness=readiness, delta=delta)
@@ -96,7 +96,7 @@ def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[st
             or _non_empty_text(delta.get("source_kind")),
             "artifact_first_precedence": {
                 "superseded_stage_artifact_action": PUBLICATION_HANDOFF_ACTION,
-                "reason": READINESS_BLOCKER,
+                "reason": _non_empty_text(delta.get("reason")) or READINESS_BLOCKER,
                 "typed_blocker_followup_takes_precedence": True,
             },
             "authority_boundary": _authority_boundary(),
@@ -206,6 +206,22 @@ def _readiness_surface_key(*, next_action: Mapping[str, Any], delta: Mapping[str
         _non_empty_text(delta.get("surface_key"))
         or _non_empty_text(next_action.get("surface_key"))
     )
+
+
+def _readiness_action(delta: Mapping[str, Any]) -> str | None:
+    return _non_empty_text(delta.get("action")) or _non_empty_text(delta.get("action_type"))
+
+
+def _is_stage_kernel_typed_blocker_followup(delta: Mapping[str, Any]) -> bool:
+    if _non_empty_text(delta.get("source_kind")) == "typed_blocker":
+        return True
+    if _non_empty_text(delta.get("required_input")) == READINESS_ACTION:
+        return True
+    if _non_empty_text(delta.get("blocked_surface")) == PUBLICATION_HANDOFF_ACTION:
+        return True
+    if _non_empty_text(delta.get("latest_owner_answer_kind")) == "typed_blocker":
+        return True
+    return bool(_text_items(delta.get("typed_blocker_refs")))
 
 
 def _mapping_items(value: object) -> list[dict[str, Any]]:

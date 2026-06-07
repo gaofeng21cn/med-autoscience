@@ -39,6 +39,7 @@ def build_domain_dispatch_evidence_record_payload(
     source_fingerprint: str | None = None,
     stage_attempt_source_fingerprint: str | None = None,
     profile_name: str | None = None,
+    opl_stage_run_closeout_binding: Mapping[str, Any] | None = None,
     reason_details: Mapping[str, Any] | None = None,
     reason_source_refs: Sequence[str | Mapping[str, Any]] = (),
     explanation: str | None = None,
@@ -288,6 +289,10 @@ def build_domain_dispatch_evidence_record_payload(
         record_payload["study_id"] = normalized_study_id
     if normalized_stage_id is not None:
         record_payload["stage_id"] = normalized_stage_id
+    if isinstance(opl_stage_run_closeout_binding, Mapping) and opl_stage_run_closeout_binding:
+        record_payload["owner_delta_result"] = {
+            "closeout_binding": dict(opl_stage_run_closeout_binding),
+        }
     identity_payload_fields = {
         "source_fingerprint": normalized_payload_source_fingerprint,
         "domain_source_fingerprint": normalized_source_fingerprint,

@@ -154,8 +154,10 @@ def _paper_facing_progress_slo(payload: Mapping[str, Any]) -> dict[str, Any]:
 def _paper_delta_changed_refs(payload: Mapping[str, Any]) -> list[str]:
     progress_freshness = _mapping(payload.get("progress_freshness"))
     artifact_delta = _mapping(progress_freshness.get("meaningful_artifact_delta_freshness"))
-    refs = _string_items(artifact_delta.get("changed_refs"))
-    refs.extend(_string_items(artifact_delta.get("evidence_refs")))
+    refs: list[str] = []
+    if _text(artifact_delta.get("status")) == "fresh":
+        refs.extend(_string_items(artifact_delta.get("changed_refs")))
+        refs.extend(_string_items(artifact_delta.get("evidence_refs")))
     scan_delta = _mapping(payload.get("artifact_delta"))
     refs.extend(_string_items(scan_delta.get("changed_refs")))
     refs.extend(_string_items(scan_delta.get("evidence_refs")))

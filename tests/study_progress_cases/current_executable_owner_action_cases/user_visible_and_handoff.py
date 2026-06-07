@@ -100,6 +100,68 @@ def test_user_visible_projection_does_not_mark_stale_live_macro_state_as_running
         "产出 owner receipt、typed blocker 或下一 owner handoff。"
     )
 
+
+def test_user_visible_projection_ignores_stale_run_id_when_owner_action_supersedes_user_park() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.user_visible_projection")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "active_run_id": "opl-stage-attempt://sat-terminal-stale",
+            "supervision": {
+                "active_run_id": "opl-stage-attempt://sat-terminal-stale",
+                "health_status": "stale",
+            },
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "writer_state": "queued",
+                "user_next": "repair",
+                "reason": "quality",
+                "details": {
+                    "decision_owner": "MedAutoScience",
+                    "route_owner": "MedAutoScience",
+                    "next_work_unit": "complete_medical_paper_readiness_surface",
+                },
+                "conditions": [
+                    {
+                        "type": "CurrentOwnerActionSupersedesStaleUserPark",
+                        "status": "true",
+                        "reason": (
+                            "Stage Native current owner action exists and no current "
+                            "human-gate authority ref is present."
+                        ),
+                    }
+                ],
+            },
+            "auto_runtime_parked": {
+                "parked": False,
+                "superseded_by_current_owner_action": True,
+                "source_reason": "quest_waiting_for_user",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "stage_kernel_projection.current_owner_delta",
+                "next_owner": "MedAutoScience",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                "source_ref": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+                ),
+            },
+        }
+    )
+
+    assert projection["state"] == "queued/repair/quality"
+    assert projection["writer_state"] == "queued"
+    assert projection["actual_write_active"] is False
+    assert projection["owner_resolution_state"] == "ready_for_owner_action"
+    assert projection["next_owner"] == "MedAutoScience"
+
 def test_current_owner_handoff_projection_prefers_current_executable_owner_action_next_step() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_handoff_projection"

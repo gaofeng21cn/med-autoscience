@@ -99,6 +99,67 @@ def _current_owner_route_blocker_scan(study_id: str) -> dict[str, object]:
     }
 
 
+def _readiness_owner_route_blocker_scan(study_id: str) -> dict[str, object]:
+    return {
+        "studies": [
+            {
+                "study_id": study_id,
+                "blocked_reason": "medical_paper_readiness_not_ready",
+                "owner_route": {
+                    "next_owner": "MedAutoScience",
+                    "owner_reason": "medical_paper_readiness_not_ready",
+                    "source_fingerprint": "truth-snapshot::dpcc-readiness-current",
+                    "idempotency_key": (
+                        f"owner-route::{study_id}::truth-event-000041-dpcc::"
+                        "MedAutoScience::medical_paper_readiness_not_ready::a2f1ce9d"
+                    ),
+                    "source_refs": {
+                        "study_truth_epoch": "truth-event-000041-dpcc",
+                        "runtime_health_epoch": "runtime-health-event-readiness-041",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "work_unit_fingerprint": "truth-snapshot::dpcc-readiness-current",
+                        "blocked_reason": "medical_paper_readiness_not_ready",
+                        "publication_eval_path": (
+                            "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                            "artifacts/publication_eval/latest.json"
+                        ),
+                    },
+                    "owner_reason_contract": {
+                        "registered": True,
+                        "reason": "medical_paper_readiness_not_ready",
+                        "owner": "MedAutoScience",
+                        "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                    },
+                    "currentness_contract": {
+                        "status": "currentness_basis_required",
+                        "missing_required_fields": [],
+                    },
+                    "owner_route_attempt_protocol": {
+                        "version": "mas-owner-route-attempt-protocol.v1",
+                        "dispatchable": False,
+                    },
+                },
+                "domain_authority_handoff": {
+                    "surface_kind": "mas_domain_authority_handoff",
+                    "status": "typed_blocker",
+                    "typed_blocker": {
+                        "surface_kind": "mas_domain_typed_blocker",
+                        "blocker_kind": "owner_route_blocked",
+                        "reason": "medical_paper_readiness_not_ready",
+                        "next_owner": "MedAutoScience",
+                        "source_fingerprint": "truth-snapshot::dpcc-readiness-current",
+                        "idempotency_key": (
+                            f"owner-route::{study_id}::truth-event-000041-dpcc::"
+                            "MedAutoScience::medical_paper_readiness_not_ready::a2f1ce9d"
+                        ),
+                        "provider_completion_is_domain_completion": False,
+                    },
+                },
+            }
+        ]
+    }
+
+
 def _write_current_owner_workorder(
     *,
     path: Path,
@@ -121,6 +182,19 @@ def _write_current_owner_workorder(
                 "study_id": study_id,
                 "source_fingerprint": stage_attempt_source,
                 "domain_source_fingerprint": domain_source,
+                "stage_run_id": "app-stage-run:medautoscience:domain-owner-default-executor-dispatch",
+                "stage_manifest_ref": "opl://stage-manifests/domain_owner%2Fdefault-executor-dispatch",
+                "current_pointer_ref": (
+                    "opl://stage-runs/app-stage-run%3Amedautoscience%3A"
+                    "domain-owner-default-executor-dispatch/current"
+                ),
+                "idempotency_key": f"idem_{stage_attempt_id}",
+                "provider_attempt_ref": f"temporal://attempt/{stage_attempt_id}",
+                "attempt_lease_ref": f"opl://stage-attempts/{stage_attempt_id}/leases/frt-current/active",
+                "execution_authorization_decision_ref": (
+                    f"opl://stage-attempts/{stage_attempt_id}/execution-authorizations/"
+                    "frt-current/wf-current"
+                ),
                 "profile_name": "dm-cvd-mortality-risk",
             },
             "dispatch_identity_fields": {
@@ -190,6 +264,10 @@ def _run_payload_export(monkeypatch, tmp_path: Path, capsys, *, action_type: str
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source
     assert record_payload["domain_source_fingerprint"] == domain_source
+    assert record_payload["owner_delta_result"]["closeout_binding"]["source_fingerprint"] == stage_attempt_source
+    assert record_payload["owner_delta_result"]["closeout_binding"]["provider_attempt_ref"] == (
+        f"temporal://attempt/{stage_attempt_id}"
+    )
     assert record_payload["typed_blocker_refs"]
     assert stage_attempt_source in record_payload["typed_blocker_refs"][0]
     assert dispatch_ref in record_payload["evidence_refs"]
@@ -213,6 +291,76 @@ def _run_payload_export(monkeypatch, tmp_path: Path, capsys, *, action_type: str
     assert payload["domain_dispatch_evidence_record_payload"]["domain_ready_claimed"] is False
     assert payload["domain_dispatch_evidence_record_payload"]["publication_ready_claimed"] is False
     return payload
+
+
+def test_domain_handler_dispatch_evidence_payload_projects_readiness_current_owner_route_blocker(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    stage_attempt_id = "sat_05313b31327f1b145eeea680"
+    stage_attempt_source = "mas_default_executor_source_0be125f91ef430f09f900c73"
+    domain_source = "c6fc80c7adf241f7"
+    dispatch_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+        "consumer/default_executor_dispatches/immutable/complete_medical_paper_readiness_surface/"
+        "ee9be6b2a20e61bffc19efde.json"
+    )
+    workorder_path = tmp_path / f"{stage_attempt_id}.workorder.json"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    _write_current_owner_workorder(
+        path=workorder_path,
+        study_id=study_id,
+        action_type="complete_medical_paper_readiness_surface",
+        stage_attempt_id=stage_attempt_id,
+        stage_attempt_source=stage_attempt_source,
+        domain_source=domain_source,
+        dispatch_ref=dispatch_ref,
+    )
+
+    def fake_scan_domain_routes(*, profile, study_ids, apply_safe_actions, developer_supervisor_mode):
+        assert study_ids == (study_id,)
+        return _readiness_owner_route_blocker_scan(study_id)
+
+    monkeypatch.setattr(cli.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+
+    exit_code = cli.main(
+        [
+            "domain-handler",
+            "dispatch-evidence-payload",
+            "--profile",
+            str(profile_path),
+            "--workorder",
+            str(workorder_path),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="current_owner_route_blocked",
+        detail_reason="current_owner_route_typed_blocker_observed_for_default_executor_dispatch",
+    )
+    _assert_refs_only_current_owner_route_blocker_contract(
+        payload,
+        expected_action_type="complete_medical_paper_readiness_surface",
+        expected_next_owner="MedAutoScience",
+        expected_owner_reason="medical_paper_readiness_not_ready",
+        expected_dispatch_ref=dispatch_ref,
+    )
+    record_payload = payload["opl_runtime_action_execute_payload"]
+    assert record_payload["source_fingerprint"] == stage_attempt_source
+    assert record_payload["domain_source_fingerprint"] == domain_source
+    assert stage_attempt_source in record_payload["typed_blocker_refs"][0]
+    assert "owner-route-reconcile:blocked_reason=medical_paper_readiness_not_ready" in record_payload[
+        "evidence_refs"
+    ]
 
 
 def test_domain_handler_dispatch_evidence_payload_projects_reviewer_dispatch_current_owner_route_blocker(

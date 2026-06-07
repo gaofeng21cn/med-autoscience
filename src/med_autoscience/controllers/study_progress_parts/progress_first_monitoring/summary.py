@@ -79,21 +79,37 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _mapping(domain_transition.get("typed_blocker"))
         or terminal_closeout_blocker
     )
-    artifact_first_supersedes_blocker = bool(stage_artifact_action) and not _terminal_publication_gate_action(stage_artifact_action) and (
-        not raw_typed_blocker
-        or _stage_artifact_index_has_precedence_evidence(
-            payload.get("stage_artifact_index"),
-            typed_blocker=raw_typed_blocker,
+    payload_current_action = _mapping(payload.get("current_executable_owner_action"))
+    non_artifact_current_action = _mapping(
+        build_current_executable_owner_action({**payload, "stage_artifact_index": {}})
+    )
+    stage_kernel_current_action = (
+        payload_current_action
+        if _stage_kernel_owner_action(payload_current_action)
+        else (
+            non_artifact_current_action
+            if _stage_kernel_owner_action(non_artifact_current_action)
+            else {}
         )
     )
-    payload_current_action = _mapping(payload.get("current_executable_owner_action"))
+    artifact_first_supersedes_blocker = bool(stage_artifact_action) and not _terminal_publication_gate_action(stage_artifact_action) and (
+        not stage_kernel_current_action
+        and (
+            not raw_typed_blocker
+            or _stage_artifact_index_has_precedence_evidence(
+                payload.get("stage_artifact_index"),
+                typed_blocker=raw_typed_blocker,
+            )
+        )
+    )
     if _artifact_first_owner_action(payload_current_action) and not artifact_first_supersedes_blocker:
         payload_current_action = {}
     effective_stage_artifact_action = stage_artifact_action if artifact_first_supersedes_blocker else {}
     current_action = (
-        effective_stage_artifact_action
+        stage_kernel_current_action
+        or effective_stage_artifact_action
         or payload_current_action
-        or _mapping(build_current_executable_owner_action({**payload, "stage_artifact_index": {}}))
+        or non_artifact_current_action
     )
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
     next_work_unit = (

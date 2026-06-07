@@ -32,6 +32,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON,
     RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON,
     PUBLICATION_GATE_ROUTE_BACK_WRITE_REQUIRED_REASON,
+    READINESS_ACTION_TYPE,
     SUPPORTED_SUPERSEDED_ACTION_TYPE,
     SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE,
     WRITE_ACTION_TYPE,
@@ -98,6 +99,11 @@ def payload_reason_for_superseded_dispatch(
         return PAYLOAD_REASON_DELIVERED_PACKAGE_HANDOFF_TYPED_BLOCKER
     if (
         action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and current_owner_route_typed_blocker_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER
+    if (
+        action_type == READINESS_ACTION_TYPE
         and current_owner_route_typed_blocker_observed(study_scan)
     ):
         return PAYLOAD_REASON_CURRENT_OWNER_ROUTE_TYPED_BLOCKER
