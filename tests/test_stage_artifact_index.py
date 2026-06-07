@@ -320,6 +320,46 @@ def test_stage_artifact_index_exposes_legacy_taxonomy_migration_without_dual_cur
     assert not set(EXPECTED_LEGACY_ROUTE_IDS).intersection(
         {stage["stage_id"] for stage in index["stages"]}
     )
+    by_stage = {stage["stage_id"]: stage for stage in index["stages"]}
+    assert all("legacy_taxonomy_migration_read_model" in stage for stage in index["stages"])
+    intake_migration = by_stage["01-study_intake"]["legacy_taxonomy_migration_read_model"]
+    assert intake_migration["surface_kind"] == "legacy_stage_taxonomy_migration_stage_read_model"
+    assert intake_migration["legacy_route_ids"] == ["scout"]
+    assert intake_migration["stage_native_stage_id"] == "01-study_intake"
+    assert intake_migration["migration_status"] == "current_pointer_backfill_required"
+    assert intake_migration["backfilled_current_pointer"] == {
+        "status": "missing",
+        "pointer_ref": "artifacts/stage_outputs/01-study_intake/current_pointer.json",
+        "promotion_state": "attempt_output_required",
+    }
+    assert intake_migration["tombstone_or_provenance_required"] is True
+    assert intake_migration["tombstone_or_provenance_ref"] == (
+        f"{PAPER_STUDY_STAGE_PACK_REF}#/legacy_taxonomy_migration/mappings/scout"
+    )
+    assert intake_migration["workbench_dual_truth_forbidden"] is True
+    assert intake_migration["legacy_route_is_current_truth"] is False
+    assert intake_migration["current_truth_surface"] == "paper_study_stage_pack"
+    assert intake_migration["fail_closed"] is True
+    assert intake_migration["fail_closed_reason"] == "current_pointer_backfill_required"
+    assert intake_migration["next_owner_action"]["action_type"] == "materialize_stage_artifact_delta"
+    assert intake_migration["next_owner_action"]["owner"] == "01-study_intake"
+    assert intake_migration["authority"]["writes_mas_truth"] is False
+    assert intake_migration["body_included"] is False
+    review_migration = by_stage["07-independent_review_and_revision"][
+        "legacy_taxonomy_migration_read_model"
+    ]
+    assert review_migration["legacy_route_ids"] == ["review", "decision"]
+    assert {
+        item["legacy_route_id"]: item["stage_native_stage_id"]
+        for item in review_migration["legacy_stage_mappings"]
+    } == {
+        "review": "07-independent_review_and_revision",
+        "decision": "07-independent_review_and_revision",
+    }
+    assert review_migration["tombstone_or_provenance_refs"] == [
+        f"{PAPER_STUDY_STAGE_PACK_REF}#/legacy_taxonomy_migration/mappings/review",
+        f"{PAPER_STUDY_STAGE_PACK_REF}#/legacy_taxonomy_migration/mappings/decision",
+    ]
 
 
 def test_stage_artifact_index_does_not_count_existing_files_without_manifest_and_receipt_as_current(
@@ -405,6 +445,11 @@ def test_stage_artifact_index_counts_manifest_receipt_and_required_outputs_as_cu
     assert {item["classification"] for item in study_intake["observed_artifact_refs"]} == {
         "current"
     }
+    assert study_intake["legacy_taxonomy_migration_read_model"]["migration_status"] == (
+        "backfilled_current_pointer_present"
+    )
+    assert study_intake["legacy_taxonomy_migration_read_model"]["fail_closed"] is False
+    assert study_intake["legacy_taxonomy_migration_read_model"]["next_owner_action"] == {}
     assert study_intake["next_missing_surface"] is None
     assert index["current_stage"]["stage_id"] == "02-protocol_and_analysis_plan"
     assert index["next_owner_action"]["owner"] == "02-protocol_and_analysis_plan"

@@ -218,7 +218,7 @@ def _build_stage_artifact_state(
         operating_contract=operating_contract,
         promotion_protocol=promotion_protocol,
     )
-    return {
+    stage_state = {
         "surface_kind": "stage_artifact_state",
         "stage_id": stage_id,
         "display_name": str(stage_spec.get("display_name") or stage_id),
@@ -247,6 +247,15 @@ def _build_stage_artifact_state(
         "next_routes": list(stage_spec.get("next_stage_ids") or ()),
         "authority_boundary": _authority_boundary(),
     }
+    stage_state["legacy_taxonomy_migration_read_model"] = (
+        _legacy_taxonomy_migration_stage_read_model(
+            stage_id=stage_id,
+            legacy_stage_mappings=legacy_stage_mappings,
+            current_pointer=current_pointer,
+            next_owner_action=_next_owner_action(stage_state),
+        )
+    )
+    return stage_state
 
 
 def _stage_folder_contract(
@@ -455,6 +464,93 @@ def _legacy_role_refs_for_stage(
                 }
             )
     return tuple(refs)
+
+
+def _legacy_taxonomy_migration_stage_read_model(
+    *,
+    stage_id: str,
+    legacy_stage_mappings: tuple[Mapping[str, Any], ...],
+    current_pointer: Mapping[str, Any],
+    next_owner_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    legacy_route_ids = [
+        _required_text(mapping.get("legacy_route_id"), "legacy_route_id")
+        for mapping in legacy_stage_mappings
+    ]
+    current_pointer_ref = _required_text(current_pointer.get("pointer_ref"), "pointer_ref")
+    promotion_state = _required_text(current_pointer.get("promotion_state"), "promotion_state")
+    pointer_present = promotion_state == "current_pointer_promoted"
+    tombstone_refs = [
+        f"{_PAPER_STUDY_STAGE_PACK_REF}#/legacy_taxonomy_migration/mappings/{legacy_route_id}"
+        for legacy_route_id in legacy_route_ids
+    ]
+    tombstone_present = bool(tombstone_refs)
+    fail_closed_reason = _legacy_taxonomy_fail_closed_reason(
+        pointer_present=pointer_present,
+        tombstone_present=tombstone_present,
+    )
+    migration_status = (
+        "backfilled_current_pointer_present"
+        if fail_closed_reason is None
+        else fail_closed_reason
+    )
+    return {
+        "surface_kind": "legacy_stage_taxonomy_migration_stage_read_model",
+        "schema_version": 1,
+        "contract_ref": f"{_PAPER_STUDY_STAGE_PACK_REF}#/legacy_taxonomy_migration",
+        "stage_native_stage_id": stage_id,
+        "legacy_route_ids": legacy_route_ids,
+        "legacy_stage_mappings": [
+            {
+                "legacy_route_id": legacy_route_id,
+                "stage_native_stage_id": stage_id,
+                "migration_status": migration_status,
+                "current_pointer_ref": current_pointer_ref,
+                "tombstone_or_provenance_ref": tombstone_ref,
+                "legacy_route_is_current_truth": False,
+            }
+            for legacy_route_id, tombstone_ref in zip(legacy_route_ids, tombstone_refs, strict=True)
+        ],
+        "migration_status": migration_status,
+        "backfill_status": migration_status,
+        "backfilled_current_pointer": {
+            "status": "present" if pointer_present else "missing",
+            "pointer_ref": current_pointer_ref,
+            "promotion_state": promotion_state,
+        },
+        "tombstone_or_provenance_required": True,
+        "tombstone_or_provenance_present": tombstone_present,
+        "tombstone_or_provenance_ref": tombstone_refs[0] if len(tombstone_refs) == 1 else None,
+        "tombstone_or_provenance_refs": tombstone_refs,
+        "workbench_dual_truth_forbidden": True,
+        "workbench_display_current_truth": "paper_study_stage_pack",
+        "legacy_route_is_current_truth": False,
+        "current_truth_surface": "paper_study_stage_pack",
+        "fail_closed": fail_closed_reason is not None,
+        "fail_closed_reason": fail_closed_reason,
+        "next_owner_action": dict(next_owner_action) if fail_closed_reason is not None else {},
+        "authority": {
+            **_authority_boundary(),
+            "derived_projection": True,
+            "writes_mas_truth": False,
+            "writes_study_truth": False,
+            "writes_current_pointer": False,
+            "claims_publication_ready": False,
+        },
+        "body_included": False,
+    }
+
+
+def _legacy_taxonomy_fail_closed_reason(
+    *,
+    pointer_present: bool,
+    tombstone_present: bool,
+) -> str | None:
+    if not tombstone_present:
+        return "tombstone_or_provenance_required"
+    if not pointer_present:
+        return "current_pointer_backfill_required"
+    return None
 
 
 def _artifact_classification(
