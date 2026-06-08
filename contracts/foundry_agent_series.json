@@ -213,7 +213,7 @@
     "consumer_alignment_check": "family:shared-release",
     "domain_contract_version_pin_does_not_authorize_domain_truth": true,
     "domain_dependency_pin_required": true,
-    "owner_commit_pin": "ab30fb9c1b86de034c95bc5b4ebdf89eafa86e44",
+    "owner_commit_pin": "dccebdb3fb981ab51cfd1a42cbef5306598b0fb6",
     "owner_commit_pin_required": true,
     "owner_release_contract_ref": "contracts/family-release/shared-owner-release.json",
     "supported_pin_sources": [

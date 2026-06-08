@@ -106,7 +106,7 @@ def test_foundry_agent_series_contract_pins_opl_owner_release_contract() -> None
         "contracts/family-release/shared-owner-release.json"
     )
     assert release_pin["owner_commit_pin_required"] is True
-    assert release_pin["owner_commit_pin"] == "ab30fb9c1b86de034c95bc5b4ebdf89eafa86e44"
+    assert release_pin["owner_commit_pin"] == "dccebdb3fb981ab51cfd1a42cbef5306598b0fb6"
     assert release_pin["domain_dependency_pin_required"] is True
     assert release_pin["consumer_alignment_check"] == "family:shared-release"
     assert release_pin["domain_contract_version_pin_does_not_authorize_domain_truth"] is True
