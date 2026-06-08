@@ -6,7 +6,7 @@ from med_autoscience.cli_public_surface import GROUPED_COMMAND_PROGS
 from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
 from med_autoscience.cli_parts.study_action_commands import register_study_action_parsers
 from med_autoscience.figure_routes import supported_required_route_help
-from med_autoscience.foundry_frontdoor import FOUNDRY_OPERATIONS
+from med_autoscience.foundry_command_surface import FOUNDRY_OPERATIONS
 
 
 ACTIVE_SUPERVISION_MANAGERS = ("opl",)

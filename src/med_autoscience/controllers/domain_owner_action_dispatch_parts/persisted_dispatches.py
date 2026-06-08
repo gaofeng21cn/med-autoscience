@@ -23,6 +23,7 @@ from . import writer_handoff_currentness
 
 
 SUPERVISION_LATEST_RELATIVE_PATH = domain_route_contract.SUPERVISION_LATEST_RELATIVE_PATH
+CONSUMER_LATEST_RELATIVE_PATH = Path("runtime/artifacts/supervision/consumer/latest.json")
 OWNER_REQUEST_RELATIVE_PATHS = owner_request_paths.OWNER_REQUEST_RELATIVE_PATHS
 
 
@@ -70,7 +71,15 @@ def explicit_action_dispatches(
         payload["refs"] = {**refs, "dispatch_path": str(path)}
         scan_payload = scan_latest_payload(profile)
         current_study = _scan_study(scan_payload, study_id)
-        scan_route_current = _dispatch_currentness_score(payload, current_study) > (0, 0)
+        consumer_dispatch_current = _consumer_latest_matches_dispatch(
+            profile=profile,
+            study_id=study_id,
+            dispatch=payload,
+        )
+        scan_route_current = (
+            consumer_dispatch_current
+            and _dispatch_currentness_score(payload, current_study) > (0, 0)
+        )
         stage_native_next_action_current = _stage_native_next_action_matches_dispatch(
             profile=profile,
             study_id=study_id,
@@ -92,12 +101,11 @@ def explicit_action_dispatches(
                 dispatch=payload,
             )
             and not scan_route_current
-            and live_provider_attempt_owner_route_from_scan_payload(
+            and not live_provider_attempt_owner_route_from_scan_payload(
                 scan_payload=scan_payload,
                 study_id=study_id,
                 dispatch=payload,
             )
-            is None
             and not stage_native_next_action_current
             and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
                 profile=profile,
@@ -113,6 +121,30 @@ def explicit_action_dispatches(
         seen.add(key)
         dispatches.append(payload)
     return dispatches
+
+
+def _consumer_latest_matches_dispatch(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> bool:
+    dispatch_path = _text(_mapping(dispatch.get("refs")).get("dispatch_path"))
+    if dispatch_path is None:
+        return False
+    for candidate in current_consumer_dispatches(
+        study_id=study_id,
+        consumer_payload=None,
+        consumer_latest_path=profile.workspace_root / CONSUMER_LATEST_RELATIVE_PATH,
+    ):
+        if _text(candidate.get("action_type")) != _text(dispatch.get("action_type")):
+            continue
+        candidate_path = _text(_mapping(candidate.get("refs")).get("dispatch_path"))
+        if candidate_path is None:
+            continue
+        if Path(candidate_path).expanduser().resolve() == Path(dispatch_path).expanduser().resolve():
+            return True
+    return False
 
 
 def selected_dispatches(
@@ -549,7 +581,10 @@ def _dispatch_currentness_score(dispatch: Mapping[str, Any], current_study: Mapp
         )
     )
     route_current = 1 if _dispatch_matches_current_route(dispatch=dispatch, current_route=route) else 0
-    if bridged_route is not None or publication_owner_bridged_route is not None:
+    if (
+        _dispatch_matches_current_route(dispatch=dispatch, current_route=bridged_route)
+        or _dispatch_matches_current_route(dispatch=dispatch, current_route=publication_owner_bridged_route)
+    ):
         route_current = 1
     stall_current = 1 if _dispatch_stall_matches_scan(dispatch=dispatch, current_study=current_study) else 0
     return route_current, stall_current
@@ -584,8 +619,6 @@ def _current_owner_route_from_scan(
     action_route = _current_action_queue_owner_route(current_study, dispatch=dispatch)
     if action_route is not None:
         return action_route
-    if route:
-        return route
     return None
 
 
@@ -612,8 +645,28 @@ def current_owner_route_from_scan_payload(
     action_route = _current_action_queue_owner_route(current_study, dispatch=dispatch)
     if action_route is not None:
         return action_route, "scan_action_queue"
+    return None, None
+
+
+def diagnostic_owner_route_from_scan_payload(
+    *, scan_payload: Mapping[str, Any] | None, study_id: str, dispatch: Mapping[str, Any] | None
+) -> tuple[dict[str, Any] | None, str | None]:
+    current_study = _scan_study(scan_payload, study_id)
+    if dispatch is not None:
+        consumed_transition_route = _matching_consumed_transition_route(
+            current_study=current_study,
+            dispatch=dispatch,
+        )
+        if consumed_transition_route is not None:
+            basis = "consumed_transition_gate_replay" if _gate_replay_route(consumed_transition_route) else "consumed_transition_owner_action"
+            return consumed_transition_route, basis
+    route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
     if route:
         return route, "scan_latest"
+    if dispatch is not None:
+        action_route = _current_action_queue_owner_route(current_study, dispatch=dispatch)
+        if action_route is not None:
+            return action_route, "scan_action_queue"
     return None, None
 
 
@@ -1036,6 +1089,7 @@ __all__ = [
     "current_scan_stall",
     "current_scan_study",
     "current_owner_route_from_scan_payload",
+    "diagnostic_owner_route_from_scan_payload",
     "current_consumer_dispatches",
     "explicit_action_dispatches",
     "live_provider_attempt_owner_route_from_scan_payload",

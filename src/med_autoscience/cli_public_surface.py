@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.foundry_frontdoor import (
+from med_autoscience.foundry_command_surface import (
     FOUNDRY_GROUP,
     FOUNDRY_TOP_LEVEL_ALIASES,
     PUBLIC_HELP_LINES,

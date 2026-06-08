@@ -52,6 +52,7 @@ def current_actions_for_studies(
         dict(action) for action in scan_payload.get("action_queue") or [] if isinstance(action, Mapping)
     ]
     matched_requested_study = False
+    suppressed_fresh_progress_studies: set[str] = set()
     for study in scan_payload.get("studies") or []:
         study_payload = _mapping(study)
         study_id = _text(study_payload.get("study_id"))
@@ -61,24 +62,23 @@ def current_actions_for_studies(
         stage_native_action = stage_native_by_study.get(study_id)
         readiness_followup = _current_readiness_followup_action(study_payload)
         fresh_progress_action = fresh_progress_by_study.get(study_id)
+        top_level_study_actions = _top_level_study_actions(
+            study=study_payload,
+            top_level_actions=top_level_actions,
+        )
         current_route_queue_actions = _current_owner_route_queue_actions(
             study=study_payload,
             top_level_actions=top_level_actions,
         )
-        if fresh_progress_action is not None and _scan_domain_transition_has_current_action(
-            study=study_payload,
-            fresh_action=fresh_progress_action,
-        ):
+        if fresh_progress_action is not None and _scan_currentness_preempts_fresh_progress(study_payload):
+            suppressed_fresh_progress_studies.add(study_id)
             fresh_progress_action = None
         if fresh_progress_action is not None and not fresh_progress_arbitration.can_preempt_scan(
             study=study_payload,
             fresh_action=fresh_progress_action,
             readiness_followup=readiness_followup,
             stage_native_action=stage_native_action,
-            top_level_study_actions=_top_level_study_actions(
-                study=study_payload,
-                top_level_actions=top_level_actions,
-            ),
+            top_level_study_actions=top_level_study_actions,
         ):
             fresh_progress_action = None
         if (
@@ -99,7 +99,7 @@ def current_actions_for_studies(
                     *([fresh_progress_action] if fresh_progress_action is not None else []),
                     *([readiness_followup] if readiness_followup is not None else []),
                     *([stage_native_action] if stage_native_action is not None else []),
-                    *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                    *top_level_study_actions,
                     *[
                         dict(item)
                         for item in study_payload.get("action_queue") or []
@@ -115,7 +115,7 @@ def current_actions_for_studies(
                 for action in [
                     *([readiness_followup] if readiness_followup is not None else []),
                     *([stage_native_action] if stage_native_action is not None else []),
-                    *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                    *top_level_study_actions,
                     *[
                         dict(item)
                         for item in study_payload.get("action_queue") or []
@@ -138,7 +138,7 @@ def current_actions_for_studies(
                     *([fresh_progress_action] if fresh_progress_action is not None else []),
                     *([readiness_followup] if readiness_followup is not None else []),
                     *([stage_native_action] if stage_native_action is not None else []),
-                    *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                    *top_level_study_actions,
                     *[
                         dict(item)
                         for item in study_payload.get("action_queue") or []
@@ -164,7 +164,7 @@ def current_actions_for_studies(
                     _ignored_action(action, "superseded_by_stage_native_next_action_after_readiness_answer")
                     for action in [
                         readiness_followup,
-                        *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                        *top_level_study_actions,
                         *[
                             dict(item)
                             for item in study_payload.get("action_queue") or []
@@ -177,7 +177,7 @@ def current_actions_for_studies(
             ignored.extend(
                 _ignored_action(action, "superseded_by_current_stage_readiness_followup")
                 for action in [
-                    *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                    *top_level_study_actions,
                     *[
                         dict(item)
                         for item in study_payload.get("action_queue") or []
@@ -197,7 +197,7 @@ def current_actions_for_studies(
             ignored.extend(
                 _ignored_action(action, "superseded_by_stage_native_next_action")
                 for action in [
-                    *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                    *top_level_study_actions,
                     *[
                         dict(item)
                         for item in study_payload.get("action_queue") or []
@@ -213,6 +213,8 @@ def current_actions_for_studies(
         per_study_actions.extend(study_actions)
         ignored.extend(study_ignored)
     for study_id, action in fresh_progress_by_study.items():
+        if study_id in suppressed_fresh_progress_studies:
+            continue
         if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
             per_study_actions.append(action)
     for study_id, action in stage_native_by_study.items():
@@ -1144,6 +1146,13 @@ def _current_execution_is_authoritative(study: Mapping[str, Any]) -> bool:
         "executable_owner_action",
         "running_provider_attempt",
     }
+
+
+def _scan_currentness_preempts_fresh_progress(study: Mapping[str, Any]) -> bool:
+    transition = _mapping(study.get("domain_transition"))
+    if _text(transition.get("decision_type")) is not None:
+        return True
+    return _current_execution_is_authoritative(study)
 
 
 def _study_with_owner_route_currentness(

@@ -198,17 +198,6 @@ def action_queue(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     )
-    if current_controller_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=current_controller_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
     analysis_handoff_action = analysis_harmonization_ai_review.completed_ai_reviewer_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -282,6 +271,19 @@ def action_queue(
                 study_id=study_id,
                 quest_id=quest_id,
                 action=ai_reviewer_owner_output_consumption.current_manuscript_record_action(
+                    ai_reviewer_assessment
+                ),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    if _explicit_ai_reviewer_record_current_inputs_request_pending(ai_reviewer_assessment):
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=ai_reviewer_owner_output_consumption.current_inputs_record_action(
                     ai_reviewer_assessment
                 ),
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
@@ -586,6 +588,16 @@ def _explicit_ai_reviewer_record_current_manuscript_request_pending(
         _explicit_ai_reviewer_request_pending(ai_reviewer_assessment)
         and _text(ai_reviewer_assessment.get("blocked_reason"))
         == ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
+    )
+
+
+def _explicit_ai_reviewer_record_current_inputs_request_pending(
+    ai_reviewer_assessment: Mapping[str, Any],
+) -> bool:
+    return (
+        _explicit_ai_reviewer_request_pending(ai_reviewer_assessment)
+        and _text(ai_reviewer_assessment.get("blocked_reason"))
+        == ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_INPUTS_REASON
     )
 
 

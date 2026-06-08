@@ -309,7 +309,8 @@ def _owner_route_source_refs(
         ref = _workspace_relative(relative_path, workspace_root=workspace_root)
     elif role == "opl_current_control_state_owner_route":
         path = workspace_root / relative_path
-        exists = path.exists()
+        legacy_path = workspace_root / "artifacts/supervision/opl_current_control_state/latest.json"
+        exists = path.exists() or legacy_path.exists()
         ref = str(relative_path)
     else:
         path = study_root / relative_path

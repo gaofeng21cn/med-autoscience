@@ -13,7 +13,7 @@ DOMAIN_ALIASES = ("med-autoscience", "mas", "med_auto_science")
 FOUNDRY_OPERATIONS = ("status", "inspect", "interfaces", "validate", "doctor", "peers")
 FOUNDRY_TOP_LEVEL_ALIASES = ("status", "inspect", "interfaces", "validate")
 FOUNDRY_GROUP = "foundry"
-FRONTDOOR_SPINE = ("workspace", "work", "stage", "run", "vault", "handoff", "connect")
+COMMAND_SURFACE_SPINE = ("workspace", "work", "stage", "run", "vault", "handoff", "connect")
 SERIES_PEERS = ("MAS", "MAG", "RCA", "OMA")
 
 AUTHORITY_BOUNDARY_SUMMARY = (
@@ -25,7 +25,7 @@ PUBLIC_HELP_LINES = (
     f"Series: {SERIES_LABEL}",
     f"Agent id: {AGENT_ID}",
     "Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff",
-    "Executable frontdoor: medautosci foundry status --json",
+    "Executable command surface: medautosci foundry status --json",
     f"Authority boundary: {AUTHORITY_BOUNDARY_SUMMARY}",
 )
 
@@ -66,7 +66,7 @@ def operation_from_command(command: str) -> str:
     return operation
 
 
-def build_foundry_frontdoor_projection(*, operation: str) -> dict[str, Any]:
+def build_foundry_command_surface_projection(*, operation: str) -> dict[str, Any]:
     if operation not in FOUNDRY_OPERATIONS:
         raise ValueError(f"Unsupported foundry operation: {operation}")
 
@@ -79,7 +79,7 @@ def build_foundry_frontdoor_projection(*, operation: str) -> dict[str, Any]:
         payload["focus"] = {"peers": payload["peers"]}
     elif operation == "inspect":
         payload["focus"] = {
-            "frontdoor_spine": payload["frontdoor_spine"],
+            "command_surface_spine": payload["command_surface_spine"],
             "ordinary_golden_path": payload["ordinary_golden_path"],
             "authority_boundary": payload["authority_boundary"],
         }
@@ -95,18 +95,18 @@ def build_foundry_frontdoor_projection(*, operation: str) -> dict[str, Any]:
     return payload
 
 
-def render_foundry_frontdoor_text(payload: dict[str, Any]) -> str:
+def render_foundry_command_surface_text(payload: dict[str, Any]) -> str:
     lines = [
         f"Series: {payload['series_label']}",
         f"Agent id: {payload['agent_id']}",
         f"Agent label: {payload['agent_label']}",
         "Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff",
-        "Executable frontdoor: medautosci foundry status --json",
+        "Executable command surface: medautosci foundry status --json",
         f"Authority boundary: {AUTHORITY_BOUNDARY_SUMMARY}",
         "",
-        "Frontdoor spine:",
+        "Command surface spine:",
     ]
-    for spine_name in payload["frontdoor_spine"]:
+    for spine_name in payload["command_surface_spine"]:
         interface = payload["interfaces"][spine_name]
         alias = interface.get("domain_alias")
         alias_suffix = f" (domain alias: {alias})" if alias else ""
@@ -125,8 +125,8 @@ def render_foundry_frontdoor_text(payload: dict[str, Any]) -> str:
 
 def _base_projection(*, operation: str) -> dict[str, Any]:
     return {
-        "surface_kind": "mas_foundry_agent_series_frontdoor_projection",
-        "schema_version": "mas-foundry-frontdoor.v1",
+        "surface_kind": "mas_foundry_agent_series_command_surface_projection",
+        "schema_version": "mas-foundry-command-surface.v1",
         "version": "g2",
         "operation": operation,
         "series": SERIES_ID,
@@ -139,7 +139,7 @@ def _base_projection(*, operation: str) -> dict[str, Any]:
         "brand_cli": "mas",
         "direct_domain_cli": "medautosci",
         "direct_cli": "medautosci",
-        "compatibility_frontdoor": "medautosci foundry",
+        "compatibility_command_surface": "medautosci foundry",
         "domain_alias": {"work": "study"},
         "ordinary_golden_path": {
             "path_id": "med-autoscience_ordinary_default",
@@ -166,7 +166,7 @@ def _base_projection(*, operation: str) -> dict[str, Any]:
                 "same_attempt_self_review_closes_quality_gate",
             ],
         },
-        "frontdoor_spine": list(FRONTDOOR_SPINE),
+        "command_surface_spine": list(COMMAND_SURFACE_SPINE),
         "operations": list(FOUNDRY_OPERATIONS),
         "authority_boundary": {
             "summary": AUTHORITY_BOUNDARY_SUMMARY,
@@ -198,7 +198,7 @@ def _base_projection(*, operation: str) -> dict[str, Any]:
             "domain_authority_owner": "MedAutoScience",
             "series_contract_owner": "one-person-lab",
         },
-        "opl_series_frontdoors": {
+        "opl_series_command_surfaces": {
             "aggregate": "opl agents foundry",
             "agent": "opl foundry agents inspect mas",
             "connect_skills": "opl connect skills --domain medautoscience",
@@ -210,9 +210,9 @@ def _base_projection(*, operation: str) -> dict[str, Any]:
             "mcp_descriptor_must_delegate_to_series_spine": True,
         },
         "legacy_implementation_bucket_policy": {
-            "ordinary_public_frontdoor_allowed": False,
+            "ordinary_public_command_surface_allowed": False,
             "retained_scope": "diagnostic_or_migration_only",
-            "replacement_frontdoor": "medautosci foundry",
+            "replacement_command_surface": "medautosci foundry",
             "retired_bucket_prefixes": [
                 "runtime",
                 "index",
@@ -225,14 +225,14 @@ def _base_projection(*, operation: str) -> dict[str, Any]:
             "status": "read_only_series_projection",
             "series_spine_discoverable": True,
             "ordinary_operations": list(FOUNDRY_OPERATIONS),
-            "frontdoor_spine_complete": True,
+            "command_surface_spine_complete": True,
             "domain_ready": False,
             "study_ready": False,
             "paper_quality_ready": False,
             "artifact_ready": False,
             "production_ready": False,
             "notes": [
-                "This direct CLI frontdoor only projects OPL Foundry Agent series identity and refs.",
+                "This direct CLI command surface only projects OPL Foundry Agent series identity and refs.",
                 "MAS owner surfaces continue to decide study truth, quality, artifact and receipt authority.",
             ],
         },

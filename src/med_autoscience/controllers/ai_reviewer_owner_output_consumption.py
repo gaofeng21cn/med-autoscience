@@ -87,6 +87,25 @@ def current_manuscript_record_action(
     )
 
 
+def current_inputs_record_action(
+    ai_reviewer_assessment: Mapping[str, Any],
+) -> dict[str, Any]:
+    action = ai_reviewer_actions.ai_reviewer_required_action(
+        reason=ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_INPUTS_REASON
+    )
+    action["summary"] = (
+        "The request-bound AI reviewer record predates current paper inputs; produce a new AI reviewer "
+        "publication-eval record against the current inputs before refreshing publication_eval/latest.json."
+    )
+    return _record_production_action(
+        action=action,
+        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        required_refs=_string_items(ai_reviewer_assessment.get("required_currentness_refs")),
+        stale_record_ref=_text(ai_reviewer_assessment.get("stale_record_ref")),
+        source_ref=_text(ai_reviewer_assessment.get("source_ref")),
+    )
+
+
 def current_manuscript_digest_mismatch_action(
     controller_route: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -219,6 +238,7 @@ def _action_work_unit_id(action: Mapping[str, Any]) -> str | None:
 
 __all__ = [
     "current_request_lifecycle",
+    "current_inputs_record_action",
     "current_manuscript_digest_mismatch_action",
     "current_manuscript_record_action",
     "decorate_record_consumption_actions",

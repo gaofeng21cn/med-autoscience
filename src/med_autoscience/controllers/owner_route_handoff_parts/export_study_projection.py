@@ -30,6 +30,7 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
 )
 _OPL_CURRENT_CONTROL_REF = Path("runtime/artifacts/supervision/opl_current_control_state/latest.json")
+_LEGACY_OPL_CURRENT_CONTROL_REF = Path("artifacts/supervision/opl_current_control_state/latest.json")
 _DEFAULT_EXECUTOR_EXECUTION_LATEST = Path(
     "artifacts/supervision/consumer/default_executor_execution/latest.json"
 )
@@ -192,8 +193,7 @@ def current_control_owner_route_handoff_record(
     profile: WorkspaceProfile,
     existing_record: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    handoff_path = profile.workspace_root / _OPL_CURRENT_CONTROL_REF
-    payload = read_json_object(handoff_path)
+    handoff_path, payload = _current_control_payload(profile.workspace_root)
     if payload is None:
         return None
     matching = _matching_current_control_study(payload, study_id=study_root.name)
@@ -221,7 +221,7 @@ def current_control_owner_route_handoff_record(
     runtime_state_path = text(matching.get("runtime_state_path"))
     if runtime_state_path is None and quest_root is not None:
         runtime_state_path = str(Path(quest_root) / ".ds" / "runtime_state.json")
-    owner_route_handoff_ref = workspace_relative(handoff_path, workspace_root=profile.workspace_root)
+    owner_route_handoff_ref = str(_OPL_CURRENT_CONTROL_REF)
     handoff = {
         "surface_kind": "mas_runtime_owner_route_handoff",
         "domain_truth_owner": "med-autoscience",
@@ -270,8 +270,7 @@ def current_control_owner_action_record(
     study_root: Path,
     profile: WorkspaceProfile,
 ) -> dict[str, Any] | None:
-    handoff_path = profile.workspace_root / _OPL_CURRENT_CONTROL_REF
-    payload = read_json_object(handoff_path)
+    handoff_path, payload = _current_control_payload(profile.workspace_root)
     if payload is None:
         return None
     action = _matching_current_control_action(payload, study_id=study_root.name)
@@ -698,6 +697,15 @@ def _matching_current_control_study(
         if isinstance(item, Mapping) and text(item.get("study_id")) == study_id:
             return dict(item)
     return None
+
+
+def _current_control_payload(workspace_root: Path) -> tuple[Path, dict[str, Any] | None]:
+    for relative_path in (_OPL_CURRENT_CONTROL_REF, _LEGACY_OPL_CURRENT_CONTROL_REF):
+        path = workspace_root / relative_path
+        payload = read_json_object(path)
+        if payload is not None:
+            return path, payload
+    return workspace_root / _OPL_CURRENT_CONTROL_REF, None
 
 
 def _matching_current_control_action(

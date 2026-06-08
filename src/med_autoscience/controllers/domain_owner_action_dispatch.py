@@ -256,6 +256,19 @@ def _current_owner_route(
     )
 
 
+def _diagnostic_owner_route(
+    profile: WorkspaceProfile,
+    study_id: str,
+    *,
+    dispatch: Mapping[str, Any] | None = None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    return persisted_dispatches.diagnostic_owner_route_from_scan_payload(
+        scan_payload=persisted_dispatches.scan_latest_payload(profile),
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+
+
 def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     return owner_route_part.ensure_owner_route_v2(
         _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
@@ -365,10 +378,11 @@ def _execution_owner_route(
     )
     if (
         live_attempt_route is not None
-        and _owner_route_block_reason(dispatch=dispatch, current_route=live_attempt_route) is None
+            and _owner_route_block_reason(dispatch=dispatch, current_route=live_attempt_route) is None
     ):
         return live_attempt_route, "live_provider_attempt_dispatch"
-    return scan_route, scan_route_basis or "scan_latest"
+    diagnostic_route, diagnostic_basis = _diagnostic_owner_route(profile, study_id, dispatch=dispatch)
+    return diagnostic_route, diagnostic_basis or scan_route_basis or "scan_latest"
 
 
 def _dispatch_uses_bridge_authority(dispatch: Mapping[str, Any]) -> bool:
