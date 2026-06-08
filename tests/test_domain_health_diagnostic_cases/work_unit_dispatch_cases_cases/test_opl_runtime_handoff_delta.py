@@ -331,6 +331,193 @@ def test_watch_runtime_closes_opl_runtime_handoff_when_inputs_show_controller_re
     assert closed_payload["controller_result_artifact_deltas"]
 
 
+def test_watch_runtime_closes_opl_runtime_handoff_when_default_executor_closeout_arrives(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    ledger = importlib.import_module("med_autoscience.controllers.work_unit_ledger")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = helpers.write_study(profile.workspace_root, study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_charter(study_root)
+    _write_publication_eval(study_root, quest_root, action_type="bounded_analysis")
+    status_payload = {
+        **make_progress_projection_payload(
+            study_id=study_id,
+            decision="blocked",
+            reason="quest_waiting_opl_runtime_owner_route",
+            include_authority_snapshot=True,
+        ),
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "quest_status": "paused",
+    }
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": _write_charter(study_root),
+        "publication_eval_ref": _write_publication_eval(study_root, quest_root, action_type="bounded_analysis"),
+        "decision_type": "bounded_analysis",
+        "route_target": "analysis-campaign",
+        "route_key_question": "analysis_claim_evidence_repair: Repair claim-evidence blockers.",
+        "route_rationale": "Run bounded claim-evidence repair.",
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "run_gate_clearing_batch",
+                "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": "Run bounded claim-evidence repair.",
+        "work_unit_fingerprint": "publication-blockers::same",
+        "next_work_unit": {
+            "unit_id": "analysis_claim_evidence_repair",
+            "lane": "analysis-campaign",
+            "summary": "Repair claim-evidence blockers.",
+        },
+    }
+    identity = module.domain_health_diagnostic_work_units.identity_from_tick_request(
+        study_id=study_id,
+        quest_id=study_id,
+        tick_request=tick_request,
+    )
+    ledger.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="opl_runtime_handoff_required",
+        payload={
+            "source": "domain_health_diagnostic_outer_loop_wakeup",
+            "wakeup_outcome": "opl_runtime_handoff_required",
+            "wakeup_reason": "outer-loop work unit redrive budget exhausted without result evidence",
+        },
+        recorded_at="2026-06-08T13:50:00+00:00",
+    )
+    latest_path = study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json"
+    dump_json(
+        latest_path,
+        {
+            "outcome": "opl_runtime_handoff_required",
+            "work_unit_dispatch_key": identity.dispatch_key,
+            "input_fingerprint": "old-input",
+            "watched_inputs": {
+                "artifacts": {
+                    "publication_eval_latest": {
+                        "sha256": hashlib.sha256(
+                            (study_root / "artifacts" / "publication_eval" / "latest.json").read_bytes()
+                        ).hexdigest(),
+                    },
+                    "publication_gate_latest": {"exists": False},
+                    "quality_repair_batch_latest": {"exists": False},
+                    "gate_clearing_batch_latest": {"exists": False},
+                    "repair_execution_evidence_latest": {"exists": False},
+                    "publication_work_unit_lifecycle_latest": {"exists": False},
+                }
+            },
+        },
+    )
+    closeout_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/"
+        "sat-closeout.closeout.json"
+    )
+    dump_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "study_id": study_id,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_gate_clearing_batch",
+                    "execution_status": "completed",
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "provider_attempt_or_lease_required": False,
+                    "provider_completion_is_domain_completion": False,
+                    "owner_route_current": True,
+                    "work_unit_id": "analysis_claim_evidence_repair",
+                    "action_fingerprint": "publication-blockers::same",
+                    "stage_attempt_id": "sat-closeout",
+                    "stage_closeout_status": "completed",
+                    "stage_closeout_refs": [
+                        closeout_ref,
+                        "artifacts/controller/gate_clearing_batch/latest.json",
+                    ],
+                    "closeout_refs": [
+                        closeout_ref,
+                        "artifacts/controller/gate_clearing_batch/latest.json",
+                    ],
+                    "owner_route": {
+                        "work_unit_fingerprint": "publication-blockers::same",
+                        "source_refs": {
+                            "work_unit_id": "analysis_claim_evidence_repair",
+                            "work_unit_fingerprint": "publication-blockers::same",
+                            "owner_route_currentness_basis": {
+                                "work_unit_id": "analysis_claim_evidence_repair",
+                                "work_unit_fingerprint": "publication-blockers::same",
+                            },
+                        },
+                    },
+                }
+            ],
+        },
+    )
+    calls: list[str] = []
+
+    def fake_outer_loop_tick(**kwargs):
+        calls.append(str(kwargs.get("source") or ""))
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "source": kwargs.get("source"),
+            "study_decision_ref": {
+                "artifact_path": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve())
+            },
+            "dispatch_status": "executed",
+            "executed_controller_action": {
+                "action_type": "run_gate_clearing_batch",
+                "result": {"status": "executed"},
+            },
+        }
+
+    monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        request_opl_stage_attempts=True,
+    )
+    ledger_events = [
+        json.loads(line)
+        for line in (
+            study_root / "artifacts" / "runtime" / "work_unit_ledger" / "events.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+    ]
+
+    assert calls == ["domain_health_diagnostic_outer_loop_wakeup"]
+    assert len(result["managed_study_outer_loop_dispatches"]) == 1
+    assert result["managed_study_no_op_suppressions"] == []
+    assert [event["event_type"] for event in ledger_events] == [
+        "opl_runtime_handoff_required",
+        "closed",
+        "dispatched",
+    ]
+    closed_payload = ledger_events[1]["payload"]
+    assert closed_payload["closure_reason"] == "default_executor_closeout_after_opl_runtime_handoff"
+    assert closed_payload["default_executor_execution_ref"].endswith(
+        "default_executor_execution/latest.json"
+    )
+    assert closeout_ref in closed_payload["closeout_refs"]
+
+
 def test_watch_runtime_closes_opl_runtime_handoff_when_ai_reviewer_request_becomes_executable(
     tmp_path: Path,
     monkeypatch,

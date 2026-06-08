@@ -10,6 +10,9 @@ from med_autoscience.controllers import work_unit_ledger
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    default_executor_execution_candidates,
+)
 
 
 _UPSTREAM_REPAIR_UNITS = UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
@@ -41,6 +44,14 @@ _DECISION_PAYLOAD_CONTEXT_KEYS = (
     "specificity_questions",
     "currentness_basis",
 )
+_DEFAULT_EXECUTOR_TERMINAL_CLOSEOUT_STATUSES = frozenset(
+    {
+        "blocked",
+        "completed",
+        "executed",
+        "success",
+    }
+)
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -55,6 +66,19 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
         return None
     payload = json.loads(path.read_text(encoding="utf-8"))
     return payload if isinstance(payload, dict) else None
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [text for item in value if (text := _non_empty_text(item)) is not None]
 
 
 def _wakeup_latest_path(study_root: Path) -> Path:
@@ -360,13 +384,14 @@ def _meaningful_artifact_delta_evidence(
     return evidence
 
 
-def close_stale_opl_runtime_handoff_if_meaningful_delta(
+def _close_stale_opl_runtime_handoff_with_evidence(
     *,
     study_root: Path,
     status_payload: Mapping[str, Any],
     tick_request: Mapping[str, Any],
     wakeup_audit: Mapping[str, Any],
     default_recorded_at: str,
+    evidence: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     work_unit_dispatch_key = dispatch_key(tick_request)
     if work_unit_dispatch_key is None:
@@ -381,13 +406,7 @@ def close_stale_opl_runtime_handoff_if_meaningful_delta(
         return None
     if _non_empty_text(previous_wakeup.get("work_unit_dispatch_key")) != work_unit_dispatch_key:
         return None
-    if _non_empty_text(wakeup_audit.get("dispatch_cause")) != "input_changed":
-        return None
-    evidence = _meaningful_artifact_delta_evidence(
-        previous_wakeup=previous_wakeup,
-        current_wakeup=wakeup_audit,
-    )
-    if evidence is None:
+    if not evidence:
         return None
     identity = identity_from_tick_request(
         study_id=_non_empty_text(status_payload.get("study_id")) or Path(study_root).name,
@@ -403,13 +422,191 @@ def close_stale_opl_runtime_handoff_if_meaningful_delta(
         payload={
             "source": _OUTER_LOOP_WAKEUP_SOURCE,
             "wakeup_outcome": "closed",
-            "wakeup_reason": "prior platform repair requirement superseded by meaningful artifact delta",
-            "closure_reason": "meaningful_artifact_delta_after_opl_runtime_handoff",
             "previous_opl_runtime_handoff_event_id": _non_empty_text(latest_event.get("event_id")),
             **evidence,
         },
         recorded_at=_non_empty_text(wakeup_audit.get("recorded_at")) or default_recorded_at,
     )
+
+
+def close_stale_opl_runtime_handoff_if_meaningful_delta(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+    wakeup_audit: Mapping[str, Any],
+    default_recorded_at: str,
+) -> dict[str, Any] | None:
+    if _non_empty_text(wakeup_audit.get("dispatch_cause")) != "input_changed":
+        return None
+    previous_wakeup = _read_json_object(_wakeup_latest_path(study_root)) or {}
+    evidence = _meaningful_artifact_delta_evidence(
+        previous_wakeup=previous_wakeup,
+        current_wakeup=wakeup_audit,
+    )
+    if evidence is None:
+        return None
+    return _close_stale_opl_runtime_handoff_with_evidence(
+        study_root=study_root,
+        status_payload=status_payload,
+        tick_request=tick_request,
+        wakeup_audit=wakeup_audit,
+        default_recorded_at=default_recorded_at,
+        evidence={
+            "wakeup_reason": "prior platform repair requirement superseded by meaningful artifact delta",
+            "closure_reason": "meaningful_artifact_delta_after_opl_runtime_handoff",
+            **evidence,
+        },
+    )
+
+
+def close_stale_opl_runtime_handoff_if_default_executor_closeout(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+    wakeup_audit: Mapping[str, Any],
+    default_recorded_at: str,
+) -> dict[str, Any] | None:
+    evidence = _default_executor_closeout_evidence(
+        study_root=study_root,
+        tick_request=tick_request,
+    )
+    if evidence is None:
+        return None
+    return _close_stale_opl_runtime_handoff_with_evidence(
+        study_root=study_root,
+        status_payload=status_payload,
+        tick_request=tick_request,
+        wakeup_audit=wakeup_audit,
+        default_recorded_at=default_recorded_at,
+        evidence={
+            "wakeup_reason": "prior platform repair requirement superseded by default executor closeout refs",
+            "closure_reason": "default_executor_closeout_after_opl_runtime_handoff",
+            **evidence,
+        },
+    )
+
+
+def close_stale_opl_runtime_handoff_if_result_evidence(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+    wakeup_audit: Mapping[str, Any],
+    default_recorded_at: str,
+) -> dict[str, Any] | None:
+    default_executor_closeout = close_stale_opl_runtime_handoff_if_default_executor_closeout(
+        study_root=study_root,
+        status_payload=status_payload,
+        tick_request=tick_request,
+        wakeup_audit=wakeup_audit,
+        default_recorded_at=default_recorded_at,
+    )
+    if default_executor_closeout is not None:
+        return default_executor_closeout
+    return close_stale_opl_runtime_handoff_if_meaningful_delta(
+        study_root=study_root,
+        status_payload=status_payload,
+        tick_request=tick_request,
+        wakeup_audit=wakeup_audit,
+        default_recorded_at=default_recorded_at,
+    )
+
+
+def _default_executor_closeout_evidence(
+    *,
+    study_root: Path,
+    tick_request: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    action_type, work_unit_id, work_unit_fingerprint = _tick_request_owner_identity(tick_request)
+    if action_type is None or work_unit_id is None or work_unit_fingerprint is None:
+        return None
+    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
+        if _non_empty_text(execution.get("action_type")) != action_type:
+            continue
+        if _execution_work_unit_id(execution) != work_unit_id:
+            continue
+        if work_unit_fingerprint not in _execution_work_unit_fingerprints(execution):
+            continue
+        closeout_refs = _execution_closeout_refs(execution)
+        if not closeout_refs:
+            continue
+        execution_status = _non_empty_text(execution.get("execution_status"))
+        stage_closeout_status = _non_empty_text(execution.get("stage_closeout_status"))
+        if (
+            execution_status not in _DEFAULT_EXECUTOR_TERMINAL_CLOSEOUT_STATUSES
+            and stage_closeout_status not in _DEFAULT_EXECUTOR_TERMINAL_CLOSEOUT_STATUSES
+        ):
+            continue
+        return {
+            "default_executor_execution_ref": receipt_ref,
+            "default_executor_execution_status": execution_status,
+            "stage_closeout_status": stage_closeout_status,
+            "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
+            "closeout_refs": closeout_refs,
+        }
+    return None
+
+
+def _tick_request_owner_identity(tick_request: Mapping[str, Any]) -> tuple[str | None, str | None, str | None]:
+    next_work_unit = tick_request.get("next_work_unit")
+    work_unit_id = (
+        _non_empty_text(next_work_unit.get("unit_id"))
+        if isinstance(next_work_unit, Mapping)
+        else None
+    )
+    controller_actions = tick_request.get("controller_actions")
+    first_controller_action = (
+        controller_actions[0]
+        if isinstance(controller_actions, list) and controller_actions and isinstance(controller_actions[0], Mapping)
+        else {}
+    )
+    action_type = _non_empty_text(first_controller_action.get("action_type"))
+    if action_type is None and work_unit_id == _SPECIFICITY_UNIT_ID:
+        action_type = _SPECIFICITY_ACTION_TYPE
+    return action_type, work_unit_id, _non_empty_text(tick_request.get("work_unit_fingerprint"))
+
+
+def _execution_work_unit_id(execution: Mapping[str, Any]) -> str | None:
+    owner_route = _mapping(execution.get("owner_route")) or _mapping(execution.get("current_owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return (
+        _non_empty_text(execution.get("work_unit_id"))
+        or _non_empty_text(source_refs.get("work_unit_id"))
+        or _non_empty_text(basis.get("work_unit_id"))
+        or _non_empty_text(owner_route.get("work_unit_id"))
+    )
+
+
+def _execution_work_unit_fingerprints(execution: Mapping[str, Any]) -> set[str]:
+    owner_route = _mapping(execution.get("owner_route")) or _mapping(execution.get("current_owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return {
+        text
+        for value in (
+            execution.get("action_fingerprint"),
+            execution.get("work_unit_fingerprint"),
+            owner_route.get("work_unit_fingerprint"),
+            source_refs.get("work_unit_fingerprint"),
+            basis.get("work_unit_fingerprint"),
+        )
+        if (text := _non_empty_text(value)) is not None
+    }
+
+
+def _execution_closeout_refs(execution: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for value in (
+        execution.get("stage_closeout_refs"),
+        execution.get("closeout_refs"),
+        _mapping(execution.get("owner_route")).get("closeout_refs"),
+        _mapping(execution.get("current_owner_route")).get("closeout_refs"),
+    ):
+        refs.extend(_text_list(value))
+    return list(dict.fromkeys(refs))
 
 
 def open_redrive_attempt_count(
@@ -458,6 +655,8 @@ def _closed_event_has_result_evidence(event: Mapping[str, Any]) -> bool:
         return True
     if _non_empty_text(payload.get("gate_fingerprint_before")) and _non_empty_text(payload.get("gate_fingerprint_after")):
         return payload.get("gate_fingerprint_before") != payload.get("gate_fingerprint_after")
+    if _text_list(payload.get("closeout_refs")):
+        return True
     attempt_record = payload.get("attempt_record")
     if isinstance(attempt_record, Mapping) and _non_empty_text(attempt_record.get("attempt_state")) in {
         "released",

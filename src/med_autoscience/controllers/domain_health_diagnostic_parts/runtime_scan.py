@@ -562,14 +562,36 @@ def run_domain_health_diagnostic_for_runtime(
                         wakeup_audit=wakeup_audit,
                         default_recorded_at=utc_now(),
                     )
-                elif domain_health_diagnostic_work_units.close_stale_opl_runtime_handoff_if_meaningful_delta(
+                elif (
+                    opl_handoff_closeout := domain_health_diagnostic_work_units.close_stale_opl_runtime_handoff_if_result_evidence(
                     study_root=study_root,
                     status_payload=status_payload,
                     tick_request=tick_request,
                     wakeup_audit=wakeup_audit,
                     default_recorded_at=utc_now(),
+                    )
                 ) is not None:
                     work_unit_dispatch_key = domain_health_diagnostic_work_units.dispatch_key(tick_request)
+                    closure_payload = (
+                        dict(opl_handoff_closeout.get("payload"))
+                        if isinstance(opl_handoff_closeout.get("payload"), Mapping)
+                        else {}
+                    )
+                    closure_reason = _non_empty_text(closure_payload.get("closure_reason"))
+                    if closure_reason == "default_executor_closeout_after_opl_runtime_handoff":
+                        dispatch_reason = (
+                            "outer-loop wakeup dispatched after default executor closeout refs cleared platform repair lock"
+                        )
+                        blocked_reason = (
+                            "outer-loop wakeup controller work unit failed closed after default executor closeout refs cleared platform repair lock"
+                        )
+                    else:
+                        dispatch_reason = (
+                            "outer-loop wakeup dispatched after meaningful artifact delta cleared platform repair lock"
+                        )
+                        blocked_reason = (
+                            "outer-loop wakeup controller work unit failed closed after meaningful artifact delta cleared platform repair lock"
+                        )
                     blocked_wakeup_audit = apply_control_plane_dispatch_block(
                         profile=profile,
                         study_root=study_root,
@@ -597,7 +619,7 @@ def run_domain_health_diagnostic_for_runtime(
                             wakeup_audit=wakeup_audit,
                             tick_request=tick_request,
                             outer_loop_result=outer_loop_result,
-                            reason="outer-loop wakeup controller work unit failed closed after meaningful artifact delta cleared platform repair lock",
+                            reason=blocked_reason,
                             work_unit_dispatch_key=work_unit_dispatch_key,
                         )
                         if blocked_wakeup_audit is not None:
@@ -640,7 +662,7 @@ def run_domain_health_diagnostic_for_runtime(
                             wakeup_audit = {
                                 **wakeup_audit,
                                 "outcome": "dispatched",
-                                "reason": "outer-loop wakeup dispatched after meaningful artifact delta cleared platform repair lock",
+                                "reason": dispatch_reason,
                                 "dispatch": dispatch_payload,
                                 **domain_health_diagnostic_work_units.context_payload(
                                     tick_request,
