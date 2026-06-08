@@ -650,3 +650,145 @@ def test_materialize_prefers_stage_native_write_repair_after_stable_readiness_an
         and item["action_type"] == "complete_medical_paper_readiness_surface"
         for item in result["ignored_actions"]
     )
+
+
+def test_materialize_prefers_readiness_blocker_derived_repair_over_old_readiness_queue(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_study(profile.workspace_root, study_id, quest_id="quest-dm003")
+    old_readiness_fingerprint = (
+        "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
+        "authoring_runtime_authorization::"
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    repair_fingerprint = (
+        "readiness-blocker-repair::publication-eval::dm003::readiness-blocker-gaps::"
+        "medical_publication_surface_blocked+reviewer_first_concerns_unresolved+"
+        "stale_submission_minimal_authority"
+    )
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": "quest-dm003",
+        "truth_epoch": "truth-epoch-dm003-readiness-repair",
+        "runtime_health_epoch": "runtime-health-epoch-dm003-readiness-repair",
+        "work_unit_fingerprint": repair_fingerprint,
+        "failure_signature": "medical_paper_readiness_repair_required",
+        "trace_id": "owner-route-trace::dm003::readiness-repair",
+        "route_epoch": "truth-epoch-dm003-readiness-repair",
+        "source_fingerprint": "truth-source-dm003-readiness-repair",
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "owner_reason": "medical_paper_readiness_repair_required",
+        "active_run_id": None,
+        "allowed_actions": ["run_quality_repair_batch"],
+        "blocked_actions": ["complete_medical_paper_readiness_surface"],
+        "source_refs": {
+            "work_unit_id": "readiness_blocker_publication_repair",
+            "work_unit_fingerprint": repair_fingerprint,
+            "source_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-epoch-dm003-readiness-repair",
+                "runtime_health_epoch": "runtime-health-epoch-dm003-readiness-repair",
+                "work_unit_id": "readiness_blocker_publication_repair",
+                "work_unit_fingerprint": repair_fingerprint,
+            },
+        },
+        "idempotency_key": "owner-route::dm003::readiness-repair",
+    }
+    repair_action = {
+        "study_id": study_id,
+        "quest_id": "quest-dm003",
+        "action_type": "run_quality_repair_batch",
+        "authority": "observability_only",
+        "owner": "write",
+        "request_owner": "write",
+        "recommended_owner": "write",
+        "reason": "medical_paper_readiness_repair_required",
+        "required_output_surface": (
+            "canonical manuscript story-surface delta, claim-evidence semantic delta, "
+            "reviewer/gate delta, or typed blocker:readiness_blocker_publication_repair_required"
+        ),
+        "next_work_unit": "readiness_blocker_publication_repair",
+        "executable_work_unit": "readiness_blocker_publication_repair",
+        "controller_work_unit_id": "readiness_blocker_publication_repair",
+        "work_unit_fingerprint": repair_fingerprint,
+        "source_surface": "stage_kernel_projection.current_owner_delta",
+        "source_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+        "readiness_blocker_followup_superseded": "complete_medical_paper_readiness_surface",
+        "publication_eval_gap_ids": [
+            "stale_submission_minimal_authority",
+            "medical_publication_surface_blocked",
+            "reviewer_first_concerns_unresolved",
+        ],
+        "owner_route": owner_route,
+    }
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": "quest-dm003",
+                    "owner_route": owner_route,
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "schema_version": 1,
+                        "status": "ready",
+                        "source": "stage_kernel_projection.current_owner_delta",
+                        "next_owner": "write",
+                        "work_unit_id": "readiness_blocker_publication_repair",
+                        "allowed_actions": ["run_quality_repair_batch"],
+                        "required_delta_kind": "paper_product_semantic_delta_or_concrete_typed_blocker",
+                        "source_ref": (
+                            "artifacts/stage_outputs/08-publication_package_handoff/"
+                            "receipts/typed_blocker.json"
+                        ),
+                    },
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": "quest-dm003",
+                            "action_type": "complete_medical_paper_readiness_surface",
+                            "owner": "MedAutoScience",
+                            "reason": "medical_paper_readiness_missing",
+                            "surface_key": "authoring_runtime_authorization",
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": old_readiness_fingerprint,
+                        },
+                        repair_action,
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+        "run_quality_repair_batch"
+    ]
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["source_action"]["next_work_unit"] == "readiness_blocker_publication_repair"
+    assert dispatch["source_action"]["readiness_blocker_followup_superseded"] == (
+        "complete_medical_paper_readiness_surface"
+    )
+    assert any(
+        item["reason"] == "superseded_by_readiness_blocker_derived_repair"
+        and item["action_type"] == "complete_medical_paper_readiness_surface"
+        for item in result["ignored_actions"]
+    )

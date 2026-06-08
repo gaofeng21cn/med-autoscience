@@ -463,6 +463,7 @@ def _study_projection(
         study_id=study_id,
         quest_id=resolved_quest_id,
         decorate_action=_decorate_action,
+        publication_eval_payload=publication_eval_payload,
     )
     artifact_blocked_action = artifact_freshness.blocked_action_from_gate_clearing(
         study_root=study_root,

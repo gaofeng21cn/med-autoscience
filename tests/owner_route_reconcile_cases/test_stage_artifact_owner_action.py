@@ -273,6 +273,131 @@ def test_scan_domain_routes_promotes_handoff_typed_blocker_followup_action(
     )
 
 
+def test_scan_domain_routes_derives_repair_from_stable_readiness_blocker_gaps(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm003")
+    quest_root = profile.runtime_root / "quest-dm003"
+    typed_blocker_ref = (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    stage_artifact_index = _terminal_stage_artifact_index(study_root)
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm003::readiness-blocker-gaps",
+        "study_id": study_id,
+        "quest_id": "quest-dm003",
+        "verdict": {"overall_verdict": "blocked", "primary_claim_status": "partial"},
+        "gaps": [
+            {"gap_id": "stale_submission_minimal_authority", "submission_impact": "blocked"},
+            {"gap_id": "medical_publication_surface_blocked", "submission_impact": "blocked"},
+            {"gap_id": "reviewer_first_concerns_unresolved", "submission_impact": "blocked"},
+        ],
+    }
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": "quest-dm003",
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+        "current_execution_envelope": {
+            "state_kind": "typed_blocker",
+            "typed_blocker": {
+                "blocker_type": "medical_paper_readiness_missing",
+                "owner": "MedAutoScience",
+            },
+        },
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-epoch-dm003-readiness-blocker-gaps",
+            "canonical_runtime_action": "observe_runtime",
+        },
+        "publication_eval": publication_eval,
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm003-readiness-blocker-gaps",
+            "source_signature": "truth-source-dm003-readiness-blocker-gaps",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": "quest-dm003",
+        "current_stage": "publication_supervision",
+        "paper_stage": "bundle_stage_blocked",
+        "medical_paper_readiness": {
+            "overall_status": "blocked",
+            "next_action": {
+                "action_id": "complete_medical_paper_readiness_surface",
+                "surface_key": "authoring_runtime_authorization",
+            },
+        },
+        "stage_artifact_index": stage_artifact_index,
+        "stage_kernel_projection": {
+            "current_owner_delta": {
+                "owner": "MedAutoScience",
+                "action": "complete_medical_paper_readiness_surface",
+                "reason": "medical_paper_readiness_missing",
+                "required_input": "complete_medical_paper_readiness_surface",
+                "blocked_surface": "publication_handoff_owner_gate",
+                "surface_key": "authoring_runtime_authorization",
+                "source_ref": typed_blocker_ref,
+                "source_kind": "typed_blocker",
+                "latest_owner_answer_kind": "typed_blocker",
+            }
+        },
+    }
+
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, "quest-dm003", publication_eval),
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=(study_id,),
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == [
+        "run_quality_repair_batch"
+    ]
+    action = study["action_queue"][0]
+    assert action["owner"] == "write"
+    assert action["reason"] == "medical_paper_readiness_repair_required"
+    assert action["next_work_unit"] == "readiness_blocker_publication_repair"
+    assert action["source_surface"] == "stage_kernel_projection.current_owner_delta"
+    assert action["source_ref"] == typed_blocker_ref
+    assert action["readiness_blocker_ref"] == typed_blocker_ref
+    assert action["publication_eval_gap_ids"] == [
+        "stale_submission_minimal_authority",
+        "medical_publication_surface_blocked",
+        "reviewer_first_concerns_unresolved",
+    ]
+    assert action["source_eval_id"] == "publication-eval::dm003::readiness-blocker-gaps"
+    assert action["work_unit_fingerprint"] == (
+        "readiness-blocker-repair::publication-eval::dm003::readiness-blocker-gaps::"
+        "medical_publication_surface_blocked+reviewer_first_concerns_unresolved+"
+        "stale_submission_minimal_authority"
+    )
+    assert study["current_executable_owner_action"]["source"] == (
+        "stage_kernel_projection.current_owner_delta"
+    )
+    assert study["current_executable_owner_action"]["next_owner"] == "write"
+    assert study["current_executable_owner_action"]["allowed_actions"] == [
+        "run_quality_repair_batch"
+    ]
+    assert study["owner_route"]["next_owner"] == "write"
+    assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
+    assert study["why_not_applied"] == "medical_paper_readiness_repair_required"
+    assert result["action_queue"][0]["action_type"] == "run_quality_repair_batch"
+
+
 def test_stage_kernel_typed_blocker_answer_without_next_action_suppresses_requeue() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions"

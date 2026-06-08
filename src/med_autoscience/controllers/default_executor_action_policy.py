@@ -124,6 +124,9 @@ SOURCE_ACTION_REF_FIELDS = (
     "reviewer_record_ref",
     "source_eval_id",
     "story_surface_delta_refs",
+    "readiness_blocker_followup_superseded",
+    "readiness_blocker_ref",
+    "publication_eval_gap_ids",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )

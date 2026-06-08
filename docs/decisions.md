@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-08：medical-paper readiness blocker 必须派生具体修复 work unit
+
+- 决策：Stage Native `medical_paper_readiness_missing` typed blocker 是论文未 ready 的 owner answer，不是可重复执行的主任务。若当前 Stage 08 owner delta 已是稳定 readiness blocker，且 `publication_eval/latest.json` 的 `gaps` 已给出具体论文、证据、reviewer 或 submission/gate 差距，owner-action reducer 必须把下一步派生为具体 `run_quality_repair_batch` 或 `run_gate_clearing_batch` work unit；不得继续把同一个 `complete_medical_paper_readiness_surface` 作为 primary queued action。
+- 决策：`complete_medical_paper_readiness_surface` 只允许在缺失的 readiness 子面明确存在时继续作为 owner action，例如 typed blocker / readiness `next_action.surface_key` 指向需要 MAS 补齐的 provider payload 或 readiness input surface。若 blocker 已稳定且 publication gaps 已具体化，重复 readiness completion 必须被具体 repair action 压过，并在 materializer ignored evidence 中标记为 `superseded_by_readiness_blocker_derived_repair`。
+- 决策：readiness blocker 派生的 repair work unit 必须携带 Stage typed blocker ref、`publication_eval` eval id、gap ids、work-unit fingerprint 和 required output contract。可接受 closeout 只能是 canonical manuscript story-surface delta、claim/evidence semantic delta、review ledger 或 reviewer/gate delta、Stage owner receipt，或针对该具体 repair work unit 的 stable typed blocker；transport success、handoff ready、terminal log、mtime touch 或 repeated readiness surface 不能算论文实质推进。
+- 理由：DM002/DM003 在 Stage 08 已反复写出 `medical_paper_readiness_missing` typed blocker，但队列仍停在 `complete_medical_paper_readiness_surface`，导致系统持续确认“不 ready”，没有稳定进入正文/证据/审稿/gate 修复。这个缺陷属于 MAS/OPL owner-action reducer 和 admission currentness 闭环，不是 worker liveness 或单次 queue 掉线。
+- 影响：这是 MAS owner-route reducer、current action selection 和 default-executor source-action contract 修复。它不写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package 或 Stage receipt/blocker。论文推进仍必须由后续 owner action 产生可验证 product delta、reviewer/gate delta、owner receipt、typed blocker、human gate 或 strict provider running proof。
+
 ## 2026-06-08：strict live provider run 必须和 OPL stage-attempt handle 分账
 
 - 决策：`opl-stage-attempt://...` 只能证明存在 OPL stage-attempt / continuation / provenance handle；它不能单独把 `study_macro_state.writer_state`、`progress_first_monitoring_summary.execution_state_kind`、`opl_runtime_refs.strict_live` 或 `study-state-matrix` 计为 `live` / `running_provider_attempt`。strict live 必须来自 OPL current-control / provider attempt ledger 对当前 study 的 running proof，例如非空 `active_run_id`、`running_provider_attempt=true`，并且 runtime health 明确为 `live`、`running`、`provider_admitted` 或 `attempt_running`。

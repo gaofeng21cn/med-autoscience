@@ -387,11 +387,19 @@ def _bridged_story_surface_owner_route(
 ) -> dict[str, Any]:
     bridged = dict(route)
     source_refs = dict(_mapping(route.get("source_refs")))
-    work_unit_id = _controller_work_unit_id(authority_route_context=authority_route_context, route=route)
+    original_work_unit_id = _non_empty_text(source_refs.get("work_unit_id")) or _non_empty_text(
+        route.get("work_unit_id")
+    )
+    materialized_work_unit_id = _controller_work_unit_id(
+        authority_route_context=authority_route_context,
+        route=route,
+    )
     if source_eval_id is not None:
         source_refs["source_eval_id"] = source_eval_id
-    if work_unit_id is not None:
-        source_refs["work_unit_id"] = work_unit_id
+    if original_work_unit_id is not None:
+        source_refs["work_unit_id"] = original_work_unit_id
+    if materialized_work_unit_id is not None and materialized_work_unit_id != original_work_unit_id:
+        source_refs["materialized_work_unit_id"] = materialized_work_unit_id
     source_refs.update(
         {
             "blocked_reason": blocked_repair_reason,

@@ -535,13 +535,15 @@ def _rewrite_owner_route(
     source_refs = dict(_mapping(route.get("source_refs")))
     original_owner_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
     original_idempotency_key = _text(route.get("idempotency_key"))
-    original_work_unit_id = _text(source_refs.get("work_unit_id"))
+    original_work_unit_id = _text(source_refs.get("work_unit_id")) or _text(route.get("work_unit_id"))
     if _is_runtime_to_story_surface_bridge(
         original_owner_reason=original_owner_reason,
         original_work_unit_id=original_work_unit_id,
         owner_reason=owner_reason,
         work_unit_id=work_unit_id,
     ):
+        if original_work_unit_id is not None:
+            source_refs["work_unit_id"] = original_work_unit_id
         source_refs["materialized_work_unit_id"] = work_unit_id
         source_refs["materialized_from_action_type"] = _materialized_from_action_type(
             original_owner_reason=original_owner_reason,
@@ -555,6 +557,8 @@ def _rewrite_owner_route(
         owner_reason=owner_reason,
         work_unit_id=work_unit_id,
     ):
+        if original_work_unit_id is not None:
+            source_refs["work_unit_id"] = original_work_unit_id
         source_refs["materialized_work_unit_id"] = work_unit_id
         source_refs["materialized_from_action_type"] = _materialized_from_action_type(
             original_owner_reason=original_owner_reason,

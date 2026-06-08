@@ -16,6 +16,9 @@ from med_autoscience.controllers.owner_route_reconcile_parts import (
     domain_route_contract,
     domain_transition_actions,
 )
+from med_autoscience.controllers.domain_action_request_materializer_parts import (
+    fresh_progress_arbitration,
+)
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
@@ -38,6 +41,7 @@ def current_actions_for_studies(
     stage_native_by_study = {
         study_id: action for action in stage_native_actions if (study_id := _text(action.get("study_id"))) is not None
     }
+    current_writer_handoff_by_study = _current_writer_handoff_actions(profile=profile, study_ids=study_ids)
     fresh_progress_actions = _fresh_progress_current_actions(profile=profile, study_ids=study_ids)
     fresh_progress_by_study = {
         study_id: action
@@ -57,6 +61,44 @@ def current_actions_for_studies(
         stage_native_action = stage_native_by_study.get(study_id)
         readiness_followup = _current_readiness_followup_action(study_payload)
         fresh_progress_action = fresh_progress_by_study.get(study_id)
+        if fresh_progress_action is not None and not fresh_progress_arbitration.can_preempt_scan(
+            study=study_payload,
+            fresh_action=fresh_progress_action,
+            readiness_followup=readiness_followup,
+            stage_native_action=stage_native_action,
+            top_level_study_actions=_top_level_study_actions(
+                study=study_payload,
+                top_level_actions=top_level_actions,
+            ),
+        ):
+            fresh_progress_action = None
+        if (
+            fresh_progress_action is not None
+            and fresh_progress_arbitration.has_current_quality_repair_writer_handoff(
+                profile=profile,
+                study=study_payload,
+                fresh_action=fresh_progress_action,
+            )
+        ):
+            fresh_progress_action = None
+        current_writer_handoff_action = current_writer_handoff_by_study.get(study_id)
+        if current_writer_handoff_action is not None:
+            per_study_actions.append(current_writer_handoff_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_current_quality_repair_writer_handoff")
+                for action in [
+                    *([fresh_progress_action] if fresh_progress_action is not None else []),
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                    ],
+                ]
+            )
+            continue
         if fresh_progress_action is not None:
             per_study_actions.append(fresh_progress_action)
             ignored.extend(
@@ -142,6 +184,28 @@ def current_actions_for_studies(
         return per_study_actions, ignored
     actions = scan_payload.get("action_queue")
     return (list(actions), ignored) if isinstance(actions, list) else (None, ignored)
+
+
+def _current_writer_handoff_actions(
+    *,
+    profile: WorkspaceProfile | None,
+    study_ids: tuple[str, ...],
+) -> dict[str, dict[str, Any]]:
+    if profile is None:
+        return {}
+    try:
+        from med_autoscience.controllers.domain_action_request_materializer_parts import current_writer_handoff
+    except Exception:
+        return {}
+    actions: dict[str, dict[str, Any]] = {}
+    for study_id in study_ids:
+        action = current_writer_handoff.current_quality_repair_writer_handoff_action(
+            profile=profile,
+            study_id=study_id,
+        )
+        if action is not None:
+            actions[study_id] = action
+    return actions
 
 
 def _current_readiness_followup_action(study: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -705,6 +769,14 @@ def _read_json_mapping(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
+def _requires_manuscript_story_surface_delta(value: object) -> bool:
+    text = str(value or "").strip().lower()
+    return (
+        "canonical manuscript story-surface delta" in text
+        and "typed blocker:manuscript_story_surface_delta_missing" in text
+    )
+
+
 def _read_quest_id(*, study_root: Path, fallback: str) -> str:
     study_yaml = study_root / "study.yaml"
     try:
@@ -732,7 +804,10 @@ def _current_study_actions(
         action for action in queue_actions if _queue_action_allowed_by_current_study_route(action, study)
     ]
     if current_queue_actions:
-        return current_queue_actions, []
+        return current_queue_actions, _ignored_actions_superseded_by_readiness_blocker_repair(
+            queue_actions=queue_actions,
+            selected_actions=current_queue_actions,
+        )
     transition_actions = _domain_transition_current_actions(study)
     if not transition_actions:
         if queue_source == "per_study_empty":
@@ -895,6 +970,34 @@ def domain_transition_owner_route_for_study(study: Mapping[str, Any]) -> dict[st
 def _queue_action_allowed_by_current_study_route(action: Mapping[str, Any], study: Mapping[str, Any]) -> bool:
     owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
     return bool(owner_route) and _action_allowed_by_owner_route(action, owner_route)
+
+
+def _ignored_actions_superseded_by_readiness_blocker_repair(
+    *,
+    queue_actions: list[dict[str, Any]],
+    selected_actions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if not any(_readiness_blocker_derived_repair_action(action) for action in selected_actions):
+        return []
+    ignored: list[dict[str, Any]] = []
+    selected_fingerprints = {
+        _text(action.get("work_unit_fingerprint"))
+        for action in selected_actions
+        if _text(action.get("work_unit_fingerprint")) is not None
+    }
+    for action in queue_actions:
+        if _text(action.get("work_unit_fingerprint")) in selected_fingerprints:
+            continue
+        if _text(action.get("action_type")) != READINESS_ACTION_TYPE:
+            continue
+        ignored.append(_ignored_action(action, "superseded_by_readiness_blocker_derived_repair"))
+    return ignored
+
+
+def _readiness_blocker_derived_repair_action(action: Mapping[str, Any]) -> bool:
+    if _text(action.get("reason")) != "medical_paper_readiness_repair_required":
+        return False
+    return _text(action.get("readiness_blocker_followup_superseded")) == READINESS_ACTION_TYPE
 
 
 def _action_allowed_by_owner_route(action: Mapping[str, Any], owner_route: Mapping[str, Any]) -> bool:
