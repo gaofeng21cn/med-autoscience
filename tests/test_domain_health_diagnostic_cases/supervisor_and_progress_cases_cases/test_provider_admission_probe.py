@@ -714,6 +714,54 @@ def test_provider_admission_candidate_allows_matching_authorization_blocker_desp
     assert [candidate["action_fingerprint"] for candidate in result] == [action_fingerprint]
 
 
+def test_provider_probe_requires_running_attempt_fingerprint_match() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    current_fingerprint = "sha256:current-provider-handoff"
+    stale_fingerprint = "sha256:stale-provider-attempt"
+    scan_result = {
+        "studies": [
+            {
+                "study_id": study_id,
+                "running_provider_attempt": True,
+                "active_run_id": "opl-stage-attempt://sat-stale",
+                "active_stage_attempt_id": "sat-stale",
+                "opl_provider_attempt": {
+                    "running_provider_attempt": True,
+                    "active_run_id": "opl-stage-attempt://sat-stale",
+                    "active_stage_attempt_id": "sat-stale",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "action_fingerprint": stale_fingerprint,
+                    "work_unit_fingerprint": stale_fingerprint,
+                    "dispatch_ref": (
+                        f"studies/{study_id}/artifacts/supervision/consumer/"
+                        "default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+                    ),
+                },
+            }
+        ]
+    }
+    identity = {
+        "study_id": study_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "action_fingerprint": current_fingerprint,
+        "work_unit_fingerprint": current_fingerprint,
+        "dispatch_path": (
+            f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
+            "default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+        ),
+    }
+
+    assert provider_admission.provider_probe_has_matching_attempt(scan_result, identity=identity) is False
+    scan_result["studies"][0]["opl_provider_attempt"]["action_fingerprint"] = current_fingerprint
+    scan_result["studies"][0]["opl_provider_attempt"]["work_unit_fingerprint"] = current_fingerprint
+    assert provider_admission.provider_probe_has_matching_attempt(scan_result, identity=identity) is True
+
+
 def test_provider_admission_candidate_is_suppressed_by_typed_blocker_envelope() -> None:
     provider_admission = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"

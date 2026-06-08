@@ -5,11 +5,25 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.default_executor_action_policy import SUPPORTED_ACTION_TYPES
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
+
+
+def current_action_supported_action_type(current_action: Mapping[str, Any]) -> str | None:
+    for candidate in (_text(current_action.get("action_type")),):
+        if candidate in SUPPORTED_ACTION_TYPES:
+            return candidate
+    allowed_actions = [
+        action
+        for value in current_action.get("allowed_actions") or []
+        if (action := _text(value)) in SUPPORTED_ACTION_TYPES
+    ]
+    unique_actions = sorted(set(allowed_actions))
+    return unique_actions[0] if len(unique_actions) == 1 else None
 
 
 def can_preempt_scan(
@@ -282,5 +296,6 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "can_preempt_scan",
+    "current_action_supported_action_type",
     "has_current_quality_repair_writer_handoff",
 ]

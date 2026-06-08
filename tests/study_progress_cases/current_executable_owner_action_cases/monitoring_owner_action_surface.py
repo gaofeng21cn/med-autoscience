@@ -326,4 +326,58 @@ def test_progress_first_monitoring_treats_missing_telemetry_and_closeout_as_obse
         },
     ]
 
+
+def test_progress_first_monitoring_projects_canonical_current_work_unit_aliases() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "executable_owner_action",
+                "owner": "finalize",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "canonical_gate_replay_unit",
+                "required_output_contract": {
+                    "owner_receipt_required": True,
+                    "typed_blocker_accepted": True,
+                    "accepted_terminal_results": ["owner_receipt", "typed_blocker"],
+                    "required_delta_kind": "publication_gate_replay_delta_or_typed_blocker",
+                    "target_surface": {
+                        "ref_kind": "route_obligation",
+                        "route_target": "finalize",
+                        "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                    },
+                },
+                "acceptance_refs": ["artifacts/controller/gate_clearing_batch/latest.json"],
+            },
+            "next_forced_delta": {
+                "required_delta_kind": "stale_delta",
+                "work_unit_id": "stale_delta_unit",
+                "owner_action": {
+                    "next_owner": "stale-owner",
+                    "work_unit_id": "stale_delta_unit",
+                    "allowed_actions": ["stale_action"],
+                },
+            },
+        }
+    )
+
+    assert monitoring["current_work_unit"]["work_unit_id"] == "canonical_gate_replay_unit"
+    assert monitoring["owner_action_current"] is True
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["next_owner"] == "finalize"
+    assert monitoring["controller_action"] == "run_gate_clearing_batch"
+    assert monitoring["next_work_unit"] == "canonical_gate_replay_unit"
+    assert monitoring["next_forced_delta"]["required_delta_kind"] == (
+        "publication_gate_replay_delta_or_typed_blocker"
+    )
+    assert monitoring["next_forced_delta"]["work_unit_id"] == "canonical_gate_replay_unit"
+    assert monitoring["next_forced_delta"]["owner_action"]["next_owner"] == "finalize"
+
+
 __all__ = [name for name in globals() if name.startswith("test_")]

@@ -72,12 +72,16 @@ def current_blockers_without_redrive_budget(summary: Mapping[str, Any]) -> list[
 
 
 def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any]:
+    current_work_unit = _dict(summary.get("current_work_unit"))
+    effective_summary = _summary_with_current_work_unit(summary, current_work_unit=current_work_unit)
     dispatch_consumption = _dict(summary.get("dispatch_consumption"))
+    if current_work_unit:
+        dispatch_consumption = _dict(current_work_unit.get("dispatch_consumption")) or dispatch_consumption
     latest_terminal_stage = _dict(summary.get("latest_terminal_stage"))
     semantic = _dict(latest_terminal_stage.get("semantic_completeness"))
     telemetry = _dict(latest_terminal_stage.get("telemetry_completeness"))
-    next_forced_delta = _dict(summary.get("next_forced_delta"))
-    running_provider_attempt = summary.get("running_provider_attempt") is True
+    next_forced_delta = _dict(current_work_unit.get("next_forced_delta")) or _dict(summary.get("next_forced_delta"))
+    running_provider_attempt = effective_summary.get("running_provider_attempt") is True
     target_surface_specificity = _target_surface_specificity(next_forced_delta)
     missing_closeout_semantics = bool(latest_terminal_stage) and _text(semantic.get("status")) not in {
         None,
@@ -92,7 +96,7 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
         target_surface_specificity=target_surface_specificity,
     )
     monitoring_status = _progress_first_monitoring_status(
-        summary=summary,
+        summary=effective_summary,
         dispatch_consumption=dispatch_consumption,
         owner_route_contract_blocker=owner_route_contract_blocker,
     )
@@ -100,13 +104,15 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
     return {
         "study_id": _text(summary.get("study_id")),
         "monitoring_status": monitoring_status,
-        "active_run_id": _text(summary.get("active_run_id")),
+        "active_run_id": _text(effective_summary.get("active_run_id")) or _text(summary.get("active_run_id")),
         "running_provider_attempt": running_provider_attempt,
-        "next_owner": _text(summary.get("next_owner")),
-        "controller_action": _text(summary.get("controller_action")),
-        "next_work_unit": _dict(summary.get("next_work_unit")) or _text(summary.get("next_work_unit")),
-        "typed_blocker": _dict(summary.get("typed_blocker")) or None,
+        "next_owner": _text(effective_summary.get("next_owner")),
+        "controller_action": _text(effective_summary.get("controller_action")),
+        "next_work_unit": _dict(effective_summary.get("next_work_unit")) or _text(effective_summary.get("next_work_unit")),
+        "current_work_unit": current_work_unit or None,
+        "typed_blocker": _dict(effective_summary.get("typed_blocker")) or None,
         "dispatch_consumption": dispatch_consumption or None,
+        "diagnostics": _dict(current_work_unit.get("diagnostics")) or None,
         "owner_pickup_overdue": owner_pickup_overdue,
         "target_surface_specificity": target_surface_specificity,
         "missing_explicit_target_surface": next_forced_delta.get("missing_explicit_target_surface") is True,
@@ -124,6 +130,32 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
             missing_stage_telemetry=missing_stage_telemetry,
         ),
     }
+
+
+def _summary_with_current_work_unit(
+    summary: Mapping[str, Any],
+    *,
+    current_work_unit: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not current_work_unit:
+        return dict(summary)
+    payload = dict(summary)
+    state = _dict(current_work_unit.get("state"))
+    status = _text(current_work_unit.get("status"))
+    payload["execution_state_kind"] = status or _text(summary.get("execution_state_kind"))
+    payload["owner_action_current"] = status == "executable_owner_action"
+    payload["running_provider_attempt"] = status == "running_provider_attempt"
+    payload["next_owner"] = _text(current_work_unit.get("owner")) or _text(summary.get("next_owner"))
+    payload["route_target"] = _text(current_work_unit.get("route_target")) or _text(summary.get("route_target"))
+    payload["controller_action"] = _text(current_work_unit.get("action_type")) or _text(summary.get("controller_action"))
+    payload["next_work_unit"] = _text(current_work_unit.get("work_unit_id")) or _dict(
+        current_work_unit.get("next_work_unit")
+    )
+    payload["typed_blocker"] = _dict(current_work_unit.get("typed_blocker")) or _dict(state.get("typed_blocker"))
+    payload["dispatch_consumption"] = _dict(current_work_unit.get("dispatch_consumption")) or _dict(
+        summary.get("dispatch_consumption")
+    )
+    return payload
 
 
 def _ranked_progress_first_study_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:

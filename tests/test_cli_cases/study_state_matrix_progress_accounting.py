@@ -338,6 +338,61 @@ def test_study_state_matrix_counts_domain_transition_explicit_target_surface_own
     assert study["missing_explicit_target_surface"] is False
 
 
+def test_study_state_matrix_progress_accounting_consumes_canonical_current_work_unit() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_state_matrix_parts.progress_first_tick_accounting"
+    )
+    accounting = module.progress_first_tick_accounting(
+        [
+            {
+                "surface": "progress_first_monitoring_summary",
+                "schema_version": 1,
+                "authority": "refs_only_observability",
+                "study_id": "003-current-work-unit",
+                "running_provider_attempt": False,
+                "execution_state_kind": "executable_owner_action",
+                "owner_action_current": False,
+                "next_owner": "stale-owner",
+                "route_target": "stale-route",
+                "controller_action": "stale-action",
+                "next_work_unit": {
+                    "unit_id": "stale-summary-unit",
+                    "lane": "stale",
+                },
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "schema_version": 1,
+                    "status": "executable_owner_action",
+                    "owner": "finalize",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "canonical_gate_replay_unit",
+                },
+                "next_forced_delta": {
+                    "target_surface_specificity": "explicit_owner_route_target",
+                    "missing_explicit_target_surface": False,
+                },
+                "dispatch_consumption": {
+                    "consumption_status": "unconsumed",
+                    "action_fingerprint": "domain-transition::canonical_gate_replay_unit",
+                    "unconsumed_duration_hours": 2.0,
+                },
+            },
+        ]
+    )
+    study = accounting["studies"][0]
+
+    assert accounting["expected_owner_action_count"] == 1
+    assert accounting["ready_for_owner_action_count"] == 1
+    assert accounting["unconsumed_owner_action_count"] == 1
+    assert accounting["generic_target_surface_count"] == 0
+    assert accounting["throughput_bottleneck_counts"] == {"owner_pickup_overdue": 1}
+    assert study["monitoring_status"] == "stalled_unconsumed_action"
+    assert study["next_owner"] == "finalize"
+    assert study["controller_action"] == "run_gate_clearing_batch"
+    assert study["next_work_unit"] == "canonical_gate_replay_unit"
+    assert study["current_work_unit"]["work_unit_id"] == "canonical_gate_replay_unit"
+
+
 def test_study_state_matrix_does_not_block_on_explicit_empty_closeout_arrays(
     monkeypatch,
     tmp_path: Path,

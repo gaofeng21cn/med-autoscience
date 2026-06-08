@@ -133,6 +133,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or payload_current_action
         or non_artifact_current_action
     )
+    canonical_current_work_unit = _mapping(payload.get("current_work_unit"))
     envelope_blocks_current_action = _envelope_typed_blocker_blocks_current_action(
         execution=execution,
         raw_typed_blocker=raw_typed_blocker,
@@ -155,6 +156,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
     next_work_unit = (
         hydration_work_unit
+        or _work_unit_projection(canonical_current_work_unit.get("work_unit_id"))
         or _work_unit_from_current_action(current_action)
         or _work_unit_from_action(handoff_owner_action)
         or (
@@ -225,11 +227,18 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         state_kind = "executable_owner_action"
     else:
         state_kind = _text(execution.get("state_kind"))
+    current_work_unit_status = _text(canonical_current_work_unit.get("status"))
+    if current_work_unit_status in {"executable_owner_action", "running_provider_attempt", "typed_blocker"}:
+        state_kind = current_work_unit_status
     if state_kind is None:
         if receipt_consumed:
             state_kind = "receipt_consumed"
         else:
             state_kind = "running_provider_attempt" if running_provider_attempt else "observability_only"
+    summary_next_forced_delta = _next_forced_delta_from_current_work_unit(
+        canonical_current_work_unit,
+        fallback=next_forced_delta,
+    )
     return {
         "surface": "progress_first_monitoring_summary",
         "schema_version": 1,
@@ -258,8 +267,14 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             ),
         },
         "execution_state_kind": "owner_handoff_hydration" if hydration_work_unit is not None else state_kind,
+        "owner_action_current": _current_work_unit_owner_action_current(
+            canonical_current_work_unit,
+            state_kind=state_kind,
+            current_action=current_action,
+        ),
         "next_owner": (
             _explicit_wakeup_hydration_owner(launch_policy)
+            or _text(canonical_current_work_unit.get("owner"))
             or _text(current_action.get("next_owner"))
             or _owner_from_action(handoff_owner_action)
             or (
@@ -278,7 +293,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             or _text(progress_state.get("next_owner"))
         ),
         "route_target": (
-            _text(current_action.get("route_target"))
+            _text(canonical_current_work_unit.get("route_target"))
+            or _text(current_action.get("route_target"))
             or (
                 _text(handoff_owner_action.get("route_target"))
                 if handoff_owner_action is not None
@@ -290,7 +306,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             )
         ),
         "controller_action": (
-            _first_text(current_action.get("allowed_actions"))
+            _text(canonical_current_work_unit.get("action_type"))
+            or _first_text(current_action.get("allowed_actions"))
             or _text(current_action.get("action_type"))
             or (
                 _text(handoff_owner_action.get("action_type"))
@@ -305,6 +322,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             or _text(payload.get("runtime_decision"))
         ),
         "next_work_unit": next_work_unit,
+        "current_work_unit": canonical_current_work_unit or None,
         "current_executable_owner_action": current_action or None,
         "owner_action_admission": owner_action_admission,
         "owner_handoff_hydration": _owner_handoff_hydration_projection(launch_policy),
@@ -314,10 +332,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "progress_delta_classification": progress_delta_classification,
         "paper_progress_delta_counted": bool(progress_state.get("paper_progress_delta_counted")),
         "platform_repair_delta_counted": bool(progress_state.get("platform_repair_delta_counted")),
-        "next_forced_delta": _compact_mapping(
-            next_forced_delta,
-            NEXT_FORCED_DELTA_SUMMARY_KEYS,
-        ),
+        "next_forced_delta": _compact_mapping(summary_next_forced_delta, NEXT_FORCED_DELTA_SUMMARY_KEYS),
         "stage_progress_log": _compact_mapping(
             stage_progress_log,
             (
@@ -352,6 +367,70 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             "can_authorize_publication_ready": False,
         },
     }
+
+
+def _current_work_unit_owner_action_current(
+    current_work_unit: Mapping[str, Any],
+    *,
+    state_kind: str | None,
+    current_action: Mapping[str, Any],
+) -> bool:
+    if current_work_unit:
+        return _text(current_work_unit.get("status")) == "executable_owner_action"
+    return state_kind == "executable_owner_action" and bool(current_action)
+
+
+def _next_forced_delta_from_current_work_unit(
+    current_work_unit: Mapping[str, Any],
+    *,
+    fallback: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _text(current_work_unit.get("status")) != "executable_owner_action":
+        return dict(fallback)
+    work_unit_id = _text(current_work_unit.get("work_unit_id"))
+    action_type = _text(current_work_unit.get("action_type"))
+    owner = _text(current_work_unit.get("owner"))
+    if work_unit_id is None and action_type is None and owner is None:
+        return dict(fallback)
+    contract = _mapping(current_work_unit.get("required_output_contract"))
+    target_surface = _mapping(contract.get("target_surface"))
+    required_output_surface = _text(contract.get("required_output_surface"))
+    if not target_surface and required_output_surface is not None:
+        target_surface = {
+            "ref_kind": "route_obligation",
+            "route_target": owner,
+            "surface_ref": required_output_surface,
+        }
+    payload = dict(fallback)
+    payload.update(
+        {
+            "required_delta_kind": _text(contract.get("required_delta_kind"))
+            or _text(fallback.get("required_delta_kind"))
+            or "current_work_unit_owner_action",
+            "work_unit_id": work_unit_id or _text(fallback.get("work_unit_id")),
+            "next_owner": owner or _text(fallback.get("next_owner")),
+            "allowed_outcomes": contract.get("accepted_terminal_results")
+            or fallback.get("allowed_outcomes"),
+            "target_surface": target_surface or _mapping(fallback.get("target_surface")) or None,
+            "target_surface_specificity": (
+                "explicit_owner_route_target"
+                if target_surface
+                else _text(fallback.get("target_surface_specificity"))
+            ),
+            "acceptance_refs": current_work_unit.get("acceptance_refs") or fallback.get("acceptance_refs"),
+            "owner_action": {
+                key: value
+                for key, value in {
+                    "next_owner": owner,
+                    "work_unit_id": work_unit_id,
+                    "allowed_actions": [action_type] if action_type is not None else None,
+                    "owner_receipt_required": contract.get("owner_receipt_required"),
+                }.items()
+                if value not in (None, "", [], {})
+            },
+        }
+    )
+    return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
 
 
 def _strict_running_provider_liveness(handoff: Mapping[str, Any]) -> bool:

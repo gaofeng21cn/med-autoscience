@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-08：MAS/OPL 边界采用 canonical current work unit 协议
+
+- 决策：`src/med_autoscience/controllers/current_work_unit.py` 是 MAS/OPL 边界唯一当前可执行 work unit reducer。它只输出 `executable_owner_action`、`running_provider_attempt`、`typed_blocker` 或 `blocked_current_work_unit` 四类 `status`，并固定携带 owner、action type、work-unit id、fingerprint、required output contract、acceptance refs、currentness basis 和 authority boundary。
+- 决策：`current_execution_envelope`、`progress_first_monitoring_summary`、Portal/workbench 和 `study-state-matrix` 只能从 canonical `current_work_unit` 派生旧读面字段。`current_executable_owner_action`、OPL current-control queue、Stage Native `next_action`、`domain_transition`、provider handoff 和 `next_forced_delta` 仍可作为 candidate producer / provenance，但不得各自重新解释“下一步”。
+- 决策：`domain-action-request-materialize` 优先消费 explicit `current_work_unit` / canonical current action；被压过的旧 Stage Native action、旧 top-level/per-study queue 或 stale transition 只能进入 `ignored_actions`，例如 `superseded_by_canonical_current_work_unit`。`domain-health-diagnostic` 的 provider running proof 必须匹配当前 work-unit/action fingerprint，stale running attempt 不得冒充当前执行。
+- 决策：`admission_pending` 与 `running_provider_attempt` 必须分账。前者表示当前 owner/provider admission 可请求或已写 handoff；后者只能由 strict OPL/provider liveness proof 成立。`opl-stage-attempt://...` handle、active-run provenance、stale queue 或 stale handoff 不是 running proof。
+- 影响：这是 controller/read-model/materializer/display contract 修复，不写 study truth、runtime-owned state、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt 或 typed blocker。论文推进仍必须来自新的 owner receipt、typed blocker、accepted route handoff、paper/evidence/reviewer/gate/package semantic delta、human gate 或 strict provider running proof。
+
 ## 2026-06-08：跨仓 OPL provider 修复必须同步 MAS dependency pin
 
 - 决策：当 OPL `opl-harness-shared` 或 provider worker/runtime substrate 修复是 MAS live runtime recovery 的必要条件时，MAS 必须同步更新 `pyproject.toml`、`uv.lock`、`contracts/foundry_agent_series.json`、`src/med_autoscience/opl_standard_pack.py` 和对应 meta tests 中的 OPL owner commit pin。只把修复推到 `/Users/gaofeng/workspace/one-person-lab` 或 `origin/main`，不能证明 MAS CLI / `scripts/run-python-clean.sh` / live controller 已消费该修复。

@@ -227,6 +227,56 @@ def test_study_workbench_projects_progress_first_next_delta_for_operator_visibil
     assert "platform_repair_delta=1" in html
 
 
+def test_study_workbench_progress_first_exposes_canonical_current_work_unit() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    progress = {
+        **_progress_payload(),
+        "progress_first_monitoring_summary": {
+            "surface": "progress_first_monitoring_summary",
+            "schema_version": 1,
+            "authority": "refs_only_observability",
+            "study_id": "001-risk",
+            "running_provider_attempt": False,
+            "execution_state_kind": "executable_owner_action",
+            "owner_action_current": True,
+            "next_owner": "ai_reviewer",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "executable_owner_action",
+                "owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": "sha256:current-work-unit",
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "provider_admission_pending": True,
+                },
+            },
+        },
+    }
+
+    payload = parts.build_study_workbench_payload(
+        progress=progress,
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+    )
+    html = parts.render_study_workbench_sections(payload)
+    projection = payload["progress_first"]
+
+    assert projection["current_work_unit"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    assert projection["current_work_unit"]["status"] == "executable_owner_action"
+    assert projection["current_work_unit"]["state"]["provider_admission_pending"] is True
+    assert "produce_ai_reviewer_publication_eval_record_against_current_inputs" in html
+    assert "admission_pending=True" in html
+
+
 def test_study_workbench_helper_does_not_accept_runtime_conversation_read_model() -> None:
     parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
     portal_module = importlib.import_module("med_autoscience.controllers.progress_portal")

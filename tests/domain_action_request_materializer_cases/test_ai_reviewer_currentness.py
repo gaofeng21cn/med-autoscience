@@ -485,6 +485,138 @@ def test_materialize_domain_action_requests_prefers_current_ai_reviewer_queue_ov
     }
 
 
+def test_materialize_domain_action_requests_prefers_canonical_current_work_unit_over_stale_stage_native_write(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    study_progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "status": "ready_for_owner_action",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": "control/next_action.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "target_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+        },
+    )
+    current_fingerprint = "sha256:canonical-current-ai-reviewer-recheck"
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    route["work_unit_fingerprint"] = current_fingerprint
+    route["source_refs"] = {
+        **dict(route["source_refs"]),
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "work_unit_fingerprint": current_fingerprint,
+        "owner_route_currentness_basis": {
+            "truth_epoch": f"truth-epoch::{study_id}",
+            "runtime_health_epoch": f"runtime-health::{study_id}",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": current_fingerprint,
+        },
+    }
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="write",
+        owner_reason="old_stage_native_write",
+        allowed_actions=["run_quality_repair_batch"],
+    )
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "source": "canonical_current_work_unit",
+        "source_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "work_unit_fingerprint": current_fingerprint,
+        "next_owner": "ai_reviewer",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+    }
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "ai_reviewer",
+                        "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    },
+                    "current_work_unit": current_work_unit,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": quest_id,
+                            "action_type": "run_quality_repair_batch",
+                            "owner": "write",
+                            "request_owner": "write",
+                            "authority": "stage_native_workspace_next_action",
+                            "reason": "old_stage_native_write",
+                            "owner_route": stale_route,
+                        }
+                    ],
+                }
+            ],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "run_quality_repair_batch",
+                    "owner": "write",
+                    "request_owner": "write",
+                    "authority": "stage_native_workspace_next_action",
+                    "reason": "old_stage_native_write",
+                    "owner_route": stale_route,
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(study_progress_module, "read_study_progress", lambda **_: {})
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
+    assert dispatch["next_executable_owner"] == "ai_reviewer"
+    assert dispatch["action_fingerprint"] == current_fingerprint
+    assert dispatch["owner_route"]["source_refs"]["work_unit_fingerprint"] == current_fingerprint
+    assert dispatch["source_action"]["authority"] == "canonical_current_work_unit"
+    assert {
+        item["action_type"]: item["reason"]
+        for item in result["ignored_actions"]
+        if item["study_id"] == study_id
+    } == {
+        "run_quality_repair_batch": "superseded_by_canonical_current_work_unit",
+    }
+
+
 def test_materialize_domain_action_requests_keeps_repair_progress_recheck_queue_over_old_routeback_record(
     monkeypatch,
     tmp_path: Path,
