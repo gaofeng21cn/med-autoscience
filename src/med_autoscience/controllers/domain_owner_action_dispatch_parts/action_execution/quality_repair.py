@@ -98,12 +98,22 @@ def execute_quality_repair_batch(
         if blocked_reason is not None
         else {}
     )
+    provider_handoff_fields = (
+        _provider_stage_attempt_handoff_fields(
+            dispatch=dispatch,
+            required_output_surface=_text(dispatch.get("required_output_surface"))
+            or _text(_mapping(dispatch.get("prompt_contract")).get("required_output_surface")),
+        )
+        if handoff_ready
+        else {}
+    )
     return {
         "execution_status": "handoff_ready" if handoff_ready else ("executed" if executed else "blocked"),
         "blocked_reason": blocked_reason,
         "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
         "owner_result": result_payload if result_payload else owner_result,
         **({"writer_worker_handoff": dict(result_payload["writer_worker_handoff"])} if handoff_ready else {}),
+        **provider_handoff_fields,
         **progress_first_route,
         **evidence_payload,
         "quest_root": str(quest_root),
@@ -338,21 +348,12 @@ def _writer_stage_attempt_handoff_execution(*, dispatch: Mapping[str, Any], ques
         "blocked_reason": None,
         "owner_callable_surface": "opl_default_executor.stage_attempt",
         "writer_worker_handoff": dict(dispatch),
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "domain_completion_authorized": False,
         "required_next_owner": "write",
         "required_output_surface": required_output_surface,
-        "stage_attempt_admission": {
-            "surface": "opl_stage_attempt_admission_request",
-            "schema_version": 1,
-            "status": "requested",
-            "owner": "one-person-lab",
-            "domain": "med-autoscience",
-            "action_type": "run_quality_repair_batch",
-            "dispatch_authority": "quality_repair_batch_writer_handoff",
-            "provider_completion_is_domain_completion": False,
-            "domain_completion_authorized": False,
-            "required_closeout_packet": _mapping(dispatch.get("required_closeout_packet"))
-            or _mapping(_mapping(dispatch.get("prompt_contract")).get("required_closeout_packet")),
-        },
+        "stage_attempt_admission": _stage_attempt_admission_payload(dispatch),
         "owner_result": {
             "status": "handoff_ready",
             "paper_work_done": [
@@ -361,6 +362,37 @@ def _writer_stage_attempt_handoff_execution(*, dispatch: Mapping[str, Any], ques
             "writer_worker_handoff_path": _text(_mapping(dispatch.get("refs")).get("dispatch_path")),
         },
         "quest_root": str(quest_root),
+    }
+
+
+def _provider_stage_attempt_handoff_fields(
+    *,
+    dispatch: Mapping[str, Any],
+    required_output_surface: str | None,
+) -> dict[str, Any]:
+    return {
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "domain_completion_authorized": False,
+        "required_next_owner": "write",
+        "required_output_surface": required_output_surface,
+        "stage_attempt_admission": _stage_attempt_admission_payload(dispatch),
+    }
+
+
+def _stage_attempt_admission_payload(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "surface": "opl_stage_attempt_admission_request",
+        "schema_version": 1,
+        "status": "requested",
+        "owner": "one-person-lab",
+        "domain": "med-autoscience",
+        "action_type": "run_quality_repair_batch",
+        "dispatch_authority": _text(dispatch.get("dispatch_authority")) or "quality_repair_batch_writer_handoff",
+        "provider_completion_is_domain_completion": False,
+        "domain_completion_authorized": False,
+        "required_closeout_packet": _mapping(dispatch.get("required_closeout_packet"))
+        or _mapping(_mapping(dispatch.get("prompt_contract")).get("required_closeout_packet")),
     }
 
 

@@ -417,12 +417,12 @@ def _active_run_id(*, status: Mapping[str, Any], progress: Mapping[str, Any], tr
         and health.get("retry_budget_remaining") == 0
     ):
         return None
-    return (
-        _text(status.get("active_run_id"))
-        or _text(truth.get("active_run_id"))
-        or _text(_mapping(truth.get("execution_owner")).get("active_run_id"))
-        or _text(progress.get("active_run_id"))
-        or _text(_mapping(progress.get("supervision")).get("active_run_id"))
+    return _first_strict_live_run_id(
+        status.get("active_run_id"),
+        truth.get("active_run_id"),
+        _mapping(truth.get("execution_owner")).get("active_run_id"),
+        progress.get("active_run_id"),
+        _mapping(progress.get("supervision")).get("active_run_id"),
     )
 
 
@@ -465,11 +465,22 @@ def _live_status_active_run_id(
     worker_liveness = _mapping(health.get("worker_liveness_state"))
     if _text(worker_liveness.get("state")) in {"not_live", "parked", "stale"}:
         return None
-    return (
-        _text(status.get("active_run_id"))
-        or _text(liveness.get("active_run_id"))
-        or _text(runtime_audit.get("active_run_id"))
+    return _first_strict_live_run_id(
+        status.get("active_run_id"),
+        liveness.get("active_run_id"),
+        runtime_audit.get("active_run_id"),
     )
+
+
+def _first_strict_live_run_id(*values: Any) -> str | None:
+    for value in values:
+        run_id = _text(value)
+        if not run_id:
+            continue
+        if run_id.startswith("opl-stage-attempt://"):
+            continue
+        return run_id
+    return None
 
 
 def _explicit_not_running_provider_attempt(*, status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:

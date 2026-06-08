@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers import study_macro_state
+from med_autoscience.controllers import opl_runtime_refs, study_macro_state
 
 
 MACRO_STATE_KEYS = (
@@ -28,7 +28,7 @@ def compact_study_macro_state_projection(value: object) -> dict[str, Any] | None
 
 def compact_study_macro_state_from_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     direct = compact_study_macro_state_projection(payload.get("study_macro_state"))
-    if direct is not None:
+    if direct is not None and not _direct_live_state_is_opl_attempt_routeback(payload, direct):
         return direct
     study_id = _text(payload.get("study_id")) or _text(_mapping(payload.get("study_truth_snapshot")).get("study_id"))
     if study_id is None:
@@ -40,6 +40,36 @@ def compact_study_macro_state_from_payload(payload: Mapping[str, Any]) -> dict[s
             progress=payload,
         )
     )
+
+
+def _direct_live_state_is_opl_attempt_routeback(
+    payload: Mapping[str, Any],
+    direct: Mapping[str, Any],
+) -> bool:
+    if _text(direct.get("writer_state")) != "live":
+        return False
+    if opl_runtime_refs.strict_live(payload):
+        return False
+    transition = _mapping(payload.get("domain_transition"))
+    if _text(transition.get("decision_type")) not in {
+        "ai_reviewer_re_eval",
+        "bundle_stage_finalize",
+        "publication_gate_blocker",
+        "route_back_same_line",
+    }:
+        return False
+    active_run_id = (
+        _text(payload.get("active_run_id"))
+        or _text(_mapping(payload.get("supervision")).get("active_run_id"))
+        or _text(_mapping(payload.get("continuation_state")).get("active_run_id"))
+        or _text(_mapping(payload.get("study_truth_snapshot")).get("active_run_id"))
+        or _text(
+            _mapping(_mapping(payload.get("study_truth_snapshot")).get("execution_owner")).get(
+                "active_run_id"
+            )
+        )
+    )
+    return bool(active_run_id and active_run_id.startswith("opl-stage-attempt://"))
 
 
 def _mapping(value: object) -> dict[str, Any]:

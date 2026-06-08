@@ -180,13 +180,13 @@ def provider_admission_candidates_from_execution_payload(
     status_payload: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     status = _mapping(status_payload)
-    if _status_envelope_blocks_provider_admission(status):
-        return []
     status_study_id = _non_empty_text(status.get("study_id"))
     current_action_identity = _current_action_identity(status)
     candidates: list[dict[str, Any]] = []
     for item in execution_payload.get("executions") or []:
         if not isinstance(item, Mapping):
+            continue
+        if _status_envelope_blocks_provider_admission(status, execution=item):
             continue
         candidate = provider_admission_candidate_from_execution(
             item,
@@ -320,10 +320,58 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
     }
 
 
-def _status_envelope_blocks_provider_admission(status_payload: Mapping[str, Any]) -> bool:
+def _status_envelope_blocks_provider_admission(
+    status_payload: Mapping[str, Any],
+    *,
+    execution: Mapping[str, Any],
+) -> bool:
     envelope = _mapping(status_payload.get("current_execution_envelope"))
     state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(envelope.get("execution_state_kind"))
-    return state_kind in {"parked", "running_provider_attempt", "typed_blocker"}
+    if state_kind in {"parked", "running_provider_attempt"}:
+        return True
+    if state_kind != "typed_blocker":
+        return False
+    return not _typed_blocker_envelope_allows_provider_admission(envelope, execution=execution)
+
+
+def _typed_blocker_envelope_allows_provider_admission(
+    envelope: Mapping[str, Any],
+    *,
+    execution: Mapping[str, Any],
+) -> bool:
+    blocker = _mapping(envelope.get("typed_blocker"))
+    blocker_reason = (
+        _non_empty_text(blocker.get("blocker_id"))
+        or _non_empty_text(blocker.get("blocker_type"))
+        or _non_empty_text(blocker.get("reason"))
+    )
+    if blocker_reason != "medical_paper_readiness_missing":
+        return False
+    if _non_empty_text(execution.get("action_type")) != "run_quality_repair_batch":
+        return False
+    if not _provider_attempt_required(execution):
+        return False
+    if execution.get("owner_route_current") is False:
+        return False
+    route = _mapping(execution.get("owner_route"))
+    source_refs = _mapping(route.get("source_refs"))
+    source_surface = (
+        _non_empty_text(source_refs.get("source_surface"))
+        or _non_empty_text(_mapping(execution.get("source_action")).get("source_surface"))
+    )
+    current_stage_id = (
+        _non_empty_text(source_refs.get("current_stage_id"))
+        or _non_empty_text(_mapping(execution.get("source_action")).get("current_stage_id"))
+    )
+    next_owner = (
+        _non_empty_text(execution.get("next_executable_owner"))
+        or _non_empty_text(route.get("next_owner"))
+    )
+    return (
+        next_owner == "write"
+        and current_stage_id == "08-publication_package_handoff"
+        and source_surface == "artifacts/reports/medical_publication_surface/latest.json"
+    )
 
 
 def _matches_current_action(

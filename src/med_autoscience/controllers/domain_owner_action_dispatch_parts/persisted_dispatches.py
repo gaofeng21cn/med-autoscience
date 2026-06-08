@@ -298,6 +298,13 @@ def selected_dispatches(
             selected.append(payload)
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
+    if stage_native_next_action is not None:
+        stage_native_selected = _stage_native_next_action_dispatches_only(
+            next_action=stage_native_next_action,
+            dispatches=selected,
+        )
+        if stage_native_selected:
+            return stage_native_selected
     runtime_current_selected = _runtime_current_dispatches_only(
         study_id=study_id,
         dispatches=selected,

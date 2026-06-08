@@ -529,3 +529,153 @@ def test_quality_repair_dispatch_without_stage_native_authority_still_requires_o
     assert result["blocked_count"] == 1
     assert execution["execution_status"] == "blocked"
     assert execution["blocked_reason"] == "opl_execution_authorization_required"
+
+
+def test_stage_native_next_action_preempts_older_current_writer_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "schema_version": 1,
+            "status": "ready_for_owner_action",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": PUBLICATION_SURFACE,
+            "current_stage_id": "08-publication_package_handoff",
+            "stage_index_ref": "control/stage_index.json",
+            "next_work_unit": "medical_publication_surface_blocked_write_repair",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+        },
+    )
+    stage_native_dispatch = _stage_native_quality_repair_dispatch(study_id=study_id)
+    stage_native_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    stage_native_dispatch["refs"] = {"dispatch_path": str(stage_native_path)}
+    _write_json(stage_native_path, stage_native_dispatch)
+    old_route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
+    old_route.update(
+        {
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "work_unit_fingerprint": "publication-blockers::old-writer-handoff",
+            "source_refs": {
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::old-writer-handoff",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+            },
+        }
+    )
+    old_writer_handoff = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=old_route,
+    )
+    old_writer_handoff["dispatch_authority"] = "quality_repair_batch_writer_handoff"
+    old_writer_handoff["source_action"] = {
+        "surface": "quality_repair_batch",
+        "blocked_reason": "manuscript_story_surface_delta_missing",
+    }
+    old_writer_handoff["medical_claim_authoring_allowed"] = True
+    prompt_contract = old_writer_handoff["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract["medical_claim_authoring_allowed"] = True
+    prompt_contract["allowed_write_surfaces"] = [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/**",
+    ]
+    old_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "old_writer_handoff.json"
+    )
+    old_writer_handoff["refs"] = {"dispatch_path": str(old_path)}
+    _write_json(old_path, old_writer_handoff)
+    _write_json(
+        profile.workspace_root / module.CONSUMER_LATEST_RELATIVE_PATH,
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [old_writer_handoff, stage_native_dispatch],
+        },
+    )
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": old_route,
+                    "bridged_writer_handoff": {
+                        "owner_route": old_route,
+                    },
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        progress_module,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {"blocker_id": "medical_paper_readiness_missing"},
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        lambda **_: {
+            "execution_status": "handoff_ready",
+            "blocked_reason": None,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "writer_worker_handoff": {},
+            "provider_attempt_or_lease_required": True,
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["execution_count"] == 1
+    assert execution["dispatch_path"] == str(stage_native_path)
+    assert execution["action_fingerprint"].startswith("stage-native-next-action::08-publication_package_handoff")
+    assert execution["dispatch_authority"] == "consumer_default_executor_dispatch"

@@ -398,6 +398,76 @@ def test_provider_admission_candidate_is_suppressed_by_typed_blocker_envelope() 
     assert result == []
 
 
+def test_provider_admission_candidate_survives_readiness_typed_blocker_for_stage_native_write_repair() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    fingerprint = (
+        "stage-native-next-action::08-publication_package_handoff::"
+        "run_quality_repair_batch::artifacts/reports/medical_publication_surface/latest.json"
+    )
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "executions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                    "provider_attempt_or_lease_required": True,
+                    "provider_completion_is_domain_completion": False,
+                    "owner_route_current": True,
+                    "owner_route_basis": "stage_native_workspace_next_action",
+                    "dispatch_path": "/workspace/current-stage-native-write.json",
+                    "action_fingerprint": fingerprint,
+                    "next_executable_owner": "write",
+                    "stage_attempt_admission": {
+                        "surface": "opl_stage_attempt_admission_request",
+                        "status": "requested",
+                        "owner": "one-person-lab",
+                    },
+                    "owner_route": {
+                        "next_owner": "write",
+                        "source_refs": {
+                            "work_unit_id": "run_quality_repair_batch",
+                            "work_unit_fingerprint": fingerprint,
+                            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+                            "current_stage_id": "08-publication_package_handoff",
+                        },
+                    },
+                }
+            ]
+        },
+        status_payload={
+            "study_id": study_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_type": "medical_paper_readiness_missing",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+            "current_executable_owner_action": None,
+        },
+    )
+
+    assert len(result) == 1
+    candidate = result[0]
+    assert candidate["study_id"] == study_id
+    assert candidate["action_type"] == "run_quality_repair_batch"
+    assert candidate["work_unit_id"] == "run_quality_repair_batch"
+    assert candidate["work_unit_fingerprint"] == fingerprint
+    assert candidate["provider_attempt_or_lease_required"] is True
+    assert candidate["owner_route_basis"] == "stage_native_workspace_next_action"
+
+
 def test_provider_admission_candidate_requires_dispatch_path() -> None:
     provider_admission = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
