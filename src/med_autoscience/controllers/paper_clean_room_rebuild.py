@@ -194,6 +194,7 @@ def materialize_paper_clean_room_rebuild(
         _materialize_verified_inputs(clean_root=clean_root, refs=refs)
         _write_json(history_path, descriptor)
         _write_json(descriptor_path, descriptor)
+        _write_json(study_root / "control" / "next_action.json", _next_action(descriptor))
         workspace_status = study_workspace_status.build_study_workspace_status(
             profile=profile,
             study_id=study_id,
@@ -391,6 +392,21 @@ def _materialize_verified_inputs(*, clean_root: Path, refs: list[dict[str, Any]]
             shutil.copytree(source, destination)
         elif not destination.exists():
             shutil.copy2(source, destination)
+
+
+def _next_action(descriptor: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "status": "ready_for_owner_action",
+        "action_id": "run_medical_publication_surface_from_clean_room",
+        "owner": "MedAutoScience",
+        "source_surface": "artifacts/supervision/paper_clean_room_rebuild/latest.json",
+        "current_stage_id": "08-publication_package_handoff",
+        "stage_index_ref": "control/stage_index.json",
+        "required_output_surface": "artifacts/reports/medical_publication_surface/latest.json",
+        "clean_workspace_root": _text(descriptor.get("clean_workspace_root")),
+        "descriptor_path": _text(descriptor.get("descriptor_path")),
+    }
 
 
 def _resolve_study_ids(*, profile: WorkspaceProfile, study_ids: Iterable[str] | None) -> tuple[str, ...]:

@@ -346,6 +346,25 @@ def _current_readiness_followup_action(study: Mapping[str, Any]) -> dict[str, An
     return {key: value for key, value in payload.items() if value is not None}
 
 
+def _fresh_progress_supersedes_scan_action(
+    *,
+    fresh_progress_action: Mapping[str, Any],
+    readiness_followup: Mapping[str, Any] | None,
+    stage_native_action: Mapping[str, Any] | None,
+) -> bool:
+    action_type = _text(fresh_progress_action.get("action_type"))
+    if action_type is not None and action_type.startswith("current_execution_envelope_"):
+        return True
+    if readiness_followup is not None:
+        return True
+    source_surface = _text(fresh_progress_action.get("source_surface")) or _text(fresh_progress_action.get("source"))
+    return (
+        stage_native_action is not None
+        and action_type != _text(stage_native_action.get("action_type"))
+        and source_surface == "domain_transition"
+    )
+
+
 def _fresh_progress_current_actions(
     *,
     profile: WorkspaceProfile | None,

@@ -207,4 +207,5 @@ def test_supervisor_only_live_quality_repair_does_not_suppress_ai_reviewer_workf
         "run_quality_repair_batch",
         "run_gate_clearing_batch",
         "complete_medical_paper_readiness_surface",
+        "paper_clean_room_rebuild_required",
     ]

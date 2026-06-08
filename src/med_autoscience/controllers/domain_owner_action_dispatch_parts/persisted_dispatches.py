@@ -260,6 +260,13 @@ def selected_dispatches(
             return runtime_current_selected
         if current_selected:
             return current_selected
+        if stage_native_next_action is not None:
+            stage_native_selected = _stage_native_next_action_dispatches_only(
+                next_action=stage_native_next_action,
+                dispatches=selected,
+            )
+            if stage_native_selected:
+                return stage_native_selected
         if _consumed_transition_owner_route(current_study):
             return []
         return [
@@ -402,6 +409,14 @@ def _selected_dispatches_only(
         if not _dispatch_owner_route(dispatch):
             selected.append(dispatch)
     return selected
+
+
+def _scan_action_queue_matches_dispatch(
+    *,
+    current_study: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    return _current_action_queue_owner_route(current_study, dispatch=dispatch) is not None
 
 
 def _runtime_current_dispatches_only(

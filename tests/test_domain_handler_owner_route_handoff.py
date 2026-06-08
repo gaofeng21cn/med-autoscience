@@ -215,6 +215,7 @@ def test_domain_handler_export_uses_newer_opl_current_control_owner_route_over_s
     stale_handoff_path = study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json"
     current_control_path = (
         profile.workspace_root
+        / "runtime"
         / "artifacts"
         / "supervision"
         / "opl_current_control_state"

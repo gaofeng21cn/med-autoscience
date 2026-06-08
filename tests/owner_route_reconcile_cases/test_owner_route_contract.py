@@ -146,6 +146,7 @@ def test_scan_domain_routes_projects_single_owner_route_for_current_queue(monkey
         "run_quality_repair_batch",
         "run_gate_clearing_batch",
         "complete_medical_paper_readiness_surface",
+        "paper_clean_room_rebuild_required",
     ]
     assert route["idempotency_key"].startswith(
         "owner-route::002-dm-china-us-mortality-attribution::truth-epoch-dm002::ai_reviewer::"
@@ -622,7 +623,7 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
                 "src/med_autoscience/platform/**",
                 "src/med_autoscience/runtime_transport/**",
             ],
-            "allowed_write_surfaces": ["artifacts/supervision/**"],
+            "allowed_write_surfaces": ["runtime/artifacts/supervision/**"],
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,
             "manual_study_patch_allowed": False,
