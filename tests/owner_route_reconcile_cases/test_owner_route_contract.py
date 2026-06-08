@@ -623,7 +623,7 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
                 "src/med_autoscience/platform/**",
                 "src/med_autoscience/runtime_transport/**",
             ],
-            "allowed_write_surfaces": ["runtime/artifacts/supervision/**"],
+            "allowed_write_surfaces": ["artifacts/supervision/**"],
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,
             "manual_study_patch_allowed": False,

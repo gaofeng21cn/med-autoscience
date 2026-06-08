@@ -183,7 +183,7 @@ def test_scan_domain_routes_queues_specificity_and_ai_reviewer_actions_without_q
         assert action["handoff_packet"]["paper_package_mutation_allowed"] is False
         assert action["handoff_packet"]["manual_study_patch_allowed"] is False
         assert action["handoff_packet"]["medical_claim_authoring_allowed"] is False
-        assert action["handoff_packet"]["allowed_write_surfaces"] == ["runtime/artifacts/supervision/**"]
+        assert action["handoff_packet"]["allowed_write_surfaces"] == ["artifacts/supervision/**"]
 
 
 def test_scan_domain_routes_marks_ai_reviewer_eval_stale_after_new_reviewer_revision(
@@ -572,7 +572,7 @@ def test_scan_domain_routes_apply_safe_actions_sanitizes_unsafe_repair_authority
     assert result["studies"][0]["supervisor_only"] is True
     assert lifecycle["authority"] == "observability_only"
     assert lifecycle["allowed_write_surfaces"] == [
-        "runtime/artifacts/supervision/**",
+        "artifacts/supervision/**",
         "artifacts/autonomy/repair_lifecycle/latest.json",
         "artifacts/autonomy/repair_actions/latest.json",
     ]
@@ -586,4 +586,4 @@ def test_scan_domain_routes_apply_safe_actions_sanitizes_unsafe_repair_authority
     assert top_action["manual_study_patch_allowed"] is False
     assert top_action["quality_gate_relaxation_allowed"] is False
     assert top_action["medical_claim_authoring_allowed"] is False
-    assert top_action["requested_write_surfaces"] == ["runtime/artifacts/supervision/**"]
+    assert top_action["requested_write_surfaces"] == ["artifacts/supervision/**"]

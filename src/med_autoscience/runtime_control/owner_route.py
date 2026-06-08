@@ -23,10 +23,10 @@ ROUTED_ACTION_TYPES = (
     "run_quality_repair_batch",
     "run_gate_clearing_batch",
     "complete_medical_paper_readiness_surface",
+    "paper_clean_room_rebuild_required",
 )
 ALLOWED_ACTION_TYPES = (
     *ROUTED_ACTION_TYPES,
-    "paper_clean_room_rebuild_required",
     "unit_harmonized_external_validation_rerun",
     "recover_transport_model_provenance",
     "methodology_reframe_route_decision",

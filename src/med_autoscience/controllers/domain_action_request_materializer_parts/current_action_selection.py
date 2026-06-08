@@ -70,6 +70,7 @@ def current_actions_for_studies(
             study=study_payload,
             top_level_actions=top_level_actions,
         )
+        canonical_current_action = _canonical_current_work_unit_action(study_payload)
         writer_handoff_owner_action = _current_writer_handoff_owner_action(
             study=study_payload,
             top_level_actions=top_level_actions,
@@ -79,12 +80,32 @@ def current_actions_for_studies(
             top_level_actions=top_level_actions,
         )
         transition_actions = _consumed_domain_transition_actions(study_payload)
+        if fresh_progress_action is not None and not _mapping(study_payload.get("current_work_unit")):
+            canonical_current_action = None
+        if canonical_current_action is not None:
+            per_study_actions.append(canonical_current_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_canonical_current_work_unit")
+                for action in [
+                    *([fresh_progress_action] if fresh_progress_action is not None else []),
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *top_level_study_actions,
+                    *transition_actions,
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                    ],
+                ]
+                if action != canonical_current_action
+            )
+            continue
         if transition_actions:
             per_study_actions.extend(transition_actions)
             ignored.extend(
                 _ignored_action(action, "superseded_by_current_consumed_domain_transition")
                 for action in [
-                    *([fresh_progress_action] if fresh_progress_action is not None else []),
                     *([readiness_followup] if readiness_followup is not None else []),
                     *([stage_native_action] if stage_native_action is not None else []),
                     *top_level_study_actions,
