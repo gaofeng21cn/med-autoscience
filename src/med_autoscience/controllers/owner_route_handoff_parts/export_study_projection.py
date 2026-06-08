@@ -10,6 +10,13 @@ from .. import publication_aftercare
 from .. import reviewer_refinement_loop
 from .. import stage_knowledge_plane
 from ..domain_action_request_materializer_parts import current_writer_handoff
+from ..domain_health_diagnostic_parts import provider_admission
+from ..default_executor_action_policy import (
+    SUPPORTED_ACTION_TYPES,
+    request_output_surface_for_action_type,
+    request_owner_for_action_type,
+)
+from ..study_progress_parts import repair_progress_projection
 from .authority_boundary import authority_boundary_payload
 
 
@@ -33,6 +40,14 @@ _CURRENTNESS_BASIS_KEYS = (
     "truth_epoch",
     "work_unit_fingerprint",
     "work_unit_id",
+)
+READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
+READINESS_REPAIR_REASON = "medical_paper_readiness_repair_required"
+READINESS_REPAIR_ACTION_TYPES = frozenset(
+    {
+        "run_quality_repair_batch",
+        "run_gate_clearing_batch",
+    }
 )
 
 
@@ -98,6 +113,17 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         study_root=study_root,
         profile=profile,
     )
+    stage_native_owner_action = stage_native_next_action_owner_action_record(
+        study_root=study_root,
+        profile=profile,
+    )
+    provider_admission_owner_action = provider_admission_owner_action_record(
+        study_root=study_root,
+    )
+    owner_route_reconcile_repair_action = owner_route_reconcile_readiness_repair_owner_action_record(
+        study_root=study_root,
+        profile=profile,
+    )
     current_readiness_owner_action = current_readiness_owner_action_record(
         study_root=study_root,
         profile=profile,
@@ -105,6 +131,9 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
     )
     current_owner_action = (
         current_writer_owner_action
+        or provider_admission_owner_action
+        or stage_native_owner_action
+        or owner_route_reconcile_repair_action
         or current_control_owner_action
         or current_readiness_owner_action
     )
@@ -340,6 +369,195 @@ def current_writer_handoff_owner_action_record(
     }
 
 
+def stage_native_next_action_owner_action_record(
+    *,
+    study_root: Path,
+    profile: WorkspaceProfile,
+) -> dict[str, Any] | None:
+    next_action = read_json_object(study_root / "control" / "next_action.json")
+    if next_action is None:
+        return None
+    if text(next_action.get("status")) != "ready_for_owner_action":
+        return None
+    action_type = text(next_action.get("action_id")) or text(next_action.get("action_type"))
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return None
+    owner = text(next_action.get("owner")) or request_owner_for_action_type(action_type)
+    quest_id = _read_quest_id(study_root=study_root, fallback=study_root.name)
+    owner_route = _stage_native_owner_route(
+        study_id=study_root.name,
+        quest_id=quest_id,
+        action_type=action_type,
+        owner=owner,
+        next_action=next_action,
+    )
+    currentness_basis = _owner_route_currentness_basis(owner_route)
+    if currentness_basis is None:
+        return None
+    return {
+        "surface_kind": "mas_current_owner_action_record",
+        "schema_version": 1,
+        "source": "stage_native_workspace_next_action",
+        "study_id": study_root.name,
+        "quest_id": quest_id,
+        "recorded_at": text(next_action.get("generated_at")) or text(next_action.get("recorded_at")),
+        "action_type": action_type,
+        "work_unit_id": currentness_basis["work_unit_id"],
+        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        "next_owner": owner,
+        "allowed_actions": [action_type],
+        "required_output_surface": text(next_action.get("required_output_surface"))
+        or text(next_action.get("target_surface"))
+        or request_output_surface_for_action_type(action_type),
+        "source_ref_role": "stage_native_workspace_next_action",
+        "source_relative_path": workspace_relative(
+            study_root / "control" / "next_action.json",
+            workspace_root=profile.workspace_root,
+        ),
+        "source_surface": text(next_action.get("source_surface")),
+        "stage_index_ref": text(next_action.get("stage_index_ref")),
+        "current_stage_id": text(next_action.get("current_stage_id")),
+        "owner_route_currentness_basis": currentness_basis,
+        "owner_route": dict(owner_route),
+        "currentness_status": "stage_native_next_action_active",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
+
+
+def provider_admission_owner_action_record(
+    *,
+    study_root: Path,
+) -> dict[str, Any] | None:
+    repair_progress = repair_progress_projection.build_repair_progress_projection(study_root=study_root)
+    if repair_progress.get("paper_delta_observed") is not True:
+        return None
+    if repair_progress.get("accepted_owner_receipt") is not True:
+        return None
+    current_action = _repair_progress_current_owner_action(repair_progress=repair_progress)
+    candidates = provider_admission.persisted_provider_admission_candidates(
+        study_root=study_root,
+        status_payload={
+            "study_id": study_root.name,
+            "current_executable_owner_action": current_action,
+        },
+    )
+    if not candidates:
+        return None
+    candidate = candidates[0]
+    action_type = text(candidate.get("action_type"))
+    work_unit_id = text(candidate.get("work_unit_id"))
+    action_fingerprint = text(candidate.get("action_fingerprint")) or text(candidate.get("work_unit_fingerprint"))
+    if action_type is None or work_unit_id is None:
+        return None
+    owner_route = _provider_admission_owner_route(candidate)
+    currentness_basis = _owner_route_currentness_basis(owner_route)
+    if currentness_basis is None:
+        return None
+    return {
+        "surface_kind": "mas_current_owner_action_record",
+        "schema_version": 1,
+        "source": "default_executor_execution.provider_admission_identity",
+        "study_id": study_root.name,
+        "quest_id": text(candidate.get("quest_id")) or study_root.name,
+        "recorded_at": text(candidate.get("recorded_at")),
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        "next_owner": text(candidate.get("next_executable_owner")),
+        "allowed_actions": [action_type],
+        "required_output_surface": text(candidate.get("required_output_surface")),
+        "source_ref_role": "default_executor_execution_provider_admission_identity",
+        "source_relative_path": text(candidate.get("execution_ref")),
+        "source_surface": "default_executor_execution",
+        "provider_admission_identity": dict(candidate),
+        "provider_admission_identity_ref": text(candidate.get("execution_ref")),
+        "repair_progress_followup": current_action,
+        "owner_route_currentness_basis": currentness_basis,
+        "owner_route": owner_route,
+        "currentness_status": "provider_admission_identity_active",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
+
+
+def owner_route_reconcile_readiness_repair_owner_action_record(
+    *,
+    study_root: Path,
+    profile: WorkspaceProfile,
+) -> dict[str, Any] | None:
+    handoff_path = profile.workspace_root / _OPL_CURRENT_CONTROL_REF
+    payload = read_json_object(handoff_path)
+    if payload is None:
+        return None
+    matching = _matching_current_control_study(payload, study_id=study_root.name)
+    if matching is None:
+        return None
+    action = _readiness_repair_action_from_reconcile_study(matching)
+    if action is None:
+        return None
+    action_type = text(action.get("action_type"))
+    if action_type is None:
+        return None
+    owner_route = mapping(action.get("owner_route")) or mapping(matching.get("owner_route"))
+    currentness_basis = _owner_route_currentness_basis(owner_route)
+    if currentness_basis is None:
+        return None
+    work_unit_id = _repair_work_unit_id(action=action, currentness_basis=currentness_basis)
+    if work_unit_id is None:
+        return None
+    consumption = mapping(action.get("consumption"))
+    recorded_at = (
+        text(consumption.get("first_seen_at"))
+        or text(matching.get("handoff_generated_at"))
+        or text(payload.get("generated_at"))
+    )
+    next_owner = _action_next_owner(action=action, owner_route=owner_route)
+    allowed_actions = _allowed_actions_for_action(action=action, owner_route=owner_route, action_type=action_type)
+    return {
+        "surface_kind": "mas_current_owner_action_record",
+        "schema_version": 1,
+        "source": "owner_route_reconcile_readiness_blocker_repair",
+        "study_id": study_root.name,
+        "quest_id": text(action.get("quest_id")) or text(matching.get("quest_id")) or study_root.name,
+        "recorded_at": recorded_at,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        "next_owner": next_owner,
+        "allowed_actions": allowed_actions,
+        "required_output_surface": text(action.get("required_output_surface")),
+        "source_eval_id": text(action.get("source_eval_id")),
+        "publication_eval_gap_ids": _text_list(action.get("publication_eval_gap_ids")),
+        "readiness_blocker_followup_superseded": text(action.get("readiness_blocker_followup_superseded")),
+        "readiness_blocker_ref": text(action.get("readiness_blocker_ref")) or text(action.get("source_ref")),
+        "source_ref_role": "opl_current_control_state_readiness_blocker_repair",
+        "source_relative_path": str(_OPL_CURRENT_CONTROL_REF),
+        "owner_route_currentness_basis": currentness_basis,
+        "owner_route": dict(owner_route),
+        "currentness_status": "readiness_blocker_derived_repair_active",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
+
+
 def current_readiness_owner_action_record(
     *,
     study_root: Path,
@@ -508,6 +726,215 @@ def _matching_current_control_action(
     return None
 
 
+def _readiness_repair_action_from_reconcile_study(
+    study: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    current_action = mapping(study.get("current_executable_owner_action"))
+    current_allowed_actions = set(_text_list(current_action.get("allowed_actions")))
+    current_work_unit_id = text(current_action.get("work_unit_id"))
+    for item in study.get("action_queue") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if not _is_readiness_blocker_derived_repair_action(item):
+            continue
+        action_type = text(item.get("action_type"))
+        if action_type is None:
+            continue
+        if current_allowed_actions and action_type not in current_allowed_actions:
+            continue
+        if current_work_unit_id is not None:
+            owner_route = mapping(item.get("owner_route")) or mapping(study.get("owner_route"))
+            basis = _owner_route_currentness_basis(owner_route) or {}
+            if _repair_work_unit_id(action=item, currentness_basis=basis) != current_work_unit_id:
+                continue
+        return dict(item)
+    return None
+
+
+def _is_readiness_blocker_derived_repair_action(action: Mapping[str, Any]) -> bool:
+    action_type = text(action.get("action_type"))
+    if action_type not in READINESS_REPAIR_ACTION_TYPES:
+        return False
+    owner_route = mapping(action.get("owner_route"))
+    reason = (
+        text(action.get("reason"))
+        or text(owner_route.get("owner_reason"))
+        or text(owner_route.get("failure_signature"))
+    )
+    if reason != READINESS_REPAIR_REASON:
+        return False
+    if text(action.get("readiness_blocker_followup_superseded")) != READINESS_ACTION_TYPE:
+        return False
+    if not _text_list(action.get("publication_eval_gap_ids")):
+        return False
+    consumption_state = text(mapping(action.get("consumption")).get("state"))
+    return consumption_state in {None, "unconsumed"}
+
+
+def _repair_work_unit_id(
+    *,
+    action: Mapping[str, Any],
+    currentness_basis: Mapping[str, Any],
+) -> str | None:
+    next_work_unit = action.get("next_work_unit")
+    next_work_unit_id = (
+        text(mapping(next_work_unit).get("unit_id"))
+        if isinstance(next_work_unit, Mapping)
+        else text(next_work_unit)
+    )
+    return (
+        text(action.get("controller_work_unit_id"))
+        or text(action.get("executable_work_unit"))
+        or next_work_unit_id
+        or text(action.get("work_unit_id"))
+        or text(currentness_basis.get("work_unit_id"))
+    )
+
+
+def _repair_progress_current_owner_action(*, repair_progress: Mapping[str, Any]) -> dict[str, Any]:
+    ai_reviewer_request_ref = text(repair_progress.get("ai_reviewer_recheck_request_ref"))
+    gate_replay_refs = _text_list(repair_progress.get("gate_replay_refs"))
+    source_ref = text(repair_progress.get("repair_execution_evidence_ref")) or text(
+        repair_progress.get("owner_receipt_ref")
+    )
+    if ai_reviewer_request_ref is not None:
+        action_type = "return_to_ai_reviewer_workflow"
+        work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+        next_owner = "ai_reviewer"
+        target_surface = {
+            "ref_kind": "route_obligation",
+            "route_target": "review",
+            "surface_ref": "artifacts/publication_eval/latest.json",
+            "request_ref": ai_reviewer_request_ref,
+            **({"gate_replay_request_ref": gate_replay_refs[0]} if gate_replay_refs else {}),
+        }
+        acceptance_refs = [ai_reviewer_request_ref, *gate_replay_refs]
+    elif gate_replay_refs:
+        action_type = "run_gate_clearing_batch"
+        work_unit_id = "publication_gate_replay"
+        next_owner = "gate_clearing_batch"
+        target_surface = {
+            "ref_kind": "route_obligation",
+            "route_target": "finalize",
+            "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+            "request_ref": gate_replay_refs[0],
+        }
+        acceptance_refs = gate_replay_refs
+    else:
+        action_type = None
+        work_unit_id = None
+        next_owner = None
+        target_surface = {}
+        acceptance_refs = []
+    return {
+        key: value
+        for key, value in {
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "next_owner": next_owner,
+            "work_unit_id": work_unit_id,
+            "action_type": action_type,
+            "allowed_actions": [action_type] if action_type is not None else [],
+            "owner_receipt_required": True,
+            "target_surface": target_surface or None,
+            "target_surface_specificity": "repair_progress_followup_owner_surface",
+            "source_ref": source_ref,
+            "acceptance_refs": [
+                ref
+                for ref in [
+                    text(repair_progress.get("repair_execution_evidence_ref")),
+                    text(repair_progress.get("owner_receipt_ref")),
+                    *acceptance_refs,
+                ]
+                if ref is not None
+            ],
+        }.items()
+        if value is not None
+    }
+
+
+def _provider_admission_owner_route(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    source_refs = mapping(candidate.get("source_refs"))
+    currentness_basis = mapping(candidate.get("currentness_basis"))
+    work_unit_id = text(candidate.get("work_unit_id"))
+    action_type = text(candidate.get("action_type"))
+    action_fingerprint = text(candidate.get("action_fingerprint")) or text(candidate.get("work_unit_fingerprint"))
+    merged_source_refs = {
+        **dict(source_refs),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "provider_admission_identity_ref": text(candidate.get("execution_ref")),
+        "dispatch_path": text(candidate.get("dispatch_path")),
+        "blocked_reason": text(candidate.get("blocked_reason")),
+        "owner_route_currentness_basis": {
+            **dict(currentness_basis),
+            **(
+                {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": action_fingerprint,
+                }
+                if work_unit_id is not None and action_fingerprint is not None
+                else {}
+            ),
+        },
+    }
+    return {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": text(candidate.get("study_id")),
+        "quest_id": text(candidate.get("quest_id")),
+        "truth_epoch": text(currentness_basis.get("truth_epoch")) or action_fingerprint,
+        "runtime_health_epoch": text(currentness_basis.get("runtime_health_epoch"))
+        or text(currentness_basis.get("source_eval_id"))
+        or action_fingerprint,
+        "work_unit_fingerprint": action_fingerprint,
+        "source_fingerprint": action_fingerprint,
+        "route_epoch": action_fingerprint,
+        "current_owner": "med-autoscience",
+        "next_owner": text(candidate.get("next_executable_owner")),
+        "owner_reason": work_unit_id or action_type,
+        "active_run_id": None,
+        "allowed_actions": [action_type] if action_type is not None else [],
+        "blocked_actions": [],
+        "source_refs": {
+            key: value for key, value in merged_source_refs.items() if value is not None
+        },
+        "idempotency_key": f"provider-admission::{text(candidate.get('study_id'))}::{action_fingerprint}",
+    }
+
+
+def _action_next_owner(
+    *,
+    action: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> str | None:
+    return (
+        text(action.get("next_owner"))
+        or text(action.get("owner"))
+        or text(action.get("request_owner"))
+        or text(action.get("recommended_owner"))
+        or text(owner_route.get("next_owner"))
+    )
+
+
+def _allowed_actions_for_action(
+    *,
+    action: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+    action_type: str,
+) -> list[str]:
+    allowed_actions = _text_list(owner_route.get("allowed_actions")) or _text_list(action.get("allowed_actions"))
+    return allowed_actions or [action_type]
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in (text(entry) for entry in value) if item is not None]
+
+
 def _owner_route_currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, str] | None:
     source_refs = mapping(owner_route.get("source_refs"))
     embedded_basis = mapping(source_refs.get("owner_route_currentness_basis"))
@@ -541,6 +968,66 @@ def _owner_route_currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, 
     if basis["runtime_health_epoch"] is None and basis["source_eval_id"] is None:
         return None
     return {key: value for key, value in basis.items() if value is not None}
+
+
+def _stage_native_owner_route(
+    *,
+    study_id: str,
+    quest_id: str,
+    action_type: str,
+    owner: str,
+    next_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_stage_id = text(next_action.get("current_stage_id")) or "unknown_stage"
+    source_surface = text(next_action.get("source_surface")) or "control/next_action.json"
+    fingerprint = f"stage-native-next-action::{current_stage_id}::{action_type}::{source_surface}"
+    epoch = f"stage-native-next-action::{study_id}::{current_stage_id}"
+    return {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "truth_epoch": epoch,
+        "runtime_health_epoch": epoch,
+        "work_unit_fingerprint": fingerprint,
+        "failure_signature": action_type,
+        "trace_id": f"owner-route-trace::{study_id}::{action_type}",
+        "route_epoch": epoch,
+        "source_fingerprint": fingerprint,
+        "current_owner": "mas_controller",
+        "next_owner": owner,
+        "owner_reason": action_type,
+        "active_run_id": None,
+        "allowed_actions": [action_type],
+        "blocked_actions": sorted(item for item in SUPPORTED_ACTION_TYPES if item != action_type),
+        "source_refs": {
+            "work_unit_id": action_type,
+            "work_unit_fingerprint": fingerprint,
+            "source_surface": source_surface,
+            "stage_index_ref": text(next_action.get("stage_index_ref")),
+            "current_stage_id": current_stage_id,
+            "owner_route_currentness_basis": {
+                "truth_epoch": epoch,
+                "runtime_health_epoch": epoch,
+                "work_unit_id": action_type,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+        "idempotency_key": f"owner-route::{study_id}::{epoch}::{owner}::{action_type}",
+    }
+
+
+def _read_quest_id(*, study_root: Path, fallback: str) -> str:
+    study_yaml = study_root / "study.yaml"
+    try:
+        content = study_yaml.read_text(encoding="utf-8")
+    except OSError:
+        return fallback
+    for line in content.splitlines():
+        key, separator, value = line.partition(":")
+        if separator and key.strip() == "quest_id":
+            return value.strip().strip("\"'") or fallback
+    return fallback
 
 
 def _current_control_supersedes_existing(

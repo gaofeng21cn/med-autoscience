@@ -23,6 +23,179 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_queue(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    eval_id = "publication-eval::dm002::readiness-blocked"
+    draft = study_root / "paper" / "draft.md"
+    review_ledger = study_root / "paper" / "review" / "review_ledger.json"
+    evidence_ledger = study_root / "paper" / "evidence_ledger.json"
+    for path in (draft, review_ledger, evidence_ledger):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("current\n", encoding="utf-8")
+    ai_reviewer_request = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    gate_replay_request = study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"
+    _write_json(
+        ai_reviewer_request,
+        {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {"state": "requested"},
+            "target_surface": "artifacts/publication_eval/latest.json",
+        },
+    )
+    _write_json(
+        gate_replay_request,
+        {"request_kind": "run_gate_replay_after_repair", "request_lifecycle": {"state": "requested"}},
+    )
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
+    _write_json(
+        evidence_path,
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "source_fingerprint": "repair-source-current",
+            "source_eval_id": eval_id,
+            "repair_work_unit": {"unit_id": "readiness_blocker_publication_repair", "source_eval_id": eval_id},
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+                    {"path": str(review_ledger), "artifact_role": "review_ledger"},
+                    {"path": str(evidence_ledger), "artifact_role": "evidence_ledger"},
+                ],
+            },
+            "changed_artifact_refs": [
+                {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+            ],
+            "ai_reviewer_recheck_required": True,
+            "ai_reviewer_recheck_done": True,
+            "ai_reviewer_recheck_request_ref": str(ai_reviewer_request),
+            "gate_replay_refs": [str(gate_replay_request)],
+        },
+    )
+    _write_json(
+        receipt_path,
+        {
+            "surface": "paper_story_repair_owner_receipt",
+            "accepted": True,
+            "work_unit_id": "readiness_blocker_publication_repair",
+            "canonical_artifact_delta_refs": [
+                {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+            ],
+            "repair_execution_evidence_ref": str(evidence_path),
+            "ai_reviewer_recheck_request_ref": str(ai_reviewer_request),
+            "gate_replay_request_ref": str(gate_replay_request),
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "overall_verdict": "blocked",
+        "gaps": [
+            {"gap_id": "medical_publication_surface_blocked"},
+            {"gap_id": "reviewer_first_concerns_unresolved"},
+            {"gap_id": "stale_submission_minimal_authority"},
+        ],
+    }
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "decision": "blocked",
+        "reason": "medical_paper_readiness_missing",
+        "active_run_id": None,
+        "publication_eval": publication_eval_payload,
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-dm002-repair-accepted",
+            "canonical_runtime_action": "continue_supervising_runtime",
+            "worker_liveness_state": {"state": "ready", "worker_running": True},
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-dm002-repair-accepted",
+            "source_signature": "truth-source-dm002-repair-accepted",
+        },
+    }
+    progress_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "publication_supervision",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "stage_kernel_projection": {
+            "current_owner_delta": {
+                "source_kind": "typed_blocker",
+                "action": "complete_medical_paper_readiness_surface",
+                "owner": "MedAutoScience",
+                "reason": "medical_paper_readiness_missing",
+                "required_input": "complete_medical_paper_readiness_surface",
+                "source_ref": str(
+                    study_root
+                    / "artifacts"
+                    / "stage_outputs"
+                    / "08-publication_package_handoff"
+                    / "receipts"
+                    / "typed_blocker.json"
+                ),
+                "latest_owner_answer_kind": "typed_blocker",
+            },
+        },
+        "medical_paper_readiness": {"overall_status": "not_ready"},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
+    )
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+        live_attempt_max_inspect_count=0,
+        provider_readiness_timeout_seconds=0,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "ai_reviewer"
+    assert action["reason"] == "repair_progress_ai_reviewer_recheck_required"
+    assert action["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert action["source_ref"] == str(evidence_path)
+    assert action["repair_progress_followup"]["accepted_owner_receipt"] is True
+    assert study["owner_route"]["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert study["owner_route"]["source_refs"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    assert study["owner_route"]["source_refs"]["source_eval_id"] == eval_id
+    assert study["why_not_applied"] == "repair_progress_ai_reviewer_recheck_required"
+
+
 def test_scan_projects_current_write_routeback_despite_stale_progress_active_run(monkeypatch, tmp_path: Path) -> None:
     scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
     opl_attempts = __import__(

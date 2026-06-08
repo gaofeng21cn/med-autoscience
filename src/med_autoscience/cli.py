@@ -90,6 +90,7 @@ agent_lab_medical_manuscript_quality = _LazyModuleProxy(
     lambda: _load_controller("agent_lab_medical_manuscript_quality")
 )
 paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("paper_autonomy_stability_evidence"))
+paper_story_repair_executor = _LazyModuleProxy(lambda: _load_controller("paper_story_repair_executor"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
 runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
@@ -526,6 +527,17 @@ def main(argv: list[str] | None = None) -> int:
             study_id=args.study_id or study_root.name,
             study_root=study_root,
             quest_id=quest_id,
+            source="cli",
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "paper-story-repair":
+        profile, study_root, quest_id = _resolve_study_and_quest_for_batch_command(args, parser=parser)
+        result = paper_story_repair_executor.run_story_repair(
+            study_id=args.study_id or study_root.name,
+            quest_id=quest_id,
+            study_root=study_root,
             source="cli",
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))

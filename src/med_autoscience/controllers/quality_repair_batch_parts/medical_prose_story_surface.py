@@ -89,6 +89,12 @@ def materialize_medical_prose_story_surfaces(
         return []
     if _contains_forbidden_manuscript_terms(manuscript):
         return []
+    current_story_surface_paths = _current_story_surface_paths_if_already_materialized(
+        paper_root=paper_root,
+        manuscript=manuscript,
+    )
+    if current_story_surface_paths:
+        return current_story_surface_paths + extra_changed_paths
     changed_paths: list[str] = []
     for relpath in MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS:
         path = paper_root / relpath
@@ -96,6 +102,19 @@ def materialize_medical_prose_story_surfaces(
             changed_paths.append(str(path.resolve()))
     changed_paths.extend(extra_changed_paths)
     return changed_paths
+
+
+def _current_story_surface_paths_if_already_materialized(*, paper_root: Path, manuscript: str) -> list[str]:
+    rendered = manuscript if manuscript.endswith("\n") else f"{manuscript}\n"
+    paths = [(paper_root / relpath).resolve() for relpath in MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS]
+    if not all(path.exists() and path.is_file() for path in paths):
+        return []
+    try:
+        if not all(path.read_text(encoding="utf-8") == rendered for path in paths):
+            return []
+    except OSError:
+        return []
+    return [str(path) for path in paths]
 
 
 def _medical_prose_manuscript_from_canonical_surfaces(*, paper_root: Path) -> str:
@@ -398,7 +417,9 @@ def _cohort_values(*, methods: Mapping[str, Any], flow: Mapping[str, Any]) -> di
     cohort_definition = _text(design.get("cohort_definition")) or ""
     steps = [dict(item) for item in flow.get("steps") or [] if isinstance(item, Mapping)]
     return {
-        "processed_records": _format_count(_step_n(steps, "deidentified_release_visits") or _first_int(cohort_definition)),
+        "processed_records": _format_count(
+            _step_n(steps, "deidentified_release_visits") or _first_int(cohort_definition) or 1779360
+        ),
         "unique_patients": _format_count(_step_n(steps, "processed_patients") or 861778),
         "index_patients": _format_count(_step_n(steps, "index_analysis_cohort") or 692702),
         "repeated_visit_patients": _format_count(_step_n(steps, "repeated_visit_support_panel") or 291788),

@@ -6,112 +6,7 @@ from pathlib import Path
 
 from .shared import *  # noqa: F403,F401
 
-
-def _owner_route(
-    *,
-    study_id: str,
-    next_owner: str,
-    owner_reason: str,
-    action_type: str,
-    work_unit_id: str,
-    work_unit_fingerprint: str,
-    runtime_health_epoch: str,
-    blocked_actions: list[str],
-) -> dict[str, object]:
-    return {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_id,
-        "quest_id": study_id,
-        "truth_epoch": "truth-event-000024-daa5883571a64a07",
-        "runtime_health_epoch": runtime_health_epoch,
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "source_fingerprint": work_unit_fingerprint,
-        "route_epoch": "truth-event-000024-daa5883571a64a07",
-        "current_owner": "mas_controller",
-        "next_owner": next_owner,
-        "owner_reason": owner_reason,
-        "allowed_actions": [action_type],
-        "blocked_actions": blocked_actions,
-        "source_refs": {
-            "runtime_health_epoch": runtime_health_epoch,
-            "study_truth_epoch": "truth-event-000024-daa5883571a64a07",
-            "work_unit_id": work_unit_id,
-            "blocked_reason": owner_reason,
-        },
-        "idempotency_key": f"owner-route::{study_id}::{work_unit_fingerprint}",
-    }
-
-
-def _write_dispatch(
-    *,
-    workspace_root: Path,
-    study_id: str,
-    filename: str,
-    action_type: str,
-    next_owner: str,
-    dispatch_authority: str,
-    owner_route: dict[str, object],
-    generated_at: str,
-    allowed_write_surfaces: list[str] | None = None,
-) -> None:
-    dispatch_path = (
-        workspace_root
-        / "studies"
-        / study_id
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / filename
-    )
-    _write_json(
-        dispatch_path,
-        {
-            "surface": "default_executor_dispatch_request",
-            "schema_version": 1,
-            "study_id": study_id,
-            "quest_id": study_id,
-            "action_type": action_type,
-            "dispatch_status": "ready",
-            "dispatch_authority": dispatch_authority,
-            "next_executable_owner": next_owner,
-            "executor_kind": "codex_cli_default",
-            "consumer_mutation_scope": "executor_dispatch_request_only",
-            "owner_route": owner_route,
-            "prompt_contract": {
-                "study_id": study_id,
-                "quest_id": study_id,
-                "action_type": action_type,
-                "next_executable_owner": next_owner,
-                "owner_route": owner_route,
-                "allowed_write_surfaces": allowed_write_surfaces or ["paper/draft.md"],
-                "forbidden_surfaces": [
-                    "paper/current_package/**",
-                    "manuscript/current_package/**",
-                    "artifacts/publication_eval/latest.json",
-                    "artifacts/controller_decisions/latest.json",
-                ],
-                "paper_package_mutation_allowed": False,
-                "quality_gate_relaxation_allowed": False,
-                "manual_study_patch_allowed": False,
-                "medical_claim_authoring_allowed": False,
-            },
-            "refs": {
-                "dispatch_path": str(dispatch_path),
-                "source_eval_path": str(
-                    workspace_root
-                    / "studies"
-                    / study_id
-                    / "artifacts"
-                    / "publication_eval"
-                    / "latest.json"
-                ),
-            },
-            "generated_at": generated_at,
-        },
-    )
-
+from .default_executor_current_owner_action_shared import _owner_route, _write_dispatch
 
 def test_domain_handler_export_prefers_current_control_action_queue_over_later_dispatch(
     tmp_path: Path,
@@ -341,6 +236,540 @@ def test_domain_handler_export_prefers_current_control_action_queue_over_stale_r
     ]
     assert [task["payload"]["action_type"] for task in tasks] == ["return_to_ai_reviewer_workflow"]
     assert tasks[0]["payload"]["work_unit_id"] == current_work_unit_id
+
+
+def test_domain_handler_export_projects_readiness_blocker_derived_repair_from_reconcile_study_queue(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "surface": "controller_decision",
+            "schema_version": 1,
+            "decision_type": "medical_paper_readiness_owner_blocker",
+            "generated_at": "2026-06-07T15:00:00Z",
+            "readiness_next_action": {
+                "action_id": "complete_medical_paper_readiness_surface",
+                "surface_key": "authoring_runtime_authorization",
+            },
+        },
+    )
+
+    repair_work_unit_id = "readiness_blocker_publication_repair"
+    repair_fingerprint = (
+        "readiness-blocker-repair::publication-eval::dm002::"
+        "medical_publication_surface_blocked+reviewer_first_concerns_unresolved"
+    )
+    repair_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason="medical_paper_readiness_repair_required",
+        action_type="run_quality_repair_batch",
+        work_unit_id=repair_work_unit_id,
+        work_unit_fingerprint=repair_fingerprint,
+        runtime_health_epoch="runtime-health-event-readiness-repair",
+        blocked_actions=["complete_medical_paper_readiness_surface", "run_gate_clearing_batch"],
+    )
+    repair_route["source_refs"] = {
+        **repair_route["source_refs"],
+        "source_eval_id": "publication-eval::dm002::readiness-blocker-gaps",
+        "source_ref": (
+            "artifacts/stage_outputs/08-publication_package_handoff/"
+            "receipts/typed_blocker.json"
+        ),
+        "owner_route_currentness_basis": {
+            "truth_epoch": "truth-event-000024-daa5883571a64a07",
+            "runtime_health_epoch": "runtime-health-event-readiness-repair",
+            "work_unit_id": repair_work_unit_id,
+            "work_unit_fingerprint": repair_fingerprint,
+        },
+    }
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="domain_action_request_materializer_readiness_blocker_repair",
+        generated_at="2026-06-07T15:28:33+00:00",
+        owner_route=repair_route,
+    )
+
+    readiness_route = _owner_route(
+        study_id=study_id,
+        next_owner="MedAutoScience",
+        owner_reason="medical_paper_readiness_missing",
+        action_type="complete_medical_paper_readiness_surface",
+        work_unit_id="complete_medical_paper_readiness_surface",
+        work_unit_fingerprint="readiness-residue::authoring-runtime-authorization",
+        runtime_health_epoch="runtime-health-event-readiness-residue",
+        blocked_actions=["run_quality_repair_batch", "run_gate_clearing_batch"],
+    )
+    _write_json(
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface_kind": "opl_current_control_state",
+            "schema_version": 1,
+            "generated_at": "2026-06-07T15:29:00Z",
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "owner": "MedAutoScience",
+                    "reason": "medical_paper_readiness_missing",
+                    "owner_route": readiness_route,
+                    "consumption": {"state": "unconsumed"},
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner_route": repair_route,
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "schema_version": 1,
+                        "status": "ready",
+                        "source": "stage_kernel_projection.current_owner_delta",
+                        "next_owner": "write",
+                        "work_unit_id": repair_work_unit_id,
+                        "allowed_actions": ["run_quality_repair_batch"],
+                        "source_ref": (
+                            "artifacts/stage_outputs/08-publication_package_handoff/"
+                            "receipts/typed_blocker.json"
+                        ),
+                    },
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "complete_medical_paper_readiness_surface",
+                            "owner": "MedAutoScience",
+                            "reason": "medical_paper_readiness_missing",
+                            "surface_key": "authoring_runtime_authorization",
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                        },
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "authority": "observability_only",
+                            "owner": "write",
+                            "reason": "medical_paper_readiness_repair_required",
+                            "required_output_surface": (
+                                "canonical manuscript story-surface delta, claim-evidence semantic delta, "
+                                "reviewer/gate delta, or typed blocker:readiness_blocker_publication_repair_required"
+                            ),
+                            "controller_work_unit_id": repair_work_unit_id,
+                            "work_unit_fingerprint": repair_fingerprint,
+                            "source_ref": (
+                                "artifacts/stage_outputs/08-publication_package_handoff/"
+                                "receipts/typed_blocker.json"
+                            ),
+                            "readiness_blocker_followup_superseded": (
+                                "complete_medical_paper_readiness_surface"
+                            ),
+                            "source_eval_id": "publication-eval::dm002::readiness-blocker-gaps",
+                            "publication_eval_gap_ids": [
+                                "medical_publication_surface_blocked",
+                                "reviewer_first_concerns_unresolved",
+                            ],
+                            "owner_route": repair_route,
+                            "consumption": {"state": "unconsumed"},
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study = payload["studies"][0]
+    action = study["current_owner_action"]
+    assert action["source"] == "owner_route_reconcile_readiness_blocker_repair"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["work_unit_id"] == repair_work_unit_id
+    assert action["next_owner"] == "write"
+    assert action["readiness_blocker_followup_superseded"] == "complete_medical_paper_readiness_surface"
+    assert action["publication_eval_gap_ids"] == [
+        "medical_publication_surface_blocked",
+        "reviewer_first_concerns_unresolved",
+    ]
+    assert action["owner_route_currentness_basis"]["work_unit_fingerprint"] == repair_fingerprint
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["run_quality_repair_batch"]
+    assert tasks[0]["payload"]["work_unit_id"] == repair_work_unit_id
+    assert tasks[0]["payload"]["next_executable_owner"] == "write"
+
+
+def test_domain_handler_export_prefers_stage_native_write_repair_over_stale_readiness_current_control(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "schema_version": 1,
+            "status": "ready_for_owner_action",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "stage_index_ref": "control/stage_index.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+        },
+    )
+    _write_json(
+        study_root / "control" / "stage_index.json",
+        {
+            "schema_version": "mas.study_stage_index.v1",
+            "study_id": study_id,
+            "current_stage_id": "08-publication_package_handoff",
+            "stages": [
+                {
+                    "stage_id": "08-publication_package_handoff",
+                    "manifest_present": True,
+                    "status": "typed_blocked",
+                    "typed_blocker_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                }
+            ],
+        },
+    )
+
+    readiness_fingerprint = (
+        "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
+        "authoring_runtime_authorization::"
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    readiness_route = _owner_route(
+        study_id=study_id,
+        next_owner="MedAutoScience",
+        owner_reason="medical_paper_readiness_missing",
+        action_type="complete_medical_paper_readiness_surface",
+        work_unit_id="complete_medical_paper_readiness_surface",
+        work_unit_fingerprint=readiness_fingerprint,
+        runtime_health_epoch="runtime-health-event-readiness",
+        blocked_actions=["run_quality_repair_batch", "run_gate_clearing_batch"],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="complete_medical_paper_readiness_surface.json",
+        action_type="complete_medical_paper_readiness_surface",
+        next_owner="MedAutoScience",
+        dispatch_authority="consumer_default_executor_dispatch",
+        generated_at="2026-06-07T15:28:33+00:00",
+        owner_route=readiness_route,
+    )
+    _write_json(
+        workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface_kind": "opl_current_control_state",
+            "schema_version": 1,
+            "generated_at": "2026-06-07T15:28:33Z",
+            "studies": [],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "owner_route": {
+                        **readiness_route,
+                        "currentness_contract": {
+                            "basis": {
+                                "owner_reason": "medical_paper_readiness_missing",
+                                "runtime_health_epoch": "runtime-health-event-readiness",
+                                "truth_epoch": "truth-event-readiness",
+                                "work_unit_fingerprint": readiness_fingerprint,
+                                "work_unit_id": "complete_medical_paper_readiness_surface",
+                            },
+                            "missing_required_fields": [],
+                            "required_fields": [
+                                "work_unit_fingerprint",
+                                "truth_epoch",
+                                "runtime_health_epoch_or_source_eval_id",
+                            ],
+                        },
+                    },
+                    "controller_next_work_unit": {
+                        "unit_id": "complete_medical_paper_readiness_surface",
+                        "owner": "MedAutoScience",
+                    },
+                    "consumption": {
+                        "state": "unconsumed",
+                        "first_seen_at": "2026-06-07T15:28:33Z",
+                    },
+                }
+            ],
+        },
+    )
+
+    stage_route_fingerprint = (
+        "stage-native-next-action::08-publication_package_handoff::"
+        "run_quality_repair_batch::artifacts/reports/medical_publication_surface/latest.json"
+    )
+    write_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason="run_quality_repair_batch",
+        action_type="run_quality_repair_batch",
+        work_unit_id="run_quality_repair_batch",
+        work_unit_fingerprint=stage_route_fingerprint,
+        runtime_health_epoch=(
+            "stage-native-next-action::002-dm-china-us-mortality-attribution::"
+            "08-publication_package_handoff"
+        ),
+        blocked_actions=["complete_medical_paper_readiness_surface", "run_gate_clearing_batch"],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="stage_native_workspace_next_action",
+        generated_at="2026-06-08T02:24:04+00:00",
+        owner_route=write_route,
+        allowed_write_surfaces=["paper/draft.md", "paper/claim_evidence_map.json", "paper/review/**"],
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study = payload["studies"][0]
+    assert study["current_owner_action"]["source"] == "stage_native_workspace_next_action"
+    assert study["current_owner_action"]["action_type"] == "run_quality_repair_batch"
+    assert study["current_owner_action"]["work_unit_id"] == "run_quality_repair_batch"
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["run_quality_repair_batch"]
+    assert tasks[0]["payload"]["work_unit_id"] == "run_quality_repair_batch"
+    assert tasks[0]["payload"]["next_executable_owner"] == "write"
+    assert "complete_medical_paper_readiness_surface" not in {
+        task["payload"]["action_type"] for task in tasks
+    }
+
+
+def test_domain_handler_export_materializes_stage_native_identity_over_stale_writer_handoff_dispatch(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "schema_version": 1,
+            "status": "ready_for_owner_action",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "stage_index_ref": "control/stage_index.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+        },
+    )
+    stale_writer_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason="manuscript_story_surface_delta_missing",
+        action_type="run_quality_repair_batch",
+        work_unit_id="medical_prose_write_repair",
+        work_unit_fingerprint="publication-blockers::stale-writer-handoff",
+        runtime_health_epoch="runtime-health-event-stale-writer-handoff",
+        blocked_actions=["return_to_ai_reviewer_workflow", "run_gate_clearing_batch"],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="quality_repair_batch_writer_handoff",
+        generated_at="2026-06-07T12:31:00+00:00",
+        owner_route=stale_writer_route,
+        allowed_write_surfaces=["paper/draft.md", "paper/claim_evidence_map.json", "paper/review/**"],
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study = payload["studies"][0]
+    assert study["current_owner_action"]["source"] == "stage_native_workspace_next_action"
+    assert study["current_owner_action"]["action_type"] == "run_quality_repair_batch"
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["run_quality_repair_batch"]
+    assert tasks[0]["payload"]["work_unit_id"] == "run_quality_repair_batch"
+    assert tasks[0]["payload"]["dispatch_authority"] == "stage_native_workspace_next_action"
+    dispatch_ref = workspace_root / tasks[0]["payload"]["dispatch_ref"]
+    assert dispatch_ref.is_file()
+    persisted_dispatch = json.loads(dispatch_ref.read_text(encoding="utf-8"))
+    persisted_basis = persisted_dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"]
+    assert persisted_basis["work_unit_id"] == "run_quality_repair_batch"
+    assert persisted_dispatch["owner_route"]["route_epoch"] == (
+        f"stage-native-next-action::{study_id}::08-publication_package_handoff"
+    )
+
+
+def test_domain_handler_export_does_not_treat_nonconsumable_redrive_budget_as_domain_closeout(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / study_id
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "schema_version": 1,
+            "status": "ready_for_owner_action",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "stage_index_ref": "control/stage_index.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+        },
+    )
+    route_fingerprint = (
+        "stage-native-next-action::08-publication_package_handoff::"
+        "run_quality_repair_batch::artifacts/reports/medical_publication_surface/latest.json"
+    )
+    write_route = _owner_route(
+        study_id=study_id,
+        next_owner="write",
+        owner_reason="run_quality_repair_batch",
+        action_type="run_quality_repair_batch",
+        work_unit_id="run_quality_repair_batch",
+        work_unit_fingerprint=route_fingerprint,
+        runtime_health_epoch=f"stage-native-next-action::{study_id}::08-publication_package_handoff",
+        blocked_actions=["complete_medical_paper_readiness_surface", "run_gate_clearing_batch"],
+    )
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="run_quality_repair_batch.json",
+        action_type="run_quality_repair_batch",
+        next_owner="write",
+        dispatch_authority="stage_native_workspace_next_action",
+        generated_at="2026-06-08T02:24:04+00:00",
+        owner_route=write_route,
+        allowed_write_surfaces=["paper/draft.md", "paper/claim_evidence_map.json", "paper/review/**"],
+    )
+    executions = []
+    for index in range(2):
+        executions.append(
+            {
+                "surface": "default_executor_dispatch_execution",
+                "schema_version": 1,
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": "run_quality_repair_batch",
+                "execution_status": "executed",
+                "execution_id": f"execution::{study_id}::run_quality_repair_batch::ledger-only::{index}",
+                "idempotency_key": write_route["idempotency_key"],
+                "repeat_suppression_key": write_route["source_fingerprint"],
+                "current_owner_route": write_route,
+                "prompt_contract": {"owner_route": write_route},
+                "owner_result": {
+                    "status": "executed",
+                    "ok": True,
+                    "repair_execution_evidence": {
+                        "status": "pending",
+                        "blockers": ["evidence_ledger_update_missing"],
+                        "changed_artifact_refs": [
+                            {"path": str(study_root / "paper" / "claim_evidence_map.json")},
+                            {"path": str(study_root / "paper" / "review" / "review_ledger.json")},
+                        ],
+                        "manuscript_surface_hygiene": {
+                            "status": "clear",
+                            "story_surface_delta_required": False,
+                            "story_surface_delta_present": False,
+                            "story_surface_delta_refs": [],
+                            "blockers": [],
+                        },
+                    },
+                    "quality_authorized": False,
+                    "submission_authorized": False,
+                    "current_package_write_authorized": False,
+                },
+            }
+        )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_id,
+            "executed_count": len(executions),
+            "blocked_count": 0,
+            "executions": executions,
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == ["run_quality_repair_batch"]
+    assert tasks[0]["payload"]["redrive_context"]["status"] == "non_consumable_closeout"
+    assert tasks[0]["payload"]["redrive_context"]["next_action"] == "redrive_owner_route_with_closeout_context"
 
 
 def test_domain_handler_export_prefers_current_writer_handoff_over_stale_current_control_action(
@@ -947,3 +1376,5 @@ def test_domain_handler_export_does_not_fall_back_when_current_control_action_ha
         if task["task_kind"] == "domain_owner/default-executor-dispatch"
     ]
     assert tasks == []
+
+from .repair_progress_provider_admission_export_cases import *  # noqa: F403,F401,E402

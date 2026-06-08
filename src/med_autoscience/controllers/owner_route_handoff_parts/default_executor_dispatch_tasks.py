@@ -15,6 +15,9 @@ from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import default_executor_dispatch_packets
 from med_autoscience.controllers.default_executor_action_policy import REQUEST_OWNER_BY_ACTION_TYPE
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
+from med_autoscience.controllers.study_transition_receipt_consumption_parts import (
+    nonconsumable_redrive_budget,
+)
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
@@ -57,6 +60,11 @@ def default_executor_dispatch_tasks(
         dispatch = candidate["dispatch"]
         if not isinstance(dispatch_path, Path) or not isinstance(dispatch, Mapping):
             continue
+        if candidate.get("persist_current_owner_action_identity") is True:
+            dispatch = _persist_dispatch_packet_identity(
+                dispatch_path=dispatch_path,
+                dispatch=dispatch,
+            )
         action_type = _text(dispatch.get("action_type"))
         if action_type is None:
             continue
@@ -317,8 +325,16 @@ def _current_dispatch_candidates(
         action_type = _text(dispatch.get("action_type"))
         if action_type is None:
             continue
-        if current_action and not _dispatch_matches_current_owner_action(dispatch, current_action):
-            continue
+        persist_current_identity = False
+        if current_action:
+            dispatch_for_current_action = _dispatch_with_current_owner_action_identity(
+                dispatch=dispatch,
+                current_owner_action=current_action,
+            )
+            persist_current_identity = dispatch_for_current_action is not dispatch
+            dispatch = dispatch_for_current_action
+            if not _dispatch_matches_current_owner_action(dispatch, current_action):
+                continue
         if _dispatch_execution_receipt_consumed(
             profile=profile,
             study_id=study_id,
@@ -331,6 +347,7 @@ def _current_dispatch_candidates(
                 "path": dispatch_path,
                 "dispatch": dispatch,
                 "mtime_key": _dispatch_mtime_key(dispatch_path),
+                "persist_current_owner_action_identity": persist_current_identity,
             }
         )
     if current_action:
@@ -371,6 +388,48 @@ def _dispatch_matches_current_owner_action(
     if current_allowed_actions and action_type not in current_allowed_actions:
         return False
     return True
+
+
+def _dispatch_with_current_owner_action_identity(
+    *,
+    dispatch: Mapping[str, Any],
+    current_owner_action: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    action_type = _text(dispatch.get("action_type"))
+    current_action_type = _text(current_owner_action.get("action_type"))
+    if action_type is None or current_action_type is None or action_type != current_action_type:
+        return dispatch
+    if _dispatch_matches_current_owner_action(dispatch, current_owner_action):
+        return dispatch
+    current_owner_route = _mapping(current_owner_action.get("owner_route"))
+    if not current_owner_route:
+        return dispatch
+    allowed_actions = set(_string_list(current_owner_route.get("allowed_actions")))
+    if allowed_actions and action_type not in allowed_actions:
+        return dispatch
+
+    updated = dict(dispatch)
+    updated["owner_route"] = dict(current_owner_route)
+    if next_owner := (_text(current_owner_action.get("next_owner")) or _text(current_owner_route.get("next_owner"))):
+        updated["next_executable_owner"] = next_owner
+    if source := _text(current_owner_action.get("source")):
+        updated["dispatch_authority"] = source
+    source_fingerprint = _text(current_owner_route.get("source_fingerprint")) or _text(
+        current_owner_route.get("work_unit_fingerprint")
+    )
+    if source_fingerprint is not None:
+        updated["source_fingerprint"] = source_fingerprint
+        updated["action_fingerprint"] = source_fingerprint
+
+    prompt_contract = dict(_mapping(updated.get("prompt_contract")))
+    prompt_contract["owner_route"] = dict(current_owner_route)
+    prompt_contract["action_type"] = action_type
+    if next_owner := _text(updated.get("next_executable_owner")):
+        prompt_contract["next_executable_owner"] = next_owner
+    if source_fingerprint is not None:
+        prompt_contract["source_fingerprint"] = source_fingerprint
+    updated["prompt_contract"] = prompt_contract
+    return updated if updated != dict(dispatch) else dispatch
 
 
 def _readiness_surface_identity(
@@ -585,6 +644,8 @@ def _dispatch_execution_receipt_consumed(
         owner_route=owner_route,
         actions=[{"action_type": action_type}],
     )
+    if _receipt_is_synthetic_nonconsumable_budget(receipt) and _stage_native_owner_route(owner_route):
+        return False
     return bool(receipt)
 
 
@@ -874,6 +935,28 @@ def _persist_dispatch_identity(
     _persist_readiness_request_packet(profile=profile, study_id=study_id, dispatch=dispatch)
 
 
+def _persist_dispatch_packet_identity(
+    *,
+    dispatch_path: Path,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    packet = default_executor_dispatch_packets.dispatch_with_immutable_packet_ref(
+        dispatch=dispatch,
+        dispatch_path=dispatch_path,
+    )
+    stage_packet_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
+        packet,
+        fallback_dispatch_path=dispatch_path,
+    )
+    for target in {dispatch_path, stage_packet_path}:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(dict(packet), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    return packet
+
+
 def _persist_readiness_request_packet(
     *,
     profile: WorkspaceProfile,
@@ -1031,6 +1114,39 @@ def _source_fingerprint_redrive_context(redrive_context: Mapping[str, Any] | Non
 
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _receipt_is_synthetic_nonconsumable_budget(receipt: Mapping[str, Any] | None) -> bool:
+    payload = _mapping(receipt)
+    if not payload:
+        return False
+    if _text(payload.get("blocked_reason")) != nonconsumable_redrive_budget.REDRIVE_BUDGET_EXHAUSTED_REASON:
+        return False
+    blocker = _mapping(payload.get("typed_blocker"))
+    return (
+        _text(blocker.get("blocker_family")) == nonconsumable_redrive_budget.REDRIVE_BUDGET_EXHAUSTED_REASON
+        and _text(payload.get("next_action")) == "honor_typed_blocker_without_redrive"
+    )
+
+
+def _stage_native_owner_route(owner_route: Mapping[str, Any]) -> bool:
+    route_epoch = _text(owner_route.get("route_epoch")) or ""
+    source_fingerprint = _text(owner_route.get("source_fingerprint")) or ""
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return any(
+        str(value).startswith("stage-native-next-action::")
+        for value in (
+            route_epoch,
+            source_fingerprint,
+            _text(source_refs.get("study_truth_epoch")) or "",
+            _text(source_refs.get("runtime_health_epoch")) or "",
+            _text(source_refs.get("work_unit_fingerprint")) or "",
+            _text(basis.get("truth_epoch")) or "",
+            _text(basis.get("runtime_health_epoch")) or "",
+            _text(basis.get("work_unit_fingerprint")) or "",
+        )
+    )
 
 
 def _string_list(value: object) -> list[str]:

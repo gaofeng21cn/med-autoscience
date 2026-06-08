@@ -18,7 +18,7 @@ def _sha256_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def test_medical_prose_write_repair_does_not_close_on_current_ai_reviewer_bound_story_surface(
+def test_medical_prose_write_repair_regenerates_when_current_ai_reviewer_requires_write_routeback(
     monkeypatch: Any,
     tmp_path: Path,
 ) -> None:
@@ -181,19 +181,22 @@ def test_medical_prose_write_repair_does_not_close_on_current_ai_reviewer_bound_
     )
 
     assert result["ok"] is True
-    assert result["status"] == "handoff_ready"
-    assert result["next_owner"] == "write"
-    assert result["writer_worker_handoff"]["typed_blocker_if_unresolved"] == "manuscript_story_surface_delta_missing"
-    assert (paper_root / "draft.md").read_text(encoding="utf-8") == writer_story
-    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == writer_story
+    assert result["status"] == "executed"
+    assert "writer_worker_handoff" not in result
+    regenerated_story = (paper_root / "draft.md").read_text(encoding="utf-8")
+    assert regenerated_story != writer_story
+    assert "1,779,360 source records" in regenerated_story
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == regenerated_story
     evidence = result["repair_execution_evidence"]
-    assert evidence["status"] == "blocked"
-    assert evidence["progress_delta_candidate"] is False
-    assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
-    assert "manuscript_story_surface_delta_missing" in evidence["blockers"]
+    assert evidence["status"] == "progress_delta_candidate"
+    assert evidence["progress_delta_candidate"] is True
+    assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is True
     story_refs = evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"]
-    assert story_refs == []
+    assert {
+        Path(ref["path"]).relative_to(study_root).as_posix()
+        for ref in story_refs
+    } == {"paper/draft.md", "paper/build/review_manuscript.md"}
     upstream_result = result["gate_clearing_batch"]["unit_results"][0]["result"]
-    assert upstream_result["ai_reviewer_recheck_request_ref"] is None
-    assert upstream_result["ai_reviewer_recheck_deferred_reason"] == "manuscript_story_surface_delta_missing"
+    assert upstream_result["ai_reviewer_recheck_request_ref"] is not None
+    assert evidence["ai_reviewer_recheck_done"] is True
     assert manuscript_digest == _sha256_text(writer_story)

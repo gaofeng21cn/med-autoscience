@@ -10,7 +10,10 @@ from med_autoscience.controllers.progress_first_receipt_identity import (
 )
 
 from ..current_executable_owner_action import build_current_executable_owner_action
-from ..owner_action_admission import build_owner_action_admission_projection
+from ..owner_action_admission import (
+    build_owner_action_admission_projection,
+    provider_attempt_proof_for_current_action,
+)
 from .artifact_first import (
     artifact_first_owner_action as _artifact_first_owner_action,
     current_action_from_stage_artifact_index as _current_action_from_stage_artifact_index,
@@ -49,8 +52,15 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     latest_terminal_stage_log = _mapping(handoff.get("latest_terminal_stage_log"))
     paper_stage_log = _mapping(latest_terminal_stage_log.get("paper_stage_log"))
     stage_progress_log = _mapping(handoff.get("stage_progress_log"))
-    running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
-    strict_running_provider_attempt = _strict_running_provider_attempt(handoff)
+    raw_running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
+    strict_running_provider_liveness = _strict_running_provider_liveness(handoff)
+    running_provider_attempt = (
+        True
+        if strict_running_provider_liveness
+        else False
+        if raw_running_provider_attempt is True
+        else raw_running_provider_attempt
+    )
     active_run_id = _running_provider_attempt_ref(
         running_provider_attempt=running_provider_attempt,
         handoff=handoff,
@@ -93,8 +103,18 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             else {}
         )
     )
+    repair_progress_current_action = (
+        payload_current_action
+        if _repair_progress_owner_action(payload_current_action)
+        else (
+            non_artifact_current_action
+            if _repair_progress_owner_action(non_artifact_current_action)
+            else {}
+        )
+    )
     artifact_first_supersedes_blocker = bool(stage_artifact_action) and not _terminal_publication_gate_action(stage_artifact_action) and (
         not stage_kernel_current_action
+        and not repair_progress_current_action
         and (
             not raw_typed_blocker
             or _stage_artifact_index_has_precedence_evidence(
@@ -108,6 +128,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     effective_stage_artifact_action = stage_artifact_action if artifact_first_supersedes_blocker else {}
     current_action = (
         stage_kernel_current_action
+        or repair_progress_current_action
         or effective_stage_artifact_action
         or payload_current_action
         or non_artifact_current_action
@@ -116,6 +137,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         execution=execution,
         raw_typed_blocker=raw_typed_blocker,
         artifact_first_supersedes_blocker=artifact_first_supersedes_blocker,
+        current_action=current_action,
     )
     if envelope_blocks_current_action:
         current_action = {}
@@ -123,6 +145,13 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         handoff_for_admission = {**handoff, "action_queue": []}
     else:
         handoff_for_admission = handoff
+    current_action_provider_attempt_proof = provider_attempt_proof_for_current_action(
+        handoff=handoff_for_admission,
+        current_action=current_action,
+    )
+    current_action_running_provider_attempt = bool(
+        strict_running_provider_liveness and current_action_provider_attempt_proof
+    )
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
     next_work_unit = (
         hydration_work_unit
@@ -151,6 +180,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         {}
         if running_provider_attempt is True
         or artifact_first_supersedes_blocker
+        or _repair_progress_owner_action(current_action)
         or handoff_owner_action is not None
         or (
             transition_consumed_owner_action
@@ -175,6 +205,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     owner_action_visible = (
         artifact_first_owner_action
         or _stage_kernel_owner_action(current_action)
+        or _stage_native_owner_action(current_action)
+        or _repair_progress_owner_action(current_action)
         or handoff_owner_action is not None
         or (
             transition_consumed_owner_action
@@ -187,7 +219,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         if running_provider_attempt is True or (owner_action_visible and not typed_blocker)
         else _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
     )
-    if strict_running_provider_attempt:
+    if current_action_running_provider_attempt:
         state_kind = "running_provider_attempt"
     elif owner_action_visible:
         state_kind = "executable_owner_action"
@@ -246,18 +278,25 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             or _text(progress_state.get("next_owner"))
         ),
         "route_target": (
-            _text(handoff_owner_action.get("route_target"))
-            if handoff_owner_action is not None
-            else (
-                _text(domain_transition.get("route_target"))
-                if not envelope_blocks_current_action
-                else None
+            _text(current_action.get("route_target"))
+            or (
+                _text(handoff_owner_action.get("route_target"))
+                if handoff_owner_action is not None
+                else (
+                    _text(domain_transition.get("route_target"))
+                    if not envelope_blocks_current_action
+                    else None
+                )
             )
         ),
         "controller_action": (
-            _text(handoff_owner_action.get("action_type"))
-            if handoff_owner_action is not None
-            else _first_text(current_action.get("allowed_actions"))
+            _first_text(current_action.get("allowed_actions"))
+            or _text(current_action.get("action_type"))
+            or (
+                _text(handoff_owner_action.get("action_type"))
+                if handoff_owner_action is not None
+                else None
+            )
             or (
                 _text(domain_transition.get("controller_action"))
                 if not envelope_blocks_current_action
@@ -315,10 +354,12 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     }
 
 
-def _strict_running_provider_attempt(handoff: Mapping[str, Any]) -> bool:
+def _strict_running_provider_liveness(handoff: Mapping[str, Any]) -> bool:
     if handoff.get("running_provider_attempt") is not True:
         return False
     if _text(handoff.get("active_run_id")) is None:
+        return False
+    if _handoff_has_matching_terminal_closeout(handoff):
         return False
     runtime_health = _mapping(handoff.get("runtime_health"))
     runtime_liveness_status = _text(runtime_health.get("runtime_liveness_status"))
@@ -334,6 +375,39 @@ def _strict_running_provider_attempt(handoff: Mapping[str, Any]) -> bool:
         "running",
         "live",
     }
+
+
+def _handoff_has_matching_terminal_closeout(handoff: Mapping[str, Any]) -> bool:
+    terminal = _mapping(handoff.get("latest_terminal_stage_log"))
+    if not terminal:
+        return False
+    active_attempt_id = _handoff_stage_attempt_id(handoff)
+    terminal_attempt_id = _text(terminal.get("stage_attempt_id"))
+    if active_attempt_id is not None and terminal_attempt_id is not None and active_attempt_id != terminal_attempt_id:
+        return False
+    status = _text(terminal.get("status"))
+    if status in {
+        "blocked",
+        "closed",
+        "closed_with_domain_owner_refs",
+        "completed",
+        "failed",
+        "terminal",
+        "typed_blocked",
+    }:
+        return True
+    return _text(terminal.get("source_path")) is not None and _text(terminal.get("record_path")) is not None
+
+
+def _handoff_stage_attempt_id(handoff: Mapping[str, Any]) -> str | None:
+    if text := _text(handoff.get("active_stage_attempt_id")):
+        return text
+    active_run_id = _text(handoff.get("active_run_id"))
+    prefix = "opl-stage-attempt://"
+    if active_run_id is not None and active_run_id.startswith(prefix):
+        attempt_id = active_run_id[len(prefix) :].strip()
+        return attempt_id or None
+    return None
 
 
 def _dispatch_consumption_summary(
@@ -533,13 +607,32 @@ def _stage_kernel_owner_action(action: Mapping[str, Any]) -> bool:
     )
 
 
+def _stage_native_owner_action(action: Mapping[str, Any]) -> bool:
+    return (
+        _text(action.get("source")) == "stage_native_workspace_next_action"
+        and bool(_sequence(action.get("allowed_actions")))
+    )
+
+
+def _repair_progress_owner_action(action: Mapping[str, Any]) -> bool:
+    return (
+        _text(action.get("source")) == "repair_progress_projection.mas_owner_repair_execution_evidence"
+        and bool(_sequence(action.get("allowed_actions")))
+    )
+
+
 def _envelope_typed_blocker_blocks_current_action(
     *,
     execution: Mapping[str, Any],
     raw_typed_blocker: Mapping[str, Any],
     artifact_first_supersedes_blocker: bool,
+    current_action: Mapping[str, Any],
 ) -> bool:
     if artifact_first_supersedes_blocker:
+        return False
+    if _stage_native_owner_action(current_action):
+        return False
+    if _repair_progress_owner_action(current_action):
         return False
     if _text(execution.get("state_kind")) != "typed_blocker":
         return False

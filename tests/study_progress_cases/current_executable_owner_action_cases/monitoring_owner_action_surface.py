@@ -124,6 +124,60 @@ def test_progress_first_monitoring_requests_admission_for_current_executable_own
     assert admission["allowed_actions"] == ["run_gate_clearing_batch"]
     assert admission["source"] == "progress_first_monitoring.current_executable_owner_action"
 
+
+def test_progress_first_monitoring_prefers_repair_followup_over_stale_readiness_queue() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "ai_reviewer",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                "owner_receipt_required": True,
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": True,
+                "active_run_id": "opl-stage-attempt://sat-stale-readiness",
+                "active_stage_attempt_id": "sat-stale-readiness",
+                "active_workflow_id": "wf-stale-readiness",
+                "runtime_health": {"runtime_liveness_status": "attempt_running"},
+                "action_queue": [
+                    {
+                        "action_type": "complete_medical_paper_readiness_surface",
+                        "owner": "MedAutoScience",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "fingerprint": "complete_medical_paper_readiness_surface::medical_paper_readiness_missing",
+                        "consumption_status": "unconsumed",
+                    }
+                ],
+            },
+        }
+    )
+
+    assert monitoring["running_provider_attempt"] is True
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["next_owner"] == "ai_reviewer"
+    assert monitoring["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert monitoring["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert monitoring["current_executable_owner_action"]["source"] == (
+        "repair_progress_projection.mas_owner_repair_execution_evidence"
+    )
+    admission = monitoring["owner_action_admission"]
+    assert admission["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert admission["admission_pending"] is True
+    assert admission["provider_attempt_running_proven"] is False
+    assert admission["provider_attempt_proof"] is None
+
+
 def test_progress_first_monitoring_keeps_paper_line_owner_delta_and_platform_repair_accounting_separate() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

@@ -21,7 +21,10 @@ def build_owner_action_admission_projection(
     hard_gate_reasons = _hard_gate_reasons(blocked_by)
     hard_gate_blocked = bool(hard_gate_reasons)
     start_requested = not hard_gate_blocked
-    provider_attempt_proof = _provider_attempt_proof(handoff)
+    provider_attempt_proof = provider_attempt_proof_for_current_action(
+        handoff=handoff,
+        current_action=current_action,
+    )
     running_proven = bool(provider_attempt_proof)
     return {
         "surface_kind": "current_executable_owner_action_admission",
@@ -55,8 +58,23 @@ def build_owner_action_admission_projection(
     }
 
 
+def provider_attempt_proof_for_current_action(
+    *,
+    handoff: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    provider_attempt_proof = _provider_attempt_proof(handoff)
+    if provider_attempt_proof is None:
+        return None
+    if not _provider_attempt_matches_current_action(handoff=handoff, current_action=current_action):
+        return None
+    return provider_attempt_proof
+
+
 def _provider_attempt_proof(handoff: Mapping[str, Any]) -> dict[str, Any] | None:
     if handoff.get("running_provider_attempt") is not True:
+        return None
+    if _handoff_has_matching_terminal_closeout(handoff):
         return None
     active_stage_attempt_id = _text(handoff.get("active_stage_attempt_id"))
     active_run_id = _text(handoff.get("active_run_id"))
@@ -69,6 +87,117 @@ def _provider_attempt_proof(handoff: Mapping[str, Any]) -> dict[str, Any] | None
         "active_run_id": active_run_id,
         "active_workflow_id": active_workflow_id,
     }
+
+
+def _provider_attempt_matches_current_action(
+    *,
+    handoff: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    queue_item = _first_action_queue_item(handoff.get("action_queue"))
+    current_owner = _text(current_action.get("next_owner")) or _text(current_action.get("owner"))
+    current_actions = set(_text_list(current_action.get("allowed_actions")))
+    if action_type := _text(current_action.get("action_type")):
+        current_actions.add(action_type)
+    current_work_unit = _work_unit_text(current_action.get("work_unit_id")) or _work_unit_text(
+        current_action.get("next_work_unit")
+    )
+
+    owner_candidates = set(
+        _dedupe_text(
+            [
+                handoff.get("next_owner"),
+                handoff.get("owner"),
+                queue_item.get("next_owner"),
+                queue_item.get("owner"),
+                queue_item.get("recommended_owner"),
+                _mapping(queue_item.get("owner_pickup")).get("owner"),
+            ]
+        )
+    )
+    action_candidates = set(
+        _dedupe_text(
+            [
+                handoff.get("controller_action"),
+                handoff.get("action_type"),
+                *_text_list(handoff.get("allowed_actions")),
+                queue_item.get("controller_action"),
+                queue_item.get("action_type"),
+                *_text_list(queue_item.get("allowed_actions")),
+            ]
+        )
+    )
+    work_unit_candidates = set(
+        _dedupe_text(
+            [
+                _work_unit_text(handoff.get("work_unit_id")),
+                _work_unit_text(handoff.get("next_work_unit")),
+                _work_unit_text(queue_item.get("work_unit_id")),
+                _work_unit_text(queue_item.get("next_work_unit")),
+            ]
+        )
+    )
+
+    if current_owner is not None and current_owner not in owner_candidates:
+        return False
+    if current_actions and not current_actions.intersection(action_candidates):
+        return False
+    if current_work_unit is not None and current_work_unit not in work_unit_candidates:
+        return False
+    return True
+
+
+def _first_action_queue_item(value: object) -> dict[str, Any]:
+    if not isinstance(value, list | tuple):
+        return {}
+    for item in value:
+        if isinstance(item, Mapping):
+            return dict(item)
+    return {}
+
+
+def _work_unit_text(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return (
+            _text(value.get("unit_id"))
+            or _text(value.get("work_unit_id"))
+            or _text(value.get("id"))
+            or _text(value.get("ref"))
+        )
+    return _text(value)
+
+
+def _handoff_has_matching_terminal_closeout(handoff: Mapping[str, Any]) -> bool:
+    terminal = _mapping(handoff.get("latest_terminal_stage_log"))
+    if not terminal:
+        return False
+    active_attempt_id = _handoff_stage_attempt_id(handoff)
+    terminal_attempt_id = _text(terminal.get("stage_attempt_id"))
+    if active_attempt_id is not None and terminal_attempt_id is not None and active_attempt_id != terminal_attempt_id:
+        return False
+    status = _text(terminal.get("status"))
+    if status in {
+        "blocked",
+        "closed",
+        "closed_with_domain_owner_refs",
+        "completed",
+        "failed",
+        "terminal",
+        "typed_blocked",
+    }:
+        return True
+    return _text(terminal.get("source_path")) is not None and _text(terminal.get("record_path")) is not None
+
+
+def _handoff_stage_attempt_id(handoff: Mapping[str, Any]) -> str | None:
+    if text := _text(handoff.get("active_stage_attempt_id")):
+        return text
+    active_run_id = _text(handoff.get("active_run_id"))
+    prefix = "opl-stage-attempt://"
+    if active_run_id is not None and active_run_id.startswith(prefix):
+        attempt_id = active_run_id[len(prefix) :].strip()
+        return attempt_id or None
+    return None
 
 
 def _hard_gate_blockers(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -226,4 +355,7 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["build_owner_action_admission_projection"]
+__all__ = [
+    "build_owner_action_admission_projection",
+    "provider_attempt_proof_for_current_action",
+]

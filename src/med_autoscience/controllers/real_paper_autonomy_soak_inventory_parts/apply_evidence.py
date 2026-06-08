@@ -14,10 +14,15 @@ def build_mas_owner_apply_evidence(study: Mapping[str, Any]) -> dict[str, Any]:
     gate_replay_ref = _source_ref_path(study, "artifacts/controller/gate_replay_requests/latest.json")
     controller_decisions_ref = _source_ref_path(study, "artifacts/controller_decisions/latest.json")
     artifact_lifecycle_receipt_refs = _artifact_lifecycle_receipt_refs(repair_receipt)
+    receipt_surface = _text(repair_receipt.get("surface"))
+    receipt_execution_status = _text(repair_receipt.get("execution_status"))
     receipt_executed = (
-        repair_receipt.get("surface") == "paper_repair_owner_receipt"
+        receipt_surface in {"paper_repair_owner_receipt", "paper_story_repair_owner_receipt"}
         and repair_receipt.get("accepted") is True
-        and repair_receipt.get("execution_status") == "executed"
+        and (
+            receipt_execution_status == "executed"
+            or (receipt_surface == "paper_story_repair_owner_receipt" and receipt_execution_status == "progress_delta_candidate")
+        )
         and repair_receipt.get("direct_current_package_write") is False
         and repair_receipt.get("quality_authorized") is False
         and repair_receipt.get("submission_authorized") is False

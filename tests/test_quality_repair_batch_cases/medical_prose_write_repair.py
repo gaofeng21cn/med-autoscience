@@ -192,6 +192,8 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert "first and last phenotype-ready visits" in story_text
     assert "dominant-site deterministic partition" in story_text
     assert "Study design and cohort" in story_text
+    assert "1,779,360 source records" in story_text
+    assert "NA source records" not in story_text
     assert "Variable definition and measurement" in story_text
     assert "Model or grouping framework" in story_text
     assert "Validation framework" in story_text

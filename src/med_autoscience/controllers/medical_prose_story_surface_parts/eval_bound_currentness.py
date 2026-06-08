@@ -190,7 +190,15 @@ def _eval_bound_current_story_delta_state(
     prose_currentness = _medical_prose_currentness(payload)
     if _text(prose_currentness.get("status")) != "current":
         return None
-    if _text(prose_currentness.get("route_target")) not in {None, "write"}:
+    if _active_story_write_routeback(
+        publication_eval_payload=payload,
+        prose_currentness=prose_currentness,
+        work_unit_id=work_unit_id,
+        medical_prose_write_repair_work_unit_id=medical_prose_write_repair_work_unit_id,
+    ):
+        return None
+    route_target = _text(prose_currentness.get("route_target"))
+    if route_target not in {None, "none"}:
         return None
     request_digest = _text(prose_currentness.get("request_digest"))
     manuscript_ref = _text(prose_currentness.get("manuscript_ref"))
@@ -262,6 +270,74 @@ def _medical_prose_currentness(publication_eval_payload: Mapping[str, Any]) -> d
         return {}
     prose_currentness = currentness_checks.get("medical_prose_review")
     return dict(prose_currentness) if isinstance(prose_currentness, Mapping) else {}
+
+
+def _active_story_write_routeback(
+    *,
+    publication_eval_payload: Mapping[str, Any],
+    prose_currentness: Mapping[str, Any],
+    work_unit_id: str,
+    medical_prose_write_repair_work_unit_id: str,
+) -> bool:
+    route_target = _text(prose_currentness.get("route_target"))
+    if prose_currentness.get("route_back_required") is True and route_target == "write":
+        return True
+    if _route_back_decision_targets_write(publication_eval_payload):
+        return True
+    for action in _mappings(publication_eval_payload.get("recommended_actions")):
+        action_route_target = _text(action.get("route_target"))
+        if action_route_target != "write":
+            continue
+        for candidate in _candidate_work_unit_ids(action):
+            if candidate in {work_unit_id, medical_prose_write_repair_work_unit_id}:
+                return True
+            if is_story_surface_delta_write_work_unit(candidate):
+                return True
+    return False
+
+
+def _route_back_decision_targets_write(publication_eval_payload: Mapping[str, Any]) -> bool:
+    reviewer_os = publication_eval_payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, Mapping):
+        return False
+    decision = reviewer_os.get("route_back_decision")
+    if not isinstance(decision, Mapping):
+        return False
+    route_target = _text(decision.get("route_target"))
+    return route_target == "write"
+
+
+def _candidate_work_unit_ids(payload: object) -> list[str]:
+    mapping = payload if isinstance(payload, Mapping) else {}
+    candidates: list[str] = []
+    for key in ("unit_id", "work_unit_id", "next_work_unit", "materialized_work_unit_id"):
+        value = mapping.get(key)
+        if isinstance(value, Mapping):
+            candidates.extend(_candidate_work_unit_ids(value))
+        elif text := _text(value):
+            candidates.append(text)
+    for key in ("owner_route", "source_refs", "prompt_contract", "source_action"):
+        value = mapping.get(key)
+        if isinstance(value, Mapping):
+            candidates.extend(_candidate_work_unit_ids(value))
+    return _dedupe(candidates)
+
+
+def _mappings(value: object) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
 
 
 def _path_fingerprint(path: Path) -> dict[str, Any]:

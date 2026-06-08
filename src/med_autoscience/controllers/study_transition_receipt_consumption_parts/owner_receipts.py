@@ -25,6 +25,16 @@ _HUMAN_GATE_RESUME_ACTIONS = frozenset(
 )
 _PUBLICATION_ROUTE_MEMORY_FAMILY = "publication_route_memory"
 _MEMORY_WRITEBACK_CONSUMABLE_STATUSES = frozenset({"applied", "blocked"})
+_PAPER_REPAIR_OWNER_RECEIPT_SURFACES = frozenset(
+    {
+        "paper_repair_owner_receipt",
+        "paper_story_repair_owner_receipt",
+    }
+)
+_PAPER_REPAIR_OWNER_RECEIPT_EXECUTION_STATUSES = {
+    "paper_repair_owner_receipt": frozenset({"executed"}),
+    "paper_story_repair_owner_receipt": frozenset({"executed", "progress_delta_candidate"}),
+}
 
 
 def mas_owner_apply_receipt_consumption(*, study_root: Path) -> dict[str, Any]:
@@ -212,9 +222,13 @@ def _artifact_delta_owner_receipt_consumption(
     receipt_ref: Path,
     evidence_ref: Path,
 ) -> dict[str, Any]:
-    if receipt.get("surface") != "paper_repair_owner_receipt":
+    surface = _text(receipt.get("surface"))
+    if surface not in _PAPER_REPAIR_OWNER_RECEIPT_SURFACES:
         return {}
-    if receipt.get("accepted") is not True or receipt.get("execution_status") != "executed":
+    execution_status = _text(receipt.get("execution_status"))
+    if receipt.get("accepted") is not True:
+        return {}
+    if execution_status not in _PAPER_REPAIR_OWNER_RECEIPT_EXECUTION_STATUSES[surface]:
         return {}
     if receipt.get("direct_current_package_write") is not False:
         return {}
@@ -222,21 +236,60 @@ def _artifact_delta_owner_receipt_consumption(
         return {}
     if receipt.get("submission_authorized") is not False:
         return {}
+    story_surface_refs = _story_surface_refs(
+        [
+            *_mapping_list(receipt.get("canonical_artifact_delta_refs")),
+            *_mapping_list(_mapping(evidence.get("canonical_artifact_delta")).get("artifact_refs")),
+            *_mapping_list(evidence.get("changed_artifact_refs")),
+        ]
+    )
+    if surface == "paper_story_repair_owner_receipt" and not story_surface_refs:
+        return {}
     progress_observed = (
         _mapping(evidence.get("canonical_artifact_delta")).get("meaningful_artifact_delta") is True
         or evidence.get("progress_delta_candidate") is True
         or bool(receipt.get("canonical_artifact_delta_refs"))
+        or bool(story_surface_refs)
     )
     if not progress_observed:
         return {}
+    next_action = (
+        "honor_paper_story_repair_owner_receipt"
+        if surface == "paper_story_repair_owner_receipt"
+        else "allow_mas_owner_guarded_apply"
+    )
     return {
         "status": "consumed",
         "receipt_kind": "mas_owner_apply_receipt",
         "apply_result": "artifact_delta",
+        "receipt_surface": surface,
+        "receipt_execution_status": execution_status,
         "receipt_ref": str(receipt_ref),
         "evidence_ref": str(evidence_ref),
-        "next_action": "allow_mas_owner_guarded_apply",
+        "story_surface_delta_ref_count": len(story_surface_refs),
+        "quality_authorized": False,
+        "submission_authorized": False,
+        "current_package_write_authorized": False,
+        "next_action": next_action,
     }
+
+
+def _story_surface_refs(refs: Iterable[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    story_refs: list[Mapping[str, Any]] = []
+    seen: set[str] = set()
+    for ref in refs:
+        role = _text(ref.get("artifact_role"))
+        path_text = _text(ref.get("path"))
+        path = Path(path_text).expanduser()
+        if role == "canonical_manuscript_story_surface" or path.parts[-2:] == ("paper", "draft.md") or path.parts[
+            -3:
+        ] == ("paper", "build", "review_manuscript.md"):
+            dedupe_key = path_text or role
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            story_refs.append(ref)
+    return story_refs
 
 
 def _controller_decision_owner_receipt_consumption(

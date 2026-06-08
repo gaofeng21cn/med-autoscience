@@ -252,6 +252,343 @@ def test_materialize_domain_action_requests_honors_consumed_transition_owner_act
     )
 
 
+def test_materialize_domain_action_requests_prefers_fresh_progress_action_when_ticket_action_is_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    study_progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="write",
+        owner_reason="old_write_repair_from_stage_next_action",
+        allowed_actions=["run_quality_repair_batch"],
+    )
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "status": "ready_for_owner_action",
+            "action_type": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": "control/next_action.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "target_surface": "artifacts/controller/quality_repair_batch/latest.json",
+        },
+    )
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": stale_route,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": quest_id,
+                            "action_type": "run_quality_repair_batch",
+                            "owner": "write",
+                            "request_owner": "write",
+                            "authority": "stage_native_workspace_next_action",
+                            "reason": "old_write_repair_from_stage_next_action",
+                            "owner_route": stale_route,
+                        }
+                    ],
+                }
+            ],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "run_quality_repair_batch",
+                    "owner": "write",
+                    "request_owner": "write",
+                    "authority": "stage_native_workspace_next_action",
+                    "reason": "old_write_repair_from_stage_next_action",
+                    "owner_route": stale_route,
+                }
+            ],
+        },
+    )
+    fresh_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+
+    def fake_read_study_progress(**kwargs):
+        assert kwargs["study_id"] == study_id
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "generated_at": "2026-06-08T04:37:17+00:00",
+            "active_run_id": None,
+            "actual_write_active": False,
+            "owner_route": fresh_route,
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "ai_reviewer",
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            },
+            "current_owner_ticket": {
+                "surface_kind": "mas_current_owner_ticket",
+                "owner": "ai_reviewer",
+                "work_unit": {
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "ai_reviewer",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                "source_ref": (
+                    "studies/002-dm-china-us-mortality-attribution/"
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "source_fingerprint": "repair-progress-current-ai-reviewer",
+                "work_unit_fingerprint": "repair-progress-current-ai-reviewer-work-unit",
+            },
+        }
+
+    monkeypatch.setattr(study_progress_module, "read_study_progress", fake_read_study_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["request_task_count"] == 1
+    assert result["default_executor_dispatch_count"] == 1
+    request = result["request_tasks"][0]
+    dispatch = result["default_executor_dispatches"][0]
+    assert request["action_type"] == "return_to_ai_reviewer_workflow"
+    assert request["request_owner"] == "ai_reviewer"
+    assert request["reason"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
+    assert dispatch["next_executable_owner"] == "ai_reviewer"
+    assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    ignored_reasons = {item["reason"] for item in result["ignored_actions"]}
+    assert "superseded_by_fresh_study_progress_current_owner_ticket" in ignored_reasons
+
+
+def test_materialize_domain_action_requests_prefers_current_ai_reviewer_queue_over_stale_stage_native_write(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "status": "ready_for_owner_action",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "target_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+        },
+    )
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "action_id": f"supervisor-action::{study_id}::return_to_ai_reviewer_workflow::repair_progress",
+        "owner": "ai_reviewer",
+        "request_owner": "ai_reviewer",
+        "recommended_owner": "ai_reviewer",
+        "reason": "repair_progress_ai_reviewer_recheck_required",
+        "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        "owner_route": route,
+        "handoff_packet": {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "authority": "observability_only",
+            "request_owner": "ai_reviewer",
+            "owner_route": route,
+        },
+    }
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "action_queue": [action],
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "ai_reviewer",
+                        "next_work_unit": (
+                            "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                        ),
+                    },
+                }
+            ],
+            "action_queue": [action],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
+    assert dispatch["next_executable_owner"] == "ai_reviewer"
+    assert dispatch["source_action"]["authority"] == "observability_only"
+    assert {
+        item["action_type"]: item["reason"]
+        for item in result["ignored_actions"]
+        if item["study_id"] == study_id
+    } == {
+        "run_quality_repair_batch": "superseded_by_current_owner_route_action_queue",
+    }
+
+
+def test_materialize_domain_action_requests_keeps_repair_progress_recheck_queue_over_old_routeback_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript after repair progress.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    _write_json(
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260608T060000Z_publication_eval_record.json",
+        current_manuscript_routeback_record(
+            study_root=study_root,
+            manuscript_path=manuscript_path,
+            manuscript_text=manuscript_text,
+            study_id=study_id,
+            quest_id=quest_id,
+            eval_id="publication-eval::dm002::old-routeback::2026-06-08T06:00:00+00:00",
+            emitted_at="2026-06-08T06:00:00+00:00",
+        ),
+    )
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="repair_progress_ai_reviewer_recheck_required",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    route["source_refs"] = {
+        **dict(route["source_refs"]),
+        "owner_route_currentness_basis": {
+            "truth_epoch": f"truth-epoch::{study_id}",
+            "runtime_health_epoch": f"runtime-health::{study_id}",
+            "source_eval_id": "publication-eval::dm002::current-mechanical-projection",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": "sha256:repair-progress-current-ai-reviewer",
+        },
+    }
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "action_id": f"supervisor-action::{study_id}::return_to_ai_reviewer_workflow::repair_progress",
+        "owner": "ai_reviewer",
+        "request_owner": "ai_reviewer",
+        "recommended_owner": "ai_reviewer",
+        "reason": "repair_progress_ai_reviewer_recheck_required",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "controller_work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "executable_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "owner_route": route,
+        "handoff_packet": {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "authority": "observability_only",
+            "request_owner": "ai_reviewer",
+            "owner_route": route,
+        },
+    }
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "action_queue": [action],
+                }
+            ],
+            "action_queue": [action],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
+    assert dispatch["next_executable_owner"] == "ai_reviewer"
+    assert dispatch["source_action"]["reason"] == "ai_reviewer_record_stale_after_current_inputs"
+    assert dispatch["source_action"]["next_work_unit"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    assert "materialization_decision" not in dispatch["source_action"]
+
+
 def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_refs(
     monkeypatch,
     tmp_path: Path,

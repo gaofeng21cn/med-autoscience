@@ -155,6 +155,11 @@ def _paper_delta_changed_refs(payload: Mapping[str, Any]) -> list[str]:
     progress_freshness = _mapping(payload.get("progress_freshness"))
     artifact_delta = _mapping(progress_freshness.get("meaningful_artifact_delta_freshness"))
     refs: list[str] = []
+    repair_progress = _mapping(payload.get("repair_progress_projection"))
+    for item in _mapping_items(repair_progress.get("changed_artifact_refs")):
+        if text := _text(item.get("path")):
+            refs.append(text)
+    refs.extend(_string_items(_mapping(payload.get("paper_progress_delta")).get("refs")))
     if _text(artifact_delta.get("status")) == "fresh":
         refs.extend(_string_items(artifact_delta.get("changed_refs")))
         refs.extend(_string_items(artifact_delta.get("evidence_refs")))
@@ -289,6 +294,8 @@ def _package_delivered(payload: Mapping[str, Any], details: Mapping[str, Any]) -
 def _meaningful_artifact_delta(payload: Mapping[str, Any], *, visible_progress: bool) -> bool:
     if not visible_progress:
         return False
+    if _mapping(payload.get("repair_progress_projection")).get("paper_delta_observed") is True:
+        return True
     if _paper_facing_progress_slo(payload)["visible_as_progressing"]:
         return True
     if _fresh_artifact_delta_present(payload):
@@ -571,6 +578,12 @@ def _string_items(value: object) -> list[str]:
     if not isinstance(value, Iterable):
         return []
     return [text for item in value if (text := _text(item)) is not None]
+
+
+def _mapping_items(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list | tuple):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
 
 
 def _mapping(value: object) -> dict[str, Any]:

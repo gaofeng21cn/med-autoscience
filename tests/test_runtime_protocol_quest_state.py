@@ -178,6 +178,25 @@ def test_inspect_quest_runtime_reads_local_status_from_protocol_surface(tmp_path
     )
 
 
+def test_runtime_liveness_live_requires_opl_current_control_provider_attempt() -> None:
+    snapshot = QuestRuntimeSnapshot(
+        quest_exists=True,
+        quest_status="running",
+        runtime_liveness_audit={
+            "status": "live",
+            "source": "runtime_health_snapshot",
+            "active_run_id": "opl-stage-attempt://sat-stale-controller-ref",
+            "runtime_audit": {
+                "status": "live",
+                "worker_running": True,
+                "active_run_id": "opl-stage-attempt://sat-stale-controller-ref",
+            },
+        },
+    )
+
+    assert snapshot.runtime_liveness_status is QuestRuntimeLivenessStatus.UNKNOWN
+
+
 def test_inspect_quest_runtime_reports_missing_quest_when_quest_yaml_is_absent(tmp_path: Path) -> None:
     quest_root = tmp_path / "q001"
     dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "running"})

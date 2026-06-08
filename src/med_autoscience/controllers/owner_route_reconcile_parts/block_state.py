@@ -189,6 +189,12 @@ def projection_block_state(
             "next_owner": "ai_reviewer",
             "external_supervisor_required": False,
         }
+    if _has_repair_progress_ai_reviewer_action(actions):
+        return {
+            "blocked_reason": "repair_progress_ai_reviewer_recheck_required",
+            "next_owner": "ai_reviewer",
+            "external_supervisor_required": False,
+        }
     if _has_write_quality_repair_action(actions):
         return {
             "blocked_reason": _write_quality_repair_blocked_reason(
@@ -285,7 +291,11 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "publication_gate"
     if blocked_reason == evidence_adoption.OWNER_HANDOFF_REASON:
         return "mas_controller"
-    if blocked_reason in {"domain_transition_publication_gate_blocker", "run_gate_clearing_batch"}:
+    if blocked_reason in {
+        "domain_transition_publication_gate_blocker",
+        "run_gate_clearing_batch",
+        "repair_progress_gate_replay_required",
+    }:
         return "gate_clearing_batch"
     if blocked_reason == "current_package_freshness_required":
         return "artifact_os"
@@ -294,6 +304,7 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
     if blocked_reason in {
         "ai_reviewer_assessment_required",
         "ai_reviewer_assessment_stale_after_reviewer_revision",
+        "repair_progress_ai_reviewer_recheck_required",
         ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON,
         ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_INPUTS_REASON,
         ai_reviewer_actions.RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON,
@@ -327,6 +338,15 @@ def _has_clean_paper_authority_ai_reviewer_action(actions: list[dict[str, Any]])
     return any(
         _text(action.get("action_type")) == "return_to_ai_reviewer_workflow"
         and _text(action.get("reason")) == "paper_authority_clean_migration_required"
+        and _text(action.get("owner")) == "ai_reviewer"
+        for action in actions
+    )
+
+
+def _has_repair_progress_ai_reviewer_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "return_to_ai_reviewer_workflow"
+        and _text(action.get("reason")) == "repair_progress_ai_reviewer_recheck_required"
         and _text(action.get("owner")) == "ai_reviewer"
         for action in actions
     )

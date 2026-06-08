@@ -35,14 +35,34 @@ CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS = frozenset(
     {
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
+        "provider_admission_current_control_state_required",
         "quest_marked_running_but_no_live_session",
         "quest_waiting_opl_runtime_owner_route",
+        "runtime_recovery_not_authorized",
     }
 )
 MEDICAL_READINESS_BLOCKERS = frozenset(
     {
         "medical_paper_readiness_missing",
         "medical_paper_readiness_not_ready",
+    }
+)
+PAPER_DELTA_READINESS_SUPERSEDING_ACTION_SOURCES = frozenset(
+    {
+        "domain_transition",
+        "repair_progress_projection.mas_owner_repair_execution_evidence",
+    }
+)
+PROVIDER_ADMISSION_REPAIR_ACTIONS = frozenset(
+    {
+        "return_to_ai_reviewer_workflow",
+        "run_gate_clearing_batch",
+        "run_quality_repair_batch",
+    }
+)
+PROVIDER_ADMISSION_AUTHORITIES = frozenset(
+    {
+        "mas_provider_admission_identity",
     }
 )
 REASON_ONLY_TYPED_BLOCKERS = frozenset(
@@ -345,6 +365,8 @@ def _running_provider_attempt_state(
     attempt = _mapping(live_provider_attempt)
     if attempt.get("running_provider_attempt") is not True:
         return None
+    if _attempt_has_matching_terminal_closeout(attempt):
+        return None
     health = _mapping(runtime_health)
     next_work_unit = (
         _text(attempt.get("work_unit_id"))
@@ -358,6 +380,39 @@ def _running_provider_attempt_state(
         "owner": _text(owner) or "supervisor_only/live_provider_attempt",
         "next_work_unit": next_work_unit,
     }
+
+
+def _attempt_has_matching_terminal_closeout(attempt: Mapping[str, Any]) -> bool:
+    terminal = _mapping(attempt.get("latest_terminal_stage_log"))
+    if not terminal:
+        return False
+    active_attempt_id = _stage_attempt_id_from_handoff(attempt)
+    terminal_attempt_id = _text(terminal.get("stage_attempt_id"))
+    if active_attempt_id is not None and terminal_attempt_id is not None and active_attempt_id != terminal_attempt_id:
+        return False
+    status = _text(terminal.get("status"))
+    if status in {
+        "blocked",
+        "closed",
+        "closed_with_domain_owner_refs",
+        "completed",
+        "failed",
+        "terminal",
+        "typed_blocked",
+    }:
+        return True
+    return _text(terminal.get("source_path")) is not None and _text(terminal.get("record_path")) is not None
+
+
+def _stage_attempt_id_from_handoff(handoff: Mapping[str, Any]) -> str | None:
+    if text := _text(handoff.get("active_stage_attempt_id")):
+        return text
+    active_run_id = _text(handoff.get("active_run_id"))
+    prefix = "opl-stage-attempt://"
+    if active_run_id is not None and active_run_id.startswith(prefix):
+        attempt_id = active_run_id[len(prefix) :].strip()
+        return attempt_id or None
+    return None
 
 
 def _running_attempt_invalidated_by_progress(progress: Mapping[str, Any]) -> bool:
@@ -450,6 +505,8 @@ def _action_supersedes_stage_owner_answer(
     payload = _mapping(action)
     if not payload:
         return False
+    if _provider_admission_repair_action_supersedes_readiness_blocker(payload):
+        return True
     return _paper_delta_domain_transition_supersedes_readiness_blocker(
         action=payload,
         progress=progress,
@@ -467,12 +524,21 @@ def _action_supersedes_typed_blocker(
         return True
     blocker_type = _text(payload.get("blocker_type"))
     if blocker_type in CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS:
-        return _action_is_stage_current_owner_delta(action)
+        return (
+            _action_is_stage_current_owner_delta(action)
+            or _provider_admission_repair_action_supersedes_readiness_blocker(action)
+            or _paper_delta_domain_transition_supersedes_readiness_blocker(
+                action=action,
+                progress=_mapping(progress),
+            )
+        )
     if blocker_type not in MEDICAL_READINESS_BLOCKERS:
         return False
     if _text(action.get("action_type")) == "complete_medical_paper_readiness_surface":
         return True
     if "complete_medical_paper_readiness_surface" in _text_items(action.get("allowed_actions")):
+        return True
+    if _provider_admission_repair_action_supersedes_readiness_blocker(action):
         return True
     return _paper_delta_domain_transition_supersedes_readiness_blocker(
         action=action,
@@ -496,15 +562,39 @@ def _paper_delta_domain_transition_supersedes_readiness_blocker(
     paper_delta = _mapping(progress.get("paper_progress_delta"))
     if progress_first.get("paper_progress_delta_counted") is not True and _delta_count(paper_delta) <= 0:
         return False
-    if _text(action.get("source_surface")) != "domain_transition":
+    action_source = _text(action.get("source_surface")) or _text(action.get("source"))
+    if action_source not in PAPER_DELTA_READINESS_SUPERSEDING_ACTION_SOURCES:
         return False
     if _text(action.get("action_type")) not in {
         "request_opl_stage_attempt",
+        "return_to_ai_reviewer_workflow",
         "run_gate_clearing_batch",
         "run_quality_repair_batch",
     }:
         return False
     return _text(action.get("work_unit_id")) != "complete_medical_paper_readiness_surface"
+
+
+def _provider_admission_repair_action_supersedes_readiness_blocker(action: Mapping[str, Any]) -> bool:
+    action_type = _text(action.get("action_type"))
+    action_types = {action_type, *_text_items(action.get("allowed_actions"))}
+    if not action_types.intersection(PROVIDER_ADMISSION_REPAIR_ACTIONS):
+        return False
+    if _text(action.get("work_unit_id")) == "complete_medical_paper_readiness_surface":
+        return False
+    if _text(action.get("next_work_unit")) == "complete_medical_paper_readiness_surface":
+        return False
+    authority = _text(action.get("authority"))
+    if authority in PROVIDER_ADMISSION_AUTHORITIES:
+        return True
+    action_id = _text(action.get("action_id"))
+    if action_id is not None and action_id.startswith("provider-admission::"):
+        return True
+    for key in ("action_fingerprint", "work_unit_fingerprint", "fingerprint"):
+        text = _text(action.get(key))
+        if text is not None and text.startswith("study-progress-current-owner-ticket::"):
+            return True
+    return False
 
 
 def _reason_only_blocked_reason_is_typed_blocker(*, reason: str, owner: str | None) -> bool:

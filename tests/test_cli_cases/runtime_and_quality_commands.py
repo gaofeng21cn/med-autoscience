@@ -411,6 +411,55 @@ def test_gate_clearing_batch_command_dispatches_controller(monkeypatch, tmp_path
     assert json.loads(captured.out)["status"] == "executed"
 
 
+def test_paper_story_repair_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    called: dict[str, object] = {}
+    monkeypatch.setattr(
+        cli.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_root": str(tmp_path / "workspace" / "studies" / "001-risk"),
+            "quest_id": "quest-001",
+        },
+    )
+
+    def fake_run_story_repair(
+        *,
+        study_id: str,
+        study_root: Path,
+        quest_id: str,
+        source: str,
+    ) -> dict:
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["quest_id"] = quest_id
+        called["source"] = source
+        return {"ok": True, "status": "progress_delta_candidate", "quest_id": quest_id}
+
+    monkeypatch.setattr(cli.paper_story_repair_executor, "run_story_repair", fake_run_story_repair)
+
+    exit_code = cli.main(
+        [
+            "study",
+            "paper-story-repair",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["study_id"] == "001-risk"
+    assert called["study_root"] == tmp_path / "workspace" / "studies" / "001-risk"
+    assert called["quest_id"] == "quest-001"
+    assert called["source"] == "cli"
+    assert json.loads(captured.out)["status"] == "progress_delta_candidate"
+
+
 def test_study_profile_cycle_command_dispatches_profiler(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

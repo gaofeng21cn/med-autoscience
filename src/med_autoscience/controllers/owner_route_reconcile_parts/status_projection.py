@@ -27,6 +27,8 @@ def resolve_why_not_applied(
             ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_INPUTS_REASON,
             ai_reviewer_actions.RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON,
             ai_reviewer_actions.ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON,
+            "repair_progress_ai_reviewer_recheck_required",
+            "repair_progress_gate_replay_required",
         }:
             return top_action_reason
     if submission_milestone_parked:

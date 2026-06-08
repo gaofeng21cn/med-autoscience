@@ -63,6 +63,7 @@ AI_REVIEWER_RECORD_CURRENTNESS_BLOCKED_REASONS = frozenset(
         domain_action_request_lifecycle.AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
     }
 )
+REPAIR_PROGRESS_AI_REVIEWER_RECHECK_REQUIRED = "repair_progress_ai_reviewer_recheck_required"
 
 
 def materialization_action(
@@ -70,6 +71,10 @@ def materialization_action(
     profile: WorkspaceProfile,
     action: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    if _explicit_repair_progress_ai_reviewer_recheck(action):
+        return None
+    if _explicit_repair_progress_ai_reviewer_followup(action):
+        return None
     story_surface_work_unit = _current_ai_reviewer_materialization_work_unit(action)
     record_production_work_unit = _ai_reviewer_record_production_work_unit(action)
     if not story_surface_work_unit and not record_production_work_unit:
@@ -186,6 +191,27 @@ def _ai_reviewer_record_production_work_unit_id(blocked_reason: str | None) -> s
     if blocked_reason == domain_action_request_lifecycle.AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN:
         return "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
     return "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+
+
+def _explicit_repair_progress_ai_reviewer_followup(action: Mapping[str, Any]) -> bool:
+    if _text(action.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return False
+    source = _text(action.get("current_action_source")) or _text(action.get("source"))
+    if source != "repair_progress_projection.mas_owner_repair_execution_evidence":
+        return False
+    authority = _text(action.get("authority")) or _text(action.get("source_surface"))
+    if authority != "study_progress.current_executable_owner_action":
+        return False
+    if _mapping(action.get("repair_progress_precedence")):
+        return True
+    return _text(action.get("source_ref")) is not None
+
+
+def _explicit_repair_progress_ai_reviewer_recheck(action: Mapping[str, Any]) -> bool:
+    return (
+        _text(action.get("action_type")) == "return_to_ai_reviewer_workflow"
+        and _text(action.get("reason")) == REPAIR_PROGRESS_AI_REVIEWER_RECHECK_REQUIRED
+    )
 
 
 def _story_surface_delta_action(

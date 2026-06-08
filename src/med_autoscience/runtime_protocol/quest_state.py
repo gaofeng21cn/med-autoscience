@@ -42,6 +42,9 @@ class QuestRuntimeSnapshot:
             return QuestRuntimeLivenessStatus.NONE
         status = str(payload.get("status") or "").strip().lower()
         if status == QuestRuntimeLivenessStatus.LIVE.value:
+            source = str(payload.get("source") or "").strip()
+            if source and source != "opl_current_control_state_provider_attempt":
+                return QuestRuntimeLivenessStatus.UNKNOWN
             return QuestRuntimeLivenessStatus.LIVE
         if status == QuestRuntimeLivenessStatus.NONE.value:
             return QuestRuntimeLivenessStatus.NONE

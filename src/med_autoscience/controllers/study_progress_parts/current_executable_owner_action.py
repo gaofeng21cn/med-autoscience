@@ -10,19 +10,34 @@ PUBLICATION_HANDOFF_ACTION = "publication_handoff_owner_gate"
 READINESS_ACTION = "complete_medical_paper_readiness_surface"
 READINESS_BLOCKER = "medical_paper_readiness_not_ready"
 READINESS_OWNER = "MedAutoScience"
+REPAIR_PROGRESS_SOURCE = "repair_progress_projection.mas_owner_repair_execution_evidence"
+AI_REVIEWER_ACTION = "return_to_ai_reviewer_workflow"
+AI_REVIEWER_OWNER = "ai_reviewer"
+AI_REVIEWER_WORK_UNIT = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+GATE_CLEARING_ACTION = "run_gate_clearing_batch"
+GATE_CLEARING_OWNER = "gate_clearing_batch"
+GATE_CLEARING_WORK_UNIT = "publication_gate_replay"
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     domain_transition_action = _from_domain_transition(payload)
+    repair_progress_action = _from_repair_progress_projection(payload)
+    if repair_progress_action is not None:
+        return repair_progress_action
+    stage_native_action = _from_stage_native_current_owner_action(payload)
     if _stage_kernel_owner_answer_recorded_without_next_action(payload):
-        return domain_transition_action
+        return stage_native_action or domain_transition_action
     if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
-        return domain_transition_action or _from_stage_kernel_readiness_followup(payload)
+        return (
+            stage_native_action
+            or domain_transition_action
+            or _from_stage_kernel_readiness_followup(payload)
+        )
     readiness_followup = _from_stage_kernel_readiness_followup(payload)
     if readiness_followup is not None:
         return readiness_followup
     if _stage_kernel_readiness_answer_without_followup(payload):
-        return domain_transition_action
+        return stage_native_action or domain_transition_action
     artifact_action = _from_stage_artifact_index(payload)
     if artifact_action is not None:
         return artifact_action
@@ -116,6 +131,104 @@ def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[st
     )
 
 
+def _from_repair_progress_projection(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    repair_progress = _mapping_copy(payload.get("repair_progress_projection"))
+    if repair_progress.get("paper_delta_observed") is not True:
+        return None
+    if repair_progress.get("accepted_owner_receipt") is not True:
+        return None
+    source_ref = _non_empty_text(repair_progress.get("repair_execution_evidence_ref")) or _non_empty_text(
+        repair_progress.get("owner_receipt_ref")
+    )
+    ai_reviewer_request_ref = _non_empty_text(repair_progress.get("ai_reviewer_recheck_request_ref"))
+    gate_replay_refs = _text_items(repair_progress.get("gate_replay_refs"))
+    if ai_reviewer_request_ref is not None:
+        return _repair_followup_action(
+            repair_progress=repair_progress,
+            source_ref=source_ref,
+            next_owner=AI_REVIEWER_OWNER,
+            work_unit_id=AI_REVIEWER_WORK_UNIT,
+            action_type=AI_REVIEWER_ACTION,
+            required_delta_kind="ai_reviewer_publication_eval_delta_or_typed_blocker",
+            target_surface={
+                "ref_kind": "route_obligation",
+                "route_target": "review",
+                "surface_ref": "artifacts/publication_eval/latest.json",
+                "request_ref": ai_reviewer_request_ref,
+                "gate_replay_request_ref": gate_replay_refs[0] if gate_replay_refs else None,
+            },
+            acceptance_refs=[ai_reviewer_request_ref, *gate_replay_refs],
+        )
+    if gate_replay_refs:
+        return _repair_followup_action(
+            repair_progress=repair_progress,
+            source_ref=source_ref,
+            next_owner=GATE_CLEARING_OWNER,
+            work_unit_id=GATE_CLEARING_WORK_UNIT,
+            action_type=GATE_CLEARING_ACTION,
+            required_delta_kind="publication_gate_replay_delta_or_typed_blocker",
+            target_surface={
+                "ref_kind": "route_obligation",
+                "route_target": "finalize",
+                "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                "request_ref": gate_replay_refs[0],
+            },
+            acceptance_refs=gate_replay_refs,
+        )
+    return None
+
+
+def _repair_followup_action(
+    *,
+    repair_progress: Mapping[str, Any],
+    source_ref: str | None,
+    next_owner: str,
+    work_unit_id: str,
+    action_type: str,
+    required_delta_kind: str,
+    target_surface: Mapping[str, Any],
+    acceptance_refs: list[str],
+) -> dict[str, Any]:
+    owner_receipt_ref = _non_empty_text(repair_progress.get("owner_receipt_ref"))
+    repair_evidence_ref = _non_empty_text(repair_progress.get("repair_execution_evidence_ref"))
+    work_unit_fingerprint = _non_empty_text(repair_progress.get("source_fingerprint"))
+    return _compact(
+        {
+            "surface_kind": SURFACE_KIND,
+            "schema_version": 1,
+            "status": "ready",
+            "source": REPAIR_PROGRESS_SOURCE,
+            "next_owner": next_owner,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": work_unit_fingerprint,
+            "action_type": action_type,
+            "allowed_actions": [action_type],
+            "owner_receipt_required": True,
+            "required_delta_kind": required_delta_kind,
+            "target_surface": _compact(target_surface),
+            "target_surface_specificity": "repair_progress_followup_owner_surface",
+            "source_ref": source_ref,
+            "acceptance_refs": _dedupe_text(
+                [
+                    repair_evidence_ref,
+                    owner_receipt_ref,
+                    *acceptance_refs,
+                ]
+            ),
+            "repair_progress_precedence": {
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "superseded_stage_native_action": "run_quality_repair_batch",
+                "superseded_readiness_action": READINESS_ACTION,
+                "source_work_unit_id": _non_empty_text(repair_progress.get("work_unit_id")),
+                "source_fingerprint": _non_empty_text(repair_progress.get("source_fingerprint")),
+            },
+            "authority_boundary": _authority_boundary(),
+        }
+    )
+
+
 def owner_action_next_step(action: Mapping[str, Any]) -> str | None:
     owner = _non_empty_text(action.get("next_owner"))
     actions = _text_items(action.get("allowed_actions"))
@@ -163,6 +276,35 @@ def _from_stage_artifact_index(payload: Mapping[str, Any]) -> dict[str, Any] | N
                 "stage_count": len(_mapping_items(index.get("stages"))),
             },
             "authority_boundary": _authority_boundary(),
+        }
+    )
+
+
+def _from_stage_native_current_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    action = _mapping_copy(payload.get("stage_native_current_owner_action"))
+    if _non_empty_text(action.get("source")) != "stage_native_workspace_next_action":
+        return None
+    owner = _non_empty_text(action.get("next_owner"))
+    work_unit_id = _non_empty_text(action.get("work_unit_id"))
+    allowed_actions = _text_items(action.get("allowed_actions"))
+    if owner is None and work_unit_id is None and not allowed_actions:
+        return None
+    return _compact(
+        {
+            "surface_kind": SURFACE_KIND,
+            "schema_version": 1,
+            "status": "ready",
+            "source": "stage_native_workspace_next_action",
+            "next_owner": owner,
+            "work_unit_id": work_unit_id,
+            "action_type": _non_empty_text(action.get("action_type")),
+            "allowed_actions": allowed_actions,
+            "owner_receipt_required": action.get("owner_receipt_required") is not False,
+            "required_delta_kind": _non_empty_text(action.get("required_delta_kind")),
+            "target_surface": _mapping_copy(action.get("target_surface")) or None,
+            "source_ref": _non_empty_text(action.get("source_ref")),
+            "authority_boundary": _mapping_copy(action.get("authority_boundary"))
+            or _authority_boundary(),
         }
     )
 
@@ -353,6 +495,15 @@ def _text_items(value: object) -> list[str]:
         return []
     result: list[str] = []
     for item in value:
+        text = _non_empty_text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
+
+
+def _dedupe_text(items: list[str | None]) -> list[str]:
+    result: list[str] = []
+    for item in items:
         text = _non_empty_text(item)
         if text is not None and text not in result:
             result.append(text)

@@ -133,8 +133,16 @@ def test_progress_first_monitoring_distinguishes_admission_request_from_running_
             },
             "opl_current_control_state_handoff": {
                 "running_provider_attempt": True,
+                "next_owner": "write",
                 "active_stage_attempt_id": "sat-running",
                 "active_workflow_id": "wf-running",
+                "action_queue": [
+                    {
+                        "owner": "write",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": "medical_prose_write_repair",
+                    }
+                ],
             },
         }
     )

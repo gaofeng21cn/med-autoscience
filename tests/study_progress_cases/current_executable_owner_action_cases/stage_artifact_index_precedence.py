@@ -253,8 +253,10 @@ def test_progress_first_monitoring_keeps_running_provider_liveness_from_overridi
             "opl_current_control_state_handoff": {
                 "running_provider_attempt": True,
                 "next_owner": "ai_reviewer",
+                "active_run_id": "opl-stage-attempt://sat-running",
                 "active_stage_attempt_id": "sat-running",
                 "active_workflow_id": "wf-running",
+                "runtime_health": {"runtime_liveness_status": "attempt_running"},
             },
         }
     )
@@ -264,7 +266,9 @@ def test_progress_first_monitoring_keeps_running_provider_liveness_from_overridi
     assert monitoring["next_owner"] == "finalize"
     assert monitoring["controller_action"] == "run_gate_clearing_batch"
     admission = monitoring["owner_action_admission"]
-    assert admission["provider_attempt_running_proven"] is True
+    assert admission["admission_pending"] is True
+    assert admission["provider_attempt_running_proven"] is False
+    assert admission["provider_attempt_proof"] is None
     assert admission["provider_attempt_owner"] == "ai_reviewer"
 
 def test_progress_first_monitoring_does_not_let_quality_gate_blocker_hide_artifact_next_owner_action() -> None:

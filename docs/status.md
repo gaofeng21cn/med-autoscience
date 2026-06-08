@@ -1,6 +1,6 @@
 # 当前状态
 
-文档更新时间：`2026-06-07`
+文档更新时间：`2026-06-08`
 最近一次已记录 live runtime audit：`2026-06-05`
 最近一次已记录 DM002 / DM003 paper-line pause closeout：`2026-06-05`
 最近一次已记录 DM002 / DM003 stage-native live canary：`2026-06-06`
@@ -18,6 +18,8 @@ Progress-first / AI-first operator runbook: [Progress-First Stage Outcome Runboo
 Progress-first Co-Scientist 增益层：`next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`budgeted memory`、`triggered meta-review` 和 `opportunistic knowledge prefetch` 当前已落为 advisory / refs-only / budgeted 增强口径，并进入 `agent/` semantic pack、portfolio contract、StageRun profile、`current_owner_ticket.progress_enhancement_policy`、generated stage projection、focused tests 和 runtime docs。它们只帮助 route 更快选下一步、reviewer / auditor 更快发现缺口、memory 复用失败路径；它们不写 study truth，不阻断 agent admission，不关闭 quality / publication / artifact / memory authority，也不把 platform repair、prefetch 或 review score 计为 paper progress。
 
 Paper clean-room rebuild contract：当 DM002 / DM003 同类论文线受 stale read-model、legacy `.ds` residue、重复 receipt 或旧 path currentness 影响而无法稳定推进时，当前 owner route 可以进入 `paper_clean_room_rebuild_required`。该 action 由 `MedAutoScience` owner surface 执行，只生成 `artifacts/supervision/paper_clean_room_rebuild/latest.json` descriptor、history record 和 `artifacts/stage_outputs/_paper_clean_room_rebuild/workspaces/<timestamp>/verified_inputs/` clean workspace；它只复制 verified current refs，不导入 `.ds`、legacy runtime/logs、dispatch ledger 或 stale read-model，不写 paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package、`current_package` 或质量结论。命令入口是 `medautosci runtime paper-clean-room-rebuild` / `medautosci publication clean-room-rebuild`，dispatch action 是 `paper_clean_room_rebuild_required`。
+
+Readiness blocker-derived repair contract：当 Stage 08 已稳定给出 `medical_paper_readiness_missing` / `medical_paper_readiness_not_ready` typed blocker，且 `publication_eval/latest.json.gaps` 已具体化到论文、证据、reviewer 或 submission/gate 差距时，当前长期读法不再把 `complete_medical_paper_readiness_surface` 作为 primary queued action。MAS owner-action reducer 必须从该 blocker 和 gaps 派生 `run_quality_repair_batch` 或 `run_gate_clearing_batch`，并携带 Stage typed blocker ref、publication eval id、gap ids、work-unit fingerprint 和 required output contract。重复 readiness completion 应标记为 `superseded_by_readiness_blocker_derived_repair`，只进入 ignored evidence / diagnostic；Progress-First operator surface 应展示所需 manuscript / evidence / reviewer / gate repair delta，而不是继续证明 not ready。该 contract 不写 study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、paper、submission package 或 `current_package`。
 
 ## 读法
 

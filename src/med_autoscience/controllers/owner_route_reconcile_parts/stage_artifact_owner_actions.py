@@ -230,6 +230,8 @@ def action_queue_with_terminal_publication_handoff(
     decorate_action: Callable[..., dict[str, Any]],
     publication_eval_payload: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    if _has_repair_progress_followup_action(actions):
+        return actions
     repair = readiness_blocker_repair_action(
         progress=progress,
         publication_eval_payload=publication_eval_payload,
@@ -255,6 +257,8 @@ def projection_fields(progress: Mapping[str, Any], actions: list[Mapping[str, An
     result: dict[str, Any] = {}
     if _text(stage_artifact_index.get("surface_kind")) == "stage_artifact_index":
         result["stage_artifact_index"] = stage_artifact_index
+    if _has_repair_progress_followup_action(actions or []):
+        return result
     repair_action = _readiness_repair_action_from_actions(actions or [])
     if repair_action is not None:
         result["current_executable_owner_action"] = _projection_action_from_repair(repair_action)
@@ -286,6 +290,19 @@ def _readiness_repair_action_from_actions(actions: list[Mapping[str, Any]]) -> d
             continue
         return payload
     return None
+
+
+def _has_repair_progress_followup_action(actions: list[Mapping[str, Any]]) -> bool:
+    for action in actions:
+        payload = _mapping(action)
+        if _mapping(payload.get("repair_progress_followup")).get("accepted_owner_receipt") is True:
+            return True
+        if _text(payload.get("reason")) in {
+            "repair_progress_ai_reviewer_recheck_required",
+            "repair_progress_gate_replay_required",
+        }:
+            return True
+    return False
 
 
 def _has_current_controller_action(actions: list[Mapping[str, Any]]) -> bool:

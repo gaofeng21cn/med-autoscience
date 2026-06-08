@@ -811,3 +811,146 @@ def test_terminal_stage_log_without_backing_refs_is_observability_not_paper_delt
     assert progress_delta["progress_delta_classification"] == "typed_blocker"
     assert result["progress_first_sprint_state"]["classification"] == "typed_blocker"
     assert result["progress_first_sprint_state"]["paper_progress_delta_counted"] is False
+
+
+def test_repair_execution_evidence_counts_as_current_paper_delta_and_drops_stale_readiness_queue(
+    tmp_path: Path,
+) -> None:
+    assembly = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+    )
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+    repair_projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.repair_progress_projection"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    paper_root = study_root / "paper"
+    draft = paper_root / "draft.md"
+    review = paper_root / "build" / "review_manuscript.md"
+    evidence_ledger = paper_root / "evidence_ledger.json"
+    review_ledger = paper_root / "review" / "review_ledger.json"
+    for path in (draft, review, evidence_ledger, review_ledger):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("current\n", encoding="utf-8")
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
+    gate_request = study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"
+    ai_request = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    _write_json(
+        evidence_path,
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "source_fingerprint": "repair-source-current",
+            "repair_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "source_eval_id": "eval-current",
+            },
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+                    {"path": str(review), "artifact_role": "canonical_manuscript_story_surface"},
+                    {"path": str(evidence_ledger), "artifact_role": "evidence_ledger"},
+                    {"path": str(review_ledger), "artifact_role": "review_ledger"},
+                ],
+            },
+            "changed_artifact_refs": [
+                {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+            ],
+            "gate_replay_refs": [str(gate_request)],
+            "ai_reviewer_recheck_request_ref": str(ai_request),
+        },
+    )
+    _write_json(
+        receipt_path,
+        {
+            "surface": "paper_story_repair_owner_receipt",
+            "accepted": True,
+            "work_unit_id": "medical_prose_write_repair",
+            "execution_status": "progress_delta_candidate",
+            "canonical_artifact_delta_refs": [
+                {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+                {"path": str(review), "artifact_role": "canonical_manuscript_story_surface"},
+            ],
+            "repair_execution_evidence_ref": str(evidence_path),
+            "gate_replay_request_ref": str(gate_request),
+            "ai_reviewer_recheck_request_ref": str(ai_request),
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+
+    repair_progress = repair_projection.build_repair_progress_projection(study_root=study_root)
+    progress_delta = assembly._progress_delta_metrics(
+        quality_repair_batch_followthrough={},
+        gate_clearing_batch_followthrough={},
+        opl_current_control_state_handoff={
+            "running_provider_attempt": False,
+            "action_queue": [
+                {
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "owner": "MedAutoScience",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "fingerprint": "complete_medical_paper_readiness_surface::medical_paper_readiness_missing",
+                }
+            ],
+        },
+        runtime_efficiency={"token_usage": {"total_tokens": 0}},
+        repair_progress_projection=repair_progress,
+    )
+    result = projection.build_progress_first_projection(
+        {
+            **progress_delta,
+            "repair_progress_projection": repair_progress,
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "action_queue": [
+                    {
+                        "action_type": "complete_medical_paper_readiness_surface",
+                        "owner": "MedAutoScience",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                    }
+                ],
+            },
+        }
+    )
+
+    assert repair_progress["paper_delta_observed"] is True
+    assert progress_delta["paper_progress_delta"]["count"] == 1
+    assert progress_delta["paper_progress_delta"]["sources"] == [
+        "repair_progress_projection.mas_owner_repair_execution_evidence"
+    ]
+    assert str(draft) in progress_delta["paper_progress_delta"]["refs"]
+    assert result["progress_first_sprint_state"]["paper_progress_delta_counted"] is True
+    assert result["next_forced_delta"]["required_delta_kind"] == "review_current_paper_delta"
+    assert result["next_forced_delta"]["owner_action"]["allowed_actions"] == []
+
+
+def test_repair_progress_current_action_survives_runtime_recovery_typed_blocker() -> None:
+    assembly = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+    )
+    action = {
+        "surface_kind": "current_executable_owner_action",
+        "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "next_owner": "ai_reviewer",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+    }
+
+    aligned = assembly._current_action_aligned_with_execution_envelope(
+        action=action,
+        envelope={
+            "state_kind": "typed_blocker",
+            "owner": "one-person-lab",
+            "typed_blocker": {"blocker_type": "runtime_recovery_not_authorized"},
+        },
+    )
+
+    assert aligned == action

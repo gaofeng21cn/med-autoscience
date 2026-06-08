@@ -25,6 +25,16 @@ def can_preempt_scan(
         queue_actions = list(top_level_study_actions)
     if not queue_actions:
         return True
+    if _fresh_action_matches_scan_current_action(
+        fresh_action=fresh_action,
+        queue_actions=queue_actions,
+    ):
+        return True
+    if _fresh_repair_followup_supersedes_previous_repair_queue(
+        fresh_action=fresh_action,
+        queue_actions=queue_actions,
+    ):
+        return True
     if any(not _scan_action_is_readiness_or_stage_native_write(action) for action in queue_actions):
         return False
     if readiness_followup is not None:
@@ -36,6 +46,81 @@ def can_preempt_scan(
     if owner_reason == "medical_paper_readiness_missing":
         return True
     return _text(fresh_action.get("action_type")) != _text(queue_actions[0].get("action_type"))
+
+
+def _fresh_action_matches_scan_current_action(
+    *,
+    fresh_action: Mapping[str, Any],
+    queue_actions: list[dict[str, Any]],
+) -> bool:
+    fresh_action_type = _text(fresh_action.get("action_type"))
+    if fresh_action_type is None:
+        return False
+    fresh_fingerprints = _action_currentness_fingerprints(fresh_action)
+    if not fresh_fingerprints:
+        return False
+    for action in queue_actions:
+        if _text(action.get("action_type")) != fresh_action_type:
+            continue
+        if fresh_fingerprints.intersection(_action_currentness_fingerprints(action)):
+            return True
+    return False
+
+
+def _action_currentness_fingerprints(action: Mapping[str, Any]) -> set[str]:
+    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(action.get("owner_route")))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    handoff_packet = _mapping(action.get("handoff_packet"))
+    values = (
+        action.get("work_unit_fingerprint"),
+        action.get("action_fingerprint"),
+        owner_route.get("work_unit_fingerprint"),
+        owner_route.get("source_fingerprint"),
+        source_refs.get("work_unit_fingerprint"),
+        currentness_basis.get("work_unit_fingerprint"),
+        handoff_packet.get("work_unit_fingerprint"),
+        handoff_packet.get("action_fingerprint"),
+    )
+    return {text for value in values if (text := _text(value)) is not None}
+
+
+def _fresh_repair_followup_supersedes_previous_repair_queue(
+    *,
+    fresh_action: Mapping[str, Any],
+    queue_actions: list[dict[str, Any]],
+) -> bool:
+    if _text(fresh_action.get("current_action_source")) != (
+        "repair_progress_projection.mas_owner_repair_execution_evidence"
+    ):
+        return False
+    if _text(fresh_action.get("action_type")) not in {
+        "return_to_ai_reviewer_workflow",
+        "run_gate_clearing_batch",
+    }:
+        return False
+    if not (
+        _mapping(fresh_action.get("repair_progress_precedence"))
+        or _text(fresh_action.get("source_ref")) is not None
+    ):
+        return False
+    return any(_scan_action_is_previous_repair_or_provider_admission(action) for action in queue_actions)
+
+
+def _scan_action_is_previous_repair_or_provider_admission(action: Mapping[str, Any]) -> bool:
+    action_type = _text(action.get("action_type"))
+    if action_type not in {"run_quality_repair_batch", "run_gate_clearing_batch"}:
+        return False
+    authority = _text(action.get("authority")) or _text(action.get("source_surface"))
+    if authority in {
+        "mas_provider_admission_identity",
+        "stage_native_workspace_next_action",
+        "control/next_action.json",
+        "stage_artifact_index.next_owner_action",
+    }:
+        return True
+    action_id = _text(action.get("action_id"))
+    return bool(action_id and action_id.startswith("provider-admission::"))
 
 
 def has_current_quality_repair_writer_handoff(

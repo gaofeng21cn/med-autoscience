@@ -214,6 +214,183 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
     assert result["action_fingerprints"] == [work_unit_fingerprint]
 
 
+def test_runtime_owner_handoff_carries_current_provider_admission_identity(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    quest_root = profile.runtime_root / "quests" / study_id
+    action_fingerprint = (
+        f"study-progress-current-owner-ticket::{study_id}::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs::return_to_ai_reviewer_workflow"
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    dump_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "study_id": study_id,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_gate_clearing_batch",
+                    "execution_status": "blocked",
+                    "blocked_reason": "opl_execution_authorization_required",
+                    "typed_blocker": {"blocker_id": "opl_execution_authorization_required"},
+                    "provider_attempt_or_lease_required": True,
+                    "owner_route_current": True,
+                    "next_executable_owner": "finalize",
+                    "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+                    "dispatch_path": str(dispatch_path),
+                    "action_fingerprint": action_fingerprint,
+                    "owner_route": {
+                        "work_unit_fingerprint": action_fingerprint,
+                        "source_refs": {
+                            "work_unit_id": "current_package_freshness_required",
+                            "work_unit_fingerprint": action_fingerprint,
+                            "owner_route_currentness_basis": {
+                                "work_unit_id": "current_package_freshness_required",
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
+                }
+            ],
+        },
+    )
+    status_payload = {
+        **make_progress_projection_payload(
+            study_id=study_id,
+            decision="resume",
+            reason="domain_transition_ai_reviewer_re_eval",
+        ),
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "current_execution_envelope": {
+            "state_kind": "executable_owner_action",
+            "owner": "ai_reviewer",
+            "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        },
+        "current_executable_owner_action": {
+            "status": "ready",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "next_owner": "ai_reviewer",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        },
+    }
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "generated_at": "2026-06-08T05:50:00+00:00",
+            "current_execution_envelope": status_payload["current_execution_envelope"],
+            "current_executable_owner_action": status_payload["current_executable_owner_action"],
+        },
+    )
+    current_control_path = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    dump_json(
+        current_control_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-08T02:11:41+00:00",
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "action_type": "complete_medical_paper_readiness_surface",
+                            "action_id": f"stale-readiness::{study_id}",
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "status": "queued",
+                        }
+                    ],
+                }
+            ],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "action_id": f"stale-readiness::{study_id}",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "status": "queued",
+                }
+            ],
+        },
+    )
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    handoff = result["managed_study_opl_runtime_owner_handoffs"][0]
+    latest_handoff = json.loads(
+        (study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert result["provider_admission_pending_count"] == 1
+    identity = handoff["provider_admission_identity"]
+    assert identity["study_id"] == study_id
+    assert identity["action_type"] == "run_gate_clearing_batch"
+    assert identity["work_unit_id"] == "current_package_freshness_required"
+    assert identity["action_fingerprint"] == action_fingerprint
+    assert identity["blocked_reason"] == "opl_execution_authorization_required"
+    assert handoff["provider_admission_candidates"] == [identity]
+    assert latest_handoff["provider_admission_identity"] == identity
+    assert latest_handoff["provider_admission_candidates"] == [identity]
+    current_control = json.loads(current_control_path.read_text(encoding="utf-8"))
+    assert current_control["provider_admission_pending_count"] == 1
+    assert current_control["provider_admission_candidates"] == [identity]
+    assert current_control["current_control_refresh_source"] == (
+        "domain_health_diagnostic.provider_admission_candidates"
+    )
+    assert [action["action_type"] for action in current_control["action_queue"]] == ["run_gate_clearing_batch"]
+    study = current_control["studies"][0]
+    assert study["study_id"] == study_id
+    assert study["provider_admission_identity"] == identity
+    assert [action["action_type"] for action in study["action_queue"]] == ["run_gate_clearing_batch"]
+    assert study["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+    assert study["current_execution_envelope"]["next_work_unit"] == "current_package_freshness_required"
+
+
 def test_provider_admission_candidate_requires_current_action_identity() -> None:
     provider_admission = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
@@ -345,6 +522,196 @@ def test_provider_admission_candidate_accepts_study_progress_owner_ticket_identi
     )
 
     assert [candidate["action_fingerprint"] for candidate in result] == [ticket_fingerprint]
+
+
+def test_provider_admission_candidate_accepts_opl_execution_authorization_required_blocker() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    action_fingerprint = (
+        f"study-progress-current-owner-ticket::{study_id}::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs::return_to_ai_reviewer_workflow"
+    )
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "executions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "blocked",
+                    "blocked_reason": "opl_execution_authorization_required",
+                    "typed_blocker": {"blocker_id": "opl_execution_authorization_required"},
+                    "provider_attempt_or_lease_required": True,
+                    "owner_route_current": True,
+                    "next_executable_owner": "write",
+                    "required_output_surface": "canonical manuscript story-surface delta",
+                    "dispatch_path": "/workspace/current-quality-repair.json",
+                    "action_fingerprint": action_fingerprint,
+                    "owner_route": {
+                        "work_unit_fingerprint": action_fingerprint,
+                        "source_refs": {
+                            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                            "work_unit_fingerprint": action_fingerprint,
+                            "owner_route_currentness_basis": {
+                                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
+                }
+            ]
+        },
+        status_payload={
+            "study_id": study_id,
+            "current_executable_owner_action": {
+                "status": "ready",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            },
+        },
+    )
+
+    assert len(result) == 1
+    candidate = result[0]
+    assert candidate["status"] == "provider_admission_pending"
+    assert candidate["source"] == "default_executor_execution"
+    assert candidate["study_id"] == study_id
+    assert candidate["action_type"] == "run_quality_repair_batch"
+    assert candidate["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert candidate["action_fingerprint"] == action_fingerprint
+    assert candidate["blocked_reason"] == "opl_execution_authorization_required"
+    assert candidate["provider_attempt_or_lease_required"] is True
+
+
+def test_provider_admission_candidate_accepts_current_ticket_fingerprint_after_routeback_translation() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    action_fingerprint = (
+        f"study-progress-current-owner-ticket::{study_id}::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs::return_to_ai_reviewer_workflow"
+    )
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "executions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "blocked",
+                    "blocked_reason": "opl_execution_authorization_required",
+                    "typed_blocker": {"blocker_id": "opl_execution_authorization_required"},
+                    "provider_attempt_or_lease_required": True,
+                    "owner_route_current": True,
+                    "next_executable_owner": "write",
+                    "required_output_surface": "canonical manuscript story-surface delta",
+                    "dispatch_path": "/workspace/current-quality-repair.json",
+                    "action_fingerprint": action_fingerprint,
+                    "owner_route": {
+                        "work_unit_fingerprint": action_fingerprint,
+                        "source_refs": {
+                            "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                            "work_unit_fingerprint": action_fingerprint,
+                            "owner_route_currentness_basis": {
+                                "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
+                }
+            ]
+        },
+        status_payload={
+            "study_id": study_id,
+            "current_executable_owner_action": {
+                "status": "ready",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            },
+        },
+    )
+
+    assert len(result) == 1
+    candidate = result[0]
+    assert candidate["action_type"] == "run_quality_repair_batch"
+    assert candidate["work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    assert candidate["action_fingerprint"] == action_fingerprint
+    assert candidate["blocked_reason"] == "opl_execution_authorization_required"
+
+
+def test_provider_admission_candidate_allows_matching_authorization_blocker_despite_stale_runtime_envelope() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_fingerprint = (
+        f"study-progress-current-owner-ticket::{study_id}::"
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs::return_to_ai_reviewer_workflow"
+    )
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "executions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_gate_clearing_batch",
+                    "execution_status": "blocked",
+                    "blocked_reason": "opl_execution_authorization_required",
+                    "typed_blocker": {"blocker_id": "opl_execution_authorization_required"},
+                    "provider_attempt_or_lease_required": True,
+                    "owner_route_current": True,
+                    "next_executable_owner": "gate_clearing_batch",
+                    "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+                    "dispatch_path": "/workspace/current-gate-clearing.json",
+                    "action_fingerprint": action_fingerprint,
+                    "owner_route": {
+                        "work_unit_fingerprint": action_fingerprint,
+                        "source_refs": {
+                            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                            "work_unit_fingerprint": action_fingerprint,
+                            "owner_route_currentness_basis": {
+                                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
+                }
+            ]
+        },
+        status_payload={
+            "study_id": study_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "med-autoscience",
+                "typed_blocker": {
+                    "blocker_type": "quest_waiting_for_user",
+                    "owner": "med-autoscience",
+                },
+            },
+            "current_executable_owner_action": {
+                "status": "ready",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            },
+        },
+    )
+
+    assert [candidate["action_fingerprint"] for candidate in result] == [action_fingerprint]
 
 
 def test_provider_admission_candidate_is_suppressed_by_typed_blocker_envelope() -> None:
@@ -498,521 +865,5 @@ def test_provider_admission_candidate_requires_dispatch_path() -> None:
 
     assert result == []
 
-
-def test_request_opl_stage_attempt_carries_current_provider_admission_identity(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    helpers = importlib.import_module("tests.study_runtime_test_helpers")
-    profile = helpers.make_profile(tmp_path)
-    study_id = "002-dm-china-us-mortality-attribution"
-    study_root = profile.studies_root / study_id
-    study_root.mkdir(parents=True, exist_ok=True)
-    dump_json(study_root / "study.yaml", {"study_id": study_id})
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / "complete_medical_paper_readiness_surface.json"
-    )
-    typed_blocker_ref = (
-        study_root
-        / "artifacts"
-        / "stage_outputs"
-        / "08-publication_package_handoff"
-        / "receipts"
-        / "typed_blocker.json"
-    )
-    work_unit_fingerprint = (
-        "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
-        f"authoring_runtime_authorization::{typed_blocker_ref}"
-    )
-    dump_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
-        {
-            "executions": [
-                {
-                    "study_id": study_id,
-                    "quest_id": study_id,
-                    "action_type": "complete_medical_paper_readiness_surface",
-                    "execution_status": "handoff_ready",
-                    "owner_callable_surface": "opl_default_executor.stage_attempt",
-                    "provider_attempt_or_lease_required": True,
-                    "dispatch_path": str(dispatch_path),
-                    "action_fingerprint": work_unit_fingerprint,
-                    "owner_route": {
-                        "source_refs": {
-                            "work_unit_id": "complete_medical_paper_readiness_surface",
-                            "work_unit_fingerprint": work_unit_fingerprint,
-                        }
-                    },
-                }
-            ]
-        },
-    )
-    status_payload = {
-        **make_progress_projection_payload(
-            study_id=study_id,
-            decision="resume",
-            reason="quest_marked_running_but_no_live_session",
-        ),
-        "quest_id": study_id,
-            "current_executable_owner_action": {
-                "status": "ready",
-                "source": "stage_kernel_projection.current_owner_delta",
-                "next_owner": "MedAutoScience",
-                "work_unit_id": "complete_medical_paper_readiness_surface",
-                "allowed_actions": ["complete_medical_paper_readiness_surface"],
-                "surface_key": "authoring_runtime_authorization",
-            "source_ref": str(typed_blocker_ref),
-        },
-    }
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
-
-    result = module._request_opl_stage_attempt(
-        profile=profile,
-        study_root=study_root,
-        source="domain_health_diagnostic",
-    )
-
-    identity = result["opl_stage_attempt_request"]["provider_admission_identity"]
-    assert identity["study_id"] == study_id
-    assert identity["action_type"] == "complete_medical_paper_readiness_surface"
-    assert identity["work_unit_id"] == "complete_medical_paper_readiness_surface"
-    assert identity["action_fingerprint"] == work_unit_fingerprint
-    assert identity["dispatch_path"] == str(dispatch_path)
-    assert result["provider_admission_identity"] == identity
-
-
-def test_domain_health_diagnostic_same_tick_refreshes_materialize_after_pending_provider_probe(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    helpers = importlib.import_module("tests.study_runtime_test_helpers")
-    profile = helpers.make_profile(tmp_path)
-    study_id = "002-dm-china-us-mortality-attribution"
-    study_root = profile.studies_root / study_id
-    study_root.mkdir(parents=True, exist_ok=True)
-    dump_json(study_root / "study.yaml", {"study_id": study_id})
-    scan_calls: list[dict[str, object]] = []
-    materialize_calls: list[dict[str, object]] = []
-
-    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
-
-    def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
-        scan_calls.append(kwargs)
-        fingerprint = f"truth-snapshot::{len(scan_calls)}"
-        return {
-            "surface": "portable_owner_route_reconcile",
-            "action_queue": [
-                {
-                    "study_id": study_id,
-                    "action_type": "return_to_ai_reviewer_workflow",
-                    "owner_route": {
-                        "work_unit_fingerprint": fingerprint,
-                        "source_refs": {
-                            "owner_route_currentness_basis": {
-                                "work_unit_id": fingerprint,
-                                "work_unit_fingerprint": fingerprint,
-                            }
-                        },
-                    },
-                }
-            ],
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "running_provider_attempt": False,
-                    "active_run_id": None,
-                    "active_stage_attempt_id": None,
-                }
-            ],
-        }
-
-    def fake_materialize(**kwargs) -> dict[str, object]:
-        materialize_calls.append(kwargs)
-        generation = "initial" if len(materialize_calls) == 1 else "post-probe"
-        work_unit = f"truth-snapshot::{generation}"
-        return {
-            "surface": "domain_action_request_materializer",
-            "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-            "ready_default_executor_dispatch_count": 1,
-            "blocked_default_executor_dispatch_count": 0,
-            "default_executor_dispatches": [
-                {
-                    "study_id": study_id,
-                    "quest_id": study_id,
-                    "action_type": "return_to_ai_reviewer_workflow",
-                    "dispatch_status": "ready",
-                    "dispatch_authority": "ai_reviewer_record_production_handoff",
-                    "next_executable_owner": "ai_reviewer",
-                    "required_output_surface": "ai_reviewer_record",
-                    "owner_route": {
-                        "work_unit_fingerprint": work_unit,
-                        "source_refs": {
-                            "owner_route_currentness_basis": {
-                                "work_unit_id": work_unit,
-                                "work_unit_fingerprint": work_unit,
-                            }
-                        },
-                    },
-                    "refs": {
-                        "dispatch_path": f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/{generation}.json"
-                    },
-                }
-            ],
-        }
-
-    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
-    monkeypatch.setattr(module.domain_action_request_materializer, "materialize_domain_action_requests", fake_materialize)
-    monkeypatch.setattr(
-        module.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        lambda **kwargs: pytest.fail("record-only provider handoff should not start MAS-local LLM dispatch"),
-    )
-
-    supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=3)
-
-    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
-    assert len(scan_calls) == 2
-    assert scan_calls[1]["persist_surfaces"] is True
-    assert len(materialize_calls) == 2
-    iteration = supervisor_tick["iterations"][0]
-    assert iteration["post_admission_materialize"]["default_executor_dispatches"][0]["refs"]["dispatch_path"].endswith(
-        "/post-probe.json"
-    )
-    assert supervisor_tick["materialize"] == iteration["post_admission_materialize"]
-    diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
-    assert diagnostic["requires_provider_admission"] is True
-    assert diagnostic["post_admission_materialize"] == {
-        "observed": True,
-        "default_executor_dispatch_count": 1,
-        "ready_default_executor_dispatch_count": 1,
-    }
-
-
-def test_domain_health_diagnostic_same_tick_reports_provider_attempt_started_after_admission_probe(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    helpers = importlib.import_module("tests.study_runtime_test_helpers")
-    profile = helpers.make_profile(tmp_path)
-    study_id = "001-risk"
-    study_root = profile.studies_root / study_id
-    study_root.mkdir(parents=True, exist_ok=True)
-    dump_json(study_root / "study.yaml", {"study_id": study_id})
-    scan_calls: list[dict[str, object]] = []
-
-    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
-
-    def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
-        scan_calls.append(kwargs)
-        admitted = len(scan_calls) == 2
-        return {
-            "surface": "portable_owner_route_reconcile",
-            "action_queue": [{"study_id": study_id, "action_type": "run_quality_repair_batch"}],
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "running_provider_attempt": admitted,
-                    "active_run_id": "opl-stage-attempt://sat_123" if admitted else None,
-                    "active_stage_attempt_id": "sat_123" if admitted else None,
-                }
-            ],
-        }
-
-    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
-    monkeypatch.setattr(
-        module.domain_action_request_materializer,
-        "materialize_domain_action_requests",
-        lambda **kwargs: {
-            "surface": "domain_action_request_materializer",
-            "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-        },
-    )
-    monkeypatch.setattr(
-        module.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        lambda **kwargs: {
-            "surface": "domain_owner_action_dispatch",
-            "execution_count": 1,
-            "executed_count": 1,
-            "codex_dispatch_count": 1,
-            "executions": [{"execution_status": "handoff_ready", "will_start_llm": True}],
-        },
-    )
-
-    supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=3)
-
-    assert len(scan_calls) == 2
-    assert scan_calls[0]["live_attempt_timeout_seconds"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS
-    assert scan_calls[0]["live_attempt_max_inspect_count"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT
-    assert (
-        scan_calls[0]["provider_readiness_timeout_seconds"]
-        == module.PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS
-    )
-    assert scan_calls[1]["persist_surfaces"] is True
-    assert scan_calls[1]["live_attempt_timeout_seconds"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS
-    assert scan_calls[1]["live_attempt_max_inspect_count"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT
-    assert (
-        scan_calls[1]["provider_readiness_timeout_seconds"]
-        == module.PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS
-    )
-    assert supervisor_tick["pass_count"] == 1
-    assert supervisor_tick["stop_reason"] == "provider_attempt_started"
-    assert supervisor_tick["provider_probe_budget"] == {
-        "live_attempt_timeout_seconds": module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS,
-        "provider_readiness_timeout_seconds": module.PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS,
-        "live_attempt_max_inspect_count": module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT,
-        "scope": "focused_same_tick_owner_route_scan",
-    }
-    diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
-    assert diagnostic["same_tick_terminal_projection"] == {
-        "terminal_state": "provider_attempt_running",
-        "owner_delta_produced": False,
-        "provider_attempt_running": True,
-        "stable_typed_blocker_observed": False,
-        "provider_handoff_written": True,
-    }
-    assert diagnostic["requires_provider_admission"] is False
-    assert diagnostic["provider_admission_probe"] == {
-        "observed": True,
-        "running_provider_attempt_count": 1,
-    }
-    assert diagnostic["next_forced_delta"] is None
-    assert diagnostic["forbidden_next_actions"] == []
-
-
-def test_domain_health_diagnostic_same_tick_rejects_stale_provider_attempt_for_new_handoff(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    helpers = importlib.import_module("tests.study_runtime_test_helpers")
-    profile = helpers.make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    study_root = profile.studies_root / study_id
-    study_root.mkdir(parents=True, exist_ok=True)
-    dump_json(study_root / "study.yaml", {"study_id": study_id})
-    dispatch_ref = (
-        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
-        "run_quality_repair_batch.json"
-    )
-
-    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
-    scan_calls: list[dict[str, object]] = []
-
-    def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
-        scan_calls.append(kwargs)
-        admitted = len(scan_calls) == 2
-        return {
-            "surface": "portable_owner_route_reconcile",
-            "action_queue": [
-                {
-                    "study_id": study_id,
-                    "action_type": "run_quality_repair_batch",
-                    "controller_next_work_unit": {
-                        "unit_id": "medical_prose_write_repair",
-                        "owner": "write",
-                    },
-                }
-            ],
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "running_provider_attempt": admitted,
-                    "active_run_id": "opl-stage-attempt://sat-stale-ai" if admitted else None,
-                    "active_stage_attempt_id": "sat-stale-ai" if admitted else None,
-                    "opl_provider_attempt": (
-                        {
-                            "running_provider_attempt": True,
-                            "active_stage_attempt_id": "sat-stale-ai",
-                            "active_run_id": "opl-stage-attempt://sat-stale-ai",
-                            "action_type": "return_to_ai_reviewer_workflow",
-                            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-                            "dispatch_ref": (
-                                f"studies/{study_id}/artifacts/supervision/consumer/"
-                                "default_executor_dispatches/return_to_ai_reviewer_workflow.json"
-                            ),
-                        }
-                        if admitted
-                        else {}
-                    ),
-                }
-            ],
-        }
-
-    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
-    monkeypatch.setattr(
-        module.domain_action_request_materializer,
-        "materialize_domain_action_requests",
-        lambda **kwargs: {
-            "surface": "domain_action_request_materializer",
-            "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-        },
-    )
-    monkeypatch.setattr(
-        module.domain_owner_action_dispatch,
-        "dispatch_domain_owner_actions",
-        lambda **kwargs: {
-            "surface": "domain_owner_action_dispatch",
-            "execution_count": 1,
-            "executed_count": 1,
-            "codex_dispatch_count": 1,
-            "executions": [
-                {
-                    "study_id": study_id,
-                    "action_type": "run_quality_repair_batch",
-                    "work_unit_id": "medical_prose_write_repair",
-                    "dispatch_path": str(profile.workspace_root / dispatch_ref),
-                    "execution_status": "handoff_ready",
-                    "will_start_llm": True,
-                }
-            ],
-        },
-    )
-
-    supervisor_tick = module._run_developer_supervisor_same_tick(profile=profile, max_passes=1)
-
-    assert len(scan_calls) == 2
-    assert supervisor_tick["stop_reason"] == "provider_handoff_written_admission_pending"
-    diagnostic = supervisor_tick["progress_first_terminal_diagnostic"]
-    assert diagnostic["same_tick_terminal_projection"]["provider_attempt_running"] is False
-    assert diagnostic["requires_provider_admission"] is True
-
-
-def test_domain_health_diagnostic_same_tick_continues_after_partial_provider_admission(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    helpers = importlib.import_module("tests.study_runtime_test_helpers")
-    profile = helpers.make_profile(tmp_path)
-    study_ids = ("001-risk", "002-risk")
-    for study_id in study_ids:
-        study_root = profile.studies_root / study_id
-        study_root.mkdir(parents=True, exist_ok=True)
-        dump_json(study_root / "study.yaml", {"study_id": study_id})
-    scan_calls: list[dict[str, object]] = []
-    materialize_calls: list[dict[str, object]] = []
-    dispatch_calls: list[dict[str, object]] = []
-
-    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
-
-    def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
-        scan_calls.append(kwargs)
-        call_index = len(scan_calls)
-        if call_index == 1:
-            action_queue = [
-                {"study_id": "001-risk", "action_type": "run_quality_repair_batch"},
-                {"study_id": "002-risk", "action_type": "return_to_ai_reviewer_workflow"},
-            ]
-            running = set()
-        elif call_index == 2:
-            action_queue = [{"study_id": "002-risk", "action_type": "return_to_ai_reviewer_workflow"}]
-            running = {"001-risk"}
-        else:
-            action_queue = []
-            running = {"001-risk", "002-risk"}
-        return {
-            "surface": "portable_owner_route_reconcile",
-            "action_queue": action_queue,
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "running_provider_attempt": study_id in running,
-                    "active_run_id": f"opl-stage-attempt://sat-{study_id}" if study_id in running else None,
-                    "active_stage_attempt_id": f"sat-{study_id}" if study_id in running else None,
-                }
-                for study_id in study_ids
-            ],
-        }
-
-    def fake_materialize(**kwargs) -> dict[str, object]:
-        materialize_calls.append(kwargs)
-        return {
-            "surface": "domain_action_request_materializer",
-            "request_task_count": 1,
-            "default_executor_dispatch_count": 1,
-        }
-
-    def fake_dispatch(**kwargs) -> dict[str, object]:
-        dispatch_calls.append(kwargs)
-        return {
-            "surface": "domain_owner_action_dispatch",
-            "execution_count": 1,
-            "executed_count": 1,
-            "codex_dispatch_count": 1,
-            "executions": [{"execution_status": "handoff_ready", "will_start_llm": True}],
-        }
-
-    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
-    monkeypatch.setattr(module.domain_action_request_materializer, "materialize_domain_action_requests", fake_materialize)
-    monkeypatch.setattr(module.domain_owner_action_dispatch, "dispatch_domain_owner_actions", fake_dispatch)
-
-    supervisor_tick = module._run_developer_supervisor_same_tick(
-        profile=profile,
-        study_ids=study_ids,
-        max_passes=4,
-    )
-
-    assert supervisor_tick["pass_count"] == 2
-    assert supervisor_tick["stop_reason"] == "provider_attempt_started"
-    assert len(dispatch_calls) == 2
-    for call in scan_calls:
-        assert call["live_attempt_timeout_seconds"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS
-        assert call["live_attempt_max_inspect_count"] == module.PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT
-        assert (
-            call["provider_readiness_timeout_seconds"]
-            == module.PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS
-        )
-    assert scan_calls[1]["persist_surfaces"] is True
-    assert scan_calls[2]["persist_surfaces"] is True
-    assert supervisor_tick["iterations"][0]["provider_admission_probe"]["action_queue"] == [
-        {"study_id": "002-risk", "action_type": "return_to_ai_reviewer_workflow"}
-    ]
-    assert supervisor_tick["iterations"][0]["progress_first_delta"]["codex_dispatch_count"] == 1
-    assert supervisor_tick["iterations"][1]["provider_admission_probe"]["action_queue"] == []
-    assert supervisor_tick["iterations"][1]["post_admission_materialize"]["default_executor_dispatch_count"] == 1
-    assert len(materialize_calls) == 3
-
-
-def test_domain_health_diagnostic_same_tick_terminal_projection_reports_owner_delta_required() -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-
-    diagnostic = module._same_tick_terminal_diagnostic(
-        stop_reason="repeat_suppressed_owner_delta_required",
-        iterations=[
-            {
-                "progress_first_delta": {
-                    "dispatch_repeat_suppressed_count": 1,
-                    "codex_dispatch_count": 0,
-                    "handoff_ready_count": 0,
-                },
-                "dispatch": {
-                    "executions": [
-                        {
-                            "execution_status": "repeat_suppressed",
-                            "repeat_suppressed": True,
-                        }
-                    ]
-                },
-            }
-        ],
-    )
-
-    assert diagnostic["same_tick_terminal_projection"] == {
-        "terminal_state": "owner_delta_required",
-        "owner_delta_produced": True,
-        "provider_attempt_running": False,
-        "stable_typed_blocker_observed": False,
-        "provider_handoff_written": False,
-    }
+from .provider_admission_current_control_cases import *  # noqa: F403,F401,E402
+from .provider_admission_same_tick_cases import *  # noqa: F403,F401,E402

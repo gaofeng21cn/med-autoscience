@@ -29,6 +29,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup i
 from med_autoscience.controllers.domain_health_diagnostic_parts import managed_recovery
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 from med_autoscience.controllers.domain_health_diagnostic_parts import report_aggregation
+from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.controllers.domain_health_diagnostic_parts.reporting import (
     _attach_family_companion_to_quest_report,
     _write_latest_domain_health_diagnostic_alias,
@@ -893,10 +894,16 @@ def run_domain_health_diagnostic_for_runtime(
             )
         if opl_runtime_owner_handoff is not None:
             managed_study_opl_runtime_owner_handoffs.append(opl_runtime_owner_handoff)
+        study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
+        candidate_status_payload = {
+            **status_payload,
+            **managed_study_progress_currentness.get(study_id, {}),
+        }
         managed_study_opl_provider_admission_candidates.extend(
-            provider_admission.persisted_provider_admission_candidates(
+            _provider_admission_candidates_for_status(
+                profile=profile,
                 study_root=study_root,
-                status_payload=status_payload,
+                status_payload=candidate_status_payload,
             )
         )
         if apply:
@@ -977,3 +984,25 @@ __all__ = [
     "_serialize_no_op_suppression",
     "run_domain_health_diagnostic_for_runtime",
 ]
+
+
+def _provider_admission_candidates_for_status(
+    *,
+    profile: WorkspaceProfile | None,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    candidates = provider_admission.persisted_provider_admission_candidates(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+    if candidates or profile is None:
+        return candidates
+    current_control_path = supervision_surfaces.latest_path(profile)
+    current_control_payload = supervision_surfaces.read_json_object(current_control_path)
+    return provider_admission.current_control_provider_admission_candidates(
+        current_control_payload,
+        study_root=study_root,
+        status_payload=status_payload,
+        current_control_ref=str(current_control_path),
+    )

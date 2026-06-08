@@ -115,6 +115,7 @@ SOURCE_ACTION_REF_FIELDS = (
     "route_rationale",
     "source_ref",
     "source_surface",
+    "current_action_source",
     "stale_record_ref",
     "required_currentness_refs",
     "record_only_surface",
@@ -127,6 +128,7 @@ SOURCE_ACTION_REF_FIELDS = (
     "readiness_blocker_followup_superseded",
     "readiness_blocker_ref",
     "publication_eval_gap_ids",
+    "repair_progress_precedence",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )
