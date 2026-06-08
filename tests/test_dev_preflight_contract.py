@@ -766,6 +766,7 @@ def test_classify_changed_files_matches_codex_plugin_skill_surface() -> None:
     result = module.classify_changed_files(
         [
             ".agents/plugins/marketplace.json",
+            "plugins/mas/.mcp.json",
             "plugins/mas/.codex-plugin/plugin.json",
             "plugins/mas/skills/mas/SKILL.md",
             "tests/test_codex_plugin_scaffold.py",
