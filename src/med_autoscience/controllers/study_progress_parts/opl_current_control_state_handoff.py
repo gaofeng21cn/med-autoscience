@@ -39,6 +39,8 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
     {
         "live_worker_requires_worker_running",
         "managed_runtime_audit_unhealthy",
+        "medical_paper_readiness_missing",
+        "medical_paper_readiness_not_ready",
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
         "quest_waiting_opl_runtime_owner_route",

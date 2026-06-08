@@ -377,6 +377,112 @@ def test_next_forced_delta_prefers_current_handoff_action_queue_over_stale_trans
     }
 
 
+def test_next_forced_delta_does_not_redrive_readiness_queue_after_paper_delta_with_current_transition() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 1},
+            "platform_repair_delta": {"count": 0},
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "owner_route": {
+                    "next_owner": "MedAutoScience",
+                    "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                    "source_refs": {
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "source_fingerprint": (
+                            "stage-current-owner-delta::complete_medical_paper_readiness_surface"
+                        ),
+                    },
+                },
+                "action_queue": [
+                    {
+                        "action_type": "complete_medical_paper_readiness_surface",
+                        "owner": "MedAutoScience",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "fingerprint": "complete_medical_paper_readiness_surface::medical_paper_readiness_missing",
+                        "consumption": {"state": "unconsumed"},
+                    }
+                ],
+            },
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "finalize",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "publication_gate",
+                },
+                "guard_boundary": {
+                    "required_owner_surface": "artifacts/publication_eval/latest.json",
+                },
+            },
+        }
+    )
+
+    assert result["next_forced_delta"]["required_delta_kind"] == "review_current_paper_delta"
+    assert result["next_forced_delta"]["work_unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "write",
+        "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+    }
+    assert result["next_forced_delta"]["owner_action"] == {
+        "next_owner": "finalize",
+        "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        "allowed_actions": ["run_gate_clearing_batch"],
+        "owner_receipt_required": True,
+    }
+
+
+def test_next_forced_delta_drops_readiness_queue_after_paper_delta_without_current_route() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 1},
+            "platform_repair_delta": {"count": 0},
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "owner_route": {
+                    "next_owner": "MedAutoScience",
+                    "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                    "source_refs": {
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                    },
+                },
+                "action_queue": [
+                    {
+                        "action_type": "complete_medical_paper_readiness_surface",
+                        "owner": "MedAutoScience",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "fingerprint": "complete_medical_paper_readiness_surface::medical_paper_readiness_missing",
+                    }
+                ],
+            },
+        }
+    )
+
+    assert result["next_forced_delta"]["required_delta_kind"] == "review_current_paper_delta"
+    assert result["next_forced_delta"]["reason"] == "paper_progress_delta_observed"
+    assert result["next_forced_delta"]["owner_action"] == {
+        "next_owner": None,
+        "work_unit_id": None,
+        "allowed_actions": [],
+        "owner_receipt_required": True,
+    }
+    assert result["current_owner_ticket"]["allowed_action"] is None
+    assert result["current_owner_ticket"]["work_unit"] == {}
+
+
 def test_next_forced_delta_maps_publication_gate_replay_family_to_gate_clearing_surface() -> None:
     projection = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_projection"
@@ -624,6 +730,9 @@ def test_terminal_stage_paper_delta_counts_in_top_level_progress_first_projectio
                 "changed_paper_surfaces": [
                     "studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/draft.md",
                 ],
+                "semantic_delta_refs": [
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/draft.md#semantic-delta",
+                ],
                 "remaining_blockers": [],
             },
         },
@@ -653,3 +762,52 @@ def test_terminal_stage_paper_delta_counts_in_top_level_progress_first_projectio
     assert result["progress_first_sprint_state"]["classification"] == "deliverable_progress"
     assert result["progress_first_sprint_state"]["paper_progress_delta_counted"] is True
     assert result["next_forced_delta"]["required_delta_kind"] == "review_current_paper_delta"
+
+
+def test_terminal_stage_log_without_backing_refs_is_observability_not_paper_delta() -> None:
+    assembly = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly"
+    )
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+    handoff = {
+        "latest_terminal_stage_log": {
+            "stage_attempt_id": "sat-003",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "action_type": "run_quality_repair_batch",
+            "status": "executed",
+            "missing_user_stage_log_fields": ["progress_delta_classification"],
+            "paper_stage_log": {
+                "stage_work_done": ["Observed paper-facing artifact paths."],
+                "paper_work_done": ["Observed paper-facing artifact paths."],
+                "changed_paper_surfaces": [
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/claim_evidence_map.json",
+                ],
+                "remaining_blockers": [],
+            },
+        },
+    }
+
+    progress_delta = assembly._progress_delta_metrics(
+        quality_repair_batch_followthrough={},
+        gate_clearing_batch_followthrough={},
+        opl_current_control_state_handoff=handoff,
+        runtime_efficiency={"token_usage": {"total_tokens": 1200}},
+    )
+    result = projection.build_progress_first_projection(
+        {
+            **progress_delta,
+            "opl_current_control_state_handoff": handoff,
+        }
+    )
+
+    assert progress_delta["deliverable_progress_delta"] == {
+        "count": 0,
+        "token_usage_total": 0,
+        "sources": [],
+    }
+    assert progress_delta["paper_progress_delta"] == progress_delta["deliverable_progress_delta"]
+    assert progress_delta["progress_delta_classification"] == "typed_blocker"
+    assert result["progress_first_sprint_state"]["classification"] == "typed_blocker"
+    assert result["progress_first_sprint_state"]["paper_progress_delta_counted"] is False

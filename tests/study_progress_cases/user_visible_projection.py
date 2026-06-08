@@ -376,6 +376,56 @@ def test_user_visible_projection_counts_fresh_paper_facing_refs_as_meaningful_de
     assert projection["why_not_progressing"] is None
 
 
+def test_user_visible_projection_ignores_body_authority_stage_output_mirror_delta() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "002-dm",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "002-dm",
+                "writer_state": "queued",
+                "user_next": "runtime_handoff",
+                "reason": "runtime",
+                "details": {"package_delivered": False},
+                "conditions": [],
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-06-07T18:10:22+00:00",
+                    "latest_progress_source": "gate_clearing_batch",
+                    "changed_refs": [
+                        (
+                            "artifacts/stage_outputs/_body_authority/paper_authority_cutover/"
+                            "current_body/paper/figures/generated/F1_cohort_flow.png"
+                        ),
+                        (
+                            "artifacts/stage_outputs/_body_authority/paper_authority_cutover/"
+                            "current_body/paper/review/review_ledger.json"
+                        ),
+                    ],
+                },
+            },
+            "deliverable_progress_delta": {"count": 0, "token_usage_total": 0, "sources": []},
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_id": "medical_paper_readiness_missing",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                },
+            },
+        }
+    )
+
+    assert projection["actual_write_active"] is False
+    assert projection["meaningful_artifact_delta"] is False
+    assert projection["paper_progress_state"]["meaningful_artifact_delta"] is False
+    assert projection["paper_progress_state"]["paper_facing_progress_slo"]["changed_refs"] == []
+
+
 def test_user_visible_projection_uses_interaction_arbitration_owner_and_reason() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 

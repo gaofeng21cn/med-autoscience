@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience.controllers.default_executor_action_policy import (
     SUPPORTED_ACTION_TYPES,
+    request_output_surface_for_action_type,
     request_owner_for_action_type,
 )
 from med_autoscience.profiles import WorkspaceProfile
@@ -37,6 +38,12 @@ def current_actions_for_studies(
     stage_native_by_study = {
         study_id: action for action in stage_native_actions if (study_id := _text(action.get("study_id"))) is not None
     }
+    fresh_progress_actions = _fresh_progress_current_actions(profile=profile, study_ids=study_ids)
+    fresh_progress_by_study = {
+        study_id: action
+        for action in fresh_progress_actions
+        if (study_id := _text(action.get("study_id"))) is not None
+    }
     top_level_actions = [
         dict(action) for action in scan_payload.get("action_queue") or [] if isinstance(action, Mapping)
     ]
@@ -47,8 +54,45 @@ def current_actions_for_studies(
         if study_id not in requested:
             continue
         matched_requested_study = True
+        stage_native_action = stage_native_by_study.get(study_id)
         readiness_followup = _current_readiness_followup_action(study_payload)
+        fresh_progress_action = fresh_progress_by_study.get(study_id)
+        if fresh_progress_action is not None:
+            per_study_actions.append(fresh_progress_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_fresh_study_progress_current_owner_ticket")
+                for action in [
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                    ],
+                ]
+            )
+            continue
         if readiness_followup is not None:
+            if _stage_native_action_supersedes_stable_readiness_answer(
+                study=study_payload,
+                readiness_followup=readiness_followup,
+                stage_native_action=stage_native_action,
+            ):
+                per_study_actions.append(dict(stage_native_action))
+                ignored.extend(
+                    _ignored_action(action, "superseded_by_stage_native_next_action_after_readiness_answer")
+                    for action in [
+                        readiness_followup,
+                        *_top_level_study_actions(study=study_payload, top_level_actions=top_level_actions),
+                        *[
+                            dict(item)
+                            for item in study_payload.get("action_queue") or []
+                            if isinstance(item, Mapping)
+                        ],
+                    ]
+                )
+                continue
             per_study_actions.append(readiness_followup)
             ignored.extend(
                 _ignored_action(action, "superseded_by_current_stage_readiness_followup")
@@ -68,8 +112,8 @@ def current_actions_for_studies(
                 ]
             )
             continue
-        if study_id in stage_native_by_study:
-            per_study_actions.append(stage_native_by_study[study_id])
+        if stage_native_action is not None:
+            per_study_actions.append(stage_native_action)
             ignored.extend(
                 _ignored_action(action, "superseded_by_stage_native_next_action")
                 for action in [
@@ -88,6 +132,9 @@ def current_actions_for_studies(
         )
         per_study_actions.extend(study_actions)
         ignored.extend(study_ignored)
+    for study_id, action in fresh_progress_by_study.items():
+        if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
+            per_study_actions.append(action)
     for study_id, action in stage_native_by_study.items():
         if not any(_text(item.get("study_id")) == study_id for item in per_study_actions):
             per_study_actions.append(action)
@@ -149,6 +196,366 @@ def _current_readiness_followup_action(study: Mapping[str, Any]) -> dict[str, An
         },
     }
     return {key: value for key, value in payload.items() if value is not None}
+
+
+def _fresh_progress_current_actions(
+    *,
+    profile: WorkspaceProfile | None,
+    study_ids: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    if profile is None:
+        return []
+    actions: list[dict[str, Any]] = []
+    for study_id in study_ids:
+        progress = _read_fresh_study_progress(profile=profile, study_id=study_id)
+        if progress is None:
+            continue
+        action = _fresh_progress_current_action(study_id=study_id, progress=progress)
+        if action is not None:
+            actions.append(action)
+    return actions
+
+
+def _read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
+    try:
+        from med_autoscience.controllers import study_progress
+
+        payload = study_progress.read_study_progress(
+            profile=profile,
+            study_id=study_id,
+            sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
+        )
+    except Exception:
+        return None
+    return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _fresh_progress_current_action(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    barrier = _fresh_progress_currentness_barrier(study_id=study_id, progress=progress)
+    if barrier is not None:
+        return barrier
+    if not _progress_has_executable_owner_action(progress):
+        return None
+    current_action = _mapping(progress.get("current_executable_owner_action"))
+    ticket = _current_owner_ticket(progress)
+    target_surface = _mapping(ticket.get("target_surface"))
+    surface_key = (
+        _text(ticket.get("surface_key"))
+        or _text(target_surface.get("surface_key"))
+        or _text(current_action.get("surface_key"))
+        or _text(_mapping(current_action.get("target_surface")).get("surface_key"))
+    )
+    action_type = _text(ticket.get("allowed_action"))
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return _fresh_progress_domain_transition_action(
+            study_id=study_id,
+            progress=progress,
+            current_action=current_action,
+        )
+    if action_type == READINESS_ACTION_TYPE:
+        transition_action = _fresh_progress_domain_transition_action(
+            study_id=study_id,
+            progress=progress,
+            current_action=current_action,
+        )
+        if transition_action is not None:
+            return transition_action
+        if surface_key is None:
+            return None
+    quest_id = _text(progress.get("quest_id"))
+    work_unit_id = (
+        _text(_mapping(ticket.get("work_unit")).get("work_unit_id"))
+        or _text(current_action.get("work_unit_id"))
+        or action_type
+    )
+    owner = (
+        _text(ticket.get("owner"))
+        or _text(current_action.get("next_owner"))
+        or request_owner_for_action_type(action_type)
+    )
+    owner_route = _fresh_progress_owner_route(
+        progress=progress,
+        study_id=study_id,
+        quest_id=quest_id,
+        action_type=action_type,
+        owner=owner,
+        work_unit_id=work_unit_id,
+    )
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": action_type,
+        "action_id": f"study-progress-current-owner-ticket::{study_id}::{action_type}",
+        "reason": work_unit_id,
+        "owner": owner,
+        "request_owner": owner,
+        "recommended_owner": owner,
+        "authority": "study_progress.current_owner_ticket",
+        "required_output_surface": request_output_surface_for_action_type(action_type),
+        "source_surface": "study_progress.current_owner_ticket",
+        "source_ref": _text(current_action.get("source_ref")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint")),
+        "surface_key": surface_key,
+        "target_surface": target_surface or None,
+        "owner_route": owner_route,
+        "handoff_packet": {
+            "action_type": action_type,
+            "request_owner": owner,
+            "recommended_owner": owner,
+            "next_executable_owner": owner,
+            "source_surface": "study_progress.current_owner_ticket",
+            "source_ref": _text(current_action.get("source_ref")),
+            "surface_key": surface_key,
+            "owner_route": owner_route,
+            "idempotency_key": _text(owner_route.get("idempotency_key")),
+        },
+    }
+    return {key: value for key, value in action.items() if value is not None}
+
+
+def _fresh_progress_currentness_barrier(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    if state_kind not in {"typed_blocker", "parked", "running_provider_attempt"}:
+        return None
+    blocker = _mapping(envelope.get("typed_blocker"))
+    reason = (
+        _text(blocker.get("blocker_id"))
+        or _text(blocker.get("blocker_type"))
+        or _text(blocker.get("reason"))
+        or state_kind
+    )
+    if state_kind == "typed_blocker" and reason == "medical_paper_readiness_missing":
+        return None
+    owner = _text(envelope.get("owner")) or _text(blocker.get("owner")) or "MedAutoScience"
+    return {
+        "study_id": study_id,
+        "quest_id": _text(progress.get("quest_id")),
+        "action_type": f"current_execution_envelope_{state_kind}",
+        "action_id": f"study-progress-current-execution-envelope::{study_id}::{state_kind}",
+        "reason": reason,
+        "owner": owner,
+        "request_owner": owner,
+        "recommended_owner": owner,
+        "authority": "study_progress.current_execution_envelope",
+        "source_surface": "study_progress.current_execution_envelope",
+        "source_ref": _text(blocker.get("source_ref")),
+        "work_unit_id": _text(blocker.get("work_unit_id")) or _work_unit_id(envelope.get("next_work_unit")),
+    }
+
+
+def _progress_has_executable_owner_action(progress: Mapping[str, Any]) -> bool:
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    if state_kind is not None:
+        return state_kind == "executable_owner_action"
+    current_action = _mapping(progress.get("current_executable_owner_action"))
+    return _text(current_action.get("surface_kind")) == "current_executable_owner_action"
+
+
+def _fresh_progress_domain_transition_action(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    source = _text(current_action.get("source")) or _text(current_action.get("source_surface"))
+    if source != "domain_transition":
+        return None
+    if _text(current_action.get("work_unit_id")) == READINESS_ACTION_TYPE:
+        return None
+    study_payload = _fresh_progress_domain_transition_study(
+        study_id=study_id,
+        progress=progress,
+        current_action=current_action,
+    )
+    actions = _domain_transition_current_actions(study_payload)
+    return actions[0] if actions else None
+
+
+def _fresh_progress_domain_transition_study(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(progress)
+    payload["study_id"] = _text(payload.get("study_id")) or study_id
+    if quest_id := _text(progress.get("quest_id")):
+        payload["quest_id"] = quest_id
+    payload["current_executable_owner_action"] = dict(current_action)
+    if _mapping(payload.get("domain_transition")):
+        return payload
+    transition = _domain_transition_from_current_action(progress=progress, current_action=current_action)
+    if transition:
+        payload["domain_transition"] = transition
+    return payload
+
+
+def _domain_transition_from_current_action(
+    *,
+    progress: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    work_unit_id = (
+        _text(current_action.get("work_unit_id"))
+        or _text(current_action.get("executable_work_unit"))
+        or _work_unit_id(current_action.get("next_work_unit"))
+        or _text(envelope.get("next_work_unit"))
+    )
+    if work_unit_id is None:
+        return {}
+    next_work_unit = _mapping(current_action.get("next_work_unit")) or {"unit_id": work_unit_id}
+    if "lane" not in next_work_unit:
+        if "gate_replay" in work_unit_id or "publication_gate" in work_unit_id:
+            next_work_unit["lane"] = "publication_gate"
+        elif _text(current_action.get("next_owner")) == "write" or _text(envelope.get("owner")) == "write":
+            next_work_unit["lane"] = "write"
+    route_target = (
+        _text(current_action.get("route_target"))
+        or _text(current_action.get("original_route_target"))
+        or _text(current_action.get("next_owner"))
+        or _text(envelope.get("owner"))
+        or "controller"
+    )
+    return {
+        "decision_type": _text(current_action.get("domain_transition_decision_type")) or "route_back_same_line",
+        "route_target": route_target,
+        "owner": route_target,
+        "controller_action": _text(current_action.get("controller_action")) or "request_opl_stage_attempt",
+        "next_work_unit": next_work_unit,
+        "completion_receipt_consumption": {
+            "status": "consumed",
+            "receipt_ref": _text(current_action.get("source_ref")),
+        },
+    }
+
+
+def _current_owner_ticket(progress: Mapping[str, Any]) -> dict[str, Any]:
+    for value in (
+        progress.get("current_owner_ticket"),
+        _mapping(progress.get("progress_first_sprint_state")).get("current_owner_ticket"),
+        _mapping(progress.get("next_forced_delta")).get("current_owner_ticket"),
+    ):
+        payload = _mapping(value)
+        if _text(payload.get("surface_kind")) == "mas_current_owner_ticket":
+            return payload
+    return {}
+
+
+def _fresh_progress_owner_route(
+    *,
+    progress: Mapping[str, Any],
+    study_id: str,
+    quest_id: str | None,
+    action_type: str,
+    owner: str,
+    work_unit_id: str,
+) -> dict[str, Any]:
+    current_route = owner_route_part.ensure_owner_route_v2(_mapping(progress.get("owner_route")))
+    candidate_action = {
+        "action_type": action_type,
+        "owner": owner,
+        "request_owner": owner,
+        "recommended_owner": owner,
+        "next_executable_owner": owner,
+    }
+    if current_route and owner_route_part.route_allows_action(
+        action=candidate_action,
+        owner_route=current_route,
+    ):
+        return current_route
+    current_action = _mapping(progress.get("current_executable_owner_action"))
+    source_ref = _text(current_action.get("source_ref")) or _text(progress.get("generated_at")) or "unknown"
+    truth = _mapping(progress.get("study_truth_snapshot"))
+    runtime_health = _mapping(progress.get("runtime_health_snapshot"))
+    truth_epoch = _text(progress.get("truth_epoch")) or _text(truth.get("truth_epoch")) or (
+        f"study-progress-current-owner-ticket::{study_id}"
+    )
+    runtime_health_epoch = _text(progress.get("runtime_health_epoch")) or _text(
+        runtime_health.get("runtime_health_epoch")
+    ) or truth_epoch
+    source_fingerprint = _text(current_action.get("source_fingerprint")) or (
+        f"study-progress-current-owner-ticket::{study_id}::{action_type}::{source_ref}"
+    )
+    work_unit_fingerprint = _text(current_action.get("work_unit_fingerprint")) or (
+        f"study-progress-current-owner-ticket::{study_id}::{work_unit_id}::{action_type}"
+    )
+    owner_reason = _text(current_action.get("reason")) or work_unit_id
+    route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "truth_epoch": truth_epoch,
+        "runtime_health_epoch": runtime_health_epoch,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "failure_signature": owner_reason,
+        "trace_id": f"owner-route-trace::{study_id}::{action_type}",
+        "route_epoch": truth_epoch,
+        "source_fingerprint": source_fingerprint,
+        "current_owner": "mas_controller",
+        "next_owner": owner,
+        "owner_reason": owner_reason,
+        "active_run_id": _text(progress.get("active_run_id")),
+        "allowed_actions": [action_type],
+        "blocked_actions": sorted(item for item in SUPPORTED_ACTION_TYPES if item != action_type),
+        "source_refs": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "source_surface": "study_progress.current_owner_ticket",
+            "source_ref": source_ref,
+            "owner_route_currentness_basis": {
+                "truth_epoch": truth_epoch,
+                "runtime_health_epoch": runtime_health_epoch,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+            },
+        },
+        "idempotency_key": (
+            f"owner-route::{study_id}::{truth_epoch}::{owner}::{action_type}::{work_unit_fingerprint}"
+        ),
+    }
+    return owner_route_part.ensure_owner_route_v2(route)
+
+
+def _stage_native_action_supersedes_stable_readiness_answer(
+    *,
+    study: Mapping[str, Any],
+    readiness_followup: Mapping[str, Any],
+    stage_native_action: Mapping[str, Any] | None,
+) -> bool:
+    if not stage_native_action:
+        return False
+    if _text(stage_native_action.get("action_type")) == READINESS_ACTION_TYPE:
+        return False
+    return _readiness_followup_is_stable_owner_answer(study=study, action=readiness_followup)
+
+
+def _readiness_followup_is_stable_owner_answer(
+    *,
+    study: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    if _text(action.get("reason")) == "medical_paper_readiness_missing":
+        return True
+    current = _mapping(study.get("current_executable_owner_action"))
+    precedence = _mapping(current.get("artifact_first_precedence"))
+    return (
+        _text(current.get("latest_owner_answer_kind")) == "typed_blocker"
+        and _text(precedence.get("reason")) == "medical_paper_readiness_missing"
+    )
 
 
 def _route_allows_readiness_followup(owner_route: Mapping[str, Any]) -> bool:

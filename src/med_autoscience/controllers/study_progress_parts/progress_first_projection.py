@@ -39,19 +39,20 @@ PROGRESS_ENHANCEMENT_TRIGGER_REASONS = (
     "no_loop_budget_exhausted",
 )
 CURRENT_AI_REVIEWER_RECORD_CONSUMPTION_WRITE_WORK_UNIT_IDS = AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS
+READINESS_ACTION = "complete_medical_paper_readiness_surface"
 
 
 def build_progress_first_projection(payload: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
     deliverable_delta = _mapping(payload.get("deliverable_progress_delta")) or _mapping(payload.get("paper_progress_delta"))
     paper_delta = _mapping(payload.get("paper_progress_delta")) or deliverable_delta
     platform_delta = _mapping(payload.get("platform_repair_delta"))
-    owner_route = _current_owner_route(payload)
+    paper_count = _delta_count(deliverable_delta)
+    platform_count = _delta_count(platform_delta)
+    owner_route = _current_owner_route(payload, paper_progress_delta_counted=paper_count > 0)
     source_refs = _mapping(owner_route.get("source_refs"))
     work_unit_id = _text(source_refs.get("work_unit_id")) or _text(owner_route.get("work_unit_id"))
     eval_id = _text(source_refs.get("source_eval_id")) or _text(owner_route.get("source_eval_id"))
     source_fingerprint = _text(owner_route.get("source_fingerprint")) or _text(source_refs.get("source_fingerprint"))
-    paper_count = _delta_count(deliverable_delta)
-    platform_count = _delta_count(platform_delta)
     classification = _classification(paper_count=paper_count, platform_count=platform_count)
     state = {
         "surface": "progress_first_sprint_state",
@@ -145,37 +146,128 @@ def _forced_delta_reason(*, classification: str | None, current_blockers: object
     return "nonterminal_sprint_requires_progress_delta_or_blocker"
 
 
-def _current_owner_route(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _current_owner_route(
+    payload: Mapping[str, Any],
+    *,
+    paper_progress_delta_counted: bool = False,
+) -> dict[str, Any]:
     transition_route = _owner_route_from_domain_transition(payload)
     handoff = _mapping(payload.get("opl_current_control_state_handoff"))
     if route := _owner_route_from_handoff_action_queue(handoff):
-        return route
+        route = _route_after_paper_delta(
+            route,
+            transition_route=transition_route,
+            paper_progress_delta_counted=paper_progress_delta_counted,
+            running_provider_attempt=handoff.get("running_provider_attempt") is True,
+        )
+        if not route:
+            pass
+        else:
+            return route
     if route := _mapping(handoff.get("owner_route")):
         route = _owner_route_with_policy_target_surface(route)
-        if transition_route and not _route_has_explicit_target_surface(route):
+        route = _route_after_paper_delta(
+            route,
+            transition_route=transition_route,
+            paper_progress_delta_counted=paper_progress_delta_counted,
+            running_provider_attempt=handoff.get("running_provider_attempt") is True,
+        )
+        if not route:
+            pass
+        elif transition_route and not _route_has_explicit_target_surface(route):
             return transition_route
-        return route
+        else:
+            return route
     evidence_handoff = _mapping(_mapping(payload.get("current_execution_evidence")).get("opl_current_control_state_handoff"))
     if route := _owner_route_from_handoff_action_queue(evidence_handoff):
-        return route
+        route = _route_after_paper_delta(
+            route,
+            transition_route=transition_route,
+            paper_progress_delta_counted=paper_progress_delta_counted,
+            running_provider_attempt=evidence_handoff.get("running_provider_attempt") is True,
+        )
+        if route:
+            return route
     if route := _mapping(evidence_handoff.get("owner_route")):
         route = _owner_route_with_policy_target_surface(route)
-        if transition_route and not _route_has_explicit_target_surface(route):
+        route = _route_after_paper_delta(
+            route,
+            transition_route=transition_route,
+            paper_progress_delta_counted=paper_progress_delta_counted,
+            running_provider_attempt=evidence_handoff.get("running_provider_attempt") is True,
+        )
+        if not route:
+            pass
+        elif transition_route and not _route_has_explicit_target_surface(route):
             return transition_route
-        return route
+        else:
+            return route
     if transition_route:
         return transition_route
     envelope = _mapping(payload.get("current_execution_envelope"))
     if route := _mapping(envelope.get("owner_route")):
         route = _owner_route_with_policy_target_surface(route)
+        route = _route_after_paper_delta(
+            route,
+            transition_route=transition_route,
+            paper_progress_delta_counted=paper_progress_delta_counted,
+            running_provider_attempt=False,
+        )
+        if not route:
+            return {}
         if transition_route and not _route_has_explicit_target_surface(route):
             return transition_route
         return route
     status = _mapping(payload.get("status"))
     route = _owner_route_with_policy_target_surface(_mapping(status.get("owner_route")))
+    route = _route_after_paper_delta(
+        route,
+        transition_route=transition_route,
+        paper_progress_delta_counted=paper_progress_delta_counted,
+        running_provider_attempt=False,
+    )
     if transition_route and not _route_has_explicit_target_surface(route):
         return transition_route
     return route
+
+
+def _route_after_paper_delta(
+    route: Mapping[str, Any],
+    *,
+    transition_route: Mapping[str, Any],
+    paper_progress_delta_counted: bool,
+    running_provider_attempt: bool,
+) -> dict[str, Any]:
+    payload = dict(route)
+    if running_provider_attempt:
+        return payload
+    if not _readiness_route_superseded_by_paper_delta(
+        payload,
+        paper_progress_delta_counted=paper_progress_delta_counted,
+    ):
+        return payload
+    return dict(transition_route)
+
+
+def _readiness_route_superseded_by_paper_delta(
+    route: Mapping[str, Any],
+    *,
+    paper_progress_delta_counted: bool,
+) -> bool:
+    if not paper_progress_delta_counted:
+        return False
+    owner_action = _mapping(route.get("owner_action"))
+    source_refs = _mapping(route.get("source_refs"))
+    candidates = {
+        _text(route.get("action_type")),
+        _text(route.get("work_unit_id")),
+        _text(source_refs.get("work_unit_id")),
+        _text(owner_action.get("work_unit_id")),
+        *_text_items(route.get("allowed_actions")),
+        *_text_items(route.get("allowed_action_refs")),
+        *_text_items(owner_action.get("allowed_actions")),
+    }
+    return READINESS_ACTION in candidates
 
 
 def _owner_route_from_handoff_action_queue(handoff: Mapping[str, Any]) -> dict[str, Any]:

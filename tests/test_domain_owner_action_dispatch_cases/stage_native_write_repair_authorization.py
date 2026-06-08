@@ -1,0 +1,290 @@
+from __future__ import annotations
+
+import importlib
+from pathlib import Path
+
+from tests.domain_owner_action_dispatch_helpers import (
+    dispatch as _dispatch,
+    owner_route as _owner_route,
+    write_current_dispatch as _write_current_dispatch,
+    write_json as _write_json,
+)
+from tests.study_runtime_test_helpers import make_profile, write_study
+
+
+PUBLICATION_SURFACE = "artifacts/reports/medical_publication_surface/latest.json"
+
+
+def _stage_native_quality_repair_dispatch(
+    *,
+    study_id: str,
+    source_authority: str = "stage_native_workspace_next_action",
+    source_surface: str = PUBLICATION_SURFACE,
+) -> dict[str, object]:
+    current_stage_id = "08-publication_package_handoff"
+    fingerprint = f"stage-native-next-action::{current_stage_id}::run_quality_repair_batch::{source_surface}"
+    epoch = f"stage-native-next-action::{study_id}::{current_stage_id}"
+    route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
+    route.update(
+        {
+            "truth_epoch": epoch,
+            "runtime_health_epoch": epoch,
+            "work_unit_fingerprint": fingerprint,
+            "source_fingerprint": fingerprint,
+            "route_epoch": epoch,
+            "source_refs": {
+                "work_unit_id": "run_quality_repair_batch",
+                "work_unit_fingerprint": fingerprint,
+                "source_surface": source_surface,
+                "stage_index_ref": "control/stage_index.json",
+                "current_stage_id": current_stage_id,
+                "owner_route_currentness_basis": {
+                    "truth_epoch": epoch,
+                    "runtime_health_epoch": epoch,
+                    "work_unit_id": "run_quality_repair_batch",
+                    "work_unit_fingerprint": fingerprint,
+                },
+            },
+            "idempotency_key": f"owner-route::{study_id}::{epoch}::write::run_quality_repair_batch",
+        }
+    )
+    payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=PUBLICATION_SURFACE,
+        owner_route=route,
+    )
+    payload.pop("opl_execution_authorization", None)
+    prompt_contract = payload["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract.pop("opl_execution_authorization", None)
+    prompt_contract["owner_route_currentness_basis"] = route["source_refs"][
+        "owner_route_currentness_basis"
+    ]
+    payload["source_action"] = {
+        "study_id": study_id,
+        "quest_id": f"quest-{study_id}",
+        "action_type": "run_quality_repair_batch",
+        "action_id": f"stage-native-next-action::{study_id}::run_quality_repair_batch",
+        "owner": "write",
+        "request_owner": "write",
+        "recommended_owner": "write",
+        "authority": source_authority,
+        "required_output_surface": PUBLICATION_SURFACE,
+        "source_surface": source_surface,
+        "stage_index_ref": "control/stage_index.json",
+        "current_stage_id": current_stage_id,
+    }
+    return payload
+
+
+def test_stage_native_write_repair_dispatch_is_authorized_by_current_next_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch_payload = _stage_native_quality_repair_dispatch(study_id=study_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    monkeypatch.setattr(
+        module.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "owner_result": {"status": "executed"},
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["blocked_count"] == 0
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "executed"
+    assert execution["owner_route_basis"] == "stage_native_workspace_next_action"
+    assert execution["owner_route_current"] is True
+
+
+def test_stage_native_write_repair_owner_request_survives_stale_readiness_scan(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch_payload = _stage_native_quality_repair_dispatch(study_id=study_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch_payload)
+    owner_route = dispatch_payload["owner_route"]
+    assert isinstance(owner_route, dict)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "quality_repair_batch" / "latest.json",
+        {
+            "surface": "supervisor_request_handoff_packet",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": f"quest-{study_id}",
+            "action_type": "run_quality_repair_batch",
+            "request_kind": "run_quality_repair_batch",
+            "authority": "stage_native_workspace_next_action",
+            "request_owner": "write",
+            "expected_owner": "write",
+            "next_executable_owner": "write",
+            "owner_route": owner_route,
+            "owner_pickup": {
+                "state": "pending",
+                "owner": "write",
+                "owner_route": owner_route,
+            },
+        },
+    )
+    readiness_route = _owner_route(
+        study_id=study_id,
+        action_type="complete_medical_paper_readiness_surface",
+        owner="MedAutoScience",
+    )
+    readiness_route["source_refs"] = {
+        "work_unit_id": "complete_medical_paper_readiness_surface",
+        "work_unit_fingerprint": (
+            "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
+            "authoring_runtime_authorization::typed_blocker"
+        ),
+        "owner_route_currentness_basis": {
+            "truth_epoch": readiness_route["truth_epoch"],
+            "runtime_health_epoch": readiness_route["runtime_health_epoch"],
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "work_unit_fingerprint": (
+                "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
+                "authoring_runtime_authorization::typed_blocker"
+            ),
+        },
+    }
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": f"quest-{study_id}",
+                    "owner_route": readiness_route,
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "source": "stage_kernel_projection.current_owner_delta",
+                        "latest_owner_answer_kind": "typed_blocker",
+                        "next_owner": "MedAutoScience",
+                        "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                    },
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "action_type": "complete_medical_paper_readiness_surface",
+                            "reason": "medical_paper_readiness_missing",
+                            "owner": "MedAutoScience",
+                            "owner_route": readiness_route,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [],
+        },
+    )
+    monkeypatch.setattr(
+        module.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "owner_result": {"status": "executed"},
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] in {"owner_request", "stage_native_workspace_next_action"}
+
+
+def test_quality_repair_dispatch_without_stage_native_authority_still_requires_opl_authorization(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch_payload = _stage_native_quality_repair_dispatch(
+        study_id=study_id,
+        source_authority="mas_owner_surface",
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "opl_execution_authorization_required"

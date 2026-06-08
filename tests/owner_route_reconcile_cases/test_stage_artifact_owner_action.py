@@ -264,3 +264,59 @@ def test_scan_domain_routes_promotes_handoff_typed_blocker_followup_action(
     assert study["why_not_applied"] == "medical_paper_readiness_not_ready"
     assert study["blocked_reason"] == "medical_paper_readiness_not_ready"
     assert result["action_queue"][0]["action_type"] == "complete_medical_paper_readiness_surface"
+    queued_action = result["action_queue"][0]
+    assert queued_action["action_fingerprint"] == action["work_unit_fingerprint"]
+    assert queued_action["handoff_packet"]["action_fingerprint"] == action["work_unit_fingerprint"]
+    assert queued_action["paper_progress_stall_action_fingerprint"].startswith("paper_progress_stall:")
+    assert queued_action["handoff_packet"]["paper_progress_stall_action_fingerprint"].startswith(
+        "paper_progress_stall:"
+    )
+
+
+def test_stage_kernel_typed_blocker_answer_without_next_action_suppresses_requeue() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions"
+    )
+    typed_blocker_ref = (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    stale_controller_actions = [
+        {
+            "action_type": "return_to_ai_reviewer_workflow",
+            "controller_route": {"decision_path": "artifacts/controller_decisions/latest.json"},
+        }
+    ]
+    progress_payload = {
+        "medical_paper_readiness": {"overall_status": "blocked"},
+        "stage_kernel_projection": {
+            "current_owner_delta": {
+                "owner": "MedAutoScience",
+                "action": "complete_medical_paper_readiness_surface",
+                "reason": "medical_paper_readiness_missing",
+                "required_input": "complete_medical_paper_readiness_surface",
+                "blocked_surface": "publication_handoff_owner_gate",
+                "source_ref": typed_blocker_ref,
+                "source_kind": "typed_blocker",
+                "latest_owner_answer_kind": "typed_blocker",
+                "hard_gate": {
+                    "state": "domain_owner_answer_recorded",
+                    "owner_answer_ref": typed_blocker_ref,
+                },
+            }
+        },
+    }
+
+    actions = module.action_queue_with_terminal_publication_handoff(
+        actions=stale_controller_actions,
+        progress=progress_payload,
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        decorate_action=lambda *, study_id, quest_id, action: {
+            **action,
+            "study_id": study_id,
+            "quest_id": quest_id,
+        },
+    )
+
+    assert actions == []
+    assert module.projection_fields(progress_payload, stale_controller_actions) == {}

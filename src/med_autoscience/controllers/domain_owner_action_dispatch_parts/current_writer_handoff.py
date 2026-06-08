@@ -47,6 +47,12 @@ def current_quality_repair_writer_handoff_dispatch(
         dispatch=dispatch,
     ):
         return False
+    if fresh_progress_ticket_supersedes_action(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+    ):
+        return False
     batch = _read_json_object(
         profile.studies_root / study_id / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
     )
@@ -134,6 +140,52 @@ def self_authorized_quality_repair_writer_handoff(
     return owner_route_part.route_allows_action(action=dispatch, owner_route=route)
 
 
+def fresh_progress_ticket_supersedes_action(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str,
+) -> bool:
+    ticket = _fresh_progress_current_owner_ticket(profile=profile, study_id=study_id)
+    allowed_action = _text(ticket.get("allowed_action"))
+    if allowed_action is None:
+        return False
+    if allowed_action == action_type:
+        return False
+    owner = _text(ticket.get("owner"))
+    if owner in {
+        "finalize",
+        "gate_clearing_batch",
+        "publication_gate_owner",
+    }:
+        return True
+    if allowed_action in {
+        "run_gate_clearing_batch",
+        "publication_handoff_owner_gate",
+    }:
+        return True
+    return False
+
+
+def _fresh_progress_current_owner_ticket(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> dict[str, Any]:
+    try:
+        from med_autoscience.controllers import study_progress
+
+        progress = study_progress.read_study_progress(
+            profile=profile,
+            study_id=study_id,
+            sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
+        )
+    except Exception:
+        return {}
+    return _mapping(_mapping(progress).get("current_owner_ticket"))
+
+
 def dispatch_source_eval_id(dispatch: Mapping[str, Any]) -> str | None:
     route = dispatch_owner_route(dispatch)
     source_refs = _mapping(route.get("source_refs"))
@@ -187,6 +239,7 @@ __all__ = [
     "current_quality_repair_writer_handoff_route",
     "dispatch_owner_route",
     "dispatch_source_eval_id",
+    "fresh_progress_ticket_supersedes_action",
     "raw_dispatch_owner_route",
     "self_authorized_quality_repair_writer_handoff",
 ]

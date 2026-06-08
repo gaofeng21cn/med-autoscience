@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 from collections.abc import Mapping
 from pathlib import Path
@@ -872,7 +873,88 @@ def _operator_idempotency_key(*, dispatch: Mapping[str, Any], surface_key: str, 
     base_key = _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key"))
     if not base_key:
         return None
+    currentness_digest = _operator_currentness_identity_digest(dispatch)
+    if currentness_digest:
+        return f"{base_key}::currentness::{currentness_digest}::surface::{surface_key}::action::{action_id}"
     return f"{base_key}::surface::{surface_key}::action::{action_id}"
+
+
+def _operator_currentness_identity_digest(dispatch: Mapping[str, Any]) -> str | None:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    prompt_owner_route = _mapping(prompt_contract.get("owner_route"))
+    closeout_binding = _mapping(dispatch.get("closeout_binding")) or _mapping(
+        prompt_contract.get("closeout_binding")
+    )
+    identity = {
+        "readiness_surface_identity": _readiness_surface_identity(dispatch),
+        "source_fingerprint": _first_text(
+            dispatch.get("source_fingerprint"),
+            prompt_contract.get("source_fingerprint"),
+            owner_route.get("source_fingerprint"),
+            prompt_owner_route.get("source_fingerprint"),
+            closeout_binding.get("source_fingerprint"),
+        ),
+        "work_unit_fingerprint": _first_text(
+            dispatch.get("work_unit_fingerprint"),
+            prompt_contract.get("work_unit_fingerprint"),
+            owner_route.get("work_unit_fingerprint"),
+            prompt_owner_route.get("work_unit_fingerprint"),
+            closeout_binding.get("work_unit_fingerprint"),
+        ),
+        "currentness_basis": _currentness_basis(dispatch),
+        "currentness_digest_basis": _currentness_digest_basis(dispatch),
+    }
+    compact = {key: value for key, value in identity.items() if value not in (None, {}, [], "")}
+    if not compact:
+        return None
+    encoded = json.dumps(compact, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:24]
+
+
+def _readiness_surface_identity(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    handoff_packet = _mapping(dispatch.get("handoff_packet"))
+    owner_pickup = _mapping(dispatch.get("owner_pickup")) or _mapping(handoff_packet.get("owner_pickup"))
+    for payload in (dispatch, prompt_contract, handoff_packet, owner_pickup):
+        identity = _mapping(payload.get("readiness_surface_identity"))
+        if identity:
+            return identity
+    return {}
+
+
+def _currentness_basis(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    handoff_packet = _mapping(dispatch.get("handoff_packet"))
+    owner_pickup = _mapping(dispatch.get("owner_pickup")) or _mapping(handoff_packet.get("owner_pickup"))
+    for payload in (dispatch, prompt_contract, handoff_packet, owner_pickup):
+        basis = _mapping(payload.get("owner_route_currentness_basis"))
+        if basis:
+            return basis
+        owner_route = _mapping(payload.get("owner_route"))
+        basis = _mapping(owner_route.get("owner_route_currentness_basis"))
+        if basis:
+            return basis
+        contract = _mapping(payload.get("currentness_contract")) or _mapping(
+            owner_route.get("currentness_contract")
+        )
+        basis = _mapping(contract.get("basis"))
+        if basis:
+            return basis
+    return {}
+
+
+def _currentness_digest_basis(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    for payload in (dispatch, prompt_contract):
+        digest_basis = _mapping(payload.get("currentness_digest_basis"))
+        if digest_basis:
+            return digest_basis
+        owner_route = _mapping(payload.get("owner_route"))
+        digest_basis = _mapping(owner_route.get("currentness_digest_basis"))
+        if digest_basis:
+            return digest_basis
+    return {}
 
 
 def _authority_boundary(*, writes_readiness: bool, writes_owner_blocker: bool) -> dict[str, Any]:

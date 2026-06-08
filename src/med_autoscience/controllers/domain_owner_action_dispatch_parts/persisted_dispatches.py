@@ -68,6 +68,15 @@ def explicit_action_dispatches(
             continue
         refs = _mapping(payload.get("refs"))
         payload["refs"] = {**refs, "dispatch_path": str(path)}
+        scan_payload = scan_latest_payload(profile)
+        current_study = _scan_study(scan_payload, study_id)
+        scan_route_current = _dispatch_currentness_score(payload, current_study) > (0, 0)
+        if current_writer_handoff.fresh_progress_ticket_supersedes_action(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
+        ):
+            scan_route_current = False
         if require_current_authority and (
             not owner_request_matches_dispatch(
                 profile=profile,
@@ -75,13 +84,15 @@ def explicit_action_dispatches(
                 action_type=action_type,
                 dispatch=payload,
             )
+            and not scan_route_current
             and live_provider_attempt_owner_route_from_scan_payload(
-                scan_payload=scan_latest_payload(profile),
+                scan_payload=scan_payload,
                 study_id=study_id,
                 dispatch=payload,
             )
             is None
-            and not current_writer_handoff.self_authorized_quality_repair_writer_handoff(
+            and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
+                profile=profile,
                 study_id=study_id,
                 action_type=action_type,
                 dispatch=payload,
@@ -102,6 +113,8 @@ def selected_dispatches(
     scan_payload: Mapping[str, Any] | None, supported_action_types: frozenset[str],
     dispatch_relative_root: Path,
 ) -> list[dict[str, Any]]:
+    if _fresh_progress_envelope_blocks_dispatch_selection(profile=profile, study_id=study_id):
+        return []
     current_study = _scan_study(scan_payload, study_id)
     current_study = _with_consumed_transition_owner_route(current_study)
     consumer_dispatches = current_consumer_dispatches(
@@ -343,6 +356,32 @@ def _runtime_current_dispatches_only(
 
 def _with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
     return consumed_transition_owner_routes.with_consumed_transition_owner_route(current_study)
+
+
+def _fresh_progress_envelope_blocks_dispatch_selection(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> bool:
+    progress = _read_fresh_study_progress(profile=profile, study_id=study_id)
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    return state_kind in {"typed_blocker", "parked", "running_provider_attempt"}
+
+
+def _read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
+    try:
+        from med_autoscience.controllers import study_progress
+
+        payload = study_progress.read_study_progress(
+            profile=profile,
+            study_id=study_id,
+            sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
+        )
+    except Exception:
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 def _consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
@@ -727,6 +766,12 @@ def _owner_request_effective_route(
     action_type: str,
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    if current_writer_handoff.fresh_progress_ticket_supersedes_action(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+    ):
+        return None
     return _owner_request_effective_route_for_scan(
         request=owner_request_payload(profile, study_id, action_type),
         scan_payload=scan_latest_payload(profile),

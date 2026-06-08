@@ -72,6 +72,451 @@ def test_domain_health_diagnostic_same_tick_reports_handoff_pending_without_prov
     assert diagnostic["next_forced_delta"]["target_surface"]["owner"] == "one-person-lab"
 
 
+def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provider_admission_candidate(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    quest_root = profile.runtime_root / "quests" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "complete_medical_paper_readiness_surface.json"
+    )
+    typed_blocker_ref = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "typed_blocker.json"
+    )
+    work_unit_fingerprint = (
+        "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
+        f"authoring_runtime_authorization::{typed_blocker_ref}"
+    )
+    dump_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "study_id": study_id,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "provider_attempt_or_lease_required": True,
+                    "provider_completion_is_domain_completion": False,
+                    "next_executable_owner": "MedAutoScience",
+                    "required_output_surface": "complete_medical_paper_readiness_surface",
+                    "dispatch_path": str(dispatch_path),
+                    "dispatch_authority": "consumer_default_executor_dispatch",
+                    "action_fingerprint": work_unit_fingerprint,
+                    "owner_route_current": True,
+                    "owner_route_basis": "scan_latest",
+                    "will_start_llm": True,
+                    "owner_route": {
+                        "work_unit_fingerprint": work_unit_fingerprint,
+                        "source_refs": {
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": work_unit_fingerprint,
+                            "blocked_reason": "medical_paper_readiness_not_ready",
+                            "quest_root": str(quest_root),
+                            "owner_route_currentness_basis": {
+                                "work_unit_id": "complete_medical_paper_readiness_surface",
+                                "work_unit_fingerprint": work_unit_fingerprint,
+                            },
+                        },
+                    },
+                }
+            ],
+        },
+    )
+    status_payload = {
+        **make_progress_projection_payload(
+            study_id=study_id,
+            decision="resume",
+            reason="quest_marked_running_but_no_live_session",
+        ),
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+    }
+    current_action = {
+        "status": "ready",
+        "source": "stage_kernel_projection.current_owner_delta",
+        "next_owner": "MedAutoScience",
+        "work_unit_id": "complete_medical_paper_readiness_surface",
+        "allowed_actions": ["complete_medical_paper_readiness_surface"],
+        "surface_key": "authoring_runtime_authorization",
+        "source_ref": str(typed_blocker_ref),
+    }
+
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "generated_at": "2026-06-07T19:56:40+00:00",
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "MedAutoScience",
+                "next_work_unit": "complete_medical_paper_readiness_surface",
+                "typed_blocker": None,
+                "parked_state": None,
+            },
+            "current_executable_owner_action": current_action,
+        },
+    )
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    assert result["provider_admission_pending_count"] == 1
+    candidate = result["managed_study_opl_provider_admission_candidates"][0]
+    assert candidate["status"] == "provider_admission_pending"
+    assert candidate["source"] == "default_executor_execution"
+    assert candidate["study_id"] == study_id
+    assert candidate["action_type"] == "complete_medical_paper_readiness_surface"
+    assert candidate["work_unit_id"] == "complete_medical_paper_readiness_surface"
+    assert candidate["work_unit_fingerprint"] == work_unit_fingerprint
+    assert candidate["action_fingerprint"] == work_unit_fingerprint
+    assert candidate["dispatch_path"] == str(dispatch_path)
+    assert candidate["owner_callable_surface"] == "opl_default_executor.stage_attempt"
+    assert candidate["provider_attempt_or_lease_required"] is True
+    envelope = result["current_execution_envelopes"][study_id]
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "MedAutoScience"
+    assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
+    assert envelope["typed_blocker"] is None
+    assert result["action_fingerprints"] == [work_unit_fingerprint]
+
+
+def test_provider_admission_candidate_requires_current_action_identity() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    typed_blocker_ref = (
+        "/workspace/studies/002-dm-china-us-mortality-attribution/"
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    current_fingerprint = (
+        "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
+        f"authoring_runtime_authorization::{typed_blocker_ref}"
+    )
+    stale_fingerprint = "paper_progress_stall:002-dm-china-us-mortality-attribution:old-ai-reviewer"
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "executions": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "provider_attempt_or_lease_required": True,
+                    "dispatch_path": "/workspace/stale-ai-reviewer.json",
+                    "action_fingerprint": stale_fingerprint,
+                    "owner_route": {
+                        "source_refs": {
+                            "work_unit_id": "return_to_ai_reviewer_workflow",
+                            "work_unit_fingerprint": stale_fingerprint,
+                        }
+                    },
+                },
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "provider_attempt_or_lease_required": True,
+                    "dispatch_path": "/workspace/current-readiness.json",
+                    "action_fingerprint": current_fingerprint,
+                    "owner_route": {
+                        "source_refs": {
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": current_fingerprint,
+                        }
+                    },
+                },
+            ]
+        },
+        status_payload={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "current_executable_owner_action": {
+                "status": "ready",
+                "source": "stage_kernel_projection.current_owner_delta",
+                "next_owner": "MedAutoScience",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                "surface_key": "authoring_runtime_authorization",
+                "source_ref": typed_blocker_ref,
+            },
+        },
+    )
+
+    assert [candidate["action_fingerprint"] for candidate in result] == [current_fingerprint]
+
+
+def test_provider_admission_candidate_accepts_study_progress_owner_ticket_identity() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    typed_blocker_ref = (
+        f"/workspace/studies/{study_id}/"
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    ticket_fingerprint = (
+        f"study-progress-current-owner-ticket::{study_id}::"
+        "complete_medical_paper_readiness_surface::complete_medical_paper_readiness_surface"
+    )
+    stale_fingerprint = f"paper_progress_stall::{study_id}::old-readiness"
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "executions": [
+                {
+                    "study_id": study_id,
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "provider_attempt_or_lease_required": True,
+                    "dispatch_path": "/workspace/stale-readiness.json",
+                    "action_fingerprint": stale_fingerprint,
+                    "owner_route": {
+                        "source_refs": {
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": stale_fingerprint,
+                        }
+                    },
+                },
+                {
+                    "study_id": study_id,
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "provider_attempt_or_lease_required": True,
+                    "dispatch_path": "/workspace/current-readiness.json",
+                    "action_fingerprint": ticket_fingerprint,
+                    "owner_route": {
+                        "source_refs": {
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": ticket_fingerprint,
+                        }
+                    },
+                },
+            ]
+        },
+        status_payload={
+            "study_id": study_id,
+            "current_executable_owner_action": {
+                "status": "ready",
+                "source": "stage_kernel_projection.current_owner_delta",
+                "next_owner": "MedAutoScience",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                "surface_key": "authoring_runtime_authorization",
+                "source_ref": typed_blocker_ref,
+            },
+        },
+    )
+
+    assert [candidate["action_fingerprint"] for candidate in result] == [ticket_fingerprint]
+
+
+def test_provider_admission_candidate_is_suppressed_by_typed_blocker_envelope() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    stale_fingerprint = "domain-transition::003-dpcc-primary-care-phenotype-treatment-gap::finalize"
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "executions": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "action_type": "request_opl_stage_attempt",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "provider_attempt_or_lease_required": True,
+                    "dispatch_path": "/workspace/stale-finalize.json",
+                    "action_fingerprint": stale_fingerprint,
+                    "owner_route": {
+                        "source_refs": {
+                            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                            "work_unit_fingerprint": stale_fingerprint,
+                        }
+                    },
+                },
+            ]
+        },
+        status_payload={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_type": "medical_paper_readiness_missing",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+            "current_executable_owner_action": {
+                "source": "domain_transition",
+                "next_owner": "finalize",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["request_opl_stage_attempt"],
+            },
+        },
+    )
+
+    assert result == []
+
+
+def test_provider_admission_candidate_requires_dispatch_path() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    fingerprint = "stage-current-owner-delta::complete_medical_paper_readiness_surface::typed-blocker"
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "executions": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "provider_attempt_or_lease_required": True,
+                    "action_fingerprint": fingerprint,
+                    "owner_route": {
+                        "source_refs": {
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": fingerprint,
+                        }
+                    },
+                }
+            ]
+        },
+        status_payload={"study_id": "002-dm-china-us-mortality-attribution"},
+    )
+
+    assert result == []
+
+
+def test_request_opl_stage_attempt_carries_current_provider_admission_identity(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": study_id})
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "complete_medical_paper_readiness_surface.json"
+    )
+    typed_blocker_ref = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "typed_blocker.json"
+    )
+    work_unit_fingerprint = (
+        "stage-current-owner-delta::complete_medical_paper_readiness_surface::"
+        f"authoring_runtime_authorization::{typed_blocker_ref}"
+    )
+    dump_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "executions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "opl_default_executor.stage_attempt",
+                    "provider_attempt_or_lease_required": True,
+                    "dispatch_path": str(dispatch_path),
+                    "action_fingerprint": work_unit_fingerprint,
+                    "owner_route": {
+                        "source_refs": {
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "work_unit_fingerprint": work_unit_fingerprint,
+                        }
+                    },
+                }
+            ]
+        },
+    )
+    status_payload = {
+        **make_progress_projection_payload(
+            study_id=study_id,
+            decision="resume",
+            reason="quest_marked_running_but_no_live_session",
+        ),
+        "quest_id": study_id,
+            "current_executable_owner_action": {
+                "status": "ready",
+                "source": "stage_kernel_projection.current_owner_delta",
+                "next_owner": "MedAutoScience",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                "surface_key": "authoring_runtime_authorization",
+            "source_ref": str(typed_blocker_ref),
+        },
+    }
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+
+    result = module._request_opl_stage_attempt(
+        profile=profile,
+        study_root=study_root,
+        source="domain_health_diagnostic",
+    )
+
+    identity = result["opl_stage_attempt_request"]["provider_admission_identity"]
+    assert identity["study_id"] == study_id
+    assert identity["action_type"] == "complete_medical_paper_readiness_surface"
+    assert identity["work_unit_id"] == "complete_medical_paper_readiness_surface"
+    assert identity["action_fingerprint"] == work_unit_fingerprint
+    assert identity["dispatch_path"] == str(dispatch_path)
+    assert result["provider_admission_identity"] == identity
+
+
 def test_domain_health_diagnostic_same_tick_refreshes_materialize_after_pending_provider_probe(
     tmp_path: Path,
     monkeypatch,

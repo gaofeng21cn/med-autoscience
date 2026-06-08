@@ -88,9 +88,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         macro_state=macro_state,
         payload=payload,
     )
-    meaningful_artifact_delta = bool(paper_progress_state.get("meaningful_artifact_delta")) or _meaningful_artifact_delta(
-        payload
-    )
+    meaningful_artifact_delta = bool(paper_progress_state.get("meaningful_artifact_delta"))
     executable_owner_action = _user_facing_executable_owner_action(payload)
     next_owner = (
         _non_empty_text(executable_owner_action.get("next_owner"))
@@ -400,10 +398,6 @@ def _fresh_artifact_delta_present(payload: Mapping[str, Any]) -> bool:
         _non_empty_text(artifact_delta_freshness.get("status")) == "fresh"
         and _non_empty_text(artifact_delta_freshness.get("latest_progress_at")) is not None
     )
-
-
-def _meaningful_artifact_delta(payload: Mapping[str, Any]) -> bool:
-    return _fresh_artifact_delta_present(payload)
 
 
 def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> str | None:

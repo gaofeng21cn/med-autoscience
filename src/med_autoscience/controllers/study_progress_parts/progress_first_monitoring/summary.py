@@ -111,6 +111,17 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or payload_current_action
         or non_artifact_current_action
     )
+    envelope_blocks_current_action = _envelope_typed_blocker_blocks_current_action(
+        execution=execution,
+        raw_typed_blocker=raw_typed_blocker,
+        artifact_first_supersedes_blocker=artifact_first_supersedes_blocker,
+    )
+    if envelope_blocks_current_action:
+        current_action = {}
+        handoff_owner_action = None
+        handoff_for_admission = {**handoff, "action_queue": []}
+    else:
+        handoff_for_admission = handoff
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
     next_work_unit = (
         hydration_work_unit
@@ -118,11 +129,20 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _work_unit_from_action(handoff_owner_action)
         or (
             _work_unit_id(domain_transition.get("next_work_unit"))
-            if transition_consumed_owner_action and gate_clearing_dispatch_consumption is None
+            if (
+                transition_consumed_owner_action
+                and not envelope_blocks_current_action
+                and gate_clearing_dispatch_consumption is None
+            )
             else None
         )
         or _work_unit_projection(execution.get("next_work_unit"))
-        or _work_unit_projection(domain_transition.get("next_work_unit"))
+        or _work_unit_projection(raw_typed_blocker.get("work_unit_id"))
+        or (
+            _work_unit_projection(domain_transition.get("next_work_unit"))
+            if not envelope_blocks_current_action
+            else None
+        )
         or _work_unit_from_action_queue(handoff.get("action_queue"))
         or _work_unit_projection(next_forced_delta.get("work_unit_id"))
     )
@@ -133,6 +153,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or handoff_owner_action is not None
         or (
             transition_consumed_owner_action
+            and not envelope_blocks_current_action
             and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition)
             and gate_clearing_dispatch_consumption is None
         )
@@ -146,7 +167,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     owner_action_admission = build_owner_action_admission_projection(
         payload=payload,
         current_action=current_action,
-        handoff=handoff,
+        handoff=handoff_for_admission,
         stage_progress_log=stage_progress_log,
         latest_terminal_stage_log=latest_terminal_stage_log,
     )
@@ -154,7 +175,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         artifact_first_owner_action
         or _stage_kernel_owner_action(current_action)
         or handoff_owner_action is not None
-        or (transition_consumed_owner_action and gate_clearing_dispatch_consumption is None)
+        or (
+            transition_consumed_owner_action
+            and not envelope_blocks_current_action
+            and gate_clearing_dispatch_consumption is None
+        )
     )
     current_blockers = (
         []
@@ -206,7 +231,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             or _owner_from_action(handoff_owner_action)
             or (
                 _text(domain_transition.get("owner"))
-                if transition_consumed_owner_action and gate_clearing_dispatch_consumption is None
+                if (
+                    transition_consumed_owner_action
+                    and not envelope_blocks_current_action
+                    and gate_clearing_dispatch_consumption is None
+                )
                 else None
             )
             or _text(execution.get("owner"))
@@ -215,12 +244,24 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             or _text(handoff.get("next_owner"))
             or _text(progress_state.get("next_owner"))
         ),
-        "route_target": _text(handoff_owner_action.get("route_target")) if handoff_owner_action is not None else _text(domain_transition.get("route_target")),
+        "route_target": (
+            _text(handoff_owner_action.get("route_target"))
+            if handoff_owner_action is not None
+            else (
+                _text(domain_transition.get("route_target"))
+                if not envelope_blocks_current_action
+                else None
+            )
+        ),
         "controller_action": (
             _text(handoff_owner_action.get("action_type"))
             if handoff_owner_action is not None
             else _first_text(current_action.get("allowed_actions"))
-            or _text(domain_transition.get("controller_action"))
+            or (
+                _text(domain_transition.get("controller_action"))
+                if not envelope_blocks_current_action
+                else None
+            )
             or _text(payload.get("runtime_decision"))
         ),
         "next_work_unit": next_work_unit,
@@ -468,6 +509,19 @@ def _stage_kernel_owner_action(action: Mapping[str, Any]) -> bool:
         _text(action.get("source")) == "stage_kernel_projection.current_owner_delta"
         and bool(_sequence(action.get("allowed_actions")))
     )
+
+
+def _envelope_typed_blocker_blocks_current_action(
+    *,
+    execution: Mapping[str, Any],
+    raw_typed_blocker: Mapping[str, Any],
+    artifact_first_supersedes_blocker: bool,
+) -> bool:
+    if artifact_first_supersedes_blocker:
+        return False
+    if _text(execution.get("state_kind")) != "typed_blocker":
+        return False
+    return bool(raw_typed_blocker)
 
 
 def _current_blockers(

@@ -155,6 +155,74 @@ def test_progress_first_monitoring_consumes_lane1_stage_artifact_index_action_sh
     assert monitoring["next_owner"] == "idea"
     assert monitoring["controller_action"] == "materialize_stage_artifact_delta"
 
+
+def test_progress_first_monitoring_does_not_let_artifact_index_override_medical_readiness_blocker() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_type": "medical_paper_readiness_not_ready",
+                    "owner": "MedAutoScience",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                },
+            },
+            "stage_artifact_index": {
+                "surface_kind": "stage_artifact_index",
+                "current_stage": {
+                    "stage_id": "08-publication_package_handoff",
+                    "artifact_status": "missing_manifest_or_receipt",
+                    "next_missing_surface": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "publication_package_manifest.json"
+                    ),
+                },
+                "next_owner_action": {
+                    "owner": "08-publication_package_handoff",
+                    "next_owner": "08-publication_package_handoff",
+                    "action_type": "materialize_stage_artifact_delta",
+                    "allowed_actions": ["materialize_stage_artifact_delta"],
+                    "required_output_surface": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "publication_package_manifest.json"
+                    ),
+                    "work_unit_id": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "publication_package_manifest.json"
+                    ),
+                },
+                "stale_platform_repairs": [
+                    {"surface": "stage_artifact_index.next_owner_action"}
+                ],
+                "stages": [
+                    {
+                        "stage_id": "08-publication_package_handoff",
+                        "observed_artifact_refs": [
+                            {
+                                "ref": (
+                                    "artifacts/stage_outputs/08-publication_package_handoff/"
+                                    "stage_manifest.json"
+                                )
+                            }
+                        ],
+                    }
+                ],
+            },
+        }
+    )
+
+    assert monitoring["execution_state_kind"] == "typed_blocker"
+    assert monitoring["next_owner"] == "MedAutoScience"
+    assert monitoring["current_executable_owner_action"] is None
+    assert monitoring["typed_blocker"]["blocker_type"] == "medical_paper_readiness_not_ready"
+
+
 def test_progress_first_monitoring_keeps_running_provider_liveness_from_overriding_artifact_owner_action() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

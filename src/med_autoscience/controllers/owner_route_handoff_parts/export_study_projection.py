@@ -23,6 +23,9 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
 )
 _OPL_CURRENT_CONTROL_REF = Path("runtime/artifacts/supervision/opl_current_control_state/latest.json")
+_DEFAULT_EXECUTOR_EXECUTION_LATEST = Path(
+    "artifacts/supervision/consumer/default_executor_execution/latest.json"
+)
 _CURRENTNESS_BASIS_KEYS = (
     "owner_reason",
     "runtime_health_epoch",
@@ -357,6 +360,37 @@ def current_readiness_owner_action_record(
         study_root / "artifacts" / "controller_decisions" / "latest.json",
         workspace_root=profile.workspace_root,
     )
+    provider_handoff = _current_provider_handoff_execution(
+        study_root=study_root,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    )
+    provider_source_refs = mapping(mapping(provider_handoff.get("owner_route")).get("source_refs"))
+    provider_basis = mapping(provider_source_refs.get("owner_route_currentness_basis"))
+    provider_fingerprint = (
+        text(provider_handoff.get("action_fingerprint"))
+        or text(provider_handoff.get("work_unit_fingerprint"))
+        or text(provider_source_refs.get("work_unit_fingerprint"))
+        or text(provider_basis.get("work_unit_fingerprint"))
+    )
+    provider_truth_epoch = (
+        text(provider_basis.get("truth_epoch"))
+        or text(provider_source_refs.get("truth_epoch"))
+        or text(provider_handoff.get("generated_at"))
+    )
+    provider_runtime_epoch = (
+        text(provider_basis.get("runtime_health_epoch"))
+        or text(provider_source_refs.get("runtime_health_epoch"))
+        or text(provider_handoff.get("generated_at"))
+    )
+    owner_route_currentness_basis = {
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": provider_fingerprint or f"medical-paper-readiness::{surface_key}",
+        "truth_epoch": provider_truth_epoch or text(controller_decision.get("generated_at")) or source_ref,
+        "runtime_health_epoch": provider_runtime_epoch
+        or text(controller_decision.get("generated_at"))
+        or source_ref,
+    }
     return {
         "surface_kind": "mas_current_owner_action_record",
         "schema_version": 1,
@@ -377,12 +411,19 @@ def current_readiness_owner_action_record(
             "surface_key": surface_key,
         },
         "target_surface_specificity": "controller_decisions_readiness_next_action",
-        "owner_route_currentness_basis": {
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": f"medical-paper-readiness::{surface_key}",
-            "truth_epoch": text(controller_decision.get("generated_at")) or source_ref,
-            "runtime_health_epoch": text(controller_decision.get("generated_at")) or source_ref,
-        },
+        "owner_route_currentness_basis": owner_route_currentness_basis,
+        **({"work_unit_fingerprint": provider_fingerprint} if provider_fingerprint is not None else {}),
+        **(
+            {
+                "provider_admission_identity_source": "default_executor_execution",
+                "provider_admission_execution_ref": workspace_relative(
+                    study_root / _DEFAULT_EXECUTOR_EXECUTION_LATEST,
+                    workspace_root=profile.workspace_root,
+                ),
+            }
+            if provider_handoff
+            else {}
+        ),
         "currentness_status": "current_readiness_owner_action_active",
         "source_ref_role": "controller_decisions_readiness_next_action",
         "source_relative_path": source_ref,
@@ -394,6 +435,40 @@ def current_readiness_owner_action_record(
             "mas_owner_receipt_required": True,
         },
     }
+
+
+def _current_provider_handoff_execution(
+    *,
+    study_root: Path,
+    action_type: str,
+    work_unit_id: str,
+) -> dict[str, Any]:
+    payload = read_json_object(study_root / _DEFAULT_EXECUTOR_EXECUTION_LATEST)
+    if payload is None:
+        return {}
+    for item in payload.get("executions") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if text(item.get("execution_status")) != "handoff_ready":
+            continue
+        if item.get("provider_attempt_or_lease_required") is not True and text(
+            item.get("owner_callable_surface")
+        ) != "opl_default_executor.stage_attempt":
+            continue
+        if item.get("owner_route_current") is False:
+            continue
+        if text(item.get("action_type")) != action_type:
+            continue
+        source_refs = mapping(mapping(item.get("owner_route")).get("source_refs"))
+        candidate_work_unit = (
+            text(source_refs.get("work_unit_id"))
+            or text(item.get("work_unit_id"))
+            or text(mapping(source_refs.get("owner_route_currentness_basis")).get("work_unit_id"))
+        )
+        if candidate_work_unit != work_unit_id:
+            continue
+        return dict(item)
+    return {}
 
 
 def _matching_current_control_study(

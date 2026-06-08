@@ -13,6 +13,9 @@ from . import current_writer_handoff
 
 _CLEAN_ROOM_PUBLICATION_SURFACE_ACTION = "run_medical_publication_surface_from_clean_room"
 _CLEAN_ROOM_DESCRIPTOR_SURFACE = "artifacts/supervision/paper_clean_room_rebuild/latest.json"
+_QUALITY_REPAIR_ACTION = "run_quality_repair_batch"
+_PUBLICATION_SURFACE_DESCRIPTOR = "artifacts/reports/medical_publication_surface/latest.json"
+_PUBLICATION_HANDOFF_STAGE_ID = "08-publication_package_handoff"
 
 
 def block_if_missing_authorization(
@@ -63,6 +66,11 @@ def _authorized(
         owner_route_basis=owner_route_basis,
     ):
         return True
+    if _stage_native_quality_repair_owner_action_authorized(
+        dispatch=dispatch,
+        owner_route_basis=owner_route_basis,
+    ):
+        return True
     if owner_route_basis in {"bridged_writer_handoff", "current_writer_handoff"} and (
         current_writer_handoff.self_authorized_quality_repair_writer_handoff(
             study_id=_text(dispatch.get("study_id")) or "",
@@ -106,6 +114,42 @@ def _stage_native_clean_room_publication_surface_authorized(
         or _text(_mapping(dispatch.get("prompt_contract")).get("source_surface"))
     )
     return source_surface == _CLEAN_ROOM_DESCRIPTOR_SURFACE
+
+
+def _stage_native_quality_repair_owner_action_authorized(
+    *,
+    dispatch: Mapping[str, Any],
+    owner_route_basis: str | None,
+) -> bool:
+    if owner_route_basis != "stage_native_workspace_next_action":
+        return False
+    if _text(dispatch.get("action_type")) != _QUALITY_REPAIR_ACTION:
+        return False
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(
+        _mapping(dispatch.get("prompt_contract")).get("owner_route")
+    )
+    if (_text(dispatch.get("next_executable_owner")) or _text(owner_route.get("next_owner"))) != "write":
+        return False
+    source_action = _mapping(dispatch.get("source_action"))
+    if _text(source_action.get("authority")) != "stage_native_workspace_next_action":
+        return False
+    source_refs = _mapping(owner_route.get("source_refs"))
+    source_surface = (
+        _text(source_action.get("source_surface"))
+        or _text(source_refs.get("source_surface"))
+        or _text(_mapping(dispatch.get("prompt_contract")).get("source_surface"))
+    )
+    if source_surface != _PUBLICATION_SURFACE_DESCRIPTOR:
+        return False
+    current_stage_id = _text(source_action.get("current_stage_id")) or _text(
+        source_refs.get("current_stage_id")
+    )
+    if current_stage_id != _PUBLICATION_HANDOFF_STAGE_ID:
+        return False
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
+        _mapping(owner_route.get("currentness_contract")).get("basis")
+    )
+    return _work_unit_id(currentness_basis.get("work_unit_id")) == _QUALITY_REPAIR_ACTION
 
 
 def with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[str, Any]:

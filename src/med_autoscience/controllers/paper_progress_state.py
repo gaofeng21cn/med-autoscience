@@ -164,7 +164,23 @@ def _paper_delta_changed_refs(payload: Mapping[str, Any]) -> list[str]:
     stage_log = _mapping(_mapping(payload.get("latest_terminal_stage_log")).get("paper_stage_log"))
     refs.extend(_string_items(stage_log.get("changed_paper_surfaces")))
     refs.extend(_string_items(stage_log.get("changed_stage_surfaces")))
-    return _dedupe(refs)
+    return _dedupe(ref for ref in refs if _paper_delta_ref_is_current_truth(ref))
+
+
+def _paper_delta_ref_is_current_truth(ref: str) -> bool:
+    text = ref.strip()
+    if not text:
+        return False
+    normalized = text.replace("\\", "/")
+    if "/artifacts/stage_outputs/_body_authority/" in normalized or normalized.startswith(
+        "artifacts/stage_outputs/_body_authority/"
+    ):
+        return False
+    if "/runtime/quests/" in normalized:
+        return False
+    if "/archive/" in normalized or "/_archive/" in normalized:
+        return False
+    return True
 
 
 def _stage_closeout_progress(

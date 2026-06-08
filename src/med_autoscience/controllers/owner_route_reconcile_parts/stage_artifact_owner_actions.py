@@ -12,20 +12,26 @@ ACTION_TYPE = "publication_handoff_owner_gate"
 OWNER = "publication_gate_owner"
 READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
 READINESS_OWNER = "MedAutoScience"
+READINESS_BLOCKER = "medical_paper_readiness_not_ready"
 
 
 def typed_blocker_followup_action(progress: Mapping[str, Any]) -> dict[str, Any] | None:
     if _medical_paper_readiness_ready(progress):
         return None
     delta = _current_owner_delta(progress)
-    if _text(delta.get("action")) != READINESS_ACTION_TYPE:
+    if _readiness_action(delta) != READINESS_ACTION_TYPE:
         return None
-    if _text(delta.get("reason")) != "medical_paper_readiness_not_ready":
+    if not _is_stage_kernel_typed_blocker_followup(delta):
         return None
     source_ref = _text(delta.get("source_ref"))
     readiness = _mapping(progress.get("medical_paper_readiness"))
     next_action = _readiness_next_action(readiness=readiness, delta=delta)
     surface_key = _readiness_surface_key(next_action=next_action, delta=delta)
+    if not _readiness_next_action_identifies_followup(
+        next_action=next_action,
+        surface_key=surface_key,
+    ):
+        return None
     work_unit_fingerprint = (
         _text(delta.get("delta_id"))
         or _readiness_work_unit_fingerprint(
@@ -39,7 +45,7 @@ def typed_blocker_followup_action(progress: Mapping[str, Any]) -> dict[str, Any]
         "owner": _text(delta.get("owner")) or READINESS_OWNER,
         "request_owner": _text(delta.get("owner")) or READINESS_OWNER,
         "recommended_owner": _text(delta.get("owner")) or READINESS_OWNER,
-        "reason": _text(delta.get("reason")) or "medical_paper_readiness_not_ready",
+        "reason": _text(delta.get("reason")) or READINESS_BLOCKER,
         "summary": "Complete the MAS medical-paper readiness surface named by the terminal handoff typed blocker.",
         "required_output_surface": _text(delta.get("required_input")) or READINESS_ACTION_TYPE,
         "surface_key": surface_key,
@@ -126,6 +132,8 @@ def action_queue_with_terminal_publication_handoff(
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
         return [decorate_action(study_id=study_id, quest_id=quest_id, action=followup)]
+    if _stage_kernel_readiness_answer_without_followup(progress):
+        return []
     if _has_current_controller_action(actions):
         return actions
     action = terminal_publication_handoff_action(progress)
@@ -143,6 +151,8 @@ def projection_fields(progress: Mapping[str, Any], actions: list[Mapping[str, An
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
         result["current_executable_owner_action"] = _projection_action_from_followup(followup)
+        return result
+    if _stage_kernel_readiness_answer_without_followup(progress):
         return result
     if _has_current_controller_action(actions or []):
         return result
@@ -225,6 +235,62 @@ def _readiness_surface_key(*, next_action: Mapping[str, Any], delta: Mapping[str
     return _text(delta.get("surface_key")) or _text(next_action.get("surface_key"))
 
 
+def _readiness_next_action_identifies_followup(
+    *,
+    next_action: Mapping[str, Any],
+    surface_key: str | None,
+) -> bool:
+    if not next_action:
+        return False
+    if surface_key is not None:
+        return True
+    action = _text(next_action.get("action_id")) or _text(next_action.get("action_type"))
+    if action is not None and action not in {READINESS_ACTION_TYPE, "continue_managed_execution"}:
+        return True
+    if _text(next_action.get("route_target")) or _text(next_action.get("next_owner")):
+        return True
+    if _text(next_action.get("work_unit_id")):
+        return True
+    return bool(_mapping(next_action.get("target_surface")))
+
+
+def _readiness_action(delta: Mapping[str, Any]) -> str | None:
+    return _text(delta.get("action")) or _text(delta.get("action_type"))
+
+
+def _stage_kernel_readiness_answer_without_followup(progress: Mapping[str, Any]) -> bool:
+    if _medical_paper_readiness_ready(progress):
+        return False
+    delta = _current_owner_delta(progress)
+    if _readiness_action(delta) != READINESS_ACTION_TYPE:
+        return False
+    if not _is_stage_kernel_typed_blocker_followup(delta):
+        return False
+    next_action = _readiness_next_action(
+        readiness=_mapping(progress.get("medical_paper_readiness")),
+        delta=delta,
+    )
+    surface_key = _readiness_surface_key(next_action=next_action, delta=delta)
+    return not _readiness_next_action_identifies_followup(
+        next_action=next_action,
+        surface_key=surface_key,
+    )
+
+
+def _is_stage_kernel_typed_blocker_followup(delta: Mapping[str, Any]) -> bool:
+    if _text(delta.get("reason")) == READINESS_BLOCKER:
+        return True
+    if _text(delta.get("source_kind")) == "typed_blocker":
+        return True
+    if _text(delta.get("required_input")) == READINESS_ACTION_TYPE:
+        return True
+    if _text(delta.get("blocked_surface")) == ACTION_TYPE:
+        return True
+    if _text(delta.get("latest_owner_answer_kind")) == "typed_blocker":
+        return True
+    return bool(_text_items(delta.get("typed_blocker_refs")))
+
+
 def _readiness_work_unit_fingerprint(*, source_ref: str | None, surface_key: str | None) -> str:
     suffix = surface_key or "unspecified_surface"
     return f"stage-current-owner-delta::{READINESS_ACTION_TYPE}::{suffix}::{source_ref or 'unknown'}"
@@ -260,6 +326,20 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
 
 
 __all__ = [

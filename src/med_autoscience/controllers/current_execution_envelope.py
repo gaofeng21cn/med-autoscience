@@ -22,11 +22,27 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
     {
         "live_worker_requires_worker_running",
         "managed_runtime_audit_unhealthy",
+        "medical_paper_readiness_missing",
+        "medical_paper_readiness_not_ready",
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
         "quest_waiting_opl_runtime_owner_route",
         "runtime_recovery_not_authorized",
         "runtime_recovery_retry_budget_exhausted",
+    }
+)
+CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS = frozenset(
+    {
+        "opl_current_control_state.handoff_required",
+        "opl_stage_attempt_admission_required",
+        "quest_marked_running_but_no_live_session",
+        "quest_waiting_opl_runtime_owner_route",
+    }
+)
+MEDICAL_READINESS_BLOCKERS = frozenset(
+    {
+        "medical_paper_readiness_missing",
+        "medical_paper_readiness_not_ready",
     }
 )
 REASON_ONLY_TYPED_BLOCKERS = frozenset(
@@ -74,6 +90,7 @@ def build_current_execution_envelope(
         extra=conflict_suppression_refs,
     )
     resolved_typed_blocker = _typed_blocker(typed_blocker, blocked_reason=blocked_reason, owner=next_owner)
+    stage_owner_answer_blocker = _stage_owner_answer_typed_blocker(progress_payload)
     running_attempt = _running_provider_attempt_state(
         live_provider_attempt=live_provider_attempt,
         runtime_health=runtime_health,
@@ -103,6 +120,19 @@ def build_current_execution_envelope(
                 conflict_suppression_refs=resolved_suppression_refs,
             )
     action = _first_action(action_items)
+    if stage_owner_answer_blocker is not None and not _action_supersedes_stage_owner_answer(
+        action=action,
+        progress=progress_payload,
+    ):
+        return _envelope(
+            state_kind="typed_blocker",
+            owner=_text(stage_owner_answer_blocker.get("owner")) or _text(next_owner) or "med-autoscience",
+            next_work_unit=None,
+            typed_blocker=stage_owner_answer_blocker,
+            parked_state=None,
+            source_refs=resolved_source_refs,
+            conflict_suppression_refs=resolved_suppression_refs,
+        )
     parked = _parked_state(status_payload, progress_payload)
     if parked is not None:
         if _parked_state_requires_human_resume(
@@ -132,6 +162,7 @@ def build_current_execution_envelope(
     if action is not None and _action_supersedes_typed_blocker(
         action=action,
         blocker=resolved_typed_blocker,
+        progress=progress_payload,
     ):
         return _envelope(
             state_kind="executable_owner_action",
@@ -354,20 +385,126 @@ def _running_attempt_can_supersede_blocker(blocker: Mapping[str, Any] | None) ->
     return _text(payload.get("blocker_type")) in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS
 
 
+def _stage_owner_answer_typed_blocker(progress: Mapping[str, Any]) -> dict[str, Any] | None:
+    delta = _stage_current_owner_delta(progress)
+    if not _stage_delta_is_typed_blocker_owner_answer(progress=progress, delta=delta):
+        return None
+    reason = (
+        _text(delta.get("reason"))
+        or _text(delta.get("blocker_id"))
+        or _text(delta.get("blocker_type"))
+        or "typed_blocker"
+    )
+    source_ref = _text(delta.get("latest_owner_answer_ref")) or _text(delta.get("source_ref"))
+    work_unit = _text(delta.get("action")) or _text(delta.get("action_type"))
+    return {
+        "blocker_type": reason,
+        "blocker_id": reason,
+        "owner": _text(delta.get("owner")) or "MedAutoScience",
+        "work_unit_id": work_unit,
+        "source_ref": source_ref,
+        "latest_owner_answer_ref": source_ref,
+        "latest_owner_answer_kind": "typed_blocker",
+    }
+
+
+def _stage_delta_is_typed_blocker_owner_answer(
+    *,
+    progress: Mapping[str, Any],
+    delta: Mapping[str, Any],
+) -> bool:
+    hard_gate = _mapping(delta.get("hard_gate"))
+    if _text(hard_gate.get("state")) == "domain_owner_answer_recorded":
+        answer_kind = (
+            _text(hard_gate.get("owner_answer_kind"))
+            or _text(delta.get("latest_owner_answer_kind"))
+            or _text(delta.get("source_kind"))
+        )
+        return answer_kind == "typed_blocker"
+    stage_kernel = _mapping(progress.get("stage_kernel_projection"))
+    stage_run_kernel = _mapping(stage_kernel.get("stage_run_kernel"))
+    return (
+        _text(stage_run_kernel.get("status")) == "TypedBlocked"
+        and _text(delta.get("source_kind")) == "typed_blocker"
+        and _text(delta.get("source_ref")) is not None
+    )
+
+
+def _stage_current_owner_delta(progress: Mapping[str, Any]) -> dict[str, Any]:
+    direct = _mapping(progress.get("current_owner_delta"))
+    if direct:
+        return direct
+    stage_kernel = _mapping(progress.get("stage_kernel_projection"))
+    delta = _mapping(stage_kernel.get("current_owner_delta"))
+    if delta:
+        return delta
+    stage_run_kernel = _mapping(stage_kernel.get("stage_run_kernel"))
+    return _mapping(stage_run_kernel.get("current_owner_delta"))
+
+
+def _action_supersedes_stage_owner_answer(
+    *,
+    action: Mapping[str, Any] | None,
+    progress: Mapping[str, Any],
+) -> bool:
+    payload = _mapping(action)
+    if not payload:
+        return False
+    return _paper_delta_domain_transition_supersedes_readiness_blocker(
+        action=payload,
+        progress=progress,
+    )
+
+
 def _action_supersedes_typed_blocker(
     *,
     action: Mapping[str, Any],
     blocker: Mapping[str, Any] | None,
+    progress: Mapping[str, Any] | None = None,
 ) -> bool:
     payload = _mapping(blocker)
     if not payload:
         return True
     blocker_type = _text(payload.get("blocker_type"))
-    if blocker_type != "medical_paper_readiness_not_ready":
+    if blocker_type in CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS:
+        return _action_is_stage_current_owner_delta(action)
+    if blocker_type not in MEDICAL_READINESS_BLOCKERS:
         return False
     if _text(action.get("action_type")) == "complete_medical_paper_readiness_surface":
         return True
-    return "complete_medical_paper_readiness_surface" in _text_items(action.get("allowed_actions"))
+    if "complete_medical_paper_readiness_surface" in _text_items(action.get("allowed_actions")):
+        return True
+    return _paper_delta_domain_transition_supersedes_readiness_blocker(
+        action=action,
+        progress=_mapping(progress),
+    )
+
+
+def _action_is_stage_current_owner_delta(action: Mapping[str, Any]) -> bool:
+    return (
+        _text(action.get("source_surface"))
+        or _text(action.get("source"))
+    ) == "stage_kernel_projection.current_owner_delta"
+
+
+def _paper_delta_domain_transition_supersedes_readiness_blocker(
+    *,
+    action: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    progress_first = _mapping(progress.get("progress_first_sprint_state"))
+    paper_delta = _mapping(progress.get("paper_progress_delta"))
+    if progress_first.get("paper_progress_delta_counted") is not True and _delta_count(paper_delta) <= 0:
+        return False
+    if _text(action.get("source_surface")) != "domain_transition":
+        return False
+    if _text(action.get("action_type")) not in {
+        "request_opl_stage_attempt",
+        "run_gate_clearing_batch",
+        "run_quality_repair_batch",
+    }:
+        return False
+    return _text(action.get("work_unit_id")) != "complete_medical_paper_readiness_surface"
 
 
 def _reason_only_blocked_reason_is_typed_blocker(*, reason: str, owner: str | None) -> bool:
@@ -448,6 +585,13 @@ def _refs_from(value: Mapping[str, Any]) -> list[str]:
         if (ref := _text(value.get(key))) is not None:
             refs.append(ref)
     return refs
+
+
+def _delta_count(value: Mapping[str, Any]) -> int:
+    try:
+        return int(value.get("count") or 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 def _conflict_suppression_refs(

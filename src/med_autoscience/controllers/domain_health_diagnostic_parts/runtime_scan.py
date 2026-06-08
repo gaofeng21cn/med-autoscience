@@ -27,6 +27,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup i
     _write_outer_loop_wakeup_audit,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts import managed_recovery
+from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 from med_autoscience.controllers.domain_health_diagnostic_parts import report_aggregation
 from med_autoscience.controllers.domain_health_diagnostic_parts.reporting import (
     _attach_family_companion_to_quest_report,
@@ -277,6 +278,47 @@ def _materialize_placeholder_quest_diagnostic_report(status_payload: Mapping[str
     return report
 
 
+def _with_fresh_progress_currentness(
+    *,
+    profile: WorkspaceProfile | None,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(status_payload)
+    if profile is None:
+        return payload
+    study_id = _non_empty_text(payload.get("study_id")) or Path(study_root).name
+    if study_id is None:
+        return payload
+    try:
+        from med_autoscience.controllers import study_progress
+
+        progress = study_progress.read_study_progress(
+            profile=profile,
+            study_id=study_id,
+            sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
+        )
+    except Exception:
+        return payload
+    if not isinstance(progress, Mapping):
+        return payload
+    for key in (
+        "current_execution_envelope",
+        "current_executable_owner_action",
+        "current_owner_ticket",
+    ):
+        if key in progress:
+            value = progress.get(key)
+            if isinstance(value, Mapping):
+                payload[key] = dict(value)
+            else:
+                payload[key] = value
+    if (generated_at := _non_empty_text(progress.get("generated_at"))) is not None:
+        payload["study_progress_generated_at"] = generated_at
+    return payload
+
+
 def run_domain_health_diagnostic_for_runtime(
     *,
     runtime_root: Path,
@@ -295,8 +337,10 @@ def run_domain_health_diagnostic_for_runtime(
     managed_study_outer_loop_wakeup_audits: list[dict[str, Any]] = []
     managed_study_no_op_suppressions: list[dict[str, Any]] = []
     managed_study_opl_runtime_owner_handoffs: list[dict[str, Any]] = []
+    managed_study_opl_provider_admission_candidates: list[dict[str, Any]] = []
     managed_study_autonomy_slo_statuses: list[dict[str, Any]] = []
     managed_study_autonomy_repair_actions: list[dict[str, Any]] = []
+    managed_study_progress_currentness: dict[str, dict[str, Any]] = {}
     managed_study_runtime_recovery_payloads: dict[str, dict[str, Any]] = {}
     managed_study_statuses = managed_recovery.managed_study_initial_statuses(
         runtime_control_ports=runtime_control_ports,
@@ -352,6 +396,24 @@ def run_domain_health_diagnostic_for_runtime(
                     study_root=study_root,
                     status_payload=status_payload,
                 )
+                status_payload = _with_fresh_progress_currentness(
+                    profile=profile,
+                    study_root=study_root,
+                    status_payload=status_payload,
+                )
+                progress_currentness = {
+                    key: status_payload[key]
+                    for key in (
+                        "current_execution_envelope",
+                        "current_executable_owner_action",
+                        "current_owner_ticket",
+                        "study_progress_generated_at",
+                    )
+                    if key in status_payload
+                }
+                study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
+                if progress_currentness and study_id:
+                    managed_study_progress_currentness[study_id] = progress_currentness
         if status_payload.get("domain_health_diagnostic_error_isolated") is True:
             continue
         quest_root = _candidate_path(status_payload.get("quest_root"))
@@ -831,6 +893,12 @@ def run_domain_health_diagnostic_for_runtime(
             )
         if opl_runtime_owner_handoff is not None:
             managed_study_opl_runtime_owner_handoffs.append(opl_runtime_owner_handoff)
+        managed_study_opl_provider_admission_candidates.extend(
+            provider_admission.persisted_provider_admission_candidates(
+                study_root=study_root,
+                status_payload=status_payload,
+            )
+        )
         if apply:
             study_id = str(status_payload.get("study_id") or "").strip()
             quest_id = str(status_payload.get("quest_id") or "").strip()
@@ -890,6 +958,8 @@ def run_domain_health_diagnostic_for_runtime(
         managed_study_outer_loop_wakeup_audits=managed_study_outer_loop_wakeup_audits,
         managed_study_no_op_suppressions=managed_study_no_op_suppressions,
         managed_study_opl_runtime_owner_handoffs=managed_study_opl_runtime_owner_handoffs,
+        managed_study_opl_provider_admission_candidates=managed_study_opl_provider_admission_candidates,
+        managed_study_progress_currentness=managed_study_progress_currentness,
         managed_study_autonomy_slo_statuses=managed_study_autonomy_slo_statuses,
         managed_study_autonomy_repair_actions=managed_study_autonomy_repair_actions,
     )

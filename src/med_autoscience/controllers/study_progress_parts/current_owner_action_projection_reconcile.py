@@ -14,6 +14,7 @@ CURRENT_OWNER_ACTION_SOURCES = frozenset(
         "domain_transition",
     }
 )
+READINESS_ACTION = "complete_medical_paper_readiness_surface"
 
 
 def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[str, Any]:
@@ -105,10 +106,7 @@ def current_owner_action_supersedes_stale_user_park(
     if _non_empty_text(auto_parked.get("parked_state")) != "waiting_user_decision":
         return False
     classification = _mapping_copy(auto_parked.get("runtime_failure_classification"))
-    if (
-        classification.get("requires_human_gate") is True
-        and _has_human_gate_authority_ref(payload)
-    ):
+    if _has_human_gate_authority_ref(payload):
         return False
     if auto_parked.get("auto_execution_complete") is True:
         return False
@@ -125,16 +123,31 @@ def current_execution_envelope_actions(
     *,
     handoff: Mapping[str, Any],
     current_executable_owner_action: Mapping[str, Any],
+    paper_progress_delta_counted: bool = False,
 ) -> list[dict[str, Any]]:
     handoff_actions = [
         dict(item)
         for item in handoff.get("action_queue") or []
         if isinstance(item, Mapping)
     ]
+    current_action = _current_executable_owner_action_as_envelope_action(current_executable_owner_action)
     if handoff_actions:
+        if _handoff_actions_superseded_by_current_paper_delta(
+            handoff=handoff,
+            handoff_actions=handoff_actions,
+            current_action=current_action,
+            paper_progress_delta_counted=paper_progress_delta_counted,
+        ):
+            return [current_action] if current_action is not None else []
         return handoff_actions
+    return [current_action] if current_action is not None else []
+
+
+def _current_executable_owner_action_as_envelope_action(
+    current_executable_owner_action: Mapping[str, Any],
+) -> dict[str, Any] | None:
     if _non_empty_text(current_executable_owner_action.get("surface_kind")) != "current_executable_owner_action":
-        return []
+        return None
     allowed_actions = _text_items(current_executable_owner_action.get("allowed_actions"))
     action_type = allowed_actions[0] if allowed_actions else _non_empty_text(
         current_executable_owner_action.get("action_type")
@@ -142,20 +155,47 @@ def current_execution_envelope_actions(
     owner = _non_empty_text(current_executable_owner_action.get("next_owner"))
     work_unit_id = _non_empty_text(current_executable_owner_action.get("work_unit_id"))
     if action_type is None and owner is None and work_unit_id is None:
-        return []
-    return [
-        {
-            "action_type": action_type,
-            "owner": owner,
-            "recommended_owner": owner,
-            "next_owner": owner,
-            "next_work_unit": work_unit_id or action_type,
-            "work_unit_id": work_unit_id,
-            "allowed_actions": allowed_actions,
-            "source_surface": _non_empty_text(current_executable_owner_action.get("source")),
-            "source_ref": _non_empty_text(current_executable_owner_action.get("source_ref")),
-        }
-    ]
+        return None
+    return {
+        "action_type": action_type,
+        "owner": owner,
+        "recommended_owner": owner,
+        "next_owner": owner,
+        "next_work_unit": work_unit_id or action_type,
+        "work_unit_id": work_unit_id,
+        "allowed_actions": allowed_actions,
+        "source_surface": _non_empty_text(current_executable_owner_action.get("source")),
+        "source_ref": _non_empty_text(current_executable_owner_action.get("source_ref")),
+    }
+
+
+def _handoff_actions_superseded_by_current_paper_delta(
+    *,
+    handoff: Mapping[str, Any],
+    handoff_actions: list[dict[str, Any]],
+    current_action: Mapping[str, Any] | None,
+    paper_progress_delta_counted: bool,
+) -> bool:
+    if handoff.get("running_provider_attempt") is True:
+        return False
+    if not handoff_actions:
+        return False
+    first_handoff_action = handoff_actions[0]
+    if not _is_readiness_action(first_handoff_action):
+        return False
+    if current_action is not None and not _is_readiness_action(current_action):
+        return True
+    return paper_progress_delta_counted
+
+
+def _is_readiness_action(action: Mapping[str, Any]) -> bool:
+    values = {
+        _non_empty_text(action.get("action_type")),
+        _non_empty_text(action.get("work_unit_id")),
+        _non_empty_text(action.get("next_work_unit")),
+        *_text_items(action.get("allowed_actions")),
+    }
+    return READINESS_ACTION in values
 
 
 def _text_items(value: object) -> list[str]:

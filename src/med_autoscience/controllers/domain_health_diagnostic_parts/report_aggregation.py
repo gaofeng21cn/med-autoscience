@@ -52,16 +52,20 @@ def build_runtime_report(
     managed_study_outer_loop_wakeup_audits: list[dict[str, Any]],
     managed_study_no_op_suppressions: list[dict[str, Any]],
     managed_study_opl_runtime_owner_handoffs: list[dict[str, Any]],
+    managed_study_opl_provider_admission_candidates: list[dict[str, Any]],
+    managed_study_progress_currentness: dict[str, dict[str, Any]],
     managed_study_autonomy_slo_statuses: list[dict[str, Any]],
     managed_study_autonomy_repair_actions: list[dict[str, Any]],
 ) -> dict[str, Any]:
     dispatch_counters = _dispatch_counters(
         dispatches=managed_study_outer_loop_dispatches,
         suppressions=managed_study_no_op_suppressions,
+        provider_admission_candidates=managed_study_opl_provider_admission_candidates,
     )
     current_execution_envelopes = _current_execution_envelopes(
         managed_study_actions=managed_study_actions,
         suppressions=managed_study_no_op_suppressions,
+        progress_currentness=managed_study_progress_currentness,
     )
     runtime_report = {
         "schema_version": 1,
@@ -78,8 +82,12 @@ def build_runtime_report(
         "current_execution_evidence": {
             "no_op": managed_study_no_op_suppressions,
             "managed_study_actions": managed_study_actions,
+            "provider_admission_candidates": managed_study_opl_provider_admission_candidates,
+            "progress_currentness": managed_study_progress_currentness,
         },
         "managed_study_opl_runtime_owner_handoffs": managed_study_opl_runtime_owner_handoffs,
+        "managed_study_opl_provider_admission_candidates": managed_study_opl_provider_admission_candidates,
+        "provider_admission_pending_count": len(managed_study_opl_provider_admission_candidates),
         "managed_study_autonomy_slo_statuses": managed_study_autonomy_slo_statuses,
         "managed_study_autonomy_repair_actions": managed_study_autonomy_repair_actions,
         "action_class": "codex_worker_dispatch" if dispatch_counters["codex_dispatch_count"] else (
@@ -102,11 +110,16 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def _dispatch_counters(*, dispatches: list[dict[str, Any]], suppressions: list[dict[str, Any]]) -> dict[str, Any]:
+def _dispatch_counters(
+    *,
+    dispatches: list[dict[str, Any]],
+    suppressions: list[dict[str, Any]],
+    provider_admission_candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
     codex_dispatch_count = sum(_dispatch_starts_worker(dispatch) for dispatch in dispatches)
     fingerprints = []
-    for item in [*dispatches, *suppressions]:
-        for key in ("work_unit_fingerprint", "work_unit_dispatch_key", "dedupe_scope"):
+    for item in [*dispatches, *suppressions, *provider_admission_candidates]:
+        for key in ("work_unit_fingerprint", "action_fingerprint", "work_unit_dispatch_key", "dedupe_scope"):
             value = str(item.get(key) or "").strip()
             if value:
                 fingerprints.append(value)
@@ -130,6 +143,7 @@ def _current_execution_envelopes(
     *,
     managed_study_actions: list[dict[str, Any]],
     suppressions: list[dict[str, Any]],
+    progress_currentness: dict[str, dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
     no_op_by_study = {
         study_id: item
@@ -143,19 +157,77 @@ def _current_execution_envelopes(
         study_id = _text(action.get("study_id"))
         if study_id is None:
             continue
-        runtime_health = _mapping(action.get("runtime_health_snapshot"))
+        action_with_currentness = {
+            **action,
+            **_mapping(progress_currentness.get(study_id)),
+        }
+        status_envelope = _current_status_envelope(action_with_currentness)
+        if status_envelope is not None and _text(status_envelope.get("state_kind")) in {
+            "parked",
+            "running_provider_attempt",
+            "typed_blocker",
+        }:
+            envelopes[study_id] = status_envelope
+            continue
+        runtime_health = _mapping(action_with_currentness.get("runtime_health_snapshot"))
         envelopes[study_id] = current_execution_envelope.build_current_execution_envelope(
-            status=action,
-            progress={},
-            actions=[],
-            blocked_reason=_text(action.get("reason")),
-            next_owner=_text(action.get("runtime_owner")) or _text(action.get("domain_owner")),
+            status=action_with_currentness,
+            progress=action_with_currentness,
+            actions=_current_status_actions(action_with_currentness),
+            blocked_reason=_text(action_with_currentness.get("reason")),
+            next_owner=_text(action_with_currentness.get("runtime_owner"))
+            or _text(action_with_currentness.get("domain_owner")),
             runtime_health=runtime_health,
             conflict_suppression_refs=[f"no_op:{_text(no_op_by_study[study_id].get('outcome'))}"]
             if study_id in no_op_by_study and _text(no_op_by_study[study_id].get("outcome")) is not None
             else None,
         )
     return envelopes
+
+
+def _current_status_envelope(status: Mapping[str, Any]) -> dict[str, Any] | None:
+    envelope = _mapping(status.get("current_execution_envelope"))
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    if state_kind not in set(current_execution_envelope.ALLOWED_STATE_KINDS):
+        return None
+    return envelope
+
+
+def _current_status_actions(status: Mapping[str, Any]) -> list[dict[str, Any]]:
+    current = _mapping(status.get("current_executable_owner_action"))
+    if not current:
+        return []
+    target_surface = _mapping(current.get("target_surface"))
+    next_action = _mapping(current.get("next_action"))
+    action_type = (
+        _text(current.get("action_type"))
+        or _text(current.get("work_unit_id"))
+        or _text(next_action.get("action_id"))
+    )
+    if action_type is None:
+        return []
+    allowed_actions = _text_items(current.get("allowed_actions")) or [action_type]
+    action = {
+        "action_type": action_type,
+        "owner": (
+            _text(current.get("owner"))
+            or _text(current.get("recommended_owner"))
+            or _text(current.get("next_owner"))
+            or _text(target_surface.get("owner"))
+        ),
+        "recommended_owner": _text(current.get("recommended_owner")) or _text(current.get("next_owner")),
+        "next_owner": _text(current.get("next_owner")) or _text(current.get("owner")),
+        "next_work_unit": (
+            _text(current.get("next_work_unit"))
+            or _text(current.get("work_unit_id"))
+            or _text(next_action.get("action_id"))
+        ),
+        "work_unit_id": _text(current.get("work_unit_id")) or _text(next_action.get("action_id")),
+        "allowed_actions": allowed_actions,
+        "source_surface": _text(current.get("source")) or _text(current.get("source_surface")),
+        "source_ref": _text(current.get("source_ref")) or _text(current.get("latest_owner_answer_ref")),
+    }
+    return [{key: value for key, value in action.items() if value is not None}]
 
 
 def _mapping(value: object) -> dict[str, Any]:
@@ -165,6 +237,20 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, (list, tuple, set)):
+        return []
+    items: list[str] = []
+    for item in value:
+        text = _text(item)
+        if text is not None and text not in items:
+            items.append(text)
+    return items
 
 
 __all__ = ["build_runtime_report", "scan_active_quest_reports"]

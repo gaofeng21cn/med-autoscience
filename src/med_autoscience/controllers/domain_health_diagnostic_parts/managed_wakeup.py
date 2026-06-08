@@ -60,6 +60,12 @@ def _serialize_managed_study_action(
         "decision": action.decision.value if action.decision is not None else None,
         "reason": action.reason.value if action.reason is not None else None,
     }
+    current_owner_action = _mapping(payload.get("current_executable_owner_action"))
+    if current_owner_action:
+        serialized["current_executable_owner_action"] = current_owner_action
+    current_execution_envelope = _mapping(payload.get("current_execution_envelope"))
+    if current_execution_envelope:
+        serialized["current_execution_envelope"] = current_execution_envelope
     truth_snapshot = _truth_snapshot_summary(payload.get("study_truth_snapshot"))
     if truth_snapshot is not None:
         serialized["truth_epoch"] = _non_empty_text(truth_snapshot.get("truth_epoch"))
@@ -112,6 +118,10 @@ def _managed_study_status_payload(
     if isinstance(action_payload, ProgressProjectionStatus):
         return action_payload.to_dict()
     return dict(action_payload)
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 def _non_empty_text(value: object) -> str | None:

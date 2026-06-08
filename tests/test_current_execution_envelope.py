@@ -302,7 +302,7 @@ def test_study_progress_envelope_prefers_live_opl_attempt_over_handoff_action_qu
     )
 
 
-def test_study_progress_envelope_preserves_non_superseded_handoff_blocker_over_live_attempt(
+def test_study_progress_envelope_prefers_live_attempt_over_readiness_blocker(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -371,10 +371,10 @@ def test_study_progress_envelope_preserves_non_superseded_handoff_blocker_over_l
 
     envelope = result["current_execution_envelope"]
     assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is True
-    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] is None
-    assert envelope["typed_blocker"]["blocker_type"] == "medical_paper_readiness_not_ready"
+    assert envelope["next_work_unit"] == "sat-live"
+    assert envelope["typed_blocker"] is None
 
 
 def test_study_progress_envelope_preserves_latest_default_executor_typed_closeout_over_stale_action_queue(
@@ -632,6 +632,38 @@ def test_envelope_preserves_rehydrate_typed_closeout_over_stale_ai_reviewer_acti
     assert envelope["typed_blocker"]["blocker_type"] == "medical_prose_review_request_rehydrate_required"
 
 
+def test_envelope_domain_transition_supersedes_readiness_blocker_after_paper_delta() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        progress={
+            "progress_first_sprint_state": {
+                "paper_progress_delta_counted": True,
+            },
+            "paper_progress_delta": {"count": 1},
+        },
+        actions=[
+            {
+                "action_type": "request_opl_stage_attempt",
+                "owner": "finalize",
+                "recommended_owner": "finalize",
+                "next_owner": "finalize",
+                "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["request_opl_stage_attempt"],
+                "source_surface": "domain_transition",
+            }
+        ],
+        blocked_reason="medical_paper_readiness_not_ready",
+        next_owner="MedAutoScience",
+    )
+
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "finalize"
+    assert envelope["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert envelope["typed_blocker"] is None
+
+
 def test_envelope_does_not_let_stale_waiting_user_decision_hide_executable_route() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 
@@ -770,6 +802,88 @@ def test_envelope_prefers_running_provider_attempt_over_stale_action_queue() -> 
     assert envelope["typed_blocker"] is None
 
 
+def test_envelope_prefers_running_provider_attempt_over_readiness_blocker() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        actions=[
+            {
+                "action_type": "complete_medical_paper_readiness_surface",
+                "owner": "MedAutoScience",
+                "next_work_unit": "complete_medical_paper_readiness_surface",
+            }
+        ],
+        blocked_reason="medical_paper_readiness_not_ready",
+        next_owner="MedAutoScience",
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_stage_attempt_id": "sat-live",
+            "active_workflow_id": "wf-live",
+            "action_type": "complete_medical_paper_readiness_surface",
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+        },
+        runtime_health={
+            "runtime_liveness_status": "live",
+            "provider_status": "running",
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+        },
+    )
+
+    assert envelope["state_kind"] == "running_provider_attempt"
+    assert envelope["owner"] == "MedAutoScience"
+    assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
+    assert envelope["typed_blocker"] is None
+
+
+def test_envelope_preserves_manifest_backed_stage_typed_blocker_over_handoff_queue() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        progress={
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "owner": "MedAutoScience",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "reason": "medical_paper_readiness_missing",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                    "source_kind": "typed_blocker",
+                },
+                "stage_run_kernel": {
+                    "status": "TypedBlocked",
+                },
+            },
+            "paper_progress_delta": {"count": 0},
+            "progress_first_sprint_state": {
+                "paper_progress_delta_counted": False,
+            },
+        },
+        actions=[
+            {
+                "action_type": "complete_medical_paper_readiness_surface",
+                "owner": "MedAutoScience",
+                "next_work_unit": "complete_medical_paper_readiness_surface",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                "source_surface": "action_queue",
+            }
+        ],
+        blocked_reason="medical_paper_readiness_not_ready",
+        next_owner="MedAutoScience",
+    )
+
+    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["owner"] == "MedAutoScience"
+    assert envelope["next_work_unit"] is None
+    assert envelope["typed_blocker"]["blocker_type"] == "medical_paper_readiness_missing"
+    assert envelope["typed_blocker"]["source_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/"
+        "receipts/typed_blocker.json"
+    )
+
+
 def test_envelope_prefers_running_provider_attempt_over_owner_route_reason() -> None:
     module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
 
@@ -832,6 +946,75 @@ def test_envelope_preserves_non_superseded_blocker_over_running_provider_attempt
     assert envelope["owner"] == "MedAutoScience"
     assert envelope["next_work_unit"] is None
     assert envelope["typed_blocker"]["blocker_type"] == "typed_closeout_packet_required"
+
+
+def test_envelope_actions_prefer_current_domain_transition_over_stale_readiness_handoff_queue() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
+
+    actions = module.current_execution_envelope_actions(
+        handoff={
+            "running_provider_attempt": False,
+            "action_queue": [
+                {
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "owner": "MedAutoScience",
+                    "recommended_owner": "MedAutoScience",
+                    "next_work_unit": "complete_medical_paper_readiness_surface",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "fingerprint": "complete_medical_paper_readiness_surface::medical_paper_readiness_missing",
+                }
+            ],
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "source": "domain_transition",
+            "next_owner": "finalize",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "allowed_actions": ["request_opl_stage_attempt"],
+        },
+    )
+
+    assert actions == [
+        {
+            "action_type": "request_opl_stage_attempt",
+            "owner": "finalize",
+            "recommended_owner": "finalize",
+            "next_owner": "finalize",
+            "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "allowed_actions": ["request_opl_stage_attempt"],
+            "source_surface": "domain_transition",
+            "source_ref": None,
+        }
+    ]
+
+
+def test_envelope_actions_drop_stale_readiness_handoff_queue_after_paper_delta_without_current_action() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
+
+    actions = module.current_execution_envelope_actions(
+        handoff={
+            "running_provider_attempt": False,
+            "action_queue": [
+                {
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "owner": "MedAutoScience",
+                    "recommended_owner": "MedAutoScience",
+                    "next_work_unit": "complete_medical_paper_readiness_surface",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "fingerprint": "complete_medical_paper_readiness_surface::medical_paper_readiness_missing",
+                }
+            ],
+        },
+        current_executable_owner_action={},
+        paper_progress_delta_counted=True,
+    )
+
+    assert actions == []
 
 
 def test_envelope_does_not_borrow_next_work_unit_from_stale_action_queue_for_running_attempt() -> None:

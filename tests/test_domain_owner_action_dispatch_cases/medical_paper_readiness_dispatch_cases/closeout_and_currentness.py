@@ -114,6 +114,199 @@ def test_execute_dispatch_prefers_readiness_identity_over_stale_surface_key(
     assert provider_surface["status"] == "ready"
     assert not (study_root / "artifacts" / "medical_paper" / "bounded_analysis_candidate_board.json").exists()
 
+
+def test_explicit_readiness_dispatch_is_suppressed_by_fresh_typed_blocker_envelope(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    dispatch = _readiness_dispatch_for_surface(
+        study_id=study_id,
+        surface_key="authoring_runtime_authorization",
+    )
+    _write_readiness_dispatch(study_root, profile, dispatch)
+
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_id": "medical_paper_readiness_not_ready",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+            "current_executable_owner_action": {},
+        },
+    )
+    monkeypatch.setattr(
+        module.action_execution,
+        "execute_complete_medical_paper_readiness_surface",
+        lambda **_: (_ for _ in ()).throw(AssertionError("stale readiness dispatch should not execute")),
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(ACTION_TYPE,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 0
+    assert result["executions"] == []
+    assert result["per_study_execution_summary"][0]["selected_dispatch_count"] == 0
+
+
+def _provider_payload_for_query(query: str) -> dict[str, object]:
+    payload = _complete_provider_payload()
+    payload["search_strategy"]["query"] = query
+    for provider in payload["providers"]:
+        provider["query"] = query
+    return payload
+
+
+def _bind_readiness_currentness_identity(
+    dispatch: dict[str, object],
+    *,
+    study_id: str,
+    source_fingerprint: str,
+    work_unit_digest: str,
+) -> None:
+    source_ref = (
+        f"/tmp/{study_id}/artifacts/stage_outputs/"
+        "08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    work_unit_fingerprint = (
+        f"stage-current-owner-delta::{ACTION_TYPE}::literature_provider_runtime::{source_ref}"
+    )
+    basis = {
+        "work_unit_id": ACTION_TYPE,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "truth_epoch": f"truth-event::{study_id}",
+        "runtime_health_epoch": f"runtime-health-event::{study_id}",
+    }
+    digest_basis = {
+        "stable_truth_digest": source_fingerprint,
+        "runtime_digest": f"runtime::{source_fingerprint}",
+        "volatile_projection_digest": f"projection::{source_fingerprint}",
+        "work_unit_digest": work_unit_digest,
+    }
+    readiness_identity = {
+        "action_type": ACTION_TYPE,
+        "surface_key": "literature_provider_runtime",
+        "source": "stage_kernel_projection.current_owner_delta",
+        "source_ref": source_ref,
+    }
+    dispatch["source_fingerprint"] = source_fingerprint
+    dispatch["work_unit_fingerprint"] = work_unit_fingerprint
+    dispatch["readiness_surface_identity"] = readiness_identity
+    prompt_contract = dispatch["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract["source_fingerprint"] = source_fingerprint
+    prompt_contract["work_unit_fingerprint"] = work_unit_fingerprint
+    prompt_contract["readiness_surface_identity"] = dict(readiness_identity)
+    for route in (dispatch["owner_route"], prompt_contract["owner_route"]):
+        assert isinstance(route, dict)
+        route["source_fingerprint"] = source_fingerprint
+        route["work_unit_fingerprint"] = work_unit_fingerprint
+        route["currentness_digest_basis"] = dict(digest_basis)
+        route["currentness_contract"] = {
+            "status": "currentness_basis_required",
+            "basis": dict(basis),
+            "required_fields": [
+                "work_unit_fingerprint",
+                "truth_epoch",
+                "runtime_health_epoch_or_source_eval_id",
+            ],
+            "missing_required_fields": [],
+            "fail_closed_when_missing": True,
+        }
+
+
+def test_readiness_operator_idempotency_tracks_currentness_identity_payload_drift(
+    tmp_path: Path,
+) -> None:
+    action_module = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execution.medical_paper_readiness"
+    )
+    operator_module = importlib.import_module("med_autoscience.controllers.medical_paper_operator_actions")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+
+    first_dispatch = _readiness_dispatch_for_surface(
+        study_id=study_id,
+        surface_key="literature_provider_runtime",
+    )
+    first_dispatch["prompt_contract"]["idempotency_key"] = "owner-route::dm002::readiness"
+    _bind_readiness_currentness_identity(
+        first_dispatch,
+        study_id=study_id,
+        source_fingerprint="truth-snapshot::old",
+        work_unit_digest="work-unit-digest::old",
+    )
+    first_payload = _provider_payload_for_query("diabetes mortality prediction")
+    first_key = action_module._operator_idempotency_key(
+        dispatch=first_dispatch,
+        surface_key="literature_provider_runtime",
+        action_id="run_provider_literature_scout",
+    )
+    first_result = operator_module.dispatch_guarded_medical_paper_operator_action(
+        study_root=study_root,
+        action_id="run_provider_literature_scout",
+        surface_key="literature_provider_runtime",
+        operator_payload=first_payload,
+        idempotency_key=first_key,
+    )
+
+    second_dispatch = _readiness_dispatch_for_surface(
+        study_id=study_id,
+        surface_key="literature_provider_runtime",
+    )
+    second_dispatch["prompt_contract"]["idempotency_key"] = "owner-route::dm002::readiness"
+    _bind_readiness_currentness_identity(
+        second_dispatch,
+        study_id=study_id,
+        source_fingerprint="truth-snapshot::current",
+        work_unit_digest="work-unit-digest::current",
+    )
+    second_payload = _provider_payload_for_query("diabetes CVD mortality attribution")
+    second_key = action_module._operator_idempotency_key(
+        dispatch=second_dispatch,
+        surface_key="literature_provider_runtime",
+        action_id="run_provider_literature_scout",
+    )
+    second_result = operator_module.dispatch_guarded_medical_paper_operator_action(
+        study_root=study_root,
+        action_id="run_provider_literature_scout",
+        surface_key="literature_provider_runtime",
+        operator_payload=second_payload,
+        idempotency_key=second_key,
+    )
+
+    assert first_result["status"] == "ready"
+    assert second_result["status"] == "ready"
+    assert first_key != second_key
+    assert first_result["input_digest"] != second_result["input_digest"]
+    assert second_result["missing_reason"] != "input_digest_drift"
+    assert "::currentness::" in second_result["idempotency_key"]
+    assert second_result["idempotency_key"].endswith(
+        "::surface::literature_provider_runtime::action::run_provider_literature_scout"
+    )
+
+
 def test_execute_dispatch_materializes_provider_payload_from_readiness_request_ref(
     monkeypatch,
     tmp_path: Path,

@@ -83,7 +83,9 @@ def stage_artifact_index_has_precedence_evidence(
 ) -> bool:
     index = _mapping(value)
     if _sequence(index.get("stale_platform_repairs")):
-        return True
+        return _typed_blocker_is_runtime_or_platform_repair(typed_blocker)
+    if _typed_blocker_is_medical_readiness_owner_answer(typed_blocker):
+        return False
     if _typed_blocker_is_runtime_or_platform_repair(typed_blocker):
         return False
     for stage in _sequence(index.get("stages")):
@@ -107,6 +109,21 @@ def _typed_blocker_is_runtime_or_platform_repair(typed_blocker: Mapping[str, Any
         if value
     )
     return any(marker in haystack for marker in ("runtime", "platform_repair", "read_model_reconcile"))
+
+
+def _typed_blocker_is_medical_readiness_owner_answer(typed_blocker: Mapping[str, Any]) -> bool:
+    haystack = " ".join(
+        value
+        for value in (
+            _text(typed_blocker.get("blocker_id")),
+            _text(typed_blocker.get("blocker_type")),
+            _text(typed_blocker.get("reason")),
+            _text(typed_blocker.get("reason_code")),
+            _text(typed_blocker.get("work_unit_id")),
+        )
+        if value
+    )
+    return "medical_paper_readiness" in haystack
 
 
 def _stage_artifact_target_surface(action: Mapping[str, Any]) -> dict[str, Any] | None:

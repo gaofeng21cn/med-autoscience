@@ -533,6 +533,50 @@ def test_stale_paper_delta_refs_do_not_count_as_active_progress() -> None:
     assert state["paper_facing_progress_slo"]["changed_refs"] == []
 
 
+def test_body_authority_stage_output_mirror_does_not_count_as_current_paper_progress() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "study_macro_state": {
+                "writer_state": "queued",
+                "user_next": "runtime_handoff",
+                "reason": "runtime",
+                "details": {"package_delivered": False},
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-06-07T18:10:22+00:00",
+                    "latest_progress_source": "gate_clearing_batch",
+                    "changed_refs": [
+                        (
+                            "artifacts/stage_outputs/_body_authority/paper_authority_cutover/"
+                            "current_body/paper/figures/generated/F1_cohort_flow.png"
+                        ),
+                        (
+                            "artifacts/stage_outputs/_body_authority/paper_authority_cutover/"
+                            "current_body/paper/tables/table_catalog.json"
+                        ),
+                    ],
+                }
+            },
+            "deliverable_progress_delta": {"count": 0, "token_usage_total": 0, "sources": []},
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_id": "medical_paper_readiness_missing",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                },
+            },
+        }
+    )
+
+    assert state["actual_write_active"] is False
+    assert state["meaningful_artifact_delta"] is False
+    assert state["paper_facing_progress_slo"]["visible_as_progressing"] is False
+    assert state["paper_facing_progress_slo"]["changed_refs"] == []
+
+
 def test_paper_facing_stage_log_refs_count_as_meaningful_delta() -> None:
     state = _module().build_paper_progress_state(
         {

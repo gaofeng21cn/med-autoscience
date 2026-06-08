@@ -69,6 +69,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     handoff_work_unit_id,
     materialized_record_only_provider_handoff,
     materialized_record_only_provider_handoffs,
+    persisted_provider_admission_candidates,
     provider_admission_pending_dispatch_result,
     provider_probe_has_matching_attempt,
     provider_probe_has_non_running_actions,
@@ -197,6 +198,11 @@ def _request_opl_stage_attempt(
     )
     study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
     quest_id = _non_empty_text(status_payload.get("quest_id"))
+    provider_admission_candidates = persisted_provider_admission_candidates(
+        study_root=Path(study_root),
+        status_payload=status_payload,
+    )
+    provider_admission_identity = provider_admission_candidates[0] if provider_admission_candidates else None
     return {
         **status_payload,
         "decision": "blocked",
@@ -218,7 +224,11 @@ def _request_opl_stage_attempt(
             "hydration_owner": "one-person-lab",
             "stage_attempt_state_owner": "one-person-lab",
             "mas_runtime_recovery_retired": True,
+            "provider_admission_identity": provider_admission_identity,
+            "provider_admission_candidates": provider_admission_candidates,
         },
+        "provider_admission_identity": provider_admission_identity,
+        "provider_admission_candidates": provider_admission_candidates,
         "resume_postcondition": {
             "effective": False,
             "status": "opl_stage_attempt_admission_required",

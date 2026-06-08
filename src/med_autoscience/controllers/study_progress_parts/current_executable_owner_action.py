@@ -13,9 +13,16 @@ READINESS_OWNER = "MedAutoScience"
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    domain_transition_action = _from_domain_transition(payload)
+    if _stage_kernel_owner_answer_recorded_without_next_action(payload):
+        return domain_transition_action
+    if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
+        return domain_transition_action or _from_stage_kernel_readiness_followup(payload)
     readiness_followup = _from_stage_kernel_readiness_followup(payload)
     if readiness_followup is not None:
         return readiness_followup
+    if _stage_kernel_readiness_answer_without_followup(payload):
+        return domain_transition_action
     artifact_action = _from_stage_artifact_index(payload)
     if artifact_action is not None:
         return artifact_action
@@ -31,7 +38,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         next_forced_delta.get("allowed_actions")
     )
     if owner is None and work_unit_id is None and not allowed_actions:
-        return _from_domain_transition(payload)
+        return domain_transition_action
     return _compact(
         {
             "surface_kind": SURFACE_KIND,
@@ -65,6 +72,11 @@ def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[st
     source_ref = _non_empty_text(delta.get("source_ref"))
     next_action = _readiness_next_action(readiness=readiness, delta=delta)
     surface_key = _readiness_surface_key(next_action=next_action, delta=delta)
+    if not _readiness_next_action_identifies_followup(
+        next_action=next_action,
+        surface_key=surface_key,
+    ):
+        return None
     target_surface = {
         "ref_kind": "mas_owner_surface",
         "surface_ref": _non_empty_text(delta.get("required_input")) or READINESS_ACTION,
@@ -208,8 +220,101 @@ def _readiness_surface_key(*, next_action: Mapping[str, Any], delta: Mapping[str
     )
 
 
+def _readiness_next_action_identifies_followup(
+    *,
+    next_action: Mapping[str, Any],
+    surface_key: str | None,
+) -> bool:
+    if not next_action:
+        return False
+    if surface_key is not None:
+        return True
+    action = _non_empty_text(next_action.get("action_id")) or _non_empty_text(
+        next_action.get("action_type")
+    )
+    if action is not None and action not in {READINESS_ACTION, "continue_managed_execution"}:
+        return True
+    if _non_empty_text(next_action.get("route_target")) or _non_empty_text(
+        next_action.get("next_owner")
+    ):
+        return True
+    if _non_empty_text(next_action.get("work_unit_id")):
+        return True
+    return bool(_mapping_copy(next_action.get("target_surface")))
+
+
 def _readiness_action(delta: Mapping[str, Any]) -> str | None:
     return _non_empty_text(delta.get("action")) or _non_empty_text(delta.get("action_type"))
+
+
+def _stage_kernel_readiness_answer_without_followup(payload: Mapping[str, Any]) -> bool:
+    readiness = _mapping_copy(payload.get("medical_paper_readiness"))
+    if _non_empty_text(readiness.get("overall_status")) == "ready":
+        return False
+    delta = _current_owner_delta(payload)
+    if _readiness_action(delta) != READINESS_ACTION:
+        return False
+    if not _is_stage_kernel_typed_blocker_followup(delta):
+        return False
+    next_action = _readiness_next_action(readiness=readiness, delta=delta)
+    surface_key = _readiness_surface_key(next_action=next_action, delta=delta)
+    return not _readiness_next_action_identifies_followup(
+        next_action=next_action,
+        surface_key=surface_key,
+    )
+
+
+def _stage_kernel_readiness_stable_typed_blocker_answer(payload: Mapping[str, Any]) -> bool:
+    delta = _current_owner_delta(payload)
+    if _readiness_action(delta) != READINESS_ACTION:
+        return False
+    if not _is_stage_kernel_typed_blocker_followup(delta):
+        return False
+    return _non_empty_text(delta.get("reason")) == "medical_paper_readiness_missing"
+
+
+def _stage_kernel_owner_answer_recorded_without_next_action(payload: Mapping[str, Any]) -> bool:
+    delta = _current_owner_delta(payload)
+    hard_gate = _mapping_copy(delta.get("hard_gate"))
+    if _non_empty_text(hard_gate.get("state")) == "domain_owner_answer_recorded":
+        owner_answer_kind = (
+            _non_empty_text(hard_gate.get("owner_answer_kind"))
+            or _non_empty_text(delta.get("latest_owner_answer_kind"))
+            or _non_empty_text(delta.get("source_kind"))
+        )
+        if owner_answer_kind not in {"typed_blocker", "owner_receipt"}:
+            return False
+        return not _stage_kernel_has_explicit_next_owner_action(payload)
+    if not _stage_kernel_has_manifest_backed_typed_blocker_answer(payload):
+        return False
+    return not _stage_kernel_has_explicit_next_owner_action(payload)
+
+
+def _stage_kernel_has_explicit_next_owner_action(payload: Mapping[str, Any]) -> bool:
+    candidates = (
+        _mapping_copy(delta_next_action) if (delta_next_action := _current_owner_delta(payload).get("next_owner_action")) else {},
+    )
+    for candidate in candidates:
+        if (
+            _non_empty_text(candidate.get("next_owner"))
+            or _non_empty_text(candidate.get("owner"))
+            or _non_empty_text(candidate.get("work_unit_id"))
+            or _non_empty_text(candidate.get("action_type"))
+            or _text_items(candidate.get("allowed_actions"))
+        ):
+            return True
+    return False
+
+
+def _stage_kernel_has_manifest_backed_typed_blocker_answer(payload: Mapping[str, Any]) -> bool:
+    stage_kernel = _mapping_copy(payload.get("stage_kernel_projection"))
+    stage_run_kernel = _mapping_copy(stage_kernel.get("stage_run_kernel"))
+    delta = _current_owner_delta(payload)
+    return (
+        _non_empty_text(stage_run_kernel.get("status")) == "TypedBlocked"
+        and _non_empty_text(delta.get("source_kind")) == "typed_blocker"
+        and _non_empty_text(delta.get("source_ref")) is not None
+    )
 
 
 def _is_stage_kernel_typed_blocker_followup(delta: Mapping[str, Any]) -> bool:

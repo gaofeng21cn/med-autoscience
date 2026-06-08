@@ -186,7 +186,32 @@ def _terminal_stage_paper_progress_triggered(
     ]
     if blocking_missing_fields:
         return False
-    return bool(_text_list(paper_stage_log.get("changed_paper_surfaces")))
+    if not _text_list(paper_stage_log.get("changed_paper_surfaces")):
+        return False
+    return _terminal_stage_paper_delta_backed(
+        terminal=terminal,
+        paper_stage_log=paper_stage_log,
+    )
+
+
+def _terminal_stage_paper_delta_backed(
+    *,
+    terminal: dict[str, Any],
+    paper_stage_log: dict[str, Any],
+) -> bool:
+    if _text_list(terminal.get("closeout_refs")):
+        return True
+    for field in (
+        "accepted_artifact_refs",
+        "owner_receipt_refs",
+        "product_delta_refs",
+        "semantic_delta_refs",
+        "stage_owner_answer_refs",
+        "reviewer_gate_delta_refs",
+    ):
+        if _text_list(paper_stage_log.get(field)):
+            return True
+    return False
 
 
 def _platform_repair_sources(*, opl_current_control_state_handoff: dict[str, Any] | None) -> list[str]:
@@ -574,6 +599,11 @@ def assemble_study_progress_payload(
     supervision_health_status: str | None,
     refs: dict[str, Any],
 ) -> dict[str, Any]:
+    handoff = _mapping_copy(opl_current_control_state_handoff)
+    current_active_run_id = _active_run_id_with_live_handoff(
+        current_active_run_id,
+        handoff=handoff,
+    )
     progress_delta = _progress_delta_metrics(
         quality_repair_batch_followthrough=quality_repair_batch_followthrough,
         gate_clearing_batch_followthrough=gate_clearing_batch_followthrough,
@@ -675,7 +705,10 @@ def assemble_study_progress_payload(
             supervisor_tick_audit=supervisor_tick_audit,
             refs=refs,
         ),
-        "opl_runtime_refs": runtime_facts.to_runtime_refs_dict(),
+        "opl_runtime_refs": _runtime_refs_with_live_handoff(
+            runtime_facts.to_runtime_refs_dict(),
+            handoff=handoff,
+        ),
         "deliverable_progress_delta": progress_delta["deliverable_progress_delta"],
         "paper_progress_delta": progress_delta["paper_progress_delta"],
         "platform_repair_delta": progress_delta["platform_repair_delta"],
@@ -702,6 +735,10 @@ def assemble_study_progress_payload(
     envelope_actions = current_execution_envelope_actions(
         handoff=handoff,
         current_executable_owner_action=_mapping_copy(payload.get("current_executable_owner_action")),
+        paper_progress_delta_counted=_mapping_copy(payload.get("progress_first_sprint_state")).get(
+            "paper_progress_delta_counted"
+        )
+        is True,
     )
     payload["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
         status=status,
@@ -711,6 +748,10 @@ def assemble_study_progress_payload(
         next_owner=_non_empty_text(handoff.get("next_owner")),
         runtime_health=runtime_health_snapshot,
         live_provider_attempt=handoff,
+    )
+    payload["current_executable_owner_action"] = _current_action_aligned_with_execution_envelope(
+        action=_mapping_copy(payload.get("current_executable_owner_action")),
+        envelope=_mapping_copy(payload.get("current_execution_envelope")),
     )
     payload["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
         action_queue=envelope_actions,
@@ -730,6 +771,77 @@ def assemble_study_progress_payload(
         study_root=study_root,
         generated_at=generated_at,
     )
+
+
+def _current_action_aligned_with_execution_envelope(
+    *,
+    action: Mapping[str, Any],
+    envelope: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not action:
+        return None
+    if _non_empty_text(action.get("surface_kind")) != "current_executable_owner_action":
+        return None
+    if _non_empty_text(envelope.get("state_kind")) != "executable_owner_action":
+        return None
+    envelope_work_unit = _work_unit_identity(envelope.get("next_work_unit"))
+    action_work_units = {
+        item
+        for item in (
+            _non_empty_text(action.get("work_unit_id")),
+            _non_empty_text(action.get("action_type")),
+            *_text_list(action.get("allowed_actions")),
+        )
+        if item is not None
+    }
+    if envelope_work_unit is not None and action_work_units and envelope_work_unit not in action_work_units:
+        return None
+    return dict(action)
+
+
+def _work_unit_identity(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _non_empty_text(value.get("unit_id")) or _non_empty_text(value.get("work_unit_id"))
+    return _non_empty_text(value)
+
+
+def _active_run_id_with_live_handoff(
+    active_run_id: str | None,
+    *,
+    handoff: Mapping[str, Any],
+) -> str | None:
+    if handoff.get("running_provider_attempt") is not True:
+        return active_run_id
+    return _non_empty_text(handoff.get("active_run_id")) or active_run_id
+
+
+def _runtime_refs_with_live_handoff(
+    refs: Mapping[str, Any],
+    *,
+    handoff: Mapping[str, Any],
+) -> dict[str, Any]:
+    result = dict(refs)
+    active_run_id = _active_run_id_with_live_handoff(
+        _non_empty_text(result.get("active_run_id")),
+        handoff=handoff,
+    )
+    if active_run_id is None:
+        return result
+    runtime_health = _mapping_copy(handoff.get("runtime_health"))
+    result.update(
+        {
+            "active_run_id": active_run_id,
+            "active_run_id_source": "opl_current_control_state_handoff.active_run_id",
+            "runtime_liveness_status": _non_empty_text(runtime_health.get("runtime_liveness_status"))
+            or _non_empty_text(runtime_health.get("health_status"))
+            or "live",
+            "worker_running": True,
+            "strict_live": True,
+            "missing_live_session": False,
+            "recovery_pending": False,
+        }
+    )
+    return result
 
 
 def _apply_runtime_medical_publication_surface_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:

@@ -14,6 +14,7 @@ from med_autoscience.controllers.domain_dispatch_evidence_payload import (
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import default_executor_dispatch_packets
 from med_autoscience.controllers.default_executor_action_policy import REQUEST_OWNER_BY_ACTION_TYPE
+from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
@@ -38,6 +39,13 @@ def default_executor_dispatch_tasks(
     if not dispatch_root.is_dir():
         return []
     tasks: list[dict[str, Any]] = []
+    provider_admission_candidates = provider_admission.persisted_provider_admission_candidates(
+        study_root=profile.studies_root / study_id,
+        status_payload=_provider_admission_status_payload(
+            study_id=study_id,
+            current_owner_action=_mapping(current_owner_action),
+        ),
+    )
     candidates = _current_dispatch_candidates(
         dispatch_root,
         profile=profile,
@@ -107,7 +115,24 @@ def default_executor_dispatch_tasks(
         owner_route_basis = _mapping(protocol_payload_fields.get("owner_route_currentness_basis"))
         work_unit_id = _text(protocol_payload_fields.get("work_unit_id")) or _text(owner_route_basis.get("work_unit_id"))
         work_unit_fingerprint = _text(owner_route_basis.get("work_unit_fingerprint"))
-        source_fingerprint = _source_fingerprint(
+        provider_admission_identity = _matching_provider_admission_identity(
+            candidates=provider_admission_candidates,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+            dispatch_path=dispatch_path,
+            stage_packet_path=stage_packet_path,
+            workspace_root=profile.workspace_root,
+        )
+        provider_payload_fields = _provider_admission_payload_fields(
+            provider_admission_identity=provider_admission_identity,
+            owner_route_basis=owner_route_basis,
+        )
+        work_unit_id = _text(provider_payload_fields.get("work_unit_id")) or work_unit_id
+        work_unit_fingerprint = (
+            _text(provider_payload_fields.get("work_unit_fingerprint"))
+            or work_unit_fingerprint
+        )
+        source_fingerprint = _text(provider_payload_fields.get("source_fingerprint")) or _source_fingerprint(
             dispatch=dispatch,
             dispatch_path=stage_packet_path,
             redrive_context=redrive_context,
@@ -145,6 +170,7 @@ def default_executor_dispatch_tasks(
                     "quest_id": quest_id,
                     "action_type": action_type,
                     **protocol_payload_fields,
+                    **provider_payload_fields,
                     "dispatch_authority": dispatch_authority,
                     "executor_kind": executor_kind,
                     "dispatch_ref": dispatch_ref,
@@ -155,6 +181,11 @@ def default_executor_dispatch_tasks(
                         if readiness_surface_identity
                         else {}
                     ),
+                    **(
+                        {"provider_admission_identity": provider_admission_identity}
+                        if provider_admission_identity
+                        else {}
+                    ),
                     **({"redrive_context": redrive_context} if redrive_context else {}),
                 },
                 "source_refs": source_refs,
@@ -163,10 +194,111 @@ def default_executor_dispatch_tasks(
                 "domain_truth_owner": "med-autoscience",
                 "queue_owner": "one-person-lab",
                 "profile_name": profile.name,
+                **(
+                    {"provider_admission_identity": provider_admission_identity}
+                    if provider_admission_identity
+                    else {}
+                ),
                 "domain_dispatch_evidence_record_payload": evidence_record_payload,
             }
         )
     return tasks
+
+
+def _provider_admission_status_payload(
+    *,
+    study_id: str,
+    current_owner_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {"study_id": study_id}
+    if current_owner_action:
+        payload["current_executable_owner_action"] = dict(current_owner_action)
+    return payload
+
+
+def _matching_provider_admission_identity(
+    *,
+    candidates: list[Mapping[str, Any]],
+    action_type: str,
+    work_unit_id: str | None,
+    dispatch_path: Path,
+    stage_packet_path: Path,
+    workspace_root: Path,
+) -> dict[str, Any] | None:
+    for candidate in candidates:
+        if _text(candidate.get("action_type")) != action_type:
+            continue
+        candidate_work_unit = _text(candidate.get("work_unit_id"))
+        if work_unit_id is not None and candidate_work_unit != work_unit_id:
+            continue
+        if not _candidate_dispatch_path_matches(
+            candidate_dispatch_path=_text(candidate.get("dispatch_path")),
+            dispatch_path=dispatch_path,
+            stage_packet_path=stage_packet_path,
+            workspace_root=workspace_root,
+        ):
+            continue
+        return dict(candidate)
+    return None
+
+
+def _candidate_dispatch_path_matches(
+    *,
+    candidate_dispatch_path: str | None,
+    dispatch_path: Path,
+    stage_packet_path: Path,
+    workspace_root: Path,
+) -> bool:
+    candidate = _normalized_path_text(candidate_dispatch_path)
+    if candidate is None:
+        return False
+    expected_paths = {
+        _normalized_path_text(str(dispatch_path)),
+        _normalized_path_text(str(stage_packet_path)),
+        _normalized_path_text(_workspace_relative(dispatch_path, workspace_root=workspace_root)),
+        _normalized_path_text(_workspace_relative(stage_packet_path, workspace_root=workspace_root)),
+    }
+    expected = {path for path in expected_paths if path is not None}
+    for path in expected:
+        if candidate == path or candidate.endswith(f"/{path}") or path.endswith(f"/{candidate}"):
+            return True
+    return False
+
+
+def _provider_admission_payload_fields(
+    *,
+    provider_admission_identity: Mapping[str, Any] | None,
+    owner_route_basis: Mapping[str, Any],
+) -> dict[str, Any]:
+    identity = _mapping(provider_admission_identity)
+    if not identity:
+        return {}
+    work_unit_id = _text(identity.get("work_unit_id"))
+    work_unit_fingerprint = _text(identity.get("work_unit_fingerprint"))
+    action_fingerprint = _text(identity.get("action_fingerprint")) or work_unit_fingerprint
+    currentness_basis = dict(owner_route_basis)
+    if work_unit_id is not None:
+        currentness_basis["work_unit_id"] = work_unit_id
+    if work_unit_fingerprint is not None:
+        currentness_basis["work_unit_fingerprint"] = work_unit_fingerprint
+    fields: dict[str, Any] = {
+        "provider_admission_identity": dict(identity),
+        "provider_admission_status": _text(identity.get("status")),
+        "provider_admission_source": _text(identity.get("source")),
+        "provider_admission_execution_ref": _text(identity.get("execution_ref")),
+        "provider_attempt_or_lease_required": identity.get("provider_attempt_or_lease_required") is True,
+        "owner_callable_surface": _text(identity.get("owner_callable_surface")),
+    }
+    if work_unit_id is not None:
+        fields["work_unit_id"] = work_unit_id
+    if work_unit_fingerprint is not None:
+        fields["work_unit_fingerprint"] = work_unit_fingerprint
+    if action_fingerprint is not None:
+        fields["action_fingerprint"] = action_fingerprint
+        fields["source_fingerprint"] = action_fingerprint
+    if currentness_basis:
+        fields["owner_route_currentness_basis"] = currentness_basis
+    return {key: value for key, value in fields.items() if value is not None}
 
 
 def _current_dispatch_candidates(
@@ -910,6 +1042,13 @@ def _string_list(value: object) -> list[str]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _normalized_path_text(value: object) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    return text.replace("\\", "/")
 
 
 __all__ = ["TASK_KIND", "default_executor_dispatch_tasks"]
