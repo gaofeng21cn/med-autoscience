@@ -70,6 +70,32 @@ def current_actions_for_studies(
             study=study_payload,
             top_level_actions=top_level_actions,
         )
+        writer_handoff_owner_action = _current_writer_handoff_owner_action(
+            study=study_payload,
+            top_level_actions=top_level_actions,
+        )
+        currentness_owner_action = writer_handoff_owner_action or _currentness_owner_action(
+            study=study_payload,
+            top_level_actions=top_level_actions,
+        )
+        transition_actions = _consumed_domain_transition_actions(study_payload)
+        if transition_actions:
+            per_study_actions.extend(transition_actions)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_current_consumed_domain_transition")
+                for action in [
+                    *([fresh_progress_action] if fresh_progress_action is not None else []),
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *top_level_study_actions,
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                    ],
+                ]
+            )
+            continue
         if fresh_progress_action is not None and _scan_currentness_preempts_fresh_progress(study_payload):
             suppressed_fresh_progress_studies.add(study_id)
             fresh_progress_action = None
@@ -109,6 +135,24 @@ def current_actions_for_studies(
             )
             continue
         if fresh_progress_action is not None:
+            if currentness_owner_action is not None:
+                per_study_actions.append(currentness_owner_action)
+                ignored.extend(
+                    _ignored_action(action, _currentness_owner_action_ignored_reason(currentness_owner_action))
+                    for action in [
+                        fresh_progress_action,
+                        *([readiness_followup] if readiness_followup is not None else []),
+                        *([stage_native_action] if stage_native_action is not None else []),
+                        *top_level_study_actions,
+                        *[
+                            dict(item)
+                            for item in study_payload.get("action_queue") or []
+                            if isinstance(item, Mapping)
+                        ],
+                    ]
+                    if action != currentness_owner_action
+                )
+                continue
             per_study_actions.append(fresh_progress_action)
             ignored.extend(
                 _ignored_action(action, "superseded_by_fresh_study_progress_current_owner_ticket")
@@ -954,6 +998,113 @@ def _scan_domain_transition_has_current_action(
     return bool(_domain_transition_current_actions(study))
 
 
+def _current_writer_handoff_owner_action(
+    *,
+    study: Mapping[str, Any],
+    top_level_actions: Iterable[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    actions, _ = _current_study_actions(study=study, top_level_actions=top_level_actions)
+    for action in actions:
+        if _writer_handoff_owner_action_preempts_fresh_progress(action=action, study=study):
+            return action
+    return None
+
+
+def _writer_handoff_owner_action_preempts_fresh_progress(
+    *,
+    action: Mapping[str, Any],
+    study: Mapping[str, Any],
+) -> bool:
+    action_type = _text(action.get("action_type"))
+    if action_type != "run_quality_repair_batch":
+        return False
+    owner_route = owner_route_part.ensure_owner_route_v2(
+        _mapping(action.get("owner_route"))
+        or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+        or _mapping(study.get("owner_route"))
+    )
+    if not owner_route:
+        return False
+    if _text(owner_route.get("next_owner")) != "write":
+        return False
+    if _text(owner_route.get("owner_reason")) not in {
+        "manuscript_story_surface_delta_missing",
+        "quest_waiting_opl_runtime_owner_route",
+    }:
+        return False
+    return _action_allowed_by_owner_route(action, owner_route)
+
+
+def _currentness_owner_action(
+    *,
+    study: Mapping[str, Any],
+    top_level_actions: Iterable[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    actions, _ = _current_study_actions(study=study, top_level_actions=top_level_actions)
+    for action in actions:
+        if _ai_reviewer_currentness_action_preempts_fresh_progress(action=action, study=study):
+            return action
+    return None
+
+
+def _ai_reviewer_currentness_action_preempts_fresh_progress(
+    *,
+    action: Mapping[str, Any],
+    study: Mapping[str, Any],
+) -> bool:
+    if _text(action.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return False
+    owner_route = owner_route_part.ensure_owner_route_v2(
+        _mapping(action.get("owner_route"))
+        or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+        or _mapping(study.get("owner_route"))
+    )
+    if not owner_route:
+        return False
+    if _text(owner_route.get("next_owner")) != "ai_reviewer":
+        return False
+    owner_contract = _mapping(owner_route.get("owner_reason_contract"))
+    if not _has_explicit_ai_reviewer_currentness_contract(action=action, owner_route=owner_route):
+        return False
+    if _text(action.get("required_output_surface")) != "artifacts/publication_eval/latest.json" and _text(
+        owner_contract.get("required_output")
+    ) != "artifacts/publication_eval/latest.json":
+        return False
+    forbidden = {_text(item) for item in owner_contract.get("forbidden_surfaces") or []}
+    forbidden.discard(None)
+    if "artifacts/publication_eval/latest.json" not in forbidden:
+        return False
+    return _action_allowed_by_owner_route(action, owner_route)
+
+
+def _has_explicit_ai_reviewer_currentness_contract(
+    *,
+    action: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    basis = _mapping(_mapping(owner_route.get("currentness_contract")).get("basis"))
+    if basis:
+        return True
+    source_refs = _mapping(owner_route.get("source_refs"))
+    if _mapping(source_refs.get("owner_route_currentness_basis")) and (
+        _text(action.get("source_surface")) in {"owner_route_currentness", "ai_reviewer_record_currentness"}
+        or _text(action.get("next_work_unit")) == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+        or _text(action.get("next_work_unit"))
+        == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    ):
+        return True
+    owner_contract = _mapping(owner_route.get("owner_reason_contract"))
+    forbidden = {_text(item) for item in owner_contract.get("forbidden_surfaces") or []}
+    forbidden.discard(None)
+    return "artifacts/publication_eval/latest.json" in forbidden
+
+
+def _currentness_owner_action_ignored_reason(action: Mapping[str, Any]) -> str:
+    if _text(action.get("action_type")) == "run_quality_repair_batch":
+        return "superseded_by_current_writer_handoff_owner_action"
+    return "superseded_by_current_owner_route_currentness_action"
+
+
 def _study_queue_actions(
     *,
     study: Mapping[str, Any],
@@ -1045,6 +1196,18 @@ def _domain_transition_current_actions(study: Mapping[str, Any]) -> list[dict[st
         if _action_allowed_by_owner_route(routed, owner_route):
             decorated_actions.append(routed)
     return decorated_actions
+
+
+def _consumed_domain_transition_actions(study: Mapping[str, Any]) -> list[dict[str, Any]]:
+    transition = _mapping(study.get("domain_transition"))
+    completion = _mapping(transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return []
+    if _text(transition.get("controller_action")) is None:
+        return []
+    if not _mapping(transition.get("next_work_unit")):
+        return []
+    return _domain_transition_current_actions(study)
 
 
 def _domain_transition_owner_route(

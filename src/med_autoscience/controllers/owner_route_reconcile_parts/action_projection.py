@@ -370,49 +370,6 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    if consumed_ai_reviewer_route_back is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-            for action in consumed_ai_reviewer_route_back
-        ]
-    ai_reviewer_freshness_action = artifact_freshness.blocked_action_from_ai_reviewer_freshness_mismatch(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if ai_reviewer_freshness_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=ai_reviewer_freshness_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    artifact_action = _current_package_freshness_lifecycle_action(
-        progress=progress,
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if artifact_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=artifact_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
     if current_controller_action is not None:
         return [
             decorate_action(

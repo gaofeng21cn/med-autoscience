@@ -274,15 +274,33 @@ def _build_private_release(*, family_id: str, version_root: Path) -> dict[str, o
 
 
 def _scan_private_releases(workspace_root: Path) -> list[dict[str, object]]:
-    releases_root = datasets_root(workspace_root)
-    if not releases_root.exists():
-        return []
-
     releases: list[dict[str, object]] = []
-    for family_root in sorted(path for path in releases_root.iterdir() if path.is_dir()):
-        for version_root in sorted(path for path in family_root.iterdir() if path.is_dir() and path.name.startswith("v")):
-            releases.append(_build_private_release(family_id=family_root.name, version_root=version_root))
+    seen: set[tuple[str, str]] = set()
+    for releases_root in _private_release_roots(workspace_root):
+        for family_root in sorted(path for path in releases_root.iterdir() if path.is_dir()):
+            for version_root in sorted(
+                path for path in family_root.iterdir() if path.is_dir() and path.name.startswith("v")
+            ):
+                key = (family_root.name, version_root.name)
+                if key in seen:
+                    continue
+                seen.add(key)
+                releases.append(_build_private_release(family_id=family_root.name, version_root=version_root))
     return releases
+
+
+def _private_release_roots(workspace_root: Path) -> list[Path]:
+    current_root = datasets_root(workspace_root)
+    legacy_root = Path(workspace_root).expanduser().resolve() / "datasets"
+    roots: list[Path] = []
+    seen: set[Path] = set()
+    for root in (current_root, legacy_root):
+        resolved = root.resolve()
+        if resolved in seen or not root.exists():
+            continue
+        seen.add(resolved)
+        roots.append(root)
+    return roots
 
 
 def _normalize_public_dataset_entry(item: object) -> dict[str, object]:

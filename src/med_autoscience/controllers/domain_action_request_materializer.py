@@ -665,7 +665,12 @@ def _selected_actions(
         scan_payload=scan_payload,
         study_ids=study_ids,
     )
-    ignored.extend(preignored)
+    ignored.extend(
+        _ignored_action(item, "superseded_by_current_quality_repair_writer_handoff")
+        if _text(item.get("study_id")) in current_writer_handoff_actions
+        else item
+        for item in preignored
+    )
     if not isinstance(actions, list):
         return request_selected, ignored
     for action in actions:

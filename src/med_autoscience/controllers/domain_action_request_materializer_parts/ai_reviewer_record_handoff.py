@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -133,17 +134,23 @@ def _record_production_satisfaction(
         packet=request,
     )
     lifecycle = _mapping(refreshed.get("request_lifecycle"))
-    if _text(lifecycle.get("blocked_reason")) is not None:
-        return None
     record = _mapping(refreshed.get("ai_reviewer_record"))
     record_ref = _text(refreshed.get("publication_eval_record_ref"))
     eval_id = _text(record.get("eval_id"))
     if not record or record_ref is None or eval_id is None:
+        latest = _latest_record_matching_owner_route_basis(
+            study_root=study_root,
+            owner_route=owner_route,
+        )
+        if latest is not None:
+            record, record_ref = latest
+            eval_id = _text(record.get("eval_id"))
+    if not record or record_ref is None or eval_id is None:
         return None
-    if not required_currentness_refs and not _record_matches_owner_route_basis(
-        record=record,
-        owner_route=owner_route,
-    ):
+    route_basis_matched = _record_matches_owner_route_basis(record=record, owner_route=owner_route)
+    if _text(lifecycle.get("blocked_reason")) is not None and not route_basis_matched:
+        return None
+    if not required_currentness_refs and not route_basis_matched:
         return None
     return {
         "status": "satisfied",
@@ -153,6 +160,36 @@ def _record_production_satisfaction(
         "required_currentness_refs": list(required_currentness_refs),
         "owner_route_basis": _record_production_route_basis(owner_route) or None,
     }
+
+
+def _latest_record_matching_owner_route_basis(
+    *,
+    study_root: Path,
+    owner_route: Mapping[str, Any],
+) -> tuple[dict[str, Any], str] | None:
+    for path in sorted(
+        (
+            candidate
+            for candidate in (study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses").glob(
+                "*_publication_eval_record.json"
+            )
+            if candidate.is_file()
+        ),
+        key=lambda candidate: candidate.name,
+        reverse=True,
+    ):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(payload, Mapping):
+            continue
+        record = dict(payload)
+        if _text(record.get("eval_id")) is None:
+            continue
+        if _record_matches_owner_route_basis(record=record, owner_route=owner_route):
+            return record, str(path.resolve())
+    return None
 
 
 def _record_matches_owner_route_basis(
