@@ -255,6 +255,247 @@ def test_stage_native_write_repair_owner_request_survives_stale_readiness_scan(
     assert execution["owner_route_basis"] in {"owner_request", "stage_native_workspace_next_action"}
 
 
+def test_stage_native_write_repair_dispatch_survives_readiness_missing_typed_blocker_envelope(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch_payload = _stage_native_quality_repair_dispatch(study_id=study_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    monkeypatch.setattr(
+        progress_module,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": f"quest-{study_id}",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_id": "medical_paper_readiness_missing",
+                    "owner": "MedAutoScience",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+            "current_executable_owner_action": None,
+            "current_owner_ticket": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "owner_result": {"status": "executed"},
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["owner_route_current"] is True
+
+
+def test_stage_native_write_repair_next_action_filters_stale_readiness_and_reviewer_dispatches(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "schema_version": 1,
+            "status": "ready_for_owner_action",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": PUBLICATION_SURFACE,
+            "current_stage_id": "08-publication_package_handoff",
+            "stage_index_ref": "control/stage_index.json",
+            "next_work_unit": "medical_publication_surface_blocked_write_repair",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+        },
+    )
+    stage_native_dispatch = _stage_native_quality_repair_dispatch(study_id=study_id)
+    stage_native_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    stage_native_dispatch["refs"] = {"dispatch_path": str(stage_native_path)}
+    _write_json(stage_native_path, stage_native_dispatch)
+    readiness_route = _owner_route(
+        study_id=study_id,
+        action_type="complete_medical_paper_readiness_surface",
+        owner="MedAutoScience",
+    )
+    readiness_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="complete_medical_paper_readiness_surface",
+        owner="MedAutoScience",
+        required_output_surface=(
+            "artifacts/medical_paper/<surface_key>.json or "
+            "typed blocker:medical_paper_readiness_surface_input_required"
+        ),
+        owner_route=readiness_route,
+    )
+    readiness_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "complete_medical_paper_readiness_surface.json"
+    )
+    readiness_dispatch["refs"] = {"dispatch_path": str(readiness_path)}
+    _write_json(readiness_path, readiness_dispatch)
+    reviewer_route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    reviewer_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=reviewer_route,
+    )
+    reviewer_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    reviewer_dispatch["refs"] = {"dispatch_path": str(reviewer_path)}
+    _write_json(reviewer_path, reviewer_dispatch)
+    _write_json(
+        profile.workspace_root / module.CONSUMER_LATEST_RELATIVE_PATH,
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [
+                readiness_dispatch,
+                reviewer_dispatch,
+                stage_native_dispatch,
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": f"quest-{study_id}",
+                    "owner_route": readiness_route,
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "source": "stage_kernel_projection.current_owner_delta",
+                        "latest_owner_answer_kind": "typed_blocker",
+                        "next_owner": "MedAutoScience",
+                        "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                    },
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "action_type": "complete_medical_paper_readiness_surface",
+                            "reason": "medical_paper_readiness_missing",
+                            "owner": "MedAutoScience",
+                            "owner_route": readiness_route,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        progress_module,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": f"quest-{study_id}",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_id": "medical_paper_readiness_missing",
+                    "owner": "MedAutoScience",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                },
+            },
+            "current_executable_owner_action": None,
+            "current_owner_ticket": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "owner_result": {"status": "executed"},
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 1
+    execution = result["executions"][0]
+    assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["owner_route_basis"] == "stage_native_workspace_next_action"
+
+
 def test_quality_repair_dispatch_without_stage_native_authority_still_requires_opl_authorization(
     tmp_path: Path,
 ) -> None:

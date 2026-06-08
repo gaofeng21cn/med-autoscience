@@ -294,7 +294,7 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
                 + str(profile.runtime_root)
                 + " --profile "
                 + str(profile_ref.resolve())
-                + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+                + " --request-opl-stage-attempts --dry-run"
             ),
             "domain_projection": {
                 "service_status_command": (

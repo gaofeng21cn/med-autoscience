@@ -47,7 +47,7 @@ def _study_command_surfaces(
         "launch_study": f"{prefix} study launch --profile {profile_arg} {selector}",
         "refresh_supervision": (
             f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {profile_arg} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+            f"--profile {profile_arg} --request-opl-stage-attempts --dry-run"
         ),
     }
 
@@ -76,7 +76,7 @@ def _recovery_contract(
         steps = [
             _recovery_step(
                 step_id="refresh_supervision",
-                title="刷新 OPL runtime manager domain route tick",
+                title="检查 OPL runtime manager current-control/stage-attempt",
                 surface_kind="domain_health_diagnostic_refresh",
                 command=commands["refresh_supervision"],
             ),

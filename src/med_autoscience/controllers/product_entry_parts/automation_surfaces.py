@@ -21,7 +21,7 @@ def _build_automation_surface(
     summary = _non_empty_text(product_entry_status.get("summary")) or "MAS automation entry surface."
     refresh_command = (
         f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {_profile_arg(profile_ref)} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+        f"--profile {_profile_arg(profile_ref)} --request-opl-stage-attempts --dry-run"
     )
     domain_health_refresh = _build_shared_automation_descriptor(
         automation_id="mas_domain_health_diagnostic_refresh_loop",

@@ -114,7 +114,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+                        + " --request-opl-stage-attempts --dry-run"
                     ),
                 },
                 {
@@ -175,7 +175,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+                        + " --request-opl-stage-attempts --dry-run"
                     ),
                     "surface_kind": "domain_health_diagnostic_refresh",
                 },

@@ -102,7 +102,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
             + str(profile.runtime_root)
             + " --profile "
             + str(profile_ref.resolve())
-            + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+            + " --request-opl-stage-attempts --dry-run"
         ),
     }
     assert result["recommended_command"].endswith(
@@ -110,9 +110,11 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         + str(profile.runtime_root)
         + " --profile "
         + str(profile_ref.resolve())
-        + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+        + " --request-opl-stage-attempts --dry-run"
     )
     assert result["recommended_commands"][0]["step_id"] == "refresh_supervision"
+    assert "--request-opl-owner-route-reconcile" not in result["recommended_command"]
+    assert "--apply" not in result["recommended_command"]
     assert result["recovery_contract"]["action_mode"] == "refresh_supervision"
     assert "监管心跳已陈旧" in result["current_stage_summary"]
     assert any("监管心跳已陈旧" in item for item in result["current_blockers"])

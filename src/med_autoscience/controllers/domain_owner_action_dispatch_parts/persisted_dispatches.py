@@ -71,6 +71,11 @@ def explicit_action_dispatches(
         scan_payload = scan_latest_payload(profile)
         current_study = _scan_study(scan_payload, study_id)
         scan_route_current = _dispatch_currentness_score(payload, current_study) > (0, 0)
+        stage_native_next_action_current = _stage_native_next_action_matches_dispatch(
+            profile=profile,
+            study_id=study_id,
+            dispatch=payload,
+        )
         if current_writer_handoff.fresh_progress_ticket_supersedes_action(
             profile=profile,
             study_id=study_id,
@@ -91,6 +96,7 @@ def explicit_action_dispatches(
                 dispatch=payload,
             )
             is None
+            and not stage_native_next_action_current
             and not current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
                 profile=profile,
                 study_id=study_id,
@@ -115,6 +121,12 @@ def selected_dispatches(
 ) -> list[dict[str, Any]]:
     if _fresh_progress_envelope_blocks_dispatch_selection(profile=profile, study_id=study_id):
         return []
+    stage_native_next_action = None if action_types else _stage_native_next_action(profile=profile, study_id=study_id)
+    effective_action_types = action_types
+    if stage_native_next_action is not None and (
+        stage_native_action_type := _text(stage_native_next_action.get("action_type"))
+    ) is not None:
+        effective_action_types = (stage_native_action_type,)
     current_study = _scan_study(scan_payload, study_id)
     current_study = _with_consumed_transition_owner_route(current_study)
     consumer_dispatches = current_consumer_dispatches(
@@ -122,6 +134,11 @@ def selected_dispatches(
         consumer_payload=consumer_payload,
         consumer_latest_path=consumer_latest_path,
     )
+    if stage_native_next_action is not None:
+        consumer_dispatches = _stage_native_next_action_dispatches_only(
+            next_action=stage_native_next_action,
+            dispatches=consumer_dispatches,
+        )
     consumer_dispatches = consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
         profile=profile,
         study_id=study_id,
@@ -137,8 +154,8 @@ def selected_dispatches(
         current_study=current_study,
         dispatch_currentness_score=_dispatch_currentness_score,
     )
-    requested = set(action_types)
-    if not action_types:
+    requested = set(effective_action_types)
+    if not effective_action_types:
         selected = [
             payload
             for payload in current_dispatches
@@ -259,7 +276,7 @@ def selected_dispatches(
             dispatches=explicit_action_dispatches(
                 profile=profile,
                 study_id=study_id,
-                action_types=action_types,
+                action_types=effective_action_types,
                 supported_action_types=supported_action_types,
                 dispatch_relative_root=dispatch_relative_root,
                 require_current_authority=True,
@@ -326,6 +343,13 @@ def _selected_dispatches_only(
         ):
             selected.append(dispatch)
             continue
+        if _stage_native_next_action_matches_dispatch(
+            profile=profile,
+            study_id=study_id,
+            dispatch=dispatch,
+        ):
+            selected.append(dispatch)
+            continue
         if current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
             profile=profile,
             study_id=study_id,
@@ -366,7 +390,88 @@ def _fresh_progress_envelope_blocks_dispatch_selection(
     progress = _read_fresh_study_progress(profile=profile, study_id=study_id)
     envelope = _mapping(progress.get("current_execution_envelope"))
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    if state_kind == "typed_blocker" and _fresh_progress_typed_blocker_reason(envelope) == "medical_paper_readiness_missing":
+        return False
     return state_kind in {"typed_blocker", "parked", "running_provider_attempt"}
+
+
+def _fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | None:
+    blocker = _mapping(envelope.get("typed_blocker"))
+    return (
+        _text(blocker.get("blocker_id"))
+        or _text(blocker.get("blocker_type"))
+        or _text(blocker.get("reason"))
+    )
+
+
+def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
+    payload = _read_json_object(profile.studies_root / study_id / "control" / "next_action.json")
+    if not payload:
+        return None
+    if _text(payload.get("status")) != "ready_for_owner_action":
+        return None
+    action_type = _text(payload.get("action_id")) or _text(payload.get("action_type"))
+    if action_type is None:
+        return None
+    return {
+        **payload,
+        "action_type": action_type,
+    }
+
+
+def _stage_native_next_action_dispatches_only(
+    *,
+    next_action: Mapping[str, Any],
+    dispatches: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        dispatch
+        for dispatch in dispatches
+        if _dispatch_matches_stage_native_next_action(next_action=next_action, dispatch=dispatch)
+    ]
+
+
+def _stage_native_next_action_matches_dispatch(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> bool:
+    next_action = _stage_native_next_action(profile=profile, study_id=study_id)
+    if next_action is None:
+        return False
+    return _dispatch_matches_stage_native_next_action(next_action=next_action, dispatch=dispatch)
+
+
+def _dispatch_matches_stage_native_next_action(
+    *,
+    next_action: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    action_type = _text(next_action.get("action_type"))
+    if action_type is None or _text(dispatch.get("action_type")) != action_type:
+        return False
+    owner = _text(next_action.get("owner"))
+    if owner is not None and _text(dispatch.get("next_executable_owner")) != owner:
+        return False
+    source_action = _mapping(dispatch.get("source_action"))
+    if _text(source_action.get("authority")) != "stage_native_workspace_next_action":
+        return False
+    route = _dispatch_owner_route(dispatch)
+    source_refs = _mapping(route.get("source_refs"))
+    source_surface = _text(next_action.get("source_surface"))
+    if source_surface is not None and source_surface not in {
+        _text(source_action.get("source_surface")),
+        _text(source_refs.get("source_surface")),
+    }:
+        return False
+    current_stage_id = _text(next_action.get("current_stage_id"))
+    if current_stage_id is not None and current_stage_id not in {
+        _text(source_action.get("current_stage_id")),
+        _text(source_refs.get("current_stage_id")),
+    }:
+        return False
+    return True
 
 
 def _read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:

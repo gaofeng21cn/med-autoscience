@@ -322,11 +322,14 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
 
     assert result["study_id"] == "001-risk"
     assert result["quest_id"] == "quest-001"
-    assert result["current_stage"] == "auto_runtime_parked"
-    assert result["parked_state"] == "waiting_user_decision"
+    assert result["current_stage"] == "publication_supervision"
+    assert result.get("parked_state") is None
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["parked_state"] is None
+    assert result["auto_runtime_parked"]["superseded_by_current_owner_action"] is True
     assert result["paper_stage"] == "write"
-    assert result["needs_physician_decision"] is True
-    assert result["needs_user_decision"] is True
+    assert result["needs_physician_decision"] is False
+    assert result["needs_user_decision"] is False
     assert "用户" in result["current_stage_summary"]
     assert result["status_narration_contract"]["contract_kind"] == "ai_status_narration"
     assert (
@@ -336,7 +339,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert "写作" in result["paper_stage_summary"]
     assert any("外部验证" in item for item in result["current_blockers"])
     assert any("发表" in item for item in result["current_blockers"])
-    assert "判断" in result["next_system_action"]
+    assert "owner receipt" in result["next_system_action"]
     assert result["supervision"]["browser_url"] == "http://127.0.0.1:21999/quests/quest-001"
     assert result["supervision"]["quest_session_api_url"] == "http://127.0.0.1:21999/api/sessions/run-001"
     assert result["supervision"]["active_run_id"] == "run-001"
@@ -396,7 +399,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert dashboard["user_view"]["current_stage"] == result["current_stage"]
     assert dashboard["user_view"]["blockers"] == result["current_blockers"]
     assert dashboard["user_view"]["next_step"] == result["next_system_action"]
-    assert dashboard["user_view"]["human_review_required"] is True
+    assert dashboard["user_view"]["human_review_required"] is False
     assert dashboard["maintainer_view"]["ai_reviewer_trace"]["complete"] is False
     assert dashboard["maintainer_view"]["route_back"]["count"] == 0
     assert dashboard["maintainer_view"]["artifact_stale"]["stale_artifact_count"] >= 1

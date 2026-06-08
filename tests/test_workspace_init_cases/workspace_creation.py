@@ -192,7 +192,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci study-state-matrix --profile "${PROFILE_PATH}" "$@"' in study_state_matrix_text
     assert '--profile "${PROFILE_PATH}"' in domain_health_diagnostic_text
     assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
-    assert 'apply_args=(--request-opl-stage-attempts --request-opl-owner-route-reconcile --apply)' in domain_health_diagnostic_text
+    assert 'apply_args=(--request-opl-stage-attempts --dry-run)' in domain_health_diagnostic_text
     assert '[[ "${arg}" == "--apply" || "${arg}" == "--dry-run" || "${arg}" == "--request-opl-stage-attempts" || "${arg}" == "--request-opl-owner-route-reconcile" ]]' in domain_health_diagnostic_text
     assert '${apply_args[@]+"${apply_args[@]}"}' in domain_health_diagnostic_text
     assert "--loop" not in domain_health_diagnostic_text

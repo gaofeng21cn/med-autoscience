@@ -450,7 +450,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 },
                 {
                     "name": "domain_health_diagnostic",
-                    "command": "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> --profile <profile> --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply",
+                    "command": "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> --profile <profile> --request-opl-stage-attempts --dry-run",
                     "purpose": "验证 supervisor tick、恢复动作和 runtime reconciliation。",
                 },
             ],

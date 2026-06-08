@@ -67,6 +67,19 @@ def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[s
     updated["needs_physician_decision"] = False
     updated["physician_decision_summary"] = None
     updated["user_decision_summary"] = None
+    dashboard = _mapping_copy(updated.get("ai_first_operations_dashboard"))
+    dashboard_user_view = _mapping_copy(dashboard.get("user_view"))
+    if dashboard_user_view:
+        dashboard_user_view.update(
+            {
+                "current_stage": updated.get("current_stage"),
+                "blockers": updated.get("current_blockers"),
+                "next_step": updated.get("next_system_action"),
+                "human_review_required": False,
+            }
+        )
+        dashboard["user_view"] = dashboard_user_view
+        updated["ai_first_operations_dashboard"] = dashboard
     updated["study_macro_state"] = {
         "surface": "study_macro_state",
         "schema_version": 1,

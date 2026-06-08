@@ -305,7 +305,7 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
     supervisor_service_command = "uv run python -m med_autoscience.cli study progress --profile <profile> --format json"
     refresh_supervision_command = (
         "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> "
-        "--profile <profile> --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+        "--profile <profile> --request-opl-stage-attempts --dry-run"
     )
     launch_study_command = (
         "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>"

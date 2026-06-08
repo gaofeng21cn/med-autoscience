@@ -636,7 +636,7 @@ def _build_product_entry_guardrails(
     )
     refresh_command = (
         f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {profile_arg} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+        f"--profile {profile_arg} --request-opl-stage-attempts --dry-run"
     )
     build_guardrails = _controller_override("_build_shared_product_entry_guardrails", _build_shared_product_entry_guardrails)
     return build_guardrails(

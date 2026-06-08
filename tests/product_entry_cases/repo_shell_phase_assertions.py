@@ -32,7 +32,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+                        + " --request-opl-stage-attempts --dry-run"
                     ),
                 ],
             },
@@ -82,7 +82,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                     + str(profile.runtime_root)
                     + " --profile "
                     + str(profile_ref.resolve())
-                    + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
+                    + " --request-opl-stage-attempts --dry-run"
                 ),
             },
             {

@@ -88,7 +88,7 @@ Canonical durable surfaces 包括：
 | durable study task intake | `submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"` |
 | 正式启动或续跑 | `launch-study --profile <profile> --study-id <study_id>` |
 | 人话进度投影 | `study progress --profile <profile> --study-id <study_id>` |
-| MAS refs 刷新 | `runtime domain-health-diagnostic --runtime-root <runtime_root> --profile <profile> --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply` |
+| MAS refs 刷新 | `runtime domain-health-diagnostic --runtime-root <runtime_root> --profile <profile> --request-opl-stage-attempts --dry-run` |
 | product companion | `product-entry-status --profile <profile>` / `product-entry-manifest --profile <profile>` |
 
 Workspace-local Progress-first 监控薄入口：
