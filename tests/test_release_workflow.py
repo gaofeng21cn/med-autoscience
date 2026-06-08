@@ -255,7 +255,15 @@ def test_sdist_build_projects_stage_route_contract_resource(tmp_path: Path) -> N
     shutil.copytree(REPO_ROOT, fixture_root, ignore=ignore)
 
     result = subprocess.run(
-        [sys.executable, "-m", "build", "--sdist", "--outdir", str(tmp_path / "dist")],
+        [
+            sys.executable,
+            "-m",
+            "build",
+            "--no-isolation",
+            "--sdist",
+            "--outdir",
+            str(tmp_path / "dist"),
+        ],
         cwd=fixture_root,
         text=True,
         capture_output=True,

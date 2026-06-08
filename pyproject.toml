@@ -47,6 +47,7 @@ dev = [
   "pytest>=8.0",
   "pytest-xdist>=3.6",
   "python-docx>=1.1",
+  "setuptools>=69",
 ]
 
 [tool.setuptools.package-data]
