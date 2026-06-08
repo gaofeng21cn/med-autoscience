@@ -291,6 +291,8 @@ def _with_fresh_progress_currentness(
     study_id = _non_empty_text(payload.get("study_id")) or Path(study_root).name
     if study_id is None:
         return payload
+    if not (Path(study_root).expanduser().resolve() / "artifacts" / "controller" / "study_charter.json").is_file():
+        return payload
     try:
         from med_autoscience.controllers import study_progress
 
