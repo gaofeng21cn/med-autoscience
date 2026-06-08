@@ -72,7 +72,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert foundry_series["shared_release_pin_strategy"] == {
         "owner_release_contract_ref": "contracts/family-release/shared-owner-release.json",
         "owner_commit_pin_required": True,
-        "owner_commit_pin": "c5d4a93bd4bb64adf1228ecf7f2a9038c7dce278",
+        "owner_commit_pin": "ab30fb9c1b86de034c95bc5b4ebdf89eafa86e44",
         "domain_dependency_pin_required": True,
         "supported_pin_sources": ["pyproject.toml", "uv.lock"],
         "consumer_alignment_check": "family:shared-release",
