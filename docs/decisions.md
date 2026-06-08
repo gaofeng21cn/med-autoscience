@@ -15,6 +15,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：OPL 层 Stage Transition Authority 已是 StageRun current / terminal state 唯一裁决面；MAS 侧仍需要把 domain owner answer 派生为 terminal handoff stage folder projection。若 publication gate 和 readiness closeout 两个调用方各自写同一 current projection，后续维护会重新形成“第二 current writer”的同构风险。
 - 影响：这是 MAS stage-folder projection writer 收敛，不写 study truth、runtime-owned state、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package 或 OPL queue。StageRun current pointer 的裁决 authority 仍归 OPL；MAS 只发布可被 OPL 消费的 owner answer projection。
 
+## 2026-06-08：default executor terminal closeout 必须释放 MAS OPL handoff 锁
+
+- 决策：当 OPL `domain_owner/default-executor-dispatch` attempt 已 terminal，并且 `artifacts/supervision/consumer/default_executor_execution/latest.json` 或 execution ledger 对同一 `action_type`、`work_unit_id`、`work_unit_fingerprint` 给出非空 `closeout_refs` 时，MAS `domain-health-diagnostic` 必须把旧 `opl_runtime_handoff_required` work-unit ledger 事件关闭为 `default_executor_closeout_after_opl_runtime_handoff`，随后重新进入当前 work-unit reducer / outer-loop dispatch。旧 handoff 不能继续把 study 卡在 queued/handoff 投影。
+- 决策：该关闭只消费 transport/result evidence，释放的是 platform repair lock；它不声明 paper stage 晋级、publication-ready、submission-ready、domain-ready、quality verdict 或 provider 仍在运行。后续唯一 next work unit 仍必须来自 MAS owner receipt、typed blocker、human gate、stop-loss、paper/evidence/reviewer/gate delta，或 strict OPL running proof。
+- 决策：closeout 只在同一 work-unit identity 上可消费：action、work-unit id、fingerprint、terminal execution/closeout status 和 closeout refs 都必须匹配。缺任一 identity 时 fail closed，继续暴露 currentness / closeout gap，而不是 broad redrive 或手改 study workspace。
+- 理由：DM002 / DM003 出现过 OPL provider attempt 已完成但 MAS read-model 仍显示 queued/handoff 的分裂。根因不是 provider 应该常驻无限运行，而是 provider terminal closeout 没有被 MAS controller 消费，旧 handoff 锁阻止 current-work-unit reducer 重新判定唯一 next work unit。
+- 影响：这是 MAS controller/read-model/currentness 修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package、`current_package`、memory body 或 quality verdict。
+
 ## 2026-06-08：MAS/OPL 边界采用 canonical current work unit 协议
 
 - 决策：`src/med_autoscience/controllers/current_work_unit.py` 是 MAS/OPL 边界唯一当前可执行 work unit reducer。它只输出 `executable_owner_action`、`running_provider_attempt`、`typed_blocker` 或 `blocked_current_work_unit` 四类 `status`，并固定携带 owner、action type、work-unit id、fingerprint、required output contract、acceptance refs、currentness basis 和 authority boundary。
