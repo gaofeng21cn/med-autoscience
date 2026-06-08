@@ -40,6 +40,13 @@ def _snapshot(
     }
 
 
+_STALE_OPL_HANDOFF_REASONS = [
+    "opl_current_control_state.handoff_required",
+    "publication_supervisor_state.bundle_tasks_downstream_only",
+    "quest_marked_running_but_no_live_session",
+]
+
+
 def test_route_gate_fails_closed_without_snapshot() -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
 
@@ -487,6 +494,130 @@ def test_ai_reviewer_current_analysis_harmonization_record_route_authorizes_unde
     assert gate["controller_route_gate"]["authorized"] is True
     assert gate["controller_repair_authorization_ref"]["work_unit_id"] == work_unit_id
     assert gate["blocking_reasons"] == []
+
+
+def test_ai_reviewer_current_inputs_route_still_requires_paper_write_authority_under_stale_opl_handoff() -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    gate = module.authorize_authority_route(
+        "paper_write",
+        {
+            "authority_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=_STALE_OPL_HANDOFF_REASONS,
+                paper_write_allowed=False,
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "ai_reviewer_workflow",
+                "controller_action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": work_unit_id,
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::002::latest",
+                "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+            },
+        },
+    )
+
+    assert gate["authorized"] is False
+    assert "dispatch_gate_blocked" not in gate["blocking_reasons"]
+    assert "paper_write_allowed_false" in gate["blocking_reasons"]
+    assert gate["controller_route_gate"]["authorized"] is True
+
+
+@pytest.mark.parametrize(
+    ("action", "work_unit_id"),
+    [
+        ("submission_materialize", "submission_minimal_refresh"),
+        ("delivery_sync", "publication_gate_replay"),
+    ],
+)
+def test_stale_opl_handoff_reasons_do_not_bypass_managed_publication_routes(
+    action: str,
+    work_unit_id: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+
+    gate = module.authorize_authority_route(
+        action,
+        {
+            "authority_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=_STALE_OPL_HANDOFF_REASONS,
+                paper_write_allowed=True,
+                bundle_build_allowed=True,
+            ),
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::003::latest",
+                "work_unit_fingerprint": f"publication-blockers::{work_unit_id}",
+            },
+        },
+    )
+
+    assert gate["authorized"] is False
+    assert "dispatch_gate_blocked" in gate["blocking_reasons"]
+    assert "opl_current_control_state.handoff_required" in gate["blocking_reasons"]
+    assert gate["controller_route_gate"]["authorized"] is True
+
+
+def test_stale_opl_handoff_reasons_do_not_bypass_unsupported_ai_reviewer_work_unit() -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+
+    gate = module.authorize_authority_route(
+        "paper_write",
+        {
+            "authority_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=_STALE_OPL_HANDOFF_REASONS,
+            ),
+            "controller_route_context": {
+                "control_surface": "ai_reviewer_workflow",
+                "controller_action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::002::latest",
+                "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::current-manuscript",
+            },
+        },
+    )
+
+    assert gate["authorized"] is False
+    assert "dispatch_gate_blocked" in gate["blocking_reasons"]
+    assert "controller_repair_authorization_blocked" in gate["blocking_reasons"]
+    assert "controller_route_work_unit_unsupported" in gate["blocking_reasons"]
+
+
+def test_stale_opl_handoff_reasons_do_not_bypass_human_confirmation_ai_reviewer_route() -> None:
+    module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
+
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    gate = module.authorize_authority_route(
+        "paper_write",
+        {
+            "authority_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=_STALE_OPL_HANDOFF_REASONS,
+            ),
+            "controller_route_context": {
+                "control_surface": "ai_reviewer_workflow",
+                "controller_action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": work_unit_id,
+                "requires_human_confirmation": True,
+                "source_eval_id": "publication-eval::002::latest",
+                "work_unit_fingerprint": f"domain-transition::ai_reviewer_re_eval::{work_unit_id}",
+            },
+        },
+    )
+
+    assert gate["authorized"] is False
+    assert "dispatch_gate_blocked" in gate["blocking_reasons"]
+    assert "controller_repair_authorization_blocked" in gate["blocking_reasons"]
+    assert "controller_route_requires_human_confirmation" in gate["blocking_reasons"]
 
 
 def test_medical_prose_methodology_route_authorizes_analysis_repair_under_downstream_bundle_gate() -> None:

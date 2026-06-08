@@ -42,6 +42,13 @@ _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS = frozenset(
         "same_fingerprint_loop",
     }
 )
+_UPSTREAM_QUALITY_AUTHORITY_DISPATCH_BYPASS_REASONS = frozenset(
+    {
+        *_UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS,
+        "opl_current_control_state.handoff_required",
+        "quest_marked_running_but_no_live_session",
+    }
+)
 _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS = frozenset(
     {
         "execution_owner_guard.supervisor_only",
@@ -59,6 +66,7 @@ _AI_REVIEWER_QUALITY_AUTHORITY_WORK_UNIT_IDS = frozenset(
         "ai_reviewer_recheck",
         "ai_reviewer_medical_prose_quality_review",
         "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs",
     }
 )
 _UPSTREAM_QUALITY_AUTHORITY_WORK_UNIT_IDS = frozenset(
@@ -341,7 +349,7 @@ def _controller_route_can_bypass_dispatch_reasons(
     if not dispatch_gate_reasons:
         return False
     if _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action):
-        return set(dispatch_gate_reasons) <= _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS
+        return set(dispatch_gate_reasons) <= _UPSTREAM_QUALITY_AUTHORITY_DISPATCH_BYPASS_REASONS
     if _controller_route_is_managed_publication_work_unit(controller_route_gate, action=action):
         return set(dispatch_gate_reasons) <= _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS
     return set(dispatch_gate_reasons) <= {"runtime_recovery_retry_budget_exhausted"}

@@ -23,6 +23,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 / DM003 出现过 OPL provider attempt 已完成但 MAS read-model 仍显示 queued/handoff 的分裂。根因不是 provider 应该常驻无限运行，而是 provider terminal closeout 没有被 MAS controller 消费，旧 handoff 锁阻止 current-work-unit reducer 重新判定唯一 next work unit。
 - 影响：这是 MAS controller/read-model/currentness 修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package、`current_package`、memory body 或 quality verdict。
 
+## 2026-06-08：stale OPL handoff gate 不能压住当前 MAS quality owner route
+
+- 决策：当 `domain-health-diagnostic` 已消费 terminal default-executor closeout 并重新得到当前 MAS controller route 时，authority route gate 必须优先按当前 route 的 work-unit identity 与 authorization 判定。对于已注册 upstream quality / AI reviewer `paper_write` work unit，`opl_current_control_state.handoff_required` 与 `quest_marked_running_but_no_live_session` 只能作为 stale runtime dispatch-gate residue 被绕过，不得阻断当前 `return_to_ai_reviewer_workflow` 或 `run_quality_repair_batch`。
+- 决策：该绕过只适用于 MAS 已授权 `paper_write_allowed=true` 的 current quality route，并且 work unit 必须在 allowlist 中。它不适用于 bundle、submission、delivery、generic runtime recovery、unsupported work unit、human-confirmation route、缺 work-unit fingerprint 的 route，也不绕过 `paper_write_allowed=false`。
+- 理由：DM002 closeout 被消费后，current owner 已变成 `return_to_ai_reviewer_workflow` / `produce_ai_reviewer_publication_eval_record_against_current_inputs`，但旧 `opl_current_control_state.handoff_required` 与 `quest_marked_running_but_no_live_session` 仍把 outer-loop dispatch 压成 no-op。根因是 runtime stale projection 的 dispatch gate 权重高于 MAS current quality owner route。
+- 影响：这是 MAS authority gate / currentness 修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package、`current_package` 或 quality verdict。它只让当前 quality owner route 可以继续产生 AI reviewer receipt、paper/gate delta、typed blocker、human gate 或新的 OPL provider handoff。
+
 ## 2026-06-08：MAS/OPL 边界采用 canonical current work unit 协议
 
 - 决策：`src/med_autoscience/controllers/current_work_unit.py` 是 MAS/OPL 边界唯一当前可执行 work unit reducer。它只输出 `executable_owner_action`、`running_provider_attempt`、`typed_blocker` 或 `blocked_current_work_unit` 四类 `status`，并固定携带 owner、action type、work-unit id、fingerprint、required output contract、acceptance refs、currentness basis 和 authority boundary。
