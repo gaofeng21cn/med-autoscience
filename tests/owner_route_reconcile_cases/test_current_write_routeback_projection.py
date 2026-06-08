@@ -23,9 +23,11 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+@pytest.mark.parametrize("ai_reviewer_lifecycle_stateful", [True, False])
 def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_queue(
     monkeypatch,
     tmp_path: Path,
+    ai_reviewer_lifecycle_stateful: bool,
 ) -> None:
     scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -35,6 +37,8 @@ def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_q
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
     quest_root = profile.runtime_root / quest_id
     eval_id = "publication-eval::dm002::readiness-blocked"
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
     draft = study_root / "paper" / "draft.md"
     review_ledger = study_root / "paper" / "review" / "review_ledger.json"
     evidence_ledger = study_root / "paper" / "evidence_ledger.json"
@@ -43,12 +47,29 @@ def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_q
         path.write_text("current\n", encoding="utf-8")
     ai_reviewer_request = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
     gate_replay_request = study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    ai_reviewer_lifecycle = (
+        {"state": "requested"}
+        if ai_reviewer_lifecycle_stateful
+        else {
+            "assessment_ref": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "blocked_reason": None,
+            "source_ref": str(evidence_path),
+        }
+    )
     _write_json(
         ai_reviewer_request,
         {
             "request_kind": "return_to_ai_reviewer_workflow",
             "request_owner": "ai_reviewer",
-            "request_lifecycle": {"state": "requested"},
+            "request_lifecycle": ai_reviewer_lifecycle,
             "target_surface": "artifacts/publication_eval/latest.json",
         },
     )
@@ -56,8 +77,6 @@ def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_q
         gate_replay_request,
         {"request_kind": "run_gate_replay_after_repair", "request_lifecycle": {"state": "requested"}},
     )
-    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
-    receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
     _write_json(
         evidence_path,
         {
@@ -99,6 +118,21 @@ def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_q
             "direct_current_package_write": False,
             "quality_authorized": False,
             "submission_authorized": False,
+        },
+    )
+    _write_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "dispatch_status": "ready",
+            "dispatch_authority": "ai_reviewer_record_production_handoff",
+            "next_executable_owner": "ai_reviewer",
+            "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+            "action_fingerprint": "stale-dispatch-fingerprint",
+            "refs": {"dispatch_path": str(dispatch_path)},
         },
     )
     publication_eval_payload = {
@@ -194,6 +228,16 @@ def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_q
     )
     assert study["owner_route"]["source_refs"]["source_eval_id"] == eval_id
     assert study["why_not_applied"] == "repair_progress_ai_reviewer_recheck_required"
+    assert result["provider_admission_pending_count"] == 1
+    assert study["provider_admission_pending_count"] == 1
+    candidate = result["provider_admission_candidates"][0]
+    assert candidate["source"] == "opl_current_control_state.action_queue"
+    assert candidate["study_id"] == study_id
+    assert candidate["action_type"] == "return_to_ai_reviewer_workflow"
+    assert candidate["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert candidate["action_fingerprint"] == "repair-source-current"
+    assert candidate["dispatch_path"] == str(dispatch_path)
+    assert candidate["stage_transition_authority_boundary"]["stage_transition_authority"] == "one-person-lab"
 
 
 def test_scan_projects_current_write_routeback_despite_stale_progress_active_run(monkeypatch, tmp_path: Path) -> None:

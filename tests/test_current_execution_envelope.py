@@ -377,12 +377,12 @@ def test_study_progress_does_not_project_closed_handoff_attempt_as_live(
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
-    assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is True
+    assert result["opl_current_control_state_handoff"]["running_provider_attempt"] is False
+    assert result["opl_current_control_state_handoff"]["active_run_id"] is None
     assert result["active_run_id"] is None
     assert result["opl_runtime_refs"]["active_run_id"] is None
     assert result["opl_runtime_refs"]["strict_live"] is not True
     assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
-    assert result["current_execution_envelope"]["owner"] == "MedAutoScience"
     assert result["progress_first_monitoring_summary"]["running_provider_attempt"] is False
     assert (
         result["progress_first_monitoring_summary"]["owner_action_admission"][

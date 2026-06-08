@@ -709,7 +709,18 @@ def _ai_reviewer_request_is_current(*, study_root: Path, request_ref: str) -> bo
         return False
     if _text(request.get("request_owner")) not in {None, "ai_reviewer"}:
         return False
-    return _text(_mapping(request.get("request_lifecycle")).get("state")) in {"requested", "assigned"}
+    lifecycle = _mapping(request.get("request_lifecycle"))
+    state = _text(lifecycle.get("state"))
+    if state in {"requested", "assigned"}:
+        return True
+    if state is not None:
+        return False
+    if _text(lifecycle.get("blocked_reason")) is not None:
+        return False
+    return any(
+        _text(lifecycle.get(key)) is not None
+        for key in ("assessment_ref", "source_ref", "stale_record_ref")
+    ) or bool(_string_items(lifecycle.get("required_currentness_refs")))
 
 
 def _repair_progress_followup_payload(

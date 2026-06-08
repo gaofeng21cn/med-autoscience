@@ -182,6 +182,72 @@ def test_current_work_unit_accepts_strict_running_provider_proof() -> None:
     assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-live"
 
 
+def test_current_work_unit_running_attempt_supersedes_ai_reviewer_recheck_blocker() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "publication_supervision",
+        },
+        blocked_reason="repair_progress_ai_reviewer_recheck_required",
+        next_owner="ai_reviewer",
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat-live-ai-review",
+            "active_stage_attempt_id": "sat-live-ai-review",
+            "active_workflow_id": "wf-live-ai-review",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "running_provider_attempt"
+    assert work_unit["owner"] == "ai_reviewer"
+    assert work_unit["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert "typed_blocker" not in work_unit["state"]
+
+
+def test_current_work_unit_ignores_terminal_log_without_matching_attempt_id() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+        },
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat-live-gate",
+            "active_stage_attempt_id": "sat-live-gate",
+            "active_workflow_id": "wf-live-gate",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+            "latest_terminal_stage_log": {
+                "stage_attempt_id": None,
+                "status": "blocked",
+                "source_path": "studies/003/artifacts/supervision/consumer/default_executor_execution/latest.json",
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "running_provider_attempt"
+    assert work_unit["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-live-gate"
+
+
 def test_current_work_unit_treats_handoff_ready_as_pending_evidence_not_running() -> None:
     module = _module()
     handoff = {

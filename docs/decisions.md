@@ -30,6 +30,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 closeout 被消费后，current owner 已变成 `return_to_ai_reviewer_workflow` / `produce_ai_reviewer_publication_eval_record_against_current_inputs`，但旧 `opl_current_control_state.handoff_required` 与 `quest_marked_running_but_no_live_session` 仍把 outer-loop dispatch 压成 no-op。根因是 runtime stale projection 的 dispatch gate 权重高于 MAS current quality owner route。
 - 影响：这是 MAS authority gate / currentness 修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package、`current_package` 或 quality verdict。它只让当前 quality owner route 可以继续产生 AI reviewer receipt、paper/gate delta、typed blocker、human gate 或新的 OPL provider handoff。
 
+## 2026-06-08：current-control handoff 必须导出 OPL 可消费的 provider admission candidates
+
+- 决策：`owner-route-reconcile` 正常写 `opl_current_control_state_handoff` 时，必须从同一 payload 的 current `action_queue` 派生 root `provider_admission_candidates[]` / `provider_admission_pending_count`，并同步挂到对应 `studies[]`。派生必须复用 MAS `current_control_provider_admission_candidates` authority gate：current-control action / owner-route currentness 必须匹配 MAS current work-unit identity，ready dispatch 只提供 callable carrier、action/owner 和 dispatch authority 校验；不能让 OPL intake 只看到旧 sidecar task 或旧 gate replay。
+- 决策：AI reviewer recheck request 的 lifecycle 兼容旧 schema：`request_kind=return_to_ai_reviewer_workflow`、owner 为空或 `ai_reviewer`、`blocked_reason` 为空，且 lifecycle 带 `assessment_ref`、`source_ref`、`stale_record_ref` 或 `required_currentness_refs` 时，即使缺 `state` 也视为 current pending request。若显式 `state` 不是 `requested` / `assigned`，仍 fail closed。
+- 理由：DM002 / DM003 closeout 消费后，MAS 已能重新选出 `return_to_ai_reviewer_workflow`，但 current-control 仍只暴露旧 gate action queue，OPL hydrate 不能稳定进入 fresh provider admission。另一个漂移点是旧 AI reviewer request 缺 lifecycle state，导致 currentness 判断误拒绝 reviewer recheck request 并回退到 gate clearing。
+- 影响：这是 MAS current-control / provider admission read-model 修复，不写 study truth、runtime-owned state、paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package、`current_package`、owner receipt 或 typed blocker。OPL 只消费这些 candidates 做 queue / attempt / provider transport；paper stage 晋级仍由后续 MAS owner receipt、AI reviewer / gate delta、typed blocker、human gate 或 strict running proof 决定。
+
 ## 2026-06-08：MAS/OPL 边界采用 canonical current work unit 协议
 
 - 决策：`src/med_autoscience/controllers/current_work_unit.py` 是 MAS/OPL 边界唯一当前可执行 work unit reducer。它只输出 `executable_owner_action`、`running_provider_attempt`、`typed_blocker` 或 `blocked_current_work_unit` 四类 `status`，并固定携带 owner、action type、work-unit id、fingerprint、required output contract、acceptance refs、currentness basis 和 authority boundary。

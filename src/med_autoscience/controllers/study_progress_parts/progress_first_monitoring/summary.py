@@ -462,7 +462,9 @@ def _handoff_has_matching_terminal_closeout(handoff: Mapping[str, Any]) -> bool:
         return False
     active_attempt_id = _handoff_stage_attempt_id(handoff)
     terminal_attempt_id = _text(terminal.get("stage_attempt_id"))
-    if active_attempt_id is not None and terminal_attempt_id is not None and active_attempt_id != terminal_attempt_id:
+    if active_attempt_id is not None and terminal_attempt_id != active_attempt_id:
+        return False
+    if active_attempt_id is None and terminal_attempt_id is None:
         return False
     status = _text(terminal.get("status"))
     if status in {

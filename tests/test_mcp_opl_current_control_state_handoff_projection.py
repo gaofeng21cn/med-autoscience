@@ -329,6 +329,82 @@ def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution
     assert terminal_log["authority_boundary"]["can_mark_live_run"] is False
 
 
+def test_handoff_projection_closes_running_flag_for_matching_terminal_attempt(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-08T17:18:00+00:00",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "active",
+                    "active_run_id": "opl-stage-attempt://sat-live",
+                    "active_stage_attempt_id": "sat-live",
+                    "active_workflow_id": "wf-live",
+                    "running_provider_attempt": True,
+                    "runtime_health": {
+                        "health_status": "running",
+                        "runtime_liveness_status": "live",
+                    },
+                }
+            ],
+        },
+    )
+    latest_execution_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    _write_json(
+        latest_execution_path,
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "generated_at": "2026-06-08T17:19:37+00:00",
+            "study_id": "001-risk",
+            "executions": [
+                {
+                    "generated_at": "2026-06-08T17:19:37+00:00",
+                    "study_id": "001-risk",
+                    "stage_attempt_id": "sat-live",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "blocked",
+                    "paper_stage_log": {
+                        "stage_name": "return_to_ai_reviewer_workflow",
+                        "problem_summary": "Owner callable failed closed with a typed blocker.",
+                        "stage_goal": "Produce an AI reviewer record or typed blocker.",
+                        "stage_work_done": ["Ran the owner callable."],
+                        "paper_work_done": ["No publication eval was written."],
+                        "changed_stage_surfaces": [],
+                        "changed_paper_surfaces": [],
+                        "progress_delta_classification": "typed_blocker",
+                        "outcome": "typed_blocker",
+                        "remaining_blockers": ["medical_prose_review_request_rehydrate_required"],
+                    },
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    assert projection["running_provider_attempt"] is False
+    assert projection["active_run_id"] is None
+    assert projection["active_workflow_id"] is None
+    assert projection["active_stage_attempt_id"] == "sat-live"
+    assert projection["runtime_health"]["health_status"] == "terminal"
+    assert projection["runtime_health"]["runtime_liveness_status"] == "terminal"
+    assert projection["latest_terminal_stage_log"]["stage_attempt_id"] == "sat-live"
+    assert projection["latest_terminal_stage_log"]["status"] == "blocked"
+
+
 def test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     payload = {

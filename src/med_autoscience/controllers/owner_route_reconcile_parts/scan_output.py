@@ -135,8 +135,10 @@ def build_scan_domain_routes_payload(
     provider_readiness: Mapping[str, Any] | None,
     latest_path: Path,
     history_path: Path,
+    provider_admission_candidates: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     readiness = dict(provider_readiness or {})
+    candidates = list(provider_admission_candidates or [])
     return {
         "surface": "opl_current_control_state_handoff",
         "schema_version": schema_version,
@@ -172,6 +174,8 @@ def build_scan_domain_routes_payload(
         "current_execution_evidence": {
             "action_queue": action_queue,
         },
+        "provider_admission_pending_count": len(candidates),
+        "provider_admission_candidates": candidates,
         "queue_history": dict(queue_history),
         "workspace_daemon_lifecycle": dict(workspace_daemon_lifecycle),
         "provider_readiness": readiness or None,

@@ -44,6 +44,7 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
         "quest_waiting_opl_runtime_owner_route",
+        "repair_progress_ai_reviewer_recheck_required",
         "runtime_recovery_not_authorized",
         "runtime_recovery_retry_budget_exhausted",
     }
@@ -52,6 +53,17 @@ LIVE_ATTEMPT_SUPERSEDED_NEXT_OWNERS = frozenset(
     {
         "external_supervisor",
         "one-person-lab",
+    }
+)
+TERMINAL_STAGE_LOG_STATUSES = frozenset(
+    {
+        "blocked",
+        "closed",
+        "closed_with_domain_owner_refs",
+        "completed",
+        "failed",
+        "terminal",
+        "typed_blocked",
     }
 )
 
@@ -341,7 +353,7 @@ def opl_current_control_state_study_handoff_projection(
     elif matching_terminal_stage_log:
         projection["latest_terminal_stage_log"] = matching_terminal_stage_log
     projection.update(_opl_current_control_state_mode_fields(payload))
-    return projection
+    return _apply_matching_terminal_closeout_to_handoff(projection)
 
 
 def _closeout_only_study_handoff_projection(
@@ -482,7 +494,60 @@ def merge_live_attempt_observability_into_handoff(
         or not _copy_mapping_keys(merged.get("runtime_health"), ("health_status", "runtime_liveness_status"))
     ):
         merged["runtime_health"] = live_runtime_health
-    return merged
+    return _apply_matching_terminal_closeout_to_handoff(merged)
+
+
+def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> dict[str, Any]:
+    if not _handoff_has_matching_terminal_closeout(projection):
+        return projection
+    updated = dict(projection)
+    terminal = _observability_mapping(updated.get("latest_terminal_stage_log"))
+    updated["running_provider_attempt"] = False
+    updated["runtime_owner"] = None
+    updated["provider_attempt_owner"] = None
+    updated["queue_owner"] = None
+    updated["active_run_id"] = None
+    updated["active_workflow_id"] = None
+    updated["active_stage_attempt_id"] = (
+        _non_empty_text(terminal.get("stage_attempt_id"))
+        or _non_empty_text(updated.get("active_stage_attempt_id"))
+    )
+    runtime_health = _observability_mapping(updated.get("runtime_health"))
+    if runtime_health:
+        runtime_health["runtime_liveness_status"] = "terminal"
+        runtime_health["health_status"] = "terminal"
+        updated["runtime_health"] = runtime_health
+    return updated
+
+
+def _handoff_has_matching_terminal_closeout(handoff: Mapping[str, Any]) -> bool:
+    terminal = _observability_mapping(handoff.get("latest_terminal_stage_log"))
+    if not terminal:
+        return False
+    active_attempt_id = _handoff_stage_attempt_id(handoff)
+    terminal_attempt_id = _non_empty_text(terminal.get("stage_attempt_id"))
+    if active_attempt_id is not None and terminal_attempt_id != active_attempt_id:
+        return False
+    if active_attempt_id is None and terminal_attempt_id is None:
+        return False
+    status = _non_empty_text(terminal.get("status"))
+    if status in TERMINAL_STAGE_LOG_STATUSES:
+        return True
+    return (
+        _non_empty_text(terminal.get("source_path")) is not None
+        and _non_empty_text(terminal.get("record_path")) is not None
+    )
+
+
+def _handoff_stage_attempt_id(handoff: Mapping[str, Any]) -> str | None:
+    if text := _non_empty_text(handoff.get("active_stage_attempt_id")):
+        return text
+    active_run_id = _non_empty_text(handoff.get("active_run_id"))
+    prefix = "opl-stage-attempt://"
+    if active_run_id is not None and active_run_id.startswith(prefix):
+        attempt_id = active_run_id[len(prefix) :].strip()
+        return attempt_id or None
+    return None
 
 
 def _live_attempt_supersedes_handoff_blocker(handoff: Mapping[str, Any]) -> bool:

@@ -26,6 +26,7 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
         "quest_waiting_opl_runtime_owner_route",
+        "repair_progress_ai_reviewer_recheck_required",
         "runtime_recovery_not_authorized",
         "runtime_recovery_retry_budget_exhausted",
     }
@@ -479,7 +480,9 @@ def _attempt_has_matching_terminal_closeout(attempt: Mapping[str, Any]) -> bool:
         return False
     active_attempt_id = _stage_attempt_id_from_handoff(attempt)
     terminal_attempt_id = _text(terminal.get("stage_attempt_id"))
-    if active_attempt_id is not None and terminal_attempt_id is not None and active_attempt_id != terminal_attempt_id:
+    if active_attempt_id is not None and terminal_attempt_id != active_attempt_id:
+        return False
+    if active_attempt_id is None and terminal_attempt_id is None:
         return False
     status = _text(terminal.get("status"))
     if status in {

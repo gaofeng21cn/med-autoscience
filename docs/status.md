@@ -21,6 +21,8 @@ Paper clean-room rebuild contract：当 DM002 / DM003 同类论文线受 stale r
 
 Readiness blocker-derived repair contract：当 Stage 08 已稳定给出 `medical_paper_readiness_missing` / `medical_paper_readiness_not_ready` typed blocker，且 `publication_eval/latest.json.gaps` 已具体化到论文、证据、reviewer 或 submission/gate 差距时，当前长期读法不再把 `complete_medical_paper_readiness_surface` 作为 primary queued action。MAS owner-action reducer 必须从该 blocker 和 gaps 派生 `run_quality_repair_batch` 或 `run_gate_clearing_batch`，并携带 Stage typed blocker ref、publication eval id、gap ids、work-unit fingerprint 和 required output contract。重复 readiness completion 应标记为 `superseded_by_readiness_blocker_derived_repair`，只进入 ignored evidence / diagnostic；Progress-First operator surface 应展示所需 manuscript / evidence / reviewer / gate repair delta，而不是继续证明 not ready。该 contract 不写 study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、paper、submission package 或 `current_package`。
 
+Current-control unique owner contract：MAS current work-unit reducer 是唯一下一工作单元 truth；OPL current-control / provider admission candidates 只承载 queue、attempt、provider transport 和 liveness evidence。OPL terminal closeout 必须先被 MAS controller 消费以释放旧 handoff 锁，再由 MAS 重新给出 `executable_owner_action`、`running_provider_attempt`、`typed_blocker` 或 `blocked_current_work_unit`。Root `provider_admission_candidates[]` 只能由 current-control action / owner-route currentness 与 MAS current work-unit identity 匹配后派生；ready dispatch 只是 callable carrier 和 authority check。该 contract 不声明 paper closure、publication-ready、current package freshness、production-ready 或 provider 持续运行。
+
 ## 读法
 
 - 本文只保留当前状态摘要、owner 边界、open evidence tail 和禁止误写口径。
