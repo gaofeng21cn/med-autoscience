@@ -107,6 +107,21 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
     assert candidate["action_fingerprint"] == action_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
     assert candidate["next_executable_owner"] == "ai_reviewer"
+    boundary = candidate["authority_boundary"]
+    assert boundary["stage_transition_authority"] == "OPL Stage Transition Authority"
+    assert boundary["stage_authority_role"] == "non_authoritative_observation_and_intent_producer"
+    assert boundary["can_write_stage_current_pointer"] is False
+    assert boundary["can_write_current_owner_delta"] is False
+    assert boundary["can_write_stage_terminal_state"] is False
+    assert boundary["can_mark_provider_attempt_running"] is False
+    stage_boundary = candidate["stage_transition_authority_boundary"]
+    assert stage_boundary["producer_kind"] == "runtime_provider"
+    assert stage_boundary["intent_kind"] == "provider_observation"
+    assert stage_boundary["stage_transition_authority"] == "one-person-lab"
+    assert stage_boundary["intent_can_write_stage_current_pointer"] is False
+    assert stage_boundary["intent_can_write_stage_run_terminal_state"] is False
+    assert stage_boundary["intent_can_publish_current_owner_delta"] is False
+    assert stage_boundary["intent_can_write_domain_truth"] is False
 
 
 def test_provider_admission_candidate_from_current_control_gate_clearing_queue_survives_stale_blocker(
@@ -210,6 +225,21 @@ def test_provider_admission_candidate_from_current_control_gate_clearing_queue_s
     assert candidate["action_fingerprint"] == action_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
     assert candidate["next_executable_owner"] == "gate_clearing_batch"
+    boundary = candidate["authority_boundary"]
+    assert boundary["stage_transition_authority"] == "OPL Stage Transition Authority"
+    assert boundary["stage_authority_role"] == "non_authoritative_observation_and_intent_producer"
+    assert boundary["can_write_stage_current_pointer"] is False
+    assert boundary["can_write_current_owner_delta"] is False
+    assert boundary["can_write_stage_terminal_state"] is False
+    assert boundary["can_mark_provider_attempt_running"] is False
+    stage_boundary = candidate["stage_transition_authority_boundary"]
+    assert stage_boundary["producer_kind"] == "runtime_provider"
+    assert stage_boundary["intent_kind"] == "provider_observation"
+    assert stage_boundary["stage_transition_authority"] == "one-person-lab"
+    assert stage_boundary["intent_can_write_stage_current_pointer"] is False
+    assert stage_boundary["intent_can_write_stage_run_terminal_state"] is False
+    assert stage_boundary["intent_can_publish_current_owner_delta"] is False
+    assert stage_boundary["intent_can_write_domain_truth"] is False
 
 
 def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_queue(
@@ -346,4 +376,19 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
     assert candidate["work_unit_id"] == work_unit_id
     assert candidate["action_fingerprint"] == action_fingerprint
     assert candidate["dispatch_path"] == str(dispatch_path)
+    boundary = candidate["authority_boundary"]
+    assert boundary["stage_transition_authority"] == "OPL Stage Transition Authority"
+    assert boundary["stage_authority_role"] == "non_authoritative_observation_and_intent_producer"
+    assert boundary["can_write_stage_current_pointer"] is False
+    assert boundary["can_write_current_owner_delta"] is False
+    assert boundary["can_write_stage_terminal_state"] is False
+    assert boundary["can_mark_provider_attempt_running"] is False
+    stage_boundary = candidate["stage_transition_authority_boundary"]
+    assert stage_boundary["producer_kind"] == "runtime_provider"
+    assert stage_boundary["intent_kind"] == "provider_observation"
+    assert stage_boundary["stage_transition_authority"] == "one-person-lab"
+    assert stage_boundary["intent_can_write_stage_current_pointer"] is False
+    assert stage_boundary["intent_can_write_stage_run_terminal_state"] is False
+    assert stage_boundary["intent_can_publish_current_owner_delta"] is False
+    assert stage_boundary["intent_can_write_domain_truth"] is False
     assert result["action_fingerprints"] == [action_fingerprint]

@@ -42,6 +42,13 @@ def _assert_contract_shape(work_unit: Mapping[str, Any]) -> None:
     }
     assert work_unit["authority_boundary"]["top_level_truth"] == "status"
     assert work_unit["authority_boundary"]["mas_owner_authority_preserved"] is True
+    assert work_unit["authority_boundary"]["stage_transition_authority"] == "OPL Stage Transition Authority"
+    assert work_unit["authority_boundary"]["stage_authority_role"] == (
+        "non_authoritative_observation_and_intent_producer"
+    )
+    assert work_unit["authority_boundary"]["can_write_stage_current_pointer"] is False
+    assert work_unit["authority_boundary"]["can_write_current_owner_delta"] is False
+    assert work_unit["authority_boundary"]["can_write_stage_terminal_state"] is False
 
 
 def test_current_work_unit_projects_repair_progress_ai_reviewer_followup() -> None:

@@ -19,6 +19,34 @@ CURRENT_CONTROL_PROVIDER_ADMISSION_DISPATCH_AUTHORITIES = {
     "return_to_ai_reviewer_workflow": {"ai_reviewer_record_production_handoff"},
     "run_gate_clearing_batch": {"consumer_default_executor_dispatch"},
 }
+PROVIDER_ADMISSION_AUTHORITY_BOUNDARY = {
+    "surface_kind": "opl_provider_admission_candidate",
+    "authority": "mas_provider_admission_identity",
+    "stage_transition_authority": "OPL Stage Transition Authority",
+    "stage_authority_role": "non_authoritative_observation_and_intent_producer",
+    "can_write_stage_current_pointer": False,
+    "can_write_current_owner_delta": False,
+    "can_write_stage_terminal_state": False,
+    "can_write_runtime_owned_surfaces": False,
+    "can_mark_provider_attempt_running": False,
+    "provider_completion_is_domain_completion": False,
+}
+STAGE_TRANSITION_AUTHORITY_BOUNDARY = {
+    "producer_kind": "runtime_provider",
+    "intent_kind": "provider_observation",
+    "stage_transition_authority": "one-person-lab",
+    "intent_can_write_stage_current_pointer": False,
+    "intent_can_write_stage_run_terminal_state": False,
+    "intent_can_publish_current_owner_delta": False,
+    "intent_can_write_domain_truth": False,
+    "intent_can_create_owner_receipt": False,
+    "intent_can_create_typed_blocker": False,
+    "provider_completion_counts_as_stage_transition": False,
+    "read_model_update_counts_as_stage_transition": False,
+    "worklist_update_counts_as_stage_transition": False,
+    "evidence_event_counts_as_stage_transition": False,
+    "agent_lab_output_counts_as_stage_transition": False,
+}
 
 
 def materialized_record_only_provider_handoff(materialize_result: Mapping[str, Any]) -> bool:
@@ -455,6 +483,8 @@ def provider_admission_candidate_from_execution(
         "owner_route_current": execution.get("owner_route_current") is not False,
         "owner_route_basis": _non_empty_text(execution.get("owner_route_basis")),
         "currentness_basis": dict(currentness_basis) if currentness_basis else None,
+        "authority_boundary": dict(PROVIDER_ADMISSION_AUTHORITY_BOUNDARY),
+        "stage_transition_authority_boundary": dict(STAGE_TRANSITION_AUTHORITY_BOUNDARY),
         "source_refs": {
             key: source_refs[key]
             for key in (
