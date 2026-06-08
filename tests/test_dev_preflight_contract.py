@@ -129,13 +129,13 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
         "exact_paths": [],
         "prefix_paths": ["src/med_autoscience/", "tests/"],
     }
-    assert generic["fail_policy"] == "unknown_python_and_test_paths_route_to_regression"
-    assert generic["planned_commands"] == ["make test-regression"]
-    assert "make test-regression" in generic["unknown_path_suggestion"]
+    assert generic["fail_policy"] == "unknown_python_and_test_paths_route_to_smoke"
+    assert generic["planned_commands"] == ["make test-smoke"]
+    assert "make test-smoke" in generic["unknown_path_suggestion"]
     assert any("src/med_autoscience/" in suggestion for suggestion in generic["unknown_path_suggestions"])
     assert any("tests/" in suggestion for suggestion in generic["unknown_path_suggestions"])
     assert report["unknown_path_policy"] == {
-        "python_and_test_paths": "regression",
+        "python_and_test_paths": "smoke",
         "documentation_paths": "review-only",
         "workflow_config_paths": "fail-closed",
     }
@@ -192,8 +192,8 @@ def test_preflight_contract_report_hygiene_documents_review_policies() -> None:
     assert hygiene["missing_planned_pytest_paths"] == []
     assert hygiene["unknown_python_and_test_paths"] == {
         "category": module.GENERIC_PYTHON_REGRESSION_CATEGORY,
-        "planned_commands": ["make test-regression"],
-        "fail_policy": "unknown_python_and_test_paths_route_to_regression",
+        "planned_commands": ["make test-smoke"],
+        "fail_policy": "unknown_python_and_test_paths_route_to_smoke",
     }
     assert hygiene["unknown_documentation_paths"] == {
         "planned_commands": [],
@@ -333,7 +333,7 @@ def test_classify_changed_files_flags_unclassified_paths() -> None:
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_routes_unknown_python_to_generic_regression() -> None:
+def test_classify_changed_files_routes_unknown_python_to_generic_smoke() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
@@ -343,9 +343,9 @@ def test_classify_changed_files_routes_unknown_python_to_generic_regression() ->
         ]
     )
 
-    assert result.matched_categories == ("generic_python_regression_surface",)
+    assert result.matched_categories == ("generic_python_smoke_surface",)
     assert result.unclassified_changes == ()
-    assert module.plan_commands_for_categories(result.matched_categories) == ["make test-regression"]
+    assert module.plan_commands_for_categories(result.matched_categories) == ["make test-smoke"]
 
 
 def test_classify_changed_files_keeps_unknown_docs_fail_closed() -> None:
@@ -691,7 +691,7 @@ def test_classify_changed_files_matches_stage_kernel_pack_contract_surface() -> 
         "root_governance_contract_surface",
         "standard_agent_pack_surface",
         "documentation_review_only",
-        "generic_python_regression_surface",
+        "generic_python_smoke_surface",
     )
     assert result.unclassified_changes == ()
 

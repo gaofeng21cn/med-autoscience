@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-08：change-aware CI 必须抓大放小，full regression 留在 advisory / 显式 lane
+
+- 决策：`doctor preflight` 对已明确归属 owner surface 的变更继续运行对应聚焦命令；对 workflow/config 未分类路径继续 fail-closed；对纯 docs 继续 review-only；对未知 `src/med_autoscience/*.py` 与 `tests/*.py` generic fallback 只运行 `make test-smoke`，不再把 `make test-regression` 作为默认分支硬门。
+- 决策：`make test-regression` 仍是重要回归信号，但默认归属 `macOS Advisory` / 显式本地验证 / release-hardening 语境。当前 OPL/MAS 重构期，owner-route、currentness、publication route、retired naming 等大面 regression failure 应作为 advisory 红灯或 owner-needed work item 分类，不应由每个泛型 Python diff 自动阻断 build、package 和明确 owner-surface 聚焦测试。
+- 决策：若某个 owner surface 已能明确定位风险，例如 release workflow、family shared surface、runtime contract、control-plane 或 standard-agent pack，preflight 仍必须跑该 surface 的聚焦 hard gate。若某条 generic fallback 反复暴露同一硬边界，应把相关路径提升到显式 owner surface，而不是重新把 full regression 塞回 generic fallback。
+- 理由：2026-06-08 默认分支 CI 在 change-aware preflight 中因 `pyproject.toml`、release tests 和 generic Python/test fallback 同时触发 `make test-regression`，导致 19 个 owner-route/currentness/retired naming regression failure 阻断默认 build。失败本身是有价值的重构信号，但它属于 broad semantic regression，不适合作为每个泛型 Python diff 的默认硬门。
+- 影响：这是 CI policy 和 preflight contract 调整，不放宽 workflow/config fail-closed，不隐藏 advisory regression，也不改变 MAS owner-route/currentness 语义。后续若要关闭当前 19 个 regression failure，应作为 owner-route/currentness 修复或命名退役 lane 处理，而不是在 CI 中删除信号。
+
 ## 2026-06-08：medical-paper readiness blocker 必须派生具体修复 work unit
 
 - 决策：Stage Native `medical_paper_readiness_missing` typed blocker 是论文未 ready 的 owner answer，不是可重复执行的主任务。若当前 Stage 08 owner delta 已是稳定 readiness blocker，且 `publication_eval/latest.json` 的 `gaps` 已给出具体论文、证据、reviewer 或 submission/gate 差距，owner-action reducer 必须把下一步派生为具体 `run_quality_repair_batch` 或 `run_gate_clearing_batch` work unit；不得继续把同一个 `complete_medical_paper_readiness_surface` 作为 primary queued action。

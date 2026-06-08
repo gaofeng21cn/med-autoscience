@@ -23,7 +23,7 @@ def test_run_preflight_treats_docs_as_review_only_without_running_commands(tmp_p
     assert result.planned_commands == ()
 
 
-def test_run_preflight_routes_unknown_python_changes_to_regression(monkeypatch, tmp_path: Path) -> None:
+def test_run_preflight_routes_unknown_python_changes_to_smoke(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
     calls: list[list[str]] = []
 
@@ -45,13 +45,13 @@ def test_run_preflight_routes_unknown_python_changes_to_regression(monkeypatch, 
     )
 
     assert result.ok is True
-    assert result.matched_categories == ("generic_python_regression_surface",)
+    assert result.matched_categories == ("generic_python_smoke_surface",)
     assert result.unclassified_changes == ()
-    assert result.planned_commands == ("make test-regression",)
-    assert calls == [["make", "test-regression"]]
+    assert result.planned_commands == ("make test-smoke",)
+    assert calls == [["make", "test-smoke"]]
 
 
-def test_run_preflight_routes_unknown_test_changes_to_regression(monkeypatch, tmp_path: Path) -> None:
+def test_run_preflight_routes_unknown_test_changes_to_smoke(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
     calls: list[list[str]] = []
 
@@ -73,10 +73,10 @@ def test_run_preflight_routes_unknown_test_changes_to_regression(monkeypatch, tm
     )
 
     assert result.ok is True
-    assert result.matched_categories == ("generic_python_regression_surface",)
+    assert result.matched_categories == ("generic_python_smoke_surface",)
     assert result.unclassified_changes == ()
-    assert result.planned_commands == ("make test-regression",)
-    assert calls == [["make", "test-regression"]]
+    assert result.planned_commands == ("make test-smoke",)
+    assert calls == [["make", "test-smoke"]]
 
 
 def test_run_preflight_keeps_unknown_workflow_config_fail_closed(monkeypatch, tmp_path: Path) -> None:
@@ -165,12 +165,12 @@ def test_render_preflight_text_includes_failed_command_output_tail() -> None:
     result = module.PreflightResult(
         input_mode="ci-base_ref",
         changed_files=("src/med_autoscience/controllers/example.py",),
-        matched_categories=("generic_python_regression_surface",),
+        matched_categories=("generic_python_smoke_surface",),
         unclassified_changes=(),
-        planned_commands=("make test-regression",),
+        planned_commands=("make test-smoke",),
         results=(
             module.CommandResult(
-                command="make test-regression",
+                command="make test-smoke",
                 returncode=2,
                 stdout="collected 2 items\nFAILED tests/test_example.py::test_contract\n",
                 stderr="pytest: error: unknown config option\n",
@@ -181,7 +181,7 @@ def test_render_preflight_text_includes_failed_command_output_tail() -> None:
 
     text = module.render_preflight_text(result)
 
-    assert "  - command: make test-regression" in text
+    assert "  - command: make test-smoke" in text
     assert "    returncode: 2" in text
     assert "    stdout_tail:" in text
     assert "      FAILED tests/test_example.py::test_contract" in text

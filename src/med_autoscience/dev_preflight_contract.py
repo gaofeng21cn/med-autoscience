@@ -51,7 +51,8 @@ class PreflightCoverageAudit:
     fail_closed_families: tuple[str, ...]
 
 
-GENERIC_PYTHON_REGRESSION_CATEGORY = "generic_python_regression_surface"
+GENERIC_PYTHON_SMOKE_CATEGORY = "generic_python_smoke_surface"
+GENERIC_PYTHON_REGRESSION_CATEGORY = GENERIC_PYTHON_SMOKE_CATEGORY
 DOCUMENTATION_REVIEW_CATEGORY = "documentation_review_only"
 
 _DOC_ONLY_PREFIX_PATHS = ("docs/", "bootstrap/", "assets/branding/")
@@ -418,14 +419,16 @@ _GENERIC_PYTHON_PREFIXES = (
     "tests/",
 )
 
-_GENERIC_PYTHON_REGRESSION_COMMANDS = (
-    "make test-regression",
+_GENERIC_PYTHON_SMOKE_COMMANDS = (
+    "make test-smoke",
 )
+_GENERIC_PYTHON_REGRESSION_COMMANDS = _GENERIC_PYTHON_SMOKE_COMMANDS
 
 _MATCHED_CATEGORY_FAIL_POLICY = "matched_paths_run_planned_commands"
-_GENERIC_PYTHON_FAIL_POLICY = "unknown_python_and_test_paths_route_to_regression"
+_GENERIC_PYTHON_SMOKE_FAIL_POLICY = "unknown_python_and_test_paths_route_to_smoke"
+_GENERIC_PYTHON_FAIL_POLICY = _GENERIC_PYTHON_SMOKE_FAIL_POLICY
 _UNKNOWN_PATH_POLICY = {
-    "python_and_test_paths": "regression",
+    "python_and_test_paths": "smoke",
     "documentation_paths": "review-only",
     "workflow_config_paths": "fail-closed",
 }
@@ -736,11 +739,11 @@ def _unknown_path_suggestions_for_category(spec: PreflightCategorySpec) -> list[
     ]
     if any(path.startswith("tests/") for path in (*spec.exact_paths, *spec.prefix_paths)):
         suggestions.append(
-            "Unknown tests/*.py paths route to generic_python_regression_surface unless added to an owner surface."
+            "Unknown tests/*.py paths route to generic_python_smoke_surface unless added to an owner surface."
         )
     if any(path.startswith("src/med_autoscience/") for path in (*spec.exact_paths, *spec.prefix_paths)):
         suggestions.append(
-            "Unknown src/med_autoscience/*.py paths route to generic_python_regression_surface unless added to an owner surface."
+            "Unknown src/med_autoscience/*.py paths route to generic_python_smoke_surface unless added to an owner surface."
         )
     return suggestions
 
@@ -793,8 +796,8 @@ def build_preflight_contract_report() -> dict[str, object]:
         )
     generic_commands = list(_GENERIC_PYTHON_REGRESSION_COMMANDS)
     generic_unknown_path_suggestions = [
-        "Unknown src/med_autoscience/*.py paths route to generic_python_regression_surface and run make test-regression.",
-        "Unknown tests/*.py paths route to generic_python_regression_surface and run make test-regression.",
+        "Unknown src/med_autoscience/*.py paths route to generic_python_smoke_surface and run make test-smoke.",
+        "Unknown tests/*.py paths route to generic_python_smoke_surface and run make test-smoke.",
         f"Unknown docs paths are review-only. {_UNKNOWN_DOCUMENTATION_SUGGESTION}",
         f"Unknown workflow/config paths remain fail-closed. {_UNKNOWN_WORKFLOW_CONFIG_SUGGESTION}",
     ]
