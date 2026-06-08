@@ -13,13 +13,24 @@ ACTIVE_SUPERVISION_MANAGERS = ("opl",)
 ACTIVE_SUPERVISION_ENSURE_MANAGERS = ("opl",)
 
 
+def _add_format_argument(
+    parser: argparse.ArgumentParser,
+    *,
+    choices: tuple[str, ...],
+    default: str,
+) -> None:
+    parser.add_argument("--format", choices=choices, default=default)
+    if "json" in choices:
+        parser.add_argument("--json", action="store_const", const="json", dest="format")
+
+
 def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="medautosci")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     for operation in FOUNDRY_OPERATIONS:
         foundry_parser = subparsers.add_parser(f"foundry-{operation}")
-        foundry_parser.add_argument("--format", choices=("text", "json"), default="text")
+        _add_format_argument(foundry_parser, choices=("text", "json"), default="text")
 
     doctor_parser = subparsers.add_parser("doctor")
     doctor_parser.add_argument("--profile", required=True)

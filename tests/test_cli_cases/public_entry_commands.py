@@ -159,7 +159,7 @@ def test_public_help_prints_grouped_surface(capsys) -> None:
     assert "Series: OPL Foundry Agent" in captured.out
     assert "Agent id: mas" in captured.out
     assert "Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff" in captured.out
-    assert "medautosci foundry status --format json" in captured.out
+    assert "medautosci foundry status --json" in captured.out
     assert "doctor" in captured.out
     assert "publication" in captured.out
     assert "authority governance" in captured.out
@@ -186,10 +186,36 @@ def test_foundry_status_exposes_series_spine(capsys) -> None:
     assert payload["ordinary_golden_path"]["readiness_claims"]["study_ready"] is False
 
 
+def test_foundry_json_flag_matches_format_json_for_series_operations(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    for operation in ("status", "inspect", "interfaces", "validate", "doctor", "peers"):
+        format_exit_code = cli.main(["foundry", operation, "--format", "json"])
+        format_output = capsys.readouterr().out
+        json_exit_code = cli.main(["foundry", operation, "--json"])
+        json_output = capsys.readouterr().out
+
+        assert format_exit_code == 0
+        assert json_exit_code == 0
+        assert json.loads(json_output) == json.loads(format_output)
+
+
 def test_top_level_status_alias_dispatches_foundry_status_json(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
     exit_code = cli.main(["status", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["operation"] == "status"
+    assert payload["series_label"] == "OPL Foundry Agent"
+
+
+def test_top_level_status_alias_accepts_json_flag(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["status", "--json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0

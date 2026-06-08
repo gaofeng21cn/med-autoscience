@@ -25,7 +25,7 @@ PUBLIC_HELP_LINES = (
     f"Series: {SERIES_LABEL}",
     f"Agent id: {AGENT_ID}",
     "Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff",
-    "Executable frontdoor: medautosci foundry status --format json",
+    "Executable frontdoor: medautosci foundry status --json",
     f"Authority boundary: {AUTHORITY_BOUNDARY_SUMMARY}",
 )
 
@@ -101,7 +101,7 @@ def render_foundry_frontdoor_text(payload: dict[str, Any]) -> str:
         f"Agent id: {payload['agent_id']}",
         f"Agent label: {payload['agent_label']}",
         "Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff",
-        "Executable frontdoor: medautosci foundry status --format json",
+        "Executable frontdoor: medautosci foundry status --json",
         f"Authority boundary: {AUTHORITY_BOUNDARY_SUMMARY}",
         "",
         "Frontdoor spine:",
