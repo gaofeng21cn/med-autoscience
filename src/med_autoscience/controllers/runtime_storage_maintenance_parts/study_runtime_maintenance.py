@@ -46,6 +46,15 @@ def maintain_runtime_storage(
     restore_proof_buckets: Iterable[str] | None = None,
     refs_only_state_index_pilot: bool = False,
     refs_only_state_index_only: bool = False,
+    archive_retention: bool = False,
+    archive_retention_apply: bool = False,
+    archive_retention_min_mb: int = 16,
+    archive_retention_cold_store_root: Path | None = None,
+    report_retention: bool = False,
+    report_retention_apply: bool = False,
+    report_retention_keep_recent_days: int = 1,
+    report_retention_daily_samples: int = 2,
+    report_retention_max_files: int | None = None,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, study_payload = study_runtime_resolution._resolve_study(
         profile=profile,
@@ -86,6 +95,15 @@ def maintain_runtime_storage(
         restore_proof_buckets=restore_proof_buckets,
         refs_only_state_index_pilot=refs_only_state_index_pilot,
         refs_only_state_index_only=refs_only_state_index_only,
+        archive_retention=archive_retention,
+        archive_retention_apply=archive_retention_apply,
+        archive_retention_min_mb=archive_retention_min_mb,
+        archive_retention_cold_store_root=archive_retention_cold_store_root,
+        report_retention=report_retention,
+        report_retention_apply=report_retention_apply,
+        report_retention_keep_recent_days=report_retention_keep_recent_days,
+        report_retention_daily_samples=report_retention_daily_samples,
+        report_retention_max_files=report_retention_max_files,
     )
     result["schema_version"] = SCHEMA_VERSION
     result["study_id"] = resolved_study_id

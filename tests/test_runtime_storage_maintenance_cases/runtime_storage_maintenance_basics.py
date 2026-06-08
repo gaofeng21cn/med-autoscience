@@ -138,6 +138,76 @@ def test_audit_workspace_storage_dry_run_reports_runtime_dataset_cache_and_git(t
     assert json.loads(latest_report_path.read_text(encoding="utf-8"))["mode"] == "dry-run"
 
 
+def test_workspace_storage_audit_report_retention_keeps_latest_and_timestamped_history(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    study_id = "004-stopped"
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    _write_quest(profile.runtime_root / study_id, quest_id=study_id, status="stopped")
+    run_log = profile.runtime_root / study_id / ".ds" / "runs" / "run-001" / "stdout.jsonl"
+    run_log.parent.mkdir(parents=True, exist_ok=True)
+    run_log.write_text('{"line":"stdout"}\n', encoding="utf-8")
+
+    first = module.audit_workspace_storage(profile=profile, all_studies=True, apply=False)
+    first_report_path = Path(first["report_path"])
+    first_latest_path = Path(first["latest_report_path"])
+    assert first["mode"] == "dry-run"
+    assert first_report_path.is_file()
+    assert first_latest_path.is_file()
+    assert first_report_path != first_latest_path
+    assert first_report_path.parent == profile.workspace_root / "storage_audit"
+    assert first_report_path.name.endswith(".json")
+    assert first_report_path.name != "latest.json"
+    assert json.loads(first_latest_path.read_text(encoding="utf-8"))["report_path"] == str(first_report_path)
+
+    second = module.audit_workspace_storage(profile=profile, all_studies=True, apply=True)
+    second_report_path = Path(second["report_path"])
+    latest_payload = json.loads(first_latest_path.read_text(encoding="utf-8"))
+
+    assert second["mode"] == "apply"
+    assert second_report_path.is_file()
+    assert first_report_path.is_file()
+    assert latest_payload["mode"] == "apply"
+    assert latest_payload["report_path"] == str(second_report_path)
+    assert latest_payload["latest_report_path"] == str(first_latest_path)
+    assert second["categories"]["cache"]["apply_result"]["status"] == "nothing_to_delete"
+    assert "storage_audit" not in {
+        Path(item["path"]).name
+        for item in second["categories"]["cache"].get("candidates", [])
+    }
+
+
+def test_maintain_runtime_storage_report_retention_keeps_latest_and_timestamped_report(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    _write_fake_mds_repo(profile.med_deepscientist_repo_root)
+    study_id = "004-stopped"
+    study_root = profile.studies_root / study_id
+    quest_root = profile.runtime_root / study_id
+    _write_study(study_root, study_id=study_id, quest_id=study_id)
+    _write_quest(quest_root, quest_id=study_id, status="stopped")
+
+    result = module.maintain_runtime_storage(profile=profile, study_id=study_id, study_root=None)
+
+    report_path = Path(result["report_path"])
+    latest_report_path = Path(result["latest_report_path"])
+    assert report_path.is_file()
+    assert latest_report_path.is_file()
+    assert report_path != latest_report_path
+    assert report_path.parent == study_root / "artifacts" / "runtime" / "runtime_storage_maintenance"
+    assert latest_report_path.name == "latest.json"
+    assert report_path.name.endswith(".json")
+    assert report_path.name != "latest.json"
+    latest_payload = json.loads(latest_report_path.read_text(encoding="utf-8"))
+    assert latest_payload["status"] == "maintained"
+    assert latest_payload["report_path"] == str(report_path)
+    assert latest_payload["latest_report_path"] == str(latest_report_path)
+
+
 def test_audit_workspace_storage_blocks_superseded_dataset_without_restore_index(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = make_profile(tmp_path)

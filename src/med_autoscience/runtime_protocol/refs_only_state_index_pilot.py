@@ -141,7 +141,7 @@ def rebuild_refs_only_state_index(
         "quest_root": str(resolved_quest_root),
         "sqlite_ref": {
             "db_path": str(resolved_db_path),
-            "workspace_relative_path": _relative_ref(resolved_db_path, resolved_workspace_root),
+            "workspace_relative_path": _sqlite_relative_ref(resolved_db_path, resolved_workspace_root),
         },
         "indexed_count": len(rows),
         "sqlite_total_indexed_count": sqlite_total_indexed_count,
@@ -341,7 +341,7 @@ def _stage_folder_attempt_projection(
         "body_included": False,
         "attempt_root_ref": _relative_ref(quest_root, workspace_root),
         "indexed_ref_families": dict(sorted(family_counts.items())),
-        "sqlite_summary_ref": _relative_ref(db_path, workspace_root),
+        "sqlite_summary_ref": _sqlite_relative_ref(db_path, workspace_root),
     }
 
 
@@ -420,6 +420,13 @@ def _relative_ref(path: Path, workspace_root: Path) -> str:
         return resolved_path.relative_to(workspace_root).as_posix()
     except ValueError:
         return str(resolved_path)
+
+
+def _sqlite_relative_ref(path: Path, workspace_root: Path) -> str:
+    relative = _relative_ref(path, workspace_root)
+    if relative.startswith("runtime/artifacts/"):
+        return f"artifacts/runtime/{relative.removeprefix('runtime/artifacts/')}"
+    return relative
 
 
 def _path_is_inside(path: Path, root: Path) -> bool:

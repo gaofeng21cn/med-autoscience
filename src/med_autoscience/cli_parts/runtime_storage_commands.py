@@ -6,11 +6,15 @@ from pathlib import Path
 from typing import Any
 
 
+_RUNTIME_RETENTION_APPLY_HELP = "requires the matching retention flag and explicit storage --apply where available"
+
+
 def register_runtime_storage_parsers(subparsers: argparse._SubParsersAction) -> None:
     maintain_parser = subparsers.add_parser("maintain-runtime-storage")
     _add_profile_and_storage_selector_options(maintain_parser)
     _add_storage_cleanup_options(maintain_parser)
     _add_restore_proof_compaction_options(maintain_parser)
+    _add_runtime_retention_options(maintain_parser, include_cold_store_root=True)
     maintain_parser.set_defaults(_command_parser=maintain_parser)
 
     audit_parser = subparsers.add_parser("workspace-storage-audit")
@@ -24,6 +28,7 @@ def register_runtime_storage_parsers(subparsers: argparse._SubParsersAction) -> 
     audit_parser.add_argument("--retire-workspace-root-git", action="store_true")
     _add_storage_cleanup_options(audit_parser)
     _add_restore_proof_compaction_options(audit_parser)
+    _add_runtime_retention_options(audit_parser, include_cold_store_root=True)
     audit_parser.set_defaults(_command_parser=audit_parser)
 
 
@@ -40,6 +45,7 @@ def handle_runtime_storage_command(
                 _command_parser(args, parser).error("--legacy-ds-root requires --restore-proof-compaction")
             if args.restore_proof_canary:
                 _command_parser(args, parser).error("--legacy-ds-root does not support --restore-proof-canary")
+            _reject_runtime_retention_for_legacy_ds(args, parser)
             profile = load_profile(args.profile)
             result = runtime_storage_maintenance.maintain_legacy_ds_runtime_storage(
                 profile=profile,
@@ -50,6 +56,7 @@ def handle_runtime_storage_command(
             )
             _print_json(result)
             return 0
+        retention_kwargs = _runtime_retention_kwargs(args, parser=parser)
         profile = load_profile(args.profile)
         common_kwargs = _storage_maintenance_kwargs(args)
         if args.quest_root:
@@ -57,6 +64,7 @@ def handle_runtime_storage_command(
                 profile=profile,
                 quest_root=Path(args.quest_root),
                 **common_kwargs,
+                **retention_kwargs,
             )
         else:
             result = runtime_storage_maintenance.maintain_runtime_storage(
@@ -64,6 +72,7 @@ def handle_runtime_storage_command(
                 study_id=args.study_id,
                 study_root=None,
                 **common_kwargs,
+                **retention_kwargs,
             )
         _print_json(result)
         return 0
@@ -71,6 +80,7 @@ def handle_runtime_storage_command(
     if args.command == "workspace-storage-audit":
         if args.git_only and args.restore_proof_compaction:
             _command_parser(args, parser).error("--restore-proof-compaction is not supported with --git-only")
+        retention_kwargs = _runtime_retention_kwargs(args, parser=parser, workspace_apply=bool(args.apply))
         profile = load_profile(args.profile)
         result = runtime_storage_maintenance.audit_workspace_storage(
             profile=profile,
@@ -82,6 +92,7 @@ def handle_runtime_storage_command(
             reinitialize_empty_workspace_git=bool(args.reinitialize_empty_workspace_git),
             retire_workspace_root_git=bool(args.retire_workspace_root_git),
             **_storage_maintenance_kwargs(args),
+            **retention_kwargs,
         )
         _print_json(result)
         return 0
@@ -129,6 +140,19 @@ def _add_restore_proof_compaction_options(parser: argparse.ArgumentParser) -> No
     parser.add_argument("--include-operator-confirmed-parked-active", action="store_true")
 
 
+def _add_runtime_retention_options(parser: argparse.ArgumentParser, *, include_cold_store_root: bool) -> None:
+    parser.add_argument("--archive-retention", action="store_true")
+    parser.add_argument("--archive-retention-apply", action="store_true", help=_RUNTIME_RETENTION_APPLY_HELP)
+    parser.add_argument("--archive-retention-min-mb", type=int, default=16)
+    if include_cold_store_root:
+        parser.add_argument("--archive-retention-cold-store-root", type=str)
+    parser.add_argument("--report-retention", action="store_true")
+    parser.add_argument("--report-retention-apply", action="store_true", help=_RUNTIME_RETENTION_APPLY_HELP)
+    parser.add_argument("--report-retention-keep-recent-days", type=int, default=1)
+    parser.add_argument("--report-retention-daily-samples", type=int, default=2)
+    parser.add_argument("--report-retention-max-files", type=int)
+
+
 def _storage_maintenance_kwargs(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "include_worktrees": not bool(args.no_worktrees),
@@ -153,6 +177,49 @@ def _storage_maintenance_kwargs(args: argparse.Namespace) -> dict[str, Any]:
         "refs_only_state_index_pilot": bool(args.refs_only_state_index_pilot),
         "refs_only_state_index_only": bool(args.refs_only_state_index_only),
     }
+
+
+def _runtime_retention_kwargs(
+    args: argparse.Namespace,
+    *,
+    parser: argparse.ArgumentParser,
+    workspace_apply: bool = True,
+) -> dict[str, Any]:
+    command_parser = _command_parser(args, parser)
+    archive_retention = bool(getattr(args, "archive_retention", False))
+    archive_retention_apply = bool(getattr(args, "archive_retention_apply", False))
+    report_retention = bool(getattr(args, "report_retention", False))
+    report_retention_apply = bool(getattr(args, "report_retention_apply", False))
+    if archive_retention_apply and not archive_retention:
+        command_parser.error("--archive-retention-apply requires --archive-retention")
+    if report_retention_apply and not report_retention:
+        command_parser.error("--report-retention-apply requires --report-retention")
+    if (archive_retention_apply or report_retention_apply) and not workspace_apply:
+        command_parser.error("--archive-retention-apply/--report-retention-apply require workspace --apply")
+    cold_store_root = getattr(args, "archive_retention_cold_store_root", None)
+    return {
+        "archive_retention": archive_retention,
+        "archive_retention_apply": archive_retention_apply,
+        "archive_retention_min_mb": int(getattr(args, "archive_retention_min_mb", 16)),
+        "archive_retention_cold_store_root": Path(cold_store_root) if cold_store_root else None,
+        "report_retention": report_retention,
+        "report_retention_apply": report_retention_apply,
+        "report_retention_keep_recent_days": int(getattr(args, "report_retention_keep_recent_days", 1)),
+        "report_retention_daily_samples": int(getattr(args, "report_retention_daily_samples", 2)),
+        "report_retention_max_files": getattr(args, "report_retention_max_files", None),
+    }
+
+
+def _reject_runtime_retention_for_legacy_ds(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    retention_flags = (
+        "archive_retention",
+        "archive_retention_apply",
+        "report_retention",
+        "report_retention_apply",
+        "archive_retention_cold_store_root",
+    )
+    if any(bool(getattr(args, name, False)) for name in retention_flags):
+        _command_parser(args, parser).error("runtime retention flags require --study-id or --quest-root")
 
 
 def _print_json(payload: object) -> None:

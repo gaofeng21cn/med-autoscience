@@ -385,6 +385,16 @@ def _restore_proof_actual_release_bytes(apply_result: Mapping[str, Any] | None) 
     return int(compaction.get("actual_release_bytes") or 0)
 
 
+def _retention_actual_release_bytes(apply_result: Mapping[str, Any] | None) -> int:
+    if not isinstance(apply_result, Mapping):
+        return 0
+    archive_retention = _mapping(apply_result.get("archive_retention"))
+    report_retention = _mapping(apply_result.get("report_retention"))
+    return int(archive_retention.get("actual_release_bytes") or 0) + int(
+        report_retention.get("actual_release_bytes") or 0
+    )
+
+
 def _deleted_bytes_from_apply_result(report: Mapping[str, Any]) -> int:
     apply_result = report.get("apply_result")
     deleted_bytes = int(apply_result.get("deleted_bytes") or 0) if isinstance(apply_result, Mapping) else 0
@@ -426,6 +436,15 @@ def audit_workspace_storage(
     retire_workspace_root_git: bool = False,
     refs_only_state_index_pilot: bool = False,
     refs_only_state_index_only: bool = False,
+    archive_retention: bool = False,
+    archive_retention_apply: bool = False,
+    archive_retention_min_mb: int = 16,
+    archive_retention_cold_store_root: Path | None = None,
+    report_retention: bool = False,
+    report_retention_apply: bool = False,
+    report_retention_keep_recent_days: int = 1,
+    report_retention_daily_samples: int = 2,
+    report_retention_max_files: int | None = None,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     workspace_root = profile.workspace_root.expanduser().resolve()
@@ -527,6 +546,15 @@ def audit_workspace_storage(
                     restore_proof_buckets=selected_restore_proof_buckets,
                     refs_only_state_index_pilot=refs_only_state_index_pilot,
                     refs_only_state_index_only=refs_only_state_index_only,
+                    archive_retention=archive_retention,
+                    archive_retention_apply=archive_retention_apply,
+                    archive_retention_min_mb=archive_retention_min_mb,
+                    archive_retention_cold_store_root=archive_retention_cold_store_root,
+                    report_retention=report_retention,
+                    report_retention_apply=report_retention_apply,
+                    report_retention_keep_recent_days=report_retention_keep_recent_days,
+                    report_retention_daily_samples=report_retention_daily_samples,
+                    report_retention_max_files=report_retention_max_files,
                 )
                 workspace_archive_index = _record_workspace_archive_ref(
                     workspace_root=workspace_root,
@@ -547,6 +575,8 @@ def audit_workspace_storage(
             actual_runtime_release_bytes = (
                 _restore_proof_actual_release_bytes(apply_result)
                 if apply and restore_proof_compaction
+                else _retention_actual_release_bytes(apply_result)
+                if apply and (archive_retention or report_retention)
                 else _actual_release_bytes(size_before, size_after)
                 if apply
                 else 0
@@ -655,6 +685,17 @@ def audit_workspace_storage(
             "reinitialize_empty_workspace_git": reinitialize_empty_workspace_git,
             "retire_workspace_root_git": retire_workspace_root_git,
             "refs_only_state_index_pilot": refs_only_state_index_pilot,
+            "archive_retention": archive_retention,
+            "archive_retention_apply": archive_retention_apply,
+            "archive_retention_min_mb": archive_retention_min_mb,
+            "archive_retention_cold_store_root": str(archive_retention_cold_store_root)
+            if archive_retention_cold_store_root
+            else None,
+            "report_retention": report_retention,
+            "report_retention_apply": report_retention_apply,
+            "report_retention_keep_recent_days": report_retention_keep_recent_days,
+            "report_retention_daily_samples": report_retention_daily_samples,
+            "report_retention_max_files": report_retention_max_files,
         },
         "summary": {
             "study_count": len(study_reports),

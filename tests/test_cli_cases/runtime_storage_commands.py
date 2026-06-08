@@ -38,6 +38,15 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         include_operator_confirmed_parked_active: bool,
         refs_only_state_index_pilot: bool,
         refs_only_state_index_only: bool,
+        archive_retention: bool,
+        archive_retention_apply: bool,
+        archive_retention_min_mb: int,
+        archive_retention_cold_store_root: Path | None,
+        report_retention: bool,
+        report_retention_apply: bool,
+        report_retention_keep_recent_days: int,
+        report_retention_daily_samples: int,
+        report_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -61,6 +70,15 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
         called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
         called["refs_only_state_index_only"] = refs_only_state_index_only
+        called["archive_retention"] = archive_retention
+        called["archive_retention_apply"] = archive_retention_apply
+        called["archive_retention_min_mb"] = archive_retention_min_mb
+        called["archive_retention_cold_store_root"] = archive_retention_cold_store_root
+        called["report_retention"] = report_retention
+        called["report_retention_apply"] = report_retention_apply
+        called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
+        called["report_retention_daily_samples"] = report_retention_daily_samples
+        called["report_retention_max_files"] = report_retention_max_files
         return {"status": "maintained", "quest_id": "quest-001"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "maintain_runtime_storage", fake_maintain_runtime_storage)
@@ -93,6 +111,20 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
             "--allow-live-runtime",
             "--refs-only-state-index-pilot",
             "--refs-only-state-index-only",
+            "--archive-retention",
+            "--archive-retention-apply",
+            "--archive-retention-min-mb",
+            "3",
+            "--archive-retention-cold-store-root",
+            str(tmp_path / "cold-store"),
+            "--report-retention",
+            "--report-retention-apply",
+            "--report-retention-keep-recent-days",
+            "14",
+            "--report-retention-daily-samples",
+            "4",
+            "--report-retention-max-files",
+            "25",
         ]
     )
     captured = capsys.readouterr()
@@ -120,6 +152,15 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
     assert called["include_operator_confirmed_parked_active"] is False
     assert called["refs_only_state_index_pilot"] is True
     assert called["refs_only_state_index_only"] is True
+    assert called["archive_retention"] is True
+    assert called["archive_retention_apply"] is True
+    assert called["archive_retention_min_mb"] == 3
+    assert called["archive_retention_cold_store_root"] == tmp_path / "cold-store"
+    assert called["report_retention"] is True
+    assert called["report_retention_apply"] is True
+    assert called["report_retention_keep_recent_days"] == 14
+    assert called["report_retention_daily_samples"] == 4
+    assert called["report_retention_max_files"] == 25
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -157,6 +198,15 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         include_operator_confirmed_parked_active: bool,
         refs_only_state_index_pilot: bool,
         refs_only_state_index_only: bool,
+        archive_retention: bool,
+        archive_retention_apply: bool,
+        archive_retention_min_mb: int,
+        archive_retention_cold_store_root: Path | None,
+        report_retention: bool,
+        report_retention_apply: bool,
+        report_retention_keep_recent_days: int,
+        report_retention_daily_samples: int,
+        report_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["quest_root"] = quest_root
@@ -169,6 +219,15 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
         called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
         called["refs_only_state_index_only"] = refs_only_state_index_only
+        called["archive_retention"] = archive_retention
+        called["archive_retention_apply"] = archive_retention_apply
+        called["archive_retention_min_mb"] = archive_retention_min_mb
+        called["archive_retention_cold_store_root"] = archive_retention_cold_store_root
+        called["report_retention"] = report_retention
+        called["report_retention_apply"] = report_retention_apply
+        called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
+        called["report_retention_daily_samples"] = report_retention_daily_samples
+        called["report_retention_max_files"] = report_retention_max_files
         return {"status": "maintained", "quest_id": "legacy-quest"}
 
     monkeypatch.setattr(
@@ -209,6 +268,15 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
     assert called["include_operator_confirmed_parked_active"] is False
     assert called["refs_only_state_index_pilot"] is False
     assert called["refs_only_state_index_only"] is False
+    assert called["archive_retention"] is False
+    assert called["archive_retention_apply"] is False
+    assert called["archive_retention_min_mb"] == 16
+    assert called["archive_retention_cold_store_root"] is None
+    assert called["report_retention"] is False
+    assert called["report_retention_apply"] is False
+    assert called["report_retention_keep_recent_days"] == 1
+    assert called["report_retention_daily_samples"] == 2
+    assert called["report_retention_max_files"] is None
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -246,6 +314,15 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
         include_operator_confirmed_parked_active: bool,
         refs_only_state_index_pilot: bool,
         refs_only_state_index_only: bool,
+        archive_retention: bool,
+        archive_retention_apply: bool,
+        archive_retention_min_mb: int,
+        archive_retention_cold_store_root: Path | None,
+        report_retention: bool,
+        report_retention_apply: bool,
+        report_retention_keep_recent_days: int,
+        report_retention_daily_samples: int,
+        report_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["quest_root"] = quest_root
@@ -257,6 +334,15 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
         called["include_parked_controller_stop"] = include_parked_controller_stop
         called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
         called["refs_only_state_index_only"] = refs_only_state_index_only
+        called["archive_retention"] = archive_retention
+        called["archive_retention_apply"] = archive_retention_apply
+        called["archive_retention_min_mb"] = archive_retention_min_mb
+        called["archive_retention_cold_store_root"] = archive_retention_cold_store_root
+        called["report_retention"] = report_retention
+        called["report_retention_apply"] = report_retention_apply
+        called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
+        called["report_retention_daily_samples"] = report_retention_daily_samples
+        called["report_retention_max_files"] = report_retention_max_files
         return {"status": "maintained", "quest_id": "legacy-quest"}
 
     monkeypatch.setattr(
@@ -296,6 +382,10 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
     assert called["include_parked_controller_stop"] is True
     assert called["refs_only_state_index_pilot"] is True
     assert called["refs_only_state_index_only"] is True
+    assert called["archive_retention"] is False
+    assert called["archive_retention_apply"] is False
+    assert called["report_retention"] is False
+    assert called["report_retention_apply"] is False
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -385,6 +475,33 @@ def test_runtime_maintain_storage_legacy_ds_root_requires_restore_proof_compacti
     assert "--legacy-ds-root requires --restore-proof-compaction" in captured.err
 
 
+def test_runtime_maintain_storage_legacy_ds_root_rejects_retention_flags(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "runtime",
+                "maintain-storage",
+                "--profile",
+                str(profile_path),
+                "--legacy-ds-root",
+                str(tmp_path / ".ds"),
+                "--restore-proof-compaction",
+                "--archive-retention",
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "runtime retention flags require --study-id or --quest-root" in captured.err
+
+
 def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
@@ -420,6 +537,15 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         include_operator_confirmed_parked_active: bool,
         refs_only_state_index_pilot: bool,
         refs_only_state_index_only: bool,
+        archive_retention: bool,
+        archive_retention_apply: bool,
+        archive_retention_min_mb: int,
+        archive_retention_cold_store_root: Path | None,
+        report_retention: bool,
+        report_retention_apply: bool,
+        report_retention_keep_recent_days: int,
+        report_retention_daily_samples: int,
+        report_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -448,6 +574,15 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
         called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
         called["refs_only_state_index_only"] = refs_only_state_index_only
+        called["archive_retention"] = archive_retention
+        called["archive_retention_apply"] = archive_retention_apply
+        called["archive_retention_min_mb"] = archive_retention_min_mb
+        called["archive_retention_cold_store_root"] = archive_retention_cold_store_root
+        called["report_retention"] = report_retention
+        called["report_retention_apply"] = report_retention_apply
+        called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
+        called["report_retention_daily_samples"] = report_retention_daily_samples
+        called["report_retention_max_files"] = report_retention_max_files
         return {"mode": "apply", "latest_report_path": "storage_audit/latest.json"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -479,6 +614,20 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
             "--allow-live-runtime",
             "--refs-only-state-index-pilot",
             "--refs-only-state-index-only",
+            "--archive-retention",
+            "--archive-retention-apply",
+            "--archive-retention-min-mb",
+            "5",
+            "--archive-retention-cold-store-root",
+            str(tmp_path / "audit-cold-store"),
+            "--report-retention",
+            "--report-retention-apply",
+            "--report-retention-keep-recent-days",
+            "21",
+            "--report-retention-daily-samples",
+            "3",
+            "--report-retention-max-files",
+            "50",
         ]
     )
     captured = capsys.readouterr()
@@ -511,6 +660,15 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["include_operator_confirmed_parked_active"] is False
     assert called["refs_only_state_index_pilot"] is True
     assert called["refs_only_state_index_only"] is True
+    assert called["archive_retention"] is True
+    assert called["archive_retention_apply"] is True
+    assert called["archive_retention_min_mb"] == 5
+    assert called["archive_retention_cold_store_root"] == tmp_path / "audit-cold-store"
+    assert called["report_retention"] is True
+    assert called["report_retention_apply"] is True
+    assert called["report_retention_keep_recent_days"] == 21
+    assert called["report_retention_daily_samples"] == 3
+    assert called["report_retention_max_files"] == 50
     assert json.loads(captured.out)["latest_report_path"] == "storage_audit/latest.json"
 
 
@@ -553,6 +711,15 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         include_operator_confirmed_parked_active: bool,
         refs_only_state_index_pilot: bool,
         refs_only_state_index_only: bool,
+        archive_retention: bool,
+        archive_retention_apply: bool,
+        archive_retention_min_mb: int,
+        archive_retention_cold_store_root: Path | None,
+        report_retention: bool,
+        report_retention_apply: bool,
+        report_retention_keep_recent_days: int,
+        report_retention_daily_samples: int,
+        report_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["study_id"] = study_id
         called["apply"] = apply
@@ -566,6 +733,15 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         called["include_operator_confirmed_parked_active"] = include_operator_confirmed_parked_active
         called["refs_only_state_index_pilot"] = refs_only_state_index_pilot
         called["refs_only_state_index_only"] = refs_only_state_index_only
+        called["archive_retention"] = archive_retention
+        called["archive_retention_apply"] = archive_retention_apply
+        called["archive_retention_min_mb"] = archive_retention_min_mb
+        called["archive_retention_cold_store_root"] = archive_retention_cold_store_root
+        called["report_retention"] = report_retention
+        called["report_retention_apply"] = report_retention_apply
+        called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
+        called["report_retention_daily_samples"] = report_retention_daily_samples
+        called["report_retention_max_files"] = report_retention_max_files
         return {"mode": "apply" if apply else "dry-run", "restore_proof_compaction": restore_proof_compaction}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -605,6 +781,15 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         "include_operator_confirmed_parked_active": True,
         "refs_only_state_index_pilot": False,
         "refs_only_state_index_only": False,
+        "archive_retention": False,
+        "archive_retention_apply": False,
+        "archive_retention_min_mb": 16,
+        "archive_retention_cold_store_root": None,
+        "report_retention": False,
+        "report_retention_apply": False,
+        "report_retention_keep_recent_days": 1,
+        "report_retention_daily_samples": 2,
+        "report_retention_max_files": None,
     }
     assert json.loads(captured.out)["restore_proof_compaction"] is True
 
@@ -619,3 +804,24 @@ def test_runtime_storage_audit_validation_error_uses_grouped_command_usage(capsy
     assert excinfo.value.code == 2
     assert "usage: medautosci runtime storage-audit" in captured.err
     assert "workspace-storage-audit" not in captured.err
+
+
+def test_runtime_storage_audit_retention_apply_requires_workspace_apply(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "runtime",
+                "storage-audit",
+                "--profile",
+                "workspace.toml",
+                "--archive-retention",
+                "--archive-retention-apply",
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "usage: medautosci runtime storage-audit" in captured.err
+    assert "--archive-retention-apply/--report-retention-apply require workspace --apply" in captured.err

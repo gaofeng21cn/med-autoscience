@@ -8,6 +8,10 @@ from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers import study_runtime_resolution
 from med_autoscience.controllers.runtime_storage_maintenance_parts import backend_maintenance
+from med_autoscience.controllers.runtime_storage_maintenance_parts.archive_report_retention import (
+    retain_report_snapshots,
+    retain_restore_proof_archive_bodies,
+)
 from med_autoscience.controllers.runtime_storage_maintenance_parts.authority_boundary import (
     storage_refs_only_adapter_boundary,
 )
@@ -55,6 +59,15 @@ def maintain_quest_runtime_storage(
     restore_proof_buckets: Iterable[str] | None = None,
     refs_only_state_index_pilot: bool = False,
     refs_only_state_index_only: bool = False,
+    archive_retention: bool = False,
+    archive_retention_apply: bool = False,
+    archive_retention_min_mb: int = 16,
+    archive_retention_cold_store_root: Path | None = None,
+    report_retention: bool = False,
+    report_retention_apply: bool = False,
+    report_retention_keep_recent_days: int = 1,
+    report_retention_daily_samples: int = 2,
+    report_retention_max_files: int | None = None,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     selected_restore_proof_buckets = _restore_proof_buckets(restore_proof_buckets)
@@ -79,6 +92,14 @@ def maintain_quest_runtime_storage(
         "restore_proof_buckets": list(selected_restore_proof_buckets),
         "refs_only_state_index_pilot_enabled": refs_only_state_index_pilot,
         "refs_only_state_index_only": refs_only_state_index_only,
+        "archive_retention_enabled": archive_retention,
+        "archive_retention_apply": archive_retention_apply,
+        "archive_retention_min_mb": archive_retention_min_mb,
+        "report_retention_enabled": report_retention,
+        "report_retention_apply": report_retention_apply,
+        "report_retention_keep_recent_days": report_retention_keep_recent_days,
+        "report_retention_daily_samples": report_retention_daily_samples,
+        "report_retention_max_files": report_retention_max_files,
         "orphan_quest_root_mode": True,
         "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
             report_mode="orphan_quest_runtime_storage_maintenance",
@@ -179,6 +200,21 @@ def maintain_quest_runtime_storage(
             "skip_reason": str(result.get("status") or "refs_only_state_index_pilot_not_enabled"),
             "body_included": False,
         }
+
+    _apply_retention_if_requested(
+        result=result,
+        quest_root=resolved_quest_root,
+        quest_id=quest_id,
+        archive_retention=archive_retention,
+        archive_retention_apply=archive_retention_apply,
+        archive_retention_min_mb=archive_retention_min_mb,
+        archive_retention_cold_store_root=archive_retention_cold_store_root,
+        report_retention=report_retention,
+        report_retention_apply=report_retention_apply,
+        report_retention_keep_recent_days=report_retention_keep_recent_days,
+        report_retention_daily_samples=report_retention_daily_samples,
+        report_retention_max_files=report_retention_max_files,
+    )
 
     result["quest_runtime_after"] = _quest_runtime_snapshot(resolved_quest_root)
     result["size_after"] = (
@@ -360,6 +396,73 @@ def _apply_backend_maintenance(
         else:
             result["status"] = "maintained"
             result["summary"] = "orphan/legacy quest runtime storage maintenance 已完成。"
+
+
+def _apply_retention_if_requested(
+    *,
+    result: dict[str, Any],
+    quest_root: Path,
+    quest_id: str,
+    archive_retention: bool,
+    archive_retention_apply: bool,
+    archive_retention_min_mb: int,
+    archive_retention_cold_store_root: Path | None,
+    report_retention: bool,
+    report_retention_apply: bool,
+    report_retention_keep_recent_days: int,
+    report_retention_daily_samples: int,
+    report_retention_max_files: int | None,
+) -> None:
+    apply_allowed = result.get("status") in {"maintained", "blocked_backend_unavailable"}
+    if archive_retention:
+        if archive_retention_apply and not apply_allowed:
+            archive_result = {
+                "surface_kind": "runtime_restore_proof_archive_body_retention",
+                "status": "blocked_storage_maintenance_not_maintained",
+                "quest_id": quest_id,
+                "quest_root": str(quest_root),
+                "apply": True,
+                "blocker": str(result.get("status") or "storage_maintenance_not_maintained"),
+                "actual_release_bytes": 0,
+            }
+        else:
+            archive_result = retain_restore_proof_archive_bodies(
+                quest_root=quest_root,
+                quest_id=quest_id,
+                recorded_at=str(result["recorded_at"]),
+                apply=archive_retention_apply,
+                min_archive_mb=archive_retention_min_mb,
+                cold_store_root=archive_retention_cold_store_root,
+            )
+        result["archive_retention"] = archive_result
+        if archive_retention_apply and archive_result.get("status") in {"applied", "nothing_to_retain"}:
+            result["status"] = "maintained"
+            result["summary"] = "quest runtime restore-proof archive body retention 已完成。"
+    if report_retention:
+        if report_retention_apply and not apply_allowed:
+            report_result = {
+                "surface_kind": "runtime_report_snapshot_retention",
+                "status": "blocked_storage_maintenance_not_maintained",
+                "quest_id": quest_id,
+                "quest_root": str(quest_root),
+                "apply": True,
+                "blocker": str(result.get("status") or "storage_maintenance_not_maintained"),
+                "actual_release_bytes": 0,
+            }
+        else:
+            report_result = retain_report_snapshots(
+                quest_root=quest_root,
+                quest_id=quest_id,
+                recorded_at=str(result["recorded_at"]),
+                apply=report_retention_apply,
+                keep_recent_days=report_retention_keep_recent_days,
+                daily_samples=report_retention_daily_samples,
+                max_files=report_retention_max_files,
+            )
+        result["report_retention"] = report_result
+        if report_retention_apply and report_result.get("status") in {"applied", "nothing_to_retain"}:
+            result["status"] = "maintained"
+            result["summary"] = "quest runtime report snapshot retention 已完成。"
 
 
 def _utc_now() -> str:
