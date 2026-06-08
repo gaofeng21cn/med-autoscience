@@ -50,6 +50,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     paper_stage_log = _mapping(latest_terminal_stage_log.get("paper_stage_log"))
     stage_progress_log = _mapping(handoff.get("stage_progress_log"))
     running_provider_attempt = _bool_or_none(handoff.get("running_provider_attempt"))
+    strict_running_provider_attempt = _strict_running_provider_attempt(handoff)
     active_run_id = _running_provider_attempt_ref(
         running_provider_attempt=running_provider_attempt,
         handoff=handoff,
@@ -186,10 +187,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         if running_provider_attempt is True or (owner_action_visible and not typed_blocker)
         else _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
     )
-    if owner_action_visible:
-        state_kind = "executable_owner_action"
-    elif running_provider_attempt is True:
+    if strict_running_provider_attempt:
         state_kind = "running_provider_attempt"
+    elif owner_action_visible:
+        state_kind = "executable_owner_action"
     else:
         state_kind = _text(execution.get("state_kind"))
     if state_kind is None:
@@ -311,6 +312,27 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             "can_authorize_quality_verdict": False,
             "can_authorize_publication_ready": False,
         },
+    }
+
+
+def _strict_running_provider_attempt(handoff: Mapping[str, Any]) -> bool:
+    if handoff.get("running_provider_attempt") is not True:
+        return False
+    if _text(handoff.get("active_run_id")) is None:
+        return False
+    runtime_health = _mapping(handoff.get("runtime_health"))
+    runtime_liveness_status = _text(runtime_health.get("runtime_liveness_status"))
+    health_status = _text(runtime_health.get("health_status"))
+    return runtime_liveness_status in {
+        "attempt_running",
+        "provider_admitted",
+        "running",
+        "live",
+    } or health_status in {
+        "attempt_running",
+        "provider_admitted",
+        "running",
+        "live",
     }
 
 

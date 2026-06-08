@@ -76,6 +76,8 @@ def explicit_action_dispatches(
             study_id=study_id,
             dispatch=payload,
         )
+        if _stage_native_next_action(profile=profile, study_id=study_id) is not None and not stage_native_next_action_current:
+            continue
         if current_writer_handoff.fresh_progress_ticket_supersedes_action(
             profile=profile,
             study_id=study_id,

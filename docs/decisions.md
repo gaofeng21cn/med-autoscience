@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-08：strict live provider run 必须和 OPL stage-attempt handle 分账
+
+- 决策：`opl-stage-attempt://...` 只能证明存在 OPL stage-attempt / continuation / provenance handle；它不能单独把 `study_macro_state.writer_state`、`progress_first_monitoring_summary.execution_state_kind`、`opl_runtime_refs.strict_live` 或 `study-state-matrix` 计为 `live` / `running_provider_attempt`。strict live 必须来自 OPL current-control / provider attempt ledger 对当前 study 的 running proof，例如非空 `active_run_id`、`running_provider_attempt=true`，并且 runtime health 明确为 `live`、`running`、`provider_admitted` 或 `attempt_running`。
+- 决策：route-back / same-line current owner action 已给出新的 work unit 时，缺 strict live proof 的 OPL attempt handle 应投影为 `queued` / `executable_owner_action` / `typed_blocker` 中的一个，而不是 `live`。Stage Native typed blocker、owner receipt 或 terminal handoff 的 stale transport receipt 只能作为 observability / historical residue；不得覆盖当前 Stage Native owner answer 或当前 owner-route work-unit identity。
+- 决策：`running_provider_attempt=true` 作为观测字段可以保留，但只有带 active run 和 live/running runtime health 的 strict provider run 才能压过 stage artifact current owner action。裸 `running_provider_attempt`、active_run provenance、旧 handoff queue、旧 terminal log 或 stale default-executor receipt 不能遮蔽 `stage_artifact_index.next_owner_action`、当前 dispatch owner route 或 `domain_transition` 的下一 owner work unit。
+- 理由：DM002/DM003 监督中反复出现“有 OPL attempt handle 就被显示为 live”的漂移，导致 operator 继续等待不存在的 writer/provider 进展，而不是推进当前 owner action或稳定 typed blocker。把 handle、running proof、owner action和 stale transport 分账，可以减少重复 receipt/read-model reconcile 和 broad apply 空转。
+- 影响：这是 MAS read-model/currentness 与 dispatch arbitration 修复，不写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package、`current_package`、memory body 或 quality verdict。论文推进仍必须来自新的 owner receipt、typed blocker、accepted route handoff、paper/evidence/reviewer/gate/package semantic delta、human gate 或 strict provider running proof。
+
 ## 2026-06-08：monitoring steering 必须闭环，默认监督入口不得 broad apply
 
 - 决策：heartbeat / monitoring thread 发出 steering 不是完成证据。每次监督必须重新读取目标线程状态，判断 steering 后是否出现同方向 assistant/tool activity、owner-surface 写入、Stage Native owner answer、accepted handoff、running proof 或 paper/product semantic delta。若目标线程没有消费 steering、仍无有效行动，或继续走已禁止的 stale queue / broad reconcile / provider redrive 路线，监督线程不得重复发送同类 steering；必须在本线程接管可安全修复的 MAS/OPL owner surface，或向用户报告未消费证据与需要接管的最小修复面。

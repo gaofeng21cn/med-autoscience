@@ -810,9 +810,28 @@ def _active_run_id_with_live_handoff(
     *,
     handoff: Mapping[str, Any],
 ) -> str | None:
-    if handoff.get("running_provider_attempt") is not True:
+    if not _handoff_has_strict_live_provider_attempt(handoff):
         return active_run_id
     return _non_empty_text(handoff.get("active_run_id")) or active_run_id
+
+
+def _handoff_has_strict_live_provider_attempt(handoff: Mapping[str, Any]) -> bool:
+    if handoff.get("running_provider_attempt") is not True:
+        return False
+    runtime_health = _mapping_copy(handoff.get("runtime_health"))
+    runtime_liveness_status = _non_empty_text(runtime_health.get("runtime_liveness_status"))
+    health_status = _non_empty_text(runtime_health.get("health_status"))
+    return runtime_liveness_status in {
+        "attempt_running",
+        "provider_admitted",
+        "running",
+        "live",
+    } or health_status in {
+        "attempt_running",
+        "provider_admitted",
+        "running",
+        "live",
+    }
 
 
 def _runtime_refs_with_live_handoff(
@@ -821,6 +840,8 @@ def _runtime_refs_with_live_handoff(
     handoff: Mapping[str, Any],
 ) -> dict[str, Any]:
     result = dict(refs)
+    if not _handoff_has_strict_live_provider_attempt(handoff):
+        return result
     active_run_id = _active_run_id_with_live_handoff(
         _non_empty_text(result.get("active_run_id")),
         handoff=handoff,
