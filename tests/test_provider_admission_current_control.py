@@ -242,6 +242,66 @@ def test_provider_admission_candidate_from_current_control_gate_clearing_queue_s
     assert stage_boundary["intent_can_write_domain_truth"] is False
 
 
+def test_provider_admission_candidate_never_promotes_provider_completion_to_domain_completion(
+    tmp_path: Path,
+) -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    dispatch_path = tmp_path / "dispatches" / "return_to_ai_reviewer_workflow.json"
+    action_fingerprint = "sha256:current-provider-admission-boundary"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    execution = {
+        "source": "default_executor_execution",
+        "execution_status": "handoff_ready",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "dispatch_path": str(dispatch_path),
+        "dispatch_authority": "ai_reviewer_record_production_handoff",
+        "next_executable_owner": "ai_reviewer",
+        "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": True,
+        "owner_route_current": True,
+        "owner_route": {
+            "source_refs": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": action_fingerprint,
+                "owner_route_currentness_basis": {
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-current",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": action_fingerprint,
+                },
+            },
+        },
+    }
+
+    candidate = provider_admission.provider_admission_candidate_from_execution(
+        execution,
+        execution_ref="runtime/artifacts/supervision/consumer/default_executor_execution/latest.json",
+        status_study_id=study_id,
+        current_action_identity={
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
+    )
+
+    assert candidate is not None
+    assert candidate["provider_completion_is_domain_completion"] is False
+    assert candidate["authority_boundary"]["provider_completion_is_domain_completion"] is False
+    assert (
+        candidate["stage_transition_authority_boundary"]["provider_completion_counts_as_stage_transition"]
+        is False
+    )
+
+
 def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_queue(
     tmp_path: Path,
     monkeypatch,

@@ -479,7 +479,7 @@ def provider_admission_candidate_from_execution(
         "next_executable_owner": _non_empty_text(execution.get("next_executable_owner")),
         "required_output_surface": _non_empty_text(execution.get("required_output_surface")),
         "provider_attempt_or_lease_required": True,
-        "provider_completion_is_domain_completion": execution.get("provider_completion_is_domain_completion") is True,
+        "provider_completion_is_domain_completion": False,
         "owner_route_current": execution.get("owner_route_current") is not False,
         "owner_route_basis": _non_empty_text(execution.get("owner_route_basis")),
         "currentness_basis": dict(currentness_basis) if currentness_basis else None,
