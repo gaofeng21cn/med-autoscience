@@ -145,9 +145,27 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "owner_receipt_or_typed_blocker",
     ]
     assert workspace_topology["workspace_modes"] == ["one_off", "series", "portfolio"]
+    assert workspace_topology["default_profiles"]["one_off"][
+        "project_collection_path"
+    ] == "projects"
+    assert workspace_topology["default_profiles"]["rca_series"][
+        "project_collection_path"
+    ] == "projects"
+    assert workspace_topology["default_profiles"]["mas_portfolio"][
+        "project_collection_path"
+    ] == "projects"
     assert workspace_topology["default_profiles"]["mas_portfolio"][
         "project_stage_outputs_root"
     ] == "artifacts/stage_outputs"
+    assert workspace_topology["workspace_initialization_policy"][
+        "default_project_collection_path"
+    ] == "projects"
+    assert workspace_topology["workspace_initialization_policy"][
+        "legacy_project_collection_aliases"
+    ] == ["deliverables", "studies"]
+    assert "one_off_still_uses_project_collection_path" not in workspace_topology[
+        "workspace_initialization_policy"
+    ]
     assert workspace_topology["domain_profile_defaults"]["mas"] == "mas_portfolio"
     assert workspace_topology["default_user_inspection_surface"][
         "ordinary_user_default_surface"
