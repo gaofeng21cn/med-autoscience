@@ -90,6 +90,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "scripts/install-codex-plugin.sh",
             "plugins/mas/.mcp.json",
             "plugins/mas/.codex-plugin/plugin.json",
+            "plugins/mas/.mcp.json",
             "plugins/mas/skills/mas/SKILL.md",
             "src/med_autoscience/codex_plugin_installer.py",
             "tests/test_codex_plugin.py",

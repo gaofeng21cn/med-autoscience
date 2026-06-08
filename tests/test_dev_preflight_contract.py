@@ -320,6 +320,21 @@ def test_classify_changed_files_routes_publication_route_memory_fixture_to_owner
     ]
 
 
+def test_classify_changed_files_routes_mcp_plugin_config_to_codex_plugin_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "plugins/mas/.mcp.json",
+            "plugins/mas/skills/mas/SKILL.md",
+            "scripts/install-codex-plugin.sh",
+        ]
+    )
+
+    assert result.matched_categories == ("codex_plugin_surface",)
+    assert result.unclassified_changes == ()
+
+
 def test_classify_changed_files_flags_unclassified_paths() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
