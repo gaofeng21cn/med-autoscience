@@ -18,6 +18,7 @@ from med_autoscience.controllers.mas_stage_semantic_receipts import (
 
 
 STAGE_RUN_KERNEL_PROFILE_REF = "contracts/stage_run_kernel_profile.json"
+TERMINAL_PUBLICATION_HANDOFF_STAGE_ID = "08-publication_package_handoff"
 
 
 def stage_run_kernel_projection_from_stage_folder(
@@ -41,10 +42,12 @@ def stage_run_kernel_projection_from_stage_folder(
         default_name="typed_blocker.json",
     )
     owner_receipt = _valid_owner_receipt(path=owner_receipt_path)
+    stage_artifact_receipt = _valid_terminal_stage_artifact_receipt(path=owner_receipt_path)
     typed_blocker = _valid_typed_blocker(path=typed_blocker_path)
     status, completion_authority, source_payload, source_path, source_kind = _terminal_authority(
         owner_receipt=owner_receipt,
         owner_receipt_path=owner_receipt_path,
+        stage_artifact_receipt=stage_artifact_receipt,
         typed_blocker=typed_blocker,
         typed_blocker_path=typed_blocker_path,
     )
@@ -201,6 +204,7 @@ def _terminal_authority(
     *,
     owner_receipt: dict[str, Any] | None,
     owner_receipt_path: Path | None,
+    stage_artifact_receipt: dict[str, Any] | None,
     typed_blocker: dict[str, Any] | None,
     typed_blocker_path: Path | None,
 ) -> tuple[str | None, str | None, dict[str, Any] | None, Path | None, str | None]:
@@ -208,6 +212,8 @@ def _terminal_authority(
         return "TypedBlocked", "typed_blocker", typed_blocker, typed_blocker_path, "typed_blocker"
     if owner_receipt is not None and owner_receipt_path is not None:
         return "DomainAccepted", "owner_receipt", owner_receipt, owner_receipt_path, "owner_receipt"
+    if stage_artifact_receipt is not None and owner_receipt_path is not None:
+        return "Terminalizing", None, stage_artifact_receipt, owner_receipt_path, "stage_artifact_receipt"
     return None, None, None, None, None
 
 
@@ -247,6 +253,15 @@ def _current_owner_delta(
             "reason": _text(source_payload.get("blocker_id")) or "typed_blocker",
             "required_input": _text(source_payload.get("required_input")),
             "blocked_surface": _text(source_payload.get("blocked_surface")) or stage_id,
+            "source_ref": str(source_path),
+            "source_kind": source_kind,
+        }
+    if status == "Terminalizing" and source_payload is not None and source_path is not None:
+        delta = _mapping(source_payload.get("next_owner_delta"))
+        return {
+            "owner": _text(delta.get("owner")) or "publication_gate_owner",
+            "action": _text(delta.get("action")) or "publication_handoff_owner_gate",
+            "reason": _text(delta.get("reason")) or "terminal_stage_artifact_delta_materialized",
             "source_ref": str(source_path),
             "source_kind": source_kind,
         }
@@ -335,10 +350,29 @@ def _valid_owner_receipt(*, path: Path | None) -> dict[str, Any] | None:
     payload = _read_json_object(path)
     if not payload:
         return None
+    if (
+        _text(payload.get("stage_id")) == TERMINAL_PUBLICATION_HANDOFF_STAGE_ID
+        and _text(payload.get("receipt_kind")) == "stage_artifact_delta"
+    ):
+        return None
     validation = validate_mas_stage_semantic_receipt(payload)
     if validation.get("status") != "accepted":
         return None
     return {**payload, "_validation_status": "accepted"}
+
+
+def _valid_terminal_stage_artifact_receipt(*, path: Path | None) -> dict[str, Any] | None:
+    payload = _read_json_object(path)
+    if not payload:
+        return None
+    if _text(payload.get("stage_id")) != TERMINAL_PUBLICATION_HANDOFF_STAGE_ID:
+        return None
+    if _text(payload.get("receipt_kind")) != "stage_artifact_delta":
+        return None
+    validation = validate_mas_stage_semantic_receipt(payload)
+    if validation.get("status") != "accepted":
+        return None
+    return {**payload, "_validation_status": "terminal_stage_artifact_delta"}
 
 
 def _valid_typed_blocker(*, path: Path | None) -> dict[str, Any] | None:

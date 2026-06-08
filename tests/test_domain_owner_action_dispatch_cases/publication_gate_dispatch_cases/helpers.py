@@ -2,6 +2,8 @@ from __future__ import annotations
 
 
 TERMINAL_HANDOFF_STAGE_ID = "08-publication_package_handoff"
+TERMINAL_HANDOFF_PROJECTION_WRITER = "mas_terminal_handoff_stage_current_projection_writer.v1"
+STAGE_CURRENT_AUTHORITY = "opl_stage_transition_authority_only"
 
 
 def assert_opl_closeout_binding(

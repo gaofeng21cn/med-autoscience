@@ -15,6 +15,8 @@ from med_autoscience.controllers.stage_run_kernel import stage_run_kernel_projec
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 from .helpers import (
+    STAGE_CURRENT_AUTHORITY,
+    TERMINAL_HANDOFF_PROJECTION_WRITER,
     TERMINAL_HANDOFF_STAGE_ID,
     assert_opl_closeout_binding,
     attach_publication_handoff_closeout_binding,
@@ -149,6 +151,8 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
     current_pointer = json.loads((stage_receipt_path.parents[1] / "current.json").read_text(encoding="utf-8"))
     assert current_pointer["current_stage"]["status"] == "success"
     assert current_pointer["current_stage"]["terminal_outcome_kind"] == "owner_receipt"
+    assert current_pointer["projection_writer"] == TERMINAL_HANDOFF_PROJECTION_WRITER
+    assert current_pointer["stage_run_current_authority"] == STAGE_CURRENT_AUTHORITY
     assert_opl_closeout_binding(current_pointer["closeout_binding"], study_id=study_id)
     current_owner_delta = json.loads(
         (stage_receipt_path.parents[1] / "projection" / "current_owner_delta.json").read_text(encoding="utf-8")
@@ -157,6 +161,8 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
         "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json"
     )
     assert current_owner_delta["latest_owner_answer_kind"] == "owner_receipt"
+    assert current_owner_delta["projection_writer"] == TERMINAL_HANDOFF_PROJECTION_WRITER
+    assert current_owner_delta["stage_run_current_authority"] == STAGE_CURRENT_AUTHORITY
     assert current_owner_delta["delta_id"] == current_owner_delta["hard_gate"]["owner_answer_idempotency_key"]
     assert_opl_closeout_binding(current_owner_delta["closeout_binding"], study_id=study_id)
     assert current_owner_delta["provider_attempt_ref"] == f"opl://stage-attempts/{study_id}/publication-handoff"

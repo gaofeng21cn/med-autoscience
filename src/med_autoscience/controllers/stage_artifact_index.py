@@ -621,10 +621,16 @@ def _legacy_contract_residue_refs(*, stage_folder_ref: str, orphan_refs: list[st
         "stage_artifact_manifest.json",
         "typed_blocker.json",
     }
+    terminal_owner_delta_ref = (
+        f"{stage_folder_ref}/projection/current_owner_delta.json"
+        if stage_folder_ref.endswith("/08-publication_package_handoff")
+        else None
+    )
     return sorted(
         ref
         for ref in orphan_refs
-        if ref.startswith(f"{stage_folder_ref}/") and Path(ref).name in retired_names
+        if ref.startswith(f"{stage_folder_ref}/")
+        and (Path(ref).name in retired_names or ref == terminal_owner_delta_ref)
     )
 
 

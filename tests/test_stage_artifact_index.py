@@ -579,6 +579,29 @@ def test_stage_artifact_materializer_keeps_terminal_publication_handoff_gate_ope
         "submission_readiness_required_for_stage_advance": True,
         "terminal_publication_handoff": True,
     }
+    stage_root = study_root / "artifacts" / "stage_outputs" / "08-publication_package_handoff"
+    manifest = json.loads((stage_root / "stage_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["projection_refs"] == []
+    assert manifest["projection_authority"] == {
+        "surface_kind": "stage_artifact_projection_authority",
+        "stage_id": "08-publication_package_handoff",
+        "materializer_can_write_current_owner_delta": False,
+        "owner_answer_projection_required": True,
+        "owner_answer_projection_ref": "projection/current_owner_delta.json",
+        "owner_answer_projection_writer": "publication_handoff_stage_projection.py",
+        "stage_run_current_authority": "opl_stage_transition_authority_only",
+    }
+    assert not (stage_root / "projection" / "current_owner_delta.json").exists()
+    stage_run = stage_run_kernel_projection_from_stage_folder(stage_root)
+    assert stage_run["status"] == "Terminalizing"
+    assert stage_run["completion_authority"] is None
+    assert stage_run["current_owner_delta"] == {
+        "owner": "publication_gate_owner",
+        "action": "publication_handoff_owner_gate",
+        "reason": "terminal_stage_artifact_delta_materialized",
+        "source_ref": str((stage_root / "receipts" / "owner_receipt.json").resolve()),
+        "source_kind": "stage_artifact_receipt",
+    }
 
     index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)
     assert index["current_stage"]["stage_id"] == "08-publication_package_handoff"

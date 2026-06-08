@@ -84,6 +84,14 @@ def test_stage_artifact_index_keeps_publication_handoff_current_with_sidecar_res
         },
     )
     write_json(
+        stage_root / "projection" / "current_owner_delta.json",
+        {
+            "owner": "publication_gate_owner",
+            "action": "publication_handoff_owner_gate",
+            "reason": "legacy_materializer_projection",
+        },
+    )
+    write_json(
         stage_root / "receipts" / "typed_blocker.json",
         {
             "surface_kind": "mas_stage_owner_receipt",
@@ -107,6 +115,10 @@ def test_stage_artifact_index_keeps_publication_handoff_current_with_sidecar_res
     assert classification["orphan"] == []
     assert classification["legacy_orphan_residue"] == [
         "artifacts/stage_outputs/08-publication_package_handoff/current.json",
+        (
+            "artifacts/stage_outputs/08-publication_package_handoff/"
+            "projection/current_owner_delta.json"
+        ),
         (
             "artifacts/stage_outputs/08-publication_package_handoff/"
             "receipts/typed_blocker.json"

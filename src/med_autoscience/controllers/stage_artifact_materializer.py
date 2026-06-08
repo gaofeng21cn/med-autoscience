@@ -273,7 +273,12 @@ def _materialize_stage(
         receipt_ref=receipt["receipt_ref"],
         generated_at=generated_at,
     )
-    current_owner_delta = _current_owner_delta_payload(stage_id=stage_id, receipt_ref=receipt_ref)
+    stage_artifact_projection_ref = _stage_artifact_projection_ref(stage_id)
+    current_owner_delta = (
+        _current_owner_delta_payload(stage_id=stage_id, receipt_ref=receipt_ref)
+        if stage_artifact_projection_ref is not None
+        else None
+    )
     if apply:
         for role_result in role_results:
             _write_json(study_root / str(role_result["artifact_ref"]), role_result["payload"])
@@ -281,7 +286,8 @@ def _materialize_stage(
         _write_json(study_root / manifest_ref, manifest)
         _write_json(stage_root / _INPUT_REFS_REF, input_refs)
         _write_json(stage_root / _LINEAGE_REF, lineage)
-        _write_json(stage_root / _PROJECTION_REF, current_owner_delta)
+        if current_owner_delta is not None and stage_artifact_projection_ref is not None:
+            _write_json(stage_root / stage_artifact_projection_ref, current_owner_delta)
         _write_json(study_root / receipt_ref, receipt)
         index_result = domain_authority_refs_index.record_paper_work_unit_receipt(
             study_root=study_root,
@@ -459,7 +465,8 @@ def _manifest_payload(
         "owner_receipt_refs": [_RECEIPT_REF],
         "typed_blocker_refs": [],
         "lineage_refs": [_LINEAGE_REF],
-        "projection_refs": [_PROJECTION_REF],
+        "projection_refs": _stage_artifact_projection_refs(stage_id),
+        "projection_authority": _projection_authority(stage_id),
         "roles": [
             {
                 "role": item["role"],
@@ -605,6 +612,34 @@ def _current_owner_delta_payload(*, stage_id: str, receipt_ref: str) -> dict[str
         "action": "advance_stage_from_stage_artifact_receipt",
         "reason": "stage_artifact_delta_materialized",
         "source_ref": receipt_ref,
+    }
+
+
+def _stage_artifact_projection_ref(stage_id: str) -> str | None:
+    if stage_id == _TERMINAL_STAGE_ID:
+        return None
+    return _PROJECTION_REF
+
+
+def _stage_artifact_projection_refs(stage_id: str) -> list[str]:
+    projection_ref = _stage_artifact_projection_ref(stage_id)
+    return [projection_ref] if projection_ref is not None else []
+
+
+def _projection_authority(stage_id: str) -> dict[str, Any]:
+    terminal = stage_id == _TERMINAL_STAGE_ID
+    return {
+        "surface_kind": "stage_artifact_projection_authority",
+        "stage_id": stage_id,
+        "materializer_can_write_current_owner_delta": not terminal,
+        "owner_answer_projection_required": terminal,
+        "owner_answer_projection_ref": _PROJECTION_REF if terminal else None,
+        "owner_answer_projection_writer": (
+            "publication_handoff_stage_projection.py" if terminal else None
+        ),
+        "stage_run_current_authority": "opl_stage_transition_authority_only"
+        if terminal
+        else "stage_artifact_materializer_projection_only",
     }
 
 

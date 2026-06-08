@@ -282,6 +282,7 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                     "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
                     "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
                     "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/current.json",
                     "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
                 ],
                 "forbidden_writes": [
@@ -310,6 +311,9 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                     ],
                     "publication_ready_claim_authorized": False,
                     "submission_ready_claim_authorized": False,
+                    "terminal_projection_writer": (
+                        "publication_handoff_stage_projection.py"
+                    ),
                 },
                 "next_owner_rules": {
                     "on_completed": ["human_gate", "controller_stop"],
@@ -323,6 +327,11 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                     "artifacts/medical_paper/*.json",
                     "artifacts/medical_paper/actions/**",
                     "artifacts/controller_decisions/latest.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/current.json",
+                    "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
                 ],
                 "forbidden_writes": [
                     "artifacts/publication_eval/latest.json",
@@ -344,6 +353,10 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                     "requires_owner_receipt_or_typed_blocker": True,
                     "publication_ready_claim_authorized": False,
                     "submission_ready_claim_authorized": False,
+                    "terminal_stage_owner_answer_requires_trusted_opl_binding": True,
+                    "terminal_projection_writer": (
+                        "publication_handoff_stage_projection.py"
+                    ),
                 },
                 "next_owner_rules": {
                     "on_completed": ["publication_gate_owner", "controller_stop"],

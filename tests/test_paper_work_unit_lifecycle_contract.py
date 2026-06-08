@@ -78,9 +78,45 @@ def test_paper_work_unit_lifecycle_contract_declares_publication_handoff_owner_g
         "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
         "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
         "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/current.json",
         "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
     ]
     assert "artifacts/publication_eval/latest.json" in lifecycle["forbidden_writes"]
     assert "controller_decisions/latest.json" in lifecycle["forbidden_writes"]
     assert lifecycle["completion_proof"]["publication_ready_claim_authorized"] is False
     assert lifecycle["completion_proof"]["submission_ready_claim_authorized"] is False
+    assert lifecycle["completion_proof"]["terminal_projection_writer"] == (
+        "publication_handoff_stage_projection.py"
+    )
+
+
+def test_paper_work_unit_lifecycle_contract_declares_readiness_stage_native_closeout_writes() -> None:
+    registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+
+    lifecycle = registry.paper_work_unit_lifecycle_for_action(
+        "complete_medical_paper_readiness_surface"
+    )
+
+    assert lifecycle is not None
+    assert lifecycle["owner"] == "MedAutoScience"
+    assert lifecycle["allowed_writes"] == [
+        "artifacts/medical_paper/readiness.json",
+        "artifacts/medical_paper/*.json",
+        "artifacts/medical_paper/actions/**",
+        "artifacts/controller_decisions/latest.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/current.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
+    ]
+    assert (
+        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json"
+        in lifecycle["forbidden_writes"]
+    )
+    assert lifecycle["completion_proof"][
+        "terminal_stage_owner_answer_requires_trusted_opl_binding"
+    ] is True
+    assert lifecycle["completion_proof"]["terminal_projection_writer"] == (
+        "publication_handoff_stage_projection.py"
+    )

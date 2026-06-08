@@ -15,6 +15,8 @@ from med_autoscience.controllers.opl_execution_boundary import (
 )
 from med_autoscience.profiles import WorkspaceProfile
 
+from . import publication_handoff_stage_projection as stage_projection
+
 
 STAGE_ID = "08-publication_package_handoff"
 STAGE_ROOT_RELATIVE_PATH = Path("artifacts/stage_outputs") / STAGE_ID
@@ -22,8 +24,6 @@ HANDOFF_RECEIPT_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "handoff_owner_receip
 STAGE_RECEIPT_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "receipts" / "owner_receipt.json"
 TYPED_BLOCKER_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "receipts" / "typed_blocker.json"
 STAGE_MANIFEST_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "stage_manifest.json"
-CURRENT_OWNER_DELTA_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "projection" / "current_owner_delta.json"
-CURRENT_POINTER_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "current.json"
 
 
 def execute_publication_handoff_owner_gate(
@@ -252,20 +252,18 @@ def _write_handoff_receipt(
         typed_blocker_refs=[],
         closeout_binding=receipt_binding,
     )
-    _write_current_owner_delta(
+    stage_projection.write_stage_current_projection(
         study_root=study_root,
         owner="human_gate",
         action="human_submission_decision",
         reason="publication_handoff_owner_receipt_ready",
         source_ref=HANDOFF_RECEIPT_RELATIVE_PATH.as_posix(),
-        closeout_binding=receipt_binding,
-    )
-    _write_current_pointer(
-        study_root=study_root,
+        owner_answer_kind="owner_receipt",
         stage_status="success",
         terminal_outcome_kind="owner_receipt",
         terminal_outcome_ref=HANDOFF_RECEIPT_RELATIVE_PATH.as_posix(),
         closeout_binding=receipt_binding,
+        authority_boundary=_authority_boundary(),
     )
     return {
         "surface_kind": "publication_handoff_owner_gate_result",
@@ -308,20 +306,18 @@ def _write_typed_blocker(
         typed_blocker_refs=["receipts/typed_blocker.json"],
         closeout_binding=blocker_binding,
     )
-    _write_current_owner_delta(
+    stage_projection.write_stage_current_projection(
         study_root=study_root,
         owner=_text(decision.get("next_owner")) or "MedAutoScience",
         action=_text(decision.get("next_action")) or "resolve_typed_blocker",
         reason=_text(decision.get("reason")) or "publication_handoff_owner_gate_blocked",
         source_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
-        closeout_binding=blocker_binding,
-    )
-    _write_current_pointer(
-        study_root=study_root,
+        owner_answer_kind="typed_blocker",
         stage_status="blocked",
         terminal_outcome_kind="typed_blocker",
         terminal_outcome_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
         closeout_binding=blocker_binding,
+        authority_boundary=_authority_boundary(),
     )
     return {
         "surface_kind": "publication_handoff_owner_gate_result",
@@ -474,104 +470,11 @@ def _update_stage_manifest(
     manifest["closeout_binding_refs"] = _text_list(closeout_binding.get("closeout_refs"))
     manifest["source_fingerprint"] = _text(closeout_binding.get("source_fingerprint"))
     manifest["work_unit_fingerprint"] = _text(closeout_binding.get("work_unit_fingerprint"))
-    manifest["closeout_binding"] = _manifest_closeout_binding(closeout_binding)
+    manifest["closeout_binding"] = stage_projection.manifest_closeout_binding(closeout_binding)
     manifest["owner_receipt_refs"] = owner_receipt_refs
     manifest["typed_blocker_refs"] = typed_blocker_refs
     manifest["terminal_status"] = "blocked" if typed_blocker_refs else "completed"
     _write_json(path, manifest)
-
-
-def _write_current_owner_delta(
-    *,
-    study_root: Path,
-    owner: str,
-    action: str,
-    reason: str,
-    source_ref: str,
-    closeout_binding: Mapping[str, Any],
-) -> None:
-    owner_answer_kind = "typed_blocker" if source_ref == TYPED_BLOCKER_RELATIVE_PATH.as_posix() else "owner_receipt"
-    idempotency_key = _text(closeout_binding.get("idempotency_key"))
-    provider_attempt_ref = _text(closeout_binding.get("provider_attempt_ref"))
-    attempt_lease_ref = _text(closeout_binding.get("attempt_lease_ref"))
-    attempt_lease_status = _text(closeout_binding.get("attempt_lease_status")) or "active"
-    execution_authorization_decision_ref = _text(closeout_binding.get("execution_authorization_decision_ref"))
-    closeout_refs = _text_list(closeout_binding.get("closeout_refs"))
-    binding = _manifest_closeout_binding(closeout_binding)
-    _write_json(
-        study_root / CURRENT_OWNER_DELTA_RELATIVE_PATH,
-        {
-            "owner": owner,
-            "action": action,
-            "reason": reason,
-            "source_ref": source_ref,
-            "delta_id": idempotency_key,
-            "idempotency_key": idempotency_key,
-            "latest_owner_answer_ref": source_ref,
-            "latest_owner_answer_kind": owner_answer_kind,
-            "latest_owner_receipt_ref": source_ref if owner_answer_kind == "owner_receipt" else None,
-            "latest_typed_blocker_ref": source_ref if owner_answer_kind == "typed_blocker" else None,
-            "stage_run_id": _text(closeout_binding.get("stage_run_id")),
-            "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
-            "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
-            "source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
-            "provider_attempt_ref": provider_attempt_ref,
-            "attempt_lease_ref": attempt_lease_ref,
-            "attempt_lease_status": attempt_lease_status,
-            "execution_authorization_decision_ref": execution_authorization_decision_ref,
-            "closeout_refs": closeout_refs,
-            "closeout_binding": binding,
-            "hard_gate": {
-                "state": "domain_owner_answer_recorded",
-                "owner_answer_ref": source_ref,
-                "owner_answer_kind": owner_answer_kind,
-                "owner_answer_stage_run_id": _text(closeout_binding.get("stage_run_id")),
-                "owner_answer_generation": closeout_binding.get("generation"),
-                "owner_answer_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
-                "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
-                "owner_answer_current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
-                "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
-                "owner_answer_source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
-                "owner_answer_idempotency_key": idempotency_key,
-                "owner_answer_provider_attempt_ref": provider_attempt_ref,
-                "owner_answer_attempt_lease_ref": attempt_lease_ref,
-                "owner_answer_attempt_lease_status": attempt_lease_status,
-                "owner_answer_execution_authorization_decision_ref": execution_authorization_decision_ref,
-                "owner_answer_closeout_refs": closeout_refs,
-            },
-        },
-    )
-
-
-def _write_current_pointer(
-    *,
-    study_root: Path,
-    stage_status: str,
-    terminal_outcome_kind: str,
-    terminal_outcome_ref: str,
-    closeout_binding: Mapping[str, Any],
-) -> None:
-    _write_json(
-        study_root / CURRENT_POINTER_RELATIVE_PATH,
-        {
-            "surface_kind": "stage_current_pointer",
-            "schema_version": 1,
-            "current_stage": {
-                "stage_id": STAGE_ID,
-                "status": stage_status,
-                "latest_attempt_id": _text(closeout_binding.get("attempt_id"))
-                or _text(closeout_binding.get("provider_attempt_ref")),
-                "stage_run_id": _text(closeout_binding.get("stage_run_id")),
-                "terminal_outcome_kind": terminal_outcome_kind,
-                "terminal_outcome_ref": terminal_outcome_ref,
-                "source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
-            },
-            "closeout_binding": _manifest_closeout_binding(closeout_binding),
-            "projection_only": True,
-            "body_included": False,
-            "authority_boundary": _authority_boundary(),
-        },
-    )
 
 
 def _terminal_stage(index: Mapping[str, Any]) -> dict[str, Any]:
@@ -706,7 +609,7 @@ def _trusted_closeout_binding(
         "current_pointer_ref": _binding_text(
             dispatch,
             "current_pointer_ref",
-            fallback=CURRENT_POINTER_RELATIVE_PATH.as_posix(),
+            fallback=stage_projection.CURRENT_POINTER_RELATIVE_PATH.as_posix(),
         ),
         "closeout_refs": closeout_refs,
         "source_fingerprint": source_fingerprint,
@@ -730,33 +633,8 @@ def _closeout_binding_for_receipt(
     receipt_ref: str,
 ) -> dict[str, Any]:
     return {
-        **_manifest_closeout_binding(closeout_binding),
+        **stage_projection.manifest_closeout_binding(closeout_binding),
         "receipt_ref": receipt_ref,
-    }
-
-
-def _manifest_closeout_binding(closeout_binding: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "surface_kind": "publication_handoff_closeout_binding",
-        "trusted_opl_execution_authorization": True,
-        "bound_to_stage_run": bool(closeout_binding.get("bound_to_stage_run")),
-        "bound_to_stage_manifest": bool(closeout_binding.get("bound_to_stage_manifest")),
-        "bound_to_current_pointer": bool(closeout_binding.get("bound_to_current_pointer")),
-        "bound_to_source_fingerprint": bool(closeout_binding.get("bound_to_source_fingerprint")),
-        "provider_attempt_ref": _text(closeout_binding.get("provider_attempt_ref")),
-        "attempt_lease_ref": _text(closeout_binding.get("attempt_lease_ref")),
-        "attempt_lease_status": _text(closeout_binding.get("attempt_lease_status")) or "active",
-        "execution_authorization_decision_ref": _text(closeout_binding.get("execution_authorization_decision_ref")),
-        "stage_run_id": _text(closeout_binding.get("stage_run_id")),
-        "stage_run_ref": _text(closeout_binding.get("stage_run_ref")),
-        "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
-        "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
-        "closeout_refs": _text_list(closeout_binding.get("closeout_refs")),
-        "source_fingerprint": _text(closeout_binding.get("source_fingerprint")),
-        "work_unit_fingerprint": _text(closeout_binding.get("work_unit_fingerprint")),
-        "idempotency_key": _text(closeout_binding.get("idempotency_key")),
-        "generation": closeout_binding.get("generation") if isinstance(closeout_binding.get("generation"), int) else 0,
-        "body_included": False,
     }
 
 

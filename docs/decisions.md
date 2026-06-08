@@ -5,6 +5,16 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-08：terminal publication handoff Stage current projection 只能有一个 MAS writer
+
+- 决策：MAS terminal `08-publication_package_handoff` 的 `current.json` 与 `projection/current_owner_delta.json` 只能由 `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/action_execution/publication_handoff_stage_projection.py` 物化。该模块是 MAS 侧 owner-answer projection writer；它写出的 payload 必须携带 `projection_writer=mas_terminal_handoff_stage_current_projection_writer.v1` 与 `stage_run_current_authority=opl_stage_transition_authority_only`。
+- 决策：`publication_handoff.py` 与 `medical_paper_readiness_stage_closeout.py` 只能生成 owner receipt、typed blocker、closeout binding 和 manifest 更新，然后调用唯一 projection writer；它们不得各自定义 `_write_current_owner_delta`、`_write_current_pointer`，也不得直接持有 terminal handoff current projection 路径。
+- 决策：`stage_artifact_materializer.py` 可以物化 terminal handoff stage 的 artifact refs、manifest、receipt、input refs 和 lineage，但不得写 terminal `projection/current_owner_delta.json`；terminal manifest 必须声明 `materializer_can_write_current_owner_delta=false` 和 `owner_answer_projection_required=true`。历史 materializer 写出的 terminal `projection/current_owner_delta.json` 只能作为 legacy residue 处理，不能重新成为 owner-answer projection。
+- 决策：terminal handoff 的 `stage_artifact_delta` receipt 只能让 StageRun kernel 投影为 `Terminalizing / publication_handoff_owner_gate`，不能被解释为 `DomainAccepted`。只有 `publication_handoff_stage_projection.py` 消费 owner receipt 或 typed blocker 后，terminal handoff 才能发布 owner-answer projection。
+- 决策：paper work-unit lifecycle contract 必须把 terminal owner-answer 写面显式绑定到 `publication_handoff_stage_projection.py`。`publication_handoff_owner_gate` 与 `complete_medical_paper_readiness_surface` 可以在可信 OPL closeout binding 下写 owner receipt / typed blocker、stage manifest、`current.json` 和 `projection/current_owner_delta.json`，但 terminal current projection 的实际 writer 只能是该 helper；artifact materializer 不在这个 allowed writer 集合内。
+- 理由：OPL 层 Stage Transition Authority 已是 StageRun current / terminal state 唯一裁决面；MAS 侧仍需要把 domain owner answer 派生为 terminal handoff stage folder projection。若 publication gate 和 readiness closeout 两个调用方各自写同一 current projection，后续维护会重新形成“第二 current writer”的同构风险。
+- 影响：这是 MAS stage-folder projection writer 收敛，不写 study truth、runtime-owned state、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package 或 OPL queue。StageRun current pointer 的裁决 authority 仍归 OPL；MAS 只发布可被 OPL 消费的 owner answer projection。
+
 ## 2026-06-08：MAS/OPL 边界采用 canonical current work unit 协议
 
 - 决策：`src/med_autoscience/controllers/current_work_unit.py` 是 MAS/OPL 边界唯一当前可执行 work unit reducer。它只输出 `executable_owner_action`、`running_provider_attempt`、`typed_blocker` 或 `blocked_current_work_unit` 四类 `status`，并固定携带 owner、action type、work-unit id、fingerprint、required output contract、acceptance refs、currentness basis 和 authority boundary。
