@@ -240,12 +240,26 @@ def _pending_family_tasks(
                 study_id=study_id,
             )
         )
+        current_progress = _fresh_study_progress(
+            study=study,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+        )
         tasks.extend(
             default_executor_dispatch_tasks(
                 profile=profile,
                 profile_ref=profile_ref,
                 study_id=study_id,
-                current_owner_action=mapping(study.get("current_owner_action")),
+                current_owner_action=_export_current_owner_action(
+                    study=study,
+                    current_progress=current_progress,
+                ),
+                current_work_unit=mapping(current_progress.get("current_work_unit")),
+                current_execution_envelope=_export_current_execution_envelope(
+                    study=study,
+                    current_progress=current_progress,
+                ),
             )
         )
         tasks.extend(
@@ -281,6 +295,97 @@ def _pending_family_tasks(
         if controller_task is not None:
             tasks.append(controller_task)
     return tasks
+
+
+def _fresh_study_progress(
+    *,
+    study: Mapping[str, Any],
+    profile: WorkspaceProfile,
+    profile_ref: Path,
+    study_id: str,
+) -> Mapping[str, Any]:
+    try:
+        from med_autoscience.controllers import study_progress
+    except ImportError:
+        return {}
+    study_root = Path(text(study.get("study_root")) or profile.studies_root / study_id)
+    try:
+        return study_progress.read_study_progress(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            study_root=study_root,
+            sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
+        )
+    except (FileNotFoundError, OSError, ValueError, TypeError, RuntimeError):
+        return {}
+
+
+def _export_current_owner_action(
+    *,
+    study: Mapping[str, Any],
+    current_progress: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    progress_action = mapping(current_progress.get("current_executable_owner_action"))
+    if progress_action:
+        projection_action = mapping(study.get("current_owner_action"))
+        if text(progress_action.get("action_type")) == text(projection_action.get("action_type")):
+            return _merge_projection_owner_action_identity(
+                progress_action=progress_action,
+                projection_action=projection_action,
+            )
+        return progress_action
+    projection_action = mapping(study.get("current_owner_action"))
+    if text(projection_action.get("source")) == "opl_current_control_state_action_queue":
+        return {}
+    return projection_action
+
+
+def _export_current_execution_envelope(
+    *,
+    study: Mapping[str, Any],
+    current_progress: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    progress_envelope = mapping(current_progress.get("current_execution_envelope"))
+    if progress_envelope:
+        return progress_envelope
+    projection_action = mapping(study.get("current_owner_action"))
+    if text(projection_action.get("source")) != "opl_current_control_state_action_queue":
+        return {}
+    return {
+        "state_kind": "blocked_current_work_unit",
+        "owner": "med-autoscience",
+        "next_work_unit": None,
+        "typed_blocker": {
+            "blocker_type": "canonical_current_work_unit_required",
+            "owner": "med-autoscience",
+            "source": "domain_handler_export.current_control_action_queue_guard",
+        },
+    }
+
+
+def _merge_projection_owner_action_identity(
+    *,
+    progress_action: Mapping[str, Any],
+    projection_action: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    if not projection_action:
+        return progress_action
+    merged = dict(progress_action)
+    for key in (
+        "surface_key",
+        "target_surface",
+        "target_surface_specificity",
+        "next_action",
+        "source_ref",
+    ):
+        value = projection_action.get(key)
+        if value is not None and merged.get(key) is None:
+            merged[key] = value
+    if text(projection_action.get("source")) != "opl_current_control_state_action_queue":
+        merged["source"] = text(projection_action.get("source")) or text(merged.get("source"))
+    return merged
 
 
 def _autonomy_progress_pressure_task(

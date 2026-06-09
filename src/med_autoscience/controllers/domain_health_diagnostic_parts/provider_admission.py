@@ -284,7 +284,7 @@ def current_control_provider_admission_candidates(
             if (
                 action_identity
                 and action_identity != current_action_identity
-                and not _status_typed_blocker_envelope(effective_status)
+                and not _status_blocks_action_queue_self_identity(effective_status)
             ):
                 candidate = provider_admission_candidate_from_current_control_action(
                     action,
@@ -301,9 +301,33 @@ def current_control_provider_admission_candidates(
 
 
 def _status_typed_blocker_envelope(status_payload: Mapping[str, Any]) -> bool:
+    return _status_execution_state_kind(status_payload) == "typed_blocker"
+
+
+def _status_blocks_action_queue_self_identity(status_payload: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping(status_payload.get("current_work_unit"))
+    current_work_unit_status = _non_empty_text(current_work_unit.get("status"))
+    if current_work_unit_status in {
+        "typed_blocker",
+        "running_provider_attempt",
+        "blocked_current_work_unit",
+        "blocked_typed_owner",
+        "parked",
+    }:
+        return True
+    state_kind = _status_execution_state_kind(status_payload)
+    return state_kind in {
+        "typed_blocker",
+        "running_provider_attempt",
+        "blocked_current_work_unit",
+        "blocked_typed_owner",
+        "parked",
+    }
+
+
+def _status_execution_state_kind(status_payload: Mapping[str, Any]) -> str | None:
     envelope = _mapping(status_payload.get("current_execution_envelope"))
-    state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(envelope.get("execution_state_kind"))
-    return state_kind == "typed_blocker"
+    return _non_empty_text(envelope.get("state_kind")) or _non_empty_text(envelope.get("execution_state_kind"))
 
 
 def provider_admission_candidate_from_current_control_action(
@@ -890,9 +914,23 @@ def _status_envelope_blocks_provider_admission(
     execution: Mapping[str, Any],
     current_action_identity: Mapping[str, Any] | None = None,
 ) -> bool:
+    current_work_unit = _mapping(status_payload.get("current_work_unit"))
+    current_work_unit_status = _non_empty_text(current_work_unit.get("status"))
+    if current_work_unit_status in {
+        "running_provider_attempt",
+        "blocked_current_work_unit",
+        "blocked_typed_owner",
+        "parked",
+    }:
+        return True
     envelope = _mapping(status_payload.get("current_execution_envelope"))
     state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(envelope.get("execution_state_kind"))
-    if state_kind in {"parked", "running_provider_attempt"}:
+    if state_kind in {
+        "parked",
+        "running_provider_attempt",
+        "blocked_current_work_unit",
+        "blocked_typed_owner",
+    }:
         return True
     if state_kind != "typed_blocker":
         return False

@@ -8,9 +8,64 @@ from .shared import *  # noqa: F403,F401
 
 from .default_executor_current_owner_action_shared import _owner_route, _write_dispatch
 
+
+def _patch_canonical_current_work_unit(
+    monkeypatch,
+    *,
+    study_id: str,
+    action_type: str,
+    work_unit_id: str,
+    work_unit_fingerprint: str,
+    owner: str,
+    source: str = "canonical_current_work_unit",
+) -> None:
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": owner,
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                    "runtime_health_epoch": "runtime-health-event-canonical-test",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": owner,
+                "next_work_unit": work_unit_id,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": source,
+                "next_owner": owner,
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "allowed_actions": [action_type],
+            },
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+
 def test_domain_handler_export_prefers_current_control_action_queue_over_later_dispatch(
     tmp_path: Path,
     capsys,
+    monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
@@ -105,6 +160,15 @@ def test_domain_handler_export_prefers_current_control_action_queue_over_later_d
             ],
         },
     )
+    _patch_canonical_current_work_unit(
+        monkeypatch,
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id=current_work_unit_id,
+        work_unit_fingerprint="dm003::ai-reviewer::current-control",
+        owner="ai_reviewer",
+        source="opl_current_control_state.action_queue.canonical_current_work_unit",
+    )
 
     exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
@@ -132,6 +196,7 @@ def test_domain_handler_export_prefers_current_control_action_queue_over_later_d
 def test_domain_handler_export_prefers_current_control_action_queue_over_stale_readiness_blocker(
     tmp_path: Path,
     capsys,
+    monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
@@ -219,6 +284,15 @@ def test_domain_handler_export_prefers_current_control_action_queue_over_stale_r
                 }
             ],
         },
+    )
+    _patch_canonical_current_work_unit(
+        monkeypatch,
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id=current_work_unit_id,
+        work_unit_fingerprint="domain-transition::ai-reviewer-current",
+        owner="ai_reviewer",
+        source="opl_current_control_state.action_queue.canonical_current_work_unit",
     )
 
     exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
@@ -954,6 +1028,7 @@ def test_domain_handler_export_prefers_current_writer_handoff_over_stale_current
 def test_domain_handler_export_retire_writer_handoff_after_current_reviewer_record_routes_to_gate_replay(
     tmp_path: Path,
     capsys,
+    monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
@@ -1177,6 +1252,15 @@ def test_domain_handler_export_retire_writer_handoff_after_current_reviewer_reco
             ],
         },
     )
+    _patch_canonical_current_work_unit(
+        monkeypatch,
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id=current_ai_work_unit_id,
+        work_unit_fingerprint="truth-snapshot::current-ai-reviewer-workflow",
+        owner="ai_reviewer",
+        source="opl_current_control_state.action_queue.canonical_current_work_unit",
+    )
 
     exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
@@ -1196,6 +1280,7 @@ def test_domain_handler_export_retire_writer_handoff_after_current_reviewer_reco
 def test_domain_handler_export_accepts_required_fields_currentness_basis_without_owner_reason(
     tmp_path: Path,
     capsys,
+    monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
@@ -1275,6 +1360,15 @@ def test_domain_handler_export_accepts_required_fields_currentness_basis_without
                 }
             ],
         },
+    )
+    _patch_canonical_current_work_unit(
+        monkeypatch,
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_id=current_work_unit_id,
+        work_unit_fingerprint="truth-snapshot::current",
+        owner="ai_reviewer",
+        source="opl_current_control_state.action_queue.canonical_current_work_unit",
     )
 
     exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])

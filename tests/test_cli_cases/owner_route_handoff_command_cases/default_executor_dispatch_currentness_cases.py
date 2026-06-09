@@ -5,6 +5,68 @@ import os
 from .shared import *  # noqa: F403,F401
 
 
+def _patch_canonical_current_work_unit(
+    monkeypatch,
+    *,
+    study_id: str,
+    action_type: str,
+    work_unit_id: str,
+    work_unit_fingerprint: str | None,
+    owner: str,
+    source: str = "canonical_current_work_unit",
+) -> None:
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": owner,
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                    "runtime_health_epoch": "runtime-health-event-canonical-test",
+                },
+                **(
+                    {
+                        "work_unit_fingerprint": work_unit_fingerprint,
+                        "action_fingerprint": work_unit_fingerprint,
+                    }
+                    if work_unit_fingerprint is not None
+                    else {}
+                ),
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": owner,
+                "next_work_unit": work_unit_id,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": source,
+                "next_owner": owner,
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "allowed_actions": [action_type],
+                **(
+                    {"work_unit_fingerprint": work_unit_fingerprint}
+                    if work_unit_fingerprint is not None
+                    else {}
+                ),
+            },
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+
 def _owner_route(
     *,
     study_id: str,
@@ -689,6 +751,7 @@ def test_domain_handler_export_uses_immutable_packet_ref_when_latest_slot_is_ove
 def test_readiness_surface_key_changes_default_executor_source_identity(
     tmp_path: Path,
     capsys,
+    monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
@@ -735,6 +798,15 @@ def test_readiness_surface_key_changes_default_executor_source_identity(
     }
     decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     _write_json(decision_path, first_decision)
+    _patch_canonical_current_work_unit(
+        monkeypatch,
+        study_id=study_id,
+        action_type="complete_medical_paper_readiness_surface",
+        work_unit_id="complete_medical_paper_readiness_surface",
+        work_unit_fingerprint=None,
+        owner="MedAutoScience",
+        source="controller_decisions.readiness_next_action",
+    )
 
     first_exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     first_payload = json.loads(capsys.readouterr().out)
@@ -755,6 +827,15 @@ def test_readiness_surface_key_changes_default_executor_source_identity(
         },
     }
     _write_json(decision_path, second_decision)
+    _patch_canonical_current_work_unit(
+        monkeypatch,
+        study_id=study_id,
+        action_type="complete_medical_paper_readiness_surface",
+        work_unit_id="complete_medical_paper_readiness_surface",
+        work_unit_fingerprint=None,
+        owner="MedAutoScience",
+        source="controller_decisions.readiness_next_action",
+    )
 
     second_exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     second_payload = json.loads(capsys.readouterr().out)
@@ -798,6 +879,7 @@ def test_readiness_surface_key_changes_default_executor_source_identity(
 def test_domain_handler_export_carries_stage_current_provider_admission_identity(
     tmp_path: Path,
     capsys,
+    monkeypatch,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
@@ -891,6 +973,15 @@ def test_domain_handler_export_carries_stage_current_provider_admission_identity
                 }
             ],
         },
+    )
+    _patch_canonical_current_work_unit(
+        monkeypatch,
+        study_id=study_id,
+        action_type="complete_medical_paper_readiness_surface",
+        work_unit_id="complete_medical_paper_readiness_surface",
+        work_unit_fingerprint=work_unit_fingerprint,
+        owner="MedAutoScience",
+        source="stage_kernel_projection.current_owner_delta",
     )
 
     exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
