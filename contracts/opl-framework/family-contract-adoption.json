@@ -502,6 +502,20 @@
     ],
     "maps_to_opl_shared_primitive": "progress-first-learning-sidecar.v1",
     "mas_role": "domain_projection_progress_accelerator_and_refs_only_contract_owner",
+    "target_sidecar_execution_architecture": {
+      "architecture_state": "complete_target_design_landed",
+      "remaining_learning_plan": false,
+      "future_work_role": "implementation_scaleout_under_this_contract_only",
+      "execution_model": "nonblocking_current_owner_following_sidecar",
+      "critical_path_waits_for_sidecar": false,
+      "runs_parallel_to_ordinary_progress": true,
+      "sidecar_failure_policy": "drop_sidecar_ref_and_continue_current_owner_action",
+      "sidecar_completion_required_for_dispatch": false,
+      "sidecar_completion_required_for_stage_transition": false,
+      "sidecar_completion_required_for_quality_gate": false,
+      "sidecar_completion_required_for_artifact_mutation": false,
+      "hard_gate_candidate_requires_owner_or_reviewer_materialization": true
+    },
     "allowed_export": [
       "refs",
       "metadata",

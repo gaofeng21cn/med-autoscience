@@ -67,7 +67,7 @@ stage folder + stage_manifest + role artifacts + owner receipt / typed blocker
 | [Argo artifacts](https://argo-workflows.readthedocs.io/en/stable/walk-through/artifacts/) / [Kubeflow artifacts](https://www.kubeflow.org/docs/components/pipelines/user-guides/data-handling/artifacts/) | artifact 是一等输入输出，有 URI、metadata、lineage。 | Stage folder 内每个输出都有 `ArtifactRef`、role 和 lineage，不从任意文件存在性推断完成。 |
 | [OpenLineage](https://openlineage.io/) / [W3C PROV](https://www.w3.org/TR/2013/NOTE-prov-overview-20130430/) | run、artifact、agent、lineage 必须可追踪。 | 每个 StageRun 记录 consumed refs、produced refs、owner receipt、typed blocker 和 agent invocation。 |
 | [AI Co-Scientist](https://arxiv.org/abs/2502.18864) | 科研 stage 内可包含 generation、debate、evolution、meta-review。 | Stage 内部可以有 strategy kernel；Stage 外部状态壳保持薄，只调度、持久化和投影 refs。 |
-| EvoScientist / EvoSkills upstream facts | auxiliary background memory worker、tool selector、fire-and-forget observation memory、research lifecycle skills with IDE / IVE / ESE memory 可改善推进体感。 | 只映射为 async learning sidecar、auxiliary helper、fail-open tool selector、observation memory 和 failed-path taxonomy；不持有 MAS authority，不阻断 ordinary progress spine，不替代 independent reviewer/auditor。 |
+| EvoScientist / EvoSkills upstream facts | auxiliary background memory worker、tool selector、fire-and-forget observation memory、research lifecycle skills with IDE / IVE / ESE memory 可改善推进体感。 | 已一次性映射为完整 nonblocking current-owner-following sidecar architecture：`tool_selector_helper`、`observation_memory_sidecar`、`failed_path_taxonomy`、`routing_eval`、`attempt_budget_stop_loss`。不持有 MAS authority，不阻断 ordinary progress spine，不替代 independent reviewer/auditor。 |
 
 ## 和 Stage Native / RCA 思路的关系
 
@@ -128,7 +128,7 @@ Stage artifact 分四层：
 
 `complete_medical_paper_readiness_surface` 因此按 just-in-time delta 读取：当前 surface 需要 payload 时补 payload，需要 owner blocker 时写 blocker，需要 route-back 时给 route-back；它不要求普通 paper progress 先补齐全部 readiness inventory。readiness inventory、lineage、restore、long-soak、refs-only ledger 和 cleanup proof 进入 audit sidecar，只有在破坏 owner、authority、execution authorization、closeout binding、artifact/package mutation、publication/submission claim 或 human gate 时才升级为 hard gate。
 
-EvoScientist / EvoSkills 学习点进入同一层旁路：
+EvoScientist / EvoSkills 学习点进入同一层旁路，且目标态 execution architecture 已完整固定；后续只允许 implementation scaleout，不再保留学习计划：
 
 | Sidecar | Stage Native 角色 | 阻断边界 |
 | --- | --- | --- |
@@ -136,6 +136,8 @@ EvoScientist / EvoSkills 学习点进入同一层旁路：
 | `tool_selector_helper` | 给当前 owner action 提供工具排序、候选工具和拒用理由。 | 只能服从 MAS owner policy / OPL allowed action；不能成为 tool authority。 |
 | `observation_memory_sidecar` | fire-and-forget 记录观察 ref、source fingerprint、scope 和 suggested reuse。 | 观察记录不等于 progress，不等于 memory accept/reject。 |
 | `failed_path_taxonomy` | 把 stale currentness、missing owner answer、quality gap、source gap、tool/auth gap、platform repair、human gate、artifact authority gap 等失败路径归类为 no-loop hint。 | 分类本身不关闭 Stage，不授权 artifact mutation，不替代 typed blocker。 |
+| `routing_eval` | 只在 release / meta regression gate 中验证 skill-route 触发和 generated surface 一致性。 | 不作为 live delta gate；不能阻断已知 current owner delta。 |
+| `attempt_budget_stop_loss` | 为重复失败签名生成 stop-loss candidate ref。 | 预算耗尽只停止 sidecar；真正 stop-loss 必须等 owner decision / typed blocker。 |
 
 这些 sidecar 可以提示 hard-gate candidate，但真正的 hard gate 必须由 MAS owner surface、OPL Stage Transition Authority、independent reviewer/auditor、human gate 或 typed blocker materializer 产出。
 

@@ -22,6 +22,15 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：EvoScientist / EvoSkills 的可学习点能提升连续推进体感和失败路径复用，但 MAS 当前首要目标是 progress-first ordinary spine：尽快产出 concrete paper / evidence / reviewer / gate delta，并用 `ProgressDeltaReceipt`、`OwnerReceipt` 或 `TypedBlocker` 接力。若把 background memory、tool selector 或 failed-path taxonomy 放成默认 gate，会重新制造 MAS 刚清掉的 read-model / receipt / advisory layer 抢占普通推进问题。
 - 影响：这是 docs/status foldback 和后续机器合同设计边界，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、typed blocker、quality verdict、memory body、artifact body、OPL queue 或 provider attempt。后续若实现机器 surface，必须证明 fail-open、refs-only、budgeted、current-owner-following 和 independent-reviewer boundary。
 
+## 2026-06-10：EvoScientist / EvoSkills sidecar 不再保留学习尾项
+
+- 决策：EvoScientist / EvoSkills 的学习结果必须作为完整目标态 sidecar execution architecture 一次性落地；`remaining_learning_plan=false` 是稳定机器口径。后续工作只能是 `implementation_scaleout_under_this_contract_only`，不能重新进入“边学、边停、边看”的 planning loop。
+- 决策：目标态 execution slot 固定为 `tool_selector_helper`、`observation_memory_sidecar`、`failed_path_taxonomy`、`routing_eval` 和 `attempt_budget_stop_loss`。所有 slot 都跟随当前 `current_owner_delta`，只产出 refs-only candidate，不能生成新的 current owner，不能改变 ordinary progress critical path。
+- 决策：sidecar scheduling 由 OPL 通用 substrate 持有；MAS 只声明 domain boundary、source readiness / publication / artifact / memory authority 边界，并接受 refs-only candidate。sidecar 与 ordinary progress parallel run，`mainline_waits_for_sidecar=false`；sidecar 缺失、失败、超时、预算耗尽或与 owner policy 冲突时，停止 sidecar，不停止 owner action。
+- 决策：sidecar 可以提交 hard-gate candidate ref；真正 gate 必须由 MAS owner surface、OPL Stage Transition Authority、independent reviewer/auditor、human gate 或 typed blocker materializer 产出。sidecar completion 不得成为 dispatch、stage transition、quality gate 或 artifact mutation 的前置条件。
+- 理由：从设计层面一次性解决所有已知问题，比把学习计划拆成未来阶段更符合 progress-first。系统必须在架构上保证新增辅助能力只提升顺畅度，不制造新 admission gate、read-model stall 或 advisory layer 抢占。
+- 影响：`contracts/evo_scientist_progress_accelerator.json`、`evo_scientist_learning_projection`、family adoption contract、status 和 active design docs 已同步该目标态；后续实现 worker / scheduler / projection scaleout 时，测试必须证明 nonblocking、fail-open、refs-only、budgeted、owner-policy-wins，而不是重新论证是否学习 EvoScientist。
+
 ## 2026-06-09：root action_queue 完整 currentness identity 可作为 provider admission fallback
 
 - 决策：`opl_current_control_state.action_queue` 携带 provider-admissible action、allowed owner、work-unit id、work-unit fingerprint，并且 `owner_route.source_refs.owner_route_currentness_basis` 同时具备 `work_unit_id`、`work_unit_fingerprint`、`truth_epoch` 和 `runtime_health_epoch` 或 `source_eval_id` 时，MAS provider admission 可以把该 root queue item 作为 current action identity fallback。该 fallback 只用于 provider admission matching，不升级为 domain truth、owner receipt、typed blocker、quality verdict、paper-ready 或 publication-ready。

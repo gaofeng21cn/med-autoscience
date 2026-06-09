@@ -518,6 +518,25 @@ def test_mas_evo_scientist_learning_projection_declares_progress_first_absorptio
     assert projection["mas_role"] == (
         "domain_projection_progress_accelerator_and_refs_only_contract_owner"
     )
+    sidecar_architecture = projection["target_sidecar_execution_architecture"]
+    assert sidecar_architecture["architecture_state"] == "complete_target_design_landed"
+    assert sidecar_architecture["remaining_learning_plan"] is False
+    assert sidecar_architecture["future_work_role"] == (
+        "implementation_scaleout_under_this_contract_only"
+    )
+    assert sidecar_architecture["execution_model"] == "nonblocking_current_owner_following_sidecar"
+    assert sidecar_architecture["critical_path_waits_for_sidecar"] is False
+    assert sidecar_architecture["runs_parallel_to_ordinary_progress"] is True
+    assert sidecar_architecture["sidecar_failure_policy"] == (
+        "drop_sidecar_ref_and_continue_current_owner_action"
+    )
+    assert sidecar_architecture["sidecar_completion_required_for_dispatch"] is False
+    assert sidecar_architecture["sidecar_completion_required_for_stage_transition"] is False
+    assert sidecar_architecture["sidecar_completion_required_for_quality_gate"] is False
+    assert sidecar_architecture["sidecar_completion_required_for_artifact_mutation"] is False
+    assert sidecar_architecture[
+        "hard_gate_candidate_requires_owner_or_reviewer_materialization"
+    ] is True
     assert projection["absorbed_pattern_ids"] == [
         "auxiliary_background_model",
         "fire_and_forget_observation_memory",

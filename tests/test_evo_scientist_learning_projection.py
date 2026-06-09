@@ -15,6 +15,7 @@ def test_evo_scientist_learning_projection_absorbs_progress_accelerators_only() 
 
     assert projection["surface_kind"] == "mas_evo_scientist_progress_accelerator_projection"
     assert projection["version"] == "mas-evo-scientist-progress-accelerator.v1"
+    assert projection["status"] == "complete_target_sidecar_architecture_projected"
     assert projection["contract_ref"] == "contracts/evo_scientist_progress_accelerator.json"
     assert projection["progress_accelerator_contract_ref"] == (
         "contracts/evo_scientist_progress_accelerator.json"
@@ -60,9 +61,86 @@ def test_evo_scientist_learning_projection_absorbs_progress_accelerators_only() 
         "next_current_owner_delta",
     ]
     assert boundary["can_block_current_owner_action"] is False
+    assert boundary["critical_path_waits_for_sidecar"] is False
     assert boundary["can_require_full_research_lifecycle_preflight"] is False
     assert boundary["can_require_full_readiness_inventory"] is False
     assert boundary["missing_learning_sidecar_blocks_dispatch"] is False
+
+
+def test_evo_scientist_learning_projection_lands_complete_target_sidecar_architecture() -> None:
+    module = importlib.import_module("med_autoscience.evo_scientist_learning_projection")
+
+    projection = module.build_evo_scientist_learning_projection()
+    architecture = projection["target_sidecar_execution_architecture"]
+
+    assert architecture["surface_kind"] == (
+        "mas_evo_scientist_target_sidecar_execution_architecture"
+    )
+    assert architecture["architecture_state"] == "complete_target_design_landed"
+    assert architecture["remaining_learning_plan"] is False
+    assert architecture["future_work_role"] == "implementation_scaleout_under_this_contract_only"
+    assert architecture["execution_model"] == "nonblocking_current_owner_following_sidecar"
+    assert architecture["ordinary_progress_critical_path"] == [
+        "current_owner_delta",
+        "concrete_delta",
+        "ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker",
+        "next_current_owner_delta",
+    ]
+    assert architecture["sidecar_launch_points"] == [
+        "after_current_owner_delta_materialized",
+        "after_tool_surface_hydrated",
+        "after_executor_turn_or_subagent_completion",
+        "after_receipt_or_typed_blocker_recorded",
+    ]
+    assert set(architecture["sidecar_outputs"]) == {
+        "tool_affordance_ref",
+        "observation_memory_ref",
+        "failed_path_memory_ref",
+        "reviewer_briefing_ref",
+        "route_hint_ref",
+        "stop_loss_candidate_ref",
+    }
+
+    scheduling = architecture["scheduling_contract"]
+    assert scheduling["owner"] == "one-person-lab"
+    assert scheduling["mas_role"] == "declare_domain_boundaries_and_accept_refs_only_candidates"
+    assert scheduling["runs_parallel_to_ordinary_progress"] is True
+    assert scheduling["mainline_waits_for_sidecar"] is False
+    assert scheduling["sidecar_failure_policy"] == (
+        "drop_sidecar_ref_and_continue_current_owner_action"
+    )
+    assert scheduling["sidecar_timeout_policy"] == (
+        "record_diagnostic_if_available_and_continue"
+    )
+    assert scheduling["sidecar_conflict_policy"] == "owner_policy_wins"
+
+    budget = architecture["budget_contract"]
+    assert budget["budget_exhaustion_policy"] == "stop_sidecar_not_owner_action"
+    assert budget["sidecar_retry_policy"] == "bounded_retry_or_skip"
+    assert budget["budget_exhaustion_can_emit_typed_blocker"] is False
+
+    admission = architecture["admission_contract"]
+    assert admission["sidecar_completion_required_for_dispatch"] is False
+    assert admission["sidecar_completion_required_for_stage_transition"] is False
+    assert admission["sidecar_completion_required_for_quality_gate"] is False
+    assert admission["sidecar_completion_required_for_artifact_mutation"] is False
+    assert admission["sidecar_may_submit_hard_gate_candidate_ref"] is True
+    assert admission["hard_gate_candidate_requires_owner_or_reviewer_materialization"] is True
+
+    slots = {slot["slot"]: slot for slot in architecture["implementation_slots"]}
+    assert set(slots) == {
+        "tool_selector_helper",
+        "observation_memory_sidecar",
+        "failed_path_taxonomy",
+        "routing_eval",
+        "attempt_budget_stop_loss",
+    }
+    assert all(slot["status"] == "target_architecture_landed" for slot in slots.values())
+    assert slots["tool_selector_helper"]["failure_policy"] == "fail_open_to_owner_required_tools"
+    assert slots["observation_memory_sidecar"]["failure_policy"] == (
+        "fire_and_forget_no_mainline_wait"
+    )
+    assert slots["routing_eval"]["failure_policy"] == "meta_gate_only_not_live_delta_gate"
 
 
 def test_evo_scientist_learning_projection_fails_open_and_preserves_authority() -> None:
@@ -138,7 +216,24 @@ def test_evo_scientist_progress_accelerator_contract_matches_projection_boundary
         "ordinary_progress_boundary"
     ]["ordinary_progress_spine"]
     assert contract["ordinary_progress_policy"]["can_block_current_owner_action"] is False
+    assert contract["ordinary_progress_policy"]["critical_path_waits_for_sidecar"] is False
     assert contract["ordinary_progress_policy"]["missing_learning_sidecar_blocks_dispatch"] is False
+    assert contract["target_sidecar_execution_architecture"]["architecture_state"] == (
+        projection["target_sidecar_execution_architecture"]["architecture_state"]
+    )
+    assert contract["target_sidecar_execution_architecture"]["remaining_learning_plan"] is False
+    assert contract["target_sidecar_execution_architecture"][
+        "future_work_role"
+    ] == "implementation_scaleout_under_this_contract_only"
+    assert contract["target_sidecar_execution_architecture"]["scheduling_contract"][
+        "mainline_waits_for_sidecar"
+    ] is False
+    assert contract["target_sidecar_execution_architecture"]["admission_contract"][
+        "sidecar_completion_required_for_dispatch"
+    ] is False
+    assert contract["target_sidecar_execution_architecture"]["admission_contract"][
+        "sidecar_completion_required_for_quality_gate"
+    ] is False
     assert contract["tool_selector_policy"]["fail_open_to_all_tools"] is True
     assert contract["tool_selector_policy"]["owner_required_tools_always_include"] is True
     assert contract["observation_memory_policy"]["mainline_waits_for_memory_worker"] is False

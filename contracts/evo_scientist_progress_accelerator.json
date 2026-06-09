@@ -44,10 +44,61 @@
     "sidecar_role": "accelerate_selection_memory_prefetch_and_failure_reuse",
     "can_generate_default_next_action": false,
     "can_block_current_owner_action": false,
+    "critical_path_waits_for_sidecar": false,
     "can_require_full_research_lifecycle_preflight": false,
     "can_require_full_readiness_inventory": false,
     "missing_learning_sidecar_blocks_dispatch": false,
     "platform_repair_or_prefetch_counts_as_paper_progress": false
+  },
+  "target_sidecar_execution_architecture": {
+    "surface_kind": "mas_evo_scientist_target_sidecar_execution_architecture",
+    "architecture_state": "complete_target_design_landed",
+    "remaining_learning_plan": false,
+    "future_work_role": "implementation_scaleout_under_this_contract_only",
+    "execution_model": "nonblocking_current_owner_following_sidecar",
+    "ordinary_progress_critical_path": [
+      "current_owner_delta",
+      "concrete_delta",
+      "ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker",
+      "next_current_owner_delta"
+    ],
+    "sidecar_launch_points": [
+      "after_current_owner_delta_materialized",
+      "after_tool_surface_hydrated",
+      "after_executor_turn_or_subagent_completion",
+      "after_receipt_or_typed_blocker_recorded"
+    ],
+    "sidecar_outputs": [
+      "tool_affordance_ref",
+      "observation_memory_ref",
+      "failed_path_memory_ref",
+      "reviewer_briefing_ref",
+      "route_hint_ref",
+      "stop_loss_candidate_ref"
+    ],
+    "scheduling_contract": {
+      "owner": "one-person-lab",
+      "mas_role": "declare_domain_boundaries_and_accept_refs_only_candidates",
+      "runs_parallel_to_ordinary_progress": true,
+      "mainline_waits_for_sidecar": false,
+      "sidecar_failure_policy": "drop_sidecar_ref_and_continue_current_owner_action",
+      "sidecar_timeout_policy": "record_diagnostic_if_available_and_continue",
+      "sidecar_conflict_policy": "owner_policy_wins"
+    },
+    "budget_contract": {
+      "budget_source": "owner_route_budget_envelope",
+      "budget_exhaustion_policy": "stop_sidecar_not_owner_action",
+      "sidecar_retry_policy": "bounded_retry_or_skip",
+      "budget_exhaustion_can_emit_typed_blocker": false
+    },
+    "admission_contract": {
+      "sidecar_completion_required_for_dispatch": false,
+      "sidecar_completion_required_for_stage_transition": false,
+      "sidecar_completion_required_for_quality_gate": false,
+      "sidecar_completion_required_for_artifact_mutation": false,
+      "sidecar_may_submit_hard_gate_candidate_ref": true,
+      "hard_gate_candidate_requires_owner_or_reviewer_materialization": true
+    }
   },
   "auxiliary_helper_policy": {
     "helper_role": "background_advisory_helper",
