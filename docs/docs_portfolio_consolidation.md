@@ -109,8 +109,8 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 
 ## Coverage Ledger
 
-Dated coverage entries are archived under [docs-portfolio-coverage-ledger](./history/docs-portfolio-coverage-ledger/). This active governance document keeps only the current disposition:
+Dated coverage entries are compressed under [MAS Docs Portfolio Coverage Ledger](./history/docs-portfolio-coverage-ledger/README.md). This active governance document keeps only the current disposition:
 
-- coverage ledger files are `history_provenance` and never current truth;
+- the coverage index is `history_provenance` and never current truth;
 - active docs-governance work should update current owner docs first, then write a compact closeout in `docs/history/program/` only when durable evidence is useful;
-- no new dated part list should be appended here. If a reader needs exact tranche evidence, open the history directory or the relevant closeout record.
+- no new dated part list should be appended here or under `docs/history/docs-portfolio-coverage-ledger/`. If a reader needs exact old tranche evidence, use the compressed index plus git history.

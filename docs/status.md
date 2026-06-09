@@ -1,16 +1,16 @@
 # 当前状态
 
+Owner: `MedAutoScience`
+Purpose: `current_truth_summary`
+State: `active_current_truth`
+Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `agent/` pack、`contracts/`、CLI/MCP/API 行为、product-entry manifest、domain-handler receipt、runtime/controller durable surfaces、真实 workspace artifact、owner receipt 和 generated artifact proof。具体 study 当前状态必须 fresh 读取 live `study_progress`、workspace artifacts、controller decisions、publication eval、OPL current-control 和 owner receipts。
+
 文档更新时间：`2026-06-09`
 最近一次已记录 live runtime audit：`2026-06-05`
 最近一次已记录 DM002 / DM003 paper-line pause closeout：`2026-06-05`
 最近一次已记录 DM002 / DM003 stage-native live canary：`2026-06-06`
 最近一次已记录 DM002 / DM003 paper clean-room rebuild contract：`2026-06-07`
 最近一次已记录 MAS legacy `.ds` physical retirement contract：`2026-06-09`
-
-Owner: `MedAutoScience`
-Purpose: `current_truth_summary`
-State: `active_current_truth`
-Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `agent/` pack、`contracts/`、CLI/MCP/API 行为、product-entry manifest、domain-handler receipt、runtime/controller durable surfaces、真实 workspace artifact、owner receipt 和 generated artifact proof。具体 study 当前状态必须 fresh 读取 live `study_progress`、workspace artifacts、controller decisions、publication eval、OPL current-control 和 owner receipts。
 
 Plugin native profile pointer: `contracts/opl-native-profile.json` 只声明 OPL Flow / OPL Doc 插件同步与 drift 检查所需的 repo-native profile；它不是 MAS medical truth、runtime truth、publication verdict、artifact authority、owner receipt 或 production-ready 证据。
 

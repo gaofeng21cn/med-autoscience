@@ -1,0 +1,67 @@
+# MAS Docs Portfolio Coverage Ledger
+
+Owner: `MedAutoScience`
+Purpose: `docs_lifecycle_governance_coverage_index`
+State: `history_provenance`
+Machine boundary: 本文只保留 MAS docs-governance coverage 的压缩 provenance、SSOT owner、已压缩主题、剩余写入范围和 no-resurrection 读法。当前机器真相继续归 `agent/` pack、`contracts/`、source、tests、CLI/MCP/API 行为、product-entry manifest、domain-handler receipt、runtime/controller durable surfaces、真实 workspace artifact、owner receipt、typed blocker 和 generated artifact proof。
+
+本目录不再维护逐日 part ledger、命令流水、branch/worktree closeout、proof transcript 或 exact-path 长清单。需要旧逐段证据时读压缩前 git history；当前 truth 必须回到核心五件套、single Active Truth plan、docs lifecycle owner、contracts、source、tests、CLI/read-model 或 runtime/controller surface。
+
+这些材料不得作为 MAS runtime truth、study truth、publication verdict、artifact authority、source readiness、quality verdict、owner receipt、typed blocker、domain ready、production ready、physical-delete authorization 或 App/workbench readiness。
+
+## Single Source Of Truth
+
+| Semantic theme | Current owner |
+| --- | --- |
+| MAS current gap / completion plan / next prompt | `docs/active/mas-ideal-state-gap-plan.md` |
+| Current-state summary | `docs/status.md` |
+| Docs lifecycle and placement rules | `docs/docs_portfolio_consolidation.md` |
+| Architecture / invariants / decisions | `docs/architecture.md`, `docs/invariants.md`, `docs/decisions.md` |
+| Runtime / controller / projection contracts | `docs/runtime/**` plus `contracts/`, source, tests and CLI/read-model output |
+| Delivery / medical-display support | `docs/delivery/**` plus display-pack contracts, source and tests |
+| Source / workspace / study workflow support | `docs/source/**`, `docs/policies/**`, profiles and source/runtime contracts |
+| MDS / DeepScientist / historical reference | `docs/references/**` and `docs/history/**` as support or provenance only |
+| Dated process evidence | `docs/history/program/**`, runtime ledgers, workspace receipts or git history |
+
+## Compressed Provenance Groups
+
+| Provenance group | Current read |
+| --- | --- |
+| Product / workbench / Progress Portal / runtime projection | Current read returns to product/runtime docs, Progress Portal support docs, OPL App/workbench boundary docs, contracts, source and focused tests. Portal, App projection, provider proof and refs-only ledgers do not become paper closure, publication-ready, artifact authority, generic runtime owner or App readiness. |
+| Runtime contracts / control / StageRoute / StageRun / currentness | Current read returns to `docs/runtime/**`, core docs, MAS active truth, runtime/control source, owner-route/read-model surfaces and focused tests. Old runtime id, Hermes/MDS/local scheduler, Phase, provider completion, queue completion and stale action queue prose stay provenance or diagnostic only. |
+| Workspace / source / study workflow / policies | Current read returns to `docs/source/**`, `docs/policies/**`, profiles, source-provider contracts, stage/workspace knowledge surfaces and tests. ToolUniverse, workspace literature, data asset registries, natural-language memory and candidate boards are context/refs/proposals, not MAS source readiness, route decision, quality verdict or artifact authority. |
+| Delivery / medical-display | Current read returns to `docs/delivery/medical-display/**`, display pack contracts, registry/source/tests and current portfolio docs. Old implementation plans and capability histories remain provenance; they are not active work queues or current artifact authority. |
+| References / MDS parity / mainline / integration / med-deepscientist | Current read returns to support reference docs plus MAS/OPL owner split in core docs and machine surfaces. MDS / DeepScientist remain source provenance, historical fixture, backend audit, upstream learning or parity oracle reference; not default MAS runtime, quality owner, artifact authority or publication-readiness surface. |
+| Active/support docs | Current read returns to the single active truth plan, current development lines and the few active support docs listed in `docs/docs_portfolio_consolidation.md`. Active docs must not regain dated proof ledgers, attempt ids, branch names, command traces or closeout chronology. |
+| History / superpowers / program / runtime / capability archives | Current read returns to history indexes and provenance-only bodies. Active-looking old `current`, `next`, checkbox, activation package, runbook, proof transcript or continuation board wording cannot override live source/contracts/tests/read-model truth. |
+| Exact inventory / coverage ledger self-audits | Prior exact-inventory ledgers found no missing tracked `README*` / `docs/**/*.md` coverage at that snapshot. That result is history provenance, not a perpetual completion claim; future docs or live-truth changes need fresh intake. |
+| Recent currentness / platform repair lanes | AI reviewer materialization, current owner projection, domain-dispatch worklist, Stage surface AI-first verdict and research-pack absorb records are folded into current owner docs and machine surfaces. They do not close paper readiness, publication verdict, owner receipt tails, provider long-soak or production readiness. |
+
+## Coverage Snapshot
+
+2026-06-09 MAS docs-ledger compression tranche:
+
+- Scope reviewed: `AGENTS.md`, `TASTE.md`, `docs/docs_portfolio_consolidation.md`, `docs/status.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/history/program/docs_lifecycle_governance_closeout_2026_06_05.md`, existing `docs/history/docs-portfolio-coverage-ledger/*.md`, OPL Doc doctor output, and git/source/test surfaces required to confirm these files are history/provenance only.
+- Edited: this index, `docs/docs_portfolio_consolidation.md`, and `docs/status.md`.
+- Deleted: the former dated part ledgers under this directory after their durable conclusions were compressed above or already folded into current owner docs, history/program closeouts, contracts, source, tests, CLI/read-model or git history.
+- SSOT decision: this file is now the only in-directory coverage ledger index. It keeps compressed provenance only; current docs lifecycle rules remain in `docs/docs_portfolio_consolidation.md`, active execution truth remains in `docs/active/mas-ideal-state-gap-plan.md`, and current-state summary remains in `docs/status.md`.
+- Retired / guarded: no source, contract, test, workflow, package, CLI/API or runtime surface changed in this tranche. The retired surface is the dated part-ledger file set and any habit of appending new part files as current governance evidence. Future coverage closeout must be topic-level here or a precise history/program closeout, not a new `part-*` sequence.
+- Verification boundary: docs-only. Run `rtk git diff --check`, a conflict-marker scan over `README* docs contracts tests`, and `rtk opl-doc-doctor doctor . --format json`. Source/runtime tests are not required unless source, contracts, tests or runtime semantics change.
+
+## Former Part Files
+
+The following dated ledger files were compressed into this index and removed from the active tree:
+
+`2026-05-26-part-1.md`, `2026-05-26-part-1b.md`, `2026-05-26-part-2.md`, `2026-05-26-part-2b.md`, `2026-05-26-27-part-3.md`, `2026-05-26-27-part-4.md`, `2026-05-27-part-5.md`, `2026-05-27-part-6.md`, `2026-05-28-part-7.md`, `2026-05-28-part-8.md`, `2026-05-28-part-9.md`, `2026-05-28-part-10.md`, `2026-05-28-part-11.md`, `2026-05-29-part-12.md`, `2026-05-29-part-13.md`, `2026-05-29-part-14.md`, `2026-05-29-part-15.md`, `2026-05-30-part-16.md`.
+
+## Remaining Scope
+
+- MAS implementation and evidence tails remain open under the active plan: live paper-line owner evidence, independent reviewer/auditor records, publication-route memory receipts, artifact lifecycle receipts, human gate/resume, provider SLO long-soak, current work-unit owner closeout and physical-delete authorization.
+- Future MAS docs governance should reopen MAS only when new docs are added, live truth changes require doc foldback, or a specific stale module/interface/test/workflow/package/CLI/API surface has no-active-caller and replacement-owner evidence.
+- The parent OPL series `/goal` remains active until all six repos have no unreviewed `README*` / `docs/**/*.md` scope and unresolved stale/retire candidates have either been retired or carried into current owner prompts.
+
+## Next Write Scope
+
+1. Continue OPL series governance in the repo with the highest-confidence next semantic lane: OPL support docs, App install/release evidence, MAG specs/private-surface tails, RCA private-inventory/default-caller thinning, or OMA script-to-pack/evidence tails.
+2. Return to MAS only after fresh intake shows a new MAS docs body, a live owner-surface foldback need, or a concrete stale code/test/workflow/package retirement candidate with replacement-owner and no-active-caller proof.
+3. Do not recreate dated part ledgers, coverage transcript dumps, command-output proofs, branch/worktree closeout logs or compatibility prose under this directory.
