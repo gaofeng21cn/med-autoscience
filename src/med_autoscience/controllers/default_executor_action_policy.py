@@ -129,6 +129,8 @@ SOURCE_ACTION_REF_FIELDS = (
     "readiness_blocker_ref",
     "publication_eval_gap_ids",
     "repair_progress_precedence",
+    "stage_native_next_action_admission",
+    "current_work_unit_binding",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )
@@ -148,6 +150,8 @@ SOURCE_HANDOFF_REF_FIELDS = (
     "route_key_question",
     "route_rationale",
     "source_ref",
+    "stage_native_next_action_admission",
+    "current_work_unit_binding",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )

@@ -481,7 +481,7 @@ def test_materialize_domain_action_requests_prefers_current_ai_reviewer_queue_ov
         for item in result["ignored_actions"]
         if item["study_id"] == study_id
     } == {
-        "run_quality_repair_batch": "superseded_by_current_owner_route_action_queue",
+        "run_quality_repair_batch": "stage_native_workspace_next_action_requires_authority_binding",
     }
 
 

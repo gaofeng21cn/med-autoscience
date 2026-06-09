@@ -517,6 +517,10 @@ def test_materialize_prefers_stage_native_write_repair_after_stable_readiness_an
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm003")
+    repair_work_unit_fingerprint = (
+        "canonical-current-work-unit::08-publication_package_handoff::"
+        "medical_publication_surface_blocked_write_repair"
+    )
     _write_json(
         study_root / "control" / "next_action.json",
         {
@@ -528,6 +532,17 @@ def test_materialize_prefers_stage_native_write_repair_after_stable_readiness_an
             "current_stage_id": "08-publication_package_handoff",
             "target_surface": "artifacts/reports/medical_publication_surface/latest.json",
             "next_work_unit": "medical_publication_surface_blocked_write_repair",
+            "stage_transition_authority_boundary": {
+                "stage_transition_authority": "OPL Stage Transition Authority",
+                "intent_can_write_stage_current_pointer": False,
+                "intent_can_write_stage_run_terminal_state": False,
+                "intent_can_publish_current_owner_delta": False,
+            },
+            "current_work_unit_binding": {
+                "source": "canonical_current_work_unit",
+                "work_unit_id": "medical_publication_surface_blocked_write_repair",
+                "work_unit_fingerprint": repair_work_unit_fingerprint,
+            },
         },
     )
     typed_blocker_ref = (
@@ -644,7 +659,14 @@ def test_materialize_prefers_stage_native_write_repair_after_stable_readiness_an
     ]
     dispatch = result["default_executor_dispatches"][0]
     assert dispatch["next_executable_owner"] == "write"
-    assert dispatch["source_action"]["authority"] == "stage_native_workspace_next_action"
+    source_action = dispatch["source_action"]
+    assert source_action["authority"] == "stage_native_workspace_next_action"
+    assert source_action["stage_native_next_action_admission"]["default_dispatch_allowed"] is True
+    assert source_action["current_work_unit_binding"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
+        "medical_publication_surface_blocked_write_repair"
+    )
+    assert dispatch["owner_route"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
     assert any(
         item["reason"] == "superseded_by_stage_native_next_action_after_readiness_answer"
         and item["action_type"] == "complete_medical_paper_readiness_surface"

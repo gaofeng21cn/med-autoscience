@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-09：Stage Native `control/next_action.json` 不能再作为第二默认下一步控制面
+
+- 决策：`studies/<study_id>/control/next_action.json` 只保留为 workspace migration / diagnostic input。它不能单独进入 `domain-action-request-materialize` 的默认 executor dispatch，也不能在缺 canonical current work-unit binding 时压过 `current_work_unit`、current owner route、owner receipt、typed blocker、human gate 或 OPL Stage Transition Authority 的 current-owner delta。
+- 决策：Stage Native next-action 只有同时带齐 `stage_transition_authority_boundary` 与 `current_work_unit_binding` 才可进入默认 dispatch。前者必须声明 `stage_transition_authority=one-person-lab` 或 `OPL Stage Transition Authority`，且 `intent_can_write_stage_current_pointer=false`、`intent_can_write_stage_run_terminal_state=false`、`intent_can_publish_current_owner_delta=false`；后者必须声明 `source=canonical_current_work_unit`，并带 `work_unit_id` 与 `work_unit_fingerprint`。
+- 决策：缺上述绑定的 Stage Native next-action 必须降为 `stage_native_workspace_next_action_diagnostic_only`，在 `ignored_actions` 中记录 `stage_native_workspace_next_action_requires_authority_binding`。即使同一轮存在 fresh progress action、current owner route queue 或 stable readiness answer，该缺绑定诊断原因也不得被其他 supersession reason 掩盖。
+- 决策：带绑定放行时，default executor dispatch 的 `source_action` 与 `owner_route.source_refs` 必须保留 `stage_native_next_action_admission`、`current_work_unit_binding`、canonical `work_unit_id` 和 canonical `work_unit_fingerprint`，让后续 closeout、receipt consumption 与 progress-first accounting 能按同一 work-unit identity 消费，避免裸 `control/next_action.json` 重新生成第二 route。
+- 理由：OPL 层 Stage Transition Authority 已是 Stage current pointer、StageRun terminal state 与 `current_owner_delta` 的唯一裁决面；MAS 侧虽然已收敛 terminal projection writer，但旧 workspace `control/next_action.json` 仍可能在缺 canonical `current_work_unit` 时生成默认 `run_quality_repair_batch` 派发，形成“第二默认下一步”控制面。这个问题不一定直接写 terminal state，但会绕开 progress-first 的唯一 owner delta，造成重复 receipt / reconcile / provider attempt 空转。
+- 影响：这是 MAS default-action materializer / dispatch admission 边界修复，不写 study truth、runtime-owned state、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt 或 typed blocker。后续论文推进仍必须来自 canonical current work unit、MAS owner receipt、typed blocker、human gate、accepted route handoff、paper/evidence/reviewer/gate/package semantic delta，或 strict OPL provider running proof。
+
 ## 2026-06-08：terminal publication handoff Stage current projection 只能有一个 MAS writer
 
 - 决策：MAS terminal `08-publication_package_handoff` 的 `current.json` 与 `projection/current_owner_delta.json` 只能由 `src/med_autoscience/controllers/domain_owner_action_dispatch_parts/action_execution/publication_handoff_stage_projection.py` 物化。该模块是 MAS 侧 owner-answer projection writer；它写出的 payload 必须携带 `projection_writer=mas_terminal_handoff_stage_current_projection_writer.v1` 与 `stage_run_current_authority=opl_stage_transition_authority_only`。

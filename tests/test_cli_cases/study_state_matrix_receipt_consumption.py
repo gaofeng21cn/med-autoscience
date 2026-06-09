@@ -448,7 +448,8 @@ def test_study_state_matrix_consumes_mas_owner_apply_receipt_as_artifact_delta(
     assert transition["next_work_unit"]["unit_id"] == "provider_hosted_guarded_apply"
     assert transition["controller_action"] == "paper_autonomy_guarded_apply"
     assert transition["owner"] == "med-autoscience"
-    assert transition["completion_receipt_consumption"] == {
+    receipt = transition["completion_receipt_consumption"]
+    expected_receipt = {
         "status": "consumed",
         "receipt_kind": "mas_owner_apply_receipt",
         "apply_result": "artifact_delta",
@@ -456,6 +457,12 @@ def test_study_state_matrix_consumes_mas_owner_apply_receipt_as_artifact_delta(
         "evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
         "next_action": "allow_mas_owner_guarded_apply",
     }
+    assert {key: receipt.get(key) for key in expected_receipt} == expected_receipt
+    assert receipt["receipt_surface"] == "paper_repair_owner_receipt"
+    assert receipt["receipt_execution_status"] == "executed"
+    assert receipt["current_package_write_authorized"] is False
+    assert receipt["quality_authorized"] is False
+    assert receipt["submission_authorized"] is False
     assert transition["guard_boundary"]["mas_owner_apply_receipt_required"] is True
     assert case["expected"]["decision_type"] == "owner_apply_receipt_consumed"
     assert case["context"]["completion_receipt_consumption"]["receipt_kind"] == "mas_owner_apply_receipt"
