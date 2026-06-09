@@ -240,7 +240,7 @@ Completion gate:
 | 下一 `/goal` 执行规格 | [Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md) |
 | 当前内容线索引 | [MAS 当前开发线路](./current-development-lines.md) |
 | 文档生命周期治理 | [MAS 文档组合治理](../docs_portfolio_consolidation.md) |
-| 本轮 docs lifecycle closeout | [Docs lifecycle governance closeout 2026-06-03](../history/program/docs_lifecycle_governance_closeout_2026_06_03.md) |
+| docs lifecycle coverage | [MAS Docs Portfolio Coverage Ledger](../history/docs-portfolio-coverage-ledger/README.md) 与 [MAS broader docs portfolio SSOT closeout 2026-06-07](../history/program/mas_broader_docs_portfolio_ssot_closeout_2026_06_07.md) |
 | 2026-05 标准 Agent 文档过程归档 | [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md) |
 | 历史完成台账 | [Plan Completion Ledger](../history/program/plan_completion_ledger.md) |
 

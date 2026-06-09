@@ -24,10 +24,10 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 过程归档只在需要追溯历史时读取，不作为 active 默认入口：
 
 - [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)
-- [Docs lifecycle governance closeout 2026-05-20](../history/program/docs_lifecycle_governance_closeout_2026_05_20.md)
+- [MAS docs portfolio coverage ledger](../history/docs-portfolio-coverage-ledger/README.md)
+- [MAS broader docs portfolio SSOT closeout 2026-06-07](../history/program/mas_broader_docs_portfolio_ssot_closeout_2026_06_07.md)
 - [MAS 状态与 Contract 收薄折返记录 2026-05-29](../history/program/mas-state-contract-thinning-foldback-record-2026-05-29.md)
 - [Progress-first Stage 推进吞吐审计 2026-06-01](../history/program/progress_first_stage_throughput_audit_2026_06_01.md)
-- [Docs lifecycle governance closeout 2026-06-03](../history/program/docs_lifecycle_governance_closeout_2026_06_03.md)
 
 ## 当前 active 层次
 

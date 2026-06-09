@@ -23,7 +23,7 @@ MAS 采用 OPL-family canonical docs taxonomy：
 - `docs/active/current-development-lines.md` 只维护内容线索引，不承担第二 backlog。
 - dated closeout、attempt id、receipt id、OPL worklist 数字、命令流水、旧 phase checklist、same-day follow-through 和 proof 过程归 `docs/history/**`、runtime ledger、真实 workspace receipt 或提交历史。
 - `docs/runtime/contracts/agent_runtime_interface.md` 只保留当前 agent-facing runtime contract、stable entry、owner boundary、禁止旧面复活口径和 history pointers；Hermes/MDS/local scheduler/Phase 旧叙事不得继续铺在 active contract 主体里。
-- 本轮逐类审计与清理 closeout 见 [Docs lifecycle governance closeout 2026-06-05](./history/program/docs_lifecycle_governance_closeout_2026_06_05.md)；上一轮 2026-06-03 closeout 继续保留为 history provenance。
+- 当前 docs lifecycle coverage 读 [MAS Docs Portfolio Coverage Ledger](./history/docs-portfolio-coverage-ledger/README.md) 与 [MAS broader docs portfolio SSOT closeout 2026-06-07](./history/program/mas_broader_docs_portfolio_ssot_closeout_2026_06_07.md)。05-20、06-03、06-05 等 dated closeout 只保留在 `docs/history/program/README.md` 历史索引中。
 
 ## 生命周期原则
 
@@ -34,7 +34,7 @@ MAS 采用 OPL-family canonical docs taxonomy：
 - 已落地基础文档只有在仍承担 guard、provenance 分类、source intake 规则或 drift 判断时才留在 `docs/active/`；纯过程、旧 lane table、旧 activation package、旧 full record 和 dated closeout 必须放入 `docs/history/**`。
 - `docs/decisions.md` 保留决策日期日志；不要为了压缩过程流水而改写 decisions 的历史记录。
 - dated specs、dated closeout 和历史 full record 不能直接作为 current truth；当前 truth 必须由核心五件套、当前 owner doc、machine-readable contract 或 runtime/controller surface 承载。
-- `docs/status.md` 只维护当前状态摘要，不承载 dated follow-up ledger；执行顺序只在 `docs/active/current-development-lines.md` 维护；program 文档组合只在 `docs/active/program_portfolio_consolidation.md` 维护。2026-05-20 这轮收敛记录见 [Docs lifecycle governance closeout 2026-05-20](./history/program/docs_lifecycle_governance_closeout_2026_05_20.md)。
+- `docs/status.md` 只维护当前状态摘要，不承载 dated follow-up ledger；执行顺序只在 `docs/active/current-development-lines.md` 维护；program 文档组合只在 `docs/active/program_portfolio_consolidation.md` 维护。旧 docs lifecycle closeout 记录只按 `docs/history/program/README.md` 的历史索引读取。
 - `docs/status.md` 允许记录“最近一次已记录 live audit”的 compact summary，但不得继续追加 dated receipt id、stage attempt id、OPL worklist 计数、record/verify URL 或长 follow-through 段落。需要保留过程证据时，写入 `docs/history/program/` 或对应 history 目录。
 - OPL doc doctor 只作为预检信号：它可以提示缺少 lifecycle header、旧词汇或 active/history 边界风险，但不能直接变成执行清单。每条 warning 都必须回到 live source、contracts、tests、CLI/read-model、runtime receipt/blocker 或 canonical docs 证明后，才决定是更新 current owner 文档、折回 history/tombstone，还是保留为历史/决策语境。
 
