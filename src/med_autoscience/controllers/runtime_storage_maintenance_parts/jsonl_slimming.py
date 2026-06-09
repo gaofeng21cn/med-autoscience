@@ -10,6 +10,7 @@ from typing import Any
 
 
 SURFACE_KIND = "runtime_oversized_jsonl_slimming"
+_MAX_RETAINED_LINE_CHARS = 4096
 
 
 def slim_oversized_jsonl_files(
@@ -167,8 +168,14 @@ def _slim_payload(
         "original_bytes": size_before,
         "original_sha256": sha_before,
         "line_count": line_count,
-        "retained_head_lines": head,
-        "retained_tail_lines": tail,
+        "retained_head_lines": [_truncate_line(line) for line in head],
+        "retained_tail_lines": [_truncate_line(line) for line in tail],
+        "retained_line_slice_policy": {
+            "max_chars_per_line": _MAX_RETAINED_LINE_CHARS,
+            "preserves_full_line_body": False,
+        },
+        "retained_head_line_slices": [_line_slice(line) for line in head],
+        "retained_tail_line_slices": [_line_slice(line) for line in tail],
     }
 
 
@@ -211,3 +218,31 @@ def _write_gzip_archive(*, source_path: Path, archive_path: Path) -> None:
     with source_path.open("rb") as source, gzip.open(archive_path, "wb", compresslevel=6) as target:
         for chunk in iter(lambda: source.read(1024 * 1024), b""):
             target.write(chunk)
+
+
+def _truncate_line(line: str) -> str:
+    if len(line) <= _MAX_RETAINED_LINE_CHARS:
+        return line
+    head = _MAX_RETAINED_LINE_CHARS // 2
+    tail = _MAX_RETAINED_LINE_CHARS - head
+    return f"{line[:head]}...<truncated {len(line) - _MAX_RETAINED_LINE_CHARS} chars>...{line[-tail:]}"
+
+
+def _line_slice(line: str) -> dict[str, Any]:
+    if len(line) <= _MAX_RETAINED_LINE_CHARS:
+        return {
+            "chars": len(line),
+            "sha256": hashlib.sha256(line.encode("utf-8", errors="replace")).hexdigest(),
+            "truncated": False,
+            "text": line,
+        }
+    head = _MAX_RETAINED_LINE_CHARS // 2
+    tail = _MAX_RETAINED_LINE_CHARS - head
+    return {
+        "chars": len(line),
+        "sha256": hashlib.sha256(line.encode("utf-8", errors="replace")).hexdigest(),
+        "truncated": True,
+        "head": line[:head],
+        "tail": line[-tail:],
+        "omitted_chars": len(line) - _MAX_RETAINED_LINE_CHARS,
+    }

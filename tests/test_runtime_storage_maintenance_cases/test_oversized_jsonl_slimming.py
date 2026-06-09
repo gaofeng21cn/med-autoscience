@@ -110,3 +110,46 @@ def test_maintain_runtime_storage_slims_oversized_runtime_jsonl_without_backend(
     assert len(slim_payload["retained_head_lines"]) == 2
     assert len(slim_payload["retained_tail_lines"]) == 3
     assert Path(result["latest_report_path"]).is_file()
+
+
+def test_maintain_runtime_storage_bounds_single_line_jsonl_slim_ref(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
+    profile = make_profile(tmp_path)
+    monkeypatch.setattr(module.backend_maintenance, "run_quest_storage_maintenance", lambda **_: None)
+
+    study_id = "003-jsonl-single-line"
+    quest_root = profile.runtime_root / study_id
+    _write_study(profile.studies_root / study_id, study_id=study_id, quest_id=study_id)
+    _write_quest(quest_root, quest_id=study_id, status="waiting_for_user")
+    event_log = quest_root / "artifacts" / "runtime" / "mas_runtime_events.jsonl"
+    event_log.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"event": "large_projection", "body": "x" * (2 * 1024 * 1024)}
+    event_log.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
+    size_before = event_log.stat().st_size
+
+    result = module.maintain_runtime_storage(
+        profile=profile,
+        study_id=study_id,
+        study_root=None,
+        slim_jsonl_threshold_mb=1,
+        head_lines=2,
+        tail_lines=3,
+    )
+
+    assert result["status"] == "maintained"
+    slim_file = result["jsonl_slimming"]["files"][0]
+    assert slim_file["bytes_before"] == size_before
+    assert slim_file["bytes_after"] < 32 * 1024
+    slim_payload = json.loads(event_log.read_text(encoding="utf-8"))
+    assert slim_payload["line_count"] == 1
+    assert slim_payload["retained_line_slice_policy"] == {
+        "max_chars_per_line": 4096,
+        "preserves_full_line_body": False,
+    }
+    assert len(slim_payload["retained_head_lines"][0]) < 8192
+    assert slim_payload["retained_head_line_slices"][0]["truncated"] is True
+    assert slim_payload["retained_tail_line_slices"][0]["truncated"] is True
+    assert slim_payload["retained_head_line_slices"][0]["omitted_chars"] > 0

@@ -23,6 +23,7 @@ from med_autoscience.profiles import load_profile, profile_to_dict
 from med_autoscience.cli_parts.authority_operations import handle_authority_operation_command
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
+from med_autoscience.cli_parts.retention_commands import handle_retention_command
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_command
 from med_autoscience.cli_parts.study_action_commands import handle_study_action_command
@@ -82,6 +83,11 @@ stage_artifact_materializer = _LazyModuleProxy(lambda: _load_controller("stage_a
 owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 legacy_ds_retirement = _LazyModuleProxy(lambda: _load_controller("legacy_ds_retirement"))
+restore_index_detail_retention = _LazyModuleProxy(lambda: _load_controller("restore_index_detail_retention"))
+historical_body_retention = _LazyModuleProxy(lambda: _load_controller("historical_body_retention"))
+historical_directory_retention = _LazyModuleProxy(lambda: _load_controller("historical_directory_retention"))
+runtime_lifecycle_payload_retention = _LazyModuleProxy(lambda: _load_controller("runtime_lifecycle_payload_retention"))
+retention_surface_housekeeping = _LazyModuleProxy(lambda: _load_controller("retention_surface_housekeeping"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
 paper_clean_room_rebuild = _LazyModuleProxy(lambda: _load_controller("paper_clean_room_rebuild"))
 study_workspace_status = _LazyModuleProxy(lambda: _load_controller("study_workspace_status"))
@@ -650,13 +656,18 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "legacy-ds-retire":
-        result = legacy_ds_retirement.run_legacy_ds_retirement(
-            profile_path=Path(args.profile),
-            apply=bool(args.apply),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
+    retention_result = handle_retention_command(
+        args,
+        parser=parser,
+        legacy_ds_retirement=legacy_ds_retirement,
+        restore_index_detail_retention=restore_index_detail_retention,
+        historical_body_retention=historical_body_retention,
+        historical_directory_retention=historical_directory_retention,
+        runtime_lifecycle_payload_retention=runtime_lifecycle_payload_retention,
+        retention_surface_housekeeping=retention_surface_housekeeping,
+    )
+    if retention_result is not None:
+        return retention_result
 
     if args.command == "paper-authority-clean-migration":
         result = paper_authority_migration.run_paper_authority_clean_migration(

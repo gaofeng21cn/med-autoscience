@@ -86,6 +86,27 @@ def _write_stage_folder(
     return stage_root
 
 
+def _assert_current_owner_delta(
+    actual: dict[str, Any],
+    expected_core: dict[str, Any],
+) -> None:
+    for key, value in expected_core.items():
+        assert actual[key] == value
+    assert actual["projection_role"] == (
+        "mas_stage_local_owner_delta_projection_not_opl_current_owner_delta_publish"
+    )
+    assert actual["stage_transition_authority_required"] is True
+    assert actual["stage_run_current_authority"] == "opl_stage_transition_authority_only"
+    assert actual["authority_boundary"] == {
+        "can_write_stage_current_pointer": False,
+        "can_write_stage_run_terminal_state": False,
+        "can_publish_opl_current_owner_delta": False,
+        "provider_completion_counts_as_stage_transition": False,
+        "read_model_update_counts_as_stage_transition": False,
+        "worklist_update_counts_as_stage_transition": False,
+    }
+
+
 def test_stage_run_kernel_accepts_manifest_backed_ai_reviewer_owner_receipt(
     tmp_path: Path,
 ) -> None:
@@ -126,13 +147,16 @@ def test_stage_run_kernel_accepts_manifest_backed_ai_reviewer_owner_receipt(
     assert projection["surface_kind"] == "stage_run_kernel_projection"
     assert projection["status"] == "DomainAccepted"
     assert projection["completion_authority"] == "owner_receipt"
-    assert projection["current_owner_delta"] == {
-        "owner": "publication_supervisor",
-        "action": "publication_gate",
-        "reason": "ai_reviewer_record_consumed",
-        "source_ref": str((stage_root / "receipts" / "owner_receipt.json").resolve()),
-        "source_kind": "owner_receipt",
-    }
+    _assert_current_owner_delta(
+        projection["current_owner_delta"],
+        {
+            "owner": "publication_supervisor",
+            "action": "publication_gate",
+            "reason": "ai_reviewer_record_consumed",
+            "source_ref": str((stage_root / "receipts" / "owner_receipt.json").resolve()),
+            "source_kind": "owner_receipt",
+        },
+    )
     assert projection["evidence_projection"] == {
         "latest_json_ref": "artifacts/publication_eval/latest.json",
         "latest_json_is_authority": False,
@@ -176,15 +200,18 @@ def test_stage_run_kernel_projects_manifest_backed_typed_blocker_as_current_owne
 
     assert projection["status"] == "TypedBlocked"
     assert projection["completion_authority"] == "typed_blocker"
-    assert projection["current_owner_delta"] == {
-        "owner": "ai_reviewer",
-        "action": "rerun_ai_reviewer_with_current_manuscript_binding",
-        "reason": "ai_reviewer_closeout_packet_missing_currentness_trace",
-        "required_input": "current_manuscript.currentness_checks",
-        "blocked_surface": "ai_reviewer_publication_eval_rebuild",
-        "source_ref": str((stage_root / "receipts" / "typed_blocker.json").resolve()),
-        "source_kind": "typed_blocker",
-    }
+    _assert_current_owner_delta(
+        projection["current_owner_delta"],
+        {
+            "owner": "ai_reviewer",
+            "action": "rerun_ai_reviewer_with_current_manuscript_binding",
+            "reason": "ai_reviewer_closeout_packet_missing_currentness_trace",
+            "required_input": "current_manuscript.currentness_checks",
+            "blocked_surface": "ai_reviewer_publication_eval_rebuild",
+            "source_ref": str((stage_root / "receipts" / "typed_blocker.json").resolve()),
+            "source_kind": "typed_blocker",
+        },
+    )
     assert projection["state_invariants"]["file_presence_counts_as_completion"] is False
     assert projection["state_invariants"]["provider_completed_counts_as_completion"] is False
 
@@ -198,13 +225,16 @@ def test_stage_run_kernel_does_not_complete_from_outputs_or_provider_terminal_st
 
     assert projection["status"] == "Terminalizing"
     assert projection["completion_authority"] is None
-    assert projection["current_owner_delta"] == {
-        "owner": "MedAutoScience",
-        "action": "consume_closeout_and_emit_owner_receipt_or_typed_blocker",
-        "reason": "manifest_backed_receipt_or_typed_blocker_required",
-        "source_ref": str((stage_root / "stage_manifest.json").resolve()),
-        "source_kind": "stage_manifest",
-    }
+    _assert_current_owner_delta(
+        projection["current_owner_delta"],
+        {
+            "owner": "MedAutoScience",
+            "action": "consume_closeout_and_emit_owner_receipt_or_typed_blocker",
+            "reason": "manifest_backed_receipt_or_typed_blocker_required",
+            "source_ref": str((stage_root / "stage_manifest.json").resolve()),
+            "source_kind": "stage_manifest",
+        },
+    )
     assert projection["evidence_projection"]["outputs_present"] == [
         "outputs/ai_reviewer_record.json"
     ]

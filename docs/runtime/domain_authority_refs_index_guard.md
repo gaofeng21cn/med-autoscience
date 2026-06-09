@@ -77,6 +77,18 @@ Stable commands:
 - `medautosci runtime storage-audit --profile <profile> --all-studies --apply --refs-only-state-index-pilot`
 - `medautosci runtime legacy-ds-retire --profile <profile> --dry-run`
 - `medautosci runtime legacy-ds-retire --profile <profile> --apply`
+- `medautosci runtime legacy-ds-retire --profile <profile> --apply --archive-retention --archive-retention-apply --archive-retention-cold-store-root <cold-store>`
+- `medautosci historical-body-retention --root <workspace-or-subroot> --dry-run --cold-store-root <cold-store>`
+- `medautosci historical-body-retention --root <workspace-or-subroot> --apply --cold-store-root <cold-store>`
+- `medautosci historical-directory-retention --root <workspace-or-subroot> --dry-run --cold-store-root <cold-store>`
+- `medautosci historical-directory-retention --root <workspace-or-subroot> --apply --cold-store-root <cold-store>`
+- `medautosci restore-index-detail-retention --root <restore-index-root-or-json> --dry-run --cold-store-root <cold-store>`
+- `medautosci restore-index-detail-retention --root <restore-index-root-or-json> --apply --cold-store-root <cold-store>`
+- `medautosci runtime-lifecycle-payload-retention --db <runtime_lifecycle.sqlite> --dry-run --cold-store-root <cold-store>`
+- `medautosci runtime-lifecycle-payload-retention --db <runtime_lifecycle.sqlite> --apply --cold-store-root <cold-store> --compact`
+- `medautosci runtime-lifecycle-payload-retention --db <runtime_lifecycle.sqlite> --dry-run --repair-stale-sidecars`
+- `medautosci retention-surface-housekeeping --root <workspace> --dry-run`
+- `medautosci retention-surface-housekeeping --root <workspace> --apply`
 
 Use `--refs-only-state-index-only` when the purpose is to rebuild the refs-only SQLite pilot on a very large `.ds` tree. In that mode MAS intentionally skips legacy backend storage maintenance and recursive size summaries, records `legacy_backend_status=skipped_by_refs_only_state_index_only`, and writes `size_before` / `size_after` as explicit skipped summaries. This is the preferred live canary path for million-file runtime roots because it indexes refs without doing physical compaction, GC, body migration, paper mutation or artifact cleanup.
 
@@ -88,7 +100,11 @@ Use `--restore-proof-compaction` only for an explicit stopped-cold bucket scope.
 
 If a selected bucket contains empty child directories after all payload-bearing groups were already archived, rerun the same `--restore-proof-compaction` command. The `nothing_to_archive` result still prunes empty child directories and then the empty selected bucket directory. It must not remove any child that contains a file, symlink or other payload.
 
-Historical archive, nested bare `.ds` roots and quest-root `.ds` directories are no longer accepted by `runtime maintain-storage` as a separate legacy root. `runtime legacy-ds-retire` is the one-time legacy intake / physical retirement surface: it scans the profile workspace, plans only outermost `.ds` roots, writes source manifest, `legacy_ds.tar.gz`, restore proof and retirement receipt under the appropriate `artifacts/runtime/restore_index/legacy_ds_retirement/**` or workspace `runtime/artifacts/legacy_ds_retirement/**` surface, materializes legacy runtime state into `artifacts/runtime/state/runtime_state.json` when needed, and removes `.ds` only after restore proof verifies. MAS must not keep `.ds` as a long-term read layer after this command succeeds.
+Historical archive, nested bare `.ds` roots and quest-root `.ds` directories are no longer accepted by `runtime maintain-storage` as a separate legacy root. `runtime legacy-ds-retire` is the one-time legacy intake / physical retirement surface: it scans the profile workspace, plans only outermost `.ds` roots, writes source manifest, `legacy_ds.tar.gz`, restore proof and retirement receipt under the appropriate `artifacts/runtime/restore_index/legacy_ds_retirement/**` or workspace `runtime/artifacts/legacy_ds_retirement/**` surface, materializes legacy runtime state into `artifacts/runtime/state/runtime_state.json` when needed, and removes `.ds` only after restore proof verifies. Its `--archive-retention --archive-retention-apply` mode then externalizes verified `legacy_ds.tar.gz` bodies to cold object storage, keeps the original archive path as a relative symlink, and writes `legacy_ds.tar.gz.cold_ref.json`; it does not delete source manifest, restore proof, retirement receipt or domain truth. MAS must not keep `.ds` or the raw legacy tar body as a long-term read layer after this command succeeds.
+
+Historical retention commands are second-pass online slimming surfaces for workspaces that have already migrated into the new MAS layout. `historical-body-retention` externalizes large provenance/history/archive bodies and leaves inline refs or symlinks plus `.cold_ref.json`; `historical-directory-retention` moves complete legacy capsules to verified cold tar archives and leaves only `capsule.cold_ref.json`; `restore-index-detail-retention` moves large manifest/proof detail arrays out of online JSON while preserving counts, hashes and verified status; `runtime-lifecycle-payload-retention` externalizes large derived SQLite payload columns and can compact after integrity-gated mutation; `retention-surface-housekeeping` removes only known misplaced retention receipt directories created by this lifecycle surface. These commands must not target `data/datasets/**`, owner receipts, typed blockers, latest pointers, study/publication truth, controller decisions, current packages or OPL current-control state.
+
+Online workspace size and cold store size are intentionally separate metrics. A successful apply may increase `/Users/gaofeng/workspace/.mas-cold-store` while decreasing the MAS paper workspace; that is expected as long as every moved body has a cold ref, sha256, receipt and restore command. Report storage state using four buckets: online workspace, cold store, dataset assets, and remaining non-dataset large files.
 
 The safe live sequence for million-file `.ds` roots is:
 
@@ -96,6 +112,7 @@ The safe live sequence for million-file `.ds` roots is:
 2. `--restore-proof-canary --restore-proof-canary-entry-limit <small n> --restore-proof-bucket runs|codex_homes --include-parked-controller-stop` to produce bounded restore proof while retaining source payload.
 3. Sharded `--restore-proof-compaction --restore-proof-max-shards <n>` after owner/operator confirms the stopped-cold window and target bucket scope.
 4. `runtime legacy-ds-retire --apply` after effective content has been extracted into canonical surfaces and the remaining `.ds` directory is only legacy intake residue.
+5. Historical body/directory/detail/payload retention after `.ds` reaches zero and only legacy archive bodies or oversized derived payloads remain online.
 
 Verification:
 
@@ -103,6 +120,7 @@ Verification:
 - `scripts/run-pytest-clean.sh tests/test_runtime_storage_maintenance_cases/runtime_restore_proof_canary.py -q`
 - `scripts/run-pytest-clean.sh tests/test_cli_cases/runtime_storage_commands.py -q`
 - `scripts/run-pytest-clean.sh tests/test_stage_artifact_kernel_adoption_contract.py -q`
+- `scripts/run-pytest-clean.sh tests/test_historical_body_retention.py tests/test_historical_directory_retention.py tests/test_restore_index_detail_retention.py tests/test_runtime_lifecycle_payload_retention.py tests/test_retention_surface_housekeeping.py -q`
 
 Live canary evidence:
 

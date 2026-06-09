@@ -232,6 +232,61 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     legacy_ds_retire_mode = legacy_ds_retire_parser.add_mutually_exclusive_group(required=True)
     legacy_ds_retire_mode.add_argument("--dry-run", action="store_true")
     legacy_ds_retire_mode.add_argument("--apply", action="store_true")
+    legacy_ds_retire_parser.add_argument("--archive-retention", action="store_true")
+    legacy_ds_retire_parser.add_argument("--archive-retention-apply", action="store_true")
+    legacy_ds_retire_parser.add_argument("--archive-retention-min-mb", type=int, default=16)
+    legacy_ds_retire_parser.add_argument("--archive-retention-cold-store-root", type=str)
+
+    restore_index_detail_retention_parser = subparsers.add_parser("restore-index-detail-retention")
+    restore_index_detail_retention_parser.add_argument("--root", required=True)
+    restore_index_detail_retention_parser.add_argument("--cold-store-root", required=True)
+    restore_index_detail_retention_parser.add_argument("--min-mb", type=int, default=1)
+    restore_index_detail_retention_parser.add_argument("--max-files", type=int)
+    restore_index_detail_retention_mode = restore_index_detail_retention_parser.add_mutually_exclusive_group(required=True)
+    restore_index_detail_retention_mode.add_argument("--dry-run", action="store_true")
+    restore_index_detail_retention_mode.add_argument("--apply", action="store_true")
+
+    historical_body_retention_parser = subparsers.add_parser("historical-body-retention")
+    historical_body_retention_parser.add_argument("--root", required=True)
+    historical_body_retention_parser.add_argument("--cold-store-root", required=True)
+    historical_body_retention_parser.add_argument("--min-mb", type=int, default=16)
+    historical_body_retention_parser.add_argument("--max-files", type=int)
+    historical_body_retention_mode = historical_body_retention_parser.add_mutually_exclusive_group(required=True)
+    historical_body_retention_mode.add_argument("--dry-run", action="store_true")
+    historical_body_retention_mode.add_argument("--apply", action="store_true")
+
+    historical_directory_retention_parser = subparsers.add_parser("historical-directory-retention")
+    historical_directory_retention_parser.add_argument("--root", required=True)
+    historical_directory_retention_parser.add_argument("--cold-store-root", required=True)
+    historical_directory_retention_parser.add_argument("--min-mb", type=int, default=128)
+    historical_directory_retention_parser.add_argument("--max-directories", type=int)
+    historical_directory_retention_mode = historical_directory_retention_parser.add_mutually_exclusive_group(
+        required=True
+    )
+    historical_directory_retention_mode.add_argument("--dry-run", action="store_true")
+    historical_directory_retention_mode.add_argument("--apply", action="store_true")
+
+    runtime_lifecycle_payload_retention_parser = subparsers.add_parser("runtime-lifecycle-payload-retention")
+    runtime_lifecycle_payload_retention_parser.add_argument("--db", required=True)
+    runtime_lifecycle_payload_retention_parser.add_argument("--cold-store-root")
+    runtime_lifecycle_payload_retention_parser.add_argument("--min-mb", type=int, default=16)
+    runtime_lifecycle_payload_retention_parser.add_argument("--max-rows", type=int)
+    runtime_lifecycle_payload_retention_parser.add_argument("--compact", action="store_true")
+    runtime_lifecycle_payload_retention_parser.add_argument("--repair-stale-sidecars", action="store_true")
+    runtime_lifecycle_payload_retention_mode = runtime_lifecycle_payload_retention_parser.add_mutually_exclusive_group(
+        required=True
+    )
+    runtime_lifecycle_payload_retention_mode.add_argument("--dry-run", action="store_true")
+    runtime_lifecycle_payload_retention_mode.add_argument("--apply", action="store_true")
+
+    retention_surface_housekeeping_parser = subparsers.add_parser("retention-surface-housekeeping")
+    retention_surface_housekeeping_parser.add_argument("--root", required=True)
+    retention_surface_housekeeping_parser.add_argument("--max-directories", type=int)
+    retention_surface_housekeeping_mode = retention_surface_housekeeping_parser.add_mutually_exclusive_group(
+        required=True
+    )
+    retention_surface_housekeeping_mode.add_argument("--dry-run", action="store_true")
+    retention_surface_housekeeping_mode.add_argument("--apply", action="store_true")
 
     paper_authority_clean_migration_parser = subparsers.add_parser("paper-authority-clean-migration")
     paper_authority_clean_migration_parser.add_argument("--profile", required=True)

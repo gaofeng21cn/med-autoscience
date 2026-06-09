@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 import json
+import os
 import shutil
 import tarfile
 from collections.abc import Mapping
@@ -20,10 +21,23 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof
 
 
 SURFACE_KIND = "legacy_ds_retirement"
+ARCHIVE_RETENTION_SURFACE_KIND = "legacy_ds_archive_body_retention"
 SCHEMA_VERSION = 1
 
 
-def run_legacy_ds_retirement(*, profile_path: Path, apply: bool) -> dict[str, Any]:
+def run_legacy_ds_retirement(
+    *,
+    profile_path: Path,
+    apply: bool,
+    archive_retention: bool = False,
+    archive_retention_apply: bool = False,
+    archive_retention_min_mb: int = 16,
+    archive_retention_cold_store_root: Path | None = None,
+) -> dict[str, Any]:
+    if archive_retention_apply and not archive_retention:
+        raise ValueError("archive_retention_apply requires archive_retention")
+    if archive_retention_apply and not apply:
+        raise ValueError("archive_retention_apply requires apply mode")
     resolved_profile_path = Path(profile_path).expanduser().resolve()
     profile = load_profile(resolved_profile_path)
     workspace_root = profile.workspace_root.expanduser().resolve()
@@ -50,7 +64,7 @@ def run_legacy_ds_retirement(*, profile_path: Path, apply: bool) -> dict[str, An
         "surface_kind": SURFACE_KIND,
         "schema_version": SCHEMA_VERSION,
         "mode": "apply" if apply else "dry_run",
-        "status": "blocked" if blockers else "retired" if apply else "planned",
+        "status": "blocked" if blockers else "retired" if apply and planned else "planned" if planned else "nothing_to_retire",
         "recorded_at": recorded_at,
         "profile_path": str(resolved_profile_path),
         "workspace_root": str(workspace_root),
@@ -70,9 +84,104 @@ def run_legacy_ds_retirement(*, profile_path: Path, apply: bool) -> dict[str, An
             "restore_proof_required": True,
         },
     }
-    if apply and not blockers:
+    if archive_retention:
+        report["archive_retention"] = retain_legacy_ds_archive_bodies(
+            workspace_root=workspace_root,
+            recorded_at=recorded_at,
+            apply=archive_retention_apply,
+            min_archive_mb=archive_retention_min_mb,
+            cold_store_root=archive_retention_cold_store_root,
+        )
+    if apply and planned and not blockers:
         _write_report(workspace_root=workspace_root, recorded_at=recorded_at, report=report)
     return report
+
+
+def retain_legacy_ds_archive_bodies(
+    *,
+    workspace_root: Path,
+    recorded_at: str | None = None,
+    apply: bool = False,
+    min_archive_mb: int = 16,
+    cold_store_root: Path | None = None,
+) -> dict[str, Any]:
+    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
+    recorded_at = recorded_at or _utc_now()
+    threshold_bytes = max(0, int(min_archive_mb)) * 1024 * 1024
+    cold_root = _cold_store_root(workspace_root=resolved_workspace_root, cold_store_root=cold_store_root)
+    candidates: list[dict[str, Any]] = []
+    blockers: list[dict[str, Any]] = []
+    moved_count = 0
+    deduped_count = 0
+    actual_release_bytes = 0
+    for archive_path in _legacy_archive_paths(resolved_workspace_root):
+        inspection = _inspect_legacy_archive(
+            workspace_root=resolved_workspace_root,
+            archive_path=archive_path,
+            threshold_bytes=threshold_bytes,
+        )
+        if inspection.get("status") == "blocked":
+            blockers.append(inspection)
+            continue
+        if inspection.get("status") != "candidate":
+            continue
+        if apply:
+            applied = _apply_legacy_archive_retention(
+                workspace_root=resolved_workspace_root,
+                archive_path=archive_path,
+                inspection=inspection,
+                cold_root=cold_root,
+                recorded_at=recorded_at,
+            )
+            inspection.update(applied)
+            actual_release_bytes += int(applied.get("online_release_bytes") or 0)
+            if applied.get("status") == "moved_to_cold_object":
+                moved_count += 1
+            elif applied.get("status") == "deduped_to_existing_cold_object":
+                deduped_count += 1
+            elif str(applied.get("status") or "").startswith("blocked"):
+                blockers.append(inspection)
+        candidates.append(inspection)
+    status = (
+        "applied"
+        if apply and (moved_count or deduped_count)
+        else "blocked"
+        if apply and blockers
+        else "planned"
+        if candidates
+        else "nothing_to_retain"
+        if not blockers
+        else "blocked"
+    )
+    receipt = {
+        "surface_kind": ARCHIVE_RETENTION_SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "status": status,
+        "recorded_at": recorded_at,
+        "workspace_root": str(resolved_workspace_root),
+        "apply": bool(apply),
+        "min_archive_bytes": threshold_bytes,
+        "cold_store_root": str(cold_root),
+        "candidate_count": len(candidates),
+        "moved_count": moved_count,
+        "deduped_count": deduped_count,
+        "blocker_count": len(blockers),
+        "actual_release_bytes": actual_release_bytes,
+        "body_included": False,
+        "restore_proof_required": True,
+        "mutation_policy": {
+            "moves_archive_body": bool(apply),
+            "keeps_original_archive_path_as_symlink": bool(apply),
+            "deletes_source_manifest_or_restore_proof": False,
+            "deletes_retirement_receipt": False,
+            "deletes_domain_truth": False,
+            "reintroduces_legacy_ds_read_layer": False,
+        },
+        "candidate_samples": _sample_entries(candidates),
+        "blocker_samples": _sample_entries(blockers),
+    }
+    _write_archive_retention_receipt(workspace_root=resolved_workspace_root, recorded_at=recorded_at, receipt=receipt)
+    return receipt
 
 
 def _discover_ds_roots(workspace_root: Path) -> list[Path]:
@@ -259,6 +368,186 @@ def _remaining_ds_count(workspace_root: Path) -> int:
     return len(_discover_ds_roots(workspace_root))
 
 
+def _legacy_archive_paths(workspace_root: Path) -> list[Path]:
+    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
+    archives: list[Path] = []
+    workspace_retirement_root = layout.runtime_artifacts_root / "legacy_ds_retirement"
+    if workspace_retirement_root.exists():
+        archives.extend(
+            path for path in workspace_retirement_root.rglob("legacy_ds.tar.gz") if path.is_file() and not path.is_symlink()
+        )
+    if layout.quests_root.exists():
+        archives.extend(
+            path
+            for path in layout.quests_root.glob(
+                "*/artifacts/runtime/restore_index/legacy_ds_retirement/*/legacy_ds.tar.gz"
+            )
+            if path.is_file() and not path.is_symlink()
+        )
+    return sorted(set(archives))
+
+
+def _inspect_legacy_archive(*, workspace_root: Path, archive_path: Path, threshold_bytes: int) -> dict[str, Any]:
+    size_bytes = archive_path.stat().st_size
+    if size_bytes < threshold_bytes:
+        return {"status": "below_threshold", "archive_path": str(archive_path), "bytes": size_bytes}
+    manifest_path = archive_path.with_name("source_manifest.json")
+    restore_proof_path = archive_path.with_name("restore_proof.json")
+    receipt_path = archive_path.with_name("retirement_receipt.json")
+    if not manifest_path.is_file() or not restore_proof_path.is_file() or not receipt_path.is_file():
+        return {
+            "status": "blocked",
+            "reason": "missing_manifest_restore_proof_or_receipt",
+            "archive_path": str(archive_path),
+            "source_manifest_path": str(manifest_path),
+            "restore_proof_path": str(restore_proof_path),
+            "retirement_receipt_path": str(receipt_path),
+        }
+    restore_proof_payload = _read_json_mapping(restore_proof_path)
+    if restore_proof_payload.get("status") != "verified":
+        return {
+            "status": "blocked",
+            "reason": "restore_proof_not_verified",
+            "archive_path": str(archive_path),
+            "restore_proof_path": str(restore_proof_path),
+        }
+    observed_sha = file_sha256(archive_path)
+    expected_sha = str(restore_proof_payload.get("archive_sha256") or "").strip()
+    if expected_sha and observed_sha != expected_sha:
+        return {
+            "status": "blocked",
+            "reason": "archive_sha256_mismatch",
+            "archive_path": str(archive_path),
+            "expected_sha256": expected_sha,
+            "observed_sha256": observed_sha,
+        }
+    receipt = _read_json_mapping(receipt_path)
+    receipt_sha = str(receipt.get("archive_sha256") or "").strip()
+    if receipt_sha and receipt_sha != observed_sha:
+        return {
+            "status": "blocked",
+            "reason": "retirement_receipt_sha256_mismatch",
+            "archive_path": str(archive_path),
+            "expected_sha256": receipt_sha,
+            "observed_sha256": observed_sha,
+            "retirement_receipt_path": str(receipt_path),
+        }
+    owner_root = Path(str(receipt.get("owner_root") or archive_path.parent))
+    return {
+        "status": "candidate",
+        "archive_path": str(archive_path),
+        "workspace_relative_archive_path": _workspace_relative(workspace_root=workspace_root, path=archive_path),
+        "owner_root": str(owner_root),
+        "owner_kind": receipt.get("owner_kind"),
+        "source_manifest_path": str(manifest_path),
+        "restore_proof_path": str(restore_proof_path),
+        "retirement_receipt_path": str(receipt_path),
+        "bytes": size_bytes,
+        "sha256": observed_sha,
+        "restore_command": str(receipt.get("restore_command") or f"tar -xzf {archive_path} -C {owner_root}"),
+    }
+
+
+def _apply_legacy_archive_retention(
+    *,
+    workspace_root: Path,
+    archive_path: Path,
+    inspection: Mapping[str, Any],
+    cold_root: Path,
+    recorded_at: str,
+) -> dict[str, Any]:
+    sha256 = str(inspection.get("sha256") or "")
+    if not sha256:
+        return {"status": "blocked_missing_sha256", "online_release_bytes": 0}
+    object_path = cold_root / "objects" / sha256[:2] / f"{sha256}.tar.gz"
+    object_path.parent.mkdir(parents=True, exist_ok=True)
+    size_before = archive_path.stat().st_size
+    if object_path.exists():
+        if file_sha256(object_path) != sha256:
+            return {
+                "status": "blocked_cold_object_sha256_mismatch",
+                "cold_object_path": str(object_path),
+                "online_release_bytes": 0,
+            }
+        archive_path.unlink()
+        _write_relative_symlink(target=object_path, link_path=archive_path)
+        status = "deduped_to_existing_cold_object"
+    else:
+        shutil.move(str(archive_path), str(object_path))
+        _write_relative_symlink(target=object_path, link_path=archive_path)
+        status = "moved_to_cold_object"
+    ref_path = archive_path.with_name(archive_path.name + ".cold_ref.json")
+    cold_ref = {
+        "surface_kind": "legacy_ds_cold_archive_body_ref",
+        "schema_version": SCHEMA_VERSION,
+        "status": "online_path_retained_as_symlink",
+        "recorded_at": recorded_at,
+        "workspace_root": str(workspace_root),
+        "archive_path": str(archive_path),
+        "workspace_relative_archive_path": _workspace_relative(workspace_root=workspace_root, path=archive_path),
+        "cold_object_path": str(object_path),
+        "sha256": sha256,
+        "bytes": size_before,
+        "source_manifest_path": inspection.get("source_manifest_path"),
+        "restore_proof_path": inspection.get("restore_proof_path"),
+        "retirement_receipt_path": inspection.get("retirement_receipt_path"),
+        "restore_command": str(inspection.get("restore_command") or ""),
+        "body_included": False,
+        "reintroduces_legacy_ds_read_layer": False,
+    }
+    write_json(ref_path, cold_ref)
+    symlink_bytes = archive_path.lstat().st_size
+    return {
+        "status": status,
+        "cold_object_path": str(object_path),
+        "cold_ref_path": str(ref_path),
+        "archive_body_online": False,
+        "source_archive_path_is_symlink": archive_path.is_symlink(),
+        "online_release_bytes": max(0, size_before - symlink_bytes - ref_path.stat().st_size),
+    }
+
+
+def _cold_store_root(*, workspace_root: Path, cold_store_root: Path | None) -> Path:
+    safe_workspace = safe_artifact_id(workspace_root.name)
+    if cold_store_root is not None:
+        return Path(cold_store_root).expanduser().resolve() / safe_workspace / "legacy_ds_retirement"
+    return workspace_root.parent / "_cold_objects" / "legacy_ds_retirement" / safe_workspace
+
+
+def _write_archive_retention_receipt(*, workspace_root: Path, recorded_at: str, receipt: dict[str, Any]) -> None:
+    root = build_workspace_runtime_layout(workspace_root=workspace_root).runtime_artifacts_root / "legacy_ds_retirement"
+    receipt_path = root / f"{_artifact_stamp(recorded_at)}.archive_body_retention.json"
+    latest_path = root / "latest_archive_body_retention.json"
+    write_json(receipt_path, receipt)
+    write_json(latest_path, receipt)
+    receipt["receipt_path"] = str(receipt_path)
+    receipt["latest_receipt_path"] = str(latest_path)
+
+
+def _write_relative_symlink(*, target: Path, link_path: Path) -> None:
+    relative_target = os.path.relpath(target, start=link_path.parent)
+    link_path.symlink_to(relative_target)
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _workspace_relative(*, workspace_root: Path, path: Path) -> str:
+    try:
+        return path.relative_to(workspace_root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _sample_entries(entries: list[dict[str, Any]], limit: int = 20) -> list[dict[str, Any]]:
+    return [dict(entry) for entry in entries[:limit]]
+
+
 def _owner_kind(*, workspace_root: Path, owner_root: Path) -> str:
     if _is_quest_root(workspace_root=workspace_root, owner_root=owner_root):
         return "runtime_quest_root"
@@ -307,4 +596,4 @@ def _artifact_stamp(value: str) -> str:
     return datetime.fromisoformat(value).astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
-__all__ = ["run_legacy_ds_retirement"]
+__all__ = ["run_legacy_ds_retirement", "retain_legacy_ds_archive_bodies"]
