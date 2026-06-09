@@ -998,9 +998,11 @@ def _same_tick_current_dispatch_identities(iteration: Mapping[str, Any]) -> list
         )
     )
     identities.extend(
-        _same_tick_action_identities(
+        identity
+        for identity in _same_tick_action_identities(
             _mapping(iteration.get("materialize")).get("default_executor_dispatches"),
         )
+        if _same_tick_identity_has_currentness_anchor(identity)
     )
     return _dedupe_same_tick_identities(identities)
 
@@ -1067,6 +1069,13 @@ def _same_tick_identity_matches_execution(
     if observed_dispatch is None:
         return False
     return _same_tick_dispatch_ref_matches(expected_dispatch, observed_dispatch)
+
+
+def _same_tick_identity_has_currentness_anchor(identity: Mapping[str, str]) -> bool:
+    return any(
+        _non_empty_text(identity.get(key)) is not None
+        for key in ("work_unit_id", "action_fingerprint", "work_unit_fingerprint", "dispatch_path")
+    )
 
 
 def _same_tick_dispatch_ref_matches(expected: str, observed: str) -> bool:

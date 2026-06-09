@@ -7,6 +7,21 @@ from tests.standard_agent_purity_helpers import (
 
 from .shared import *  # noqa: F403,F401
 
+
+def _guarded_apply_current_owner_delta_contract() -> dict[str, object]:
+    return importlib.import_module(
+        "med_autoscience.controllers.guarded_apply_owner_delta_contract"
+    ).guarded_apply_current_owner_delta_contract()
+
+
+def _guarded_apply_accepted_answer_shapes() -> list[str]:
+    return list(
+        importlib.import_module(
+            "med_autoscience.controllers.guarded_apply_owner_delta_contract"
+        ).GUARDED_APPLY_ACCEPTED_ANSWER_SHAPES
+    )
+
+
 def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
@@ -537,6 +552,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
         assert {
             packet["role"] for packet in evidence_payload["body_free_evidence_packets"]
         } == {"stable_typed_blocker_ref", "no_forbidden_write_proof_ref"}
+        assert "current_owner_delta" not in task["payload"]
         assert task == {
             "domain_id": "medautoscience",
             "task_id": dedupe_key,
@@ -558,6 +574,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
                 ),
                 "canary_gate_id": "real_paper_line_provider_canary",
                 "closeout_requires_mas_owner_receipt_or_typed_blocker": True,
+                "current_owner_delta_contract": _guarded_apply_current_owner_delta_contract(),
             },
             "dispatch_owner": "med-autoscience",
             "profile_name": "nfpitnet",
@@ -578,6 +595,14 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
                         "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
                     ),
                     "exists": True,
+                    "body_included": False,
+                },
+                {
+                    "role": "opl_current_owner_delta_contract",
+                    "ref": "paper_autonomy/guarded-apply",
+                    "exists": True,
+                    "accepted_answer_shapes": _guarded_apply_accepted_answer_shapes(),
+                    "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
                     "body_included": False,
                 },
                 {

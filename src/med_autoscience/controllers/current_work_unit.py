@@ -7,6 +7,14 @@ from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     currentness_basis as owner_route_currentness_basis,
     owner_reason_contract,
 )
+from med_autoscience.controllers.guarded_apply_owner_delta_contract import (
+    GUARDED_APPLY_ACCEPTED_ANSWER_SHAPES,
+    GUARDED_APPLY_DESIRED_DELTA,
+    GUARDED_APPLY_STAGE_ID,
+    guarded_apply_current_owner_delta_validation,
+    guarded_apply_identity_typed_blocker,
+    normalize_guarded_apply_current_owner_delta,
+)
 
 
 SURFACE_KIND = "current_work_unit"
@@ -123,7 +131,10 @@ def build_current_work_unit(
     route_payload = _mapping(owner_route)
     runtime_health_payload = _mapping(runtime_health)
     resolved_source_refs = _source_refs(status_payload, progress_payload, source_refs)
+    stage_owner_answer_action = _stage_owner_answer_missing_action(progress_payload)
     action = _first_action(actions) or _action_from_current_action(current_executable_owner_action)
+    if stage_owner_answer_action is not None:
+        action = stage_owner_answer_action
     if action is None:
         action = _action_from_envelope(current_execution_envelope)
     resolved_typed_blocker = _typed_blocker(
@@ -146,6 +157,16 @@ def build_current_work_unit(
         )
     if running_attempt is not None and _running_attempt_invalidated_by_progress(progress_payload):
         running_attempt = None
+    if (
+        running_attempt is not None
+        and stage_owner_answer_action is not None
+        and not _running_attempt_satisfies_stage_owner_answer(
+            running_attempt=running_attempt,
+            owner_answer_action=stage_owner_answer_action,
+        )
+    ):
+        running_attempt = None
+    stage_owner_identity_blocker = _stage_owner_answer_identity_typed_blocker(progress_payload)
     basis = _currentness_basis(
         owner_route=route_payload,
         action=action,
@@ -186,6 +207,17 @@ def build_current_work_unit(
                 currentness_basis=basis,
                 source="typed_blocker",
             )
+    if stage_owner_identity_blocker is not None:
+        return _typed_blocker_work_unit(
+            blocker=stage_owner_identity_blocker,
+            action=action,
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            source_refs=resolved_source_refs,
+            currentness_basis=basis,
+            source="stage_owner_answer_identity",
+            status_kind="blocked_current_work_unit",
+        )
     stage_owner_answer_blocker = _stage_owner_answer_typed_blocker(progress_payload)
     if stage_owner_answer_blocker is not None and not _action_supersedes_stage_owner_answer(
         action=action,
@@ -275,6 +307,9 @@ def _action_work_unit(
             "state_kind": "executable_owner_action",
             "source": _action_source(action),
             "next_work_unit": work_unit_id,
+            "owner_answer_missing": action.get("owner_answer_missing") is True,
+            "owner_answer_still_required": action.get("owner_answer_still_required") is True,
+            "latest_owner_answer_ref": _text(action.get("latest_owner_answer_ref")),
             "provider_admission_pending": pending_provider_admission,
             "pending_provider_admission_evidence": _pending_provider_admission_evidence(
                 provider_admission
@@ -458,6 +493,80 @@ def _running_attempt_can_supersede_blocker(blocker: Mapping[str, Any] | None) ->
     return _text(payload.get("blocker_type")) in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS
 
 
+def _running_attempt_satisfies_stage_owner_answer(
+    *,
+    running_attempt: Mapping[str, Any],
+    owner_answer_action: Mapping[str, Any],
+) -> bool:
+    expected_stage_id = _text(owner_answer_action.get("stage_id"))
+    expected_work_unit = _text(owner_answer_action.get("work_unit_id"))
+    expected_fingerprint = _text(owner_answer_action.get("work_unit_fingerprint"))
+    expected_owner_answer_ref = _text(owner_answer_action.get("latest_owner_answer_ref"))
+    expected_lineage_ref = _text(_mapping(owner_answer_action.get("owner_route_currentness_basis")).get("lineage_ref"))
+    attempt_stage_id = _text(running_attempt.get("stage_id"))
+    if expected_stage_id is not None and attempt_stage_id != expected_stage_id:
+        return False
+    attempt_lineage_ref = _text(running_attempt.get("lineage_ref")) or _text(
+        _mapping(running_attempt.get("runtime_health")).get("lineage_ref")
+    )
+    if expected_lineage_ref is not None and attempt_lineage_ref != expected_lineage_ref:
+        return False
+    attempt_work_unit = (
+        _text(running_attempt.get("work_unit_id"))
+        or _text(running_attempt.get("next_work_unit"))
+        or _text(_mapping(running_attempt.get("runtime_health")).get("work_unit_id"))
+    )
+    if expected_work_unit is not None and attempt_work_unit != expected_work_unit:
+        return False
+    if expected_fingerprint is not None:
+        attempt_fingerprints = {
+            text
+            for value in (
+                running_attempt.get("work_unit_fingerprint"),
+                running_attempt.get("action_fingerprint"),
+                running_attempt.get("lineage_ref"),
+                _mapping(running_attempt.get("runtime_health")).get("work_unit_fingerprint"),
+            )
+            if (text := _text(value)) is not None
+        }
+        if expected_fingerprint not in attempt_fingerprints:
+            return False
+    observed_answer_refs = _stage_owner_answer_refs(running_attempt)
+    if expected_owner_answer_ref is None:
+        return False
+    if expected_owner_answer_ref not in observed_answer_refs:
+        return False
+    return any(
+        ref in observed_answer_refs
+        for ref in _text_items(owner_answer_action.get("acceptance_refs")) + [expected_owner_answer_ref]
+    )
+
+
+def _stage_owner_answer_refs(payload: Mapping[str, Any]) -> set[str]:
+    refs: set[str] = set()
+    for key in (
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ):
+        if ref := _text(payload.get(key)):
+            refs.add(ref)
+    for key in (
+        "domain_owner_receipt_refs",
+        "quality_gate_receipt_refs",
+        "typed_blocker_refs",
+        "human_gate_refs",
+        "route_back_evidence_refs",
+    ):
+        refs.update(_text_items(payload.get(key)))
+    runtime_health = _mapping(payload.get("runtime_health"))
+    if runtime_health:
+        refs.update(_stage_owner_answer_refs(runtime_health))
+    return refs
+
+
 def _running_attempt_invalidated_by_progress(progress: Mapping[str, Any]) -> bool:
     runtime_refs = _mapping(progress.get("opl_runtime_refs"))
     if runtime_refs.get("strict_live") is not False:
@@ -533,6 +642,117 @@ def _stage_owner_answer_typed_blocker(progress: Mapping[str, Any]) -> dict[str, 
         "latest_owner_answer_kind": "typed_blocker",
         "acceptance_refs": _text_items(delta.get("acceptance_refs")),
     }
+
+
+def _stage_owner_answer_missing_action(progress: Mapping[str, Any]) -> dict[str, Any] | None:
+    delta = _stage_current_owner_delta(progress)
+    if not _stage_delta_requires_mas_owner_answer(delta):
+        return None
+    validation = guarded_apply_current_owner_delta_validation(delta)
+    if validation.get("valid") is not True:
+        return None
+    normalized = normalize_guarded_apply_current_owner_delta(_mapping(validation.get("normalized")) or delta)
+    stage_id = _text(normalized.get("stage_id")) or _text(progress.get("current_stage")) or GUARDED_APPLY_STAGE_ID
+    desired_delta = _text(normalized.get("desired_delta")) or GUARDED_APPLY_DESIRED_DELTA
+    accepted_return_shape = list(
+        dict.fromkeys(
+            [
+                *_text_items(normalized.get("accepted_answer_shape")),
+                *GUARDED_APPLY_ACCEPTED_ANSWER_SHAPES,
+            ]
+        )
+    )
+    work_unit_fingerprint = (
+        _text(normalized.get("work_unit_fingerprint"))
+        or _text(normalized.get("source_fingerprint"))
+        or _text(normalized.get("lineage_ref"))
+    )
+    owner = _text(normalized.get("owner")) or _text(normalized.get("current_owner")) or "med-autoscience"
+    return {
+        "source": "stage_kernel_projection.current_owner_delta",
+        "source_surface": "stage_kernel_projection.current_owner_delta",
+        "stage_id": stage_id,
+        "action_type": _text(normalized.get("action")) or stage_id,
+        "owner": owner,
+        "next_owner": owner,
+        "recommended_owner": owner,
+        "work_unit_id": desired_delta,
+        "next_work_unit": desired_delta,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "required_delta_kind": desired_delta,
+        "owner_receipt_required": True,
+        "input_refs": _text_items(normalized.get("input_refs")),
+        "acceptance_refs": _text_items(normalized.get("acceptance_refs")),
+        "required_output_contract": {
+            "owner_receipt_required": True,
+            "quality_gate_receipt_accepted": True,
+            "typed_blocker_accepted": True,
+            "human_gate_accepted": True,
+            "route_back_evidence_accepted": True,
+            "accepted_return_shape": accepted_return_shape,
+            "desired_delta": desired_delta,
+            "latest_owner_answer_ref": _text(normalized.get("latest_owner_answer_ref")),
+            "domain_ready_authorized": normalized.get("domain_ready_authorized") is True,
+        },
+        "owner_route_currentness_basis": {
+            "source": "stage_kernel_projection.current_owner_delta",
+            "stage_id": stage_id,
+            "lineage_ref": _text(normalized.get("lineage_ref")),
+            "work_unit_id": desired_delta,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "owner_answer_missing": True,
+        },
+        "owner_answer_missing": True,
+        "owner_answer_still_required": True,
+        "latest_owner_answer_ref": _text(normalized.get("latest_owner_answer_ref")),
+    }
+
+
+def _stage_owner_answer_identity_typed_blocker(progress: Mapping[str, Any]) -> dict[str, Any] | None:
+    delta = _stage_current_owner_delta(progress)
+    if not _stage_delta_requires_mas_owner_answer(delta, allow_invalid_owner_answer_fields=True):
+        return None
+    blocker = guarded_apply_identity_typed_blocker(delta)
+    if blocker is None:
+        return None
+    normalized = normalize_guarded_apply_current_owner_delta(delta)
+    return {
+        **blocker,
+        "blocker_type": "current_owner_delta_identity_missing_or_invalid",
+        "work_unit_id": _text(normalized.get("desired_delta")) or GUARDED_APPLY_DESIRED_DELTA,
+        "stage_id": _text(normalized.get("stage_id")) or GUARDED_APPLY_STAGE_ID,
+        "source_ref": _text(normalized.get("lineage_ref")),
+        "missing_required_fields": list(
+            _mapping(blocker.get("current_owner_delta_validation")).get("missing_required_fields") or []
+        ),
+    }
+
+
+def _stage_delta_requires_mas_owner_answer(
+    delta: Mapping[str, Any],
+    *,
+    allow_invalid_owner_answer_fields: bool = False,
+) -> bool:
+    normalized = normalize_guarded_apply_current_owner_delta(delta)
+    if not normalized:
+        return False
+    hard_gate = _mapping(delta.get("hard_gate"))
+    if (
+        normalized.get("owner_answer_missing") is not True
+        and _text(hard_gate.get("state")) != "owner_answer_missing"
+    ):
+        return False
+    if normalized.get("owner_answer_still_required") is False:
+        return False
+    if not allow_invalid_owner_answer_fields and _text(normalized.get("latest_owner_answer_ref")) is not None:
+        return False
+    if _text(normalized.get("stage_id")) != GUARDED_APPLY_STAGE_ID:
+        return False
+    if _text(normalized.get("desired_delta")) != GUARDED_APPLY_DESIRED_DELTA:
+        return False
+    owner = _text(normalized.get("owner")) or _text(normalized.get("current_owner"))
+    return owner in {"med-autoscience", "MedAutoScience", None}
 
 
 def _stage_delta_is_typed_blocker_owner_answer(

@@ -14,6 +14,13 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _live_guarded_apply_current_owner_delta(lineage_ref: str = "sat-guarded-apply-current") -> dict[str, object]:
+    contract = importlib.import_module(
+        "med_autoscience.controllers.guarded_apply_owner_delta_contract"
+    ).guarded_apply_current_owner_delta_contract()
+    return {**contract, "lineage_ref": lineage_ref}
+
+
 def test_domain_handler_dispatch_records_provider_hosted_guarded_apply_receipt_without_forbidden_writes(
     tmp_path: Path,
     capsys,
@@ -56,6 +63,7 @@ def test_domain_handler_dispatch_records_provider_hosted_guarded_apply_receipt_w
                 "study_id": "DM002",
                 "provider_attempt_id": "opl-attempt-dm002-001",
                 "idempotency_key": "opl-attempt-dm002-001:guarded-apply",
+                "current_owner_delta": _live_guarded_apply_current_owner_delta("sat-dm002-guarded-apply"),
             },
         },
     )
@@ -67,6 +75,10 @@ def test_domain_handler_dispatch_records_provider_hosted_guarded_apply_receipt_w
     assert payload["accepted"] is True
     assert payload["dispatch"]["action_type"] == "paper_autonomy_guarded_apply"
     assert payload["dispatch"]["execution_policy"] == "mas_owner_provider_hosted_guarded_apply"
+    assert payload["dispatch"]["result_current_owner_delta_binding"]["bound"] is True
+    assert payload["dispatch"]["result_current_owner_delta_binding"]["lineage_ref"] == (
+        "sat-dm002-guarded-apply"
+    )
     result = payload["dispatch"]["result"]
     assert result["surface"] == "real_paper_autonomy_provider_hosted_guarded_apply_receipt"
     assert result["provider_attempt"]["attempt_id"] == "opl-attempt-dm002-001"
@@ -235,6 +247,7 @@ def test_domain_handler_dispatch_guarded_apply_records_mas_owner_receipt_present
                 "study_id": "DM002",
                 "provider_attempt_id": "opl-attempt-dm002-present",
                 "idempotency_key": "opl-attempt-dm002-present:guarded-apply",
+                "current_owner_delta": _live_guarded_apply_current_owner_delta("sat-dm002-present"),
             },
         },
     )
@@ -283,6 +296,7 @@ def test_domain_handler_dispatch_guarded_apply_records_provider_unavailable_type
                 "idempotency_key": "opl-attempt-unavailable:guarded-apply",
                 "provider_ready": False,
                 "provider_unavailable_reason": "opl_provider_ready_contract_missing",
+                "current_owner_delta": _live_guarded_apply_current_owner_delta("sat-provider-unavailable"),
             },
         },
     )
@@ -294,6 +308,7 @@ def test_domain_handler_dispatch_guarded_apply_records_provider_unavailable_type
     result = payload["dispatch"]["result"]
     assert result["status"] == "typed_blocker"
     assert result["provider_attempt"]["attempt_state"] == "provider_unavailable"
+    assert result["current_owner_delta_binding"]["bound"] is True
     assert result["provider_attempt"]["attempt_ready"] is False
     assert result["paper_line_provider_canary_closeout"]["required_return_shape_satisfied"] is False
     assert result["paper_line_provider_canary_closeout"]["owner_chain_result"]["result_kind"] == (
@@ -342,6 +357,7 @@ def test_domain_handler_dispatch_keys_guarded_apply_receipts_by_task_source_fing
             "target_studies": ["DM002"],
             "provider_attempt_id": "opl-temporal:nfpitnet:DM002:provider-hosted-guarded-apply",
             "idempotency_key": "mas:nfpitnet:DM002:provider-hosted-guarded-apply:opl-temporal",
+            "current_owner_delta": _live_guarded_apply_current_owner_delta("sat-fingerprint-key"),
         },
     }
     _write_json(task_path, {**base_task, "source_fingerprint": "proof-fingerprint-v1"})
@@ -396,6 +412,7 @@ def test_domain_handler_dispatch_guarded_apply_replays_duplicate_attempt_idempot
             "study_id": "DM002",
             "provider_attempt_id": "opl-attempt-duplicate",
             "idempotency_key": "opl-attempt-duplicate:guarded-apply",
+            "current_owner_delta": _live_guarded_apply_current_owner_delta("sat-duplicate"),
         },
     }
     task_path = tmp_path / "task.json"
@@ -436,6 +453,7 @@ def test_domain_handler_dispatch_guarded_apply_fails_closed_on_conflicting_recei
                 "study_id": "DM002",
                 "provider_attempt_id": "opl-attempt-conflict-a",
                 "idempotency_key": "opl-attempt-conflict:guarded-apply",
+                "current_owner_delta": _live_guarded_apply_current_owner_delta("sat-conflict"),
             },
         },
     )
@@ -452,6 +470,7 @@ def test_domain_handler_dispatch_guarded_apply_fails_closed_on_conflicting_recei
                 "study_id": "DM002",
                 "provider_attempt_id": "opl-attempt-conflict-b",
                 "idempotency_key": "opl-attempt-conflict:guarded-apply",
+                "current_owner_delta": _live_guarded_apply_current_owner_delta("sat-conflict"),
             },
         },
     )
@@ -463,3 +482,44 @@ def test_domain_handler_dispatch_guarded_apply_fails_closed_on_conflicting_recei
     assert conflict["reason"] == "idempotency_key_intent_conflict"
     assert conflict["existing_source_fingerprint"] == first["dispatch"]["result"]["source_fingerprint"]
     assert conflict["requested_source_fingerprint"] != conflict["existing_source_fingerprint"]
+
+
+def test_domain_handler_dispatch_guarded_apply_requires_live_current_owner_delta_identity(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "guarded-apply-missing-live-delta",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/guarded-apply",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "DM002",
+                "provider_attempt_id": "opl-attempt-missing-delta",
+                "idempotency_key": "opl-attempt-missing-delta:guarded-apply",
+                "provider_ready": False,
+                "current_owner_delta_contract": _live_guarded_apply_current_owner_delta(),
+            },
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert payload["current_owner_delta"] is None
+    binding = payload["dispatch"]["result_current_owner_delta_binding"]
+    assert binding["bound"] is False
+    assert "current_owner_delta" in binding["missing_required_fields"]
+    result = payload["dispatch"]["result"]
+    assert result["guarded_apply_status"] == "current_owner_delta_identity_missing_or_invalid"
+    assert result["provider_attempt"]["attempt_state"] == "current_owner_delta_identity_missing_or_invalid"
+    assert result["typed_blockers"][0]["blocker_id"] == "current_owner_delta_identity_missing_or_invalid"

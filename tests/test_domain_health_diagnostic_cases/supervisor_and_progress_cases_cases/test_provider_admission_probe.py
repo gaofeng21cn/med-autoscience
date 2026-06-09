@@ -208,11 +208,15 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
     assert candidate["owner_callable_surface"] == "opl_default_executor.stage_attempt"
     assert candidate["provider_attempt_or_lease_required"] is True
     envelope = result["current_execution_envelopes"][study_id]
-    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
     assert result["provider_admission_current_control_state"]["provider_admission_pending_count"] == 1
     current_control_study = result["provider_admission_current_control_state"]["studies"][0]
     assert current_control_study["current_execution_envelope"]["state_kind"] == "executable_owner_action"
     assert current_control_study["current_execution_envelope"]["next_work_unit"] == "complete_medical_paper_readiness_surface"
+    current_control_action = current_control_study["action_queue"][0]
+    assert current_control_action["work_unit_fingerprint"] == work_unit_fingerprint
+    assert current_control_action["handoff_packet"]["work_unit_fingerprint"] == work_unit_fingerprint
     assert result["action_fingerprints"] == [work_unit_fingerprint]
 
 
@@ -238,7 +242,7 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
-        / "run_gate_clearing_batch.json"
+        / "return_to_ai_reviewer_workflow.json"
     )
     dump_json(
         study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
@@ -250,23 +254,24 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
                     "surface": "default_executor_dispatch_execution",
                     "study_id": study_id,
                     "quest_id": study_id,
-                    "action_type": "run_gate_clearing_batch",
+                    "action_type": "return_to_ai_reviewer_workflow",
                     "execution_status": "blocked",
                     "blocked_reason": "opl_execution_authorization_required",
                     "typed_blocker": {"blocker_id": "opl_execution_authorization_required"},
                     "provider_attempt_or_lease_required": True,
                     "owner_route_current": True,
-                    "next_executable_owner": "finalize",
-                    "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+                    "next_executable_owner": "ai_reviewer",
+                    "required_output_surface": "artifacts/publication_eval/latest.json",
                     "dispatch_path": str(dispatch_path),
                     "action_fingerprint": action_fingerprint,
                     "owner_route": {
+                        "next_owner": "ai_reviewer",
                         "work_unit_fingerprint": action_fingerprint,
                         "source_refs": {
-                            "work_unit_id": "current_package_freshness_required",
+                            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                             "work_unit_fingerprint": action_fingerprint,
                             "owner_route_currentness_basis": {
-                                "work_unit_id": "current_package_freshness_required",
+                                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                                 "work_unit_fingerprint": action_fingerprint,
                             },
                         },
@@ -371,8 +376,8 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
     assert result["provider_admission_pending_count"] == 1
     identity = handoff["provider_admission_identity"]
     assert identity["study_id"] == study_id
-    assert identity["action_type"] == "run_gate_clearing_batch"
-    assert identity["work_unit_id"] == "current_package_freshness_required"
+    assert identity["action_type"] == "return_to_ai_reviewer_workflow"
+    assert identity["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     assert identity["action_fingerprint"] == action_fingerprint
     assert identity["blocked_reason"] == "opl_execution_authorization_required"
     assert handoff["provider_admission_candidates"] == [identity]
@@ -384,13 +389,20 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
     assert current_control["current_control_refresh_source"] == (
         "domain_health_diagnostic.provider_admission_candidates"
     )
-    assert [action["action_type"] for action in current_control["action_queue"]] == ["run_gate_clearing_batch"]
+    assert [action["action_type"] for action in current_control["action_queue"]] == [
+        "return_to_ai_reviewer_workflow"
+    ]
     study = current_control["studies"][0]
     assert study["study_id"] == study_id
     assert study["provider_admission_identity"] == identity
-    assert [action["action_type"] for action in study["action_queue"]] == ["run_gate_clearing_batch"]
+    assert [action["action_type"] for action in study["action_queue"]] == [
+        "return_to_ai_reviewer_workflow"
+    ]
     assert study["current_execution_envelope"]["state_kind"] == "executable_owner_action"
-    assert study["current_execution_envelope"]["next_work_unit"] == "current_package_freshness_required"
+    assert (
+        study["current_execution_envelope"]["next_work_unit"]
+        == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
 
 
 def test_provider_admission_candidate_requires_current_action_identity() -> None:
@@ -526,7 +538,7 @@ def test_provider_admission_candidate_accepts_study_progress_owner_ticket_identi
     assert [candidate["action_fingerprint"] for candidate in result] == [ticket_fingerprint]
 
 
-def test_provider_admission_candidate_accepts_opl_execution_authorization_required_blocker() -> None:
+def test_provider_admission_candidate_rejects_cross_action_current_ticket_authorization_blocker() -> None:
     provider_admission = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
     )
@@ -579,19 +591,10 @@ def test_provider_admission_candidate_accepts_opl_execution_authorization_requir
         },
     )
 
-    assert len(result) == 1
-    candidate = result[0]
-    assert candidate["status"] == "provider_admission_pending"
-    assert candidate["source"] == "default_executor_execution"
-    assert candidate["study_id"] == study_id
-    assert candidate["action_type"] == "run_quality_repair_batch"
-    assert candidate["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["blocked_reason"] == "opl_execution_authorization_required"
-    assert candidate["provider_attempt_or_lease_required"] is True
+    assert result == []
 
 
-def test_provider_admission_candidate_accepts_current_ticket_fingerprint_after_routeback_translation() -> None:
+def test_provider_admission_candidate_rejects_current_ticket_after_cross_action_routeback_translation() -> None:
     provider_admission = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
     )
@@ -644,15 +647,10 @@ def test_provider_admission_candidate_accepts_current_ticket_fingerprint_after_r
         },
     )
 
-    assert len(result) == 1
-    candidate = result[0]
-    assert candidate["action_type"] == "run_quality_repair_batch"
-    assert candidate["work_unit_id"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["blocked_reason"] == "opl_execution_authorization_required"
+    assert result == []
 
 
-def test_provider_admission_candidate_allows_matching_authorization_blocker_despite_stale_runtime_envelope() -> None:
+def test_provider_admission_candidate_rejects_cross_action_authorization_blocker_despite_stale_runtime_envelope() -> None:
     provider_admission = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
     )
@@ -713,7 +711,7 @@ def test_provider_admission_candidate_allows_matching_authorization_blocker_desp
         },
     )
 
-    assert [candidate["action_fingerprint"] for candidate in result] == [action_fingerprint]
+    assert result == []
 
 
 def test_provider_admission_candidate_accepts_gate_replay_authorization_after_current_ai_reviewer_record_routeback() -> None:
@@ -1355,6 +1353,65 @@ def test_provider_admission_candidate_survives_readiness_typed_blocker_for_stage
                 },
             },
             "current_executable_owner_action": None,
+        },
+    )
+
+    assert result == []
+
+    result = provider_admission.provider_admission_candidates_from_execution_payload(
+        {
+            "executions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "handoff_ready",
+                    "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                    "provider_attempt_or_lease_required": True,
+                    "provider_completion_is_domain_completion": False,
+                    "owner_route_current": True,
+                    "owner_route_basis": "stage_native_workspace_next_action",
+                    "dispatch_path": "/workspace/current-stage-native-write.json",
+                    "action_fingerprint": fingerprint,
+                    "next_executable_owner": "write",
+                    "stage_attempt_admission": {
+                        "surface": "opl_stage_attempt_admission_request",
+                        "status": "requested",
+                        "owner": "one-person-lab",
+                    },
+                    "owner_route": {
+                        "next_owner": "write",
+                        "source_refs": {
+                            "work_unit_id": "run_quality_repair_batch",
+                            "work_unit_fingerprint": fingerprint,
+                            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+                            "current_stage_id": "08-publication_package_handoff",
+                        },
+                    },
+                }
+            ]
+        },
+        status_payload={
+            "study_id": study_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_type": "medical_paper_readiness_missing",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+            "current_executable_owner_action": {
+                "source": "stage_native_workspace_next_action",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "run_quality_repair_batch",
+                "work_unit_fingerprint": fingerprint,
+                "allowed_actions": ["run_quality_repair_batch"],
+            },
         },
     )
 

@@ -27,6 +27,12 @@ from ..domain_action_request_lifecycle import (
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 )
+from ..guarded_apply_owner_delta_contract import (
+    guarded_apply_current_owner_delta_binding_summary,
+    guarded_apply_current_owner_delta_validation,
+    guarded_apply_identity_typed_blocker,
+    normalize_guarded_apply_current_owner_delta,
+)
 from ..real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
 from .authority_boundary import authority_boundary_payload
 from .dispatch_receipts import write_dispatch_receipt
@@ -56,6 +62,19 @@ def _mapping(value: object) -> Mapping[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _string_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, (list, tuple, set)):
+        return []
+    return [text for item in value if (text := _text(item)) is not None]
+
+
+def _bool_or_none(value: object) -> bool | None:
+    return value if isinstance(value, bool) else None
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:
@@ -267,6 +286,7 @@ def _execute_guarded_apply(
     if profile_ref is None or study_id is None:
         return None
     payload = _mapping(task.get("payload"))
+    current_owner_delta = _current_owner_delta_from_task(task)
     provider_attempt_id = (
         _text(payload.get("provider_attempt_id"))
         or _text(payload.get("attempt_id"))
@@ -279,6 +299,17 @@ def _execute_guarded_apply(
         if isinstance(target_studies, list)
         else [study_id]
     )
+    validation = guarded_apply_current_owner_delta_validation(current_owner_delta)
+    if validation.get("valid") is not True:
+        return provider_guarded_apply.build_guarded_apply_current_owner_delta_typed_blocker_receipt(
+            schema_version=real_paper_autonomy_soak_inventory.SCHEMA_VERSION,
+            surface=real_paper_autonomy_soak_inventory.PROVIDER_HOSTED_GUARDED_APPLY_RECEIPT_SURFACE,
+            provider_attempt_id=provider_attempt_id,
+            idempotency_key=idempotency_key,
+            target_studies=targets,
+            typed_blocker=guarded_apply_identity_typed_blocker(current_owner_delta) or {},
+            current_owner_delta=current_owner_delta,
+        )
     if payload.get("provider_ready") is False:
         return provider_guarded_apply.build_provider_unavailable_guarded_apply_receipt(
             schema_version=real_paper_autonomy_soak_inventory.SCHEMA_VERSION,
@@ -287,13 +318,70 @@ def _execute_guarded_apply(
             idempotency_key=idempotency_key,
             target_studies=targets,
             reason=_text(payload.get("provider_unavailable_reason")) or "provider_ready_false",
+            current_owner_delta=current_owner_delta,
         )
     return real_paper_autonomy_soak_inventory.build_real_paper_autonomy_provider_hosted_guarded_apply_receipt(
         profile_path=profile_ref,
         provider_attempt_id=provider_attempt_id,
         idempotency_key=idempotency_key,
         target_studies=targets,
+        current_owner_delta=current_owner_delta,
     )
+
+
+def _current_owner_delta_from_task(task: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _mapping(task.get("payload"))
+    candidates = (
+        payload.get("current_owner_delta"),
+        payload.get("opl_current_owner_delta"),
+        payload.get("stage_run_current_owner_delta"),
+        task.get("current_owner_delta"),
+        task.get("opl_current_owner_delta"),
+        task.get("stage_run_current_owner_delta"),
+    )
+    for candidate in candidates:
+        delta = normalize_guarded_apply_current_owner_delta(_mapping(candidate))
+        if delta:
+            return delta
+    compact = {
+        key: value
+        for key, value in {
+            "surface_kind": "opl_current_owner_delta",
+            "default_planning_root": _text(payload.get("default_planning_root") or task.get("default_planning_root")),
+            "stage_id": _text(payload.get("stage_id") or task.get("stage_id")),
+            "lineage_ref": _text(payload.get("lineage_ref") or task.get("lineage_ref")),
+            "current_owner": _text(payload.get("current_owner") or task.get("current_owner")),
+            "owner": _text(payload.get("owner") or task.get("owner")),
+            "desired_delta": _text(payload.get("desired_delta") or task.get("desired_delta")),
+            "desired_delta_kind": _text(payload.get("desired_delta_kind") or task.get("desired_delta_kind")),
+            "accepted_answer_shape": _string_list(
+                payload.get("accepted_answer_shape") or task.get("accepted_answer_shape")
+            ),
+            "accepted_return_shapes": _string_list(
+                payload.get("accepted_return_shapes") or task.get("accepted_return_shapes")
+            ),
+            "latest_owner_answer_ref": _text(
+                payload.get("latest_owner_answer_ref") or task.get("latest_owner_answer_ref")
+            ),
+            "domain_ready_authorized": _bool_or_none(
+                payload.get("domain_ready_authorized")
+                if "domain_ready_authorized" in payload
+                else task.get("domain_ready_authorized")
+            ),
+            "owner_answer_missing": _bool_or_none(
+                payload.get("owner_answer_missing")
+                if "owner_answer_missing" in payload
+                else task.get("owner_answer_missing")
+            ),
+            "owner_answer_still_required": _bool_or_none(
+                payload.get("owner_answer_still_required")
+                if "owner_answer_still_required" in payload
+                else task.get("owner_answer_still_required")
+            ),
+        }.items()
+        if value not in (None, [], {})
+    }
+    return normalize_guarded_apply_current_owner_delta(compact)
 
 
 def _base_dispatch_receipt(
@@ -453,6 +541,7 @@ def _with_guarded_apply(
     study_id: str | None,
     task: Mapping[str, Any],
 ) -> dict[str, Any]:
+    current_owner_delta = _current_owner_delta_from_task(task)
     result = _execute_guarded_apply(
         profile_ref=profile_ref,
         study_id=study_id,
@@ -460,6 +549,10 @@ def _with_guarded_apply(
         task=task,
     )
     receipt["dispatch"]["execution_policy"] = "mas_owner_provider_hosted_guarded_apply"
+    binding = guarded_apply_current_owner_delta_binding_summary(current_owner_delta)
+    receipt["dispatch"]["current_owner_delta"] = current_owner_delta or None
+    receipt["current_owner_delta"] = current_owner_delta or None
+    receipt["dispatch"]["result_current_owner_delta_binding"] = binding
     receipt["dispatch"]["result"] = result
     return receipt
 

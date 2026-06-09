@@ -73,7 +73,7 @@ def test_domain_handler_export_guarded_apply_fingerprint_tracks_mas_owner_decisi
 
     exit_code = cli.main(
         [
-            "domain_handler",
+            "domain-handler",
             "export",
             "--profile",
             str(profile_path),
@@ -127,7 +127,7 @@ def test_domain_handler_export_guarded_apply_fingerprint_tracks_mas_owner_decisi
     )
     repeat_exit_code = cli.main(
         [
-            "domain_handler",
+            "domain-handler",
             "export",
             "--profile",
             str(profile_path),
@@ -174,7 +174,7 @@ def test_domain_handler_export_guarded_apply_targets_live_canonical_studies_when
 
     exit_code = cli.main(
         [
-            "domain_handler",
+            "domain-handler",
             "export",
             "--profile",
             str(profile_path),

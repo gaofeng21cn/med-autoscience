@@ -218,6 +218,7 @@ def build_real_paper_autonomy_provider_hosted_guarded_apply_receipt(
     provider_attempt_id: str,
     idempotency_key: str,
     target_studies: Sequence[str],
+    current_owner_delta: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     targets = tuple(_text(study_id) for study_id in target_studies if _text(study_id))
     proof = build_real_paper_autonomy_guarded_apply_proof(
@@ -231,6 +232,7 @@ def build_real_paper_autonomy_provider_hosted_guarded_apply_receipt(
         provider_attempt_id=provider_attempt_id,
         idempotency_key=idempotency_key,
         target_studies=targets,
+        current_owner_delta=current_owner_delta,
     )
 
 

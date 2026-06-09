@@ -5,6 +5,12 @@ import json
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
+from med_autoscience.controllers.guarded_apply_owner_delta_contract import (
+    guarded_apply_current_owner_delta_binding_summary,
+    guarded_apply_identity_typed_blocker,
+    normalize_guarded_apply_current_owner_delta,
+)
+
 from . import paper_line_canary
 
 
@@ -16,6 +22,7 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
     provider_attempt_id: str,
     idempotency_key: str,
     target_studies: Sequence[str],
+    current_owner_delta: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     guarded_receipts = [
         dict(_mapping(receipt))
@@ -32,6 +39,8 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
         for receipt in guarded_receipts
         if _text(receipt.get("apply_result")) != "typed_blocker"
     ]
+    owner_delta = normalize_guarded_apply_current_owner_delta(current_owner_delta)
+    owner_delta_binding = guarded_apply_current_owner_delta_binding_summary(owner_delta)
     memory_proof = _mapping(proof.get("publication_route_memory_final_proof"))
     status = "applied" if accepted_receipts and not typed_blockers else "typed_blocker"
     attempt_state = "mas_owner_receipt_present" if status == "applied" else "mas_owner_receipt_missing"
@@ -42,6 +51,7 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
             "target_studies": list(target_studies),
             "guarded_apply_receipts": guarded_receipts,
             "publication_route_memory_final_proof": memory_proof,
+            "current_owner_delta": owner_delta,
         }
     )
     return {
@@ -59,6 +69,8 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
         },
         "idempotency_key": _text(idempotency_key),
         "source_fingerprint": source_fingerprint,
+        "current_owner_delta": owner_delta or None,
+        "current_owner_delta_binding": owner_delta_binding,
         "guarded_apply_status": proof.get("guarded_apply_status"),
         "guarded_apply_receipts": guarded_receipts,
         "typed_blockers": typed_blockers,
@@ -104,7 +116,9 @@ def build_provider_unavailable_guarded_apply_receipt(
     idempotency_key: str,
     target_studies: Sequence[str],
     reason: str,
+    current_owner_delta: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    owner_delta = normalize_guarded_apply_current_owner_delta(current_owner_delta)
     blocker_id = f"provider_guarded_apply_unavailable:{_fingerprint([provider_attempt_id, idempotency_key, target_studies, reason])}"
     typed_blocker = {
         "blocker_id": blocker_id,
@@ -119,6 +133,7 @@ def build_provider_unavailable_guarded_apply_receipt(
             "idempotency_key": idempotency_key,
             "target_studies": list(target_studies),
             "typed_blocker": typed_blocker,
+            "current_owner_delta": owner_delta,
         }
     )
     return {
@@ -136,6 +151,8 @@ def build_provider_unavailable_guarded_apply_receipt(
         },
         "idempotency_key": _text(idempotency_key),
         "source_fingerprint": source_fingerprint,
+        "current_owner_delta": owner_delta or None,
+        "current_owner_delta_binding": guarded_apply_current_owner_delta_binding_summary(owner_delta),
         "guarded_apply_status": "provider_unavailable",
         "guarded_apply_receipts": [],
         "typed_blockers": [typed_blocker],
@@ -192,6 +209,100 @@ def build_provider_unavailable_guarded_apply_receipt(
     }
 
 
+def build_guarded_apply_current_owner_delta_typed_blocker_receipt(
+    *,
+    schema_version: int,
+    surface: str,
+    provider_attempt_id: str,
+    idempotency_key: str,
+    target_studies: Sequence[str],
+    typed_blocker: Mapping[str, Any],
+    current_owner_delta: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    owner_delta = normalize_guarded_apply_current_owner_delta(current_owner_delta)
+    blocker = dict(_mapping(typed_blocker) or guarded_apply_identity_typed_blocker(owner_delta) or {})
+    source_fingerprint = _fingerprint(
+        {
+            "provider_attempt_id": provider_attempt_id,
+            "idempotency_key": idempotency_key,
+            "target_studies": list(target_studies),
+            "typed_blocker": blocker,
+            "current_owner_delta": owner_delta,
+        }
+    )
+    return {
+        "surface": surface,
+        "schema_version": schema_version,
+        "status": "typed_blocker",
+        "target_studies": list(target_studies),
+        "provider_attempt": {
+            "attempt_id": _text(provider_attempt_id),
+            "attempt_owner": "one-person-lab",
+            "attempt_state": "current_owner_delta_identity_missing_or_invalid",
+            "attempt_ready": False,
+            "provider_attempt_is_truth": False,
+            "provider_attempt_wrote_workspace": False,
+        },
+        "idempotency_key": _text(idempotency_key),
+        "source_fingerprint": source_fingerprint,
+        "current_owner_delta": owner_delta or None,
+        "current_owner_delta_binding": guarded_apply_current_owner_delta_binding_summary(owner_delta),
+        "guarded_apply_status": "current_owner_delta_identity_missing_or_invalid",
+        "guarded_apply_receipts": [],
+        "typed_blockers": [blocker],
+        "publication_route_memory_final_proof": {
+            "status": "typed_blocker_current_owner_delta_identity_missing_or_invalid",
+            "body_included": False,
+            "memory_body_included": False,
+            "opl_can_read_memory_body": False,
+            "opl_can_accept_or_reject_writeback": False,
+        },
+        "paper_line_provider_canary_closeout": paper_line_canary.build_provider_unavailable_canary_closeout(
+            provider_attempt={
+                "attempt_id": provider_attempt_id,
+                "attempt_state": "current_owner_delta_identity_missing_or_invalid",
+                "attempt_ready": False,
+            },
+            typed_blocker=blocker,
+            forbidden_write_guard={
+                "aggregate_result": "fail_closed_current_owner_delta_identity_missing_or_invalid",
+                "can_write_domain_truth": False,
+                "can_write_current_package": False,
+            },
+            source_fingerprint=source_fingerprint,
+        ),
+        "forbidden_write_guard": {
+            "aggregate_result": "fail_closed_current_owner_delta_identity_missing_or_invalid",
+            "can_write_domain_truth": False,
+            "can_write_current_package": False,
+        },
+        "source_refs": [],
+        "summary": {
+            "status": "typed_blocker",
+            "provider_attempt_state": "current_owner_delta_identity_missing_or_invalid",
+            "provider_attempt_ready": False,
+            "provider_attempt_wrote_workspace": False,
+            "writes_performed": False,
+            "real_workspace_mutation_allowed": False,
+            "writes_performed_by_this_receipt": False,
+            "receipt_wrote_forbidden_surfaces": False,
+            "typed_blocker_count": 1,
+        },
+        "authority_boundary": {
+            "provider_attempt_owner": "one-person-lab",
+            "domain_truth_owner": "med-autoscience",
+            "quality_gate_owner": "med-autoscience",
+            "artifact_authority_owner": "med-autoscience",
+            "provider_attempt_is_truth": False,
+            "provider_completion_is_publication_quality": False,
+            "opl_can_write_mas_truth": False,
+            "opl_can_write_artifact_authority": False,
+            "opl_can_write_memory_body": False,
+        },
+        "source_guarded_apply_proof_summary": None,
+    }
+
+
 def _source_refs(
     *,
     guarded_receipts: Sequence[Mapping[str, Any]],
@@ -225,6 +336,7 @@ def _fingerprint(payload: object) -> str:
 
 
 __all__ = [
+    "build_guarded_apply_current_owner_delta_typed_blocker_receipt",
     "build_provider_hosted_guarded_apply_receipt_from_proof",
     "build_provider_unavailable_guarded_apply_receipt",
 ]

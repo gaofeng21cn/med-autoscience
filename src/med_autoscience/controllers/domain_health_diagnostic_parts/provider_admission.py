@@ -822,23 +822,63 @@ def _matches_current_action(
     current_action_identity: Mapping[str, Any],
 ) -> bool:
     if not current_action_identity:
-        return True
+        return False
     expected_work_unit_id = _non_empty_text(current_action_identity.get("work_unit_id"))
-    if expected_work_unit_id is not None and work_unit_id != expected_work_unit_id:
-        return False
     action_ids = set(_text_items(current_action_identity.get("action_ids")))
-    if action_ids and action_type not in action_ids:
-        return False
     expected_fingerprints = set(_text_items(current_action_identity.get("work_unit_fingerprints")))
     if expected_fingerprints:
-        return work_unit_fingerprint in expected_fingerprints
+        if work_unit_fingerprint not in expected_fingerprints:
+            return False
+        if not _provider_admission_ticket_matches_action(
+            work_unit_fingerprint=work_unit_fingerprint,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        ):
+            return False
+        if action_ids and action_type not in action_ids:
+            return False
+        return True
     expected_fingerprint = _non_empty_text(current_action_identity.get("work_unit_fingerprint"))
     if expected_fingerprint is not None:
-        return work_unit_fingerprint == expected_fingerprint
+        if work_unit_fingerprint != expected_fingerprint:
+            return False
+        if not _provider_admission_ticket_matches_action(
+            work_unit_fingerprint=work_unit_fingerprint,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        ):
+            return False
+        if action_ids and action_type not in action_ids:
+            return False
+        return True
+    if expected_work_unit_id is not None and work_unit_id != expected_work_unit_id:
+        return False
+    if action_ids and action_type not in action_ids:
+        return False
     expected_source_ref = _non_empty_text(current_action_identity.get("source_ref"))
     if expected_source_ref is not None:
         return expected_source_ref in work_unit_fingerprint
     return True
+
+
+def _provider_admission_ticket_matches_action(
+    *,
+    work_unit_fingerprint: str,
+    action_type: str,
+    work_unit_id: str,
+) -> bool:
+    prefix = "study-progress-current-owner-ticket::"
+    if not work_unit_fingerprint.startswith(prefix):
+        return True
+    parts = work_unit_fingerprint.split("::")
+    if len(parts) < 4:
+        return False
+    ticket_work_unit_id = _non_empty_text(parts[2])
+    ticket_action_type = _non_empty_text(parts[3])
+    return (
+        ticket_work_unit_id == work_unit_id
+        and (ticket_action_type == action_type or ticket_action_type == work_unit_id)
+    )
 
 
 def _execution_requests_provider_admission(execution: Mapping[str, Any]) -> bool:

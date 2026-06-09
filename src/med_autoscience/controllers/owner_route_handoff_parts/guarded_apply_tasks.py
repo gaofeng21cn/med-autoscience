@@ -10,6 +10,12 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
+from med_autoscience.controllers.guarded_apply_owner_delta_contract import (
+    GUARDED_APPLY_ACCEPTED_ANSWER_SHAPES,
+    GUARDED_APPLY_DESIRED_DELTA,
+    GUARDED_APPLY_STAGE_ID,
+    guarded_apply_current_owner_delta_contract,
+)
 
 
 GUARDED_APPLY_OWNER_RECEIPT_CONTRACT = "mas-guarded-apply-owner-receipt.v2"
@@ -64,6 +70,7 @@ def _provider_hosted_guarded_apply_task(
 ) -> dict[str, Any]:
     dedupe_key = f"mas:{profile.name}:{target}:provider-hosted-guarded-apply:opl-temporal"
     provider_attempt_id = f"opl-temporal:{profile.name}:{target}:provider-hosted-guarded-apply"
+    current_owner_delta_contract = guarded_apply_current_owner_delta_contract()
     source_fingerprint = _fingerprint(
         {
             "provider_attempt_id": provider_attempt_id,
@@ -74,6 +81,7 @@ def _provider_hosted_guarded_apply_task(
             "provider_availability": provider_availability,
             "guarded_apply_owner_receipt_contract": GUARDED_APPLY_OWNER_RECEIPT_CONTRACT,
             "paper_line_guarded_apply_evidence_ref": PAPER_LINE_GUARDED_APPLY_EVIDENCE_REF,
+            "current_owner_delta_contract": current_owner_delta_contract,
             "owner_source_refs": owner_source_refs,
         }
     )
@@ -92,6 +100,14 @@ def _provider_hosted_guarded_apply_task(
             "role": "paper_line_guarded_apply_evidence",
             "ref": PAPER_LINE_GUARDED_APPLY_EVIDENCE_REF,
             "exists": True,
+            "body_included": False,
+        },
+        {
+            "role": "opl_current_owner_delta_contract",
+            "ref": GUARDED_APPLY_STAGE_ID,
+            "exists": True,
+            "accepted_answer_shapes": list(GUARDED_APPLY_ACCEPTED_ANSWER_SHAPES),
+            "desired_delta": GUARDED_APPLY_DESIRED_DELTA,
             "body_included": False,
         },
         {
@@ -130,6 +146,7 @@ def _provider_hosted_guarded_apply_task(
             "selected_evidence_surface": PAPER_LINE_GUARDED_APPLY_EVIDENCE_REF,
             "canary_gate_id": "real_paper_line_provider_canary",
             "closeout_requires_mas_owner_receipt_or_typed_blocker": True,
+            "current_owner_delta_contract": current_owner_delta_contract,
         },
         "dispatch_owner": "med-autoscience",
         "profile_name": profile.name,
