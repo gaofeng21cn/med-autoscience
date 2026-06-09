@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-09：root action_queue 完整 currentness identity 可作为 provider admission fallback
+
+- 决策：`opl_current_control_state.action_queue` 携带 provider-admissible action、allowed owner、work-unit id、work-unit fingerprint，并且 `owner_route.source_refs.owner_route_currentness_basis` 同时具备 `work_unit_id`、`work_unit_fingerprint`、`truth_epoch` 和 `runtime_health_epoch` 或 `source_eval_id` 时，MAS provider admission 可以把该 root queue item 作为 current action identity fallback。该 fallback 只用于 provider admission matching，不升级为 domain truth、owner receipt、typed blocker、quality verdict、paper-ready 或 publication-ready。
+- 决策：status / `studies[]` 中的 current work unit 或 current executable owner action 仍优先用于 admission。只有该 identity 无法匹配当前 root action_queue carrier，而 root action_queue 自身 currentness basis 完整时，才允许按 root queue identity 重试一次。缺完整 owner-route currentness basis、缺 ready dispatch、owner/action 不在 allowlist、dispatch authority 不合法或 work-unit fingerprint 不匹配时继续 fail closed。
+- 理由：DM002/DM003 live current-control 暴露出 root `action_queue` 已是 fresh `write/run_quality_repair_batch`，但 `studies[]` 的 Stage Kernel `current_executable_owner_action` 可能同时指向 `complete_medical_paper_readiness_surface` 等 owner-answer gate。旧 provider admission 只信 status/studies identity，导致 OPL 看到 `provider_admission_candidates=[]`，provider hydrate 只能 no-op。
+- 影响：这是 MAS current-control / provider admission read-model 修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、typed blocker、human gate、route-back evidence、OPL queue 或 provider attempt。OPL 仍只消费 candidate 启动 provider transport；论文 stage 晋级仍由 MAS owner receipt、quality gate receipt、typed blocker、human gate、route-back evidence 或 accepted closeout 判定。
+
 ## 2026-06-09：provider admission carrier 不得依赖 root action_queue 唯一存在
 
 - 决策：OPL current-control handoff 的 root `action_queue` 为空时，MAS provider admission gate 必须继续检查每个 study 的 canonical `current_executable_owner_action` / `current_work_unit`。若该 study current action 是 provider-admissible action，且 dispatch JSON ready、dispatch authority 合法、action/work-unit/currentness identity 匹配，则可合成同一 current-control carrier 并输出 `provider_admission_candidate`。

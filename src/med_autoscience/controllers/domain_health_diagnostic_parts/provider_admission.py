@@ -279,6 +279,18 @@ def current_control_provider_admission_candidates(
             current_control_ref=current_control_ref,
             study_payload=study,
         )
+        if candidate is None:
+            action_identity = _current_control_action_identity(action)
+            if action_identity and action_identity != current_action_identity:
+                candidate = provider_admission_candidate_from_current_control_action(
+                    action,
+                    study_root=study_root,
+                    status_study_id=status_study_id,
+                    current_action_identity=action_identity,
+                    status_payload=effective_status,
+                    current_control_ref=current_control_ref,
+                    study_payload=study,
+                )
         if candidate is not None:
             candidates.append(candidate)
     return candidates
@@ -736,6 +748,75 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
         "source": _non_empty_text(current.get("source")),
         "next_owner": _non_empty_text(current.get("next_owner")),
     }
+
+
+def _current_control_action_identity(action: Mapping[str, Any]) -> dict[str, Any]:
+    if _non_empty_text(action.get("source_surface")) not in {None, "opl_current_control_state.action_queue"}:
+        return {}
+    action_type = _current_action_action_type(action)
+    work_unit_id = (
+        _non_empty_text(action.get("work_unit_id"))
+        or _non_empty_text(action.get("next_work_unit"))
+        or _non_empty_text(action.get("controller_work_unit_id"))
+    )
+    fingerprint = (
+        _non_empty_text(action.get("work_unit_fingerprint"))
+        or _non_empty_text(action.get("action_fingerprint"))
+        or _non_empty_text(action.get("source_fingerprint"))
+    )
+    owner_route = _mapping(action.get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    if not _owner_route_currentness_basis_complete(currentness_basis):
+        return {}
+    work_unit_id = (
+        work_unit_id
+        or _non_empty_text(source_refs.get("work_unit_id"))
+        or _non_empty_text(currentness_basis.get("work_unit_id"))
+    )
+    fingerprint = (
+        fingerprint
+        or _non_empty_text(source_refs.get("work_unit_fingerprint"))
+        or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
+    )
+    if action_type is None or work_unit_id is None or fingerprint is None:
+        return {}
+    if not _current_control_action_requests_provider_admission(action):
+        return {}
+    fingerprints = [
+        item
+        for item in (
+            _non_empty_text(action.get("work_unit_fingerprint")),
+            _non_empty_text(action.get("action_fingerprint")),
+            _non_empty_text(action.get("source_fingerprint")),
+            _non_empty_text(source_refs.get("work_unit_fingerprint")),
+            _non_empty_text(currentness_basis.get("work_unit_fingerprint")),
+        )
+        if item is not None
+    ]
+    return {
+        "action_ids": [action_type, work_unit_id],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "work_unit_fingerprints": list(dict.fromkeys(fingerprints)),
+        "source": _non_empty_text(action.get("source_surface")) or "opl_current_control_state.action_queue",
+        "next_owner": _non_empty_text(action.get("next_executable_owner"))
+        or _non_empty_text(action.get("owner"))
+        or _non_empty_text(owner_route.get("next_owner")),
+    }
+
+
+def _owner_route_currentness_basis_complete(currentness_basis: Mapping[str, Any]) -> bool:
+    if _non_empty_text(currentness_basis.get("work_unit_id")) is None:
+        return False
+    if _non_empty_text(currentness_basis.get("work_unit_fingerprint")) is None:
+        return False
+    if _non_empty_text(currentness_basis.get("truth_epoch")) is None:
+        return False
+    return (
+        _non_empty_text(currentness_basis.get("runtime_health_epoch")) is not None
+        or _non_empty_text(currentness_basis.get("source_eval_id")) is not None
+    )
 
 
 def _status_requires_current_identity(status_payload: Mapping[str, Any]) -> bool:

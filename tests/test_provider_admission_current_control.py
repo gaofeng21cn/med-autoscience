@@ -519,6 +519,136 @@ def test_current_control_provider_admission_rejects_queue_without_current_identi
     assert result == []
 
 
+def test_current_control_provider_admission_uses_root_action_queue_identity_when_stage_kernel_action_differs(
+    tmp_path: Path,
+) -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = tmp_path / "studies" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    work_unit_id = "manuscript_story_repair"
+    action_fingerprint = "gate-replay-route-back::write::publication-blockers::497d1260db522f01"
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "next_executable_owner": "write",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            "owner_route": {
+                "allowed_actions": ["run_quality_repair_batch"],
+                "source_refs": {
+                    "owner_route_currentness_basis": {
+                        "truth_epoch": "truth-event-current",
+                        "runtime_health_epoch": "runtime-health-current",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": "stage-native-next-action::stale-dispatch-basis",
+                    }
+                },
+            },
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    result = provider_admission.current_control_provider_admission_candidates(
+        {
+            "surface": "opl_current_control_state_handoff",
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "status": "queued",
+                    "owner": "write",
+                    "next_work_unit": work_unit_id,
+                    "action_fingerprint": action_fingerprint,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "owner_route": {
+                        "next_owner": "write",
+                        "allowed_actions": ["run_quality_repair_batch"],
+                        "work_unit_fingerprint": action_fingerprint,
+                        "source_refs": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "owner_route_currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
+                    "refs": {"dispatch_path": str(dispatch_path)},
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "executable_owner_action",
+                        "owner": "MedAutoScience",
+                        "action_type": "complete_medical_paper_readiness_surface",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "currentness_basis": {
+                            "truth_epoch": "truth-event-current",
+                            "runtime_health_epoch": "runtime-health-current",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                        },
+                    },
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "status": "ready",
+                        "source": "stage_kernel_projection.current_owner_delta",
+                        "next_owner": "MedAutoScience",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                        "target_surface": {
+                            "surface_ref": "publication_handoff_owner_gate",
+                        },
+                    },
+                }
+            ],
+        },
+        study_root=study_root,
+        status_payload={
+            "study_id": study_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {"blocker_type": "medical_paper_readiness_missing"},
+            },
+        },
+        current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
+    )
+
+    assert len(result) == 1
+    candidate = result[0]
+    assert candidate["source"] == "opl_current_control_state.action_queue"
+    assert candidate["study_id"] == study_id
+    assert candidate["action_type"] == "run_quality_repair_batch"
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["action_fingerprint"] == action_fingerprint
+    assert candidate["dispatch_path"] == str(dispatch_path)
+    assert candidate["next_executable_owner"] == "write"
+
+
 def test_current_control_provider_admission_uses_study_current_work_unit_identity(
     tmp_path: Path,
 ) -> None:
