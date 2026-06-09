@@ -323,8 +323,10 @@ def test_provider_admission_prefers_canonical_current_work_unit_over_stale_curre
                 "allowed_actions": ["return_to_ai_reviewer_workflow"],
             },
             "current_execution_envelope": {
-                "state_kind": "typed_blocker",
-                "typed_blocker": {"blocker_type": "medical_paper_readiness_missing"},
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": work_unit_id,
+                "typed_blocker": None,
             },
         },
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
@@ -509,8 +511,10 @@ def test_current_control_provider_admission_rejects_queue_without_current_identi
         status_payload={
             "study_id": study_id,
             "current_execution_envelope": {
-                "state_kind": "typed_blocker",
-                "typed_blocker": {"blocker_type": "medical_paper_readiness_missing"},
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": work_unit_id,
+                "typed_blocker": None,
             },
         },
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
@@ -519,7 +523,7 @@ def test_current_control_provider_admission_rejects_queue_without_current_identi
     assert result == []
 
 
-def test_current_control_provider_admission_uses_root_action_queue_identity_when_stage_kernel_action_differs(
+def test_current_control_provider_admission_rejects_root_action_queue_identity_under_typed_blocker(
     tmp_path: Path,
 ) -> None:
     provider_admission = importlib.import_module(
@@ -585,6 +589,8 @@ def test_current_control_provider_admission_uses_root_action_queue_identity_when
                         "source_refs": {
                             "work_unit_id": work_unit_id,
                             "work_unit_fingerprint": action_fingerprint,
+                            "current_stage_id": "08-publication_package_handoff",
+                            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
                             "owner_route_currentness_basis": {
                                 "truth_epoch": "truth-event-current",
                                 "runtime_health_epoch": "runtime-health-current",
@@ -638,15 +644,121 @@ def test_current_control_provider_admission_uses_root_action_queue_identity_when
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
     )
 
-    assert len(result) == 1
-    candidate = result[0]
-    assert candidate["source"] == "opl_current_control_state.action_queue"
-    assert candidate["study_id"] == study_id
-    assert candidate["action_type"] == "run_quality_repair_batch"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["dispatch_path"] == str(dispatch_path)
-    assert candidate["next_executable_owner"] == "write"
+    assert result == []
+
+
+def test_current_control_provider_admission_rejects_action_queue_self_identity_under_typed_blocker(
+    tmp_path: Path,
+) -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = tmp_path / "studies" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    work_unit_id = "medical_prose_write_repair"
+    action_fingerprint = "gate-replay-route-back::write::publication-blockers::0915410f804b3697"
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "next_executable_owner": "write",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    result = provider_admission.current_control_provider_admission_candidates(
+        {
+            "surface": "opl_current_control_state_handoff",
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "status": "queued",
+                    "owner": "write",
+                    "next_work_unit": work_unit_id,
+                    "action_fingerprint": action_fingerprint,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "owner_route": {
+                        "next_owner": "write",
+                        "allowed_actions": ["run_quality_repair_batch"],
+                        "work_unit_fingerprint": action_fingerprint,
+                        "source_refs": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "current_stage_id": "08-publication_package_handoff",
+                            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+                            "owner_route_currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
+                    "refs": {"dispatch_path": str(dispatch_path)},
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner_route": {
+                        "next_owner": "write",
+                        "allowed_actions": ["run_quality_repair_batch"],
+                        "work_unit_fingerprint": action_fingerprint,
+                        "source_refs": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "current_stage_id": "08-publication_package_handoff",
+                            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+                            "owner_route_currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
+                }
+            ],
+        },
+        study_root=study_root,
+        status_payload={
+            "study_id": study_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "next_work_unit": "complete_medical_paper_readiness_surface",
+                "typed_blocker": {
+                    "blocker_type": "medical_paper_readiness_missing",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+        },
+        current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
+    )
+
+    assert result == []
 
 
 def test_current_control_provider_admission_uses_study_current_work_unit_identity(

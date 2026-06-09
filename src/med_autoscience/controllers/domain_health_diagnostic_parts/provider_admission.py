@@ -281,7 +281,11 @@ def current_control_provider_admission_candidates(
         )
         if candidate is None:
             action_identity = _current_control_action_identity(action)
-            if action_identity and action_identity != current_action_identity:
+            if (
+                action_identity
+                and action_identity != current_action_identity
+                and not _status_typed_blocker_envelope(effective_status)
+            ):
                 candidate = provider_admission_candidate_from_current_control_action(
                     action,
                     study_root=study_root,
@@ -294,6 +298,12 @@ def current_control_provider_admission_candidates(
         if candidate is not None:
             candidates.append(candidate)
     return candidates
+
+
+def _status_typed_blocker_envelope(status_payload: Mapping[str, Any]) -> bool:
+    envelope = _mapping(status_payload.get("current_execution_envelope"))
+    state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(envelope.get("execution_state_kind"))
+    return state_kind == "typed_blocker"
 
 
 def provider_admission_candidate_from_current_control_action(
@@ -925,12 +935,20 @@ def _typed_blocker_envelope_allows_provider_admission(
         or _non_empty_text(blocker.get("blocker_type"))
         or _non_empty_text(blocker.get("reason"))
     )
-    if blocker_reason in {"medical_paper_readiness_missing", "medical_paper_readiness_not_ready"} and (
-        _current_control_provider_admission_execution_has_current_identity(execution)
-    ):
-        return True
-    if blocker_reason != "medical_paper_readiness_missing":
-        return False
+    return blocker_reason in {
+        "medical_paper_readiness_missing",
+        "medical_paper_readiness_not_ready",
+    } and _publication_surface_write_repair_execution_matches_current_action(
+        execution,
+        current_action_identity=current_action_identity,
+    )
+
+
+def _publication_surface_write_repair_execution_matches_current_action(
+    execution: Mapping[str, Any],
+    *,
+    current_action_identity: Mapping[str, Any],
+) -> bool:
     if _non_empty_text(execution.get("action_type")) != "run_quality_repair_batch":
         return False
     if not _provider_attempt_required(execution):
@@ -939,54 +957,30 @@ def _typed_blocker_envelope_allows_provider_admission(
         return False
     route = _mapping(execution.get("owner_route"))
     source_refs = _mapping(route.get("source_refs"))
+    source_action = _mapping(execution.get("source_action"))
     source_surface = (
         _non_empty_text(source_refs.get("source_surface"))
-        or _non_empty_text(_mapping(execution.get("source_action")).get("source_surface"))
+        or _non_empty_text(source_action.get("source_surface"))
     )
     current_stage_id = (
         _non_empty_text(source_refs.get("current_stage_id"))
-        or _non_empty_text(_mapping(execution.get("source_action")).get("current_stage_id"))
+        or _non_empty_text(source_action.get("current_stage_id"))
     )
-    next_owner = (
-        _non_empty_text(execution.get("next_executable_owner"))
-        or _non_empty_text(route.get("next_owner"))
-    )
+    next_owner = _non_empty_text(execution.get("next_executable_owner")) or _non_empty_text(route.get("next_owner"))
+    work_unit_id = handoff_work_unit_id(execution)
+    work_unit_fingerprint = _work_unit_fingerprint(execution)
+    if work_unit_id is None or work_unit_fingerprint is None:
+        return False
     return (
         next_owner == "write"
         and current_stage_id == "08-publication_package_handoff"
         and source_surface == "artifacts/reports/medical_publication_surface/latest.json"
-    )
-
-
-def _current_control_provider_admission_execution_has_current_identity(execution: Mapping[str, Any]) -> bool:
-    if _non_empty_text(execution.get("source")) not in {
-        "opl_current_control_state.action_queue",
-        "opl_current_control_state.study_current_executable_owner_action",
-    }:
-        return False
-    action_type = _non_empty_text(execution.get("action_type"))
-    if action_type not in CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS:
-        return False
-    if not _execution_requests_provider_admission(execution):
-        return False
-    if not _provider_attempt_required(execution):
-        return False
-    if execution.get("owner_route_current") is False:
-        return False
-    if not _dispatch_authority_allows_current_control_provider_admission(
-        action_type=action_type,
-        dispatch_authority=_non_empty_text(execution.get("dispatch_authority")),
-    ):
-        return False
-    expected_owners = CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS[action_type]
-    route = _mapping(execution.get("owner_route"))
-    next_owner = _non_empty_text(execution.get("next_executable_owner")) or _non_empty_text(route.get("next_owner"))
-    if next_owner not in expected_owners:
-        return False
-    return (
-        handoff_work_unit_id(execution) is not None
-        and _work_unit_fingerprint(execution) is not None
-        and handoff_dispatch_path(execution) is not None
+        and _matches_current_action(
+            action_type="run_quality_repair_batch",
+            work_unit_id=work_unit_id,
+            work_unit_fingerprint=work_unit_fingerprint,
+            current_action_identity=current_action_identity,
+        )
     )
 
 
