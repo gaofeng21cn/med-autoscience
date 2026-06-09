@@ -15,6 +15,9 @@ def handle_retention_command(
     historical_directory_retention: Any,
     runtime_lifecycle_payload_retention: Any,
     retention_surface_housekeeping: Any,
+    cold_store_dedupe: Any,
+    cold_store_reference_audit: Any,
+    semantic_cold_store_retention: Any,
 ) -> int | None:
     if args.command == "legacy-ds-retire":
         if bool(args.archive_retention_apply) and not bool(args.archive_retention):
@@ -92,6 +95,40 @@ def handle_retention_command(
             root=Path(args.root),
             apply=bool(args.apply),
             max_directories=args.max_directories,
+        )
+        _print_json(result)
+        return 0
+
+    if args.command == "cold-store-dedupe":
+        result = cold_store_dedupe.run_cold_store_dedupe(
+            root=Path(args.root),
+            apply=bool(args.apply),
+            min_mb=int(args.min_mb),
+            max_groups=args.max_groups,
+        )
+        _print_json(result)
+        return 0
+
+    if args.command == "cold-store-reference-audit":
+        result = cold_store_reference_audit.run_cold_store_reference_audit(
+            root=Path(args.root),
+            reference_roots=tuple(Path(item) for item in args.reference_root),
+            apply=bool(args.apply),
+            min_mb=int(args.min_mb),
+            max_objects=args.max_objects,
+        )
+        _print_json(result)
+        return 0
+
+    if args.command == "semantic-cold-store-retention":
+        result = semantic_cold_store_retention.run_semantic_cold_store_retention(
+            root=Path(args.root),
+            reference_roots=tuple(Path(item) for item in args.reference_root),
+            apply=bool(args.apply),
+            retire_exact_raw_restore=bool(args.retire_exact_raw_restore),
+            min_mb=int(args.min_mb),
+            max_objects=args.max_objects,
+            reference_file_lists=tuple(Path(item) for item in args.reference_file_list),
         )
         _print_json(result)
         return 0

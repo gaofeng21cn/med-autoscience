@@ -166,17 +166,32 @@ def _historical_surface_kind(*, root: Path, path: Path) -> str | None:
     classification_parts = (*absolute_parts, *relative_parts)
     if ("data" in absolute_parts and "datasets" in absolute_parts) or ".git" in relative_parts:
         return None
-    if path.name in {"latest.json", "latest.jsonl"}:
-        return None
     if path.name.endswith((".cold_ref.json", ".detail_ref.json")):
         return None
     if _path_has(classification_parts, ("archive", "legacy_root_surfaces")):
+        if "storage_audit" in classification_parts and path.name == "latest.json":
+            return _known_json_body_kind(
+                path,
+                allowed_surface_kinds={"workspace_storage_audit"},
+                historical_surface_kind="legacy_root_storage_audit_latest_json",
+            )
         if "storage_audit" in classification_parts and path.suffix == ".json":
             return "legacy_root_storage_audit_json"
         if "inbox" in classification_parts and _full_suffix(path) == ".zip":
             return "legacy_root_inbox_raw_archive_body"
         if path.suffix in {".log", ".jsonl"} and "logs" in classification_parts:
             return "legacy_root_log"
+    if path.name in {"latest.json", "latest.jsonl"}:
+        if _path_has(classification_parts, ("runtime", "artifacts", "legacy_physical_cleanup")):
+            return _known_json_body_kind(
+                path,
+                allowed_surface_kinds={
+                    "workspace_legacy_physical_cleanup_apply",
+                    "workspace_legacy_physical_cleanup_plan",
+                },
+                historical_surface_kind="legacy_physical_cleanup_latest_body",
+            )
+        return None
     if _path_has(classification_parts, ("archive", "legacy_ops_surfaces")) and path.suffix in {".json", ".jsonl", ".log"}:
         return "legacy_ops_surface_history_body"
     if _path_has(classification_parts, ("runtime", "artifacts", "legacy_control_surface_migration", "history")):
@@ -194,6 +209,26 @@ def _historical_surface_kind(*, root: Path, path: Path) -> str | None:
     if _path_has(classification_parts, ("runtime", "runtime_storage_maintenance", "oversized_jsonl")):
         if _full_suffix(path) == ".gz" and path.name.endswith(".jsonl.gz"):
             return "oversized_runtime_jsonl_archive_body"
+    if _path_has(classification_parts, ("artifacts", "runtime", "runtime_storage_maintenance")):
+        if path.suffix == ".json":
+            return "runtime_storage_maintenance_report_body"
+    return None
+
+
+def _known_json_body_kind(
+    path: Path,
+    *,
+    allowed_surface_kinds: set[str],
+    historical_surface_kind: str,
+) -> str | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("surface_kind") in allowed_surface_kinds:
+        return historical_surface_kind
     return None
 
 
