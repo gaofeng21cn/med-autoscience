@@ -547,6 +547,19 @@ def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying
     assert stage_run["status"] == "DomainAccepted"
     assert stage_run["completion_authority"] == "owner_receipt"
     assert stage_run["current_owner_delta"]["action"] == "advance_stage_from_stage_artifact_receipt"
+    assert stage_run["current_owner_delta"]["projection_role"] == (
+        "mas_stage_local_owner_delta_projection_not_opl_current_owner_delta_publish"
+    )
+    assert stage_run["current_owner_delta"]["stage_transition_authority_required"] is True
+    assert stage_run["current_owner_delta"]["stage_run_current_authority"] == (
+        "opl_stage_transition_authority_only"
+    )
+    assert (
+        stage_run["current_owner_delta"]["authority_boundary"][
+            "can_publish_opl_current_owner_delta"
+        ]
+        is False
+    )
 
     sqlite_path = domain_authority_refs_index.workspace_authority_refs_index_path(workspace_root)
     inspection = domain_authority_refs_index.inspect_authority_refs_index(sqlite_path)
@@ -590,6 +603,10 @@ def test_stage_artifact_materializer_keeps_terminal_publication_handoff_gate_ope
         "owner_answer_projection_ref": "projection/current_owner_delta.json",
         "owner_answer_projection_writer": "publication_handoff_stage_projection.py",
         "stage_run_current_authority": "opl_stage_transition_authority_only",
+        "projection_role": "terminal_owner_answer_projection_required_not_materializer_publish",
+        "can_publish_opl_current_owner_delta": False,
+        "can_write_stage_current_pointer": False,
+        "can_write_stage_run_terminal_state": False,
     }
     assert not (stage_root / "projection" / "current_owner_delta.json").exists()
     stage_run = stage_run_kernel_projection_from_stage_folder(stage_root)
@@ -601,6 +618,17 @@ def test_stage_artifact_materializer_keeps_terminal_publication_handoff_gate_ope
         "reason": "terminal_stage_artifact_delta_materialized",
         "source_ref": str((stage_root / "receipts" / "owner_receipt.json").resolve()),
         "source_kind": "stage_artifact_receipt",
+        "projection_role": "mas_stage_local_owner_delta_projection_not_opl_current_owner_delta_publish",
+        "stage_transition_authority_required": True,
+        "stage_run_current_authority": "opl_stage_transition_authority_only",
+        "authority_boundary": {
+            "can_write_stage_current_pointer": False,
+            "can_write_stage_run_terminal_state": False,
+            "can_publish_opl_current_owner_delta": False,
+            "provider_completion_counts_as_stage_transition": False,
+            "read_model_update_counts_as_stage_transition": False,
+            "worklist_update_counts_as_stage_transition": False,
+        },
     }
 
     index = build_stage_artifact_index(study_id="001-risk", study_root=study_root)

@@ -80,6 +80,10 @@ def test_terminal_handoff_materializer_cannot_publish_owner_answer_projection() 
         "owner_answer_projection_ref": "projection/current_owner_delta.json",
         "owner_answer_projection_writer": "publication_handoff_stage_projection.py",
         "stage_run_current_authority": "opl_stage_transition_authority_only",
+        "projection_role": "terminal_owner_answer_projection_required_not_materializer_publish",
+        "can_publish_opl_current_owner_delta": False,
+        "can_write_stage_current_pointer": False,
+        "can_write_stage_run_terminal_state": False,
     }
 
 

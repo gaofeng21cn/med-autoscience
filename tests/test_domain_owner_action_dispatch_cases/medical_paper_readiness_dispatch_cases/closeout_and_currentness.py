@@ -444,7 +444,13 @@ def test_execute_dispatch_materializes_provider_payload_from_readiness_request_r
         "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
     )
     assert current_pointer["projection_writer"] == "mas_terminal_handoff_stage_current_projection_writer.v1"
+    assert current_pointer["projection_role"] == (
+        "mas_terminal_stage_current_projection_not_opl_stage_run_current_pointer"
+    )
     assert current_pointer["stage_run_current_authority"] == "opl_stage_transition_authority_only"
+    assert current_pointer["authority_boundary"]["can_write_stage_current_pointer"] is False
+    assert current_pointer["authority_boundary"]["can_write_stage_run_terminal_state"] is False
+    assert current_pointer["authority_boundary"]["can_publish_opl_current_owner_delta"] is False
     current_owner_delta = json.loads(
         (blocker_path.parents[1] / "projection" / "current_owner_delta.json").read_text(
             encoding="utf-8"
@@ -455,7 +461,13 @@ def test_execute_dispatch_materializes_provider_payload_from_readiness_request_r
     )
     assert current_owner_delta["latest_owner_answer_kind"] == "typed_blocker"
     assert current_owner_delta["projection_writer"] == "mas_terminal_handoff_stage_current_projection_writer.v1"
+    assert current_owner_delta["projection_role"] == (
+        "mas_terminal_owner_answer_projection_not_opl_current_owner_delta_publish"
+    )
     assert current_owner_delta["stage_run_current_authority"] == "opl_stage_transition_authority_only"
+    assert current_owner_delta["authority_boundary"]["can_write_stage_current_pointer"] is False
+    assert current_owner_delta["authority_boundary"]["can_write_stage_run_terminal_state"] is False
+    assert current_owner_delta["authority_boundary"]["can_publish_opl_current_owner_delta"] is False
     assert current_owner_delta["action"] == ACTION_TYPE
     assert current_owner_delta["stage_run_id"] == binding["stage_run_id"]
     assert current_owner_delta["provider_attempt_ref"] == (

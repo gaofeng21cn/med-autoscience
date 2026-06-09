@@ -152,7 +152,13 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
     assert current_pointer["current_stage"]["status"] == "success"
     assert current_pointer["current_stage"]["terminal_outcome_kind"] == "owner_receipt"
     assert current_pointer["projection_writer"] == TERMINAL_HANDOFF_PROJECTION_WRITER
+    assert current_pointer["projection_role"] == (
+        "mas_terminal_stage_current_projection_not_opl_stage_run_current_pointer"
+    )
     assert current_pointer["stage_run_current_authority"] == STAGE_CURRENT_AUTHORITY
+    assert current_pointer["authority_boundary"]["can_write_stage_current_pointer"] is False
+    assert current_pointer["authority_boundary"]["can_write_stage_run_terminal_state"] is False
+    assert current_pointer["authority_boundary"]["can_publish_opl_current_owner_delta"] is False
     assert_opl_closeout_binding(current_pointer["closeout_binding"], study_id=study_id)
     current_owner_delta = json.loads(
         (stage_receipt_path.parents[1] / "projection" / "current_owner_delta.json").read_text(encoding="utf-8")
@@ -162,7 +168,13 @@ def test_execute_dispatch_writes_publication_handoff_owner_receipt_when_terminal
     )
     assert current_owner_delta["latest_owner_answer_kind"] == "owner_receipt"
     assert current_owner_delta["projection_writer"] == TERMINAL_HANDOFF_PROJECTION_WRITER
+    assert current_owner_delta["projection_role"] == (
+        "mas_terminal_owner_answer_projection_not_opl_current_owner_delta_publish"
+    )
     assert current_owner_delta["stage_run_current_authority"] == STAGE_CURRENT_AUTHORITY
+    assert current_owner_delta["authority_boundary"]["can_write_stage_current_pointer"] is False
+    assert current_owner_delta["authority_boundary"]["can_write_stage_run_terminal_state"] is False
+    assert current_owner_delta["authority_boundary"]["can_publish_opl_current_owner_delta"] is False
     assert current_owner_delta["delta_id"] == current_owner_delta["hard_gate"]["owner_answer_idempotency_key"]
     assert_opl_closeout_binding(current_owner_delta["closeout_binding"], study_id=study_id)
     assert current_owner_delta["provider_attempt_ref"] == f"opl://stage-attempts/{study_id}/publication-handoff"

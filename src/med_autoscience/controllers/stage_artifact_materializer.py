@@ -600,18 +600,38 @@ def _lineage_payload(
 
 
 def _current_owner_delta_payload(*, stage_id: str, receipt_ref: str) -> dict[str, Any]:
+    authority_boundary = _stage_local_current_owner_delta_authority_boundary()
     if stage_id == _TERMINAL_STAGE_ID:
         return {
             "owner": "publication_gate_owner",
             "action": "publication_handoff_owner_gate",
             "reason": "terminal_stage_artifact_delta_materialized",
             "source_ref": receipt_ref,
+            "projection_role": "mas_stage_local_owner_delta_projection_not_opl_current_owner_delta_publish",
+            "stage_transition_authority_required": True,
+            "stage_run_current_authority": "opl_stage_transition_authority_only",
+            "authority_boundary": authority_boundary,
         }
     return {
         "owner": "MedAutoScience",
         "action": "advance_stage_from_stage_artifact_receipt",
         "reason": "stage_artifact_delta_materialized",
         "source_ref": receipt_ref,
+        "projection_role": "mas_stage_local_owner_delta_projection_not_opl_current_owner_delta_publish",
+        "stage_transition_authority_required": True,
+        "stage_run_current_authority": "opl_stage_transition_authority_only",
+        "authority_boundary": authority_boundary,
+    }
+
+
+def _stage_local_current_owner_delta_authority_boundary() -> dict[str, Any]:
+    return {
+        "can_write_stage_current_pointer": False,
+        "can_write_stage_run_terminal_state": False,
+        "can_publish_opl_current_owner_delta": False,
+        "provider_completion_counts_as_stage_transition": False,
+        "read_model_update_counts_as_stage_transition": False,
+        "worklist_update_counts_as_stage_transition": False,
     }
 
 
@@ -640,6 +660,12 @@ def _projection_authority(stage_id: str) -> dict[str, Any]:
         "stage_run_current_authority": "opl_stage_transition_authority_only"
         if terminal
         else "stage_artifact_materializer_projection_only",
+        "projection_role": "mas_stage_local_owner_delta_projection_not_opl_current_owner_delta_publish"
+        if not terminal
+        else "terminal_owner_answer_projection_required_not_materializer_publish",
+        "can_publish_opl_current_owner_delta": False,
+        "can_write_stage_current_pointer": False,
+        "can_write_stage_run_terminal_state": False,
     }
 
 

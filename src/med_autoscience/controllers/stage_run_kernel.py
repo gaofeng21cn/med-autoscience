@@ -245,6 +245,7 @@ def _current_owner_delta(
             "reason": _text(delta.get("reason")) or "owner_receipt_consumed",
             "source_ref": str(source_path),
             "source_kind": source_kind,
+            **_stage_local_delta_boundary(),
         }
     if status == "TypedBlocked" and source_payload is not None and source_path is not None:
         return {
@@ -255,6 +256,7 @@ def _current_owner_delta(
             "blocked_surface": _text(source_payload.get("blocked_surface")) or stage_id,
             "source_ref": str(source_path),
             "source_kind": source_kind,
+            **_stage_local_delta_boundary(),
         }
     if status == "Terminalizing" and source_payload is not None and source_path is not None:
         delta = _mapping(source_payload.get("next_owner_delta"))
@@ -264,6 +266,7 @@ def _current_owner_delta(
             "reason": _text(delta.get("reason")) or "terminal_stage_artifact_delta_materialized",
             "source_ref": str(source_path),
             "source_kind": source_kind,
+            **_stage_local_delta_boundary(),
         }
     return {
         "owner": "MedAutoScience",
@@ -271,6 +274,23 @@ def _current_owner_delta(
         "reason": "manifest_backed_receipt_or_typed_blocker_required",
         "source_ref": str(manifest_path),
         "source_kind": "stage_manifest",
+        **_stage_local_delta_boundary(),
+    }
+
+
+def _stage_local_delta_boundary() -> dict[str, Any]:
+    return {
+        "projection_role": "mas_stage_local_owner_delta_projection_not_opl_current_owner_delta_publish",
+        "stage_transition_authority_required": True,
+        "stage_run_current_authority": "opl_stage_transition_authority_only",
+        "authority_boundary": {
+            "can_write_stage_current_pointer": False,
+            "can_write_stage_run_terminal_state": False,
+            "can_publish_opl_current_owner_delta": False,
+            "provider_completion_counts_as_stage_transition": False,
+            "read_model_update_counts_as_stage_transition": False,
+            "worklist_update_counts_as_stage_transition": False,
+        },
     }
 
 

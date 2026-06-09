@@ -59,7 +59,9 @@ def write_stage_current_projection(
         "closeout_refs": closeout_refs,
         "closeout_binding": binding,
         "projection_writer": PROJECTION_WRITER_ID,
+        "projection_role": "mas_terminal_owner_answer_projection_not_opl_current_owner_delta_publish",
         "stage_run_current_authority": "opl_stage_transition_authority_only",
+        "authority_boundary": _stage_transition_authority_boundary(authority_boundary),
         "hard_gate": {
             "state": "domain_owner_answer_recorded",
             "owner_answer_ref": source_ref,
@@ -99,8 +101,9 @@ def write_stage_current_projection(
         "projection_only": True,
         "body_included": False,
         "projection_writer": PROJECTION_WRITER_ID,
+        "projection_role": "mas_terminal_stage_current_projection_not_opl_stage_run_current_pointer",
         "stage_run_current_authority": "opl_stage_transition_authority_only",
-        "authority_boundary": dict(authority_boundary),
+        "authority_boundary": _stage_transition_authority_boundary(authority_boundary),
     }
     _write_json(study_root / CURRENT_OWNER_DELTA_RELATIVE_PATH, owner_delta_payload)
     _write_json(study_root / CURRENT_POINTER_RELATIVE_PATH, current_pointer_payload)
@@ -143,6 +146,21 @@ def _manifest_closeout_binding(closeout_binding: Mapping[str, Any]) -> dict[str,
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _stage_transition_authority_boundary(boundary: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(boundary)
+    payload.update(
+        {
+            "can_write_stage_current_pointer": False,
+            "can_write_stage_run_terminal_state": False,
+            "can_publish_opl_current_owner_delta": False,
+            "provider_completion_counts_as_stage_transition": False,
+            "read_model_update_counts_as_stage_transition": False,
+            "worklist_update_counts_as_stage_transition": False,
+        }
+    )
+    return payload
 
 
 def _text_list(value: object) -> list[str]:
