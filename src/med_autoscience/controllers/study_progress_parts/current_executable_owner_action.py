@@ -23,7 +23,11 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     domain_transition_action = _from_domain_transition(payload)
     repair_progress_action = _from_repair_progress_projection(payload)
     if repair_progress_action is not None:
-        return repair_progress_action
+        if not _action_consumed_by_dispatch_receipt(action=repair_progress_action, payload=payload):
+            return repair_progress_action
+        next_forced_delta_action = _from_next_forced_delta(payload)
+        if next_forced_delta_action is not None:
+            return next_forced_delta_action
     stage_native_action = _from_stage_native_current_owner_action(payload)
     if _stage_kernel_owner_answer_recorded_without_next_action(payload):
         return stage_native_action or domain_transition_action
@@ -41,38 +45,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     artifact_action = _from_stage_artifact_index(payload)
     if artifact_action is not None:
         return artifact_action
-    next_forced_delta = _mapping_copy(payload.get("next_forced_delta"))
-    owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
-    owner = _non_empty_text(owner_action.get("next_owner")) or _non_empty_text(
-        next_forced_delta.get("next_owner")
-    )
-    work_unit_id = _non_empty_text(owner_action.get("work_unit_id")) or _non_empty_text(
-        next_forced_delta.get("work_unit_id")
-    )
-    allowed_actions = _text_items(owner_action.get("allowed_actions")) or _text_items(
-        next_forced_delta.get("allowed_actions")
-    )
-    if owner is None and work_unit_id is None and not allowed_actions:
-        return domain_transition_action
-    return _compact(
-        {
-            "surface_kind": SURFACE_KIND,
-            "schema_version": 1,
-            "status": "ready",
-            "source": "study_progress.next_forced_delta.owner_action",
-            "next_owner": owner,
-            "work_unit_id": work_unit_id,
-            "allowed_actions": allowed_actions,
-            "owner_receipt_required": owner_action.get("owner_receipt_required") is not False,
-            "required_delta_kind": _non_empty_text(next_forced_delta.get("required_delta_kind")),
-            "target_surface": _mapping_copy(next_forced_delta.get("target_surface")) or None,
-            "target_surface_specificity": _non_empty_text(
-                next_forced_delta.get("target_surface_specificity")
-            ),
-            "acceptance_refs": _text_items(next_forced_delta.get("acceptance_refs")),
-            "authority_boundary": _authority_boundary(),
-        }
-    )
+    return _from_next_forced_delta(payload) or domain_transition_action
 
 
 def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -227,6 +200,75 @@ def _repair_followup_action(
             "authority_boundary": _authority_boundary(),
         }
     )
+
+
+def _from_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    next_forced_delta = _mapping_copy(payload.get("next_forced_delta"))
+    owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
+    owner = _non_empty_text(owner_action.get("next_owner")) or _non_empty_text(
+        next_forced_delta.get("next_owner")
+    )
+    work_unit_id = _non_empty_text(owner_action.get("work_unit_id")) or _non_empty_text(
+        next_forced_delta.get("work_unit_id")
+    )
+    allowed_actions = _text_items(owner_action.get("allowed_actions")) or _text_items(
+        next_forced_delta.get("allowed_actions")
+    )
+    if owner is None and work_unit_id is None and not allowed_actions:
+        return None
+    return _compact(
+        {
+            "surface_kind": SURFACE_KIND,
+            "schema_version": 1,
+            "status": "ready",
+            "source": "study_progress.next_forced_delta.owner_action",
+            "next_owner": owner,
+            "work_unit_id": work_unit_id,
+            "allowed_actions": allowed_actions,
+            "owner_receipt_required": owner_action.get("owner_receipt_required") is not False,
+            "required_delta_kind": _non_empty_text(next_forced_delta.get("required_delta_kind")),
+            "target_surface": _mapping_copy(next_forced_delta.get("target_surface")) or None,
+            "target_surface_specificity": _non_empty_text(
+                next_forced_delta.get("target_surface_specificity")
+            ),
+            "acceptance_refs": _text_items(next_forced_delta.get("acceptance_refs")),
+            "authority_boundary": _authority_boundary(),
+        }
+    )
+
+
+def _action_consumed_by_dispatch_receipt(
+    *,
+    action: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> bool:
+    consumption = _mapping_copy(_mapping_copy(payload.get("progress_first_monitoring_summary")).get("dispatch_consumption"))
+    if not consumption:
+        consumption = _mapping_copy(_mapping_copy(payload.get("domain_transition")).get("completion_receipt_consumption"))
+    if not consumption:
+        consumption = _mapping_copy(
+            _mapping_copy(payload.get("domain_transition")).get("default_executor_execution_receipt_consumption")
+        )
+    consumption_status = _non_empty_text(consumption.get("consumption_status")) or _non_empty_text(
+        consumption.get("status")
+    )
+    if consumption_status != "consumed":
+        return False
+    action_work_unit = _non_empty_text(action.get("work_unit_id"))
+    consumed_work_unit = _non_empty_text(consumption.get("work_unit_id"))
+    if action_work_unit is None or consumed_work_unit != action_work_unit:
+        return False
+    action_fingerprint = (
+        _non_empty_text(action.get("work_unit_fingerprint"))
+        or _non_empty_text(action.get("action_fingerprint"))
+        or _non_empty_text(action.get("fingerprint"))
+    )
+    consumed_fingerprint = (
+        _non_empty_text(consumption.get("work_unit_fingerprint"))
+        or _non_empty_text(consumption.get("action_fingerprint"))
+        or _non_empty_text(_mapping_copy(consumption.get("canonical_work_unit_identity")).get("work_unit_fingerprint"))
+    )
+    return action_fingerprint is not None and action_fingerprint == consumed_fingerprint
 
 
 def owner_action_next_step(action: Mapping[str, Any]) -> str | None:

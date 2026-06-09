@@ -170,7 +170,7 @@ def _current_executable_owner_action_as_envelope_action(
     work_unit_id = _non_empty_text(current_executable_owner_action.get("work_unit_id"))
     if action_type is None and owner is None and work_unit_id is None:
         return None
-    return {
+    action = {
         "action_type": action_type,
         "owner": owner,
         "recommended_owner": owner,
@@ -181,6 +181,21 @@ def _current_executable_owner_action_as_envelope_action(
         "source_surface": _non_empty_text(current_executable_owner_action.get("source")),
         "source_ref": _non_empty_text(current_executable_owner_action.get("source_ref")),
     }
+    target_surface = _mapping_copy(current_executable_owner_action.get("target_surface"))
+    if target_surface:
+        action["target_surface"] = target_surface
+    target_surface_specificity = _non_empty_text(
+        current_executable_owner_action.get("target_surface_specificity")
+    )
+    if target_surface_specificity is not None:
+        action["target_surface_specificity"] = target_surface_specificity
+    required_delta_kind = _non_empty_text(current_executable_owner_action.get("required_delta_kind"))
+    if required_delta_kind is not None:
+        action["required_delta_kind"] = required_delta_kind
+    acceptance_refs = _text_items(current_executable_owner_action.get("acceptance_refs"))
+    if acceptance_refs:
+        action["acceptance_refs"] = acceptance_refs
+    return action
 
 
 def _handoff_actions_superseded_by_current_paper_delta(

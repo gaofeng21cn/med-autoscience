@@ -125,6 +125,69 @@ def test_progress_first_monitoring_requests_admission_for_current_executable_own
     assert admission["source"] == "progress_first_monitoring.current_executable_owner_action"
 
 
+def test_current_owner_action_uses_gate_replay_after_ai_reviewer_record_consumed() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "repair_progress_projection": {
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "source_fingerprint": "sha256:current-ai-reviewer-record",
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "ai_reviewer_recheck_request_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
+                "gate_replay_refs": ["artifacts/controller/gate_replay_requests/latest.json"],
+            },
+            "domain_transition": {
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+                    "canonical_work_unit_identity": {
+                        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                        "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+                    },
+                }
+            },
+            "next_forced_delta": {
+                "required_delta_kind": "review_current_paper_delta",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "target_surface": {
+                    "ref_kind": "route_obligation",
+                    "route_target": "gate_clearing_batch",
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+                "target_surface_specificity": "explicit_owner_route_target",
+                "acceptance_refs": ["progress_first_sprint_state.deliverable_progress_delta"],
+                "owner_action": {
+                    "next_owner": "gate_clearing_batch",
+                    "work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+            "stage_native_current_owner_action": {
+                "source": "stage_native_workspace_next_action",
+                "next_owner": "write",
+                "work_unit_id": "medical_publication_surface_blocked_write_repair",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "study_progress.next_forced_delta.owner_action"
+    assert action["next_owner"] == "gate_clearing_batch"
+    assert action["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert action["work_unit_id"] == "ai_reviewer_record_gate_consumption"
+
+
 def test_progress_first_monitoring_prefers_repair_followup_over_stale_readiness_queue() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

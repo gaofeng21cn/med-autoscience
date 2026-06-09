@@ -33,6 +33,7 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
         "medical_paper_readiness_not_ready",
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
+        "provider_admission_current_control_state_required",
         "quest_waiting_opl_runtime_owner_route",
         "repair_progress_ai_reviewer_recheck_required",
         "runtime_recovery_not_authorized",
@@ -61,6 +62,7 @@ PAPER_DELTA_READINESS_SUPERSEDING_ACTION_SOURCES = frozenset(
     {
         "domain_transition",
         "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "study_progress.next_forced_delta.owner_action",
     }
 )
 PROVIDER_ADMISSION_REPAIR_ACTIONS = frozenset(
@@ -133,8 +135,13 @@ def build_current_work_unit(
     resolved_source_refs = _source_refs(status_payload, progress_payload, source_refs)
     stage_owner_answer_action = _stage_owner_answer_missing_action(progress_payload)
     action = _first_action(actions) or _action_from_current_action(current_executable_owner_action)
-    if stage_owner_answer_action is not None:
+    if stage_owner_answer_action is not None and not _action_supersedes_stage_owner_answer(
+        action=action,
+        progress=progress_payload,
+    ):
         action = stage_owner_answer_action
+    elif action is not None and _action_consumed_by_dispatch_receipt(action=action, progress=progress_payload):
+        action = None
     if action is None:
         action = _action_from_envelope(current_execution_envelope)
     resolved_typed_blocker = _typed_blocker(
@@ -799,6 +806,8 @@ def _action_supersedes_stage_owner_answer(
         return False
     if _provider_admission_repair_action_supersedes_readiness_blocker(payload):
         return True
+    if _gate_consumption_action_supersedes_readiness_blocker(payload):
+        return True
     return _paper_delta_domain_transition_supersedes_readiness_blocker(
         action=payload,
         progress=progress,
@@ -831,6 +840,8 @@ def _action_supersedes_typed_blocker(
     if "complete_medical_paper_readiness_surface" in _text_items(action.get("allowed_actions")):
         return True
     if _provider_admission_repair_action_supersedes_readiness_blocker(action):
+        return True
+    if _gate_consumption_action_supersedes_readiness_blocker(action):
         return True
     return _paper_delta_domain_transition_supersedes_readiness_blocker(
         action=action,
@@ -881,6 +892,8 @@ def _provider_admission_repair_action_supersedes_readiness_blocker(action: Mappi
     authority = _text(action.get("authority"))
     if authority in PROVIDER_ADMISSION_AUTHORITIES:
         return True
+    if _mapping(action.get("repair_progress_precedence")).get("accepted_owner_receipt") is True:
+        return True
     action_id = _text(action.get("action_id"))
     if action_id is not None and action_id.startswith("provider-admission::"):
         return True
@@ -889,6 +902,17 @@ def _provider_admission_repair_action_supersedes_readiness_blocker(action: Mappi
         if text is not None and text.startswith("study-progress-current-owner-ticket::"):
             return True
     return False
+
+
+def _gate_consumption_action_supersedes_readiness_blocker(action: Mapping[str, Any]) -> bool:
+    action_types = {_text(action.get("action_type")), *_text_items(action.get("allowed_actions"))}
+    if not action_types.intersection({"request_opl_stage_attempt", "run_gate_clearing_batch", "run_quality_repair_batch"}):
+        return False
+    work_unit = _text(action.get("work_unit_id")) or _text(action.get("next_work_unit"))
+    if work_unit != "ai_reviewer_record_gate_consumption":
+        return False
+    target = _mapping(action.get("target_surface"))
+    return _text(target.get("surface_ref")) == "artifacts/controller/gate_clearing_batch/latest.json"
 
 
 def _typed_blocker(
@@ -963,6 +987,61 @@ def _currentness_basis(
         if value is not None and result.get(key) in (None, "", [], {}):
             result[key] = value
     return {key: value for key, value in result.items() if value not in (None, "", [], {})}
+
+
+def _action_consumed_by_dispatch_receipt(
+    *,
+    action: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    consumption = _mapping(_mapping(progress.get("progress_first_monitoring_summary")).get("dispatch_consumption"))
+    if not consumption:
+        consumption = _mapping(progress.get("dispatch_consumption"))
+    if _text(consumption.get("consumption_status")) != "consumed":
+        return False
+    action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
+    consumed_work_unit = _work_unit_id(consumption.get("work_unit_id"))
+    if action_work_unit is None or consumed_work_unit != action_work_unit:
+        return False
+    action_fingerprints = {
+        text
+        for value in (
+            action.get("work_unit_fingerprint"),
+            action.get("action_fingerprint"),
+            action.get("fingerprint"),
+        )
+        if (text := _text(value)) is not None
+    }
+    if not action_fingerprints:
+        current_action = _mapping(progress.get("current_executable_owner_action"))
+        current_action_work_unit = _work_unit_id(current_action.get("work_unit_id")) or _work_unit_id(
+            current_action.get("next_work_unit")
+        )
+        if (
+            current_action_work_unit == action_work_unit
+            and _text(current_action.get("action_type")) == _text(action.get("action_type"))
+        ):
+            action_fingerprints.update(
+                text
+                for value in (
+                    current_action.get("work_unit_fingerprint"),
+                    current_action.get("action_fingerprint"),
+                    current_action.get("fingerprint"),
+                )
+                if (text := _text(value)) is not None
+            )
+    consumed_fingerprints = {
+        text
+        for value in (
+            consumption.get("work_unit_fingerprint"),
+            consumption.get("action_fingerprint"),
+            _mapping(consumption.get("canonical_work_unit_identity")).get("work_unit_fingerprint"),
+        )
+        if (text := _text(value)) is not None
+    }
+    if not action_fingerprints or not consumed_fingerprints:
+        return False
+    return bool(action_fingerprints.intersection(consumed_fingerprints))
 
 
 def _action_from_current_action(current_action: Mapping[str, Any] | None) -> dict[str, Any] | None:
@@ -1053,7 +1132,10 @@ def _action_source(action: Mapping[str, Any]) -> str | None:
     source = _text(action.get("source_surface")) or _text(action.get("source"))
     if source is not None:
         return source
-    if _mapping(action.get("repair_progress_followup")).get("accepted_owner_receipt") is True:
+    if (
+        _mapping(action.get("repair_progress_followup")).get("accepted_owner_receipt") is True
+        or _mapping(action.get("repair_progress_precedence")).get("accepted_owner_receipt") is True
+    ):
         return "repair_progress_projection.mas_owner_repair_execution_evidence"
     return None
 

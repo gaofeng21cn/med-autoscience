@@ -831,6 +831,51 @@ def assemble_study_progress_payload(
     payload["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(
         {**payload, "execution_owner_guard": execution_owner_guard}
     )
+    refreshed_current_action = build_current_executable_owner_action(payload)
+    if refreshed_current_action != _mapping_copy(payload.get("current_executable_owner_action")):
+        payload["current_executable_owner_action"] = refreshed_current_action
+        refreshed_actions = current_execution_envelope_actions(
+            handoff=handoff,
+            current_executable_owner_action=_mapping_copy(payload.get("current_executable_owner_action")),
+            paper_progress_delta_counted=_mapping_copy(payload.get("progress_first_sprint_state")).get(
+                "paper_progress_delta_counted"
+            )
+            is True,
+        )
+        payload["current_work_unit"] = current_work_unit.build_current_work_unit(
+            status=status,
+            progress=payload,
+            actions=refreshed_actions,
+            provider_admission=handoff,
+            live_provider_attempt=handoff,
+            blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
+            next_owner=_non_empty_text(handoff.get("next_owner")),
+            runtime_health=runtime_health_snapshot,
+        )
+        payload["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+            status=status,
+            progress=payload,
+            actions=refreshed_actions,
+            blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
+            next_owner=_non_empty_text(handoff.get("next_owner")),
+            runtime_health=runtime_health_snapshot,
+            live_provider_attempt=handoff,
+            current_work_unit_payload=_mapping_copy(payload.get("current_work_unit")),
+        )
+        payload["current_executable_owner_action"] = _current_action_aligned_with_execution_envelope(
+            action=_mapping_copy(payload.get("current_executable_owner_action")),
+            envelope=_mapping_copy(payload.get("current_execution_envelope")),
+        )
+        payload["current_execution_evidence"] = current_execution_envelope.build_current_execution_evidence(
+            action_queue=refreshed_actions,
+            runtime_health=runtime_health_snapshot,
+            extra={
+                "opl_current_control_state_handoff": handoff or None,
+            },
+        )
+        payload["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(
+            {**payload, "execution_owner_guard": execution_owner_guard}
+        )
     return attach_ai_first_runtime_projection(
         payload,
         study_root=study_root,

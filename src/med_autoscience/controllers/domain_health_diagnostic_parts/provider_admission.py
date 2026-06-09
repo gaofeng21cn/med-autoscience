@@ -13,12 +13,14 @@ DEFAULT_EXECUTOR_EXECUTION_LATEST = Path(
 )
 DEFAULT_EXECUTOR_DISPATCHES = Path("artifacts/supervision/consumer/default_executor_dispatches")
 CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS = {
-    "return_to_ai_reviewer_workflow": "ai_reviewer",
-    "run_gate_clearing_batch": "gate_clearing_batch",
+    "return_to_ai_reviewer_workflow": {"ai_reviewer"},
+    "run_quality_repair_batch": {"write"},
+    "run_gate_clearing_batch": {"gate_clearing_batch", "write"},
 }
 CURRENT_CONTROL_PROVIDER_ADMISSION_DISPATCH_AUTHORITIES = {
     "return_to_ai_reviewer_workflow": {"ai_reviewer_record_production_handoff"},
-    "run_gate_clearing_batch": {"consumer_default_executor_dispatch"},
+    "run_quality_repair_batch": {None, "quality_repair_batch_writer_handoff", "consumer_default_executor_dispatch"},
+    "run_gate_clearing_batch": {None, "consumer_default_executor_dispatch"},
 }
 PROVIDER_ADMISSION_AUTHORITY_BOUNDARY = {
     "surface_kind": "opl_provider_admission_candidate",
@@ -258,7 +260,11 @@ def current_control_provider_admission_candidates(
         and (study_id := _non_empty_text(item.get("study_id"))) is not None
     }
     candidates: list[dict[str, Any]] = []
-    for action in payload.get("action_queue") or []:
+    queued_actions = [
+        item for item in payload.get("action_queue") or [] if isinstance(item, Mapping)
+    ]
+    queued_actions.extend(_study_current_actions_for_provider_admission(payload))
+    for action in queued_actions:
         if not isinstance(action, Mapping):
             continue
         study = _mapping(studies_by_id.get(_non_empty_text(action.get("study_id")) or status_study_id))
@@ -340,7 +346,7 @@ def provider_admission_candidate_from_current_control_action(
         return None
     execution = {
         **dict(dispatch_payload),
-        "source": "opl_current_control_state.action_queue",
+        "source": _non_empty_text(action.get("source_surface")) or "opl_current_control_state.action_queue",
         "current_control_ref": current_control_ref,
         "study_id": study_id,
         "quest_id": _non_empty_text(action.get("quest_id"))
@@ -385,7 +391,7 @@ def provider_admission_candidate_from_current_control_action(
     )
     if candidate is None:
         return None
-    candidate["source"] = "opl_current_control_state.action_queue"
+    candidate["source"] = _non_empty_text(action.get("source_surface")) or "opl_current_control_state.action_queue"
     candidate["current_control_ref"] = current_control_ref
     candidate["dispatch_path"] = str(dispatch_path)
     candidate["source_refs"] = {
@@ -394,6 +400,147 @@ def provider_admission_candidate_from_current_control_action(
         "dispatch_path": str(dispatch_path),
     }
     return candidate
+
+
+def _study_current_actions_for_provider_admission(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    actions: list[dict[str, Any]] = []
+    queued_keys = {
+        _provider_admission_action_key(item)
+        for item in payload.get("action_queue") or []
+        if isinstance(item, Mapping)
+    }
+    for study in payload.get("studies") or []:
+        if not isinstance(study, Mapping):
+            continue
+        action = _study_current_action_for_provider_admission(study)
+        if action is None:
+            continue
+        key = _provider_admission_action_key(action)
+        if key in queued_keys:
+            continue
+        queued_keys.add(key)
+        actions.append(action)
+    return actions
+
+
+def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> dict[str, Any] | None:
+    current = _mapping(study.get("current_executable_owner_action"))
+    if not current:
+        return None
+    action_type = _current_action_action_type(current)
+    if action_type is None:
+        return None
+    owner = _non_empty_text(current.get("next_owner")) or _non_empty_text(current.get("owner"))
+    if not _current_control_owner_allowed(action_type=action_type, owner=owner):
+        return None
+    work_unit_id = _non_empty_text(current.get("work_unit_id")) or _non_empty_text(current.get("next_work_unit"))
+    if work_unit_id is None:
+        return None
+    study_id = _non_empty_text(study.get("study_id"))
+    action_fingerprint = (
+        _non_empty_text(current.get("action_fingerprint"))
+        or _non_empty_text(current.get("work_unit_fingerprint"))
+        or _non_empty_text(_mapping(study.get("current_work_unit")).get("action_fingerprint"))
+        or _non_empty_text(_mapping(study.get("current_work_unit")).get("work_unit_fingerprint"))
+        or _stable_provider_admission_ticket(
+            study_id=study_id,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        )
+    )
+    source_refs = {
+        key: value
+        for key, value in {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+            "owner_route_currentness_basis": _study_currentness_basis(
+                study=study,
+                current=current,
+                work_unit_id=work_unit_id,
+                work_unit_fingerprint=action_fingerprint,
+            ),
+        }.items()
+        if value is not None
+    }
+    return {
+        "study_id": study_id,
+        "quest_id": _non_empty_text(study.get("quest_id")),
+        "action_type": action_type,
+        "status": "queued",
+        "owner": owner,
+        "next_executable_owner": owner,
+        "next_work_unit": work_unit_id,
+        "work_unit_id": work_unit_id,
+        "action_fingerprint": action_fingerprint,
+        "work_unit_fingerprint": action_fingerprint,
+        "required_output_surface": _required_output_surface(current),
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "source_surface": "opl_current_control_state.study_current_executable_owner_action",
+        "owner_route": {
+            "next_owner": owner,
+            "allowed_actions": [action_type],
+            "work_unit_fingerprint": action_fingerprint,
+            "source_refs": source_refs,
+        },
+    }
+
+
+def _provider_admission_action_key(action: Mapping[str, Any]) -> tuple[str | None, str | None, str | None]:
+    return (
+        _non_empty_text(action.get("study_id")),
+        _current_action_action_type(action),
+        _non_empty_text(action.get("work_unit_id")) or _non_empty_text(action.get("next_work_unit")),
+    )
+
+
+def _current_action_action_type(action: Mapping[str, Any]) -> str | None:
+    action_type = _non_empty_text(action.get("action_type"))
+    if action_type is not None:
+        return action_type
+    for item in _text_items(action.get("allowed_actions")):
+        if item in CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS:
+            return item
+    return None
+
+
+def _stable_provider_admission_ticket(
+    *,
+    study_id: str | None,
+    action_type: str | None,
+    work_unit_id: str | None,
+) -> str | None:
+    if study_id is None or action_type is None or work_unit_id is None:
+        return None
+    return f"study-progress-current-owner-ticket::{study_id}::{work_unit_id}::{action_type}"
+
+
+def _study_currentness_basis(
+    *,
+    study: Mapping[str, Any],
+    current: Mapping[str, Any],
+    work_unit_id: str,
+    work_unit_fingerprint: str | None,
+) -> dict[str, Any]:
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    basis = _mapping(current_work_unit.get("currentness_basis"))
+    return {
+        key: value
+        for key, value in {
+            **basis,
+            "work_unit_id": _non_empty_text(basis.get("work_unit_id")) or work_unit_id,
+            "work_unit_fingerprint": _non_empty_text(basis.get("work_unit_fingerprint")) or work_unit_fingerprint,
+            "source": _non_empty_text(current.get("source")),
+        }.items()
+        if value is not None
+    }
+
+
+def _required_output_surface(current: Mapping[str, Any]) -> str | None:
+    return (
+        _non_empty_text(current.get("required_output_surface"))
+        or _non_empty_text(_mapping(current.get("target_surface")).get("surface_ref"))
+    )
 
 
 def _status_with_current_control_study_currentness(
@@ -619,6 +766,11 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
         or _non_empty_text(current_work_unit.get("action_fingerprint"))
         or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
         or _non_empty_text(currentness_basis.get("source_fingerprint"))
+        or _stable_provider_admission_ticket(
+            study_id=_non_empty_text(current_work_unit.get("study_id")),
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        )
     )
     fingerprints = [
         item
@@ -726,7 +878,10 @@ def _typed_blocker_envelope_allows_provider_admission(
 
 
 def _current_control_provider_admission_execution_has_current_identity(execution: Mapping[str, Any]) -> bool:
-    if _non_empty_text(execution.get("source")) != "opl_current_control_state.action_queue":
+    if _non_empty_text(execution.get("source")) not in {
+        "opl_current_control_state.action_queue",
+        "opl_current_control_state.study_current_executable_owner_action",
+    }:
         return False
     action_type = _non_empty_text(execution.get("action_type"))
     if action_type not in CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS:
@@ -742,10 +897,10 @@ def _current_control_provider_admission_execution_has_current_identity(execution
         dispatch_authority=_non_empty_text(execution.get("dispatch_authority")),
     ):
         return False
-    expected_owner = CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS[action_type]
+    expected_owners = CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS[action_type]
     route = _mapping(execution.get("owner_route"))
     next_owner = _non_empty_text(execution.get("next_executable_owner")) or _non_empty_text(route.get("next_owner"))
-    if next_owner != expected_owner:
+    if next_owner not in expected_owners:
         return False
     return (
         handoff_work_unit_id(execution) is not None
@@ -1015,13 +1170,17 @@ def _work_unit_fingerprint(execution: Mapping[str, Any]) -> str | None:
 
 def _current_control_action_requests_provider_admission(action: Mapping[str, Any]) -> bool:
     action_type = _non_empty_text(action.get("action_type"))
-    expected_owner = CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS.get(action_type or "")
-    if expected_owner is None:
+    if action_type is None:
         return False
     if _non_empty_text(action.get("status")) not in {"queued", "pending", "ready"}:
         return False
     owner = _non_empty_text(action.get("next_executable_owner")) or _non_empty_text(action.get("owner"))
-    return owner == expected_owner
+    return _current_control_owner_allowed(action_type=action_type, owner=owner)
+
+
+def _current_control_owner_allowed(*, action_type: str, owner: str | None) -> bool:
+    expected_owners = CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS.get(action_type)
+    return owner in expected_owners if expected_owners is not None else False
 
 
 def _dispatch_authority_allows_current_control_provider_admission(

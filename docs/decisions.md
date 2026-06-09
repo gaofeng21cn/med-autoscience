@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-09：provider admission carrier 不得依赖 root action_queue 唯一存在
+
+- 决策：OPL current-control handoff 的 root `action_queue` 为空时，MAS provider admission gate 必须继续检查每个 study 的 canonical `current_executable_owner_action` / `current_work_unit`。若该 study current action 是 provider-admissible action，且 dispatch JSON ready、dispatch authority 合法、action/work-unit/currentness identity 匹配，则可合成同一 current-control carrier 并输出 `provider_admission_candidate`。
+- 决策：`run_gate_clearing_batch` 的 provider admission 不再硬编码为只能由 `gate_clearing_batch` owner 承接。`gate_clearing_batch` owner 的 gate replay 与 route-back `write` owner 的 gate-clearing target 都可进入 provider admission，但 required output 必须是 `artifacts/controller/gate_clearing_batch/latest.json`，并且 provider completion 仍不能被解释为 domain completion、publication-ready、paper-ready 或 package-ready。
+- 决策：`run_quality_repair_batch` 也是 provider-admissible current-control action，但只能由 `write` owner 承接，required output 必须是 canonical manuscript story-surface delta 或 typed blocker。旧 persisted dispatch 缺顶层 `dispatch_authority`、`work_unit_id` 或 `action_fingerprint` 时，可以由同一 study 的 canonical current action / current work unit 补齐；不能用 stale queue 或旧 persisted execution 自证 currentness。
+- 决策：合成 carrier 必须生成 stable `study-progress-current-owner-ticket::<study>::<work_unit>::<action>` fingerprint 以绑定同一 work unit 和 action；缺 study id、缺 work unit、dispatch not ready、dispatch authority 不合法、owner/action 不在 allowlist、或 current identity 不匹配时继续 fail closed。
+- 理由：DM002/DM003 live apply 显示 MAS read-model 已产出唯一 current action，但 current-control handoff 的 root `action_queue=[]`、`provider_admission_candidates=[]`，导致 default-executor dispatch 只能返回 `opl_execution_authorization_required` typed blocker。根因是 provider admission 只从 root queue 迭代，并把 `run_gate_clearing_batch` 固定为 `gate_clearing_batch` owner，漏掉了 study current action carrier 与 DM002 的 `write/run_gate_clearing_batch` route-back target。
+- 影响：这是 MAS current-control / provider admission candidate 生成修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、quality verdict、typed blocker、human gate、route-back evidence、OPL queue 或 provider attempt。OPL 仍是 provider attempt / Stage transition authority。
+
 ## 2026-06-09：`paper_autonomy/guarded-apply` owner-answer missing 是 hard gate
 
 - 决策：当 fresh OPL `current_owner_delta` 声明 `stage_id=paper_autonomy/guarded-apply`、`desired_delta=domain_owner_receipt_quality_gate_or_typed_blocker_required`、`lineage_ref` 非空、`latest_owner_answer_ref=null`、`domain_ready_authorized=false` 且 `owner_answer_missing=true` 时，MAS current work-unit reducer 必须把它作为当前 hard gate。唯一可接受的 owner answer shape 是 `domain_owner_receipt_ref`、`quality_gate_receipt_ref`、`typed_blocker_ref`、`human_gate_ref` 或 `route_back_evidence_ref`。
