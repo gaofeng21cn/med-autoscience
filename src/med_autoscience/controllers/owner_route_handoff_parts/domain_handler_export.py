@@ -232,6 +232,15 @@ def _pending_family_tasks(
         study_id = text(study.get("study_id"))
         if study_id is None:
             continue
+        current_progress = _fresh_study_progress(
+            study=study,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+        )
+        ordinary_task_blocker = _ordinary_pending_tasks_blocker(current_progress=current_progress)
+        if ordinary_task_blocker:
+            continue
         tasks.extend(
             _paper_autonomy_tasks(
                 study=study,
@@ -239,12 +248,6 @@ def _pending_family_tasks(
                 profile_ref=profile_ref,
                 study_id=study_id,
             )
-        )
-        current_progress = _fresh_study_progress(
-            study=study,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
         )
         tasks.extend(
             default_executor_dispatch_tasks(
@@ -295,6 +298,38 @@ def _pending_family_tasks(
         if controller_task is not None:
             tasks.append(controller_task)
     return tasks
+
+
+def _ordinary_pending_tasks_blocker(*, current_progress: Mapping[str, Any]) -> Mapping[str, Any]:
+    current_work_unit = mapping(current_progress.get("current_work_unit"))
+    work_unit_status = text(current_work_unit.get("status"))
+    if _ordinary_pending_tasks_blocked_status(work_unit_status):
+        return {
+            "blocked": True,
+            "source": "current_work_unit",
+            "state_kind": work_unit_status,
+        }
+    current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
+    envelope_state = text(current_execution_envelope.get("state_kind")) or text(
+        current_execution_envelope.get("execution_state_kind")
+    )
+    if _ordinary_pending_tasks_blocked_status(envelope_state):
+        return {
+            "blocked": True,
+            "source": "current_execution_envelope",
+            "state_kind": envelope_state,
+        }
+    return {}
+
+
+def _ordinary_pending_tasks_blocked_status(status: str | None) -> bool:
+    return status in {
+        "typed_blocker",
+        "running_provider_attempt",
+        "blocked_current_work_unit",
+        "blocked_typed_owner",
+        "parked",
+    }
 
 
 def _fresh_study_progress(

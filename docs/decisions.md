@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-09：ordinary pending family task 必须共用 current work-unit hard gate
+
+- 决策：`domain-handler export.pending_family_tasks` 的所有 ordinary OPL 可调度任务必须先 fresh 读取 `study_progress.current_work_unit` 与 `current_execution_envelope`。当 canonical status/state 是 `typed_blocker`、`running_provider_attempt`、`blocked_current_work_unit`、`blocked_typed_owner` 或 `parked` 时，`paper_autonomy/repair-recheck`、`publication_aftercare/*`、`domain_route/reconcile-apply`、progress-pressure continuation、controller route-back 和 `domain_owner/default-executor-dispatch` 都不得继续导出为 OPL pending task。
+- 决策：旧 `owner_route_handoff/latest.json`、stale controller route-back、SLO progress-pressure、publication aftercare reviewer refresh、ready dispatch、repair-progress projection 或 current-control residue 在上述 hard gate 下只能作为 lineage / refs / 诊断证据，不能重新启动 OPL stage attempt、provider dispatch、AI reviewer、writer repair、gate replay 或 route reconcile。只有 canonical `executable_owner_action` 或 matching provider admission identity 明确绑定同一 action、work unit 和 fingerprint 时，ordinary task 才能导出。
+- 理由：DM002/DM003 在 `domain_owner/default-executor-dispatch` 已被 currentness gate 压住后，仍通过 stale `domain_route/reconcile-apply`、progress-pressure、controller route-back 和 `publication_aftercare/reviewer-refresh` 形成 OPL tick 噪声；这些任务不会产生当前 owner receipt / typed blocker，却会让目标会话误读为论文仍在推进。根因是 export 汇总层只给 default-executor 建了 hard gate，没有让所有 ordinary pending family task 共用 canonical current work-unit truth。
+- 影响：这是 MAS domain-handler export / currentness contract 修复，不写 DM-CVD study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、quality verdict、typed blocker、human gate、OPL queue 或 provider attempt。论文推进仍只能来自 MAS owner receipt、quality gate receipt、stable typed blocker、human gate、route-back evidence、paper/evidence/reviewer/gate/package semantic delta，或被同一 current owner delta 消费的 matching answer ref。
+
 ## 2026-06-09：EvoScientist / EvoSkills 只作为 progress accelerator / audit sidecar
 
 - 决策：EvoScientist v0.1.4 的 auxiliary model for background memory workers / tool selector 与 fire-and-forget observation memory，以及 EvoSkills v1.0.0 的 research lifecycle skills with IDE / IVE / ESE memory，进入 MAS 时只映射为 `async_learning_sidecar`、`auxiliary_helper`、`tool_selector_helper`、`observation_memory_sidecar` 和 `failed_path_taxonomy`。这些 surface 必须跟随当前 `current_owner_delta`，只产出 refs-only hint、reviewer briefing、memory reuse candidate、tool ranking 或 no-loop signal。
