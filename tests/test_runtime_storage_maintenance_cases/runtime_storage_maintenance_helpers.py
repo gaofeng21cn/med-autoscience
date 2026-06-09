@@ -69,13 +69,26 @@ def _write_study(study_root: Path, *, study_id: str, quest_id: str) -> None:
     )
 
 
-def _write_quest(quest_root: Path, *, quest_id: str, status: str, active_run_id: str | None = None) -> None:
+def _write_quest(
+    quest_root: Path,
+    *,
+    quest_id: str,
+    status: str,
+    active_run_id: str | None = None,
+    legacy_runtime_state: bool = False,
+) -> None:
     quest_root.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\n", encoding="utf-8")
     runtime_state = {"quest_id": quest_id, "status": status, "active_run_id": active_run_id}
     ds_root = quest_root / ".ds"
     ds_root.mkdir(parents=True, exist_ok=True)
-    (ds_root / "runtime_state.json").write_text(json.dumps(runtime_state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    state_path = (
+        ds_root / "runtime_state.json"
+        if legacy_runtime_state
+        else quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+    )
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(json.dumps(runtime_state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _write_dataset_release(

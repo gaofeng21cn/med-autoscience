@@ -215,14 +215,8 @@ def detect_reopen(rows: list[dict[str, Any]], figure_id: str | None) -> bool:
     return False
 
 
-def resolve_references_path(
-    quest_root: Path,
-    *,
-    legacy_restore_import_diagnostic: bool = False,
-) -> Path | None:
+def resolve_references_path(quest_root: Path) -> Path | None:
     candidates = list(quest_root.glob("paper/references.bib"))
-    if legacy_restore_import_diagnostic or quest_state.is_legacy_restore_import_context(quest_root):
-        candidates.extend(list(quest_root.glob(".ds/worktrees/*/paper/references.bib")))
     return quest_state.find_latest(candidates)
 
 

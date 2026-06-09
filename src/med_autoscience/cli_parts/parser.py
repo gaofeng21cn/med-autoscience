@@ -227,6 +227,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     workspace_monolith_migrate_mode.add_argument("--dry-run", action="store_true")
     workspace_monolith_migrate_mode.add_argument("--apply", action="store_true")
 
+    legacy_ds_retire_parser = subparsers.add_parser("legacy-ds-retire")
+    legacy_ds_retire_parser.add_argument("--profile", required=True)
+    legacy_ds_retire_mode = legacy_ds_retire_parser.add_mutually_exclusive_group(required=True)
+    legacy_ds_retire_mode.add_argument("--dry-run", action="store_true")
+    legacy_ds_retire_mode.add_argument("--apply", action="store_true")
+
     paper_authority_clean_migration_parser = subparsers.add_parser("paper-authority-clean-migration")
     paper_authority_clean_migration_parser.add_argument("--profile", required=True)
     paper_authority_clean_migration_parser.add_argument("--studies", nargs="+")

@@ -247,7 +247,7 @@ def make_pending_user_interaction_payload() -> dict[str, object]:
         "decision_type": None,
         "options_count": 0,
         "guidance_requires_user_decision": None,
-        "source_artifact_path": "/tmp/runtime/quests/quest-001/.ds/worktrees/paper-main/artifacts/progress/progress-standby-001.json",
+        "source_artifact_path": "/tmp/runtime/quests/quest-001/artifacts/progress/progress-standby-001.json",
         "relay_required": True,
     }
 
@@ -308,7 +308,6 @@ def make_progress_projection_payload() -> dict[str, object]:
             "details_projection_path": "/tmp/runtime/quests/quest-001/.ds/projections/details.v1.json",
         },
     }
-
 
 
 

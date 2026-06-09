@@ -47,6 +47,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "domain-owner-action-refresh-controller-decisions"): "domain-owner-action-refresh-controller-decisions",
     ("runtime", "paper-autonomy-stability-evidence"): "paper-autonomy-stability-evidence",
     ("runtime", "workspace-monolith-migrate"): "workspace-monolith-migrate",
+    ("runtime", "legacy-ds-retire"): "legacy-ds-retire",
     ("runtime", "paper-authority-clean-migration"): "paper-authority-clean-migration",
     ("runtime", "paper-clean-room-rebuild"): "paper-clean-room-rebuild",
     ("runtime", "study-workspace-status"): "study-workspace-status",

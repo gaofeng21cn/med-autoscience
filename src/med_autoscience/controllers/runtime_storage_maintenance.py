@@ -22,7 +22,6 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.study_runtime
 )
 from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof_compaction import (
     archive_refs_from_compaction_result,
-    compact_legacy_ds_runtime_buckets,
     restore_proof_compaction_candidate,
 )
 from med_autoscience.controllers.runtime_storage_maintenance_parts.dataset_retention import (
@@ -37,7 +36,6 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.dataset_reten
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 from med_autoscience.runtime_protocol import quest_state
-from med_autoscience.runtime_protocol import refs_only_state_index_pilot as refs_only_state_index_pilot_module
 from med_autoscience.runtime_protocol.study_runtime import resolve_study_runtime_paths
 
 
@@ -790,118 +788,6 @@ def _record_workspace_archive_ref(
         for archive_ref in archive_refs
     ]
     return _archive_ref_index_summary(indexed_results)
-
-
-def maintain_legacy_ds_runtime_storage(
-    *,
-    profile: WorkspaceProfile,
-    ds_root: Path,
-    restore_proof_buckets: Iterable[str] | None = None,
-    restore_proof_max_shards: int | None = None,
-    refs_only_state_index_pilot: bool = False,
-) -> dict[str, Any]:
-    recorded_at = _utc_now()
-    selected_restore_proof_buckets = _restore_proof_buckets(restore_proof_buckets)
-    resolved_ds_root = Path(ds_root).expanduser().resolve()
-    owner_root = resolved_ds_root.parent
-    workspace_root = profile.workspace_root.expanduser().resolve()
-    quest_id = f"legacy-ds-{owner_root.name}"
-    result: dict[str, Any] = {
-        "schema_version": SCHEMA_VERSION,
-        "recorded_at": recorded_at,
-        "profile_name": profile.name,
-        "study_id": None,
-        "study_root": None,
-        "quest_id": quest_id,
-        "quest_root": str(owner_root),
-        "ds_root": str(resolved_ds_root),
-        "restore_proof_compaction_enabled": True,
-        "restore_proof_max_shards": restore_proof_max_shards,
-        "restore_proof_buckets": list(selected_restore_proof_buckets),
-        "refs_only_state_index_pilot_enabled": refs_only_state_index_pilot,
-        "legacy_ds_root_mode": True,
-        "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
-            report_mode="legacy_ds_runtime_storage_maintenance",
-        ),
-    }
-    if resolved_ds_root.name != ".ds" or not resolved_ds_root.is_dir():
-        result["status"] = "blocked_invalid_legacy_ds_root"
-        result["summary"] = "legacy runtime payload root 必须是存在的 .ds 目录。"
-        result["restore_proof_compaction"] = {
-            "surface_kind": "legacy_runtime_restore_proof_compaction",
-            "status": "blocked_invalid_legacy_ds_root",
-            "quest_id": quest_id,
-            "quest_root": str(owner_root),
-            "ds_root": str(resolved_ds_root),
-            "blockers": ["invalid_legacy_ds_root"],
-        }
-    elif not _path_is_inside_workspace(owner_root, workspace_root):
-        result["status"] = "blocked_legacy_ds_root_outside_profile_workspace"
-        result["summary"] = "legacy .ds owner root 不在当前 profile workspace 内。"
-        result["restore_proof_compaction"] = {
-            "surface_kind": "legacy_runtime_restore_proof_compaction",
-            "status": "blocked_legacy_ds_root_outside_profile_workspace",
-            "quest_id": quest_id,
-            "quest_root": str(owner_root),
-            "ds_root": str(resolved_ds_root),
-            "workspace_root": str(workspace_root),
-            "blockers": ["legacy_ds_root_outside_profile_workspace"],
-        }
-    else:
-        compaction = compact_legacy_ds_runtime_buckets(
-            ds_root=resolved_ds_root,
-            quest_id=quest_id,
-            recorded_at=recorded_at,
-            buckets=selected_restore_proof_buckets,
-            max_shards=restore_proof_max_shards,
-        )
-        result["restore_proof_compaction"] = compaction
-        archive_refs = _archive_refs_from_compaction(compaction)
-        if archive_refs:
-            indexed_results = [
-                domain_authority_refs_index.record_archive_ref(
-                    quest_root=owner_root,
-                    archive_ref=archive_ref,
-                )
-                for archive_ref in archive_refs
-            ]
-            result["domain_authority_archive_ref_index"] = _archive_ref_index_summary(indexed_results)
-            result["runtime_lifecycle_workspace_archive_index"] = _record_workspace_archive_ref(
-                workspace_root=profile.workspace_root,
-                quest_root=owner_root,
-                apply_result=result,
-            )
-        status = str(compaction.get("status") or "")
-        if status in {"compacted", "nothing_to_archive"}:
-            result["status"] = "maintained"
-            result["summary"] = "legacy .ds runtime restore-proof compaction 已完成。"
-        else:
-            result["status"] = status or "blocked_legacy_ds_restore_proof_compaction"
-            result["summary"] = "legacy .ds runtime restore-proof compaction 未完成。"
-
-    if refs_only_state_index_pilot:
-        if result.get("status") == "maintained":
-            result["refs_only_state_index_pilot"] = refs_only_state_index_pilot_module.rebuild_refs_only_state_index(
-                workspace_root=profile.workspace_root,
-                study_root=None,
-                quest_root=owner_root,
-            )
-        else:
-            result["refs_only_state_index_pilot"] = {
-                "surface_kind": refs_only_state_index_pilot_module.SURFACE_KIND,
-                "status": "skipped",
-                "skip_reason": str(result.get("status") or "storage_maintenance_not_maintained"),
-                "body_included": False,
-            }
-
-    report_root = owner_root / "artifacts" / "runtime" / "runtime_storage_maintenance" / "legacy_ds_payload_compaction"
-    report_path = report_root / f"{_artifact_slug(recorded_at)}.json"
-    latest_report_path = report_root / "latest.json"
-    result["report_path"] = str(report_path)
-    result["latest_report_path"] = str(latest_report_path)
-    _write_json(report_path, result)
-    _write_json(latest_report_path, result)
-    return result
 
 
 def _archive_refs_from_compaction(compaction: Mapping[str, Any]) -> list[Mapping[str, Any]]:

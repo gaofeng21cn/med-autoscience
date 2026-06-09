@@ -14,7 +14,7 @@ def _invalid_blocking_payload() -> dict[str, object]:
         "decision_type": None,
         "options_count": 0,
         "guidance_requires_user_decision": False,
-        "source_artifact_path": "/tmp/runtime/quests/quest-001/.ds/worktrees/paper-main/artifacts/progress/progress-standby-001.json",
+        "source_artifact_path": "/tmp/runtime/quests/quest-001/artifacts/progress/progress-standby-001.json",
     }
 
 
@@ -35,7 +35,7 @@ def test_arbitrate_waiting_for_user_rejects_invalid_blocking_progress_under_auto
         "valid_blocking": False,
         "kind": "progress",
         "decision_type": None,
-        "source_artifact_path": "/tmp/runtime/quests/quest-001/.ds/worktrees/paper-main/artifacts/progress/progress-standby-001.json",
+        "source_artifact_path": "/tmp/runtime/quests/quest-001/artifacts/progress/progress-standby-001.json",
         "controller_stage_note": (
             "MAS-managed waiting_for_user is a controller-owned arbitration surface; "
             "runtime blocking is rejected unless it is a valid structured decision request."

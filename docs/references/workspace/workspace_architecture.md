@@ -88,7 +88,7 @@ Machine boundary: Human-readable workspace reference only; workspace truth remai
 - workspace-scope overlay 与 quest-scope overlay 写入的本地 `.codex/skills/`
 
 workspace 根目录的外层 Git 默认不存在；已有 root Git 不接管 quest runtime、legacy `MedDeepScientist` quest archive、generated artifacts、PDF/DOCX/ZIP、current package projection、runtime ledgers 或投稿导出物；这些 surface 由 MAS controller / publication gate / artifact authority、OPL lifecycle primitive、runtime lifecycle refs/ledger、restore index 和 durable artifact registry 分层负责。
-标准 scaffold 会排除 `runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`artifacts/runtime/`、study-local `artifacts/`、`manuscript/current_package/`、submission package、paper build/export 目录和重运行态目录。旧 `ops/med-deepscientist/runtime/quests/`、quest `.git` 与 `.ds/worktrees/` 只作为 legacy restore/import diagnostic 或 enrichment reference；active quest path 不再要求也不允许回流为 Git 仓库。
+标准 scaffold 会排除 `runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`artifacts/runtime/`、study-local `artifacts/`、`manuscript/current_package/`、submission package、paper build/export 目录和重运行态目录。旧 `ops/med-deepscientist/runtime/quests/`、quest `.git` 与 `.ds/worktrees/` 只作为一次性 legacy intake、restore proof 或 diagnostic provenance 输入；active quest path 不再要求也不允许回流为 Git 仓库，也不从 `.ds/worktrees` 读取当前 paper/runtime 状态。
 quest materializer 的 repo-level guard 必须阻断既有 quest `.git` 回流：新 materialization 只生成普通目录与 manifest，manifest 明确 `git_runtime_used=false`、`quest_git_active_path_retired=true`。
 
 已有 workspace 如果出现外层 Git object store 膨胀，应通过 `medautosci runtime storage-audit --profile <profile> --git-only` 读取 Git health。
@@ -358,7 +358,7 @@ wrapper 不应继续硬编码：
 
 - `med_autoscience.runtime_protocol.topology`
   - 管理 `paper_root -> worktree_root -> quest_root -> study_root` 的关系
-  - 新布局以 `runtime/quests/<quest_id>` 普通目录、SQLite runtime authority 和 manifest 为默认；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper` 只作为 legacy reader/enrichment/reference 输入
+  - 新布局以 `runtime/quests/<quest_id>` 普通目录、SQLite runtime authority、canonical `artifacts/runtime/**` 和 manifest 为默认；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper` 只作为一次性 legacy intake / restore proof / diagnostic provenance 输入，不作为当前 reader 或 enrichment 输入
 - `med_autoscience.runtime_protocol.quest_state`
   - 管理 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl`
 - `med_autoscience.runtime_protocol.paper_artifacts`

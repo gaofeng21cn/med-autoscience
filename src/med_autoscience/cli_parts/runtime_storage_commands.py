@@ -40,22 +40,6 @@ def handle_runtime_storage_command(
     load_profile: Any,
 ) -> int | None:
     if args.command == "maintain-runtime-storage":
-        if args.legacy_ds_root:
-            if not args.restore_proof_compaction:
-                _command_parser(args, parser).error("--legacy-ds-root requires --restore-proof-compaction")
-            if args.restore_proof_canary:
-                _command_parser(args, parser).error("--legacy-ds-root does not support --restore-proof-canary")
-            _reject_runtime_retention_for_legacy_ds(args, parser)
-            profile = load_profile(args.profile)
-            result = runtime_storage_maintenance.maintain_legacy_ds_runtime_storage(
-                profile=profile,
-                ds_root=Path(args.legacy_ds_root),
-                restore_proof_buckets=tuple(args.restore_proof_buckets or ()),
-                restore_proof_max_shards=args.restore_proof_max_shards,
-                refs_only_state_index_pilot=bool(args.refs_only_state_index_pilot),
-            )
-            _print_json(result)
-            return 0
         retention_kwargs = _runtime_retention_kwargs(args, parser=parser)
         profile = load_profile(args.profile)
         common_kwargs = _storage_maintenance_kwargs(args)
@@ -110,7 +94,6 @@ def _add_profile_and_storage_selector_options(parser: argparse.ArgumentParser) -
     selector = parser.add_mutually_exclusive_group(required=True)
     selector.add_argument("--study-id", type=str)
     selector.add_argument("--quest-root", type=str)
-    selector.add_argument("--legacy-ds-root", type=str)
 
 
 def _add_storage_cleanup_options(parser: argparse.ArgumentParser) -> None:
@@ -227,21 +210,6 @@ def _runtime_retention_kwargs(
         "semantic_retention_keep_failed_raw": bool(getattr(args, "semantic_retention_keep_failed_raw", True)),
         "semantic_retention_max_files": getattr(args, "semantic_retention_max_files", None),
     }
-
-
-def _reject_runtime_retention_for_legacy_ds(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
-    retention_flags = (
-        "archive_retention",
-        "archive_retention_apply",
-        "report_retention",
-        "report_retention_apply",
-        "archive_retention_cold_store_root",
-        "attempt_evidence_capsules",
-        "semantic_process_retention",
-        "semantic_process_retention_apply",
-    )
-    if any(bool(getattr(args, name, False)) for name in retention_flags):
-        _command_parser(args, parser).error("runtime retention flags require --study-id or --quest-root")
 
 
 def _print_json(payload: object) -> None:

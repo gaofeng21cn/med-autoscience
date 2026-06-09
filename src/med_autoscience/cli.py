@@ -81,6 +81,7 @@ domain_owner_action_dispatch = _LazyModuleProxy(lambda: _load_controller("domain
 stage_artifact_materializer = _LazyModuleProxy(lambda: _load_controller("stage_artifact_materializer"))
 owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
+legacy_ds_retirement = _LazyModuleProxy(lambda: _load_controller("legacy_ds_retirement"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
 paper_clean_room_rebuild = _LazyModuleProxy(lambda: _load_controller("paper_clean_room_rebuild"))
 study_workspace_status = _LazyModuleProxy(lambda: _load_controller("study_workspace_status"))
@@ -643,6 +644,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "workspace-monolith-migrate":
         result = workspace_monolith_migration.run_workspace_monolith_migration(
+            profile_path=Path(args.profile),
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "legacy-ds-retire":
+        result = legacy_ds_retirement.run_legacy_ds_retirement(
             profile_path=Path(args.profile),
             apply=bool(args.apply),
         )

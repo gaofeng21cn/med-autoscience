@@ -52,12 +52,7 @@ def test_resolve_latest_paper_root_ignores_legacy_worktree_manifests_by_default(
     with pytest.raises(FileNotFoundError, match="No paper_bundle_manifest.json"):
         resolve_latest_paper_root(quest_root)
 
-    diagnostic = resolve_paper_bundle_manifest(
-        quest_root,
-        legacy_restore_import_diagnostic=True,
-    )
-    assert diagnostic is not None
-    assert diagnostic == new_manifest
+    assert resolve_paper_bundle_manifest(quest_root) is None
 
 
 def test_resolve_paper_bundle_manifest_ignores_legacy_worktree_by_default(tmp_path: Path) -> None:
@@ -66,13 +61,11 @@ def test_resolve_paper_bundle_manifest_ignores_legacy_worktree_by_default(tmp_pa
     dump_json(legacy_manifest, {"schema_version": 1})
 
     result = resolve_paper_bundle_manifest(quest_root)
-    diagnostic = resolve_paper_bundle_manifest(quest_root, legacy_restore_import_diagnostic=True)
 
     assert result is None
-    assert diagnostic == legacy_manifest
 
 
-def test_resolve_latest_paper_root_follows_authoritative_projected_paper_line(tmp_path: Path) -> None:
+def test_resolve_latest_paper_root_ignores_projected_paper_line_legacy_ds_root(tmp_path: Path) -> None:
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     projected_manifest = quest_root / "paper" / "paper_bundle_manifest.json"
@@ -117,7 +110,7 @@ def test_resolve_latest_paper_root_prefers_newer_bound_study_canonical_paper(tmp
     newer_time = runtime_paper_root.joinpath("paper_bundle_manifest.json").stat().st_mtime + 60
     os.utime(study_paper_root / "paper_bundle_manifest.json", (newer_time, newer_time))
 
-    result = resolve_latest_paper_root(quest_root, legacy_restore_import_diagnostic=True)
+    result = resolve_latest_paper_root(quest_root)
 
     assert result == study_paper_root.resolve()
 
@@ -203,7 +196,7 @@ def test_resolve_paper_bundle_and_submission_minimal_manifest(tmp_path: Path) ->
     assert resolved_submission == submission_manifest
 
 
-def test_legacy_restore_import_diagnostic_prefers_paper_worktree_over_newer_analysis_mirror(
+def test_resolve_paper_bundle_manifest_ignores_legacy_worktree_mirrors(
     tmp_path: Path,
 ) -> None:
     quest_root = tmp_path / "runtime" / "quests" / "q001"
@@ -223,14 +216,8 @@ def test_legacy_restore_import_diagnostic_prefers_paper_worktree_over_newer_anal
     dump_json(analysis_manifest, {"schema_version": 1, "role": "analysis"})
 
     resolved_bundle = resolve_paper_bundle_manifest(quest_root)
-    diagnostic = resolve_paper_bundle_manifest(
-        quest_root,
-        legacy_restore_import_diagnostic=True,
-    )
 
     assert resolved_bundle is None
-    assert diagnostic is not None
-    assert diagnostic == paper_manifest
 
 
 def test_resolve_paper_bundle_manifest_prefers_runtime_worktree_over_newer_projected_mirror(

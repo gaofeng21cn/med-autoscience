@@ -30,6 +30,7 @@ Machine boundary: 本文是人读 owner / provenance guard。机器真相继续�
 | MAS refs-only state index pilot | `opt_in_storage_maintenance_pilot` | `artifacts/runtime/mas_refs_only_state_index_pilot.sqlite` indexes cursor/index/lifecycle/outbox/receipt refs only, replacing only the current `quest_root` slice on rebuild |
 | Restore-proof canary | `bounded_retain_source_canary` | `artifacts/runtime/runtime_storage_maintenance/restore_proof_canary/*.json` and bounded archive/restore proof refs |
 | Restore-proof compaction | `stopped_cold_bucket_compaction_available` | `.ds/runs` and `.ds/codex_homes` may be sharded into restore-proof archives after explicit cold-window gate |
+| Legacy `.ds` physical retirement | `one_time_legacy_intake` | `runtime legacy-ds-retire` archives each discovered `.ds` with source manifest, restore proof and retirement receipt, then removes the legacy directory |
 | Runtime/event/report history | `opl_owned_or_provenance_only` | OPL attempt/provider ledger for runtime truth; MAS refs index for owner receipts/blockers only |
 | Quest Git retirement | `current projects verified` | migration/cutover ledgers and restore manifests |
 | Workspace root Git retirement | `current projects verified` | workspace root Git retirement ledgers |
@@ -73,8 +74,9 @@ Stable commands:
 - `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --restore-proof-canary --restore-proof-canary-entry-limit <n> --restore-proof-bucket <bucket> --include-parked-controller-stop`
 - `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n> --include-parked-controller-stop`
 - `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n> --include-parked-controller-stop`
-- `medautosci runtime maintain-storage --profile <profile> --legacy-ds-root <path/to/.ds> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n>`
 - `medautosci runtime storage-audit --profile <profile> --all-studies --apply --refs-only-state-index-pilot`
+- `medautosci runtime legacy-ds-retire --profile <profile> --dry-run`
+- `medautosci runtime legacy-ds-retire --profile <profile> --apply`
 
 Use `--refs-only-state-index-only` when the purpose is to rebuild the refs-only SQLite pilot on a very large `.ds` tree. In that mode MAS intentionally skips legacy backend storage maintenance and recursive size summaries, records `legacy_backend_status=skipped_by_refs_only_state_index_only`, and writes `size_before` / `size_after` as explicit skipped summaries. This is the preferred live canary path for million-file runtime roots because it indexes refs without doing physical compaction, GC, body migration, paper mutation or artifact cleanup.
 
@@ -86,13 +88,14 @@ Use `--restore-proof-compaction` only for an explicit stopped-cold bucket scope.
 
 If a selected bucket contains empty child directories after all payload-bearing groups were already archived, rerun the same `--restore-proof-compaction` command. The `nothing_to_archive` result still prunes empty child directories and then the empty selected bucket directory. It must not remove any child that contains a file, symlink or other payload.
 
-Use `--legacy-ds-root` only for historical archive or nested bare `.ds` roots that no longer have a valid `quest.yaml` owner surface. It still requires `--restore-proof-compaction`, writes archive tarballs, source manifests, restore proofs, owner-root `domain_authority_refs.sqlite` rows and workspace-level refs-only rows, and refuses `.ds` roots outside the selected profile workspace. It must not be used as a shortcut for active quest runtime roots that can be handled with `--quest-root`.
+Historical archive, nested bare `.ds` roots and quest-root `.ds` directories are no longer accepted by `runtime maintain-storage` as a separate legacy root. `runtime legacy-ds-retire` is the one-time legacy intake / physical retirement surface: it scans the profile workspace, plans only outermost `.ds` roots, writes source manifest, `legacy_ds.tar.gz`, restore proof and retirement receipt under the appropriate `artifacts/runtime/restore_index/legacy_ds_retirement/**` or workspace `runtime/artifacts/legacy_ds_retirement/**` surface, materializes legacy runtime state into `artifacts/runtime/state/runtime_state.json` when needed, and removes `.ds` only after restore proof verifies. MAS must not keep `.ds` as a long-term read layer after this command succeeds.
 
 The safe live sequence for million-file `.ds` roots is:
 
 1. `--refs-only-state-index-pilot --refs-only-state-index-only` to rebuild refs-only SQLite without recursive size scan.
 2. `--restore-proof-canary --restore-proof-canary-entry-limit <small n> --restore-proof-bucket runs|codex_homes --include-parked-controller-stop` to produce bounded restore proof while retaining source payload.
 3. Sharded `--restore-proof-compaction --restore-proof-max-shards <n>` after owner/operator confirms the stopped-cold window and target bucket scope.
+4. `runtime legacy-ds-retire --apply` after effective content has been extracted into canonical surfaces and the remaining `.ds` directory is only legacy intake residue.
 
 Verification:
 

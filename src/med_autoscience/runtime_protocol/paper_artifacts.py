@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
-from med_autoscience.runtime_protocol.quest_state import is_legacy_restore_import_context
 from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
 
 from .artifact_authority import artifact_authority_record
@@ -76,19 +75,11 @@ _SUBMISSION_METADATA_ONLY_STATUS_TOKENS = (
 
 def resolve_latest_paper_root(
     quest_root: Path,
-    *,
-    legacy_restore_import_diagnostic: bool = False,
 ) -> Path:
-    latest_manifest = resolve_paper_bundle_manifest(
-        quest_root,
-        legacy_restore_import_diagnostic=legacy_restore_import_diagnostic,
-    )
+    latest_manifest = resolve_paper_bundle_manifest(quest_root)
     if latest_manifest is None:
         raise FileNotFoundError(f"No paper_bundle_manifest.json found under {quest_root}")
-    return _resolve_authoritative_paper_root_from_bundle_manifest_path(
-        latest_manifest,
-        legacy_restore_import_diagnostic=legacy_restore_import_diagnostic,
-    )
+    return _resolve_authoritative_paper_root_from_bundle_manifest_path(latest_manifest)
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -106,59 +97,6 @@ def _paper_line_branch(paper_line_state: dict[str, Any] | None) -> str | None:
     if not isinstance(paper_line_state, dict):
         return None
     return _non_empty_text(paper_line_state.get("paper_branch"))
-
-
-def _resolve_existing_worktree_paper_root(
-    *,
-    raw_paper_root: str | None,
-    relative_to: Path,
-    legacy_restore_import_diagnostic: bool = False,
-) -> Path | None:
-    if not raw_paper_root:
-        return None
-    candidate = Path(raw_paper_root).expanduser()
-    if not candidate.is_absolute():
-        candidate = (relative_to / candidate).resolve()
-    else:
-        candidate = candidate.resolve()
-    if not candidate.exists() or candidate.name != "paper":
-        return None
-    worktree_root = candidate.parent
-    if worktree_root.parent.name != "worktrees" or worktree_root.parent.parent.name != ".ds":
-        return None
-    if not legacy_restore_import_diagnostic and not is_legacy_restore_import_context(worktree_root.parent.parent.parent):
-        return None
-    return candidate
-
-
-def _resolve_worktree_bundle_manifest_by_branch(
-    *,
-    quest_root: Path,
-    paper_branch: str | None,
-    legacy_restore_import_diagnostic: bool = False,
-) -> Path | None:
-    if paper_branch is None:
-        return None
-    if not legacy_restore_import_diagnostic and not is_legacy_restore_import_context(quest_root):
-        return None
-    resolved_quest_root = _resolve_path(quest_root)
-    candidates: list[Path] = []
-    for candidate in resolved_quest_root.glob(".ds/worktrees/*/paper/paper_bundle_manifest.json"):
-        payload = _load_json_mapping(candidate)
-        if _bundle_manifest_branch(payload) != paper_branch:
-            continue
-        candidates.append(candidate.resolve())
-    if not candidates:
-        return None
-
-    def rank(path: Path) -> tuple[int, float]:
-        try:
-            worktree_name = path.relative_to(resolved_quest_root).parts[2]
-        except (ValueError, IndexError):
-            worktree_name = ""
-        return (1 if worktree_name.startswith("paper-") else 0, path.stat().st_mtime)
-
-    return max(candidates, key=rank)
 
 
 def _resolve_bound_study_paper_bundle_manifest_by_branch(
@@ -241,7 +179,6 @@ def _resolve_projected_manifest_authoritative_paper_root(quest_root: Path, manif
     return _resolve_projected_manifest_authoritative_paper_root_impl(
         quest_root=quest_root,
         manifest_path=manifest_path,
-        legacy_restore_import_diagnostic=False,
     )
 
 
@@ -249,7 +186,6 @@ def _resolve_projected_manifest_authoritative_paper_root_impl(
     *,
     quest_root: Path,
     manifest_path: Path,
-    legacy_restore_import_diagnostic: bool,
 ) -> Path | None:
     projected_root = _resolve_path(quest_root) / "paper"
     projected_manifest_path = projected_root / "paper_bundle_manifest.json"
@@ -261,53 +197,18 @@ def _resolve_projected_manifest_authoritative_paper_root_impl(
         return None
     manifest_branch = _bundle_manifest_branch(manifest_payload)
     line_branch = _paper_line_branch(paper_line_state)
-    candidate = _resolve_existing_worktree_paper_root(
-        raw_paper_root=_non_empty_text(paper_line_state.get("paper_root")),
-        relative_to=projected_root.parent,
-        legacy_restore_import_diagnostic=legacy_restore_import_diagnostic,
-    )
     if manifest_branch is not None and line_branch is not None and manifest_branch != line_branch:
-        authoritative_manifest = _resolve_worktree_bundle_manifest_by_branch(
+        authoritative_manifest = _resolve_bound_study_paper_bundle_manifest_by_branch(
             quest_root=quest_root,
             paper_branch=manifest_branch,
-            legacy_restore_import_diagnostic=legacy_restore_import_diagnostic,
         )
         if authoritative_manifest is not None:
-            authoritative_manifest = _prefer_newer_bound_study_manifest(
-                quest_root=quest_root,
-                current_manifest_path=authoritative_manifest,
-                paper_branch=manifest_branch,
-            )
             return authoritative_manifest.parent.resolve()
-    if candidate is not None:
-        candidate_manifest = candidate / "paper_bundle_manifest.json"
-        if candidate_manifest.exists():
-            candidate_manifest = _prefer_newer_bound_study_manifest(
-                quest_root=quest_root,
-                current_manifest_path=candidate_manifest,
-                paper_branch=manifest_branch,
-            )
-            return candidate_manifest.parent.resolve()
-        return candidate
-    authoritative_manifest = _resolve_worktree_bundle_manifest_by_branch(
-        quest_root=quest_root,
-        paper_branch=manifest_branch,
-        legacy_restore_import_diagnostic=legacy_restore_import_diagnostic,
-    )
-    if authoritative_manifest is not None:
-        authoritative_manifest = _prefer_newer_bound_study_manifest(
-            quest_root=quest_root,
-            current_manifest_path=authoritative_manifest,
-            paper_branch=manifest_branch,
-        )
-        return authoritative_manifest.parent.resolve()
     return None
 
 
 def _resolve_authoritative_paper_root_from_bundle_manifest_path(
     paper_bundle_manifest_path: Path,
-    *,
-    legacy_restore_import_diagnostic: bool = False,
 ) -> Path:
     resolved_manifest_path = _resolve_path(paper_bundle_manifest_path)
     paper_root = resolved_manifest_path.parent
@@ -318,7 +219,6 @@ def _resolve_authoritative_paper_root_from_bundle_manifest_path(
     authoritative_projected_root = _resolve_projected_manifest_authoritative_paper_root_impl(
         quest_root=quest_root,
         manifest_path=resolved_manifest_path,
-        legacy_restore_import_diagnostic=legacy_restore_import_diagnostic,
     )
     if authoritative_projected_root is not None:
         return authoritative_projected_root
@@ -335,27 +235,16 @@ def _paper_bundle_manifest_rank(quest_root: Path, manifest_path: Path) -> tuple[
         if _projected_manifest_has_authoritative_paper_line(quest_root, resolved_manifest):
             return (3, resolved_manifest.stat().st_mtime)
         return (1, resolved_manifest.stat().st_mtime)
-    if len(relative_parts) >= 4 and relative_parts[:2] == (".ds", "worktrees"):
-        worktree_name = relative_parts[2]
-        if worktree_name.startswith("paper-"):
-            return (2, resolved_manifest.stat().st_mtime)
     return (0, resolved_manifest.stat().st_mtime)
 
 
-def resolve_paper_bundle_manifest(
-    quest_root: Path,
-    *,
-    legacy_restore_import_diagnostic: bool = False,
-) -> Path | None:
+def resolve_paper_bundle_manifest(quest_root: Path) -> Path | None:
     resolved_quest_root = _resolve_path(quest_root)
-    allow_legacy_context = legacy_restore_import_diagnostic or is_legacy_restore_import_context(resolved_quest_root)
     complete_study_manifest = _resolve_complete_bound_study_paper_bundle_manifest(resolved_quest_root)
     if complete_study_manifest is not None:
         return complete_study_manifest
     candidates: list[Path] = []
     patterns = ["paper/paper_bundle_manifest.json"]
-    if allow_legacy_context:
-        patterns.insert(0, ".ds/worktrees/*/paper/paper_bundle_manifest.json")
     for pattern in patterns:
         candidates.extend(resolved_quest_root.glob(pattern))
     if not candidates:
@@ -369,25 +258,11 @@ def resolve_paper_bundle_manifest(
     )
 
 
-def resolve_legacy_restore_import_diagnostic_paper_bundle_manifest(quest_root: Path) -> Path | None:
-    return resolve_paper_bundle_manifest(
-        quest_root,
-        legacy_restore_import_diagnostic=True,
-    )
-
-
-def resolve_submission_minimal_manifest(
-    paper_bundle_manifest_path: Path | None,
-    *,
-    legacy_restore_import_diagnostic: bool = False,
-) -> Path | None:
+def resolve_submission_minimal_manifest(paper_bundle_manifest_path: Path | None) -> Path | None:
     if paper_bundle_manifest_path is None:
         return None
     candidate = resolve_package_submission_manifest_path(
-        _resolve_authoritative_paper_root_from_bundle_manifest_path(
-            paper_bundle_manifest_path,
-            legacy_restore_import_diagnostic=legacy_restore_import_diagnostic,
-        )
+        _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path)
         / "submission_minimal"
     )
     return candidate if candidate.exists() else None
@@ -681,14 +556,10 @@ def resolve_submission_minimal_output_paths(
     *,
     paper_bundle_manifest_path: Path | None,
     submission_minimal_manifest: dict[str, Any] | None,
-    legacy_restore_import_diagnostic: bool = False,
 ) -> tuple[Path | None, Path | None]:
     if paper_bundle_manifest_path is None or submission_minimal_manifest is None:
         return None, None
-    paper_root = _resolve_authoritative_paper_root_from_bundle_manifest_path(
-        paper_bundle_manifest_path,
-        legacy_restore_import_diagnostic=legacy_restore_import_diagnostic,
-    )
+    paper_root = _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path)
     workspace_root = paper_root.parent
     manuscript = submission_minimal_manifest.get("manuscript") or {}
     docx_relpath = str(manuscript.get("docx_path") or "").strip()

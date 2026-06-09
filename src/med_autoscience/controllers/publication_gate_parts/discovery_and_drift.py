@@ -487,33 +487,8 @@ def _projected_bundle_manifest_path(quest_root: Path) -> Path:
     return quest_root.resolve() / "paper" / "paper_bundle_manifest.json"
 
 
-def _resolve_worktree_bundle_manifest_by_branch(
-    *,
-    quest_root: Path,
-    paper_branch: str | None,
-    legacy_restore_import_diagnostic: bool = False,
-) -> Path | None:
-    if paper_branch is None:
-        return None
-    if not legacy_restore_import_diagnostic and not quest_state.is_legacy_restore_import_context(quest_root):
-        return None
-    candidates: list[Path] = []
-    for candidate in quest_root.resolve().glob(".ds/worktrees/*/paper/paper_bundle_manifest.json"):
-        payload = load_json(candidate, default=None)
-        if _bundle_manifest_branch(payload) != paper_branch:
-            continue
-        candidates.append(candidate.resolve())
-    if not candidates:
-        return None
-
-    def rank(path: Path) -> tuple[int, float]:
-        try:
-            worktree_name = path.relative_to(quest_root.resolve()).parts[2]
-        except (ValueError, IndexError):
-            worktree_name = ""
-        return (1 if worktree_name.startswith("paper-") else 0, path.stat().st_mtime)
-
-    return max(candidates, key=rank)
+def _is_legacy_ds_path(path: Path) -> bool:
+    return ".ds" in path.resolve().parts
 
 
 def resolve_bundle_authority_paper_root(
@@ -538,20 +513,12 @@ def resolve_bundle_authority_paper_root(
     paper_line_root_value = _non_empty_text((paper_line_state or {}).get("paper_root"))
     if manifest_branch is not None and line_branch is not None and manifest_branch == line_branch and paper_line_root_value:
         candidate = Path(paper_line_root_value).expanduser().resolve()
-        if candidate.exists():
+        if candidate.exists() and not _is_legacy_ds_path(candidate):
             return candidate
-
-    if manifest_branch is not None and line_branch is not None and manifest_branch != line_branch:
-        authoritative_manifest = _resolve_worktree_bundle_manifest_by_branch(
-            quest_root=quest_root,
-            paper_branch=manifest_branch,
-        )
-        if authoritative_manifest is not None:
-            return authoritative_manifest.parent.resolve()
 
     if paper_line_root_value:
         candidate = Path(paper_line_root_value).expanduser().resolve()
-        if candidate.exists():
+        if candidate.exists() and not _is_legacy_ds_path(candidate):
             return candidate
     return bundle_paper_root
 

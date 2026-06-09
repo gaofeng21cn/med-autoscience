@@ -6,7 +6,6 @@ from pathlib import Path
 from med_autoscience.runtime_protocol.quest_state import (
     QuestRuntimeLivenessStatus,
     QuestRuntimeSnapshot,
-    find_latest_legacy_restore_import_diagnostic_main_result_path,
     find_latest_main_result_path,
     inspect_quest_runtime,
     iter_active_quests,
@@ -22,14 +21,13 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_load_runtime_state_reads_ds_runtime_json(tmp_path: Path) -> None:
+def test_load_runtime_state_ignores_ds_runtime_json_by_default(tmp_path: Path) -> None:
     quest_root = tmp_path / "q001"
     dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "running", "active_run_id": "run-1"})
 
     result = load_runtime_state(quest_root)
 
-    assert result["status"] == "running"
-    assert result["active_run_id"] == "run-1"
+    assert result == {}
 
 
 def test_load_runtime_state_prefers_mas_runtime_state_surface(tmp_path: Path) -> None:
@@ -89,6 +87,7 @@ def test_find_latest_main_result_path_prefers_latest_candidate(tmp_path: Path) -
 
 def test_find_latest_main_result_path_ignores_legacy_worktree_by_default(tmp_path: Path) -> None:
     quest_root = tmp_path / "q001"
+    dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "running"})
     legacy_result = quest_root / ".ds" / "worktrees" / "run-a" / "experiments" / "main" / "001" / "RESULT.json"
     dump_json(legacy_result, {"run_id": "001"})
 
@@ -99,8 +98,22 @@ def test_find_latest_main_result_path_ignores_legacy_worktree_by_default(tmp_pat
     else:  # pragma: no cover - assertion clarity
         raise AssertionError("default main result lookup must not read .ds/worktrees")
 
-    diagnostic = find_latest_legacy_restore_import_diagnostic_main_result_path(quest_root)
-    assert diagnostic == legacy_result
+
+def test_find_latest_main_result_path_ignores_legacy_worktree_even_with_explicit_marker(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    legacy_result = quest_root / ".ds" / "worktrees" / "run-a" / "experiments" / "main" / "001" / "RESULT.json"
+    dump_json(legacy_result, {"run_id": "001"})
+    dump_json(
+        quest_root / "artifacts" / "runtime" / "restore_index" / "explicit_archive_import_ref" / "latest.json",
+        {"surface_kind": "explicit_archive_import_ref"},
+    )
+
+    try:
+        find_latest_main_result_path(quest_root)
+    except FileNotFoundError as exc:
+        assert "No main RESULT.json" in str(exc)
+    else:  # pragma: no cover - assertion clarity
+        raise AssertionError("main result lookup must not use legacy .ds/worktrees after intake")
 
 
 def test_find_latest_main_result_path_prefers_canonical_artifact_over_newer_worktree_result(tmp_path: Path) -> None:
@@ -116,7 +129,7 @@ def test_find_latest_main_result_path_prefers_canonical_artifact_over_newer_work
     assert latest == canonical
 
 
-def test_resolve_active_stdout_path_reads_active_run_id(tmp_path: Path) -> None:
+def test_resolve_active_stdout_path_ignores_ds_runs_by_default(tmp_path: Path) -> None:
     quest_root = tmp_path / "q001"
     stdout_path = quest_root / ".ds" / "runs" / "run-123" / "stdout.jsonl"
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
@@ -124,7 +137,7 @@ def test_resolve_active_stdout_path_reads_active_run_id(tmp_path: Path) -> None:
 
     resolved = resolve_active_stdout_path(quest_root=quest_root, runtime_state={"active_run_id": "run-123"})
 
-    assert resolved == stdout_path
+    assert resolved is None
 
 
 def test_resolve_active_stdout_path_prefers_mas_runtime_runs_surface(tmp_path: Path) -> None:
@@ -166,7 +179,7 @@ def test_inspect_quest_runtime_reads_local_status_from_protocol_surface(tmp_path
     quest_root = tmp_path / "q001"
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text("quest_id: q001\n", encoding="utf-8")
-    dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "running"})
+    dump_json(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", {"status": "running"})
 
     result = inspect_quest_runtime(quest_root)
 
@@ -176,6 +189,36 @@ def test_inspect_quest_runtime_reads_local_status_from_protocol_surface(tmp_path
         bash_session_audit=None,
         runtime_liveness_audit=None,
     )
+
+
+def test_inspect_quest_runtime_ignores_ds_runtime_state_by_default(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: q001\n", encoding="utf-8")
+    dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "running"})
+
+    result = inspect_quest_runtime(quest_root)
+
+    assert result == QuestRuntimeSnapshot(
+        quest_exists=True,
+        quest_status="",
+        bash_session_audit=None,
+        runtime_liveness_audit=None,
+    )
+
+
+def test_legacy_ds_files_are_not_runtime_context_markers(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "running"})
+    stdout_path = quest_root / ".ds" / "runs" / "run-123" / "stdout.jsonl"
+    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    stdout_path.write_text("", encoding="utf-8")
+    dump_json(
+        quest_root / ".ds" / "worktrees" / "run-a" / "experiments" / "main" / "001" / "RESULT.json",
+        {"run_id": "001"},
+    )
+
+    assert load_runtime_state(quest_root) == {}
 
 
 def test_runtime_liveness_live_requires_opl_current_control_provider_attempt() -> None:
@@ -293,12 +336,19 @@ def test_iter_active_quests_includes_non_live_managed_states_for_outer_loop_arbi
 
     for quest_id, status in statuses.items():
         dump_json(
-            runtime_root / quest_id / ".ds" / "runtime_state.json",
+            runtime_root / quest_id / "artifacts" / "runtime" / "state" / "runtime_state.json",
             {
                 "quest_id": quest_id,
                 "status": status,
             },
         )
+    dump_json(
+        runtime_root / "q-legacy-only" / ".ds" / "runtime_state.json",
+        {
+            "quest_id": "q-legacy-only",
+            "status": "running",
+        },
+    )
 
     quests = iter_active_quests(runtime_root)
 

@@ -74,7 +74,6 @@ from .discovery_and_drift import (
 )
 from .discovery_and_drift import (
     _projected_bundle_manifest_path,
-    _resolve_worktree_bundle_manifest_by_branch,
     resolve_bundle_authority_paper_root,
     resolve_submission_checklist_path,
     load_submission_checklist,
