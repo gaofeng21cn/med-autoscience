@@ -60,7 +60,7 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_auto_recover_submissi
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or parked_status,
+        lambda *, profile, study_root, **kwargs: calls.append(("status", Path(study_root).name)) or parked_status,
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 

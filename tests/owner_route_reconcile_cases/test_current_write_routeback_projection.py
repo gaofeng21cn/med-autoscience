@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -248,6 +249,274 @@ def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_q
     assert candidate["action_fingerprint"] == "repair-source-current"
     assert candidate["dispatch_path"] == str(dispatch_path)
     assert candidate["stage_transition_authority_boundary"]["stage_transition_authority"] == "one-person-lab"
+
+
+def test_action_queue_routes_accepted_repair_delta_to_gate_replay_when_current_ai_reviewer_record_exists(
+    tmp_path: Path,
+) -> None:
+    action_projection = __import__(
+        "med_autoscience.controllers.owner_route_reconcile_parts.action_projection",
+        fromlist=["action_projection"],
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = tmp_path / "studies" / study_id
+    eval_id = "publication-eval::dm002::2026-06-08T14:13:14Z::repair-source"
+    draft = study_root / "paper" / "draft.md"
+    draft_text = "# Draft\n\nCurrent repaired manuscript.\n"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text(draft_text, encoding="utf-8")
+    for path in (
+        study_root / "paper" / "review" / "review_ledger.json",
+        study_root / "paper" / "evidence_ledger.json",
+        study_root / "paper" / "claim_evidence_map.json",
+    ):
+        _write_json(path, {"schema_version": 1, "status": "current"})
+    ai_reviewer_request = (
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    )
+    gate_replay_request = study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
+    _write_json(
+        ai_reviewer_request,
+        {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {"state": "requested"},
+            "target_surface": "artifacts/publication_eval/latest.json",
+        },
+    )
+    _write_json(
+        gate_replay_request,
+        {"request_kind": "run_gate_replay_after_repair", "request_lifecycle": {"state": "requested"}},
+    )
+    _write_json(
+        evidence_path,
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "source_fingerprint": "repair-source-current",
+            "source_eval_id": eval_id,
+            "repair_work_unit": {"unit_id": "readiness_blocker_publication_repair", "source_eval_id": eval_id},
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    {"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"},
+                ],
+            },
+            "ai_reviewer_recheck_request_ref": str(ai_reviewer_request),
+            "gate_replay_refs": [str(gate_replay_request)],
+        },
+    )
+    _write_json(
+        receipt_path,
+        {
+            "surface": "paper_story_repair_owner_receipt",
+            "accepted": True,
+            "work_unit_id": "readiness_blocker_publication_repair",
+            "repair_execution_evidence_ref": str(evidence_path),
+            "ai_reviewer_recheck_request_ref": str(ai_reviewer_request),
+            "gate_replay_request_ref": str(gate_replay_request),
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260609T011045Z_publication_eval_record.json",
+        current_manuscript_routeback_record(
+            study_root=study_root,
+            manuscript_path=draft,
+            manuscript_text=draft_text,
+            study_id=study_id,
+            quest_id=quest_id,
+            eval_id="publication-eval::dm002::2026-06-09T01:10:45Z::current-ai-reviewer",
+            emitted_at="2026-06-09T01:10:45Z",
+        ),
+    )
+    actions = action_projection.action_queue(
+        {},
+        {},
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        publication_eval_payload={
+            "eval_id": eval_id,
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "ai_reviewer_required": True,
+            },
+        },
+        gate_specificity={},
+        ai_reviewer_assessment={},
+        request_allowed_write_surfaces=[],
+        control_allowed_write_surfaces=[],
+        forbidden_actions=[],
+    )
+
+    assert [item["action_type"] for item in actions] == ["run_gate_clearing_batch"]
+    action = actions[0]
+    assert action["reason"] == "repair_progress_gate_replay_required"
+    assert action["next_work_unit"] == "publication_gate_replay"
+    assert action["repair_progress_request_ref"] == str(gate_replay_request)
+    assert action["owner"] == "gate_clearing_batch"
+
+
+def test_action_queue_routes_projected_current_ai_reviewer_record_to_repair_gate_replay(
+    tmp_path: Path,
+) -> None:
+    action_projection = __import__(
+        "med_autoscience.controllers.owner_route_reconcile_parts.action_projection",
+        fromlist=["action_projection"],
+    )
+    records = __import__(
+        "med_autoscience.controllers.ai_reviewer_publication_eval_records",
+        fromlist=["ai_reviewer_publication_eval_records"],
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = tmp_path / "studies" / study_id
+    eval_id = "publication-eval::dm003::projected-current-record"
+    draft = study_root / "paper" / "draft.md"
+    draft_text = "# Draft\n\nProjected current AI reviewer record.\n"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text(draft_text, encoding="utf-8")
+    ai_reviewer_request = (
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    )
+    gate_replay_request = study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    receipt_path = study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
+    _write_json(
+        ai_reviewer_request,
+        {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {"state": "requested"},
+        },
+    )
+    _write_json(gate_replay_request, {"request_kind": "run_gate_replay_after_repair"})
+    _write_json(
+        evidence_path,
+        {
+            "surface": "repair_execution_evidence",
+            "status": "progress_delta_candidate",
+            "progress_delta_candidate": True,
+            "source_fingerprint": "projected-current-record-source",
+            "source_eval_id": eval_id,
+            "repair_work_unit": {"unit_id": "readiness_blocker_publication_repair", "source_eval_id": eval_id},
+            "canonical_artifact_delta": {
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [{"path": str(draft), "artifact_role": "canonical_manuscript_story_surface"}],
+            },
+            "ai_reviewer_recheck_request_ref": str(ai_reviewer_request),
+            "gate_replay_refs": [str(gate_replay_request)],
+        },
+    )
+    _write_json(
+        receipt_path,
+        {
+            "surface": "paper_story_repair_owner_receipt",
+            "accepted": True,
+            "work_unit_id": "readiness_blocker_publication_repair",
+            "ai_reviewer_recheck_request_ref": str(ai_reviewer_request),
+            "gate_replay_request_ref": str(gate_replay_request),
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+    projected_record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=draft,
+        manuscript_text=draft_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-06-09T01:10:45Z",
+    )
+    projected_record[records.PROJECTION_SOURCE_KIND_FIELD] = (
+        records.PROJECTION_SOURCE_KIND_AI_REVIEWER_RECORD
+    )
+    projected_record[records.PROJECTION_SOURCE_REF_FIELD] = str(
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260609T011045Z_publication_eval_record.json"
+    )
+
+    actions = action_projection.action_queue(
+        {},
+        {},
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        publication_eval_payload=projected_record,
+        gate_specificity={},
+        ai_reviewer_assessment={},
+        request_allowed_write_surfaces=[],
+        control_allowed_write_surfaces=[],
+        forbidden_actions=[],
+    )
+
+    assert [item["action_type"] for item in actions] == ["run_gate_clearing_batch"]
+    assert actions[0]["reason"] == "repair_progress_gate_replay_required"
+
+
+def test_action_queue_accepts_dm002_ai_reviewer_record_gate_consumption_work_unit(
+    tmp_path: Path,
+) -> None:
+    action_projection = __import__(
+        "med_autoscience.controllers.owner_route_reconcile_parts.action_projection",
+        fromlist=["action_projection"],
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = tmp_path / "studies" / study_id
+    eval_id = "publication-eval::dm002::current-record-consumption"
+    draft = study_root / "paper" / "draft.md"
+    draft_text = "# Draft\n\nCurrent DM002 manuscript.\n"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text(draft_text, encoding="utf-8")
+    record = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=draft,
+        manuscript_text=draft_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-06-09T01:10:45Z",
+    )
+    record["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "ai_reviewer_record_gate_consumption",
+        "lane": "review",
+        "summary": "Consume current record-only AI-reviewer response and replay publication gate.",
+    }
+
+    actions = action_projection.action_queue(
+        {},
+        {},
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        publication_eval_payload=record,
+        gate_specificity={},
+        ai_reviewer_assessment={"present": True},
+        request_allowed_write_surfaces=[],
+        control_allowed_write_surfaces=[],
+        forbidden_actions=[],
+    )
+
+    assert [item["action_type"] for item in actions] == ["run_gate_clearing_batch"]
+    assert actions[0]["next_work_unit"] == "ai_reviewer_record_gate_consumption"
+    assert actions[0]["owner"] == "gate_clearing_batch"
 
 
 def test_scan_routes_rejects_provider_admission_when_retained_queue_conflicts_with_current_work_unit(

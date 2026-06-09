@@ -112,6 +112,380 @@ def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_sur
     assert candidate["next_executable_owner"] == "ai_reviewer"
 
 
+def test_stale_current_control_gate_queue_is_suppressed_by_fresh_ai_reviewer_current_action(
+    tmp_path: Path,
+) -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = tmp_path / "studies" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "gate_clearing_batch",
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    result = provider_admission.current_control_provider_admission_candidates(
+        {
+            "surface": "opl_current_control_state_handoff",
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_gate_clearing_batch",
+                    "status": "queued",
+                    "owner": "gate_clearing_batch",
+                    "next_work_unit": "publication_gate_replay",
+                    "action_fingerprint": "sha256:stale-gate-replay",
+                    "work_unit_fingerprint": "sha256:stale-gate-replay",
+                    "refs": {"dispatch_path": str(dispatch_path)},
+                }
+            ],
+        },
+        study_root=study_root,
+        status_payload={
+            "study_id": study_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_type": "medical_paper_readiness_missing",
+                    "source_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+                },
+            },
+            "current_executable_owner_action": {
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": "sha256:fresh-ai-reviewer-recheck",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            },
+        },
+        current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
+    )
+
+    assert result == []
+
+
+def test_same_tick_materialized_gate_dispatch_is_suppressed_by_fresh_ai_reviewer_progress_currentness(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "gate_clearing_batch",
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    result = module._materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        apply=False,
+        report={
+            "scanned_at": "2026-06-09T04:34:00+00:00",
+            "managed_study_opl_provider_admission_candidates": [],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "current_executable_owner_action": {
+                            "surface_kind": "current_executable_owner_action",
+                            "schema_version": 1,
+                            "status": "ready",
+                            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                            "next_owner": "ai_reviewer",
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                            "work_unit_fingerprint": "sha256:fresh-ai-reviewer-recheck",
+                            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                        },
+                    },
+                },
+            },
+            "developer_supervisor_same_tick": {
+                "stop_reason": "provider_handoff_written_admission_pending",
+                "materialize": {
+                    "default_executor_dispatches": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "run_gate_clearing_batch",
+                            "dispatch_status": "ready",
+                            "dispatch_authority": "consumer_default_executor_dispatch",
+                            "dispatch_path": str(dispatch_path),
+                            "next_executable_owner": "gate_clearing_batch",
+                            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+                            "work_unit_id": "publication_gate_replay",
+                            "work_unit_fingerprint": "sha256:stale-gate-replay",
+                            "action_fingerprint": "sha256:stale-gate-replay",
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
+    assert result["studies"][0]["study_id"] == study_id
+    assert result["studies"][0]["handoff_scan_status"] == "scanned_no_provider_admission"
+    assert result["current_execution_envelopes"][study_id] == {
+        "state_kind": "executable_owner_action",
+        "owner": "ai_reviewer",
+        "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "typed_blocker": None,
+        "parked_state": None,
+        "source": "progress_currentness.current_executable_owner_action",
+    }
+
+
+def test_materialized_current_control_clears_previous_gate_queue_when_ai_reviewer_is_current(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    latest_path = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    dump_json(
+        latest_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "generated_at": "2026-06-09T04:53:07+00:00",
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "handoff_scan_status": "previous_gate_queue",
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "action_type": "run_gate_clearing_batch",
+                            "status": "queued",
+                            "owner": "gate_clearing_batch",
+                            "next_work_unit": "publication_gate_replay",
+                        },
+                    ],
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "gate_clearing_batch",
+                        "next_work_unit": "publication_gate_replay",
+                        "source": "previous_current_control",
+                    },
+                }
+            ],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "action_type": "run_gate_clearing_batch",
+                    "status": "queued",
+                    "owner": "gate_clearing_batch",
+                    "next_work_unit": "publication_gate_replay",
+                    "work_unit_fingerprint": "sha256:stale-gate",
+                },
+            ],
+            "current_execution_envelopes": {
+                study_id: {
+                    "state_kind": "executable_owner_action",
+                    "owner": "gate_clearing_batch",
+                    "next_work_unit": "publication_gate_replay",
+                    "source": "previous_current_control",
+                },
+            },
+        },
+    )
+
+    result = module._materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        apply=True,
+        report={
+            "scanned_at": "2026-06-09T05:16:53+00:00",
+            "managed_study_opl_provider_admission_candidates": [],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "current_executable_owner_action": {
+                            "surface_kind": "current_executable_owner_action",
+                            "schema_version": 1,
+                            "status": "ready",
+                            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                            "next_owner": "ai_reviewer",
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                            "work_unit_fingerprint": "sha256:fresh-ai-reviewer-recheck",
+                            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                        },
+                    },
+                },
+            },
+            "developer_supervisor_same_tick": {
+                "stop_reason": "provider_handoff_written_admission_pending",
+                "materialize": {
+                    "default_executor_dispatches": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "run_gate_clearing_batch",
+                            "dispatch_status": "ready",
+                            "dispatch_authority": "consumer_default_executor_dispatch",
+                            "next_executable_owner": "gate_clearing_batch",
+                            "work_unit_id": "publication_gate_replay",
+                            "work_unit_fingerprint": "sha256:stale-gate",
+                            "action_fingerprint": "sha256:stale-gate",
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    assert result is not None
+    assert result["written"] is True
+    assert result["action_queue"] == []
+    assert result["provider_admission_pending_count"] == 0
+    assert result["studies"][0]["handoff_scan_status"] == "scanned_no_provider_admission"
+    assert result["current_execution_envelopes"][study_id]["owner"] == "ai_reviewer"
+
+    latest = json.loads(latest_path.read_text(encoding="utf-8"))
+    assert latest["action_queue"] == []
+    assert latest["provider_admission_candidates"] == []
+    assert latest["current_execution_envelopes"][study_id]["owner"] == "ai_reviewer"
+
+
+def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_currentness(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    work_unit_fingerprint = "sha256:fresh-ai-reviewer-recheck"
+    study_root = profile.studies_root / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "dispatch_status": "ready",
+            "dispatch_authority": "ai_reviewer_record_production_handoff",
+            "next_executable_owner": "ai_reviewer",
+            "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    result = module._materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        apply=False,
+        report={
+            "scanned_at": "2026-06-09T04:34:00+00:00",
+            "managed_study_opl_provider_admission_candidates": [],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "current_executable_owner_action": {
+                            "surface_kind": "current_executable_owner_action",
+                            "schema_version": 1,
+                            "status": "ready",
+                            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                            "next_owner": "ai_reviewer",
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": work_unit_fingerprint,
+                            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                        },
+                    },
+                },
+            },
+            "developer_supervisor_same_tick": {
+                "stop_reason": "provider_handoff_written_admission_pending",
+                "materialize": {
+                    "default_executor_dispatches": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "dispatch_status": "ready",
+                            "dispatch_authority": "ai_reviewer_record_production_handoff",
+                            "dispatch_path": str(dispatch_path),
+                            "next_executable_owner": "ai_reviewer",
+                            "required_output_surface": (
+                                "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+                            ),
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": work_unit_fingerprint,
+                            "action_fingerprint": work_unit_fingerprint,
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert result["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert result["action_queue"][0]["work_unit_id"] == work_unit_id
+    assert result["action_queue"][0]["work_unit_fingerprint"] == work_unit_fingerprint
+
+
 def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_queue(
     tmp_path: Path,
     monkeypatch,

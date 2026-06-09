@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 
 
@@ -480,6 +481,9 @@ def provider_admission_candidate_from_execution(
         work_unit_id=work_unit_id,
         work_unit_fingerprint=work_unit_fingerprint,
         current_action_identity=_mapping(current_action_identity),
+    ) and not _gate_replay_authorization_consumes_current_ai_reviewer_record(
+        execution,
+        current_action_identity=_mapping(current_action_identity),
     ):
         return None
     owner_route = _mapping(execution.get("owner_route"))
@@ -677,6 +681,11 @@ def _typed_blocker_envelope_allows_provider_admission(
         current_action_identity=current_action_identity,
     ):
         return True
+    if _gate_replay_authorization_consumes_current_ai_reviewer_record(
+        execution,
+        current_action_identity=current_action_identity,
+    ):
+        return True
     blocker = _mapping(envelope.get("typed_blocker"))
     blocker_reason = (
         _non_empty_text(blocker.get("blocker_id"))
@@ -862,6 +871,75 @@ def _authorization_required_execution_matches_current_action(
         work_unit_id=work_unit_id,
         work_unit_fingerprint=work_unit_fingerprint,
         current_action_identity=current_action_identity,
+    )
+
+
+def _gate_replay_authorization_consumes_current_ai_reviewer_record(
+    execution: Mapping[str, Any],
+    *,
+    current_action_identity: Mapping[str, Any],
+) -> bool:
+    if _execution_blocked_reason(execution) != OPL_EXECUTION_AUTHORIZATION_BLOCKER:
+        return False
+    if _non_empty_text(current_action_identity.get("source")) != "repair_progress_projection.mas_owner_repair_execution_evidence":
+        return False
+    if _non_empty_text(current_action_identity.get("next_owner")) != "ai_reviewer":
+        return False
+    current_action_ids = set(_text_items(current_action_identity.get("action_ids")))
+    if current_action_ids and "return_to_ai_reviewer_workflow" not in current_action_ids:
+        return False
+    if _non_empty_text(execution.get("action_type")) != "run_gate_clearing_batch":
+        return False
+    if not _provider_attempt_required(execution):
+        return False
+    if execution.get("owner_route_current") is False:
+        return False
+    if not _dispatch_authority_allows_current_control_provider_admission(
+        action_type="run_gate_clearing_batch",
+        dispatch_authority=_non_empty_text(execution.get("dispatch_authority")),
+    ):
+        return False
+    work_unit_id = handoff_work_unit_id(execution)
+    if work_unit_id not in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return False
+    return _gate_replay_execution_has_ai_reviewer_record_basis(execution, work_unit_id=work_unit_id)
+
+
+def _gate_replay_execution_has_ai_reviewer_record_basis(
+    execution: Mapping[str, Any],
+    *,
+    work_unit_id: str,
+) -> bool:
+    route = _mapping(execution.get("owner_route"))
+    source_refs = _mapping(route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    source_eval_id = _non_empty_text(source_refs.get("source_eval_id")) or _non_empty_text(
+        basis.get("source_eval_id")
+    )
+    if source_eval_id is None:
+        return work_unit_id in {
+            "ai_reviewer_record_gate_consumption",
+            "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        } and _gate_replay_execution_has_repair_progress_record_basis(source_refs=source_refs, basis=basis)
+    normalized = source_eval_id.replace("_", "-")
+    return "ai-reviewer-record" in normalized or _gate_replay_execution_has_repair_progress_record_basis(
+        source_refs=source_refs,
+        basis=basis,
+    )
+
+
+def _gate_replay_execution_has_repair_progress_record_basis(
+    *,
+    source_refs: Mapping[str, Any],
+    basis: Mapping[str, Any],
+) -> bool:
+    source_surface = _non_empty_text(source_refs.get("source_surface")) or _non_empty_text(basis.get("source_surface"))
+    source_ref = _non_empty_text(source_refs.get("source_ref")) or _non_empty_text(basis.get("source_ref"))
+    owner_reason = _non_empty_text(basis.get("owner_reason"))
+    return (
+        source_surface in {"repair_progress_projection", "repair_progress_followup.current_executable_owner_action"}
+        or (source_ref is not None and "repair_execution_evidence" in source_ref)
+        or owner_reason == "ai_reviewer_publication_eval_delta_or_typed_blocker"
     )
 
 

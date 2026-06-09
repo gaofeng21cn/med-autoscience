@@ -765,7 +765,13 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
             },
         },
     }
-    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    progress_projection_calls: list[dict[str, object]] = []
+
+    def progress_projection(**kwargs: object) -> dict[str, object]:
+        progress_projection_calls.append(dict(kwargs))
+        return status_payload
+
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", progress_projection)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
     study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
     monkeypatch.setattr(
@@ -818,3 +824,5 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_control_ai_reviewer_q
     assert stage_boundary["intent_can_publish_current_owner_delta"] is False
     assert stage_boundary["intent_can_write_domain_truth"] is False
     assert result["action_fingerprints"] == [action_fingerprint]
+    assert progress_projection_calls
+    assert all(call.get("sync_runtime_summary") is False for call in progress_projection_calls)

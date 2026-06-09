@@ -215,6 +215,61 @@ def test_blueprint_reader_accepts_stage_native_current_body_authority(tmp_path: 
     assert not (study_root / "paper" / "medical_manuscript_blueprint.json").exists()
 
 
+def test_blueprint_reader_prefers_stage_native_current_body_when_cutover_receipt_exists(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.medical_manuscript_blueprint import (
+        build_medical_manuscript_blueprint,
+        current_medical_manuscript_blueprint_path,
+        read_medical_manuscript_blueprint,
+        stable_medical_manuscript_blueprint_path,
+    )
+
+    study_root = tmp_path / "study"
+    _write_blueprint_inputs(study_root)
+    payload = build_medical_manuscript_blueprint(study_root=study_root)
+    payload["authoring_provenance"] = {
+        "owner": "ai_author",
+        "source_kind": "medical_manuscript_blueprint",
+        "policy_id": "medical_manuscript_blueprint_v1",
+        "ai_reviewer_required": False,
+    }
+    legacy_path = study_root / "paper" / "medical_manuscript_blueprint.json"
+    _write_json(legacy_path, payload)
+    stage_native_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+        / "medical_manuscript_blueprint.json"
+    )
+    stage_native_payload = {**payload, "study_objective": "Stage-native current body objective."}
+    _write_json(stage_native_path, stage_native_payload)
+    _write_json(
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "latest.json",
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "new_mas_authority_established",
+            "stage_native_body_authority_root": str(stage_native_path.parent.parent.resolve()),
+        },
+    )
+
+    canonical = read_medical_manuscript_blueprint(study_root=study_root)
+
+    assert current_medical_manuscript_blueprint_path(study_root=study_root) == stage_native_path.resolve()
+    assert stable_medical_manuscript_blueprint_path(study_root=study_root) == legacy_path.resolve()
+    assert canonical["study_objective"] == "Stage-native current body objective."
+
+
 def test_materialize_ai_authorized_blueprint_keeps_legacy_canonical_write_surface_after_cutover(
     tmp_path: Path,
 ) -> None:

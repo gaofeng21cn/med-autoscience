@@ -14,6 +14,7 @@ from med_autoscience.publication_eval_record import PublicationEvalRecord
 from . import ai_reviewer_publication_eval_workflow, domain_status_projection
 from .domain_owner_action_dispatch_parts.action_execution import ai_reviewer_request_refs
 from .domain_action_request_lifecycle import stable_ai_reviewer_request_path
+from .study_runtime_resolution import _execution_payload, _resolve_study
 
 __all__ = [
     "materialize_ai_reviewer_publication_eval",
@@ -49,6 +50,25 @@ def _resolved_study_root(status_payload: Mapping[str, Any]) -> Path:
     if raw_study_root is None:
         raise ValueError("Unable to resolve study_root for AI reviewer publication eval")
     return Path(raw_study_root).expanduser().resolve()
+
+
+def _record_only_status_payload(
+    *,
+    profile: Any,
+    study_id: str | None,
+    study_root: Path | None,
+) -> dict[str, Any]:
+    resolved_study_id, resolved_study_root, study_payload = _resolve_study(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    execution = _execution_payload(study_payload)
+    return {
+        "study_id": resolved_study_id,
+        "study_root": str(resolved_study_root),
+        "quest_id": _optional_text(execution.get("quest_id")) or resolved_study_id,
+    }
 
 
 def _record_timestamp(record_payload: Mapping[str, Any]) -> str:
@@ -226,13 +246,10 @@ def materialize_ai_reviewer_publication_eval_record(
     if bool(study_id) == bool(study_root):
         raise ValueError("Specify exactly one of study_id or study_root")
 
-    status_payload = _mapping_payload(
-        domain_status_projection.progress_projection(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            entry_mode=entry_mode,
-        )
+    status_payload = _record_only_status_payload(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
     )
     resolved_study_root = _resolved_study_root(status_payload)
     record_input_payload = record.to_dict() if isinstance(record, PublicationEvalRecord) else dict(record)

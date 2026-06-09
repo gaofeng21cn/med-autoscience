@@ -14,6 +14,7 @@ PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS = frozenset(
         "publication_gate_replay_after_clean_migration",
         "owner_authorized_publication_gate_replay",
         "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        "ai_reviewer_record_gate_consumption",
     }
 )
 

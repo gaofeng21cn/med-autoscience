@@ -34,6 +34,13 @@ STAGE_NATIVE_BODY_AUTHORITY_ROOT_RELATIVE_PATH = (
     / "paper_authority_cutover"
     / "current_body"
 )
+PAPER_AUTHORITY_CUTOVER_LATEST_RELATIVE_PATH = (
+    Path("artifacts")
+    / "stage_outputs"
+    / "_body_authority"
+    / "paper_authority_cutover"
+    / "latest.json"
+)
 _REQUIRED_SEQUENCE = (
     "clinical_problem",
     "evidence_gap",
@@ -72,7 +79,9 @@ def stable_medical_manuscript_blueprint_path(*, study_root: Path) -> Path:
 def current_medical_manuscript_blueprint_path(*, study_root: Path) -> Path:
     legacy_path = stable_medical_manuscript_blueprint_path(study_root=study_root)
     stage_native_path = _stage_native_medical_manuscript_blueprint_path(study_root=study_root)
-    if not legacy_path.exists() and stage_native_path.exists():
+    if stage_native_path.exists() and (
+        _stage_native_body_authority_current(study_root=study_root) or not legacy_path.exists()
+    ):
         return stage_native_path
     return legacy_path
 
@@ -115,6 +124,27 @@ def _stage_native_medical_manuscript_blueprint_path(*, study_root: Path) -> Path
         / STAGE_NATIVE_BODY_AUTHORITY_ROOT_RELATIVE_PATH
         / STABLE_MEDICAL_MANUSCRIPT_BLUEPRINT_RELATIVE_PATH
     ).resolve()
+
+
+def _paper_authority_cutover_latest_path(*, study_root: Path) -> Path:
+    return (Path(study_root).expanduser().resolve() / PAPER_AUTHORITY_CUTOVER_LATEST_RELATIVE_PATH).resolve()
+
+
+def _stage_native_body_authority_root(*, study_root: Path) -> Path:
+    return (Path(study_root).expanduser().resolve() / STAGE_NATIVE_BODY_AUTHORITY_ROOT_RELATIVE_PATH).resolve()
+
+
+def _stage_native_body_authority_current(*, study_root: Path) -> bool:
+    receipt = _read_json(_paper_authority_cutover_latest_path(study_root=study_root))
+    if not receipt:
+        return False
+    status = _text(receipt.get("status"))
+    if status not in {"awaiting_new_mas_authority", "new_mas_authority_established"}:
+        return False
+    receipt_root = _text(receipt.get("stage_native_body_authority_root"))
+    if receipt_root is None:
+        return False
+    return Path(receipt_root).expanduser().resolve() == _stage_native_body_authority_root(study_root=study_root)
 
 
 def _legacy_medical_manuscript_blueprint_path(*, study_root: Path) -> Path:

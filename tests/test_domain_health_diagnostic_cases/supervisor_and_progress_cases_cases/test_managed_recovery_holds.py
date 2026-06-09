@@ -80,7 +80,7 @@ def test_watch_runtime_does_not_auto_recover_package_ready_handoff(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or parked_status(),
+        lambda *, profile, study_root, **kwargs: calls.append(("status", Path(study_root).name)) or parked_status(),
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -164,7 +164,7 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or no_live_status,
+        lambda *, profile, study_root, **kwargs: calls.append(("status", Path(study_root).name)) or no_live_status,
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -272,7 +272,7 @@ def test_watch_runtime_does_not_hold_recovery_for_plain_opl_runtime_handoff(
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root: no_live_status,
+        lambda *, profile, study_root, **kwargs: no_live_status,
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
     monkeypatch.setattr(
@@ -547,7 +547,7 @@ def test_domain_health_diagnostic_focused_scope_limits_runtime_scan_and_managed_
     materialize_calls: list[dict[str, object]] = []
     dispatch_calls: list[dict[str, object]] = []
 
-    def fake_progress_projection(*, profile, study_root):
+    def fake_progress_projection(*, profile, study_root, **kwargs):
         status_reads.append(Path(study_root).name)
         study_id = Path(study_root).name
         return {

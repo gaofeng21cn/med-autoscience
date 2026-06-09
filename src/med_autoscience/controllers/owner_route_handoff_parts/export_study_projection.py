@@ -119,8 +119,12 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         study_root=study_root,
         profile=profile,
     )
+    repair_progress_followup_owner_action = repair_progress_followup_owner_action_record(
+        study_root=study_root,
+    )
     provider_admission_owner_action = provider_admission_owner_action_record(
         study_root=study_root,
+        current_repair_followup=repair_progress_followup_owner_action,
     )
     owner_route_reconcile_repair_action = owner_route_reconcile_readiness_repair_owner_action_record(
         study_root=study_root,
@@ -134,6 +138,7 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
     current_owner_action = (
         current_writer_owner_action
         or provider_admission_owner_action
+        or repair_progress_followup_owner_action
         or stage_native_owner_action
         or owner_route_reconcile_repair_action
         or current_control_owner_action
@@ -433,6 +438,7 @@ def stage_native_next_action_owner_action_record(
 def provider_admission_owner_action_record(
     *,
     study_root: Path,
+    current_repair_followup: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     repair_progress = repair_progress_projection.build_repair_progress_projection(study_root=study_root)
     if repair_progress.get("paper_delta_observed") is not True:
@@ -450,6 +456,11 @@ def provider_admission_owner_action_record(
     if not candidates:
         return None
     candidate = candidates[0]
+    if not _provider_admission_matches_current_repair_followup(
+        candidate,
+        current_repair_followup=current_repair_followup,
+    ):
+        return None
     action_type = text(candidate.get("action_type"))
     work_unit_id = text(candidate.get("work_unit_id"))
     action_fingerprint = text(candidate.get("action_fingerprint")) or text(candidate.get("work_unit_fingerprint"))
@@ -491,6 +502,126 @@ def provider_admission_owner_action_record(
             "mas_owner_receipt_required": True,
         },
     }
+
+
+def repair_progress_followup_owner_action_record(
+    *,
+    study_root: Path,
+) -> dict[str, Any] | None:
+    repair_progress = repair_progress_projection.build_repair_progress_projection(study_root=study_root)
+    if repair_progress.get("paper_delta_observed") is not True:
+        return None
+    if repair_progress.get("accepted_owner_receipt") is not True:
+        return None
+    current_action = _repair_progress_current_owner_action(repair_progress=repair_progress)
+    action_type = text(current_action.get("action_type"))
+    work_unit_id = text(current_action.get("work_unit_id"))
+    if action_type is None or work_unit_id is None:
+        return None
+    source_ref = text(current_action.get("source_ref")) or text(repair_progress.get("owner_receipt_ref"))
+    action_fingerprint = (
+        text(current_action.get("action_fingerprint"))
+        or text(current_action.get("work_unit_fingerprint"))
+        or text(repair_progress.get("source_fingerprint"))
+        or (
+            f"repair-progress-current-owner::{study_root.name}::{work_unit_id}::{action_type}::{source_ref}"
+            if source_ref is not None
+            else None
+        )
+    )
+    if action_fingerprint is None:
+        return None
+    quest_id = text(current_action.get("quest_id")) or study_root.name
+    next_owner = text(current_action.get("next_owner")) or request_owner_for_action_type(action_type)
+    currentness_basis = {
+        "owner_reason": text(current_action.get("required_delta_kind")) or work_unit_id,
+        "runtime_health_epoch": action_fingerprint,
+        "truth_epoch": action_fingerprint,
+        "work_unit_fingerprint": action_fingerprint,
+        "work_unit_id": work_unit_id,
+    }
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_root.name,
+        "quest_id": quest_id,
+        "truth_epoch": action_fingerprint,
+        "runtime_health_epoch": action_fingerprint,
+        "work_unit_fingerprint": action_fingerprint,
+        "source_fingerprint": action_fingerprint,
+        "route_epoch": action_fingerprint,
+        "current_owner": "med-autoscience",
+        "next_owner": next_owner,
+        "owner_reason": currentness_basis["owner_reason"],
+        "active_run_id": None,
+        "allowed_actions": [action_type],
+        "blocked_actions": sorted(item for item in SUPPORTED_ACTION_TYPES if item != action_type),
+        "source_refs": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+            "source_surface": text(current_action.get("source")) or "repair_progress_projection",
+            "source_ref": source_ref,
+            "owner_route_currentness_basis": currentness_basis,
+        },
+        "idempotency_key": f"repair-progress-followup::{study_root.name}::{action_fingerprint}",
+    }
+    return {
+        "surface_kind": "mas_current_owner_action_record",
+        "schema_version": 1,
+        "source": "repair_progress_followup.current_executable_owner_action",
+        "study_id": study_root.name,
+        "quest_id": quest_id,
+        "recorded_at": text(repair_progress.get("recorded_at")),
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "recommended_task_kind": "domain_owner/default-executor-dispatch",
+        "next_owner": next_owner,
+        "allowed_actions": [action_type],
+        "required_output_surface": text(mapping(current_action.get("target_surface")).get("surface_ref"))
+        or request_output_surface_for_action_type(action_type),
+        "source_ref_role": "repair_progress_current_owner_action",
+        "source_relative_path": source_ref,
+        "source_surface": text(current_action.get("source")) or "repair_progress_projection",
+        "repair_progress_followup": current_action,
+        "owner_route_currentness_basis": currentness_basis,
+        "owner_route": owner_route,
+        "currentness_status": "repair_progress_followup_active",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
+
+
+def _provider_admission_matches_current_repair_followup(
+    candidate: Mapping[str, Any],
+    *,
+    current_repair_followup: Mapping[str, Any] | None,
+) -> bool:
+    followup = mapping(current_repair_followup)
+    if not followup:
+        return True
+    candidate_action_type = text(candidate.get("action_type"))
+    followup_action_type = text(followup.get("action_type"))
+    if candidate_action_type == followup_action_type:
+        pass
+    elif followup_action_type == "return_to_ai_reviewer_workflow" and candidate_action_type == "run_gate_clearing_batch":
+        return False
+    else:
+        return True
+    expected_work_unit = text(followup.get("work_unit_id"))
+    if expected_work_unit is not None and text(candidate.get("work_unit_id")) != expected_work_unit:
+        return False
+    expected_fingerprint = text(followup.get("work_unit_fingerprint")) or text(followup.get("action_fingerprint"))
+    candidate_fingerprint = text(candidate.get("work_unit_fingerprint")) or text(candidate.get("action_fingerprint"))
+    if expected_fingerprint is not None and candidate_fingerprint is not None:
+        return candidate_fingerprint == expected_fingerprint
+    return True
 
 
 def owner_route_reconcile_readiness_repair_owner_action_record(

@@ -111,6 +111,37 @@ def test_owner_route_registers_dm002_clean_migration_publication_gate_replay() -
     }
 
 
+def test_owner_route_registers_dm002_ai_reviewer_record_gate_consumption() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    decorated = protocol.decorate_owner_route(
+        {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "truth_epoch": "publication-eval::dm002::current-ai-reviewer-record",
+            "runtime_health_epoch": "runtime-health::dm002::current",
+            "source_fingerprint": "truth-source::dm002::current-ai-reviewer-record",
+            "work_unit_fingerprint": "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption",
+            "current_owner": "mas_controller",
+            "next_owner": "gate_clearing_batch",
+            "owner_reason": "ai_reviewer_record_gate_consumption",
+            "failure_signature": "ai_reviewer_record_gate_consumption",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "source_refs": {
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption",
+            },
+        }
+    )
+
+    assert decorated["owner_reason_contract"]["registered"] is True
+    assert decorated["owner_reason_contract"]["owner"] == "gate_clearing_batch"
+    assert decorated["owner_reason_contract"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
+
+
 def test_owner_route_registers_paper_clean_room_rebuild_action() -> None:
     protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
 

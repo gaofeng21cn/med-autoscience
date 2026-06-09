@@ -140,11 +140,14 @@ def default_executor_dispatch_tasks(
             _text(provider_payload_fields.get("work_unit_fingerprint"))
             or work_unit_fingerprint
         )
-        source_fingerprint = _text(provider_payload_fields.get("source_fingerprint")) or _source_fingerprint(
-            dispatch=dispatch,
-            dispatch_path=stage_packet_path,
-            redrive_context=redrive_context,
-            readiness_surface_identity=readiness_surface_identity,
+        source_fingerprint = (
+            _text(provider_payload_fields.get("source_fingerprint"))
+            or _source_fingerprint(
+                dispatch=dispatch,
+                dispatch_path=stage_packet_path,
+                redrive_context=redrive_context,
+                readiness_surface_identity=readiness_surface_identity,
+            )
         )
         evidence_record_payload = build_domain_dispatch_evidence_record_payload(
             task_kind=TASK_KIND,
@@ -179,6 +182,11 @@ def default_executor_dispatch_tasks(
                     "action_type": action_type,
                     **protocol_payload_fields,
                     **provider_payload_fields,
+                    **(
+                        {"work_unit_fingerprint": work_unit_fingerprint}
+                        if work_unit_fingerprint is not None
+                        else {}
+                    ),
                     "dispatch_authority": dispatch_authority,
                     "executor_kind": executor_kind,
                     "dispatch_ref": dispatch_ref,

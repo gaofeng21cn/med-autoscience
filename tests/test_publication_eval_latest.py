@@ -574,6 +574,7 @@ def test_ai_reviewer_publication_eval_record_controller_materializes_owner_recor
 ) -> None:
     controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_json(study_root / "study.yaml", {"study_id": "001-risk", "execution": {"quest_id": "quest-001"}})
     payload = _minimal_payload(study_root)
     payload["quality_assessment"] = _quality_assessment(study_root)
     payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
@@ -586,18 +587,13 @@ def test_ai_reviewer_publication_eval_record_controller_materializes_owner_recor
         }
     ]
 
-    monkeypatch.setattr(
-        controller.domain_status_projection,
-        "progress_projection",
-        lambda **_: {
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "quest_id": "quest-001",
-        },
-    )
+    def forbidden_progress_projection(**_: object) -> dict[str, object]:
+        raise AssertionError("record-only materializer must not call progress_projection")
+
+    monkeypatch.setattr(controller.domain_status_projection, "progress_projection", forbidden_progress_projection)
 
     result = controller.materialize_ai_reviewer_publication_eval_record(
-        profile=SimpleNamespace(name="nfpitnet"),
+        profile=SimpleNamespace(name="nfpitnet", studies_root=study_root.parent),
         study_id="001-risk",
         study_root=None,
         entry_mode=None,
@@ -615,25 +611,54 @@ def test_ai_reviewer_publication_eval_record_controller_materializes_owner_recor
     assert archived["eval_id"] == payload["eval_id"]
 
 
+def test_ai_reviewer_publication_eval_record_controller_preserves_latest_without_progress_projection(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_json(study_root / "study.yaml", {"study_id": "001-risk", "execution": {"quest_id": "quest-001"}})
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
+    latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    latest_before = {"surface": "publication_eval_latest_sentinel", "eval_id": "previous-eval"}
+    _write_json(latest_path, latest_before)
+
+    def forbidden_progress_projection(**_: object) -> dict[str, object]:
+        raise AssertionError("record-only materializer must not call progress_projection")
+
+    monkeypatch.setattr(controller.domain_status_projection, "progress_projection", forbidden_progress_projection)
+
+    result = controller.materialize_ai_reviewer_publication_eval_record(
+        profile=SimpleNamespace(name="nfpitnet", studies_root=study_root.parent),
+        study_id="001-risk",
+        study_root=None,
+        entry_mode=None,
+        record=payload,
+        source="pytest",
+    )
+
+    assert result["status"] == "materialized"
+    assert result["publication_eval_surface"] == "not_written"
+    assert json.loads(latest_path.read_text(encoding="utf-8")) == latest_before
+
+
 def test_ai_reviewer_publication_eval_record_controller_blocks_empty_authoring_target_without_writes(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_json(study_root / "study.yaml", {"study_id": "001-risk", "execution": {"quest_id": "quest-001"}})
 
-    monkeypatch.setattr(
-        controller.domain_status_projection,
-        "progress_projection",
-        lambda **_: {
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "quest_id": "quest-001",
-        },
-    )
+    def forbidden_progress_projection(**_: object) -> dict[str, object]:
+        raise AssertionError("record-only materializer must not call progress_projection")
+
+    monkeypatch.setattr(controller.domain_status_projection, "progress_projection", forbidden_progress_projection)
 
     result = controller.materialize_ai_reviewer_publication_eval_record(
-        profile=SimpleNamespace(name="nfpitnet"),
+        profile=SimpleNamespace(name="nfpitnet", studies_root=study_root.parent),
         study_id="001-risk",
         study_root=None,
         entry_mode=None,
@@ -668,6 +693,7 @@ def test_ai_reviewer_publication_eval_record_controller_rejects_invalid_reviewer
 ) -> None:
     controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_json(study_root / "study.yaml", {"study_id": "001-risk", "execution": {"quest_id": "quest-001"}})
     payload = _minimal_payload(study_root)
     payload["quality_assessment"] = _quality_assessment(study_root)
     payload["reviewer_operating_system"] = {
@@ -677,19 +703,14 @@ def test_ai_reviewer_publication_eval_record_controller_rejects_invalid_reviewer
         "claim_boundary_review": {"status": "partial"},
     }
 
-    monkeypatch.setattr(
-        controller.domain_status_projection,
-        "progress_projection",
-        lambda **_: {
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "quest_id": "quest-001",
-        },
-    )
+    def forbidden_progress_projection(**_: object) -> dict[str, object]:
+        raise AssertionError("record-only materializer must not call progress_projection")
+
+    monkeypatch.setattr(controller.domain_status_projection, "progress_projection", forbidden_progress_projection)
 
     with pytest.raises(ValueError, match="reviewer_operating_system invalid"):
         controller.materialize_ai_reviewer_publication_eval_record(
-            profile=SimpleNamespace(name="nfpitnet"),
+            profile=SimpleNamespace(name="nfpitnet", studies_root=study_root.parent),
             study_id="001-risk",
             study_root=None,
             entry_mode=None,
@@ -707,6 +728,7 @@ def test_ai_reviewer_publication_eval_record_controller_rebuilds_production_trac
 ) -> None:
     controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_json(study_root / "study.yaml", {"study_id": "001-risk", "execution": {"quest_id": "quest-001"}})
     payload = _minimal_payload(study_root)
     payload["quality_assessment"] = _quality_assessment(study_root)
     payload["future_facing_limitations_plan"] = [
@@ -816,18 +838,13 @@ def test_ai_reviewer_publication_eval_record_controller_rebuilds_production_trac
         },
     }
 
-    monkeypatch.setattr(
-        controller.domain_status_projection,
-        "progress_projection",
-        lambda **_: {
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "quest_id": "quest-001",
-        },
-    )
+    def forbidden_progress_projection(**_: object) -> dict[str, object]:
+        raise AssertionError("record-only materializer must not call progress_projection")
+
+    monkeypatch.setattr(controller.domain_status_projection, "progress_projection", forbidden_progress_projection)
 
     result = controller.materialize_ai_reviewer_publication_eval_record(
-        profile=SimpleNamespace(name="nfpitnet"),
+        profile=SimpleNamespace(name="nfpitnet", studies_root=study_root.parent),
         study_id="001-risk",
         study_root=None,
         entry_mode=None,

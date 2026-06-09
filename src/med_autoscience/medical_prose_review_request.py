@@ -42,6 +42,13 @@ STAGE_NATIVE_BODY_AUTHORITY_PAPER_ROOT_RELATIVE_PATH = (
     / "current_body"
     / "paper"
 )
+PAPER_AUTHORITY_CUTOVER_LATEST_RELATIVE_PATH = (
+    Path("artifacts")
+    / "stage_outputs"
+    / "_body_authority"
+    / "paper_authority_cutover"
+    / "latest.json"
+)
 
 _REQUIRED_TOP_LEVEL_FIELDS = (
     "schema_version",
@@ -135,13 +142,40 @@ def _current_paper_root(*, study_root: Path, paper_root: Path | None) -> Path:
         return Path(paper_root).expanduser().resolve()
     stage_native_root = resolved_study_root / STAGE_NATIVE_BODY_AUTHORITY_PAPER_ROOT_RELATIVE_PATH
     legacy_root = resolved_study_root / "paper"
-    if not (legacy_root / "draft.md").is_file() and (stage_native_root / "draft.md").is_file():
+    if (stage_native_root / "draft.md").is_file() and (
+        _stage_native_paper_authority_current(study_root=resolved_study_root)
+        or not (legacy_root / "draft.md").is_file()
+    ):
         return stage_native_root.resolve()
     return legacy_root.resolve()
 
 
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def _paper_authority_cutover_latest_path(*, study_root: Path) -> Path:
+    return (Path(study_root).expanduser().resolve() / PAPER_AUTHORITY_CUTOVER_LATEST_RELATIVE_PATH).resolve()
+
+
+def _stage_native_body_authority_root(*, study_root: Path) -> Path:
+    return (
+        Path(study_root).expanduser().resolve()
+        / STAGE_NATIVE_BODY_AUTHORITY_PAPER_ROOT_RELATIVE_PATH.parent
+    ).resolve()
+
+
+def _stage_native_paper_authority_current(*, study_root: Path) -> bool:
+    receipt = _read_json(_paper_authority_cutover_latest_path(study_root=study_root))
+    if not receipt:
+        return False
+    status = _text(receipt.get("status"))
+    if status not in {"awaiting_new_mas_authority", "new_mas_authority_established"}:
+        return False
+    receipt_root = _text(receipt.get("stage_native_body_authority_root"))
+    if receipt_root is None:
+        return False
+    return Path(receipt_root).expanduser().resolve() == _stage_native_body_authority_root(study_root=study_root)
 
 
 def _canonical_json(payload: Mapping[str, Any]) -> bytes:

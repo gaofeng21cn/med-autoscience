@@ -485,6 +485,9 @@ _REASON_REGISTRY = {
     "publication_gate_replay_after_clean_migration": _gate_clearing_entry(
         "DM002:clean_migration_publication_gate_replay"
     ),
+    "ai_reviewer_record_gate_consumption": _gate_clearing_entry(
+        "DM002:current_ai_reviewer_record_gate_consumption"
+    ),
     "dpcc_publication_gate_replay_after_current_ai_reviewer_record": _gate_clearing_entry(
         "DM003:current_ai_reviewer_publication_gate_replay"
     ),

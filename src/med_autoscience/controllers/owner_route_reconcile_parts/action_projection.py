@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import analysis_harmonization_owner_result
+from med_autoscience.controllers import ai_reviewer_publication_eval_records
 from med_autoscience.controllers import ai_reviewer_owner_output_consumption
 from med_autoscience.controllers import provenance_limited_harmonization_owner_result
 from med_autoscience.controllers import source_provenance_owner_result
@@ -638,6 +639,9 @@ def _accepted_repair_progress_followup_action(
     if ai_reviewer_request_ref is not None and _ai_reviewer_request_is_current(
         study_root=root,
         request_ref=ai_reviewer_request_ref,
+    ) and not _current_ai_reviewer_record_already_available(
+        study_root=root,
+        publication_eval_payload=publication_eval_payload,
     ):
         return _repair_progress_followup_payload(
             action_type="return_to_ai_reviewer_workflow",
@@ -696,6 +700,25 @@ def _accepted_repair_progress(
     if _text(receipt.get("typed_blocker")) is not None or _text(receipt.get("blocked_reason")) is not None:
         return False
     return True
+
+
+def _current_ai_reviewer_record_already_available(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> bool:
+    if (
+        _text(publication_eval_payload.get(ai_reviewer_publication_eval_records.PROJECTION_SOURCE_KIND_FIELD))
+        == ai_reviewer_publication_eval_records.PROJECTION_SOURCE_KIND_AI_REVIEWER_RECORD
+    ):
+        return True
+    return (
+        ai_reviewer_publication_eval_records.latest_current_ai_reviewer_publication_eval_record(
+            study_root=study_root,
+            current_publication_eval=publication_eval_payload,
+        )
+        is not None
+    )
 
 
 def _ai_reviewer_request_is_current(*, study_root: Path, request_ref: str) -> bool:

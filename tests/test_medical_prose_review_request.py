@@ -210,6 +210,57 @@ def test_review_request_uses_stage_native_body_when_legacy_paper_shell_lacks_dra
     assert not (legacy_paper_root / "draft.md").exists()
 
 
+def test_review_request_prefers_stage_native_body_authority_over_legacy_paper_when_both_exist(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.medical_prose_review_request import (
+        materialize_medical_prose_review_request,
+        read_medical_prose_review_request,
+    )
+
+    study_root = tmp_path / "study"
+    _write_review_request_inputs(study_root)
+    legacy_paper_root = study_root / "paper"
+    stage_native_paper_root = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+    )
+    stage_native_paper_root.mkdir(parents=True)
+    _write_json(
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "latest.json",
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "new_mas_authority_established",
+            "stage_native_body_authority_root": str(stage_native_paper_root.parent.resolve()),
+        },
+    )
+    for source in legacy_paper_root.rglob("*"):
+        if source.is_file():
+            target = stage_native_paper_root / source.relative_to(legacy_paper_root)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    (legacy_paper_root / "draft.md").write_text("## Results\n\nLegacy paper shell.\n", encoding="utf-8")
+    (stage_native_paper_root / "draft.md").write_text("## Results\n\nStage-native body authority.\n", encoding="utf-8")
+
+    materialize_medical_prose_review_request(study_root=study_root)
+    payload = read_medical_prose_review_request(study_root=study_root)
+
+    assert payload["required_inputs"]["manuscript_ref"] == str((stage_native_paper_root / "draft.md").resolve())
+    assert payload["manuscript"]["path"] == str((stage_native_paper_root / "draft.md").resolve())
+    assert "Stage-native body authority" in payload["manuscript"]["text"]
+
+
 def test_review_request_includes_completed_unit_harmonized_rerun_evidence(tmp_path: Path) -> None:
     from med_autoscience.medical_prose_review_request import (
         materialize_medical_prose_review_request,

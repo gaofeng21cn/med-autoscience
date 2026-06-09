@@ -341,6 +341,18 @@ def _write_consumer_latest(profile, dispatch_payload: dict[str, object]) -> None
     )
 
 
+def _write_consumer_latest_dispatches(profile, dispatch_payloads: list[dict[str, object]]) -> None:
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatch_count": len(dispatch_payloads),
+            "default_executor_dispatches": dispatch_payloads,
+        },
+    )
+
+
 def _install_gate_clearing_stub(module, monkeypatch) -> list[str]:
     called: list[str] = []
 
@@ -420,6 +432,155 @@ def test_execute_dispatch_selects_current_gate_replay_after_consumed_transition(
     assert execution["action_type"] == "run_gate_clearing_batch"
     assert execution["owner_route_current"] is True
     assert execution["owner_route"]["next_owner"] == "gate_clearing_batch"
+    assert execution["execution_status"] == "executed"
+    assert called == [str(study_root)]
+
+
+def test_execute_dispatch_rejects_stale_quality_repair_when_current_route_allows_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "schema_version": 1,
+            "status": "ready_for_owner_action",
+            "action_id": "run_quality_repair_batch",
+            "owner": "write",
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "stage_index_ref": "control/stage_index.json",
+            "next_work_unit": "medical_publication_surface_blocked_write_repair",
+            "required_output_surface": (
+                "canonical manuscript story-surface delta or "
+                "typed blocker:manuscript_story_surface_delta_missing"
+            ),
+        },
+    )
+    gate_route = _owner_route(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+    )
+    gate_route.update(
+        {
+            "quest_id": study_id,
+            "truth_epoch": study_id,
+            "route_epoch": study_id,
+            "runtime_health_epoch": None,
+            "work_unit_fingerprint": "work-unit::dm002::publication_gate_replay",
+            "source_fingerprint": "owner-route-source::dm002-gate-replay",
+            "failure_signature": "publication_gate_replay",
+            "owner_reason": "publication_gate_replay",
+            "source_refs": {
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "work-unit::dm002::publication_gate_replay",
+                "quest_root": str(quest_root),
+                "owner_route_currentness_basis": {
+                    "truth_epoch": study_id,
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "work-unit::dm002::publication_gate_replay",
+                },
+            },
+        }
+    )
+    gate_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+        required_output_surface="artifacts/controller/gate_clearing_batch/latest.json",
+        owner_route=gate_route,
+    )
+    gate_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    gate_dispatch["refs"] = {"dispatch_path": str(gate_dispatch_path)}
+    _write_json(gate_dispatch_path, gate_dispatch)
+    stale_repair_route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    stale_repair_route.update(
+        {
+            "work_unit_fingerprint": "work-unit::dm002::stale-quality-repair",
+            "source_fingerprint": "owner-route-source::dm002-stale-quality-repair",
+        }
+    )
+    stale_repair_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface="artifacts/controller/quality_repair_batch/latest.json",
+        owner_route=stale_repair_route,
+    )
+    stale_repair_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    stale_repair_dispatch["refs"] = {"dispatch_path": str(stale_repair_dispatch_path)}
+    _write_json(stale_repair_dispatch_path, stale_repair_dispatch)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "quest_root": str(quest_root),
+                    "owner_route": gate_route,
+                    "action_queue": [
+                        {
+                            "action_type": "run_gate_clearing_batch",
+                            "owner_route": gate_route,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_consumer_latest_dispatches(profile, [stale_repair_dispatch, gate_dispatch])
+    called = _install_gate_clearing_stub(module, monkeypatch)
+
+    def fail_quality_repair_batch(**kwargs) -> dict[str, object]:
+        raise AssertionError("stale quality repair dispatch should not execute")
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fail_quality_repair_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["action_type"] == "run_gate_clearing_batch"
+    assert execution["owner_route_current"] is True
     assert execution["execution_status"] == "executed"
     assert called == [str(study_root)]
 

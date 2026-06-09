@@ -76,7 +76,11 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     provider_probe_has_non_running_actions,
     study_has_running_provider_attempt,
 )
-from med_autoscience.controllers.owner_route_reconcile_parts import scan_output, supervision_surfaces
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control import (
+    materialize_provider_admission_current_control_state as _materialize_provider_admission_current_control_state,
+)
+from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
+from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
 from med_autoscience.controllers.domain_health_diagnostic_parts.quest_scan import (
     DEFAULT_CONTROLLER_ORDER,
     ControllerRunner,
@@ -122,212 +126,6 @@ PROGRESS_FIRST_SAME_TICK_MAX_PASSES = 3
 PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_TIMEOUT_SECONDS = 2.0
 PROGRESS_FIRST_SAME_TICK_PROVIDER_READINESS_TIMEOUT_SECONDS = 1.0
 PROGRESS_FIRST_SAME_TICK_LIVE_ATTEMPT_MAX_INSPECT_COUNT = 1
-
-
-def _provider_admission_current_control_action(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    action_type = _non_empty_text(candidate.get("action_type"))
-    study_id = _non_empty_text(candidate.get("study_id"))
-    work_unit_id = _non_empty_text(candidate.get("work_unit_id"))
-    action_fingerprint = _non_empty_text(candidate.get("action_fingerprint")) or _non_empty_text(
-        candidate.get("work_unit_fingerprint")
-    )
-    source_refs = {
-        key: value
-        for key, value in {
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": action_fingerprint,
-            "provider_admission_identity_ref": _non_empty_text(candidate.get("execution_ref")),
-            "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
-            "blocked_reason": _non_empty_text(candidate.get("blocked_reason")),
-        }.items()
-        if value is not None
-    }
-    owner_route = {
-        "surface": "domain_route_owner_route",
-        "schema_version": 2,
-        "study_id": study_id,
-        "quest_id": _non_empty_text(candidate.get("quest_id")),
-        "truth_epoch": _non_empty_text(_mapping(candidate.get("currentness_basis")).get("truth_epoch"))
-        or action_fingerprint,
-        "runtime_health_epoch": _non_empty_text(
-            _mapping(candidate.get("currentness_basis")).get("runtime_health_epoch")
-        )
-        or action_fingerprint,
-        "work_unit_fingerprint": action_fingerprint,
-        "failure_signature": action_type,
-        "trace_id": f"provider-admission::{study_id}::{action_type}",
-        "route_epoch": action_fingerprint,
-        "source_fingerprint": action_fingerprint,
-        "current_owner": "med-autoscience",
-        "next_owner": _non_empty_text(candidate.get("next_executable_owner")),
-        "owner_reason": work_unit_id or action_type,
-        "active_run_id": None,
-        "allowed_actions": [action_type] if action_type is not None else [],
-        "blocked_actions": [],
-        "source_refs": {
-            **source_refs,
-            "owner_route_currentness_basis": dict(_mapping(candidate.get("currentness_basis"))),
-        },
-        "idempotency_key": f"provider-admission::{study_id}::{action_fingerprint}",
-    }
-    return {
-        key: value
-        for key, value in {
-            "study_id": study_id,
-            "quest_id": _non_empty_text(candidate.get("quest_id")),
-            "action_type": action_type,
-            "action_id": f"provider-admission::{study_id}::{action_type}",
-            "status": "queued",
-            "reason": _non_empty_text(candidate.get("blocked_reason")) or "provider_admission_pending",
-            "owner": _non_empty_text(candidate.get("next_executable_owner")),
-            "request_owner": _non_empty_text(candidate.get("next_executable_owner")),
-            "recommended_owner": _non_empty_text(candidate.get("next_executable_owner")),
-            "authority": "mas_provider_admission_identity",
-            "required_output_surface": _non_empty_text(candidate.get("required_output_surface")),
-            "work_unit_id": work_unit_id,
-            "work_unit_fingerprint": action_fingerprint,
-            "action_fingerprint": action_fingerprint,
-            "source_surface": "mas_opl_runtime_owner_handoff.provider_admission_identity",
-            "source_ref": _non_empty_text(candidate.get("execution_ref")),
-            "provider_attempt_or_lease_required": True,
-            "provider_completion_is_domain_completion": False,
-            "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
-            "blocked_reason": _non_empty_text(candidate.get("blocked_reason")),
-            "owner_route": owner_route,
-            "handoff_packet": {
-                "surface": "provider_admission_current_control_handoff",
-                "authority": "mas_provider_admission_identity",
-                "owner": _non_empty_text(candidate.get("next_executable_owner")),
-                "request_owner": _non_empty_text(candidate.get("next_executable_owner")),
-                "recommended_owner": _non_empty_text(candidate.get("next_executable_owner")),
-                "next_executable_owner": _non_empty_text(candidate.get("next_executable_owner")),
-                "required_output_surface": _non_empty_text(candidate.get("required_output_surface")),
-                "next_work_unit": work_unit_id,
-                "work_unit_fingerprint": action_fingerprint,
-                "source_ref": _non_empty_text(candidate.get("execution_ref")),
-                "owner_route": owner_route,
-            },
-        }.items()
-        if value is not None
-    }
-
-
-def _provider_admission_current_control_study(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    action = _provider_admission_current_control_action(candidate)
-    owner_route = _mapping(action.get("owner_route"))
-    study_id = _non_empty_text(candidate.get("study_id"))
-    return {
-        "study_id": study_id,
-        "quest_id": _non_empty_text(candidate.get("quest_id")),
-        "handoff_generated_at": _non_empty_text(candidate.get("recorded_at")),
-        "handoff_scan_status": "provider_admission_from_mas_handoff",
-        "study_root": _non_empty_text(candidate.get("study_root")),
-        "quest_status": "provider_admission_pending",
-        "active_run_id": None,
-        "active_stage_attempt_id": None,
-        "active_workflow_id": None,
-        "running_provider_attempt": False,
-        "runtime_health": {
-            "health_status": "provider_admission_pending",
-            "runtime_liveness_status": "not_running",
-            "blocked_reason": _non_empty_text(candidate.get("blocked_reason")),
-            "summary": "Current MAS owner action is ready for OPL provider admission.",
-        },
-        "action_queue": [action],
-        "provider_admission_identity": dict(candidate),
-        "provider_admission_candidates": [dict(candidate)],
-        "provider_admission_pending_count": 1,
-        "why_not_applied": ["provider_admission_current_control_state_required"],
-        "blocked_reason": "provider_admission_current_control_state_required",
-        "next_owner": "one-person-lab",
-        "external_supervisor_required": True,
-        "owner_route": owner_route,
-        "current_execution_envelope": {
-            "state_kind": "executable_owner_action",
-            "owner": _non_empty_text(candidate.get("next_executable_owner")) or "one-person-lab",
-            "next_work_unit": _non_empty_text(candidate.get("work_unit_id")),
-            "typed_blocker": None,
-            "parked_state": None,
-            "source": "mas_provider_admission_identity",
-        },
-    }
-
-
-def _materialize_provider_admission_current_control_state(
-    *,
-    profile: WorkspaceProfile,
-    candidates: list[dict[str, Any]],
-    generated_at: str,
-    apply: bool,
-) -> dict[str, Any] | None:
-    if not candidates:
-        return None
-    latest_path = supervision_surfaces.latest_path(profile)
-    history_path = supervision_surfaces.history_path(profile)
-    previous_payload = supervision_surfaces.read_json_object(latest_path)
-    studies = [_provider_admission_current_control_study(candidate) for candidate in candidates]
-    action_queue = [
-        action
-        for study in studies
-        for action in study.get("action_queue", [])
-        if isinstance(action, Mapping)
-    ]
-    output_studies, output_actions = scan_output.merge_previous_unscanned_study_handoff(
-        previous_payload=previous_payload,
-        scanned_studies=studies,
-        scanned_action_queue=action_queue,
-        retain_unscanned_studies=True,
-    )
-    current_execution_envelopes = scan_output.merge_current_execution_envelopes(
-        previous_payload=previous_payload,
-        output_studies=output_studies,
-        scanned_studies=studies,
-        retain_unscanned_studies=True,
-    )
-    payload = scan_output.build_scan_domain_routes_payload(
-        schema_version=1,
-        generated_at=generated_at,
-        workspace_root=profile.workspace_root,
-        developer_mode_payload={
-            "mode": "developer_apply_safe",
-            "mode_label": "focused_provider_admission_current_control",
-            "scheduler_owner": "opl_current_control_state",
-            "safe_actions_enabled": True,
-            "repo_level_repair_authority": False,
-        },
-        safe_actions_enabled=True,
-        two_layer_ai_repair_policy={},
-        studies=output_studies,
-        action_queue=output_actions,
-        current_execution_envelopes=current_execution_envelopes,
-        queue_history={
-            "history_path": str(history_path),
-            "latest_action_count": len(output_actions),
-            "provider_admission_pending_count": len(candidates),
-        },
-        workspace_daemon_lifecycle={},
-        provider_readiness=None,
-        latest_path=latest_path,
-        history_path=history_path,
-    )
-    payload["provider_admission_pending_count"] = len(candidates)
-    payload["provider_admission_candidates"] = [dict(candidate) for candidate in candidates]
-    payload["current_control_refresh_source"] = "domain_health_diagnostic.provider_admission_candidates"
-    if apply:
-        supervision_surfaces.write_json(latest_path, payload)
-        supervision_surfaces.append_json_line(
-            history_path,
-            {
-                "generated_at": generated_at,
-                "study_ids": [candidate.get("study_id") for candidate in candidates],
-                "action_ids": [action.get("action_id") for action in output_actions],
-                "provider_admission_pending_count": len(candidates),
-                "latest_action_count": len(output_actions),
-                "source": "domain_health_diagnostic.provider_admission_candidates",
-            },
-        )
-    payload["written"] = bool(apply)
-    return payload
 
 
 def _materialize_managed_study_autonomy_slo(
@@ -391,7 +189,7 @@ def _refresh_managed_study_status_after_stage_request(
     if not _should_refresh_managed_study_status_after_stage_request(status_payload):
         return status_payload
     return _managed_study_status_payload(
-        domain_status_projection.progress_projection(profile=profile, study_root=study_root)
+        _progress_projection_for_diagnostic(profile=profile, study_root=study_root)
     )
 
 
@@ -448,6 +246,12 @@ def _current_control_provider_admission_candidates(
     )
 
 
+def _progress_projection_for_diagnostic(**kwargs: Any) -> dict[str, Any]:
+    payload_kwargs = dict(kwargs)
+    payload_kwargs["sync_runtime_summary"] = False
+    return domain_status_projection.progress_projection(**payload_kwargs)
+
+
 def _request_opl_stage_attempt(
     *,
     profile: WorkspaceProfile,
@@ -455,7 +259,7 @@ def _request_opl_stage_attempt(
     source: str,
 ) -> dict[str, Any]:
     status_payload = _managed_study_status_payload(
-        domain_status_projection.progress_projection(profile=profile, study_root=study_root)
+        _progress_projection_for_diagnostic(profile=profile, study_root=study_root)
     )
     study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
     quest_id = _non_empty_text(status_payload.get("quest_id"))
@@ -595,7 +399,7 @@ def _materialize_opl_runtime_owner_handoff(
 def _build_runtime_control_ports() -> RuntimeControlPorts:
     return RuntimeControlPorts(
         get_status=lambda **kwargs: _managed_study_status_payload(
-            domain_status_projection.progress_projection(**kwargs)
+            _progress_projection_for_diagnostic(**kwargs)
         ),
         request_opl_stage_attempt=_request_opl_stage_attempt,
         build_outer_loop_request=_build_current_domain_transition_outer_loop_request,
@@ -706,20 +510,6 @@ def run_domain_health_diagnostic_for_runtime(
         study_ids=study_ids,
         request_opl_stage_attempts=request_opl_stage_attempts,
     )
-    if request_opl_stage_attempts and profile is not None:
-        candidates = [
-            dict(item)
-            for item in report.get("managed_study_opl_provider_admission_candidates") or []
-            if isinstance(item, Mapping)
-        ]
-        current_control_state = _materialize_provider_admission_current_control_state(
-            profile=profile,
-            candidates=candidates,
-            generated_at=_non_empty_text(report.get("scanned_at")) or utc_now(),
-            apply=apply,
-        )
-        if current_control_state is not None:
-            report["provider_admission_current_control_state"] = current_control_state
     if apply and request_opl_stage_attempts and request_opl_owner_route_reconcile and profile is not None:
         supervisor_tick = _run_developer_supervisor_same_tick(profile=profile, study_ids=study_ids)
         first_iteration = (supervisor_tick.get("iterations") or [{}])[0]
@@ -727,7 +517,232 @@ def run_domain_health_diagnostic_for_runtime(
             _mapping(first_iteration).get("owner_route_reconcile") or {}
         )
         report["developer_supervisor_same_tick"] = supervisor_tick
+    if request_opl_stage_attempts and profile is not None:
+        current_control_state = _materialize_report_provider_admission_current_control_state(
+            profile=profile,
+            report=report,
+            apply=apply,
+        )
+        if current_control_state is not None:
+            report["provider_admission_current_control_state"] = current_control_state
     return report
+
+
+def _materialize_report_provider_admission_current_control_state(
+    *,
+    profile: WorkspaceProfile,
+    report: Mapping[str, Any],
+    apply: bool,
+) -> dict[str, Any] | None:
+    candidates = [
+        dict(item)
+        for item in report.get("managed_study_opl_provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ]
+    progress_currentness = _mapping(
+        _mapping(report.get("current_execution_evidence")).get("progress_currentness")
+    )
+    supervisor_tick = _mapping(report.get("developer_supervisor_same_tick"))
+    if supervisor_tick.get("stop_reason") == "provider_handoff_written_admission_pending":
+        terminal_materialize = _mapping(supervisor_tick.get("materialize"))
+        if terminal_materialize:
+            candidates = _provider_admission_candidates_from_same_tick_materialize(
+                materialize_result=terminal_materialize,
+                fallback_candidates=candidates,
+                progress_currentness=progress_currentness,
+            )
+    return _materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=candidates,
+        generated_at=_non_empty_text(report.get("scanned_at")) or utc_now(),
+        apply=apply,
+        scanned_studies=_provider_admission_scanned_currentness_studies(progress_currentness),
+    )
+
+
+def _provider_admission_scanned_currentness_studies(
+    progress_currentness: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    studies: list[dict[str, Any]] = []
+    for study_id, payload in _mapping(progress_currentness).items():
+        normalized_study_id = _non_empty_text(study_id)
+        if normalized_study_id is None:
+            continue
+        current_action = _mapping(_mapping(payload).get("current_executable_owner_action"))
+        if not current_action:
+            continue
+        next_owner = _non_empty_text(current_action.get("next_owner"))
+        work_unit_id = _non_empty_text(current_action.get("work_unit_id"))
+        studies.append(
+            {
+                "study_id": normalized_study_id,
+                "quest_id": _non_empty_text(current_action.get("quest_id")) or normalized_study_id,
+                "handoff_scan_status": "scanned_no_provider_admission",
+                "provider_admission_pending_count": 0,
+                "action_queue": [],
+                "current_executable_owner_action": dict(current_action),
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": next_owner,
+                    "next_work_unit": work_unit_id,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                    "source": "progress_currentness.current_executable_owner_action",
+                },
+            }
+        )
+    return studies
+
+
+def _provider_admission_candidates_from_same_tick_materialize(
+    *,
+    materialize_result: Mapping[str, Any],
+    fallback_candidates: list[dict[str, Any]],
+    progress_currentness: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    fallback_by_identity = {
+        (_non_empty_text(candidate.get("study_id")), _non_empty_text(candidate.get("action_type"))): candidate
+        for candidate in fallback_candidates
+    }
+    current_action_by_study = _same_tick_progress_current_actions(progress_currentness)
+    candidates: list[dict[str, Any]] = []
+    for dispatch in materialize_result.get("default_executor_dispatches") or []:
+        if not isinstance(dispatch, Mapping):
+            continue
+        if _non_empty_text(dispatch.get("dispatch_status")) != "ready":
+            continue
+        study_id = _non_empty_text(dispatch.get("study_id"))
+        action_type = _non_empty_text(dispatch.get("action_type"))
+        base = dict(fallback_by_identity.get((study_id, action_type), {}))
+        candidate = {
+            **base,
+            "surface": "opl_provider_admission_candidate",
+            "schema_version": 1,
+            "status": "provider_admission_pending",
+            "source": _non_empty_text(base.get("source")) or "same_tick_materialized_dispatch",
+            "study_id": study_id,
+            "quest_id": _non_empty_text(dispatch.get("quest_id")) or _non_empty_text(base.get("quest_id")),
+            "action_type": action_type,
+            "work_unit_id": _non_empty_text(dispatch.get("work_unit_id"))
+            or _non_empty_text(base.get("work_unit_id"))
+            or handoff_work_unit_id(dispatch),
+            "work_unit_fingerprint": _non_empty_text(dispatch.get("work_unit_fingerprint"))
+            or _non_empty_text(dispatch.get("action_fingerprint"))
+            or _non_empty_text(base.get("work_unit_fingerprint")),
+            "action_fingerprint": _non_empty_text(dispatch.get("action_fingerprint"))
+            or _non_empty_text(dispatch.get("work_unit_fingerprint"))
+            or _non_empty_text(base.get("action_fingerprint")),
+            "dispatch_path": _non_empty_text(dispatch.get("dispatch_path"))
+            or _non_empty_text(base.get("dispatch_path"))
+            or handoff_dispatch_path(dispatch),
+            "dispatch_authority": _non_empty_text(dispatch.get("dispatch_authority"))
+            or _non_empty_text(base.get("dispatch_authority")),
+            "blocked_reason": OPL_EXECUTION_AUTHORIZATION_BLOCKER,
+            "next_executable_owner": _non_empty_text(dispatch.get("next_executable_owner"))
+            or _non_empty_text(base.get("next_executable_owner")),
+            "required_output_surface": _non_empty_text(dispatch.get("required_output_surface"))
+            or _non_empty_text(base.get("required_output_surface")),
+            "provider_attempt_or_lease_required": True,
+            "provider_completion_is_domain_completion": False,
+            "owner_route_current": True,
+        }
+        if candidate["study_id"] is not None and candidate["action_type"] is not None:
+            current_action_identity = current_action_by_study.get(candidate["study_id"])
+            if current_action_identity is not None and not _same_tick_candidate_matches_current_action(
+                candidate,
+                current_action_identity=current_action_identity,
+            ):
+                continue
+            candidates.append({key: value for key, value in candidate.items() if value is not None})
+    return candidates
+
+
+def _same_tick_progress_current_actions(
+    progress_currentness: Mapping[str, Any] | None,
+) -> dict[str, dict[str, Any]]:
+    current_actions: dict[str, dict[str, Any]] = {}
+    for study_id, payload in _mapping(progress_currentness).items():
+        normalized_study_id = _non_empty_text(study_id)
+        if normalized_study_id is None:
+            continue
+        current = _mapping(_mapping(payload).get("current_executable_owner_action"))
+        if not current:
+            continue
+        next_action = _mapping(current.get("next_action"))
+        repair_precedence = _mapping(current.get("repair_progress_precedence"))
+        allowed_actions = _same_tick_text_items(current.get("allowed_actions"))
+        explicit_fingerprints = _same_tick_text_items(
+            [
+                current.get("work_unit_fingerprint"),
+                current.get("action_fingerprint"),
+                current.get("source_fingerprint"),
+                repair_precedence.get("source_fingerprint"),
+            ]
+        )
+        current_actions[normalized_study_id] = {
+            "action_type": _non_empty_text(current.get("action_type")),
+            "action_ids": list(
+                dict.fromkeys(
+                    [
+                        *allowed_actions,
+                        *_same_tick_text_items([current.get("action_type"), next_action.get("action_id")]),
+                    ]
+                )
+            ),
+            "work_unit_id": _non_empty_text(current.get("work_unit_id"))
+            or _non_empty_text(next_action.get("action_id")),
+            "explicit_fingerprints": explicit_fingerprints,
+            "source_ref": _non_empty_text(current.get("source_ref"))
+            or _non_empty_text(current.get("latest_owner_answer_ref")),
+        }
+    return current_actions
+
+
+def _same_tick_candidate_matches_current_action(
+    candidate: Mapping[str, Any],
+    *,
+    current_action_identity: Mapping[str, Any],
+) -> bool:
+    action_type = _non_empty_text(candidate.get("action_type"))
+    work_unit_id = _non_empty_text(candidate.get("work_unit_id"))
+    work_unit_fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
+        candidate.get("action_fingerprint")
+    )
+    if action_type is None:
+        return False
+    expected_action_type = _non_empty_text(current_action_identity.get("action_type"))
+    if expected_action_type is not None and action_type != expected_action_type:
+        return False
+    action_ids = {
+        item
+        for item in _same_tick_text_items(current_action_identity.get("action_ids"))
+    }
+    if action_ids and action_type not in action_ids:
+        return False
+    expected_work_unit_id = _non_empty_text(current_action_identity.get("work_unit_id"))
+    if expected_work_unit_id is not None and work_unit_id != expected_work_unit_id:
+        return False
+    expected_fingerprints = set(_same_tick_text_items(current_action_identity.get("explicit_fingerprints")))
+    if expected_fingerprints:
+        return work_unit_fingerprint in expected_fingerprints
+    expected_source_ref = _non_empty_text(current_action_identity.get("source_ref"))
+    if expected_source_ref is not None:
+        return work_unit_fingerprint is not None and expected_source_ref in work_unit_fingerprint
+    return True
+
+
+def _same_tick_text_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = _non_empty_text(value)
+        return [text] if text is not None else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    result: list[str] = []
+    for item in value:
+        text = _non_empty_text(item)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
 
 
 def _run_developer_supervisor_same_tick(
@@ -911,6 +926,8 @@ def _same_tick_stop_reason(iteration: Mapping[str, Any]) -> str:
         return "provider_handoff_written_admission_pending"
     if _int_value(delta.get("blocked_default_executor_dispatch_count")) > 0:
         return "typed_blocker_or_dispatch_blocker_observed"
+    if _same_tick_provider_admission_blocker_written(iteration):
+        return "provider_handoff_written_admission_pending"
     if _int_value(delta.get("dispatch_blocked_count")) > 0:
         return "typed_blocker_or_dispatch_blocker_observed"
     if _int_value(delta.get("dispatch_repeat_suppressed_count")) > 0:
@@ -930,7 +947,148 @@ def _same_tick_handoff_written(iteration: Mapping[str, Any]) -> bool:
         _int_value(delta.get("codex_dispatch_count")) > 0
         or _int_value(delta.get("handoff_ready_count")) > 0
         or materialized_record_only_provider_handoff(_mapping(iteration.get("materialize")))
+        or _same_tick_provider_admission_blocker_written(iteration)
     )
+
+
+def _same_tick_provider_admission_blocker_written(iteration: Mapping[str, Any]) -> bool:
+    return bool(_same_tick_provider_admission_blocker_executions(iteration))
+
+
+def _same_tick_provider_admission_blocker_executions(iteration: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    dispatch = _mapping(iteration.get("dispatch"))
+    current_identities = _same_tick_current_dispatch_identities(iteration)
+    return [
+        execution
+        for execution in dispatch.get("executions") or []
+        if isinstance(execution, Mapping)
+        and _same_tick_provider_admission_blocker_execution(
+            execution,
+            current_identities=current_identities,
+        )
+    ]
+
+
+def _same_tick_provider_admission_blocker_execution(
+    execution: Mapping[str, Any],
+    *,
+    current_identities: list[Mapping[str, str]] | None = None,
+) -> bool:
+    if not (
+        _non_empty_text(execution.get("execution_status")) == "blocked"
+        and _non_empty_text(execution.get("blocked_reason")) == OPL_EXECUTION_AUTHORIZATION_BLOCKER
+        and execution.get("provider_attempt_or_lease_required") is True
+        and _non_empty_text(execution.get("dispatch_path")) is not None
+        and _non_empty_text(execution.get("dispatch_authority")) is not None
+    ):
+        return False
+    if current_identities is None:
+        return True
+    return any(
+        _same_tick_identity_matches_execution(identity, execution=execution)
+        for identity in current_identities
+    )
+
+
+def _same_tick_current_dispatch_identities(iteration: Mapping[str, Any]) -> list[dict[str, str]]:
+    identities: list[dict[str, str]] = []
+    identities.extend(
+        _same_tick_action_identities(
+            _mapping(iteration.get("owner_route_reconcile")).get("action_queue"),
+        )
+    )
+    identities.extend(
+        _same_tick_action_identities(
+            _mapping(iteration.get("materialize")).get("default_executor_dispatches"),
+        )
+    )
+    return _dedupe_same_tick_identities(identities)
+
+
+def _same_tick_action_identities(items: object) -> list[dict[str, str]]:
+    identities: list[dict[str, str]] = []
+    for item in items or []:
+        if not isinstance(item, Mapping):
+            continue
+        identity = {
+            key: value
+            for key, value in {
+                "study_id": _non_empty_text(item.get("study_id")),
+                "action_type": _non_empty_text(item.get("action_type")),
+                "work_unit_id": (
+                    _non_empty_text(item.get("work_unit_id"))
+                    or _non_empty_text(item.get("next_work_unit"))
+                    or _non_empty_text(item.get("controller_work_unit_id"))
+                    or _non_empty_text(_mapping(item.get("controller_next_work_unit")).get("unit_id"))
+                    or handoff_work_unit_id(item)
+                ),
+                "action_fingerprint": _non_empty_text(item.get("action_fingerprint")),
+                "work_unit_fingerprint": _non_empty_text(item.get("work_unit_fingerprint")),
+                "dispatch_path": handoff_dispatch_path(item),
+            }.items()
+            if value is not None
+        }
+        if len(identity) > 1:
+            identities.append(identity)
+    return identities
+
+
+def _same_tick_identity_matches_execution(
+    identity: Mapping[str, str],
+    *,
+    execution: Mapping[str, Any],
+) -> bool:
+    for key in ("study_id", "action_type", "work_unit_id"):
+        expected = _non_empty_text(identity.get(key))
+        if expected is None:
+            continue
+        observed = _non_empty_text(execution.get(key))
+        if observed is None:
+            return False
+        if observed != expected:
+            return False
+    expected_fingerprints = {
+        value
+        for key in ("action_fingerprint", "work_unit_fingerprint")
+        if (value := _non_empty_text(identity.get(key))) is not None
+    }
+    if expected_fingerprints:
+        observed_fingerprints = {
+            value
+            for key in ("action_fingerprint", "work_unit_fingerprint")
+            if (value := _non_empty_text(execution.get(key))) is not None
+        }
+        if not observed_fingerprints or observed_fingerprints.isdisjoint(expected_fingerprints):
+            return False
+    expected_dispatch = _non_empty_text(identity.get("dispatch_path"))
+    if expected_dispatch is None:
+        return True
+    observed_dispatch = _non_empty_text(execution.get("dispatch_path"))
+    if observed_dispatch is None:
+        return False
+    return _same_tick_dispatch_ref_matches(expected_dispatch, observed_dispatch)
+
+
+def _same_tick_dispatch_ref_matches(expected: str, observed: str) -> bool:
+    normalized_expected = expected.replace("\\", "/")
+    normalized_observed = observed.replace("\\", "/")
+    return (
+        normalized_expected == normalized_observed
+        or normalized_expected.endswith(f"/{normalized_observed}")
+        or normalized_observed.endswith(f"/{normalized_expected}")
+    )
+
+
+def _dedupe_same_tick_identities(identities: list[dict[str, str]]) -> list[dict[str, str]]:
+    seen: set[tuple[tuple[str, str], ...]] = set()
+    result: list[dict[str, str]] = []
+    for identity in identities:
+        key = tuple(sorted(identity.items()))
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(identity)
+    return result
 
 
 def _provider_attempt_started(scan_result: Mapping[str, Any]) -> bool:
@@ -981,6 +1139,7 @@ def _same_tick_handoff_identities(iteration: Mapping[str, Any]) -> list[dict[str
         if not (
             execution.get("will_start_llm") is True
             or _non_empty_text(execution.get("execution_status")) == "handoff_ready"
+            or execution in _same_tick_provider_admission_blocker_executions(iteration)
         ):
             continue
         identity = {
