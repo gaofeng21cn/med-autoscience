@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -17,8 +18,15 @@ def _route_contract() -> dict[str, object]:
     )
 
 
+def _kernel_handoff() -> dict[str, object]:
+    return json.loads(
+        (REPO_ROOT / "contracts/stage_run_kernel_profile.json").read_text(encoding="utf-8")
+    )["ordinary_progress_handoff"]
+
+
 def test_stage_route_contract_declares_ordinary_progress_handoff_policy() -> None:
     policy = _route_contract()["ordinary_progress_handoff_policy"]
+    kernel_handoff = _kernel_handoff()
 
     assert policy["source_ref"] == "contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff"
     assert policy["default_progress_root"] == "current_owner_delta"
@@ -65,3 +73,21 @@ def test_stage_route_contract_declares_ordinary_progress_handoff_policy() -> Non
     assert policy["audit_sidecar_policy"]["can_generate_default_next_action"] is False
     assert policy["audit_sidecar_policy"]["can_close_stage"] is False
     assert policy["audit_sidecar_policy"]["can_claim_domain_ready"] is False
+
+    canary = policy["owner_chain_canary_proof"]
+    assert canary == kernel_handoff["owner_chain_canary_proof"]
+    assert canary["canary_surface"] == "paper_line_owner_chain_results"
+    assert canary["per_paper_line_required_fields"] == [
+        "ordinary_progress_handoff_proof",
+        "accepted_closeout_shape",
+        "ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker",
+        "next_owner",
+        "next_required_delta",
+        "readiness_jit_scope",
+        "audit_sidecar_passive",
+    ]
+    assert canary["accepted_terminal_shapes"] == ["OwnerReceipt", "TypedBlocker"]
+    assert canary["provider_completion_can_close"] is False
+    assert canary["readiness_inventory_can_generate_default_next_action"] is False
+    assert canary["audit_sidecar_can_generate_default_next_action"] is False
+    assert canary["success_path_requires_owner_receipt_or_stable_typed_blocker"] is True

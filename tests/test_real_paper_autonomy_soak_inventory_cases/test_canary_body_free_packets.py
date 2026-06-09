@@ -58,6 +58,37 @@ def _assert_body_free_canary_packet(packet: dict[str, object], *, owner: str) ->
     assert "current_package" not in packet
 
 
+def _assert_ordinary_owner_chain_proof(
+    result: dict[str, object],
+    *,
+    accepted_shape: str,
+    result_ref_key: str,
+) -> None:
+    proof = result["ordinary_progress_handoff_proof"]
+    assert isinstance(proof, dict)
+    assert proof["surface_kind"] == "mas_ordinary_owner_chain_handoff_proof"
+    assert proof["policy_ref"] == "contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff"
+    assert proof["route_policy_ref"] == (
+        "agent/stages/stage_route_contract.yaml#/ordinary_progress_handoff_policy"
+    )
+    assert proof["paper_line_id"] == result["paper_line_id"]
+    assert proof["accepted_closeout_shape"] == accepted_shape
+    assert proof["ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker"] == accepted_shape
+    assert proof["terminal_shape_source"] == result_ref_key
+    assert proof["next_owner"] == result["next_owner"] == "MedAutoScience"
+    assert proof["next_required_delta"] == result["next_required_delta"]
+    assert proof["readiness_jit_scope"] == result["readiness_jit_scope"]
+    assert proof["audit_sidecar_passive"] is True
+    assert proof["provider_completion_can_close"] is False
+    assert proof["audit_sidecar_can_generate_default_next_action"] is False
+    assert proof["readiness_inventory_can_generate_default_next_action"] is False
+    assert proof["provider_completion_is_success"] is False
+    assert proof["success_path_requires_owner_receipt_or_stable_typed_blocker"] is True
+    assert proof["body_included"] is False
+    assert result["accepted_closeout_shape"] == accepted_shape
+    assert result["ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker"] == accepted_shape
+
+
 def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quality_gate(
     tmp_path: Path,
 ) -> None:
@@ -122,6 +153,32 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
     assert result["progress_delta_refs"] == [progress_ref]
     assert result["artifact_movement_refs"] == [owner_receipt_ref]
     assert result["human_gate_or_resume_refs"] == [human_gate_ref]
+    assert result["next_required_delta"] == {
+        "delta_kind": "consume_owner_receipt_refs",
+        "required_ref_field": "owner_receipt_refs",
+        "required_refs": [
+            owner_receipt_ref,
+            progress_ref,
+            gate_replay_ref,
+            human_gate_ref,
+        ],
+    }
+    assert result["readiness_jit_scope"] == {
+        "default_mode": "just_in_time_for_current_delta",
+        "check_scope_source": "stage_run_current_owner_delta.next_required_delta",
+        "full_readiness_inventory_role": "audit_or_terminal_gate_only",
+        "current_delta_ref_fields": [
+            "owner_receipt_refs",
+            "progress_delta_refs",
+            "human_gate_or_resume_refs",
+        ],
+    }
+    assert result["audit_sidecar_passive"] is True
+    _assert_ordinary_owner_chain_proof(
+        result,
+        accepted_shape="OwnerReceipt",
+        result_ref_key="owner_receipt_refs",
+    )
     tail_closure = result["evidence_tail_closure_summary"]
     assert tail_closure["surface_kind"] == "mas_paper_line_evidence_tail_closure_summary"
     assert tail_closure["study_id"] == "002-dm-china-us-mortality-attribution"
@@ -398,6 +455,28 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
         "artifact-lifecycle-receipt:dm002:repair-execution-rebuild"
     ]
     assert per_line_result["human_gate_or_resume_refs"] == []
+    assert per_line_result["next_required_delta"] == {
+        "delta_kind": "consume_owner_receipt_refs",
+        "required_ref_field": "owner_receipt_refs",
+        "required_refs": per_line_result["owner_receipt_refs"],
+    }
+    assert per_line_result["readiness_jit_scope"] == {
+        "default_mode": "just_in_time_for_current_delta",
+        "check_scope_source": "stage_run_current_owner_delta.next_required_delta",
+        "full_readiness_inventory_role": "audit_or_terminal_gate_only",
+        "current_delta_ref_fields": [
+            "owner_receipt_refs",
+            "progress_delta_refs",
+            "publication_route_memory_writeback_receipt_refs",
+            "artifact_lifecycle_receipt_refs",
+        ],
+    }
+    assert per_line_result["audit_sidecar_passive"] is True
+    _assert_ordinary_owner_chain_proof(
+        per_line_result,
+        accepted_shape="OwnerReceipt",
+        result_ref_key="owner_receipt_refs",
+    )
     tail_closure = per_line_result["evidence_tail_closure_summary"]
     assert tail_closure["all_required_tails_closed"] is False
     assert tail_closure["summary_counts"] == {
@@ -519,6 +598,23 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
     assert per_line_result["owner_receipt_refs"] == []
     assert per_line_result["stable_typed_blocker_refs"][0].startswith(
         "mas_owner_apply_receipt_missing:"
+    )
+    assert per_line_result["next_required_delta"] == {
+        "delta_kind": "route_stable_typed_blocker",
+        "required_ref_field": "stable_typed_blocker_refs",
+        "required_refs": per_line_result["stable_typed_blocker_refs"],
+    }
+    assert per_line_result["readiness_jit_scope"] == {
+        "default_mode": "just_in_time_for_current_delta",
+        "check_scope_source": "stage_run_current_owner_delta.next_required_delta",
+        "full_readiness_inventory_role": "audit_or_terminal_gate_only",
+        "current_delta_ref_fields": ["stable_typed_blocker_refs"],
+    }
+    assert per_line_result["audit_sidecar_passive"] is True
+    _assert_ordinary_owner_chain_proof(
+        per_line_result,
+        accepted_shape="TypedBlocker",
+        result_ref_key="stable_typed_blocker_refs",
     )
     assert per_line_result["body_included"] is False
     evidence_payload = payload["domain_dispatch_evidence_record_payload"]

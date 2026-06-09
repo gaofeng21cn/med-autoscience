@@ -103,6 +103,27 @@ ordinary_progress_handoff_policy:
     can_generate_default_next_action: false
     can_close_stage: false
     can_claim_domain_ready: false
+  owner_chain_canary_proof:
+    surface_kind: mas_ordinary_owner_chain_canary_proof_contract
+    canary_surface: paper_line_owner_chain_results
+    per_paper_line_required_fields:
+    - ordinary_progress_handoff_proof
+    - accepted_closeout_shape
+    - ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker
+    - next_owner
+    - next_required_delta
+    - readiness_jit_scope
+    - audit_sidecar_passive
+    accepted_terminal_shapes:
+    - OwnerReceipt
+    - TypedBlocker
+    provider_completion_can_close: false
+    provider_completion_is_success: false
+    readiness_inventory_can_generate_default_next_action: false
+    audit_sidecar_can_generate_default_next_action: false
+    audit_sidecar_can_close_stage: false
+    audit_sidecar_can_claim_domain_ready: false
+    success_path_requires_owner_receipt_or_stable_typed_blocker: true
 route_contracts:
   scout:
     route_id: scout

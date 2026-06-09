@@ -13,6 +13,12 @@ TASK_ID = "agent-lab-task:mas/real-paper-line-provider-canary"
 SELECTED_EVIDENCE_SURFACE = "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
 SOURCE_ACCEPTANCE_REF = "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence"
 VERSION = "mas-real-paper-line-provider-canary.v1"
+ORDINARY_PROGRESS_HANDOFF_POLICY_REF = (
+    "contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff"
+)
+ORDINARY_PROGRESS_HANDOFF_ROUTE_POLICY_REF = (
+    "agent/stages/stage_route_contract.yaml#/ordinary_progress_handoff_policy"
+)
 FORBIDDEN_SURFACES = (
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
@@ -133,12 +139,46 @@ def _paper_line_owner_chain_results(
             if receipt_refs
             else ("stable_typed_blocker" if stable_blocker_refs else "missing_owner_chain_result")
         )
+        terminal_blocker_refs = (
+            []
+            if receipt_refs
+            else stable_blocker_refs
+            or _sequence(live_refs.get("stable_typed_blocker_refs"))
+        )
+        accepted_closeout_shape = _accepted_closeout_shape(result_kind)
+        next_required_delta = _next_required_delta(
+            result_kind=result_kind,
+            owner_receipt_refs=receipt_refs,
+            stable_typed_blocker_refs=terminal_blocker_refs,
+        )
+        readiness_jit_scope = _readiness_jit_scope(
+            owner_receipt_refs=receipt_refs,
+            stable_typed_blocker_refs=terminal_blocker_refs,
+            live_evidence_refs=live_refs,
+        )
+        terminal_shape_source = _terminal_shape_source(result_kind)
+        ordinary_handoff_proof = _ordinary_progress_handoff_proof(
+            paper_line_id=_text(receipt.get("study_id")),
+            accepted_closeout_shape=accepted_closeout_shape,
+            terminal_shape_source=terminal_shape_source,
+            next_required_delta=next_required_delta,
+            readiness_jit_scope=readiness_jit_scope,
+        )
         results.append(
             {
                 "surface_kind": "mas_paper_line_owner_chain_result",
                 "paper_line_id": _text(receipt.get("study_id")),
                 "owner": "MedAutoScience",
                 "result_kind": result_kind,
+                "accepted_closeout_shape": accepted_closeout_shape,
+                "ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker": (
+                    accepted_closeout_shape
+                ),
+                "next_owner": "MedAutoScience",
+                "next_required_delta": next_required_delta,
+                "readiness_jit_scope": readiness_jit_scope,
+                "audit_sidecar_passive": True,
+                "ordinary_progress_handoff_proof": ordinary_handoff_proof,
                 "required_return_shape_satisfied": result_kind in {"owner_receipt", "stable_typed_blocker"},
                 "owner_receipt_refs": receipt_refs,
                 "stable_typed_blocker_refs": stable_blocker_refs
@@ -170,6 +210,115 @@ def _paper_line_owner_chain_results(
             }
         )
     return results
+
+
+def _accepted_closeout_shape(result_kind: str) -> str:
+    if result_kind == "owner_receipt":
+        return "OwnerReceipt"
+    if result_kind == "stable_typed_blocker":
+        return "TypedBlocker"
+    return "missing_owner_chain_result"
+
+
+def _terminal_shape_source(result_kind: str) -> str:
+    if result_kind == "owner_receipt":
+        return "owner_receipt_refs"
+    if result_kind == "stable_typed_blocker":
+        return "stable_typed_blocker_refs"
+    return "owner_receipt_refs_or_stable_typed_blocker_refs"
+
+
+def _next_required_delta(
+    *,
+    result_kind: str,
+    owner_receipt_refs: Sequence[str],
+    stable_typed_blocker_refs: Sequence[str],
+) -> dict[str, Any]:
+    if result_kind == "owner_receipt":
+        return {
+            "delta_kind": "consume_owner_receipt_refs",
+            "required_ref_field": "owner_receipt_refs",
+            "required_refs": list(owner_receipt_refs),
+        }
+    if result_kind == "stable_typed_blocker":
+        return {
+            "delta_kind": "route_stable_typed_blocker",
+            "required_ref_field": "stable_typed_blocker_refs",
+            "required_refs": list(stable_typed_blocker_refs),
+        }
+    return {
+        "delta_kind": "emit_owner_receipt_or_stable_typed_blocker",
+        "required_ref_field": "owner_receipt_refs_or_stable_typed_blocker_refs",
+        "required_refs": [],
+    }
+
+
+def _readiness_jit_scope(
+    *,
+    owner_receipt_refs: Sequence[str],
+    stable_typed_blocker_refs: Sequence[str],
+    live_evidence_refs: Mapping[str, Any],
+) -> dict[str, Any]:
+    ref_fields = [
+        field
+        for field, refs in (
+            ("owner_receipt_refs", owner_receipt_refs),
+            ("stable_typed_blocker_refs", stable_typed_blocker_refs),
+            ("progress_delta_refs", _sequence(live_evidence_refs.get("progress_delta_refs"))),
+            (
+                "ai_reviewer_gate_receipt_refs",
+                _sequence(live_evidence_refs.get("ai_reviewer_gate_receipt_refs")),
+            ),
+            (
+                "publication_route_memory_writeback_receipt_refs",
+                _sequence(live_evidence_refs.get("publication_route_memory_writeback_receipt_refs")),
+            ),
+            (
+                "artifact_lifecycle_receipt_refs",
+                _sequence(live_evidence_refs.get("artifact_lifecycle_receipt_refs")),
+            ),
+            (
+                "human_gate_or_resume_refs",
+                _sequence(live_evidence_refs.get("human_gate_or_resume_refs")),
+            ),
+        )
+        if refs
+    ]
+    return {
+        "default_mode": "just_in_time_for_current_delta",
+        "check_scope_source": "stage_run_current_owner_delta.next_required_delta",
+        "full_readiness_inventory_role": "audit_or_terminal_gate_only",
+        "current_delta_ref_fields": ref_fields,
+    }
+
+
+def _ordinary_progress_handoff_proof(
+    *,
+    paper_line_id: str,
+    accepted_closeout_shape: str,
+    terminal_shape_source: str,
+    next_required_delta: Mapping[str, Any],
+    readiness_jit_scope: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_ordinary_owner_chain_handoff_proof",
+        "policy_ref": ORDINARY_PROGRESS_HANDOFF_POLICY_REF,
+        "route_policy_ref": ORDINARY_PROGRESS_HANDOFF_ROUTE_POLICY_REF,
+        "paper_line_id": paper_line_id,
+        "accepted_closeout_shape": accepted_closeout_shape,
+        "ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker": accepted_closeout_shape,
+        "terminal_shape_source": terminal_shape_source,
+        "next_owner": "MedAutoScience",
+        "next_required_delta": dict(next_required_delta),
+        "readiness_jit_scope": dict(readiness_jit_scope),
+        "audit_sidecar_passive": True,
+        "provider_completion_can_close": False,
+        "audit_sidecar_can_generate_default_next_action": False,
+        "readiness_inventory_can_generate_default_next_action": False,
+        "provider_completion_is_success": False,
+        "success_path_requires_owner_receipt_or_stable_typed_blocker": True,
+        "body_included": False,
+    }
 
 
 def _paper_line_domain_dispatch_evidence_record_payloads(
