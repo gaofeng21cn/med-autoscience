@@ -38,6 +38,8 @@ CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS = frozenset(
         "provider_admission_current_control_state_required",
         "quest_marked_running_but_no_live_session",
         "quest_waiting_opl_runtime_owner_route",
+        "repair_progress_ai_reviewer_recheck_required",
+        "repair_progress_gate_replay_required",
         "runtime_recovery_not_authorized",
     }
 )
@@ -271,7 +273,7 @@ def _action_work_unit(
         currentness_basis=currentness_basis,
         state={
             "state_kind": "executable_owner_action",
-            "source": _text(action.get("source_surface")) or _text(action.get("source")),
+            "source": _action_source(action),
             "next_work_unit": work_unit_id,
             "provider_admission_pending": pending_provider_admission,
             "pending_provider_admission_evidence": _pending_provider_admission_evidence(
@@ -654,6 +656,8 @@ def _provider_admission_repair_action_supersedes_readiness_blocker(action: Mappi
         return False
     if _text(action.get("next_work_unit")) == "complete_medical_paper_readiness_surface":
         return False
+    if _mapping(action.get("repair_progress_followup")).get("accepted_owner_receipt") is True:
+        return True
     authority = _text(action.get("authority"))
     if authority in PROVIDER_ADMISSION_AUTHORITIES:
         return True
@@ -823,6 +827,15 @@ def _action_owner(action: Mapping[str, Any], *, next_owner: str | None) -> str:
         or _text(next_owner)
         or "med-autoscience"
     )
+
+
+def _action_source(action: Mapping[str, Any]) -> str | None:
+    source = _text(action.get("source_surface")) or _text(action.get("source"))
+    if source is not None:
+        return source
+    if _mapping(action.get("repair_progress_followup")).get("accepted_owner_receipt") is True:
+        return "repair_progress_projection.mas_owner_repair_execution_evidence"
+    return None
 
 
 def _action_type(action: Mapping[str, Any]) -> str | None:

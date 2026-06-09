@@ -291,8 +291,6 @@ def _with_fresh_progress_currentness(
     study_id = _non_empty_text(payload.get("study_id")) or Path(study_root).name
     if study_id is None:
         return payload
-    if not (Path(study_root).expanduser().resolve() / "artifacts" / "controller" / "study_charter.json").is_file():
-        return payload
     try:
         from med_autoscience.controllers import study_progress
 
@@ -307,6 +305,7 @@ def _with_fresh_progress_currentness(
     if not isinstance(progress, Mapping):
         return payload
     for key in (
+        "current_work_unit",
         "current_execution_envelope",
         "current_executable_owner_action",
         "current_owner_ticket",
@@ -407,6 +406,7 @@ def run_domain_health_diagnostic_for_runtime(
                 progress_currentness = {
                     key: status_payload[key]
                     for key in (
+                        "current_work_unit",
                         "current_execution_envelope",
                         "current_executable_owner_action",
                         "current_owner_ticket",
@@ -1022,6 +1022,11 @@ def _provider_admission_candidates_for_status(
     study_root: Path,
     status_payload: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
+    status_payload = _with_fresh_progress_currentness(
+        profile=profile,
+        study_root=study_root,
+        status_payload=status_payload,
+    )
     candidates = provider_admission.persisted_provider_admission_candidates(
         study_root=study_root,
         status_payload=status_payload,

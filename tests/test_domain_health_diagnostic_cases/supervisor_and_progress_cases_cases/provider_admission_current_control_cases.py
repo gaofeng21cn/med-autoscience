@@ -351,7 +351,7 @@ def test_request_opl_stage_attempt_uses_fresh_progress_currentness_for_authoriza
     quest_root = profile.runtime_root / "quests" / study_id
     action_fingerprint = (
         f"study-progress-current-owner-ticket::{study_id}::"
-        "produce_ai_reviewer_publication_eval_record_against_current_inputs::return_to_ai_reviewer_workflow"
+        "dm002_current_publication_hardening_after_current_ai_reviewer_eval::run_quality_repair_batch"
     )
     dispatch_path = (
         study_root
@@ -423,16 +423,17 @@ def test_request_opl_stage_attempt_uses_fresh_progress_currentness_for_authoriza
             "generated_at": "2026-06-08T05:40:00+00:00",
             "current_execution_envelope": {
                 "state_kind": "executable_owner_action",
-                "owner": "ai_reviewer",
-                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "owner": "write",
+                "next_work_unit": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
             },
             "current_executable_owner_action": {
                 "status": "ready",
                 "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
-                "next_owner": "ai_reviewer",
-                "action_type": "return_to_ai_reviewer_workflow",
-                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
-                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "work_unit_fingerprint": action_fingerprint,
+                "allowed_actions": ["run_quality_repair_batch"],
             },
         },
     )
@@ -450,4 +451,3 @@ def test_request_opl_stage_attempt_uses_fresh_progress_currentness_for_authoriza
     assert identity["action_fingerprint"] == action_fingerprint
     assert identity["blocked_reason"] == "opl_execution_authorization_required"
     assert result["provider_admission_identity"] == identity
-

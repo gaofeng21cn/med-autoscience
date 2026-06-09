@@ -1,0 +1,231 @@
+from __future__ import annotations
+
+import importlib
+import json
+from pathlib import Path
+
+from tests.study_runtime_test_helpers import make_profile, write_study
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _owner_route(
+    *,
+    study_id: str,
+    quest_id: str,
+    next_owner: str,
+    owner_reason: str,
+    allowed_actions: list[str],
+) -> dict[str, object]:
+    source_fingerprint = f"truth-source::{study_id}::{owner_reason}"
+    truth_epoch = f"truth-epoch::{study_id}"
+    runtime_health_epoch = f"runtime-health::{study_id}::{owner_reason}"
+    return {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "truth_epoch": truth_epoch,
+        "route_epoch": truth_epoch,
+        "runtime_health_epoch": runtime_health_epoch,
+        "work_unit_fingerprint": source_fingerprint,
+        "source_fingerprint": source_fingerprint,
+        "current_owner": "mas_controller",
+        "next_owner": next_owner,
+        "owner_reason": owner_reason,
+        "active_run_id": None,
+        "allowed_actions": allowed_actions,
+        "blocked_actions": [],
+        "idempotency_key": f"owner-route::{study_id}::{owner_reason}",
+        "source_refs": {
+            "study_truth_epoch": truth_epoch,
+            "runtime_health_epoch": runtime_health_epoch,
+            "work_unit_id": owner_reason,
+            "work_unit_fingerprint": source_fingerprint,
+            "owner_route_currentness_basis": {
+                "runtime_health_epoch": runtime_health_epoch,
+                "truth_epoch": truth_epoch,
+                "work_unit_fingerprint": source_fingerprint,
+                "work_unit_id": owner_reason,
+            },
+        },
+    }
+
+
+def test_materializer_rejects_top_level_action_queue_disallowed_by_current_study_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = "quest-dm003"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    current_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="gate_clearing_batch",
+        owner_reason="current_gate_replay",
+        allowed_actions=["run_gate_clearing_batch"],
+    )
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="stale_ai_reviewer_recheck",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    stale_action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "action_id": f"supervisor-action::{study_id}::stale-ai-reviewer",
+        "owner": "ai_reviewer",
+        "request_owner": "ai_reviewer",
+        "recommended_owner": "ai_reviewer",
+        "reason": "stale_ai_reviewer_recheck",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "owner_route": stale_route,
+        "handoff_packet": {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "authority": "observability_only",
+            "request_owner": "ai_reviewer",
+            "owner_route": stale_route,
+        },
+    }
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": current_route,
+                }
+            ],
+            "action_queue": [stale_action],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert result["ignored_actions"] == [
+        {
+            "study_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "action_id": f"supervisor-action::{study_id}::stale-ai-reviewer",
+            "reason": "superseded_by_current_owner_route_action_queue",
+        }
+    ]
+    assert not (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    ).exists()
+
+
+def test_materializer_rejects_top_level_action_queue_with_stale_owner_route_identity(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = "quest-dm003"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    current_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="current_ai_reviewer_recheck",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="stale_ai_reviewer_recheck",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    stale_action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "action_id": f"supervisor-action::{study_id}::stale-ai-reviewer",
+        "owner": "ai_reviewer",
+        "request_owner": "ai_reviewer",
+        "recommended_owner": "ai_reviewer",
+        "reason": "stale_ai_reviewer_recheck",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "owner_route": stale_route,
+        "handoff_packet": {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "authority": "observability_only",
+            "request_owner": "ai_reviewer",
+            "owner_route": stale_route,
+        },
+    }
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": current_route,
+                }
+            ],
+            "action_queue": [stale_action],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert result["ignored_actions"] == [
+        {
+            "study_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "action_id": f"supervisor-action::{study_id}::stale-ai-reviewer",
+            "reason": "superseded_by_current_owner_route_action_queue",
+        }
+    ]
+    assert not (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    ).exists()

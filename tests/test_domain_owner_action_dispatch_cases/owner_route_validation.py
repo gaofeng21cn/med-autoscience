@@ -11,7 +11,10 @@ from tests.domain_owner_action_dispatch_helpers import (
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def test_execute_dispatch_blocks_dispatch_without_owner_route(monkeypatch, tmp_path: Path) -> None:
+def test_execute_dispatch_rejects_dispatch_without_owner_route_when_current_control_exists(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -54,10 +57,11 @@ def test_execute_dispatch_blocks_dispatch_without_owner_route(monkeypatch, tmp_p
         apply=True,
     )
 
-    assert result["blocked_count"] == 1
-    execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "owner_route_missing"
+    assert result["execution_count"] == 0
+    assert result["blocked_count"] == 0
+    assert result["per_study_execution_summary"][0]["zero_dispatch_reason"] == (
+        "no_selected_dispatch_for_requested_action_types"
+    )
 
 
 def test_execute_dispatch_accepts_current_action_queue_owner_route(monkeypatch, tmp_path: Path) -> None:

@@ -228,6 +228,16 @@ def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_q
     )
     assert study["owner_route"]["source_refs"]["source_eval_id"] == eval_id
     assert study["why_not_applied"] == "repair_progress_ai_reviewer_recheck_required"
+    assert study["current_work_unit"]["status"] == "executable_owner_action"
+    assert study["current_work_unit"]["state"]["source"] == (
+        "repair_progress_projection.mas_owner_repair_execution_evidence"
+    )
+    assert study["current_work_unit"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    assert study["current_work_unit"]["work_unit_fingerprint"] == "repair-source-current"
+    assert study["current_executable_owner_action"]["source"] == "canonical_current_work_unit"
+    assert study["current_executable_owner_action"]["work_unit_fingerprint"] == "repair-source-current"
     assert result["provider_admission_pending_count"] == 1
     assert study["provider_admission_pending_count"] == 1
     candidate = result["provider_admission_candidates"][0]
@@ -238,6 +248,255 @@ def test_scan_routes_accepted_repair_delta_to_ai_reviewer_over_stage_readiness_q
     assert candidate["action_fingerprint"] == "repair-source-current"
     assert candidate["dispatch_path"] == str(dispatch_path)
     assert candidate["stage_transition_authority_boundary"]["stage_transition_authority"] == "one-person-lab"
+
+
+def test_scan_routes_rejects_provider_admission_when_retained_queue_conflicts_with_current_work_unit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    stale_dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    stale_fingerprint = "sha256:stale-ai-reviewer-recheck"
+    _write_json(
+        stale_dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "dispatch_status": "ready",
+            "dispatch_authority": "ai_reviewer_record_production_handoff",
+            "next_executable_owner": "ai_reviewer",
+            "required_output_surface": "artifacts/publication_eval/latest.json",
+            "action_fingerprint": stale_fingerprint,
+            "refs": {"dispatch_path": str(stale_dispatch_path)},
+            "owner_route": {
+                "next_owner": "ai_reviewer",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                "work_unit_fingerprint": stale_fingerprint,
+                "source_refs": {
+                    "work_unit_id": "stale_ai_reviewer_recheck",
+                    "work_unit_fingerprint": stale_fingerprint,
+                    "owner_route_currentness_basis": {
+                        "work_unit_id": "stale_ai_reviewer_recheck",
+                        "work_unit_fingerprint": stale_fingerprint,
+                    },
+                },
+            },
+        },
+    )
+    current_gate_fingerprint = "sha256:current-gate-clearing"
+    studies = [
+        {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "study_root": str(study_root),
+            "owner_route": {
+                "next_owner": "gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "work_unit_fingerprint": current_gate_fingerprint,
+                "source_refs": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": current_gate_fingerprint,
+                    "owner_route_currentness_basis": {
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": current_gate_fingerprint,
+                    },
+                },
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": current_gate_fingerprint,
+                "action_fingerprint": current_gate_fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": current_gate_fingerprint,
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "source": "canonical_current_work_unit",
+                "next_owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": current_gate_fingerprint,
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+        }
+    ]
+    action_queue = [
+        {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "status": "queued",
+            "owner": "ai_reviewer",
+            "next_work_unit": "stale_ai_reviewer_recheck",
+            "action_fingerprint": stale_fingerprint,
+            "work_unit_fingerprint": stale_fingerprint,
+            "refs": {"dispatch_path": str(stale_dispatch_path)},
+        }
+    ]
+
+    candidates = scan._provider_admission_candidates_from_current_control(
+        studies=studies,
+        action_queue=action_queue,
+        current_control_ref=str(
+            profile.workspace_root
+            / "runtime"
+            / "artifacts"
+            / "supervision"
+            / "opl_current_control_state"
+            / "latest.json"
+        ),
+    )
+
+    assert candidates == []
+
+
+def test_scan_routes_projects_provider_admission_when_queue_matches_current_work_unit(
+    tmp_path: Path,
+) -> None:
+    scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    current_gate_fingerprint = "sha256:current-gate-clearing"
+    _write_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": "run_gate_clearing_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "gate_clearing_batch",
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "action_fingerprint": current_gate_fingerprint,
+            "refs": {"dispatch_path": str(dispatch_path)},
+            "owner_route": {
+                "next_owner": "gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "work_unit_fingerprint": current_gate_fingerprint,
+                "source_refs": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": current_gate_fingerprint,
+                    "owner_route_currentness_basis": {
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": current_gate_fingerprint,
+                    },
+                },
+            },
+        },
+    )
+    studies = [
+        {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "study_root": str(study_root),
+            "owner_route": {
+                "next_owner": "gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "work_unit_fingerprint": current_gate_fingerprint,
+                "source_refs": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": current_gate_fingerprint,
+                    "owner_route_currentness_basis": {
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": current_gate_fingerprint,
+                    },
+                },
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": current_gate_fingerprint,
+                "action_fingerprint": current_gate_fingerprint,
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "gate_clearing_batch",
+                "next_work_unit": "publication_gate_replay",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "source": "canonical_current_work_unit",
+                "next_owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": current_gate_fingerprint,
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+        }
+    ]
+    action_queue = [
+        {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+            "action_type": "run_gate_clearing_batch",
+            "status": "queued",
+            "owner": "gate_clearing_batch",
+            "next_work_unit": "publication_gate_replay",
+            "action_fingerprint": current_gate_fingerprint,
+            "work_unit_fingerprint": current_gate_fingerprint,
+            "refs": {"dispatch_path": str(dispatch_path)},
+        }
+    ]
+
+    candidates = scan._provider_admission_candidates_from_current_control(
+        studies=studies,
+        action_queue=action_queue,
+        current_control_ref=str(
+            profile.workspace_root
+            / "runtime"
+            / "artifacts"
+            / "supervision"
+            / "opl_current_control_state"
+            / "latest.json"
+        ),
+    )
+
+    assert len(candidates) == 1
+    assert candidates[0]["action_type"] == "run_gate_clearing_batch"
+    assert candidates[0]["work_unit_id"] == "publication_gate_replay"
+    assert candidates[0]["action_fingerprint"] == current_gate_fingerprint
 
 
 def test_scan_projects_current_write_routeback_despite_stale_progress_active_run(monkeypatch, tmp_path: Path) -> None:

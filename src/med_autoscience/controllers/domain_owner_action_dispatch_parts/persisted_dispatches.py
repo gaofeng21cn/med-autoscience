@@ -412,7 +412,7 @@ def _selected_dispatches_only(
         ):
             selected.append(dispatch)
             continue
-        if not _dispatch_owner_route(dispatch):
+        if not _current_control_authority_present(current_study) and not _dispatch_owner_route(dispatch):
             selected.append(dispatch)
     return selected
 
@@ -465,6 +465,7 @@ def _with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> d
 def _current_control_authority_present(current_study: Mapping[str, Any]) -> bool:
     return bool(
         owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
+        or _mapping(current_study.get("current_work_unit"))
         or current_study.get("action_queue")
         or current_study.get("running_provider_attempt") is True
     )

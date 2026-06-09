@@ -924,6 +924,18 @@ def _current_study_actions(
                 _ignored_action(action, "superseded_by_current_execution_envelope")
                 for action in top_level_study_actions
             ]
+        stale_route_actions = [
+            action for action in queue_actions if _queue_action_disallowed_by_current_study_route(action, study)
+        ]
+        if stale_route_actions:
+            stale_ids = {_action_identity(action) for action in stale_route_actions}
+            remaining_actions = [
+                action for action in queue_actions if _action_identity(action) not in stale_ids
+            ]
+            return remaining_actions, [
+                _ignored_action(action, "superseded_by_current_owner_route_action_queue")
+                for action in stale_route_actions
+            ]
         return queue_actions, []
     ignored = [_ignored_action(action, "superseded_by_current_domain_transition") for action in queue_actions]
     if queue_source == "per_study_empty":
@@ -1235,7 +1247,48 @@ def domain_transition_owner_route_for_study(study: Mapping[str, Any]) -> dict[st
 
 def _queue_action_allowed_by_current_study_route(action: Mapping[str, Any], study: Mapping[str, Any]) -> bool:
     owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
-    return bool(owner_route) and _action_allowed_by_owner_route(action, owner_route)
+    if not owner_route or not _action_allowed_by_owner_route(action, owner_route):
+        return False
+    action_route = owner_route_part.ensure_owner_route_v2(
+        _mapping(action.get("owner_route"))
+        or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+    )
+    return not action_route or owner_route_part.owner_route_matches(
+        dispatch=action,
+        current_route=owner_route,
+    )
+
+
+def _queue_action_disallowed_by_current_study_route(
+    action: Mapping[str, Any],
+    study: Mapping[str, Any],
+) -> bool:
+    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(study.get("owner_route")))
+    if not owner_route:
+        return False
+    action_type = _text(action.get("action_type"))
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return False
+    allowed_actions = {_text(item) for item in owner_route.get("allowed_actions") or []}
+    allowed_actions.discard(None)
+    if bool(allowed_actions) and action_type not in allowed_actions:
+        return True
+    action_route = owner_route_part.ensure_owner_route_v2(
+        _mapping(action.get("owner_route"))
+        or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+    )
+    return bool(action_route) and not owner_route_part.owner_route_matches(
+        dispatch=action,
+        current_route=owner_route,
+    )
+
+
+def _action_identity(action: Mapping[str, Any]) -> tuple[str | None, str | None, str | None]:
+    return (
+        _text(action.get("study_id")),
+        _text(action.get("action_type")),
+        _text(action.get("action_id")),
+    )
 
 
 def _ignored_actions_superseded_by_readiness_blocker_repair(

@@ -250,7 +250,6 @@ def current_control_provider_admission_candidates(
         return []
     status = _mapping(status_payload)
     status_study_id = _non_empty_text(status.get("study_id")) or Path(study_root).name
-    current_action_identity = _current_action_identity(status)
     studies_by_id = {
         study_id: item
         for item in payload.get("studies") or []
@@ -261,14 +260,17 @@ def current_control_provider_admission_candidates(
     for action in payload.get("action_queue") or []:
         if not isinstance(action, Mapping):
             continue
+        study = _mapping(studies_by_id.get(_non_empty_text(action.get("study_id")) or status_study_id))
+        effective_status = _status_with_current_control_study_currentness(status=status, study=study)
+        current_action_identity = _current_action_identity(effective_status)
         candidate = provider_admission_candidate_from_current_control_action(
             action,
             study_root=study_root,
             status_study_id=status_study_id,
             current_action_identity=current_action_identity,
-            status_payload=status,
+            status_payload=effective_status,
             current_control_ref=current_control_ref,
-            study_payload=_mapping(studies_by_id.get(_non_empty_text(action.get("study_id")) or status_study_id)),
+            study_payload=study,
         )
         if candidate is not None:
             candidates.append(candidate)
@@ -286,6 +288,9 @@ def provider_admission_candidate_from_current_control_action(
     study_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     if not _current_control_action_requests_provider_admission(action):
+        return None
+    current_identity = _mapping(current_action_identity)
+    if not current_identity:
         return None
     study_id = _non_empty_text(action.get("study_id")) or status_study_id
     if status_study_id is not None and study_id != status_study_id:
@@ -368,14 +373,14 @@ def provider_admission_candidate_from_current_control_action(
     if _status_envelope_blocks_provider_admission(
         _mapping(status_payload),
         execution=execution,
-        current_action_identity=_mapping(current_action_identity),
+        current_action_identity=current_identity,
     ):
         return None
     candidate = provider_admission_candidate_from_execution(
         execution,
         execution_ref=current_control_ref,
         status_study_id=status_study_id,
-        current_action_identity=current_action_identity,
+        current_action_identity=current_identity,
     )
     if candidate is None:
         return None
@@ -390,6 +395,26 @@ def provider_admission_candidate_from_current_control_action(
     return candidate
 
 
+def _status_with_current_control_study_currentness(
+    *,
+    status: Mapping[str, Any],
+    study: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(status)
+    for key in (
+        "current_work_unit",
+        "current_execution_envelope",
+        "current_executable_owner_action",
+        "current_owner_ticket",
+    ):
+        if _mapping(payload.get(key)):
+            continue
+        value = _mapping(study.get(key))
+        if value:
+            payload[key] = value
+    return payload
+
+
 def provider_admission_candidates_from_execution_payload(
     execution_payload: Mapping[str, Any],
     *,
@@ -399,6 +424,8 @@ def provider_admission_candidates_from_execution_payload(
     status = _mapping(status_payload)
     status_study_id = _non_empty_text(status.get("study_id"))
     current_action_identity = _current_action_identity(status)
+    if _status_requires_current_identity(status) and not current_action_identity:
+        return []
     candidates: list[dict[str, Any]] = []
     for item in execution_payload.get("executions") or []:
         if not isinstance(item, Mapping):
@@ -502,6 +529,11 @@ def provider_admission_candidate_from_execution(
 
 
 def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any]:
+    current_work_unit = _mapping(status_payload.get("current_work_unit"))
+    if current_work_unit:
+        identity = _current_work_unit_identity(current_work_unit)
+        if identity:
+            return identity
     current = _mapping(status_payload.get("current_executable_owner_action"))
     if not current:
         return {}
@@ -552,6 +584,56 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
         "source_ref": source_ref,
         "source": _non_empty_text(current.get("source")),
         "next_owner": _non_empty_text(current.get("next_owner")),
+    }
+
+
+def _status_requires_current_identity(status_payload: Mapping[str, Any]) -> bool:
+    if _mapping(status_payload.get("current_work_unit")):
+        return True
+    if _mapping(status_payload.get("current_executable_owner_action")):
+        return True
+    envelope = _mapping(status_payload.get("current_execution_envelope"))
+    state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(envelope.get("execution_state_kind"))
+    if state_kind in {"executable_owner_action", "running_provider_attempt"}:
+        return True
+    if _mapping(status_payload.get("opl_current_control_state_handoff")):
+        return True
+    if _mapping(status_payload.get("opl_current_control_state")):
+        return True
+    return False
+
+
+def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[str, Any]:
+    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+        return {}
+    state = _mapping(current_work_unit.get("state"))
+    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
+    action_type = _non_empty_text(current_work_unit.get("action_type"))
+    work_unit_id = _non_empty_text(current_work_unit.get("work_unit_id"))
+    fingerprint = (
+        _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+        or _non_empty_text(current_work_unit.get("action_fingerprint"))
+        or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
+        or _non_empty_text(currentness_basis.get("source_fingerprint"))
+    )
+    fingerprints = [
+        item
+        for item in (
+            _non_empty_text(current_work_unit.get("work_unit_fingerprint")),
+            _non_empty_text(current_work_unit.get("action_fingerprint")),
+            _non_empty_text(currentness_basis.get("work_unit_fingerprint")),
+            _non_empty_text(currentness_basis.get("source_fingerprint")),
+        )
+        if item is not None
+    ]
+    return {
+        "action_ids": [item for item in (action_type, work_unit_id) if item is not None],
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "work_unit_fingerprints": list(dict.fromkeys(fingerprints)),
+        "source_ref": _first_text(current_work_unit.get("input_refs")) or _non_empty_text(state.get("source_ref")),
+        "source": _non_empty_text(state.get("source")) or "canonical_current_work_unit",
+        "next_owner": _non_empty_text(current_work_unit.get("owner")),
     }
 
 
@@ -732,21 +814,21 @@ def _matches_current_action(
 ) -> bool:
     if not current_action_identity:
         return True
+    expected_work_unit_id = _non_empty_text(current_action_identity.get("work_unit_id"))
+    if expected_work_unit_id is not None and work_unit_id != expected_work_unit_id:
+        return False
+    action_ids = set(_text_items(current_action_identity.get("action_ids")))
+    if action_ids and action_type not in action_ids:
+        return False
     expected_fingerprints = set(_text_items(current_action_identity.get("work_unit_fingerprints")))
     if expected_fingerprints:
         return work_unit_fingerprint in expected_fingerprints
     expected_fingerprint = _non_empty_text(current_action_identity.get("work_unit_fingerprint"))
     if expected_fingerprint is not None:
         return work_unit_fingerprint == expected_fingerprint
-    expected_work_unit_id = _non_empty_text(current_action_identity.get("work_unit_id"))
-    if expected_work_unit_id is not None and work_unit_id != expected_work_unit_id:
-        return False
     expected_source_ref = _non_empty_text(current_action_identity.get("source_ref"))
     if expected_source_ref is not None:
         return expected_source_ref in work_unit_fingerprint
-    action_ids = set(_text_items(current_action_identity.get("action_ids")))
-    if action_ids and action_type not in action_ids:
-        return False
     return True
 
 
@@ -907,6 +989,12 @@ def _text_items(value: object) -> list[str]:
         if text is not None and text not in result:
             result.append(text)
     return result
+
+
+def _first_text(value: object) -> str | None:
+    for item in _text_items(value):
+        return item
+    return None
 
 
 def _non_empty_text(value: object) -> str | None:

@@ -419,6 +419,7 @@ def _status_payload_with_fresh_progress_currentness(
     if not isinstance(progress, Mapping):
         return payload
     for key in (
+        "current_work_unit",
         "current_execution_envelope",
         "current_executable_owner_action",
         "current_owner_ticket",
