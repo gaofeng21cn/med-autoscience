@@ -10,6 +10,7 @@ from typing import Any
 import yaml
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
+from med_autoscience.controllers import stage_native_next_action_admission
 from med_autoscience.controllers.study_workspace_status_parts import (
     AUTHORITY_BOUNDARY,
     CURRENT_PAPER_INPUTS,
@@ -731,31 +732,30 @@ def _next_action(
         }
     publication_surface_status = _medical_publication_surface_status(study_root=study_root)
     if publication_surface_status.get("status") == "blocked":
-        return {
-            "action_id": "run_quality_repair_batch",
-            "owner": "write",
-            "status": "ready_for_owner_action",
-            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
-            "required_output_surface": (
+        action_type = "run_quality_repair_batch"
+        source_surface = "artifacts/reports/medical_publication_surface/latest.json"
+        current_stage_id = _text(stage_index.get("current_stage_id")) or "unknown_stage"
+        return _stage_native_ready_next_action(
+            action_type=action_type,
+            owner="write",
+            source_surface=source_surface,
+            required_output_surface=(
                 "canonical manuscript story-surface delta or "
                 "typed blocker:manuscript_story_surface_delta_missing"
             ),
-            "stage_index_ref": USER_ENTRY_REFS["stage_index"].as_posix(),
-            "current_stage_id": stage_index.get("current_stage_id"),
-            "current_package_status": package_status.get("status"),
-            "next_work_unit": "medical_publication_surface_blocked_write_repair",
-            "blockers": publication_surface_status.get("blockers") or [],
-        }
+            current_stage_id=current_stage_id,
+            current_package_status=package_status.get("status"),
+            next_work_unit="medical_publication_surface_blocked_write_repair",
+            blockers=publication_surface_status.get("blockers") or [],
+        )
     if paper_clean_room_status.get("ready") is True:
-        return {
-            "action_id": "run_medical_publication_surface_from_clean_room",
-            "owner": "MedAutoScience",
-            "status": "ready_for_owner_action",
-            "source_surface": PAPER_CLEAN_ROOM_DESCRIPTOR_RELPATH.as_posix(),
-            "stage_index_ref": USER_ENTRY_REFS["stage_index"].as_posix(),
-            "current_stage_id": stage_index.get("current_stage_id"),
-            "current_package_status": package_status.get("status"),
-        }
+        return _stage_native_ready_next_action(
+            action_type="run_medical_publication_surface_from_clean_room",
+            owner="MedAutoScience",
+            source_surface=PAPER_CLEAN_ROOM_DESCRIPTOR_RELPATH.as_posix(),
+            current_stage_id=_text(stage_index.get("current_stage_id")) or "unknown_stage",
+            current_package_status=package_status.get("status"),
+        )
     return {
         "action_id": "paper_clean_room_rebuild_required",
         "owner": "MedAutoScience",
@@ -765,6 +765,37 @@ def _next_action(
         "current_stage_id": stage_index.get("current_stage_id"),
         "current_package_status": package_status.get("status"),
     }
+
+
+def _stage_native_ready_next_action(
+    *,
+    action_type: str,
+    owner: str,
+    source_surface: str,
+    current_stage_id: str,
+    **extra: Any,
+) -> dict[str, Any]:
+    return {
+        "action_type": action_type,
+        "action_id": f"stage-native-next-action::{action_type}",
+        "owner": owner,
+        "status": "ready_for_owner_action",
+        "source_surface": source_surface,
+        "stage_index_ref": USER_ENTRY_REFS["stage_index"].as_posix(),
+        "current_stage_id": current_stage_id,
+        "stage_transition_authority_boundary": (
+            stage_native_next_action_admission.stage_transition_authority_boundary()
+        ),
+        "current_work_unit_binding": (
+            stage_native_next_action_admission.build_current_work_unit_binding(
+                action_type=action_type,
+                current_stage_id=current_stage_id,
+                source_surface=source_surface,
+            )
+        ),
+        **extra,
+    }
+
 
 def _medical_publication_surface_status(*, study_root: Path) -> dict[str, Any]:
     report_path = study_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"

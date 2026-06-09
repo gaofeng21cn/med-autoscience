@@ -13,6 +13,78 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 PUBLICATION_SURFACE = "artifacts/reports/medical_publication_surface/latest.json"
+PUBLICATION_STAGE_ID = "08-publication_package_handoff"
+
+
+def _stage_native_fingerprint(
+    *,
+    action_type: str = "run_quality_repair_batch",
+    current_stage_id: str = PUBLICATION_STAGE_ID,
+    source_surface: str = PUBLICATION_SURFACE,
+) -> str:
+    return f"stage-native-next-action::{current_stage_id}::{action_type}::{source_surface}"
+
+
+def _stage_native_current_work_unit_binding(
+    *,
+    action_type: str = "run_quality_repair_batch",
+    current_stage_id: str = PUBLICATION_STAGE_ID,
+    source_surface: str = PUBLICATION_SURFACE,
+) -> dict[str, str]:
+    return {
+        "source": "canonical_current_work_unit",
+        "work_unit_id": action_type,
+        "work_unit_fingerprint": _stage_native_fingerprint(
+            action_type=action_type,
+            current_stage_id=current_stage_id,
+            source_surface=source_surface,
+        ),
+    }
+
+
+def _stage_transition_authority_boundary() -> dict[str, object]:
+    return {
+        "producer_kind": "runtime_provider",
+        "intent_kind": "provider_observation",
+        "stage_transition_authority": "one-person-lab",
+        "intent_can_write_stage_current_pointer": False,
+        "intent_can_write_stage_run_terminal_state": False,
+        "intent_can_publish_current_owner_delta": False,
+        "intent_can_write_domain_truth": False,
+        "intent_can_create_owner_receipt": False,
+        "intent_can_create_typed_blocker": False,
+        "provider_completion_counts_as_stage_transition": False,
+    }
+
+
+def _write_stage_native_next_action(
+    study_root: Path,
+    *,
+    action_type: str = "run_quality_repair_batch",
+    source_surface: str = PUBLICATION_SURFACE,
+    include_admission_binding: bool = True,
+) -> None:
+    payload: dict[str, object] = {
+        "schema_version": 1,
+        "status": "ready_for_owner_action",
+        "action_id": action_type,
+        "owner": "write",
+        "source_surface": source_surface,
+        "current_stage_id": PUBLICATION_STAGE_ID,
+        "stage_index_ref": "control/stage_index.json",
+        "next_work_unit": "medical_publication_surface_blocked_write_repair",
+        "required_output_surface": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+    }
+    if include_admission_binding:
+        payload["stage_transition_authority_boundary"] = _stage_transition_authority_boundary()
+        payload["current_work_unit_binding"] = _stage_native_current_work_unit_binding(
+            action_type=action_type,
+            source_surface=source_surface,
+        )
+    _write_json(study_root / "control" / "next_action.json", payload)
 
 
 def _stage_native_quality_repair_dispatch(
@@ -21,8 +93,12 @@ def _stage_native_quality_repair_dispatch(
     source_authority: str = "stage_native_workspace_next_action",
     source_surface: str = PUBLICATION_SURFACE,
 ) -> dict[str, object]:
-    current_stage_id = "08-publication_package_handoff"
-    fingerprint = f"stage-native-next-action::{current_stage_id}::run_quality_repair_batch::{source_surface}"
+    current_stage_id = PUBLICATION_STAGE_ID
+    fingerprint = _stage_native_fingerprint(
+        action_type="run_quality_repair_batch",
+        current_stage_id=current_stage_id,
+        source_surface=source_surface,
+    )
     epoch = f"stage-native-next-action::{study_id}::{current_stage_id}"
     route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
     route.update(
@@ -38,6 +114,9 @@ def _stage_native_quality_repair_dispatch(
                 "source_surface": source_surface,
                 "stage_index_ref": "control/stage_index.json",
                 "current_stage_id": current_stage_id,
+                "current_work_unit_binding": _stage_native_current_work_unit_binding(
+                    source_surface=source_surface,
+                ),
                 "owner_route_currentness_basis": {
                     "truth_epoch": epoch,
                     "runtime_health_epoch": epoch,
@@ -75,6 +154,9 @@ def _stage_native_quality_repair_dispatch(
         "source_surface": source_surface,
         "stage_index_ref": "control/stage_index.json",
         "current_stage_id": current_stage_id,
+        "current_work_unit_binding": _stage_native_current_work_unit_binding(
+            source_surface=source_surface,
+        ),
     }
     return payload
 
@@ -88,6 +170,7 @@ def test_stage_native_write_repair_dispatch_is_authorized_by_current_next_action
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_stage_native_next_action(study_root)
     dispatch_payload = _stage_native_quality_repair_dispatch(study_id=study_id)
     dispatch_path = (
         study_root
@@ -134,6 +217,7 @@ def test_stage_native_write_repair_owner_request_survives_stale_readiness_scan(
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_stage_native_next_action(study_root)
     dispatch_payload = _stage_native_quality_repair_dispatch(study_id=study_id)
     dispatch_path = (
         study_root
@@ -265,6 +349,7 @@ def test_stage_native_write_repair_dispatch_survives_readiness_missing_typed_blo
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_stage_native_next_action(study_root)
     dispatch_payload = _stage_native_quality_repair_dispatch(study_id=study_id)
     dispatch_path = (
         study_root
@@ -334,23 +419,7 @@ def test_stage_native_write_repair_next_action_filters_stale_readiness_and_revie
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    _write_json(
-        study_root / "control" / "next_action.json",
-        {
-            "schema_version": 1,
-            "status": "ready_for_owner_action",
-            "action_id": "run_quality_repair_batch",
-            "owner": "write",
-            "source_surface": PUBLICATION_SURFACE,
-            "current_stage_id": "08-publication_package_handoff",
-            "stage_index_ref": "control/stage_index.json",
-            "next_work_unit": "medical_publication_surface_blocked_write_repair",
-            "required_output_surface": (
-                "canonical manuscript story-surface delta or "
-                "typed blocker:manuscript_story_surface_delta_missing"
-            ),
-        },
-    )
+    _write_stage_native_next_action(study_root)
     stage_native_dispatch = _stage_native_quality_repair_dispatch(study_id=study_id)
     stage_native_path = (
         study_root
@@ -541,23 +610,7 @@ def test_stage_native_next_action_preempts_older_current_writer_handoff(
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    _write_json(
-        study_root / "control" / "next_action.json",
-        {
-            "schema_version": 1,
-            "status": "ready_for_owner_action",
-            "action_id": "run_quality_repair_batch",
-            "owner": "write",
-            "source_surface": PUBLICATION_SURFACE,
-            "current_stage_id": "08-publication_package_handoff",
-            "stage_index_ref": "control/stage_index.json",
-            "next_work_unit": "medical_publication_surface_blocked_write_repair",
-            "required_output_surface": (
-                "canonical manuscript story-surface delta or "
-                "typed blocker:manuscript_story_surface_delta_missing"
-            ),
-        },
-    )
+    _write_stage_native_next_action(study_root)
     stage_native_dispatch = _stage_native_quality_repair_dispatch(study_id=study_id)
     stage_native_path = (
         study_root
@@ -679,3 +732,150 @@ def test_stage_native_next_action_preempts_older_current_writer_handoff(
     assert execution["dispatch_path"] == str(stage_native_path)
     assert execution["action_fingerprint"].startswith("stage-native-next-action::08-publication_package_handoff")
     assert execution["dispatch_authority"] == "consumer_default_executor_dispatch"
+
+
+def test_stage_native_next_action_without_authority_binding_does_not_preempt_current_writer_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    materializer = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    dispatch_module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_stage_native_next_action(study_root, include_admission_binding=False)
+    stage_native_dispatch = _stage_native_quality_repair_dispatch(study_id=study_id)
+    stage_native_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    stage_native_dispatch["refs"] = {"dispatch_path": str(stage_native_path)}
+    _write_json(stage_native_path, stage_native_dispatch)
+    old_route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
+    old_route.update(
+        {
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "work_unit_fingerprint": "publication-blockers::old-writer-handoff",
+            "source_refs": {
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::old-writer-handoff",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+            },
+        }
+    )
+    old_writer_handoff = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=old_route,
+    )
+    old_writer_handoff["dispatch_authority"] = "quality_repair_batch_writer_handoff"
+    old_writer_handoff["source_action"] = {
+        "surface": "quality_repair_batch",
+        "blocked_reason": "manuscript_story_surface_delta_missing",
+    }
+    old_writer_handoff["medical_claim_authoring_allowed"] = True
+    prompt_contract = old_writer_handoff["prompt_contract"]
+    assert isinstance(prompt_contract, dict)
+    prompt_contract["medical_claim_authoring_allowed"] = True
+    prompt_contract["allowed_write_surfaces"] = [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/**",
+    ]
+    old_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "old_writer_handoff.json"
+    )
+    old_writer_handoff["refs"] = {"dispatch_path": str(old_path)}
+    _write_json(old_path, old_writer_handoff)
+    _write_json(
+        profile.workspace_root / materializer.CONSUMER_LATEST_RELATIVE_PATH,
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [old_writer_handoff, stage_native_dispatch],
+        },
+    )
+    _write_json(
+        profile.workspace_root / materializer.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": old_route,
+                    "bridged_writer_handoff": {
+                        "owner_route": old_route,
+                    },
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        progress_module,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {"blocker_id": "medical_paper_readiness_missing"},
+            },
+        },
+    )
+    monkeypatch.setattr(
+        dispatch_module.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        lambda **_: {
+            "execution_status": "handoff_ready",
+            "blocked_reason": None,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "writer_worker_handoff": {},
+            "provider_attempt_or_lease_required": True,
+        },
+    )
+
+    materialized = materializer.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+    assert materialized["default_executor_dispatches"] == []
+    assert any(
+        item["action_type"] == "run_quality_repair_batch"
+        and item["reason"] == "stage_native_workspace_next_action_requires_authority_binding"
+        for item in materialized["ignored_actions"]
+    )
+
+    result = dispatch_module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["execution_count"] == 1
+    assert execution["dispatch_path"] == str(old_path)
+    assert execution["owner_route_basis"] != "stage_native_workspace_next_action"

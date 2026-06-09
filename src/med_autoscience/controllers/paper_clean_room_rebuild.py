@@ -10,6 +10,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_workspace_status
 from med_autoscience.controllers.owner_route_reconcile_parts import study_identity
+from med_autoscience.controllers import stage_native_next_action_admission
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
@@ -395,15 +396,29 @@ def _materialize_verified_inputs(*, clean_root: Path, refs: list[dict[str, Any]]
 
 
 def _next_action(descriptor: Mapping[str, Any]) -> dict[str, Any]:
+    action_type = "run_medical_publication_surface_from_clean_room"
+    current_stage_id = "08-publication_package_handoff"
+    source_surface = "artifacts/supervision/paper_clean_room_rebuild/latest.json"
     return {
         "schema_version": 1,
         "status": "ready_for_owner_action",
-        "action_id": "run_medical_publication_surface_from_clean_room",
+        "action_type": action_type,
+        "action_id": f"stage-native-next-action::{action_type}",
         "owner": "MedAutoScience",
-        "source_surface": "artifacts/supervision/paper_clean_room_rebuild/latest.json",
-        "current_stage_id": "08-publication_package_handoff",
+        "source_surface": source_surface,
+        "current_stage_id": current_stage_id,
         "stage_index_ref": "control/stage_index.json",
         "required_output_surface": "artifacts/reports/medical_publication_surface/latest.json",
+        "stage_transition_authority_boundary": (
+            stage_native_next_action_admission.stage_transition_authority_boundary()
+        ),
+        "current_work_unit_binding": (
+            stage_native_next_action_admission.build_current_work_unit_binding(
+                action_type=action_type,
+                current_stage_id=current_stage_id,
+                source_surface=source_surface,
+            )
+        ),
         "clean_workspace_root": _text(descriptor.get("clean_workspace_root")),
         "descriptor_path": _text(descriptor.get("descriptor_path")),
     }

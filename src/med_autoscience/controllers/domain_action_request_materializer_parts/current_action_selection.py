@@ -212,6 +212,29 @@ def current_actions_for_studies(
                 ]
             )
             continue
+        if stage_native_action is not None:
+            per_study_actions.append(stage_native_action)
+            ignored.extend(
+                _ignored_action(
+                    action,
+                    _stage_native_superseded_reason(
+                        study=study_payload,
+                        action=action,
+                        stage_native_action=stage_native_action,
+                    ),
+                )
+                for action in [
+                    *current_route_queue_actions,
+                    *top_level_study_actions,
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                    ],
+                ]
+                if action != stage_native_action
+            )
+            continue
         if current_route_queue_actions:
             per_study_actions.extend(current_route_queue_actions)
             selected_fingerprints = {
@@ -285,20 +308,6 @@ def current_actions_for_studies(
                 ]
             )
             continue
-        if stage_native_action is not None:
-            per_study_actions.append(stage_native_action)
-            ignored.extend(
-                _ignored_action(action, "superseded_by_stage_native_next_action")
-                for action in [
-                    *top_level_study_actions,
-                    *[
-                        dict(item)
-                        for item in study_payload.get("action_queue") or []
-                        if isinstance(item, Mapping)
-                    ],
-                ]
-            )
-            continue
         study_actions, study_ignored = _current_study_actions(
             study=study_payload,
             top_level_actions=top_level_actions,
@@ -309,8 +318,7 @@ def current_actions_for_studies(
             ignored.append(
                 _ignored_action(
                     diagnostic_stage_native_action,
-                    _text(diagnostic_stage_native_action.get("default_dispatch_blocked_reason"))
-                    or "stage_native_workspace_next_action_requires_authority_binding",
+                    stage_native_next_action.diagnostic_blocked_reason(diagnostic_stage_native_action),
                 )
             )
     for study_id, action in fresh_progress_by_study.items():
@@ -326,8 +334,7 @@ def current_actions_for_studies(
             ignored.append(
                 _ignored_action(
                     action,
-                    _text(action.get("default_dispatch_blocked_reason"))
-                    or "stage_native_workspace_next_action_requires_authority_binding",
+                    stage_native_next_action.diagnostic_blocked_reason(action),
                 )
             )
     if per_study_actions or matched_requested_study:
@@ -815,6 +822,24 @@ def _stage_native_action_supersedes_stable_readiness_answer(
     if _text(stage_native_action.get("action_type")) == READINESS_ACTION_TYPE:
         return False
     return _readiness_followup_is_stable_owner_answer(study=study, action=readiness_followup)
+
+
+def _stage_native_superseded_reason(
+    *,
+    study: Mapping[str, Any],
+    action: Mapping[str, Any],
+    stage_native_action: Mapping[str, Any],
+) -> str:
+    if (
+        _text(action.get("action_type")) == READINESS_ACTION_TYPE
+        and _stage_native_action_supersedes_stable_readiness_answer(
+            study=study,
+            readiness_followup=action,
+            stage_native_action=stage_native_action,
+        )
+    ):
+        return "superseded_by_stage_native_next_action_after_readiness_answer"
+    return "superseded_by_stage_native_next_action"
 
 
 def _readiness_followup_is_stable_owner_answer(

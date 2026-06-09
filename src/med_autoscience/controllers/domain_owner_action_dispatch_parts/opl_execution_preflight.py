@@ -149,7 +149,13 @@ def _stage_native_quality_repair_owner_action_authorized(
     currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
         _mapping(owner_route.get("currentness_contract")).get("basis")
     )
-    return _work_unit_id(currentness_basis.get("work_unit_id")) == _QUALITY_REPAIR_ACTION
+    binding = _mapping(source_refs.get("current_work_unit_binding"))
+    return (
+        _work_unit_id(currentness_basis.get("work_unit_id")) == _QUALITY_REPAIR_ACTION
+        and _text(binding.get("source")) == "canonical_current_work_unit"
+        and _text(binding.get("work_unit_id")) == _QUALITY_REPAIR_ACTION
+        and _text(binding.get("work_unit_fingerprint")) is not None
+    )
 
 
 def with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[str, Any]:

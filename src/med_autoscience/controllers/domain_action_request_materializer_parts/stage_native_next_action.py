@@ -9,13 +9,14 @@ from med_autoscience.controllers.default_executor_action_policy import (
     SUPPORTED_ACTION_TYPES,
     request_owner_for_action_type,
 )
+from med_autoscience.controllers import stage_native_next_action_admission
 from med_autoscience.profiles import WorkspaceProfile
 
 
-WORKSPACE_NEXT_ACTION_AUTHORITY = "stage_native_workspace_next_action"
-WORKSPACE_NEXT_ACTION_DIAGNOSTIC_AUTHORITY = "stage_native_workspace_next_action_diagnostic_only"
-NEXT_ACTION_ADMISSION_POLICY = "requires_canonical_current_work_unit_or_opl_stage_transition_authority_binding"
-NEXT_ACTION_AUTHORITY_BINDING_REQUIRED = "stage_native_workspace_next_action_requires_authority_binding"
+WORKSPACE_NEXT_ACTION_AUTHORITY = stage_native_next_action_admission.STAGE_NATIVE_WORKSPACE_NEXT_ACTION_AUTHORITY
+WORKSPACE_NEXT_ACTION_DIAGNOSTIC_AUTHORITY = (
+    stage_native_next_action_admission.STAGE_NATIVE_WORKSPACE_NEXT_ACTION_DIAGNOSTIC_AUTHORITY
+)
 
 
 def stage_native_next_actions(
@@ -45,7 +46,7 @@ def is_diagnostic_action(action: Mapping[str, Any]) -> bool:
 
 
 def diagnostic_blocked_reason(action: Mapping[str, Any]) -> str:
-    return _text(action.get("default_dispatch_blocked_reason")) or NEXT_ACTION_AUTHORITY_BINDING_REQUIRED
+    return stage_native_next_action_admission.ignored_reason(action)
 
 
 def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
@@ -53,15 +54,15 @@ def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> di
     next_action = _read_json_mapping(study_root / "control" / "next_action.json")
     if next_action is None:
         return None
-    action_type = _text(next_action.get("action_id")) or _text(next_action.get("action_type"))
+    action_type = _stage_native_next_action_type(next_action)
     if action_type not in SUPPORTED_ACTION_TYPES:
         return None
     if _text(next_action.get("status")) != "ready_for_owner_action":
         return None
     owner = _text(next_action.get("owner")) or request_owner_for_action_type(action_type)
     quest_id = _read_quest_id(study_root=study_root, fallback=study_id)
-    admission = _stage_native_next_action_admission(next_action)
-    current_work_unit_binding = _mapping(next_action.get("current_work_unit_binding"))
+    admission = stage_native_next_action_admission.next_action_admission(next_action)
+    current_work_unit_binding = stage_native_next_action_admission.current_work_unit_binding(next_action)
     owner_route = _stage_native_owner_route(
         study_id=study_id,
         quest_id=quest_id,
@@ -108,33 +109,6 @@ def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> di
     }
 
 
-def _stage_native_next_action_admission(next_action: Mapping[str, Any]) -> dict[str, Any]:
-    authority_boundary = _mapping(next_action.get("stage_transition_authority_boundary"))
-    current_work_unit_binding = _mapping(next_action.get("current_work_unit_binding"))
-    has_stage_authority_binding = (
-        _text(authority_boundary.get("stage_transition_authority"))
-        in {"one-person-lab", "OPL Stage Transition Authority"}
-        and authority_boundary.get("intent_can_write_stage_current_pointer") is False
-        and authority_boundary.get("intent_can_write_stage_run_terminal_state") is False
-        and authority_boundary.get("intent_can_publish_current_owner_delta") is False
-    )
-    has_current_work_unit_binding = (
-        _text(current_work_unit_binding.get("source")) == "canonical_current_work_unit"
-        and _text(current_work_unit_binding.get("work_unit_id")) is not None
-        and _text(current_work_unit_binding.get("work_unit_fingerprint")) is not None
-    )
-    allowed = has_stage_authority_binding and has_current_work_unit_binding
-    return {
-        "policy": NEXT_ACTION_ADMISSION_POLICY,
-        "default_dispatch_allowed": allowed,
-        "blocked_reason": None if allowed else NEXT_ACTION_AUTHORITY_BINDING_REQUIRED,
-        "has_stage_transition_authority_boundary": has_stage_authority_binding,
-        "has_current_work_unit_binding": has_current_work_unit_binding,
-        "stage_run_current_authority": _text(next_action.get("stage_run_current_authority")),
-        "source_surface": _text(next_action.get("source_surface")) or "control/next_action.json",
-    }
-
-
 def _stage_native_owner_route(
     *,
     study_id: str,
@@ -145,16 +119,13 @@ def _stage_native_owner_route(
 ) -> dict[str, Any]:
     current_stage_id = _text(next_action.get("current_stage_id")) or "unknown_stage"
     source_surface = _text(next_action.get("source_surface")) or "control/next_action.json"
-    current_work_unit_binding = _mapping(next_action.get("current_work_unit_binding"))
-    has_canonical_work_unit_binding = _text(current_work_unit_binding.get("source")) == "canonical_current_work_unit"
-    work_unit_id = (
-        _text(current_work_unit_binding.get("work_unit_id")) if has_canonical_work_unit_binding else None
-    ) or action_type
-    fingerprint = (
-        _text(current_work_unit_binding.get("work_unit_fingerprint"))
-        if has_canonical_work_unit_binding
-        else None
-    ) or f"stage-native-next-action::{current_stage_id}::{action_type}::{source_surface}"
+    fallback_fingerprint = f"stage-native-next-action::{current_stage_id}::{action_type}::{source_surface}"
+    work_unit_id = stage_native_next_action_admission.work_unit_id(next_action, fallback=action_type)
+    fingerprint = stage_native_next_action_admission.work_unit_fingerprint(
+        next_action,
+        fallback=fallback_fingerprint,
+    )
+    current_work_unit_binding = stage_native_next_action_admission.current_work_unit_binding(next_action)
     epoch = f"stage-native-next-action::{study_id}::{current_stage_id}"
     return {
         "surface": "domain_route_owner_route",
@@ -201,6 +172,16 @@ def _read_quest_id(*, study_root: Path, fallback: str) -> str:
     except OSError:
         return fallback
     return fallback
+
+
+def _stage_native_next_action_type(next_action: Mapping[str, Any]) -> str | None:
+    direct = _text(next_action.get("action_type"))
+    if direct is not None:
+        return direct
+    action_id = _text(next_action.get("action_id"))
+    if action_id in SUPPORTED_ACTION_TYPES:
+        return action_id
+    return None
 
 
 def _read_json_mapping(path: Path) -> dict[str, Any] | None:

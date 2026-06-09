@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers import stage_native_next_action_admission
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
@@ -15,6 +16,57 @@ from tests.study_runtime_test_helpers import make_profile, write_study, write_te
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _stage_native_admission_fields(
+    *,
+    action_type: str,
+    current_stage_id: str = "08-publication_package_handoff",
+    source_surface: str,
+) -> dict[str, object]:
+    return {
+        "stage_transition_authority_boundary": (
+            stage_native_next_action_admission.stage_transition_authority_boundary()
+        ),
+        "current_work_unit_binding": (
+            stage_native_next_action_admission.build_current_work_unit_binding(
+                action_type=action_type,
+                current_stage_id=current_stage_id,
+                source_surface=source_surface,
+            )
+        ),
+    }
+
+
+def _write_stage_native_next_action(
+    study_root: Path,
+    *,
+    action_type: str,
+    owner: str,
+    source_surface: str,
+    current_stage_id: str = "08-publication_package_handoff",
+    required_output_surface: str = "artifacts/reports/medical_publication_surface/latest.json",
+) -> None:
+    fields = _stage_native_admission_fields(
+        action_type=action_type,
+        current_stage_id=current_stage_id,
+        source_surface=source_surface,
+    )
+    _write_json(
+        study_root / "control" / "next_action.json",
+        {
+            "schema_version": 1,
+            "status": "ready_for_owner_action",
+            "action_type": action_type,
+            "action_id": f"stage-native-next-action::{action_type}",
+            "owner": owner,
+            "source_surface": source_surface,
+            "current_stage_id": current_stage_id,
+            "stage_index_ref": "control/stage_index.json",
+            "required_output_surface": required_output_surface,
+            **fields,
+        },
+    )
 
 
 def _write_profile(path: Path, profile) -> None:
@@ -135,8 +187,10 @@ def test_paper_clean_room_rebuild_apply_materializes_verified_input_workspace(tm
         "promote_only_after_publication_gate_passes",
     ]
     next_action = json.loads((study_root / "control" / "next_action.json").read_text(encoding="utf-8"))
-    assert next_action["action_id"] == "run_medical_publication_surface_from_clean_room"
+    assert next_action["action_type"] == "run_medical_publication_surface_from_clean_room"
+    assert next_action["action_id"] == "stage-native-next-action::run_medical_publication_surface_from_clean_room"
     assert next_action["source_surface"] == "artifacts/supervision/paper_clean_room_rebuild/latest.json"
+    assert next_action["current_work_unit_binding"]["source"] == "canonical_current_work_unit"
 
 
 def test_paper_clean_room_rebuild_prefers_stage_authority_current_body(tmp_path: Path) -> None:
@@ -593,6 +647,16 @@ def test_domain_owner_dispatch_accepts_stage_native_publication_surface_report_o
             "studies": [{"study_id": study_id, "quest_id": study_id}],
         },
     )
+    _write_stage_native_next_action(
+        study_root,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        source_surface="artifacts/reports/medical_publication_surface/latest.json",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+    )
     route = _owner_route(
         study_id=study_id,
         action_type="run_quality_repair_batch",
@@ -600,7 +664,12 @@ def test_domain_owner_dispatch_accepts_stage_native_publication_surface_report_o
     )
     route["source_refs"] = {
         **dict(route.get("source_refs") or {}),
-        "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+            "current_stage_id": "08-publication_package_handoff",
+            "current_work_unit_binding": _stage_native_admission_fields(
+                action_type="run_quality_repair_batch",
+                source_surface="artifacts/reports/medical_publication_surface/latest.json",
+        )["current_work_unit_binding"],
         "owner_route_currentness_basis": {
             "work_unit_id": "run_quality_repair_batch",
             "work_unit_fingerprint": (
@@ -632,6 +701,7 @@ def test_domain_owner_dispatch_accepts_stage_native_publication_surface_report_o
     payload["source_action"] = {
         "authority": "stage_native_workspace_next_action",
         "source_surface": "artifacts/reports/medical_publication_surface/latest.json",
+        "current_stage_id": "08-publication_package_handoff",
     }
     _write_current_dispatch(dispatch_path, profile, payload)
 

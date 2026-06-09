@@ -4,12 +4,33 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers import stage_native_next_action_admission
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _stage_native_admission_fields(
+    *,
+    action_type: str = "run_quality_repair_batch",
+    current_stage_id: str = "08-publication_package_handoff",
+    source_surface: str = "artifacts/reports/medical_publication_surface/latest.json",
+) -> dict[str, object]:
+    return {
+        "stage_transition_authority_boundary": (
+            stage_native_next_action_admission.stage_transition_authority_boundary()
+        ),
+        "current_work_unit_binding": (
+            stage_native_next_action_admission.build_current_work_unit_binding(
+                action_type=action_type,
+                current_stage_id=current_stage_id,
+                source_surface=source_surface,
+            )
+        ),
+    }
 
 
 def _write_ready_literature_intelligence(study_root: Path) -> None:

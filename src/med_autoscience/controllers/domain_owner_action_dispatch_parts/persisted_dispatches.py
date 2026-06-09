@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers import stage_native_next_action_admission
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -69,6 +70,14 @@ def explicit_action_dispatches(
             continue
         refs = _mapping(payload.get("refs"))
         payload["refs"] = {**refs, "dispatch_path": str(path)}
+        if stage_native_next_action_admission.dispatch_uses_stage_native_next_action(
+            payload
+        ) and not _stage_native_next_action_matches_dispatch(
+            profile=profile,
+            study_id=study_id,
+            dispatch=payload,
+        ):
+            continue
         scan_payload = scan_latest_payload(profile)
         current_study = _scan_study(scan_payload, study_id)
         consumer_dispatch_current = _consumer_latest_matches_dispatch(
@@ -167,6 +176,11 @@ def selected_dispatches(
         study_id=study_id,
         consumer_payload=consumer_payload,
         consumer_latest_path=consumer_latest_path,
+    )
+    consumer_dispatches = _without_unauthorized_stage_native_dispatches(
+        profile=profile,
+        study_id=study_id,
+        dispatches=consumer_dispatches,
     )
     if stage_native_next_action is not None:
         consumer_dispatches = _stage_native_next_action_dispatches_only(
@@ -411,6 +425,24 @@ def _selected_dispatches_only(
     return selected
 
 
+def _without_unauthorized_stage_native_dispatches(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatches: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        dispatch
+        for dispatch in dispatches
+        if not stage_native_next_action_admission.dispatch_uses_stage_native_next_action(dispatch)
+        or _stage_native_next_action_matches_dispatch(
+            profile=profile,
+            study_id=study_id,
+            dispatch=dispatch,
+        )
+    ]
+
+
 def _scan_action_queue_matches_dispatch(
     *,
     current_study: Mapping[str, Any],
@@ -466,8 +498,10 @@ def _stage_native_next_action(*, profile: WorkspaceProfile, study_id: str) -> di
         return None
     if _text(payload.get("status")) != "ready_for_owner_action":
         return None
-    action_type = _text(payload.get("action_id")) or _text(payload.get("action_type"))
+    action_type = _stage_native_next_action_type(payload)
     if action_type is None:
+        return None
+    if not stage_native_next_action_admission.default_dispatch_allowed(payload):
         return None
     return {
         **payload,
@@ -528,6 +562,16 @@ def _dispatch_matches_stage_native_next_action(
     }:
         return False
     return True
+
+
+def _stage_native_next_action_type(next_action: Mapping[str, Any]) -> str | None:
+    direct = _text(next_action.get("action_type"))
+    if direct is not None:
+        return direct
+    action_id = _text(next_action.get("action_id"))
+    if action_id is not None and not action_id.startswith("stage-native-next-action::"):
+        return action_id
+    return None
 
 
 def _read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
