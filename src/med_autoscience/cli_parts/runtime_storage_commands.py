@@ -151,6 +151,13 @@ def _add_runtime_retention_options(parser: argparse.ArgumentParser, *, include_c
     parser.add_argument("--report-retention-keep-recent-days", type=int, default=1)
     parser.add_argument("--report-retention-daily-samples", type=int, default=2)
     parser.add_argument("--report-retention-max-files", type=int)
+    parser.add_argument("--attempt-evidence-capsules", action="store_true")
+    parser.add_argument("--semantic-process-retention", action="store_true")
+    parser.add_argument("--semantic-process-retention-apply", action="store_true", help=_RUNTIME_RETENTION_APPLY_HELP)
+    parser.add_argument("--semantic-retention-max-log-bytes", type=int, default=256 * 1024)
+    parser.add_argument("--semantic-retention-max-raw-bytes", type=int, default=1024 * 1024)
+    parser.add_argument("--semantic-retention-keep-failed-raw", action="store_true", default=True)
+    parser.add_argument("--semantic-retention-max-files", type=int)
 
 
 def _storage_maintenance_kwargs(args: argparse.Namespace) -> dict[str, Any]:
@@ -190,12 +197,17 @@ def _runtime_retention_kwargs(
     archive_retention_apply = bool(getattr(args, "archive_retention_apply", False))
     report_retention = bool(getattr(args, "report_retention", False))
     report_retention_apply = bool(getattr(args, "report_retention_apply", False))
+    semantic_process_retention = bool(getattr(args, "semantic_process_retention", False))
+    semantic_process_retention_apply = bool(getattr(args, "semantic_process_retention_apply", False))
+    attempt_evidence_capsules = bool(getattr(args, "attempt_evidence_capsules", False)) or semantic_process_retention
     if archive_retention_apply and not archive_retention:
         command_parser.error("--archive-retention-apply requires --archive-retention")
     if report_retention_apply and not report_retention:
         command_parser.error("--report-retention-apply requires --report-retention")
-    if (archive_retention_apply or report_retention_apply) and not workspace_apply:
-        command_parser.error("--archive-retention-apply/--report-retention-apply require workspace --apply")
+    if semantic_process_retention_apply and not semantic_process_retention:
+        command_parser.error("--semantic-process-retention-apply requires --semantic-process-retention")
+    if (archive_retention_apply or report_retention_apply or semantic_process_retention_apply) and not workspace_apply:
+        command_parser.error("retention apply flags require workspace --apply")
     cold_store_root = getattr(args, "archive_retention_cold_store_root", None)
     return {
         "archive_retention": archive_retention,
@@ -207,6 +219,13 @@ def _runtime_retention_kwargs(
         "report_retention_keep_recent_days": int(getattr(args, "report_retention_keep_recent_days", 1)),
         "report_retention_daily_samples": int(getattr(args, "report_retention_daily_samples", 2)),
         "report_retention_max_files": getattr(args, "report_retention_max_files", None),
+        "attempt_evidence_capsules": attempt_evidence_capsules,
+        "semantic_process_retention": semantic_process_retention,
+        "semantic_process_retention_apply": semantic_process_retention_apply,
+        "semantic_retention_max_log_bytes": int(getattr(args, "semantic_retention_max_log_bytes", 256 * 1024)),
+        "semantic_retention_max_raw_bytes": int(getattr(args, "semantic_retention_max_raw_bytes", 1024 * 1024)),
+        "semantic_retention_keep_failed_raw": bool(getattr(args, "semantic_retention_keep_failed_raw", True)),
+        "semantic_retention_max_files": getattr(args, "semantic_retention_max_files", None),
     }
 
 
@@ -217,6 +236,9 @@ def _reject_runtime_retention_for_legacy_ds(args: argparse.Namespace, parser: ar
         "report_retention",
         "report_retention_apply",
         "archive_retention_cold_store_root",
+        "attempt_evidence_capsules",
+        "semantic_process_retention",
+        "semantic_process_retention_apply",
     )
     if any(bool(getattr(args, name, False)) for name in retention_flags):
         _command_parser(args, parser).error("runtime retention flags require --study-id or --quest-root")

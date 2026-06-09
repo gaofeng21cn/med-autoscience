@@ -47,6 +47,13 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         report_retention_keep_recent_days: int,
         report_retention_daily_samples: int,
         report_retention_max_files: int | None,
+        attempt_evidence_capsules: bool,
+        semantic_process_retention: bool,
+        semantic_process_retention_apply: bool,
+        semantic_retention_max_log_bytes: int,
+        semantic_retention_max_raw_bytes: int,
+        semantic_retention_keep_failed_raw: bool,
+        semantic_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -79,6 +86,13 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
         called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
         called["report_retention_daily_samples"] = report_retention_daily_samples
         called["report_retention_max_files"] = report_retention_max_files
+        called["attempt_evidence_capsules"] = attempt_evidence_capsules
+        called["semantic_process_retention"] = semantic_process_retention
+        called["semantic_process_retention_apply"] = semantic_process_retention_apply
+        called["semantic_retention_max_log_bytes"] = semantic_retention_max_log_bytes
+        called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
+        called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
+        called["semantic_retention_max_files"] = semantic_retention_max_files
         return {"status": "maintained", "quest_id": "quest-001"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "maintain_runtime_storage", fake_maintain_runtime_storage)
@@ -125,6 +139,14 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
             "4",
             "--report-retention-max-files",
             "25",
+            "--semantic-process-retention",
+            "--semantic-process-retention-apply",
+            "--semantic-retention-max-log-bytes",
+            "4096",
+            "--semantic-retention-max-raw-bytes",
+            "8192",
+            "--semantic-retention-max-files",
+            "9",
         ]
     )
     captured = capsys.readouterr()
@@ -161,6 +183,13 @@ def test_runtime_maintain_storage_command_dispatches_controller(monkeypatch, tmp
     assert called["report_retention_keep_recent_days"] == 14
     assert called["report_retention_daily_samples"] == 4
     assert called["report_retention_max_files"] == 25
+    assert called["attempt_evidence_capsules"] is True
+    assert called["semantic_process_retention"] is True
+    assert called["semantic_process_retention_apply"] is True
+    assert called["semantic_retention_max_log_bytes"] == 4096
+    assert called["semantic_retention_max_raw_bytes"] == 8192
+    assert called["semantic_retention_keep_failed_raw"] is True
+    assert called["semantic_retention_max_files"] == 9
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -207,6 +236,13 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         report_retention_keep_recent_days: int,
         report_retention_daily_samples: int,
         report_retention_max_files: int | None,
+        attempt_evidence_capsules: bool,
+        semantic_process_retention: bool,
+        semantic_process_retention_apply: bool,
+        semantic_retention_max_log_bytes: int,
+        semantic_retention_max_raw_bytes: int,
+        semantic_retention_keep_failed_raw: bool,
+        semantic_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["quest_root"] = quest_root
@@ -228,6 +264,13 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
         called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
         called["report_retention_daily_samples"] = report_retention_daily_samples
         called["report_retention_max_files"] = report_retention_max_files
+        called["attempt_evidence_capsules"] = attempt_evidence_capsules
+        called["semantic_process_retention"] = semantic_process_retention
+        called["semantic_process_retention_apply"] = semantic_process_retention_apply
+        called["semantic_retention_max_log_bytes"] = semantic_retention_max_log_bytes
+        called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
+        called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
+        called["semantic_retention_max_files"] = semantic_retention_max_files
         return {"status": "maintained", "quest_id": "legacy-quest"}
 
     monkeypatch.setattr(
@@ -277,6 +320,13 @@ def test_runtime_maintain_storage_command_dispatches_quest_root_entry(
     assert called["report_retention_keep_recent_days"] == 1
     assert called["report_retention_daily_samples"] == 2
     assert called["report_retention_max_files"] is None
+    assert called["attempt_evidence_capsules"] is False
+    assert called["semantic_process_retention"] is False
+    assert called["semantic_process_retention_apply"] is False
+    assert called["semantic_retention_max_log_bytes"] == 256 * 1024
+    assert called["semantic_retention_max_raw_bytes"] == 1024 * 1024
+    assert called["semantic_retention_keep_failed_raw"] is True
+    assert called["semantic_retention_max_files"] is None
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -323,6 +373,13 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
         report_retention_keep_recent_days: int,
         report_retention_daily_samples: int,
         report_retention_max_files: int | None,
+        attempt_evidence_capsules: bool,
+        semantic_process_retention: bool,
+        semantic_process_retention_apply: bool,
+        semantic_retention_max_log_bytes: int,
+        semantic_retention_max_raw_bytes: int,
+        semantic_retention_keep_failed_raw: bool,
+        semantic_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["quest_root"] = quest_root
@@ -343,6 +400,13 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
         called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
         called["report_retention_daily_samples"] = report_retention_daily_samples
         called["report_retention_max_files"] = report_retention_max_files
+        called["attempt_evidence_capsules"] = attempt_evidence_capsules
+        called["semantic_process_retention"] = semantic_process_retention
+        called["semantic_process_retention_apply"] = semantic_process_retention_apply
+        called["semantic_retention_max_log_bytes"] = semantic_retention_max_log_bytes
+        called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
+        called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
+        called["semantic_retention_max_files"] = semantic_retention_max_files
         return {"status": "maintained", "quest_id": "legacy-quest"}
 
     monkeypatch.setattr(
@@ -386,6 +450,9 @@ def test_runtime_maintain_storage_command_dispatches_restore_proof_canary(
     assert called["archive_retention_apply"] is False
     assert called["report_retention"] is False
     assert called["report_retention_apply"] is False
+    assert called["attempt_evidence_capsules"] is False
+    assert called["semantic_process_retention"] is False
+    assert called["semantic_process_retention_apply"] is False
     assert json.loads(captured.out)["status"] == "maintained"
 
 
@@ -502,6 +569,33 @@ def test_runtime_maintain_storage_legacy_ds_root_rejects_retention_flags(
     assert "runtime retention flags require --study-id or --quest-root" in captured.err
 
 
+def test_runtime_maintain_storage_legacy_ds_root_rejects_semantic_retention_flags(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "runtime",
+                "maintain-storage",
+                "--profile",
+                str(profile_path),
+                "--legacy-ds-root",
+                str(tmp_path / ".ds"),
+                "--restore-proof-compaction",
+                "--semantic-process-retention",
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "runtime retention flags require --study-id or --quest-root" in captured.err
+
+
 def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
@@ -546,6 +640,13 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         report_retention_keep_recent_days: int,
         report_retention_daily_samples: int,
         report_retention_max_files: int | None,
+        attempt_evidence_capsules: bool,
+        semantic_process_retention: bool,
+        semantic_process_retention_apply: bool,
+        semantic_retention_max_log_bytes: int,
+        semantic_retention_max_raw_bytes: int,
+        semantic_retention_keep_failed_raw: bool,
+        semantic_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_id"] = study_id
@@ -583,6 +684,13 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
         called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
         called["report_retention_daily_samples"] = report_retention_daily_samples
         called["report_retention_max_files"] = report_retention_max_files
+        called["attempt_evidence_capsules"] = attempt_evidence_capsules
+        called["semantic_process_retention"] = semantic_process_retention
+        called["semantic_process_retention_apply"] = semantic_process_retention_apply
+        called["semantic_retention_max_log_bytes"] = semantic_retention_max_log_bytes
+        called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
+        called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
+        called["semantic_retention_max_files"] = semantic_retention_max_files
         return {"mode": "apply", "latest_report_path": "storage_audit/latest.json"}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -628,6 +736,15 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
             "3",
             "--report-retention-max-files",
             "50",
+            "--attempt-evidence-capsules",
+            "--semantic-process-retention",
+            "--semantic-process-retention-apply",
+            "--semantic-retention-max-log-bytes",
+            "1024",
+            "--semantic-retention-max-raw-bytes",
+            "2048",
+            "--semantic-retention-max-files",
+            "11",
         ]
     )
     captured = capsys.readouterr()
@@ -669,6 +786,13 @@ def test_runtime_storage_audit_command_dispatches_controller(monkeypatch, tmp_pa
     assert called["report_retention_keep_recent_days"] == 21
     assert called["report_retention_daily_samples"] == 3
     assert called["report_retention_max_files"] == 50
+    assert called["attempt_evidence_capsules"] is True
+    assert called["semantic_process_retention"] is True
+    assert called["semantic_process_retention_apply"] is True
+    assert called["semantic_retention_max_log_bytes"] == 1024
+    assert called["semantic_retention_max_raw_bytes"] == 2048
+    assert called["semantic_retention_keep_failed_raw"] is True
+    assert called["semantic_retention_max_files"] == 11
     assert json.loads(captured.out)["latest_report_path"] == "storage_audit/latest.json"
 
 
@@ -720,6 +844,13 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         report_retention_keep_recent_days: int,
         report_retention_daily_samples: int,
         report_retention_max_files: int | None,
+        attempt_evidence_capsules: bool,
+        semantic_process_retention: bool,
+        semantic_process_retention_apply: bool,
+        semantic_retention_max_log_bytes: int,
+        semantic_retention_max_raw_bytes: int,
+        semantic_retention_keep_failed_raw: bool,
+        semantic_retention_max_files: int | None,
     ) -> dict[str, object]:
         called["study_id"] = study_id
         called["apply"] = apply
@@ -742,6 +873,13 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         called["report_retention_keep_recent_days"] = report_retention_keep_recent_days
         called["report_retention_daily_samples"] = report_retention_daily_samples
         called["report_retention_max_files"] = report_retention_max_files
+        called["attempt_evidence_capsules"] = attempt_evidence_capsules
+        called["semantic_process_retention"] = semantic_process_retention
+        called["semantic_process_retention_apply"] = semantic_process_retention_apply
+        called["semantic_retention_max_log_bytes"] = semantic_retention_max_log_bytes
+        called["semantic_retention_max_raw_bytes"] = semantic_retention_max_raw_bytes
+        called["semantic_retention_keep_failed_raw"] = semantic_retention_keep_failed_raw
+        called["semantic_retention_max_files"] = semantic_retention_max_files
         return {"mode": "apply" if apply else "dry-run", "restore_proof_compaction": restore_proof_compaction}
 
     monkeypatch.setattr(cli.runtime_storage_maintenance, "audit_workspace_storage", fake_audit_workspace_storage)
@@ -790,6 +928,13 @@ def test_runtime_storage_audit_restore_proof_compaction_requires_explicit_apply(
         "report_retention_keep_recent_days": 1,
         "report_retention_daily_samples": 2,
         "report_retention_max_files": None,
+        "attempt_evidence_capsules": False,
+        "semantic_process_retention": False,
+        "semantic_process_retention_apply": False,
+        "semantic_retention_max_log_bytes": 256 * 1024,
+        "semantic_retention_max_raw_bytes": 1024 * 1024,
+        "semantic_retention_keep_failed_raw": True,
+        "semantic_retention_max_files": None,
     }
     assert json.loads(captured.out)["restore_proof_compaction"] is True
 
@@ -824,4 +969,25 @@ def test_runtime_storage_audit_retention_apply_requires_workspace_apply(capsys) 
 
     assert excinfo.value.code == 2
     assert "usage: medautosci runtime storage-audit" in captured.err
-    assert "--archive-retention-apply/--report-retention-apply require workspace --apply" in captured.err
+    assert "retention apply flags require workspace --apply" in captured.err
+
+
+def test_runtime_storage_audit_semantic_retention_apply_requires_workspace_apply(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "runtime",
+                "storage-audit",
+                "--profile",
+                "workspace.toml",
+                "--semantic-process-retention",
+                "--semantic-process-retention-apply",
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "usage: medautosci runtime storage-audit" in captured.err
+    assert "retention apply flags require workspace --apply" in captured.err

@@ -12,6 +12,9 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.archive_repor
     retain_report_snapshots,
     retain_restore_proof_archive_bodies,
 )
+from med_autoscience.controllers.runtime_storage_maintenance_parts.attempt_evidence_capsule import (
+    materialize_attempt_evidence_capsules,
+)
 from med_autoscience.controllers.runtime_storage_maintenance_parts.authority_boundary import (
     storage_refs_only_adapter_boundary,
 )
@@ -68,6 +71,13 @@ def maintain_quest_runtime_storage(
     report_retention_keep_recent_days: int = 1,
     report_retention_daily_samples: int = 2,
     report_retention_max_files: int | None = None,
+    attempt_evidence_capsules: bool = False,
+    semantic_process_retention: bool = False,
+    semantic_process_retention_apply: bool = False,
+    semantic_retention_max_log_bytes: int = 256 * 1024,
+    semantic_retention_max_raw_bytes: int = 1024 * 1024,
+    semantic_retention_keep_failed_raw: bool = True,
+    semantic_retention_max_files: int | None = None,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     selected_restore_proof_buckets = _restore_proof_buckets(restore_proof_buckets)
@@ -100,6 +110,13 @@ def maintain_quest_runtime_storage(
         "report_retention_keep_recent_days": report_retention_keep_recent_days,
         "report_retention_daily_samples": report_retention_daily_samples,
         "report_retention_max_files": report_retention_max_files,
+        "attempt_evidence_capsules_enabled": attempt_evidence_capsules,
+        "semantic_process_retention_enabled": semantic_process_retention,
+        "semantic_process_retention_apply": semantic_process_retention_apply,
+        "semantic_retention_max_log_bytes": semantic_retention_max_log_bytes,
+        "semantic_retention_max_raw_bytes": semantic_retention_max_raw_bytes,
+        "semantic_retention_keep_failed_raw": semantic_retention_keep_failed_raw,
+        "semantic_retention_max_files": semantic_retention_max_files,
         "orphan_quest_root_mode": True,
         "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
             report_mode="orphan_quest_runtime_storage_maintenance",
@@ -214,6 +231,18 @@ def maintain_quest_runtime_storage(
         report_retention_keep_recent_days=report_retention_keep_recent_days,
         report_retention_daily_samples=report_retention_daily_samples,
         report_retention_max_files=report_retention_max_files,
+    )
+    _apply_attempt_evidence_capsules_if_requested(
+        result=result,
+        quest_root=resolved_quest_root,
+        quest_id=quest_id,
+        attempt_evidence_capsules=attempt_evidence_capsules,
+        semantic_process_retention=semantic_process_retention,
+        semantic_process_retention_apply=semantic_process_retention_apply,
+        semantic_retention_max_log_bytes=semantic_retention_max_log_bytes,
+        semantic_retention_max_raw_bytes=semantic_retention_max_raw_bytes,
+        semantic_retention_keep_failed_raw=semantic_retention_keep_failed_raw,
+        semantic_retention_max_files=semantic_retention_max_files,
     )
 
     result["quest_runtime_after"] = _quest_runtime_snapshot(resolved_quest_root)
@@ -463,6 +492,45 @@ def _apply_retention_if_requested(
         if report_retention_apply and report_result.get("status") in {"applied", "nothing_to_retain"}:
             result["status"] = "maintained"
             result["summary"] = "quest runtime report snapshot retention 已完成。"
+
+
+def _apply_attempt_evidence_capsules_if_requested(
+    *,
+    result: dict[str, Any],
+    quest_root: Path,
+    quest_id: str,
+    attempt_evidence_capsules: bool,
+    semantic_process_retention: bool,
+    semantic_process_retention_apply: bool,
+    semantic_retention_max_log_bytes: int,
+    semantic_retention_max_raw_bytes: int,
+    semantic_retention_keep_failed_raw: bool,
+    semantic_retention_max_files: int | None,
+) -> None:
+    if not (attempt_evidence_capsules or semantic_process_retention):
+        return
+    apply_allowed = result.get("status") in {"maintained", "blocked_backend_unavailable"}
+    capsule_result = materialize_attempt_evidence_capsules(
+        quest_root=quest_root,
+        quest_id=quest_id,
+        recorded_at=str(result["recorded_at"]),
+        semantic_process_retention=semantic_process_retention,
+        semantic_process_retention_apply=semantic_process_retention_apply,
+        semantic_process_retention_apply_allowed=apply_allowed,
+        semantic_retention_max_log_bytes=semantic_retention_max_log_bytes,
+        semantic_retention_max_raw_bytes=semantic_retention_max_raw_bytes,
+        semantic_retention_keep_failed_raw=semantic_retention_keep_failed_raw,
+        semantic_retention_max_files=semantic_retention_max_files,
+    )
+    result.update(capsule_result)
+    semantic_result = capsule_result.get("semantic_process_retention")
+    if (
+        semantic_process_retention_apply
+        and isinstance(semantic_result, Mapping)
+        and semantic_result.get("status") in {"applied", "nothing_to_retain"}
+    ):
+        result["status"] = "maintained"
+        result["summary"] = "quest runtime semantic process retention 已完成。"
 
 
 def _utc_now() -> str:

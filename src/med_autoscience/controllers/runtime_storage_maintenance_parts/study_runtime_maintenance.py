@@ -55,6 +55,13 @@ def maintain_runtime_storage(
     report_retention_keep_recent_days: int = 1,
     report_retention_daily_samples: int = 2,
     report_retention_max_files: int | None = None,
+    attempt_evidence_capsules: bool = False,
+    semantic_process_retention: bool = False,
+    semantic_process_retention_apply: bool = False,
+    semantic_retention_max_log_bytes: int = 256 * 1024,
+    semantic_retention_max_raw_bytes: int = 1024 * 1024,
+    semantic_retention_keep_failed_raw: bool = True,
+    semantic_retention_max_files: int | None = None,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, study_payload = study_runtime_resolution._resolve_study(
         profile=profile,
@@ -104,6 +111,13 @@ def maintain_runtime_storage(
         report_retention_keep_recent_days=report_retention_keep_recent_days,
         report_retention_daily_samples=report_retention_daily_samples,
         report_retention_max_files=report_retention_max_files,
+        attempt_evidence_capsules=attempt_evidence_capsules,
+        semantic_process_retention=semantic_process_retention,
+        semantic_process_retention_apply=semantic_process_retention_apply,
+        semantic_retention_max_log_bytes=semantic_retention_max_log_bytes,
+        semantic_retention_max_raw_bytes=semantic_retention_max_raw_bytes,
+        semantic_retention_keep_failed_raw=semantic_retention_keep_failed_raw,
+        semantic_retention_max_files=semantic_retention_max_files,
     )
     result["schema_version"] = SCHEMA_VERSION
     result["study_id"] = resolved_study_id
