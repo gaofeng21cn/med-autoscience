@@ -152,11 +152,8 @@ def _coverage_payload_from_raw_records(
 
 
 def _existing_runtime_roots(quest_root: Path) -> list[Path]:
-    roots = [quest_root]
-    worktrees_root = quest_root / ".ds" / "worktrees"
-    if worktrees_root.exists():
-        roots.extend(sorted(path for path in worktrees_root.iterdir() if path.is_dir()))
-    return roots
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    return [resolved_quest_root]
 
 
 def _preserve_existing_surface(quest_root: Path) -> dict[str, object] | None:

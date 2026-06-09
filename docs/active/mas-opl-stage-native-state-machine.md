@@ -101,6 +101,31 @@ artifacts/stage_outputs/07-independent_review_and_revision/
 
 `outputs/` 是 artifact evidence，`receipts/` 是 transition authority，`projection/` 是人机读面。没有 receipt 或 blocker，目录再完整也不能自动进入下一 Stage。
 
+## Ordinary Progress Spine 与 Audit Sidecar
+
+2026-06-09 后，本设计进一步吸收 RCA、DeepScientist 和旧 MDS 的顺畅推进经验：默认控制面必须短，审计证据必须完整但旁路化。MAS 不恢复 MDS / DeepScientist 默认 backend；只吸收它们“单循环、少默认门、持续产出”的推进体感。
+
+MAS paper-line 的普通主干固定为：
+
+```text
+current_owner_delta
+  -> current medical stage goal
+  -> executor produces concrete paper/evidence/reviewer/gate delta
+  -> MAS records ProgressDeltaReceipt / OwnerReceipt / TypedBlocker
+  -> OPL projects next current_owner_delta
+```
+
+Stage artifact 分四层：
+
+| Tier | MAS 例子 | 推进权限 |
+| --- | --- | --- |
+| `T0_progress_delta` | 一段 manuscript 修订、一个 evidence table update、一个 reviewer gap fix、一个 readiness surface payload、一个 platform repair。 | 只用轻量 `ProgressDeltaReceipt` 接力；不关闭 Stage。 |
+| `T1_stage_transition` | `stage_manifest.json`、role artifacts、`receipts/owner_receipt.json` 或 `receipts/typed_blocker.json`、current pointer / closeout binding。 | 关闭或阻塞 Stage。 |
+| `T2_delivery_artifact` | publication package、submission package、artifact mutation、current package freshness、independent review / human gate。 | 进入 delivery / publication gate。 |
+| `T3_production_evidence` | restore proof、lineage full replay、long-soak、cleanup、no-regression、production evidence。 | 只作 audit / production evidence lane，不抢 ordinary next action。 |
+
+`complete_medical_paper_readiness_surface` 因此按 just-in-time delta 读取：当前 surface 需要 payload 时补 payload，需要 owner blocker 时写 blocker，需要 route-back 时给 route-back；它不要求普通 paper progress 先补齐全部 readiness inventory。readiness inventory、lineage、restore、long-soak、refs-only ledger 和 cleanup proof 进入 audit sidecar，只有在破坏 owner、authority、execution authorization、closeout binding、artifact/package mutation、publication/submission claim 或 human gate 时才升级为 hard gate。
+
 ## 最小对象模型
 
 | 对象 | Owner | 职责 |

@@ -41,8 +41,7 @@ def make_quest(
     medical_prose_review_verdict: str = "clear",
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
-    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
-    paper_root = worktree_root / "paper"
+    paper_root = quest_root / "paper"
     if include_methods_manifest is None:
         include_methods_manifest = medicalized
     if include_results_narrative_map is None:
@@ -92,16 +91,15 @@ def make_quest(
     if include_medical_prose_review is None:
         include_medical_prose_review = medicalized
 
-    dump_json(
-        quest_root / ".ds" / "runtime_state.json",
-        {
-            "quest_id": "002-early-residual-risk",
-            "status": "running",
-            "active_run_id": "run-1",
-            "active_interaction_id": "progress-1",
-            "pending_user_message_count": 0,
-        },
-    )
+    runtime_state_payload = {
+        "quest_id": "002-early-residual-risk",
+        "status": "running",
+        "active_run_id": "run-1",
+        "active_interaction_id": "progress-1",
+        "pending_user_message_count": 0,
+    }
+    dump_json(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", runtime_state_payload)
+    dump_json(quest_root / ".ds" / "runtime_state.json", runtime_state_payload)
     (quest_root / "baselines" / "local" / "baseline-1").mkdir(parents=True, exist_ok=True)
     (quest_root / "baselines" / "local" / "baseline-1" / "verification.md").write_text(
         "# Verification\n\n"
@@ -636,7 +634,7 @@ def make_quest(
         write_medical_prose_review_fixture(paper_root, verdict=medical_prose_review_verdict)
     return quest_root
 def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f5: bool) -> None:
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = quest_root / "paper"
     dump_json(
         paper_root / "medical_reporting_contract.json",
         {

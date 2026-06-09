@@ -84,7 +84,7 @@ def test_submit_study_task_projects_task_context_for_opl_runtime(
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         json.dumps(
             {
                 "quest_id": "001-risk",
@@ -108,7 +108,7 @@ def test_submit_study_task_projects_task_context_for_opl_runtime(
     )
 
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    runtime_state = read_runtime_state(quest_root)
     runtime_intervention = result["runtime_intervention"]
 
     assert runtime_intervention["intervention_enqueued"] is False
@@ -136,7 +136,7 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run(
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         json.dumps(
             {
                 "quest_id": "001-risk",
@@ -166,7 +166,7 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run(
     )
 
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    runtime_state = read_runtime_state(quest_root)
     first_intervention = first["runtime_intervention"]
     second_intervention = second["runtime_intervention"]
 
@@ -190,7 +190,7 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attemp
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         json.dumps(
             {
                 "quest_id": "001-risk",
@@ -212,9 +212,9 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attemp
         task_intent="根据审稿意见修订 manuscript。",
         constraints=("补齐 Table 1 和 Table 2",),
     )
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    runtime_state = read_runtime_state(quest_root)
     runtime_state["active_run_id"] = "run-live-002"
-    write_text(quest_root / ".ds" / "runtime_state.json", json.dumps(runtime_state, ensure_ascii=False, indent=2) + "\n")
+    write_runtime_state(quest_root, runtime_state)
     second = product_entry.submit_study_task(
         profile=profile,
         study_id="001-risk",
@@ -244,7 +244,7 @@ def test_submit_study_task_uses_managed_quest_id_for_opl_owner_route_ref(
     managed_quest_root = profile.managed_runtime_home / "quests" / "001-risk-managed"
     write_text(managed_quest_root / "quest.yaml", "id: 001-risk-managed\n")
     write_text(
-        managed_quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(managed_quest_root),
         json.dumps(
             {
                 "quest_id": "001-risk-managed",
@@ -284,7 +284,7 @@ def test_submit_study_task_requires_reactivation_for_stopped_reviewer_revision(t
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         json.dumps(
             {
                 "quest_id": "001-risk",
@@ -325,7 +325,7 @@ def test_submit_study_task_does_not_fall_back_to_private_queue_when_backend_chat
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         json.dumps(
             {
                 "quest_id": "001-risk",
@@ -348,7 +348,7 @@ def test_submit_study_task_does_not_fall_back_to_private_queue_when_backend_chat
     )
 
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    runtime_state = read_runtime_state(quest_root)
     runtime_intervention = result["runtime_intervention"]
 
     assert runtime_intervention["intervention_enqueued"] is False

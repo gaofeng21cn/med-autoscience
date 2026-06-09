@@ -672,7 +672,7 @@ def test_materialize_runtime_medical_overlay_can_seed_missing_runtime_overlay_fr
     ).exists()
 
 
-def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_path: Path) -> None:
+def test_materialize_runtime_medical_overlay_ignores_legacy_worktrees(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     workspace_root = tmp_path / "workspace"
     quest_root = tmp_path / "runtime" / "quests" / "q001"
@@ -694,13 +694,10 @@ def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_pat
         skill_ids=("write",),
     )
 
-    assert result["materialized_surface_count"] == 2
-    assert (
+    assert result["materialized_surface_count"] == 1
+    assert not (
         worktree_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write" / ".med_autoscience_overlay.json"
     ).exists()
-    manifest = read_manifest(worktree_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write")
-    assert manifest["quest_root"] == str(worktree_root)
-    assert manifest["target_root"] == str(worktree_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write")
 
     audit = module.audit_runtime_medical_overlay(
         quest_root=quest_root,
@@ -710,30 +707,26 @@ def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_pat
     assert audit["all_roots_ready"] is True
     by_surface = {Path(item["runtime_root"]).name: item for item in audit["surfaces"]}
     assert by_surface["q001"]["all_targets_ready"] is True
-    assert by_surface["paper-run-1"]["all_targets_ready"] is True
+    assert "paper-run-1" not in by_surface
 
 
 def test_materialize_runtime_medical_overlay_materializes_required_companion_blocks(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     workspace_root = tmp_path / "workspace"
     quest_root = tmp_path / "runtime" / "quests" / "q001"
-    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
 
     module.install_medical_overlay(
         quest_root=workspace_root,
         skill_ids=("write",),
     )
-    write_skill(worktree_root / ".codex" / "skills", "write", "upstream write\n")
-
     result = module.materialize_runtime_medical_overlay(
         quest_root=quest_root,
         authoritative_root=workspace_root,
         skill_ids=("write",),
     )
 
-    assert result["materialized_surface_count"] == 2
-    for runtime_root in (quest_root, worktree_root):
-        assert stage_packet_path(runtime_root, "write").read_text(encoding="utf-8") == read_stage_packet_template()
+    assert result["materialized_surface_count"] == 1
+    assert stage_packet_path(quest_root, "write").read_text(encoding="utf-8") == read_stage_packet_template()
 
 
 def test_audit_runtime_medical_overlay_reports_missing_companion_block(tmp_path: Path) -> None:
@@ -813,7 +806,7 @@ def test_materialize_runtime_medical_overlay_does_not_mutate_legacy_mds_skills_w
     assert not home_skills_root.exists()
 
 
-def test_materialize_runtime_medical_overlay_rewrites_stale_worktree_manifest_paths(tmp_path: Path) -> None:
+def test_materialize_runtime_medical_overlay_ignores_stale_legacy_worktree_manifest_paths(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     workspace_root = tmp_path / "workspace"
     quest_root = tmp_path / "runtime" / "quests" / "q001"
@@ -847,11 +840,11 @@ def test_materialize_runtime_medical_overlay_rewrites_stale_worktree_manifest_pa
         skill_ids=("write",),
     )
 
-    assert result["materialized_surface_count"] == 2
+    assert result["materialized_surface_count"] == 1
     manifest = read_manifest(worktree_skill_root)
-    assert manifest["quest_root"] == str(worktree_root)
-    assert manifest["target_root"] == str(worktree_skill_root)
-    assert manifest["skill_path"] == str(worktree_skill_root / "SKILL.md")
+    assert manifest["quest_root"] == str(quest_root)
+    assert manifest["target_root"] == str(quest_skill_root)
+    assert manifest["skill_path"] == str(quest_skill_root / "SKILL.md")
 
     audit = module.audit_runtime_medical_overlay(
         quest_root=quest_root,
@@ -860,7 +853,7 @@ def test_materialize_runtime_medical_overlay_rewrites_stale_worktree_manifest_pa
 
     assert audit["all_roots_ready"] is True
     by_surface = {Path(item["runtime_root"]).name: item for item in audit["surfaces"]}
-    assert by_surface["paper-run-1"]["all_targets_ready"] is True
+    assert "paper-run-1" not in by_surface
 
 
 def test_materialize_runtime_medical_overlay_sanitizes_forbidden_system_prompt_text(tmp_path: Path) -> None:
@@ -888,14 +881,15 @@ def test_materialize_runtime_medical_overlay_sanitizes_forbidden_system_prompt_t
         skill_ids=("write",),
     )
 
-    assert result["materialized_surface_count"] == 2
-    for runtime_root in (quest_root, worktree_root):
-        prompt_text = (runtime_root / ".codex" / "prompts" / "system.md").read_text(encoding="utf-8")
-        assert FORBIDDEN_AUTOFIGURE_PROMPT not in prompt_text
-        assert "before" in prompt_text or "header" in prompt_text
+    assert result["materialized_surface_count"] == 1
+    prompt_text = (quest_root / ".codex" / "prompts" / "system.md").read_text(encoding="utf-8")
+    assert FORBIDDEN_AUTOFIGURE_PROMPT not in prompt_text
+    assert "before" in prompt_text
+    legacy_prompt_text = (worktree_root / ".codex" / "prompts" / "system.md").read_text(encoding="utf-8")
+    assert FORBIDDEN_AUTOFIGURE_PROMPT in legacy_prompt_text
 
 
-def test_audit_runtime_medical_overlay_reports_drifted_worktree(tmp_path: Path) -> None:
+def test_audit_runtime_medical_overlay_ignores_drifted_legacy_worktree(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     workspace_root = tmp_path / "workspace"
     quest_root = tmp_path / "runtime" / "quests" / "q001"
@@ -917,13 +911,13 @@ def test_audit_runtime_medical_overlay_reports_drifted_worktree(tmp_path: Path) 
         skill_ids=("write",),
     )
 
-    assert result["all_roots_ready"] is False
+    assert result["all_roots_ready"] is True
     by_surface = {Path(item["runtime_root"]).name: item for item in result["surfaces"]}
     assert by_surface["q001"]["all_targets_ready"] is True
-    assert by_surface["paper-run-1"]["all_targets_ready"] is False
+    assert "paper-run-1" not in by_surface
 
 
-def test_audit_runtime_medical_overlay_reports_polluted_system_prompt(tmp_path: Path) -> None:
+def test_audit_runtime_medical_overlay_ignores_polluted_legacy_worktree_system_prompt(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     workspace_root = tmp_path / "workspace"
     quest_root = tmp_path / "runtime" / "quests" / "q001"
@@ -949,9 +943,8 @@ def test_audit_runtime_medical_overlay_reports_polluted_system_prompt(tmp_path: 
         skill_ids=("write",),
     )
 
-    assert result["all_roots_ready"] is False
+    assert result["all_roots_ready"] is True
     by_surface = {Path(item["runtime_root"]).name: item for item in result["surfaces"]}
     assert by_surface["q001"]["all_targets_ready"] is True
     assert by_surface["q001"]["system_prompt_ready"] is True
-    assert by_surface["paper-run-1"]["all_targets_ready"] is True
-    assert by_surface["paper-run-1"]["system_prompt_ready"] is False
+    assert "paper-run-1" not in by_surface

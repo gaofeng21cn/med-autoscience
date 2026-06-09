@@ -68,7 +68,7 @@ def test_refs_only_state_index_pilot_indexes_small_runtime_refs_without_bodies(t
     assert all(len(row[4]) == 64 for row in rows)
     source_refs = {row[1] for row in rows}
     assert {
-        "runtime/quests/quest-001/.ds/runtime_state.json",
+        "runtime/quests/quest-001/artifacts/runtime/state/runtime_state.json",
         "studies/001-risk/artifacts/runtime/owner_route/latest.json",
         "studies/001-risk/artifacts/runtime/opl_family_domain_handler/dispatch_receipts/dispatch-001.json",
         "studies/001-risk/artifacts/runtime/paper_work_unit_outbox/receipts.jsonl",
@@ -89,14 +89,7 @@ def test_refs_only_state_index_pilot_prefers_canonical_runtime_state_surface(tmp
     study_root = profile.studies_root / study_id
     quest_root = profile.runtime_root / quest_id
     _write_study(study_root, study_id=study_id, quest_id=quest_id)
-    _write_quest(quest_root, quest_id=quest_id, status="paused")
-    canonical = quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
-    canonical.parent.mkdir(parents=True, exist_ok=True)
-    canonical.write_text(
-        json.dumps({"quest_id": quest_id, "status": "paused", "active_run_id": None}, ensure_ascii=False, indent=2)
-        + "\n",
-        encoding="utf-8",
-    )
+    _write_quest(quest_root, quest_id=quest_id, status="paused", legacy_runtime_state=True)
 
     result = state_index.rebuild_refs_only_state_index(
         workspace_root=profile.workspace_root,
@@ -162,8 +155,8 @@ def test_refs_only_state_index_pilot_replaces_only_current_quest_slice(tmp_path:
         ).fetchall()
 
     assert rows == [
-        (str(quest_a.resolve()), "runtime/quests/quest-001/.ds/runtime_state.json"),
-        (str(quest_b.resolve()), "runtime/quests/quest-002/.ds/runtime_state.json"),
+        (str(quest_a.resolve()), "runtime/quests/quest-001/artifacts/runtime/state/runtime_state.json"),
+        (str(quest_b.resolve()), "runtime/quests/quest-002/artifacts/runtime/state/runtime_state.json"),
     ]
 
 
@@ -189,7 +182,7 @@ def test_maintain_runtime_storage_can_write_refs_only_state_index_pilot_summary(
     assert result["status"] == "maintained"
     pilot = result["refs_only_state_index_pilot"]
     assert pilot["status"] == "indexed"
-    assert pilot["indexed_count"] == 7
+    assert pilot["indexed_count"] == 6
     assert pilot["authority_boundary"]["body_included"] is False
     assert pilot["stage_folder_attempt_projection"] == {
         "surface_kind": "opl_stage_folder_attempt_projection_evidence",
@@ -201,7 +194,6 @@ def test_maintain_runtime_storage_can_write_refs_only_state_index_pilot_summary(
         "indexed_ref_families": {
             "cursor": 1,
             "index": 1,
-            "legacy_lifecycle": 1,
             "lifecycle": 1,
             "outbox": 1,
             "receipt_ref": 2,
@@ -255,7 +247,7 @@ def test_refs_only_state_index_pilot_runs_when_legacy_backend_is_unavailable(tmp
     assert result["summary"] == "refs-only state index pilot 已完成；legacy backend storage maintenance 当前不可用。"
     pilot = result["refs_only_state_index_pilot"]
     assert pilot["status"] == "indexed"
-    assert pilot["indexed_count"] == 7
+    assert pilot["indexed_count"] == 6
     assert pilot["stage_folder_attempt_projection"]["attempt_root_ref"] == "runtime/quests/quest-001"
     assert pilot["sqlite_no_body_proof"]["forbidden_body_marker_found"] is False
     latest_payload = json.loads(Path(result["latest_report_path"]).read_text(encoding="utf-8"))
@@ -310,7 +302,7 @@ def test_refs_only_state_index_only_skips_legacy_backend(tmp_path: Path, monkeyp
     assert result["size_after"] == result["size_before"]
     assert result["refs_only_state_index_pilot"]["status"] == "indexed"
     assert result["refs_only_state_index_pilot"]["family_counts"]["lifecycle"] == 1
-    assert result["refs_only_state_index_pilot"]["family_counts"]["legacy_lifecycle"] == 1
+    assert "legacy_lifecycle" not in result["refs_only_state_index_pilot"]["family_counts"]
     assert result["refs_only_state_index_pilot"]["sqlite_no_body_proof"]["forbidden_body_marker_found"] is False
     latest_payload = json.loads(Path(result["latest_report_path"]).read_text(encoding="utf-8"))
     assert latest_payload["legacy_backend_status"] == "skipped_by_refs_only_state_index_only"

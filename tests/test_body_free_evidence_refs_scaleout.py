@@ -55,6 +55,7 @@ def test_publication_route_memory_receipt_inventory_projects_accepted_rejected_a
     receipt_root = (
         tmp_path
         / "workspace"
+        / "memory"
         / "portfolio"
         / "research_memory"
         / "publication_route_memory"

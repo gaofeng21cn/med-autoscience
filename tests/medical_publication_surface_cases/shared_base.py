@@ -191,7 +191,7 @@ def _write_study_charter(study_root: Path, *, study_id: str = "002-early-residua
 
 
 def _paper_root_from_quest(quest_root: Path) -> Path:
-    return quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    return quest_root / "paper"
 
 
 def _copy_medical_writing_authority_surfaces(*, paper_root: Path, study_root: Path) -> None:

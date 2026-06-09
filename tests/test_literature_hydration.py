@@ -102,7 +102,7 @@ def test_literature_hydration_preserves_existing_materialized_surface_when_paylo
     (quest_root / "paper").mkdir(parents=True, exist_ok=True)
     (quest_root / "literature" / "pubmed").mkdir(parents=True, exist_ok=True)
 
-    worktree_records = [
+    canonical_records = [
         {
             "record_id": "pmid:12345",
             "title": "Prediction model paper",
@@ -140,14 +140,17 @@ def test_literature_hydration_preserves_existing_materialized_surface_when_paylo
             "claim_support_scope": ["primary_claim"],
         },
     ]
-    worktree_report = module.run_literature_hydration(
+    legacy_report = module.run_literature_hydration(
         quest_root=worktree_root,
-        records=worktree_records,
+        records=canonical_records,
     )
-    assert worktree_report["record_count"] == 2
+    assert legacy_report["record_count"] == 2
 
-    (quest_root / "paper" / "references.bib").write_text("", encoding="utf-8")
-    (quest_root / "literature" / "pubmed" / "records.jsonl").write_text("", encoding="utf-8")
+    canonical_report = module.run_literature_hydration(
+        quest_root=quest_root,
+        records=canonical_records,
+    )
+    assert canonical_report["record_count"] == 2
 
     report = module.run_literature_hydration(
         quest_root=quest_root,

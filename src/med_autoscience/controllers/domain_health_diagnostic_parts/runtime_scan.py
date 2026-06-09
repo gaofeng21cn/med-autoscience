@@ -421,6 +421,12 @@ def run_domain_health_diagnostic_for_runtime(
             continue
         quest_root = _candidate_path(status_payload.get("quest_root"))
         quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
+        study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
+        if study_id in managed_study_progress_currentness:
+            status_payload = {
+                **status_payload,
+                **managed_study_progress_currentness[study_id],
+            }
         if apply and profile is not None:
             wakeup_audit = _build_outer_loop_wakeup_audit(
                 study_root=study_root,

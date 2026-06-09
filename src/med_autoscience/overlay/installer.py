@@ -880,11 +880,7 @@ def ensure_medical_overlay(
 
 def _runtime_materialization_roots(*, quest_root: Path) -> list[Path]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
-    roots = [resolved_quest_root]
-    worktrees_root = resolved_quest_root / ".ds" / "worktrees"
-    if worktrees_root.exists():
-        roots.extend(sorted(path.resolve() for path in worktrees_root.iterdir() if path.is_dir()))
-    return roots
+    return [resolved_quest_root]
 
 
 def materialize_runtime_medical_overlay(

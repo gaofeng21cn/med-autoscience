@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol import quest_state
 
 from .. import domain_status_projection
 from .. import domain_transition_currentness
@@ -448,7 +449,7 @@ def _active_prompt_alignment(*, authorization: Mapping[str, Any]) -> dict[str, A
             "runtime_state_path": runtime_state_path,
             "active_run_id": active_run_id,
         }
-    prompt_path = Path(runtime_state_path).parent / "runs" / active_run_id / "prompt.md"
+    prompt_path = _runtime_runs_root_for_state_path(Path(runtime_state_path)) / active_run_id / "prompt.md"
     expected_fingerprint = _text(authorization.get("work_unit_fingerprint"))
     expected_work_unit_id = _text(authorization.get("work_unit_id"))
     try:
@@ -485,11 +486,18 @@ def runtime_state_path_for_status(
 ) -> Path | None:
     quest_root = _text(status_payload.get("quest_root"))
     if quest_root is not None:
-        return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+        return quest_state.canonical_runtime_state_path(Path(quest_root))
     quest_id = _text(status_payload.get("quest_id"))
     if quest_id is None:
         return None
-    return Path(profile.runtime_root).expanduser().resolve() / quest_id / ".ds" / "runtime_state.json"
+    return quest_state.canonical_runtime_state_path(Path(profile.runtime_root).expanduser().resolve() / quest_id)
+
+
+def _runtime_runs_root_for_state_path(runtime_state_path: Path) -> Path:
+    resolved = Path(runtime_state_path).expanduser().resolve()
+    if resolved.parent.name == "state" and resolved.parent.parent.name == "runtime":
+        return resolved.parent.parent / "runs"
+    return resolved.parent / "runs"
 
 
 def publication_eval_payload_for_tick(tick_request: Mapping[str, Any]) -> dict[str, Any] | None:

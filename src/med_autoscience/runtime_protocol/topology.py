@@ -112,6 +112,17 @@ def _resolve_authoritative_paper_root_from_projected_quest_paper(paper_root: Pat
     return candidate
 
 
+def _is_canonical_quest_paper_root(paper_root: Path) -> bool:
+    resolved_paper_root = _resolve_path(paper_root)
+    if resolved_paper_root.name != "paper":
+        return False
+    try:
+        _resolve_workspace_root_from_quest_root(resolved_paper_root.parent)
+    except ValueError:
+        return False
+    return True
+
+
 def resolve_worktree_root_from_paper_root(paper_root: Path) -> Path:
     resolved = _resolve_path(paper_root)
     authoritative_paper_root = _resolve_authoritative_paper_root_from_projected_quest_paper(resolved)
@@ -119,6 +130,8 @@ def resolve_worktree_root_from_paper_root(paper_root: Path) -> Path:
         resolved = authoritative_paper_root
     if resolved.name != "paper":
         raise ValueError(f"paper_root must end with /paper: {paper_root}")
+    if _is_canonical_quest_paper_root(resolved):
+        return resolved.parent
     worktree_root = resolved.parent
     resolve_quest_root_from_worktree_root(worktree_root)
     return worktree_root
@@ -272,6 +285,18 @@ def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, str
     )
     if authoritative_paper_root is not None:
         resolved_paper_root = authoritative_paper_root
+    if _is_canonical_quest_paper_root(resolved_paper_root):
+        quest_root = resolved_paper_root.parent
+        binding = resolve_study_root_from_quest_root(quest_root)
+        if binding is None:
+            raise FileNotFoundError(f"unable to resolve study root from canonical paper root {paper_root}")
+        study_id, study_root = binding
+        quest_yaml_path = quest_root / "quest.yaml"
+        quest_id = quest_root.name
+        if quest_yaml_path.exists():
+            payload = _load_yaml_mapping(quest_yaml_path)
+            quest_id = _extract_string_field(payload, "quest_id") or quest_id
+        return resolved_paper_root, quest_root, quest_root, quest_id, study_id, study_root
     worktree_root = resolve_worktree_root_from_paper_root(resolved_paper_root)
     quest_root = resolve_quest_root_from_worktree_root(worktree_root)
     quest_id = resolve_quest_id_from_worktree_root(worktree_root)

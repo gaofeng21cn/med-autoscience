@@ -374,7 +374,7 @@ def test_build_report_accepts_item_only_evidence_ledger_when_claim_map_is_comple
 def test_build_report_ignores_unreferenced_generated_readme(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
-    readme_path = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "figures" / "generated" / "README.md"
+    readme_path = _paper_root_from_quest(quest_root) / "figures" / "generated" / "README.md"
     readme_path.write_text(
         "# Generated Figure Outputs\n\n"
         "Any unreferenced stale generated files are pruned during `materialize-display-surface`.\n",
@@ -390,7 +390,7 @@ def test_build_report_ignores_unreferenced_generated_readme(tmp_path: Path) -> N
 def test_build_report_allows_generic_clinical_surface_language(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     draft_path = paper_root / "draft.md"
     draft_path.write_text(
         draft_path.read_text(encoding="utf-8").replace(
@@ -465,11 +465,7 @@ def test_build_report_accepts_quick_review_with_top_level_main_sections(tmp_path
     )
 
     review_path = (
-        quest_root
-        / ".ds"
-        / "worktrees"
-        / "paper-run-1"
-        / "paper"
+        _paper_root_from_quest(quest_root)
         / "build"
         / "review_manuscript.md"
     )
@@ -496,11 +492,7 @@ def test_build_report_accepts_review_with_relative_subsection_levels(tmp_path: P
     )
 
     review_path = (
-        quest_root
-        / ".ds"
-        / "worktrees"
-        / "paper-run-1"
-        / "paper"
+        _paper_root_from_quest(quest_root)
         / "build"
         / "review_manuscript.md"
     )

@@ -83,6 +83,7 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
     study_root = profile.studies_root / study_id
     study_root.mkdir(parents=True, exist_ok=True)
     dump_json(study_root / "study.yaml", {"study_id": study_id})
+    _write_charter(study_root)
     quest_root = profile.runtime_root / "quests" / study_id
     dispatch_path = (
         study_root
@@ -163,6 +164,13 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
         "allowed_actions": ["complete_medical_paper_readiness_surface"],
         "surface_key": "authoring_runtime_authorization",
         "source_ref": str(typed_blocker_ref),
+        "authority_boundary": {
+            "refs_only": True,
+            "can_write_runtime_owned_surfaces": False,
+            "can_write_paper_or_package": False,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_publication_ready": False,
+        },
     }
 
     monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
@@ -174,13 +182,6 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
         lambda **_: {
             "study_id": study_id,
             "generated_at": "2026-06-07T19:56:40+00:00",
-            "current_execution_envelope": {
-                "state_kind": "executable_owner_action",
-                "owner": "MedAutoScience",
-                "next_work_unit": "complete_medical_paper_readiness_surface",
-                "typed_blocker": None,
-                "parked_state": None,
-            },
             "current_executable_owner_action": current_action,
         },
     )

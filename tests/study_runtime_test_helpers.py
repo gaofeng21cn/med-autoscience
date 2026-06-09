@@ -19,6 +19,20 @@ def write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def runtime_state_path(quest_root: Path) -> Path:
+    return quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+
+
+def write_runtime_state(quest_root: Path, payload: dict[str, object]) -> Path:
+    path = runtime_state_path(quest_root)
+    write_text(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    return path
+
+
+def read_runtime_state(quest_root: Path) -> dict[str, object]:
+    return json.loads(runtime_state_path(quest_root).read_text(encoding="utf-8"))
+
+
 def make_profile(tmp_path: Path):
     profiles = importlib.import_module("med_autoscience.profiles")
     workspace_root = tmp_path / "workspace"

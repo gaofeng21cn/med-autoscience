@@ -7,6 +7,12 @@ from pathlib import Path
 from tests.study_runtime_test_helpers import _clear_readiness_report, make_profile, write_study, write_text
 
 
+def _write_runtime_state(quest_root: Path, payload: dict[str, object]) -> None:
+    text = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    write_text(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", text)
+    write_text(quest_root / ".ds" / "runtime_state.json", text)
+
+
 def _write_controller_decision_authorization(
     study_root: Path,
     *,
@@ -156,19 +162,16 @@ def test_progress_projection_projects_adopted_work_unit_evidence_without_runtime
     )
     quest_root = profile.runtime_root / study_id
     write_text(quest_root / "quest.yaml", f"quest_id: {study_id}\n")
-    write_text(
-        quest_root / ".ds" / "runtime_state.json",
-        json.dumps(
-            {
-                "status": "active",
-                "active_run_id": None,
-                "pending_user_message_count": 0,
-                "continuation_policy": "auto",
-                "continuation_anchor": "decision",
-                "continuation_reason": "same_fingerprint_no_artifact_delta",
-            }
-        )
-        + "\n",
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "active",
+            "active_run_id": None,
+            "pending_user_message_count": 0,
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "same_fingerprint_no_artifact_delta",
+        },
     )
     _write_controller_decision_authorization(study_root, study_id=study_id)
     _write_publication_eval_work_unit_authority(study_root)
@@ -223,17 +226,14 @@ def test_read_only_progress_projection_does_not_materialize_publication_eval(
     )
     quest_root = profile.runtime_root / study_id
     write_text(quest_root / "quest.yaml", f"quest_id: {study_id}\nstudy_id: {study_id}\n")
-    write_text(
-        quest_root / ".ds" / "runtime_state.json",
-        json.dumps(
-            {
-                "status": "running",
-                "active_run_id": None,
-                "pending_user_message_count": 0,
-                "continuation_policy": "auto",
-            }
-        )
-        + "\n",
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": None,
+            "pending_user_message_count": 0,
+            "continuation_policy": "auto",
+        },
     )
     charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
     charter_path.parent.mkdir(parents=True, exist_ok=True)
@@ -332,17 +332,14 @@ def test_read_only_study_progress_does_not_materialize_status_artifacts(
     )
     quest_root = profile.runtime_root / study_id
     write_text(quest_root / "quest.yaml", f"quest_id: {study_id}\nstudy_id: {study_id}\n")
-    write_text(
-        quest_root / ".ds" / "runtime_state.json",
-        json.dumps(
-            {
-                "status": "running",
-                "active_run_id": None,
-                "pending_user_message_count": 0,
-                "continuation_policy": "auto",
-            }
-        )
-        + "\n",
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": None,
+            "pending_user_message_count": 0,
+            "continuation_policy": "auto",
+        },
     )
     write_text(
         quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",

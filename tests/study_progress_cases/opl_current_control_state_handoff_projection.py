@@ -12,6 +12,10 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 
+def _runtime_state_path(quest_root: Path) -> Path:
+    return quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+
+
 def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markdown(
     monkeypatch,
     tmp_path: Path,
@@ -346,7 +350,7 @@ def test_progress_projection_uses_opl_current_control_state_as_live_liveness_pro
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        _runtime_state_path(quest_root),
         {
             "status": "active",
             "active_run_id": None,
@@ -433,7 +437,7 @@ def test_progress_projection_uses_opl_live_attempt_when_runtime_state_waiting_fo
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        _runtime_state_path(quest_root),
         {
             "status": "waiting_for_user",
             "active_run_id": None,
@@ -516,7 +520,7 @@ def test_progress_projection_uses_live_opl_queue_attempt_when_handoff_is_stale(
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        _runtime_state_path(quest_root),
         {
             "status": "active",
             "active_run_id": None,
@@ -622,7 +626,7 @@ def test_progress_projection_uses_live_opl_attempt_when_quest_state_is_paused(
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        _runtime_state_path(quest_root),
         {
             "status": "paused",
             "active_run_id": None,
@@ -734,7 +738,7 @@ def test_progress_projection_treats_terminal_opl_success_handoff_as_settled_not_
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        _runtime_state_path(quest_root),
         {
             "status": "active",
             "active_run_id": None,

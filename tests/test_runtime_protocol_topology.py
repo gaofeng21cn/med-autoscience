@@ -66,6 +66,31 @@ def test_resolve_study_root_from_quest_root_accepts_mas_first_runtime_layout(tmp
     assert binding == ("001-risk", study_root.resolve())
 
 
+def test_resolve_paper_root_context_accepts_canonical_quest_paper_root(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "runtime" / "quests" / "001-risk-managed-20260402"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True)
+    (quest_root / "quest.yaml").write_text(
+        "quest_id: 001-risk-managed-20260402\n"
+        "runtime_reentry_gate:\n"
+        "  study_id: 001-risk\n",
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.paper_root == paper_root.resolve()
+    assert context.worktree_root == quest_root.resolve()
+    assert context.quest_root == quest_root.resolve()
+    assert context.quest_id == "001-risk-managed-20260402"
+    assert context.study_id == "001-risk"
+    assert context.study_root == study_root.resolve()
+
+
 def test_resolve_paper_root_context_accepts_projected_quest_paper_root(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
     quest_root = (

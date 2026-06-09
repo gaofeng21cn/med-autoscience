@@ -28,7 +28,7 @@ def append_jsonl(path: Path, rows: list[dict]) -> None:
 def make_quest(tmp_path: Path) -> tuple[Path, Path]:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     dump_json(
-        quest_root / ".ds" / "runtime_state.json",
+        quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
         {
             "quest_id": "002-early-residual-risk",
             "status": "running",
@@ -38,7 +38,7 @@ def make_quest(tmp_path: Path) -> tuple[Path, Path]:
         },
     )
     append_jsonl(
-        quest_root / ".ds" / "runs" / "run-loop" / "stdout.jsonl",
+        quest_root / "artifacts" / "runtime" / "runs" / "run-loop" / "stdout.jsonl",
         [
             {
                 "timestamp": "2026-03-28T23:54:00+00:00",
@@ -46,7 +46,7 @@ def make_quest(tmp_path: Path) -> tuple[Path, Path]:
             }
         ],
     )
-    references = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "references.bib"
+    references = quest_root / "paper" / "references.bib"
     references.parent.mkdir(parents=True, exist_ok=True)
     references.write_text(
         "\n".join(f"@article{{ref{i}, title={{{{Ref {i}}}}}}}" for i in range(1, 8)) + "\n",
@@ -193,7 +193,7 @@ def test_build_guard_state_ignores_figure_mentions_before_active_run_start(tmp_p
     module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
     quest_root, outbox_path = make_quest(tmp_path)
     dump_json(
-        quest_root / ".ds" / "runtime_state.json",
+        quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
         {
             "quest_id": quest_root.name,
             "status": "running",
@@ -204,7 +204,7 @@ def test_build_guard_state_ignores_figure_mentions_before_active_run_start(tmp_p
         },
     )
     append_jsonl(
-        quest_root / ".ds" / "runs" / "run-loop" / "stdout.jsonl",
+        quest_root / "artifacts" / "runtime" / "runs" / "run-loop" / "stdout.jsonl",
         [
             {
                 "timestamp": "2026-03-29T00:10:00+00:00",
@@ -230,7 +230,7 @@ def test_build_guard_report_does_not_block_without_active_run(tmp_path: Path) ->
     module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
     quest_root, outbox_path = make_quest(tmp_path)
     dump_json(
-        quest_root / ".ds" / "runtime_state.json",
+        quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
         {
             "quest_id": quest_root.name,
             "status": "active",

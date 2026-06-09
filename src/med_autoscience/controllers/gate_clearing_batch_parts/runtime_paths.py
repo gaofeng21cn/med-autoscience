@@ -50,17 +50,29 @@ def resolve_profile_for_study_root(study_root: Path) -> WorkspaceProfile | None:
 
 
 def latest_scientific_anchor_mapping_path(*, quest_root: Path) -> Path | None:
-    worktrees_root = quest_root / ".ds" / "worktrees"
     candidates = sorted(
-        worktrees_root.glob("analysis-*/experiments/analysis/*/*/outputs/scientific_anchor_mapping.json"),
+        _scientific_anchor_mapping_candidates(quest_root=quest_root),
         key=lambda path: path.stat().st_mtime if path.exists() else 0.0,
         reverse=True,
     )
     return candidates[0] if candidates else None
 
 
+def _scientific_anchor_mapping_candidates(*, quest_root: Path) -> list[Path]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    candidates: list[Path] = []
+    for root in (
+        resolved_quest_root / "artifacts" / "analysis",
+        resolved_quest_root / "analysis",
+        resolved_quest_root / "paper",
+    ):
+        if root.exists():
+            candidates.extend(root.glob("**/scientific_anchor_mapping.json"))
+    return candidates
+
+
 def current_workspace_root(*, quest_root: Path, default: Path) -> Path:
-    research_state = read_json(quest_root / ".ds" / "research_state.json")
+    research_state = read_json(quest_root / "artifacts" / "runtime" / "state" / "research_state.json")
     raw = non_empty_text(research_state.get("current_workspace_root"))
     if raw is None:
         return default

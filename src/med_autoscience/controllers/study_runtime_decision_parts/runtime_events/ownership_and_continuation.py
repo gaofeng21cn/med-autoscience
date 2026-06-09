@@ -141,7 +141,7 @@ def _load_json_dict_with_error(path: Path) -> tuple[dict[str, object], str | Non
 
 
 def _runtime_state_path(quest_root: Path) -> Path:
-    return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+    return quest_state.canonical_runtime_state_path(quest_root)
 
 
 def _continuation_state_payload(

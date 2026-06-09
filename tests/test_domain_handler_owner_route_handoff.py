@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.study_runtime_test_helpers import make_profile, write_study
+from tests.study_runtime_test_helpers import make_profile, runtime_state_path as canonical_runtime_state_path, write_study
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -18,7 +18,7 @@ def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_run
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     handoff_path = study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json"
-    runtime_state_path = profile.runtime_root / study_id / ".ds" / "runtime_state.json"
+    runtime_state_path = canonical_runtime_state_path(profile.runtime_root / study_id)
     runtime_queue_path = profile.runtime_root / study_id / ".ds" / "user_message_queue.json"
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     controller_decisions_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
@@ -211,7 +211,7 @@ def test_domain_handler_export_uses_newer_opl_current_control_owner_route_over_s
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
-    runtime_state_path = profile.runtime_root / study_id / ".ds" / "runtime_state.json"
+    runtime_state_path = canonical_runtime_state_path(profile.runtime_root / study_id)
     stale_handoff_path = study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json"
     current_control_path = (
         profile.workspace_root

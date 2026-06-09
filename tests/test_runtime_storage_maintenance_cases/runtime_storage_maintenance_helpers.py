@@ -80,6 +80,12 @@ def _write_quest(
     quest_root.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\n", encoding="utf-8")
     runtime_state = {"quest_id": quest_id, "status": status, "active_run_id": active_run_id}
+    canonical_state = quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
+    canonical_state.parent.mkdir(parents=True, exist_ok=True)
+    canonical_state.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     ds_root = quest_root / ".ds"
     ds_root.mkdir(parents=True, exist_ok=True)
     state_path = (

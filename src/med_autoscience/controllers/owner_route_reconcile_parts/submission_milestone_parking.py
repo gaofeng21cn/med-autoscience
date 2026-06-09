@@ -10,6 +10,7 @@ from med_autoscience.controllers import study_outer_loop
 from med_autoscience.controllers.owner_route_reconcile_parts import opl_owner_route_handoff
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol import quest_state
 
 
 SUBMISSION_MILESTONE_PARK_SOURCE = "owner_route_reconcile_submission_milestone_park"
@@ -37,7 +38,7 @@ def _runtime_state_path(status: Mapping[str, Any]) -> Path | None:
     quest_root = _text(status.get("quest_root"))
     if quest_root is None:
         return None
-    return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+    return quest_state.canonical_runtime_state_path(Path(quest_root))
 
 
 def _submission_milestone_runtime_owner_handoff(

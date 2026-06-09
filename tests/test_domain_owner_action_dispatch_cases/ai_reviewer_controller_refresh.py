@@ -9,7 +9,7 @@ from tests.domain_owner_action_dispatch_helpers import (
     write_json as _write_json,
 )
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
-from tests.study_runtime_test_helpers import make_profile, write_study
+from tests.study_runtime_test_helpers import make_profile, runtime_state_path, write_study
 
 
 def test_refresh_controller_decisions_for_current_publication_eval_materializes_non_dispatching_decision(
@@ -159,7 +159,7 @@ def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
         },
     )
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         {
             "status": "active",
             "quest_id": study_id,
@@ -264,7 +264,7 @@ def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
     refresh = result["refreshes"][0]
     runtime_authorization = refresh["runtime_authorization"]
     current_authorization = runtime_authorization["current_controller_authorization"]
-    runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
+    runtime_state = module._read_json_object(runtime_state_path(quest_root)) or {}
     assert result["materialized_count"] == 1
     assert runtime_authorization["authorization_status"] == "owner_handoff_ready"
     assert runtime_authorization["runtime_resume_status"] == "owner_route_required"
@@ -336,7 +336,7 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
         },
     )
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         {
             "status": "waiting_for_user",
             "quest_id": study_id,
@@ -442,7 +442,7 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
 
     runtime_authorization = result["refreshes"][0]["runtime_authorization"]
     pending_handoff = runtime_authorization["existing_pending_user_message_resume"]
-    runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
+    runtime_state = module._read_json_object(runtime_state_path(quest_root)) or {}
     assert runtime_authorization["authorization_status"] == "pending_user_message_owner_handoff_ready"
     assert runtime_authorization["current_controller_authorization"]["reason"] == "pending_user_messages_present"
     assert pending_handoff["marked"] is True
@@ -498,7 +498,7 @@ def test_refresh_controller_decision_preserves_live_worker_state(
         },
     )
     _write_json(
-        quest_root / ".ds" / "runtime_state.json",
+        runtime_state_path(quest_root),
         {
             "status": "running",
             "quest_id": study_id,
@@ -587,7 +587,7 @@ def test_refresh_controller_decision_preserves_live_worker_state(
         apply=True,
     )
 
-    runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
+    runtime_state = module._read_json_object(runtime_state_path(quest_root)) or {}
     runtime_authorization = result["refreshes"][0]["runtime_authorization"]
     authorization = runtime_authorization["current_controller_authorization"]
     assert runtime_state["active_run_id"] == live_run_id

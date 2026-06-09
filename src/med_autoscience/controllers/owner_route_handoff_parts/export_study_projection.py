@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol import quest_state
 
 from .. import publication_aftercare
 from .. import reviewer_refinement_loop
@@ -220,7 +221,7 @@ def current_control_owner_route_handoff_record(
     quest_root = text(matching.get("quest_root"))
     runtime_state_path = text(matching.get("runtime_state_path"))
     if runtime_state_path is None and quest_root is not None:
-        runtime_state_path = str(Path(quest_root) / ".ds" / "runtime_state.json")
+        runtime_state_path = str(quest_state.canonical_runtime_state_path(Path(quest_root)))
     owner_route_handoff_ref = str(_OPL_CURRENT_CONTROL_REF)
     handoff = {
         "surface_kind": "mas_runtime_owner_route_handoff",

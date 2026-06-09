@@ -478,6 +478,8 @@ def _request_opl_stage_attempt(
                 study_root=study_root,
                 status_payload=candidate_status_payload,
             )
+        if provider_admission_candidates:
+            status_payload = candidate_status_payload
     provider_admission_identity = provider_admission_candidates[0] if provider_admission_candidates else None
     return {
         **status_payload,

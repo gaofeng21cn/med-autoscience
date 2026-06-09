@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
+from med_autoscience.runtime_protocol import quest_state
+
 
 RECOMMENDED_NEXT_ROUTE = "return_to_publication_gate_recheck"
 NEXT_OWNER = "publication_gate"
@@ -100,7 +102,7 @@ def _matching_relay_marker(
     work_unit_target_context_keys: tuple[str, ...],
     require_active_run_match: bool,
 ) -> dict[str, Any] | None:
-    runtime_state = read_json_mapping(Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json")
+    runtime_state = quest_state.load_runtime_state(quest_root)
     marker = runtime_state.get(CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
     if not isinstance(marker, dict):
         return None

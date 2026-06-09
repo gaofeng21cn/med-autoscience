@@ -97,7 +97,7 @@ def test_execute_dispatch_materializes_display_contract_stubs_before_gate_cleari
     assert called["study_id"] == study_id
 
 
-def test_execute_dispatch_blocks_action_that_is_not_current_owner_route_action(
+def test_execute_dispatch_filters_action_that_is_not_current_owner_route_action(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -141,11 +141,10 @@ def test_execute_dispatch_blocks_action_that_is_not_current_owner_route_action(
         apply=True,
     )
 
-    assert result["blocked_count"] == 1
-    execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "owner_route_next_owner_mismatch"
-    assert execution["owner_route_current"] is False
+    assert result["execution_count"] == 0
+    assert result["blocked_count"] == 0
+    assert result["executions"] == []
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
 def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_blocker(
@@ -382,7 +381,7 @@ def test_execute_dispatch_authorization_ignores_diagnostic_owner_reason_drift(
     assert execution["blocked_reason"] == "owner_callable_surface_missing"
 
 
-def test_execute_dispatch_blocks_when_current_macro_state_drifted(
+def test_execute_dispatch_filters_when_current_macro_state_drifted(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -463,11 +462,10 @@ def test_execute_dispatch_blocks_when_current_macro_state_drifted(
         apply=True,
     )
 
-    execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["owner_route_current"] is False
+    assert result["execution_count"] == 0
     assert result["executed_count"] == 0
-    assert result["blocked_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["executions"] == []
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
     assert not (study_root / "manuscript" / "current_package").exists()

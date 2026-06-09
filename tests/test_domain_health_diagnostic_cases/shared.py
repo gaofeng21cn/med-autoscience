@@ -14,14 +14,13 @@ def dump_json(path: Path, payload: dict) -> None:
 
 def make_quest(tmp_path: Path, name: str, status: str = "running") -> Path:
     quest_root = tmp_path / "runtime" / "quests" / name
-    dump_json(
-        quest_root / ".ds" / "runtime_state.json",
-        {
-            "quest_id": name,
-            "status": status,
-            "active_run_id": "run-1" if status in {"running", "active"} else None,
-        },
-    )
+    runtime_state = {
+        "quest_id": name,
+        "status": status,
+        "active_run_id": "run-1" if status in {"running", "active"} else None,
+    }
+    dump_json(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", runtime_state)
+    dump_json(quest_root / ".ds" / "runtime_state.json", runtime_state)
     return quest_root
 
 
@@ -256,7 +255,6 @@ def _write_publication_eval(
         "eval_id": payload["eval_id"],
         "artifact_path": str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
     }
-
 
 
 

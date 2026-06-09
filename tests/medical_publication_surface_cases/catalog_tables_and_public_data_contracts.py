@@ -8,7 +8,7 @@ def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_pa
         ama_defaults=True,
     )
     figure_catalog_path = (
-        quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "figures" / "figure_catalog.json"
+        _paper_root_from_quest(quest_root) / "figures" / "figure_catalog.json"
     )
     payload = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
     payload["figures"][0].pop("template_id", None)
@@ -28,7 +28,7 @@ def test_build_report_blocks_when_table3_markdown_contains_forbidden_term(tmp_pa
         medicalized=True,
         ama_defaults=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     table_catalog_path = paper_root / "tables" / "table_catalog.json"
     table3_path = paper_root / "tables" / "T3_interpretation.md"
     table3_path.parent.mkdir(parents=True, exist_ok=True)
@@ -67,7 +67,7 @@ def test_build_report_does_not_scan_non_table3_markdown_body(tmp_path: Path) -> 
         medicalized=True,
         ama_defaults=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     table1_path = paper_root / "tables" / "T1.md"
     table1_path.parent.mkdir(parents=True, exist_ok=True)
     table1_path.write_text(
@@ -88,7 +88,7 @@ def test_build_report_does_not_scan_non_markdown_table3_assets(tmp_path: Path) -
         medicalized=True,
         ama_defaults=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     table_catalog_path = paper_root / "tables" / "table_catalog.json"
     table3_path = paper_root / "tables" / "T3_interpretation.md"
     table3_json_path = paper_root / "tables" / "T3_sidecar.json"
@@ -130,7 +130,7 @@ def test_build_report_scans_only_table3_markdown_table_body(tmp_path: Path) -> N
         medicalized=True,
         ama_defaults=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     table_catalog_path = paper_root / "tables" / "table_catalog.json"
     table3_path = paper_root / "tables" / "T3_interpretation.md"
     table3_path.parent.mkdir(parents=True, exist_ok=True)
@@ -611,7 +611,7 @@ def test_build_report_blocks_single_panel_label_without_layout_evidence(tmp_path
         ),
     )
     layout_sidecar_path = (
-        quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "figures" / "generated" / "F4.layout.json"
+        _paper_root_from_quest(quest_root) / "figures" / "generated" / "F4.layout.json"
     )
     dump_json(
         layout_sidecar_path,

@@ -13,9 +13,8 @@ def dump_json(path: Path, payload: dict) -> None:
 
 def make_gate_quest(tmp_path: Path) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "q-policy"
-    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
     dump_json(
-        quest_root / ".ds" / "runtime_state.json",
+        quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
         {
             "quest_id": "q-policy",
             "status": "running",
@@ -24,11 +23,11 @@ def make_gate_quest(tmp_path: Path) -> Path:
         },
     )
     dump_json(
-        worktree_root / "experiments" / "main" / "run-1" / "RESULT.json",
+        quest_root / "experiments" / "main" / "run-1" / "RESULT.json",
         {
             "quest_id": "q-policy",
             "run_id": "run-1",
-            "worktree_root": str(worktree_root),
+            "worktree_root": str(quest_root),
             "metric_contract": {"required_non_scalar_deliverables": []},
             "metrics_summary": {
                 "roc_auc": 0.81,
@@ -47,9 +46,9 @@ def make_gate_quest(tmp_path: Path) -> Path:
 
 def make_surface_quest(tmp_path: Path) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "q-surface"
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = quest_root / "paper"
     dump_json(
-        quest_root / ".ds" / "runtime_state.json",
+        quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
         {
             "quest_id": "q-surface",
             "status": "running",

@@ -435,7 +435,15 @@ def test_maintain_quest_runtime_storage_materializes_runtime_state_surface(
     module = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = make_profile(tmp_path)
     quest_root = profile.runtime_root / "legacy-state-surface"
-    _write_quest(quest_root, quest_id="legacy-state-surface", status="paused", legacy_runtime_state=True)
+    quest_root.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: legacy-state-surface\n", encoding="utf-8")
+    legacy_state = quest_root / ".ds" / "runtime_state.json"
+    legacy_state.parent.mkdir(parents=True, exist_ok=True)
+    legacy_state.write_text(
+        json.dumps({"quest_id": "legacy-state-surface", "status": "paused", "active_run_id": None}, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
 
     result = module.maintain_quest_runtime_storage(
         profile=profile,

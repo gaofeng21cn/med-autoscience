@@ -124,7 +124,7 @@ def test_build_report_blocks_internal_project_writing_terms_from_manuscript(tmp_
         medicalized=True,
         ama_defaults=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     draft_path = paper_root / "draft.md"
     draft_path.write_text(
         draft_path.read_text(encoding="utf-8")
@@ -222,7 +222,7 @@ def test_build_report_blocks_when_model_entry_omits_comparison_rationale(tmp_pat
         ama_defaults=True,
     )
     manifest_path = (
-        quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "methods_implementation_manifest.json"
+        _paper_root_from_quest(quest_root) / "methods_implementation_manifest.json"
     )
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     payload["model_registry"][1].pop("comparison_rationale", None)

@@ -673,12 +673,10 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
         apply=True,
     )
 
-    assert result["blocked_count"] == 1
-    execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "owner_route_stale"
-    assert execution["owner_route_current"] is False
-    assert execution["current_owner_route"]["route_epoch"] == "truth-epoch-new"
+    assert result["execution_count"] == 0
+    assert result["blocked_count"] == 0
+    assert result["executions"] == []
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
 def test_owner_route_fallback_source_fingerprint_tracks_action_payload_targets() -> None:

@@ -150,6 +150,52 @@ Late-stage paper flow 的默认顺序是 progress-first：在 `review_and_qualit
 
 Progress-First throughput closeout 的最小口径是：每次 terminal stage 的 typed closeout 必须给出 minimum forward delta、changed surface、delta classification 和 next forced target surface；no-op 只能在消费重复、失败路径或时效证据后，以 typed blocker、human gate、stop-loss 或 route-back 形式关闭。`paper_stage_log.next_forced_delta` 与 `study_progress.next_forced_delta` 必须保留 target surface、acceptance refs 和 owner action，方便 operator / OPL consumer 直接看到下一次必须产出什么 delta 或 blocker；该投影仍是 refs-only 监督面，不能写 paper/package truth，也不能授权 publication / submission ready。
 
+## Ordinary Progress Handoff
+
+2026-06-09 后，MAS handoff 必须把普通推进与审计旁路拆开。默认 handoff 先服务 ordinary progress spine：
+
+```text
+current_owner_delta
+  -> owner_route_attempt_envelope
+  -> executor concrete delta
+  -> ProgressDeltaReceipt / OwnerReceipt / TypedBlocker
+  -> next current_owner_delta
+```
+
+`ProgressDeltaReceipt` 是普通推进的最小可接力返回形态：
+
+```text
+ProgressDeltaReceipt
+  receipt_id
+  study_id
+  stage_id
+  producer
+  delta_classification
+  changed_surfaces[]
+  produced_refs[]
+  consumed_refs[]
+  next_owner
+  next_required_delta
+  blocker_ref?
+```
+
+它允许 MAS 把一次写作、分析、证据整理、review 修订、readiness surface materialization 或 platform repair 记录为可接力 delta。它不能替代 `OwnerReceipt`、`TypedBlocker`、AI reviewer receipt、artifact mutation receipt、publication package receipt、submission handoff receipt 或 human gate receipt。
+
+Audit sidecar refs 可以随 handoff 提供，但默认不能抢占 ordinary path：
+
+- `trace_refs`
+- `lineage_refs`
+- `replay_refs`
+- `restore_refs`
+- `readiness_inventory_refs`
+- `long_soak_refs`
+- `cleanup_refs`
+- `production_evidence_refs`
+
+这些 refs 只有在破坏 owner、authority、selected executor、forbidden write、execution authorization、closeout binding、accepted answer shape、artifact/package/memory mutation、publication/submission/export claim 或 human/safety gate 时，才升级为 hard blocker。缺 prompt / skill / tool / knowledge / rubric refs、Co-Scientist advisory refs、readiness inventory、full replay、restore proof、long-soak 或 cleanup proof，默认应输出 advisory warning、route-back recommendation、production evidence gap 或 typed blocker，而不是阻断所有 ordinary handoff。
+
+MDS / DeepScientist 的 handoff 学习口径是减少默认握手、保持单一下一步和持续产出；不得因此恢复 MDS / DeepScientist 默认 backend、runtime owner、quality owner、artifact authority 或 publication readiness oracle。
+
 ## 落地状态与证据门
 
 下面只记录当前标准的落地状态与仍需补证的门槛，不作为新的并行任务板。后续如果按这些方向实施，仍必须独立 worktree、独立验证，完成后吸收回 main 并清理本次 worktree/branch。

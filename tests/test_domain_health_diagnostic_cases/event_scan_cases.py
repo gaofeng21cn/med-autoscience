@@ -648,6 +648,7 @@ def test_watch_runtime_fails_closed_when_outer_loop_candidate_lacks_stable_chart
     }
 
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
 
     with pytest.raises(ValueError, match="study charter"):
         module.run_domain_health_diagnostic_for_runtime(

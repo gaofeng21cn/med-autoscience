@@ -152,7 +152,8 @@ def test_study_workspace_status_routes_blocked_clean_room_surface_to_quality_rep
 
     next_action = result["studies"][0]["next_action"]
     persisted = json.loads((study_root / "control" / "next_action.json").read_text(encoding="utf-8"))
-    assert next_action["action_id"] == "run_quality_repair_batch"
+    assert next_action["action_id"] == "stage-native-next-action::run_quality_repair_batch"
+    assert next_action["action_type"] == "run_quality_repair_batch"
     assert next_action["owner"] == "write"
     assert next_action["source_surface"] == "artifacts/reports/medical_publication_surface/latest.json"
     assert next_action["next_work_unit"] == "medical_publication_surface_blocked_write_repair"

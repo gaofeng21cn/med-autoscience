@@ -179,7 +179,7 @@ def test_materialize_domain_action_requests_prefers_fresh_repair_followup_withou
         "complete_medical_paper_readiness_surface": (
             "superseded_by_fresh_study_progress_current_owner_ticket"
         ),
-        "run_quality_repair_batch": "superseded_by_fresh_study_progress_current_owner_ticket",
+        "run_quality_repair_batch": "stage_native_workspace_next_action_requires_authority_binding",
     }
 
 
@@ -308,7 +308,7 @@ def test_materialize_domain_action_requests_allows_repair_followup_when_readines
         "complete_medical_paper_readiness_surface": (
             "superseded_by_fresh_study_progress_current_owner_ticket"
         ),
-        "run_quality_repair_batch": "superseded_by_fresh_study_progress_current_owner_ticket",
+        "run_quality_repair_batch": "stage_native_workspace_next_action_requires_authority_binding",
     }
 
 

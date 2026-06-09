@@ -7,7 +7,7 @@ def test_build_report_blocks_when_main_text_figure_is_not_used_in_results_narrat
         medicalized=True,
         ama_defaults=True,
     )
-    narrative_path = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "results_narrative_map.json"
+    narrative_path = _paper_root_from_quest(quest_root) / "results_narrative_map.json"
     payload = json.loads(narrative_path.read_text(encoding="utf-8"))
     for section in payload["sections"]:
         section["supporting_display_items"] = ["T1"]
@@ -27,7 +27,7 @@ def test_build_report_allows_supplementary_cohort_flow_without_results_narrative
         medicalized=True,
         ama_defaults=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
     narrative_path = paper_root / "results_narrative_map.json"
 
@@ -231,7 +231,7 @@ def test_build_report_blocks_when_main_text_claim_binding_is_missing_from_catalo
         medicalized=True,
         ama_defaults=True,
     )
-    claim_map_path = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "claim_evidence_map.json"
+    claim_map_path = _paper_root_from_quest(quest_root) / "claim_evidence_map.json"
     payload = json.loads(claim_map_path.read_text(encoding="utf-8"))
     payload["claims"][0]["display_bindings"] = ["F5", "T1"]
     claim_map_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -317,7 +317,7 @@ def test_build_report_accepts_required_display_catalog_coverage_for_supplementar
     )
     _write_time_to_event_direct_migration_surface(quest_root, include_f5=True)
 
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     reporting_contract_path = paper_root / "medical_reporting_contract.json"
     reporting_contract_payload = json.loads(reporting_contract_path.read_text(encoding="utf-8"))
     for item in reporting_contract_payload.get("display_shell_plan", []):
@@ -397,7 +397,7 @@ def test_build_report_blocks_analysis_plane_jargon_on_manuscript_surface(tmp_pat
         medicalized=True,
         ama_defaults=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     draft_path = paper_root / "draft.md"
     draft_text = draft_path.read_text(encoding="utf-8")
     draft_path.write_text(
@@ -432,7 +432,7 @@ def test_build_report_accepts_medical_publication_native_terms_on_surface(tmp_pa
         medicalized=True,
         ama_defaults=True,
     )
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     draft_path = paper_root / "draft.md"
     draft_text = draft_path.read_text(encoding="utf-8")
     draft_path.write_text(
@@ -508,7 +508,7 @@ def test_build_report_blocks_when_figure_catalog_breaks_renderer_contract_alignm
         ama_defaults=True,
     )
 
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
     figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
     figure_catalog["figures"][0]["template_id"] = "pr_curve_binary"
@@ -529,7 +529,7 @@ def test_build_report_allows_submission_companion_renderer_contract_in_figure_se
         ama_defaults=True,
     )
 
-    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    paper_root = _paper_root_from_quest(quest_root)
     figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
     figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
     figure_catalog["figures"].append(

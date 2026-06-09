@@ -151,10 +151,9 @@ def test_build_surface_state_prefers_bundle_branch_over_drifted_projected_paper_
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
     drifted_paper_root = _paper_root_from_quest(quest_root)
     projected_paper_root = quest_root / "paper"
-    authoritative_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
-    authoritative_paper_root.mkdir(parents=True, exist_ok=True)
+    legacy_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
     dump_json(
-        authoritative_paper_root / "paper_bundle_manifest.json",
+        legacy_paper_root / "paper_bundle_manifest.json",
         {
             "schema_version": 1,
             "paper_branch": "paper/main",
@@ -184,27 +183,29 @@ def test_build_surface_state_prefers_bundle_branch_over_drifted_projected_paper_
 
     state = module.build_surface_state(quest_root)
 
-    assert state.paper_root == authoritative_paper_root.resolve()
+    assert state.paper_root == projected_paper_root.resolve()
 
 
 def test_build_surface_state_uses_newer_bound_study_paper_authority(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     workspace_root = tmp_path / "workspace"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "003-paper"
-    runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    legacy_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
     study_root = workspace_root / "studies" / "003-paper"
     study_paper_root = study_root / "paper"
     projected_paper_root = quest_root / "paper"
 
-    dump_json(quest_root / ".ds" / "runtime_state.json", {"quest_id": "003-paper", "status": "stopped"})
-    dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    runtime_state = {"quest_id": "003-paper", "status": "stopped"}
+    dump_json(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", runtime_state)
+    dump_json(quest_root / ".ds" / "runtime_state.json", runtime_state)
+    dump_json(legacy_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
     dump_json(projected_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
     dump_json(
         projected_paper_root / "paper_line_state.json",
         {
             "schema_version": 1,
             "paper_branch": "paper/main",
-            "paper_root": str(runtime_paper_root.resolve()),
+            "paper_root": str(legacy_paper_root.resolve()),
         },
     )
     study_root.mkdir(parents=True, exist_ok=True)
@@ -212,7 +213,7 @@ def test_build_surface_state_uses_newer_bound_study_paper_authority(tmp_path: Pa
     (study_root / "runtime_binding.yaml").write_text("quest_id: 003-paper\n", encoding="utf-8")
     dump_json(study_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
     dump_json(study_paper_root / "medical_prose_review.json", {"surface": "medical_prose_review"})
-    newer_time = (runtime_paper_root / "paper_bundle_manifest.json").stat().st_mtime + 60
+    newer_time = (projected_paper_root / "paper_bundle_manifest.json").stat().st_mtime + 60
     os.utime(study_paper_root / "paper_bundle_manifest.json", (newer_time, newer_time))
 
     state = module.build_surface_state(quest_root)
@@ -228,13 +229,15 @@ def test_build_surface_state_prefers_complete_bound_study_canonical_paper_when_b
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     workspace_root = tmp_path / "workspace"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "003-paper"
-    runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    legacy_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
     study_root = workspace_root / "studies" / "003-paper"
     study_paper_root = study_root / "paper"
 
-    dump_json(quest_root / ".ds" / "runtime_state.json", {"quest_id": "003-paper", "status": "stopped"})
-    dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/old"})
-    dump_json(runtime_paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    runtime_state = {"quest_id": "003-paper", "status": "stopped"}
+    dump_json(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", runtime_state)
+    dump_json(quest_root / ".ds" / "runtime_state.json", runtime_state)
+    dump_json(legacy_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/old"})
+    dump_json(legacy_paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
     study_root.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: 003-paper\n", encoding="utf-8")
     (study_root / "runtime_binding.yaml").write_text("quest_id: 003-paper\n", encoding="utf-8")
@@ -260,12 +263,14 @@ def test_build_surface_state_prefers_eval_owned_medical_prose_review(tmp_path: P
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     workspace_root = tmp_path / "workspace"
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "003-paper"
-    runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    projected_paper_root = quest_root / "paper"
     study_root = workspace_root / "studies" / "003-paper"
     stable_review_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
 
-    dump_json(quest_root / ".ds" / "runtime_state.json", {"quest_id": "003-paper", "status": "stopped"})
-    dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
+    runtime_state = {"quest_id": "003-paper", "status": "stopped"}
+    dump_json(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", runtime_state)
+    dump_json(quest_root / ".ds" / "runtime_state.json", runtime_state)
+    dump_json(projected_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
     study_root.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: 003-paper\n", encoding="utf-8")
     (study_root / "runtime_binding.yaml").write_text("quest_id: 003-paper\n", encoding="utf-8")
@@ -275,7 +280,7 @@ def test_build_surface_state_prefers_eval_owned_medical_prose_review(tmp_path: P
     )
     dump_json(study_root / "paper" / "medical_prose_review.json", {"surface": "paper_local_review"})
     dump_json(stable_review_path, {"surface": "medical_prose_review"})
-    newer_time = (runtime_paper_root / "paper_bundle_manifest.json").stat().st_mtime + 60
+    newer_time = (projected_paper_root / "paper_bundle_manifest.json").stat().st_mtime + 60
     os.utime(study_root / "paper" / "paper_bundle_manifest.json", (newer_time, newer_time))
 
     state = module.build_surface_state(quest_root)
