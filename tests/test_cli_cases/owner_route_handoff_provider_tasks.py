@@ -105,8 +105,11 @@ def test_domain_handler_export_guarded_apply_fingerprint_tracks_mas_owner_decisi
             "domain_owner_receipt_ref",
             "quality_gate_receipt_ref",
             "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_evidence_ref",
         ]
         assert owner_delta_contract["owner_answer_missing"] is True
+        assert owner_delta_contract["owner_answer_still_required"] is True
         assert owner_delta_contract["domain_ready_authorized"] is False
         owner_ref = [
             ref for ref in task["source_refs"]
@@ -133,6 +136,8 @@ def test_domain_handler_export_guarded_apply_fingerprint_tracks_mas_owner_decisi
                 "domain_owner_receipt_ref",
                 "quality_gate_receipt_ref",
                 "typed_blocker_ref",
+                "human_gate_ref",
+                "route_back_evidence_ref",
             ],
             "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
             "body_included": False,

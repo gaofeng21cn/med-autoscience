@@ -106,8 +106,7 @@ def guarded_apply_current_owner_delta_validation(
         missing.append("owner")
     shapes = set(_string_list(delta.get("accepted_answer_shape")) or _string_list(delta.get("accepted_return_shapes")))
     required_shapes = set(GUARDED_APPLY_ACCEPTED_ANSWER_SHAPES)
-    missing_shapes = sorted(required_shapes - shapes)
-    missing.extend(f"accepted_answer_shape.{shape}" for shape in missing_shapes)
+    missing.extend(f"accepted_answer_shape.{shape}" for shape in sorted(required_shapes - shapes))
     return {
         "valid": not missing,
         "missing_required_fields": missing,
@@ -129,24 +128,7 @@ def guarded_apply_current_owner_delta_binding_summary(
         require_lineage_ref=require_lineage_ref,
     )
     delta = _mapping(validation.get("normalized"))
-    if validation.get("valid") is not True:
-        return {
-            "bound": False,
-            "required": True,
-            "reason": "current_owner_delta_identity_missing_or_invalid",
-            "missing_required_fields": list(validation.get("missing_required_fields") or []),
-            "stage_id": _optional_text(delta.get("stage_id")),
-            "lineage_ref": _optional_text(delta.get("lineage_ref")),
-            "desired_delta": _optional_text(delta.get("desired_delta")),
-            "accepted_answer_shape": _string_list(delta.get("accepted_answer_shape")),
-            "latest_owner_answer_ref": _optional_text(delta.get("latest_owner_answer_ref")),
-            "domain_ready_authorized": delta.get("domain_ready_authorized") is True,
-            "owner_answer_missing": delta.get("owner_answer_missing") is True,
-            "mas_can_create_owner_answer": True,
-            "opl_can_create_owner_answer": False,
-        }
-    return {
-        "bound": True,
+    common = {
         "required": True,
         "stage_id": _optional_text(delta.get("stage_id")),
         "lineage_ref": _optional_text(delta.get("lineage_ref")),
@@ -155,9 +137,18 @@ def guarded_apply_current_owner_delta_binding_summary(
         "latest_owner_answer_ref": _optional_text(delta.get("latest_owner_answer_ref")),
         "domain_ready_authorized": delta.get("domain_ready_authorized") is True,
         "owner_answer_missing": delta.get("owner_answer_missing") is True,
+        "owner_answer_still_required": delta.get("owner_answer_still_required") is not False,
         "mas_can_create_owner_answer": True,
         "opl_can_create_owner_answer": False,
     }
+    if validation.get("valid") is not True:
+        return {
+            **common,
+            "bound": False,
+            "reason": "current_owner_delta_identity_missing_or_invalid",
+            "missing_required_fields": list(validation.get("missing_required_fields") or []),
+        }
+    return {**common, "bound": True}
 
 
 def guarded_apply_identity_typed_blocker(value: Mapping[str, Any] | None) -> dict[str, Any] | None:

@@ -3,10 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from med_autoscience.runtime_control.owner_route_attempt_protocol import (
-    currentness_basis as owner_route_currentness_basis,
-    owner_reason_contract,
-)
 from med_autoscience.controllers.guarded_apply_owner_delta_contract import (
     GUARDED_APPLY_ACCEPTED_ANSWER_SHAPES,
     GUARDED_APPLY_DESIRED_DELTA,
@@ -14,6 +10,10 @@ from med_autoscience.controllers.guarded_apply_owner_delta_contract import (
     guarded_apply_current_owner_delta_validation,
     guarded_apply_identity_typed_blocker,
     normalize_guarded_apply_current_owner_delta,
+)
+from med_autoscience.runtime_control.owner_route_attempt_protocol import (
+    currentness_basis as owner_route_currentness_basis,
+    owner_reason_contract,
 )
 
 

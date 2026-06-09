@@ -24,6 +24,18 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
     target_studies: Sequence[str],
     current_owner_delta: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    owner_delta = normalize_guarded_apply_current_owner_delta(current_owner_delta)
+    identity_blocker = guarded_apply_identity_typed_blocker(owner_delta)
+    if identity_blocker is not None:
+        return build_guarded_apply_current_owner_delta_typed_blocker_receipt(
+            schema_version=schema_version,
+            surface=surface,
+            provider_attempt_id=provider_attempt_id,
+            idempotency_key=idempotency_key,
+            target_studies=target_studies,
+            typed_blocker=identity_blocker,
+            current_owner_delta=owner_delta,
+        )
     guarded_receipts = [
         dict(_mapping(receipt))
         for receipt in proof.get("guarded_apply_receipts", [])
