@@ -265,6 +265,154 @@ def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_closeou
     assert payload["domain_dispatch_evidence_record_payload"]["publication_ready_claimed"] is False
 
 
+def test_domain_handler_dispatch_evidence_payload_accepts_closed_owner_refs_typed_blocker_closeout(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    stage_attempt_id = "sat_d3b2aa60324338a366410326"
+    stage_attempt_source = "mas_default_executor_source_current_owner_delta"
+    domain_source = "domain_owner_delta_gate_replay"
+    dispatch_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+        "consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+    )
+    closeout_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+        f"consumer/default_executor_execution/{stage_attempt_id}.closeout.json"
+    )
+    expected_typed_blocker_ref = f"{closeout_ref}#typed_blocker"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / f"{stage_attempt_id}.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": stage_attempt_id,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_packet_ref": dispatch_ref,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "status": "closed_with_domain_owner_refs",
+            "route_outcome": "closed_with_domain_owner_refs",
+            "typed_blocker": {
+                "surface_kind": "mas_domain_typed_blocker",
+                "schema_version": 1,
+                "blocker_kind": "publication_gate_replay_blocked",
+                "reason": "publication_gate_replay_blocked_after_gate_clearing_batch",
+                "next_owner": "write",
+                "next_action": "return_to_write",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "stage_attempt_id": stage_attempt_id,
+                "stage_packet_ref": dispatch_ref,
+                "provider_completion_is_domain_completion": False,
+                "blockers": [
+                    "medical_publication_surface_blocked",
+                    "reviewer_first_concerns_unresolved",
+                    "submission_hardening_incomplete",
+                ],
+            },
+            "domain_execution": {
+                "action_type": "run_gate_clearing_batch",
+                "execution_status": "closed_with_domain_owner_refs",
+                "blocked_reason": "publication_gate_replay_blocked_after_gate_clearing_batch",
+                "domain_owner": "gate_clearing_batch",
+            },
+            "closeout_refs": [
+                closeout_ref,
+                (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                    "supervision/consumer/default_executor_execution/latest.json"
+                ),
+                (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                    "controller/gate_clearing_batch/latest.json"
+                ),
+                (
+                    "runtime/quests/003-dpcc-primary-care-phenotype-treatment-gap/"
+                    "artifacts/reports/publishability_gate/2026-06-09T101555Z.json"
+                ),
+                dispatch_ref,
+            ],
+            "owner_receipt_ref": None,
+            "domain_completion_claimed": False,
+            "provider_completion_is_domain_ready": False,
+        },
+    )
+    workorder_path = tmp_path / "opl-workorder.json"
+    _write_json(
+        workorder_path,
+        {
+            "action_id": f"domain_dispatch:medautoscience:{stage_attempt_id}:record",
+            "target_identity": {
+                "domain_id": "medautoscience",
+                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_attempt_id": stage_attempt_id,
+                "task_kind": "domain_owner/default-executor-dispatch",
+                "study_id": study_id,
+                "source_fingerprint": stage_attempt_source,
+                "domain_source_fingerprint": domain_source,
+                "profile_name": "dm-cvd-mortality-risk",
+            },
+            "dispatch_identity_fields": {
+                "action_type": "run_gate_clearing_batch",
+                "dispatch_ref": dispatch_ref,
+            },
+        },
+    )
+
+    def fake_scan_domain_routes(*, profile, study_ids, apply_safe_actions, developer_supervisor_mode):
+        return {"studies": [{"study_id": study_id}]}
+
+    monkeypatch.setattr(cli.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+
+    exit_code = cli.main(
+        [
+            "domain-handler",
+            "dispatch-evidence-payload",
+            "--profile",
+            str(profile_path),
+            "--workorder",
+            str(workorder_path),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "typed_blocker_payload_ready"
+    assert_stable_blocker_reason(
+        payload,
+        blocker_class="stage_attempt_closeout_blocked",
+        detail_reason="stage_attempt_closeout_typed_blocker_observed_for_default_executor_dispatch",
+    )
+    record_payload = payload["opl_runtime_action_execute_payload"]
+    assert record_payload["source_fingerprint"] == stage_attempt_source
+    assert record_payload["domain_source_fingerprint"] == domain_source
+    assert record_payload["typed_blocker_refs"] == [expected_typed_blocker_ref]
+    assert expected_typed_blocker_ref in record_payload["evidence_refs"]
+    assert "stage-attempt-closeout:blocked_reason=publication_gate_replay_blocked_after_gate_clearing_batch" in record_payload[
+        "evidence_refs"
+    ]
+    assert "stage-attempt-closeout:domain_blocker_next_owner=write" in record_payload["evidence_refs"]
+    assert payload["domain_dispatch_evidence_record_payload"]["domain_ready_claimed"] is False
+    assert payload["domain_dispatch_evidence_record_payload"]["publication_ready_claimed"] is False
+
+
 def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_owner_receipt_closeout(
     monkeypatch,
     tmp_path: Path,

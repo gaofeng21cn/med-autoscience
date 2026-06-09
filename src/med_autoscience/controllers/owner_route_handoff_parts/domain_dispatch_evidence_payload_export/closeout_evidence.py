@@ -6,6 +6,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     materialize_blocked_default_executor_closeout,
 )
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export.closeout_io import (
+    closeout_does_not_claim_domain_completion,
     is_matching_owner_receipt_closeout,
     read_json_object,
     relative_stage_attempt_closeout_ref,
@@ -20,6 +21,14 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     texts,
     unique,
 )
+
+
+_TYPED_BLOCKER_CLOSEOUT_STATUSES = {
+    "blocked",
+    "blocked_with_domain_owner_refs",
+    "closed_with_domain_owner_refs",
+    "closed_with_typed_domain_blocker",
+}
 
 
 def stage_attempt_closeout_typed_blocker_evidence(
@@ -54,34 +63,68 @@ def stage_attempt_closeout_typed_blocker_evidence(
         )
     if closeout is None:
         return None
-    domain_blocker = mapping(closeout.get("domain_blocker"))
-    typed_blocker_ref = text(closeout.get("typed_blocker_ref"))
+    closeout_ref = relative_stage_attempt_closeout_ref(
+        study_id=study_id,
+        stage_attempt_id=stage_attempt_id,
+    )
+    domain_blocker, typed_blocker_ref = _closeout_typed_blocker_and_ref(
+        closeout=closeout,
+        closeout_ref=closeout_ref,
+    )
+    domain_execution = mapping(closeout.get("domain_execution"))
+    execution_observation = mapping(closeout.get("execution_observation"))
+    blocked_reason = (
+        text(closeout.get("blocked_reason"))
+        or text(domain_execution.get("blocked_reason"))
+        or text(domain_blocker.get("reason"))
+        or text(domain_blocker.get("blocker_kind"))
+    )
+    execution_blocked_reason = (
+        text(execution_observation.get("blocked_reason"))
+        or text(domain_execution.get("blocked_reason"))
+    )
     if (
         text(closeout.get("surface_kind")) != "stage_attempt_closeout_packet"
         or text(closeout.get("stage_attempt_id")) != stage_attempt_id
         or text(closeout.get("stage_id")) != text(target_identity.get("stage_id"))
         or text(closeout.get("study_id")) != study_id
         or text(closeout.get("action_type")) != action_type
-        or text(closeout.get("status")) != "blocked"
-        or text(closeout.get("blocked_reason")) is None
+        or text(closeout.get("status")) not in _TYPED_BLOCKER_CLOSEOUT_STATUSES
+        or blocked_reason is None
         or text(domain_blocker.get("surface_kind")) != "mas_domain_typed_blocker"
         or typed_blocker_ref is None
-        or closeout.get("provider_completion_is_domain_completion") is not False
+        or closeout_does_not_claim_domain_completion(closeout) is not True
+        or domain_blocker.get("provider_completion_is_domain_completion") is True
     ):
         return None
     return {
-        "closeout_ref": relative_stage_attempt_closeout_ref(
-            study_id=study_id,
-            stage_attempt_id=stage_attempt_id,
-        ),
+        "closeout_ref": closeout_ref,
         "closeout_refs": sequence(closeout.get("closeout_refs")),
         "typed_blocker_refs": [typed_blocker_ref],
         "dispatch_ref": text(dispatch_identity.get("dispatch_ref")),
-        "blocked_reason": text(closeout.get("blocked_reason")),
+        "blocked_reason": blocked_reason,
         "domain_blocker_reason": text(domain_blocker.get("reason")),
         "domain_blocker_next_owner": text(domain_blocker.get("next_owner")),
-        "execution_blocked_reason": text(mapping(closeout.get("execution_observation")).get("blocked_reason")),
+        "execution_blocked_reason": execution_blocked_reason,
     }
+
+
+def _closeout_typed_blocker_and_ref(
+    *,
+    closeout: Mapping[str, Any],
+    closeout_ref: str,
+) -> tuple[Mapping[str, Any], str | None]:
+    if mapping(closeout.get("domain_blocker")):
+        return (
+            mapping(closeout.get("domain_blocker")),
+            text(closeout.get("typed_blocker_ref")) or f"{closeout_ref}#domain_blocker",
+        )
+    if mapping(closeout.get("typed_blocker")):
+        return (
+            mapping(closeout.get("typed_blocker")),
+            text(closeout.get("typed_blocker_ref")) or f"{closeout_ref}#typed_blocker",
+        )
+    return {}, text(closeout.get("typed_blocker_ref"))
 
 
 def stage_attempt_closeout_owner_receipt_evidence(
