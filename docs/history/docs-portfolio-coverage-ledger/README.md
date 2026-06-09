@@ -37,16 +37,14 @@ Machine boundary: 本文只保留 MAS docs-governance coverage 的压缩 provena
 | Exact inventory / coverage ledger self-audits | Prior exact-inventory ledgers found no missing tracked `README*` / `docs/**/*.md` coverage at that snapshot. That result is history provenance, not a perpetual completion claim; future docs or live-truth changes need fresh intake. |
 | Recent currentness / platform repair lanes | AI reviewer materialization, current owner projection, domain-dispatch worklist, Stage surface AI-first verdict and research-pack absorb records are folded into current owner docs and machine surfaces. They do not close paper readiness, publication verdict, owner receipt tails, provider long-soak or production readiness. |
 
-## Coverage Snapshot
+## Coverage Summary
 
-2026-06-09 MAS docs-ledger compression tranche:
-
-- Scope reviewed: `AGENTS.md`, `TASTE.md`, `docs/docs_portfolio_consolidation.md`, `docs/status.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/history/program/docs_lifecycle_governance_closeout_2026_06_05.md`, existing `docs/history/docs-portfolio-coverage-ledger/*.md`, OPL Doc doctor output, and git/source/test surfaces required to confirm these files are history/provenance only.
-- Edited: this index, `docs/docs_portfolio_consolidation.md`, and `docs/status.md`.
-- Deleted: the former dated part ledgers under this directory after their durable conclusions were compressed above or already folded into current owner docs, history/program closeouts, contracts, source, tests, CLI/read-model or git history.
-- SSOT decision: this file is now the only in-directory coverage ledger index. It keeps compressed provenance only; current docs lifecycle rules remain in `docs/docs_portfolio_consolidation.md`, active execution truth remains in `docs/active/mas-ideal-state-gap-plan.md`, and current-state summary remains in `docs/status.md`.
-- Retired / guarded: no source, contract, test, workflow, package, CLI/API or runtime surface changed in this tranche. The retired surface is the dated part-ledger file set and any habit of appending new part files as current governance evidence. Future coverage closeout must be topic-level here or a precise history/program closeout, not a new `part-*` sequence.
-- Verification boundary: docs-only. Run `rtk git diff --check`, a conflict-marker scan over `README* docs contracts tests`, and `rtk opl-doc-doctor doctor . --format json`. Source/runtime tests are not required unless source, contracts, tests or runtime semantics change.
+| Theme | Current coverage | Remaining scope / next write |
+| --- | --- | --- |
+| MAS docs-ledger scope | `AGENTS.md`, `TASTE.md`, `docs/docs_portfolio_consolidation.md`, `docs/status.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/history/program/docs_lifecycle_governance_closeout_2026_06_05.md`, this directory, OPL Doc doctor output and supporting git/source/test surfaces have been routed to current owner docs, history/program closeouts, contracts, source, tests, CLI/read-model or git history. | Reopen a precise MAS docs body only when fresh intake finds a new docs file, live-truth foldback need, active/history owner conflict, stale SSOT duplication or a concrete stale surface with replacement-owner and no-active-caller proof. |
+| In-directory SSOT | This file is the only in-directory coverage ledger index. It keeps compressed provenance only; current docs lifecycle rules remain in `docs/docs_portfolio_consolidation.md`, active execution truth remains in `docs/active/mas-ideal-state-gap-plan.md`, and current-state summary remains in `docs/status.md`. | Do not add new `part-*` ledgers, command transcripts, branch/worktree logs or proof-by-proof closeout records under this directory. Future coverage closeout must be topic-level here or a precise history/program closeout. |
+| Former part-ledger retirement | The former dated part ledgers under this directory were retired after their durable conclusions were compressed above or already folded into current owner docs, history/program closeouts, contracts, source, tests, CLI/read-model or git history. | The retired surface is the dated part-ledger file set and the habit of appending new part files as current governance evidence. Exact old tranche evidence remains recoverable from git history. |
+| No surface authority | This ledger records no source, contract, test, workflow, package, CLI/API or runtime deletion authority by itself. | Source/runtime tests are only required when source, contracts, tests or runtime semantics change. Docs-only foldback uses `rtk git diff --check`, conflict-marker scan over `README* docs contracts tests`, and `rtk opl-doc-doctor doctor . --format json`. |
 
 ## Former Part Files
 
