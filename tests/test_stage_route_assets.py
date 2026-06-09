@@ -38,9 +38,10 @@ def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
         "templates/stage_route_contract.yaml": render_public_yaml(),
         "templates/codex/medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
+        "src/med_autoscience/resources/stage_route_contract.yaml": render_public_yaml(),
     }
 
-    assert result["written_count"] == 4
+    assert result["written_count"] == len(expected_assets)
     assert set(result["written_files"]) == {str(tmp_path / path) for path in expected_assets}
     for relative_path, expected_content in expected_assets.items():
         output_path = tmp_path / relative_path
@@ -55,6 +56,7 @@ def test_repo_public_agent_entry_assets_match_renderers() -> None:
         repo_root / "templates" / "stage_route_contract.yaml": render_public_yaml(),
         repo_root / "templates" / "codex" / "medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         repo_root / "templates" / "openclaw" / "medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
+        repo_root / "src" / "med_autoscience" / "resources" / "stage_route_contract.yaml": render_public_yaml(),
     }
 
     for output_path, expected_content in expected_assets.items():

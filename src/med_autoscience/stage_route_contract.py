@@ -88,6 +88,7 @@ REQUIRED_CANONICAL_ROUTE_IDS = (
 PROGRESS_FIRST_SPRINT_CONTRACT_FIELD = "late_stage_progress_sprint_contract"
 PROGRESS_FIRST_SPRINT_ID = "publishability_repair_sprint"
 PROGRESS_FIRST_SPRINT_WORK_UNIT = "current_manuscript_prose_currentness_and_gate_replay_write_closeout"
+ORDINARY_PROGRESS_HANDOFF_POLICY_FIELD = "ordinary_progress_handoff_policy"
 
 
 @dataclass(frozen=True)
@@ -302,6 +303,7 @@ def _string_tuple(value: object, field: str) -> tuple[str, ...]:
 
 def _validate_payload_contract(payload: dict[str, Any]) -> None:
     _string_tuple(payload.get("compatible_agents"), "compatible_agents")
+    _validate_ordinary_progress_handoff_policy(payload.get(ORDINARY_PROGRESS_HANDOFF_POLICY_FIELD))
     route_contracts = _route_contract_payload_map(payload.get("route_contracts"))
     _validate_late_stage_progress_sprint_contract(
         payload.get(PROGRESS_FIRST_SPRINT_CONTRACT_FIELD),
@@ -339,6 +341,74 @@ def _validate_payload_contract(payload: dict[str, Any]) -> None:
             unknown_routes = sorted(set(values) - known_route_ids)
             if unknown_routes:
                 raise ValueError(f"{mode_label} references unknown route ids in {field}: {', '.join(unknown_routes)}")
+
+
+def _validate_ordinary_progress_handoff_policy(value: object) -> None:
+    field = ORDINARY_PROGRESS_HANDOFF_POLICY_FIELD
+    if not isinstance(value, dict):
+        raise ValueError(f"{field} must be a mapping")
+    for string_field in (
+        "source_ref",
+        "default_progress_root",
+        "stage_goal_source",
+        "executor_output_requirement",
+    ):
+        if string_field not in value:
+            raise ValueError(f"{field} missing required field: {string_field}")
+        _non_empty_string_value(value, string_field, field)
+    for list_field in ("accepted_closeout_shapes",):
+        if list_field not in value:
+            raise ValueError(f"{field} missing required field: {list_field}")
+        _string_tuple(value[list_field], list_field)
+
+    progress_delta_receipt = value.get("progress_delta_receipt")
+    if not isinstance(progress_delta_receipt, dict):
+        raise ValueError(f"{field}.progress_delta_receipt must be a mapping")
+    for string_field in ("receipt_kind", "artifact_tier", "role"):
+        if string_field not in progress_delta_receipt:
+            raise ValueError(f"{field}.progress_delta_receipt missing required field: {string_field}")
+        _non_empty_string_value(progress_delta_receipt, string_field, f"{field}.progress_delta_receipt")
+    for list_field in ("required_fields", "cannot_authorize"):
+        if list_field not in progress_delta_receipt:
+            raise ValueError(f"{field}.progress_delta_receipt missing required field: {list_field}")
+        _string_tuple(progress_delta_receipt[list_field], list_field)
+
+    artifact_tier_policy = value.get("artifact_tier_policy")
+    if not isinstance(artifact_tier_policy, dict):
+        raise ValueError(f"{field}.artifact_tier_policy must be a mapping")
+    _string_tuple(artifact_tier_policy.get("tiers"), "tiers")
+    _non_empty_string_value(artifact_tier_policy, "default_tier", f"{field}.artifact_tier_policy")
+    _string_tuple(
+        artifact_tier_policy.get("delivery_or_publication_claim_requires_tier"),
+        "delivery_or_publication_claim_requires_tier",
+    )
+    if not isinstance(artifact_tier_policy.get("ordinary_delta_requires_full_stage_artifact_manifest"), bool):
+        raise ValueError(
+            f"{field}.artifact_tier_policy ordinary_delta_requires_full_stage_artifact_manifest must be a bool"
+        )
+
+    readiness_jit_policy = value.get("readiness_jit_policy")
+    if not isinstance(readiness_jit_policy, dict):
+        raise ValueError(f"{field}.readiness_jit_policy must be a mapping")
+    for string_field in (
+        "default_mode",
+        "check_scope_source",
+        "full_readiness_inventory_role",
+        "ordinary_progress_blocking_policy",
+    ):
+        _non_empty_string_value(readiness_jit_policy, string_field, f"{field}.readiness_jit_policy")
+    if not isinstance(readiness_jit_policy.get("cannot_require_all_surfaces_before_writing_analysis_or_review_delta"), bool):
+        raise ValueError(
+            f"{field}.readiness_jit_policy cannot_require_all_surfaces_before_writing_analysis_or_review_delta must be a bool"
+        )
+
+    audit_sidecar_policy = value.get("audit_sidecar_policy")
+    if not isinstance(audit_sidecar_policy, dict):
+        raise ValueError(f"{field}.audit_sidecar_policy must be a mapping")
+    _non_empty_string_value(audit_sidecar_policy, "role", f"{field}.audit_sidecar_policy")
+    for bool_field in ("can_generate_default_next_action", "can_close_stage", "can_claim_domain_ready"):
+        if not isinstance(audit_sidecar_policy.get(bool_field), bool):
+            raise ValueError(f"{field}.audit_sidecar_policy {bool_field} must be a bool")
 
 
 def _validate_late_stage_progress_sprint_contract(

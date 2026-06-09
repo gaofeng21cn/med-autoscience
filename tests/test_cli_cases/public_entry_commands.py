@@ -389,6 +389,7 @@ def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsy
         "templates/stage_route_contract.yaml": render_public_yaml(),
         "templates/codex/medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
+        "src/med_autoscience/resources/stage_route_contract.yaml": render_public_yaml(),
     }
 
     exit_code = cli.main(["doctor", "sync-entry-assets", "--repo-root", str(tmp_path)])
@@ -396,7 +397,7 @@ def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsy
 
     assert exit_code == 0
     payload = json.loads(captured.out)
-    assert payload["written_count"] == 4
+    assert payload["written_count"] == len(expected_assets)
     assert set(payload["written_files"]) == {str(tmp_path / path) for path in expected_assets}
     for relative_path, expected_content in expected_assets.items():
         output_path = tmp_path / relative_path

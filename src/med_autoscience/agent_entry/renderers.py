@@ -50,6 +50,10 @@ def render_stage_route_contract_guide() -> str:
     compatible_agents = _string_list(payload.get("compatible_agents"), field="compatible_agents")
     modes = _mode_payload_list(payload)
     route_contracts = _route_contract_payload_map(payload)
+    ordinary_progress_handoff = _mapping(
+        payload.get("ordinary_progress_handoff_policy"),
+        "ordinary_progress_handoff_policy",
+    )
     evidence_review_contract = _evidence_review_contract_payload(payload)
     sprint_contract = _mapping(payload.get("late_stage_progress_sprint_contract"), "late_stage_progress_sprint_contract")
     runtime_modes = sorted({mode["default_runtime_mode"] for mode in modes})
@@ -115,6 +119,7 @@ def render_stage_route_contract_guide() -> str:
             )
         )
 
+    lines.extend(_render_ordinary_progress_handoff_policy(ordinary_progress_handoff))
     lines.extend(_render_late_stage_progress_sprint_contract(sprint_contract))
 
     lines.extend(
@@ -197,6 +202,7 @@ def sync_agent_entry_assets(repo_root: Path) -> dict[str, object]:
         (Path("templates/stage_route_contract.yaml"), render_public_yaml()),
         (Path("templates/codex/medautoscience-entry.SKILL.md"), render_codex_entry_skill()),
         (Path("templates/openclaw/medautoscience-entry.prompt.md"), render_openclaw_entry_prompt()),
+        (Path("src/med_autoscience/resources/stage_route_contract.yaml"), render_public_yaml()),
     )
     written_files: list[str] = []
 
@@ -217,6 +223,10 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
     payload = render_stage_route_contract_payload()
     modes = _mode_payload_list(payload)
     route_contracts = _route_contract_payload_map(payload)
+    ordinary_progress_handoff = _mapping(
+        payload.get("ordinary_progress_handoff_policy"),
+        "ordinary_progress_handoff_policy",
+    )
     evidence_review_contract = _evidence_review_contract_payload(payload)
     sprint_contract = _mapping(payload.get("late_stage_progress_sprint_contract"), "late_stage_progress_sprint_contract")
     runtime_modes = sorted({mode["default_runtime_mode"] for mode in modes})
@@ -291,6 +301,7 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             )
         )
 
+    lines.extend(_render_ordinary_progress_handoff_policy(ordinary_progress_handoff))
     lines.extend(_render_late_stage_progress_sprint_contract(sprint_contract))
 
     lines.extend(
@@ -420,6 +431,46 @@ def _render_late_stage_progress_sprint_contract(contract: dict[str, Any]) -> lis
         _render_list_line("quality_gate_policy", contract["quality_gate_policy"]),
         _render_optional_list_line("currentness_followthrough_policy", contract),
         _render_list_line("authority_boundary", contract["authority_boundary"]),
+    ]
+
+
+def _render_ordinary_progress_handoff_policy(policy: dict[str, Any]) -> list[str]:
+    progress_delta_receipt = _mapping(policy.get("progress_delta_receipt"), "progress_delta_receipt")
+    artifact_tier_policy = _mapping(policy.get("artifact_tier_policy"), "artifact_tier_policy")
+    readiness_jit_policy = _mapping(policy.get("readiness_jit_policy"), "readiness_jit_policy")
+    audit_sidecar_policy = _mapping(policy.get("audit_sidecar_policy"), "audit_sidecar_policy")
+
+    return [
+        "",
+        "## Ordinary Progress Handoff Policy",
+        f"- source_ref: {policy['source_ref']}",
+        f"- default_progress_root: {policy['default_progress_root']}",
+        f"- stage_goal_source: {policy['stage_goal_source']}",
+        f"- executor_output_requirement: {policy['executor_output_requirement']}",
+        _render_list_line("accepted_closeout_shapes", policy["accepted_closeout_shapes"]),
+        f"- progress_delta_receipt_kind: {progress_delta_receipt['receipt_kind']}",
+        f"- progress_delta_receipt_artifact_tier: {progress_delta_receipt['artifact_tier']}",
+        f"- progress_delta_receipt_role: {progress_delta_receipt['role']}",
+        _render_list_line("progress_delta_receipt_required_fields", progress_delta_receipt["required_fields"]),
+        _render_list_line("progress_delta_receipt_cannot_authorize", progress_delta_receipt["cannot_authorize"]),
+        _render_list_line("artifact_tiers", artifact_tier_policy["tiers"]),
+        f"- artifact_default_tier: {artifact_tier_policy['default_tier']}",
+        "- ordinary_delta_requires_full_stage_artifact_manifest: "
+        f"{artifact_tier_policy['ordinary_delta_requires_full_stage_artifact_manifest']}",
+        _render_list_line(
+            "delivery_or_publication_claim_requires_tier",
+            artifact_tier_policy["delivery_or_publication_claim_requires_tier"],
+        ),
+        f"- readiness_default_mode: {readiness_jit_policy['default_mode']}",
+        f"- readiness_check_scope_source: {readiness_jit_policy['check_scope_source']}",
+        f"- readiness_full_inventory_role: {readiness_jit_policy['full_readiness_inventory_role']}",
+        f"- readiness_ordinary_blocking_policy: {readiness_jit_policy['ordinary_progress_blocking_policy']}",
+        "- readiness_cannot_require_all_surfaces_before_writing_analysis_or_review_delta: "
+        f"{readiness_jit_policy['cannot_require_all_surfaces_before_writing_analysis_or_review_delta']}",
+        f"- audit_sidecar_role: {audit_sidecar_policy['role']}",
+        f"- audit_sidecar_can_generate_default_next_action: {audit_sidecar_policy['can_generate_default_next_action']}",
+        f"- audit_sidecar_can_close_stage: {audit_sidecar_policy['can_close_stage']}",
+        f"- audit_sidecar_can_claim_domain_ready: {audit_sidecar_policy['can_claim_domain_ready']}",
     ]
 
 

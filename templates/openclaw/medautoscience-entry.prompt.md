@@ -173,6 +173,31 @@ Runtime modes: lightweight, managed
   knowledge_input_obligations: stage_knowledge_packet_ref | official_author_guideline | outlet_profile | exporter_profile_constraints | blocked_profile_evidence
   memory_closeout_obligations: stage_memory_closeout_packet | selected_outlet_or_profile_rationale | exporter_constraint_lesson | blocked_profile_decision | reporting_guideline_delta
 
+## Ordinary Progress Handoff Policy
+- source_ref: contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff
+- default_progress_root: current_owner_delta
+- stage_goal_source: stage_run_current_owner_delta
+- executor_output_requirement: concrete_delta
+- accepted_closeout_shapes: ProgressDeltaReceipt | OwnerReceipt | TypedBlocker | human_gate_ref | route_back_ref
+- progress_delta_receipt_kind: ProgressDeltaReceipt
+- progress_delta_receipt_artifact_tier: T0_progress_delta
+- progress_delta_receipt_role: ordinary_step_handoff_not_stage_completion
+- progress_delta_receipt_required_fields: receipt_kind | delta_id | stage_run_id | stage_id | current_owner | changed_surface_refs | produced_refs | consumed_refs | progress_delta_classification | deliverable_progress_delta | platform_repair_delta | next_owner | next_required_delta
+- progress_delta_receipt_cannot_authorize: domain_ready | publication_ready | submission_ready | quality_or_export_ready | artifact_body_mutation | artifact_authority | memory_accept_reject | production_ready | physical_delete
+- artifact_tiers: T0_progress_delta | T1_stage_transition | T2_delivery_artifact | T3_production_evidence
+- artifact_default_tier: T0_progress_delta
+- ordinary_delta_requires_full_stage_artifact_manifest: False
+- delivery_or_publication_claim_requires_tier: T2_delivery_artifact | T3_production_evidence
+- readiness_default_mode: just_in_time_for_current_delta
+- readiness_check_scope_source: stage_run_current_owner_delta.next_required_delta
+- readiness_full_inventory_role: audit_or_terminal_gate_only
+- readiness_ordinary_blocking_policy: block_only_when_current_delta_needs_the_missing_readiness_or_when_safety_authority_irreversible_mutation_publication_or_submission_claim_is_at_risk
+- readiness_cannot_require_all_surfaces_before_writing_analysis_or_review_delta: True
+- audit_sidecar_role: passive_drilldown_until_folded_to_owner_delta_owner_receipt_typed_blocker_human_gate_or_route_back
+- audit_sidecar_can_generate_default_next_action: False
+- audit_sidecar_can_close_stage: False
+- audit_sidecar_can_claim_domain_ready: False
+
 ## Late-Stage Progress Sprint Contract
 - sprint_id: publishability_repair_sprint
 - objective: Produce one reviewable late-stage paper/package delta before quality gate replay.

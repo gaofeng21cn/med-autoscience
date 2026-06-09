@@ -128,6 +128,73 @@ def test_stage_run_states_keep_provider_and_domain_closeout_separate() -> None:
     assert states["stage_folder_files_count_as_next_stage_ready"] is False
 
 
+def test_ordinary_progress_handoff_accepts_t0_progress_delta_without_ready_claims() -> None:
+    handoff = _profile()["ordinary_progress_handoff"]
+
+    assert handoff["surface_kind"] == "mas_ordinary_progress_handoff_policy"
+    assert handoff["version"] == "ordinary-progress-handoff.v1"
+    assert handoff["default_progress_root"] == "current_owner_delta"
+    assert handoff["stage_goal_source"] == "stage_run_current_owner_delta"
+    assert handoff["executor_output_requirement"] == "concrete_delta"
+    assert handoff["accepted_closeout_shapes"] == [
+        "ProgressDeltaReceipt",
+        "OwnerReceipt",
+        "TypedBlocker",
+        "human_gate_ref",
+        "route_back_ref",
+    ]
+
+    progress_receipt = handoff["progress_delta_receipt"]
+    assert progress_receipt["receipt_kind"] == "ProgressDeltaReceipt"
+    assert progress_receipt["artifact_tier"] == "T0_progress_delta"
+    assert progress_receipt["role"] == "ordinary_step_handoff_not_stage_completion"
+    assert {
+        "changed_surface_refs",
+        "produced_refs",
+        "consumed_refs",
+        "progress_delta_classification",
+        "deliverable_progress_delta",
+        "platform_repair_delta",
+        "next_owner",
+        "next_required_delta",
+    } <= set(progress_receipt["required_fields"])
+    assert {
+        "domain_ready",
+        "publication_ready",
+        "submission_ready",
+        "quality_or_export_ready",
+        "artifact_authority",
+        "memory_accept_reject",
+        "production_ready",
+        "physical_delete",
+    } <= set(progress_receipt["cannot_authorize"])
+
+    artifact_policy = handoff["artifact_tier_policy"]
+    assert artifact_policy["tiers"] == [
+        "T0_progress_delta",
+        "T1_stage_transition",
+        "T2_delivery_artifact",
+        "T3_production_evidence",
+    ]
+    assert artifact_policy["default_tier"] == "T0_progress_delta"
+    assert artifact_policy["ordinary_delta_requires_full_stage_artifact_manifest"] is False
+    assert artifact_policy["delivery_or_publication_claim_requires_tier"] == [
+        "T2_delivery_artifact",
+        "T3_production_evidence",
+    ]
+
+    readiness = handoff["readiness_jit_policy"]
+    assert readiness["default_mode"] == "just_in_time_for_current_delta"
+    assert readiness["check_scope_source"] == "stage_run_current_owner_delta.next_required_delta"
+    assert readiness["full_readiness_inventory_role"] == "audit_or_terminal_gate_only"
+    assert readiness["cannot_require_all_surfaces_before_writing_analysis_or_review_delta"] is True
+
+    sidecar = handoff["audit_sidecar_policy"]
+    assert sidecar["can_generate_default_next_action"] is False
+    assert sidecar["can_close_stage"] is False
+    assert sidecar["can_claim_domain_ready"] is False
+
+
 def test_stage_run_object_models_capture_stage_folder_manifest_and_receipt_refs() -> None:
     models = _profile()["object_models"]
 

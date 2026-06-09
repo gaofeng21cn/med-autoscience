@@ -122,6 +122,7 @@ route 之间的调度由 OPL 负责：
 - `no_forbidden_write_ref`
 - `required_closeout_packet`
 - `completion_boundary`
+- `ordinary_progress_handoff_policy`
 
 禁止输出：
 
@@ -145,6 +146,8 @@ MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v
 5. `required_closeout_packet` 必须要求终端 typed closeout 同时携带 `paper_stage_log`（或同义 `user_stage_log` / `stage_log_summary`），字段覆盖 stage_name、problem_summary、stage_goal、paper_work_done、changed_paper_surfaces、outcome、remaining_blockers、duration/token/cost refs、evidence_refs，以及 Progress-First 必需的 `progress_delta_classification`、`deliverable_progress_delta`、`paper_progress_delta`、`platform_repair_delta`、`next_forced_delta`。该摘要只用于 OPL/MAS read-model 回答用户“这个 stage 做了什么、耗时/token 怎么样、下一次必须产出什么 delta 或 blocker”，不得写入论文正文、不得声明 quality/submission/publication ready。
 6. OPL 只记录 attempt started/completed/blocked/failed、typed closeout refs、stdout/session/provider timing；MAS 消费 closeout refs 后再决定 owner receipt、AI reviewer eval、publication gate、package freshness或 typed blocker。
 7. MAS 可以消费 decision trace / failed-path / negative-result ledger refs 来抑制同一 work unit 的重复无效 attempt；该消费只生成 refs-only no-op / typed blocker 证据，ledger 内容和质量仍是 domain evidence，不成为 owner-route authority、publication verdict 或 artifact authority。
+
+Ordinary progress handoff 的机器口径固定在 `contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff` 与 `agent/stages/stage_route_contract.yaml#/ordinary_progress_handoff_policy`。普通 executor step 产出 concrete delta 后，可以用 `ProgressDeltaReceipt` 作为 `T0_progress_delta` 轻量回执，携带 changed / produced / consumed refs、progress_delta_classification、deliverable_progress_delta、platform_repair_delta、next_owner 和 next_required_delta。它只让 `current_owner_delta` / `stage_run_current_owner_delta` 继续接力，不替代 MAS `OwnerReceipt`、`TypedBlocker`、quality gate、artifact authority、memory accept/reject、publication/submission gate 或 production evidence。readiness 只按当前 delta 的需要 JIT 检查；完整 readiness inventory、lineage、restore、long-soak、cleanup 和 production evidence 默认是 audit sidecar 或 terminal gate。
 
 Late-stage paper flow 的默认顺序是 progress-first：在 `review_and_quality_gate` / `finalize_and_publication_handoff` 一类 late-stage route 中，MAS owner chain 必须先看到 sprint delta、candidate package/display freshness proof 或同等 paper-facing progress ref，再把 AI reviewer / publication gate replay 作为后续质量复核。quality gate 可以把 delta 转成 route-back、single next owner blocker、human gate 或 stable typed blocker；它不能替代 sprint delta，也不能把 controller/read-model/currentness/provider 修复包装成 paper progress。DM002 `20260529T095414Z` effective-eval sprint repo canary 用 refs-only fixture 固化这一顺序：progress proof 与 gate replay request 可同时进入 handoff refs，但 stage success refs 仍不声明 domain ready、publication ready 或 `current_package` 更新。下一层目标是让 research evidence pack ref family 同时出现在 read-model、schema validation 和 DM002 canary evidence 中：read-model 给出 availability，schema validation 对缺失或越权 fail closed，canary 返回 evidence available 或 stable typed blocker；这只是 owner-chain audit evidence，不是 publication-ready。
 

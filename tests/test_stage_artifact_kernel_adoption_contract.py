@@ -37,6 +37,8 @@ def test_stage_artifact_kernel_adoption_links_stage_run_kernel_profile() -> None
         "profile_ref": "contracts/stage_run_kernel_profile.json",
         "profile_role": "minimal_stage_native_state_shell",
         "stage_run_kernel_is_mas_controller_system": False,
+        "ordinary_progress_handoff_ref": "contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff",
+        "ordinary_progress_handoff_role": "T0_progress_delta_receipt_policy_not_stage_artifact_completion",
         "stage_native_principle": [
             "stage_folder",
             "stage_manifest",
