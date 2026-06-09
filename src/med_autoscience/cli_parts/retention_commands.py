@@ -86,6 +86,7 @@ def handle_retention_command(
                 min_mb=int(args.min_mb),
                 max_rows=args.max_rows,
                 compact=bool(args.compact),
+                retire_cold_payloads=bool(args.retire_cold_payloads),
             )
         _print_json(result)
         return 0
