@@ -1019,3 +1019,63 @@ def test_current_work_unit_treats_handoff_ready_as_pending_evidence_not_running(
     assert work_unit["state"]["provider_admission_pending"] is True
     assert work_unit["state"]["pending_provider_admission_evidence"]["execution_status"] == "handoff_ready"
     assert work_unit["status"] != "running_provider_attempt"
+
+
+def test_current_work_unit_projects_guarded_apply_owner_answer_missing_over_stale_default_executor() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "paper_autonomy/guarded-apply",
+            "current_owner_delta": {
+                "surface_kind": "stage_run_current_owner_delta",
+                "stage_id": "paper_autonomy/guarded-apply",
+                "lineage_ref": "sat_d1bbac5b1671e6afc08d743d",
+                "owner": "med-autoscience",
+                "action": "paper_autonomy/guarded-apply",
+                "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
+                "accepted_answer_shape": [
+                    "domain_owner_receipt_ref",
+                    "quality_gate_receipt_ref",
+                    "typed_blocker_ref",
+                ],
+                "latest_owner_answer_ref": None,
+                "domain_ready_authorized": False,
+                "hard_gate": {
+                    "state": "owner_answer_missing",
+                    "owner_answer_missing": True,
+                    "owner_answer_still_required": True,
+                },
+            },
+        },
+        actions=[
+            {
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "action_type": "run_quality_repair_batch",
+                "owner": "write",
+                "next_work_unit": "stale_default_executor_repair",
+                "work_unit_id": "stale_default_executor_repair",
+                "work_unit_fingerprint": "stale-default-executor-fingerprint",
+            }
+        ],
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "med-autoscience"
+    assert work_unit["action_type"] == "paper_autonomy/guarded-apply"
+    assert work_unit["work_unit_id"] == "domain_owner_receipt_quality_gate_or_typed_blocker_required"
+    assert work_unit["stage_id"] == "paper_autonomy/guarded-apply"
+    assert work_unit["state"]["source"] == "stage_kernel_projection.current_owner_delta"
+    assert work_unit["state"]["owner_answer_missing"] is True
+    assert work_unit["currentness_basis"]["lineage_ref"] == "sat_d1bbac5b1671e6afc08d743d"
+    assert work_unit["required_output_contract"]["accepted_return_shape"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert work_unit["authority_boundary"]["can_write_current_owner_delta"] is False

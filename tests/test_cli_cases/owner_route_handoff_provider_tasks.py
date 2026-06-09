@@ -94,9 +94,27 @@ def test_domain_handler_export_guarded_apply_fingerprint_tracks_mas_owner_decisi
     first_fingerprints = {task["payload"]["study_id"]: task["source_fingerprint"] for task in first_tasks}
     for task in first_tasks:
         study_id = task["payload"]["study_id"]
+        owner_delta_contract = task["payload"]["current_owner_delta_contract"]
+        assert owner_delta_contract["default_planning_root"] == "current_owner_delta"
+        assert owner_delta_contract["stage_id"] == "paper_autonomy/guarded-apply"
+        assert owner_delta_contract["current_owner"] == "med-autoscience"
+        assert owner_delta_contract["desired_delta"] == (
+            "domain_owner_receipt_quality_gate_or_typed_blocker_required"
+        )
+        assert owner_delta_contract["accepted_answer_shape"] == [
+            "domain_owner_receipt_ref",
+            "quality_gate_receipt_ref",
+            "typed_blocker_ref",
+        ]
+        assert owner_delta_contract["owner_answer_missing"] is True
+        assert owner_delta_contract["domain_ready_authorized"] is False
         owner_ref = [
             ref for ref in task["source_refs"]
             if ref["role"] == "mas_owner_controller_decision"
+        ][0]
+        owner_delta_ref = [
+            ref for ref in task["source_refs"]
+            if ref["role"] == "opl_current_owner_delta_contract"
         ][0]
         contract_ref = [
             ref for ref in task["source_refs"]
@@ -106,6 +124,18 @@ def test_domain_handler_export_guarded_apply_fingerprint_tracks_mas_owner_decisi
             "role": "mas_guarded_apply_owner_receipt_contract",
             "ref": "mas-guarded-apply-owner-receipt.v2",
             "exists": True,
+        }
+        assert owner_delta_ref == {
+            "role": "opl_current_owner_delta_contract",
+            "ref": "paper_autonomy/guarded-apply",
+            "exists": True,
+            "accepted_answer_shapes": [
+                "domain_owner_receipt_ref",
+                "quality_gate_receipt_ref",
+                "typed_blocker_ref",
+            ],
+            "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
+            "body_included": False,
         }
         assert owner_ref == {
             "role": "mas_owner_controller_decision",

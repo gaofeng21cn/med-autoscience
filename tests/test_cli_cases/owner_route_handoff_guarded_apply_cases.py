@@ -319,6 +319,89 @@ def test_domain_handler_dispatch_guarded_apply_records_provider_unavailable_type
     assert result["summary"]["writes_performed"] is False
 
 
+def test_domain_handler_dispatch_guarded_apply_binds_current_owner_delta_identity(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(study_root / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": study_root.name})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
+    )
+    current_owner_delta = {
+        "surface_kind": "opl_current_owner_delta",
+        "default_planning_root": "current_owner_delta",
+        "stage_id": "paper_autonomy/guarded-apply",
+        "lineage_ref": "sat_d1bbac5b1671e6afc08d743d",
+        "current_owner": "med-autoscience",
+        "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
+        "desired_delta_kind": "owner_answer_or_typed_blocker",
+        "accepted_answer_shape": [
+            "domain_owner_receipt_ref",
+            "quality_gate_receipt_ref",
+            "typed_blocker_ref",
+        ],
+        "latest_owner_answer_ref": None,
+        "domain_ready_authorized": False,
+        "owner_answer_missing": True,
+    }
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "guarded-apply-current-owner-delta",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/guarded-apply",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "DM002",
+                "provider_attempt_id": "sat_d1bbac5b1671e6afc08d743d",
+                "idempotency_key": "sat_d1bbac5b1671e6afc08d743d:guarded-apply",
+                "current_owner_delta": current_owner_delta,
+            },
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert payload["current_owner_delta"] == current_owner_delta
+    binding = payload["dispatch"]["result_current_owner_delta_binding"]
+    assert binding == {
+        "bound": True,
+        "required": True,
+        "stage_id": "paper_autonomy/guarded-apply",
+        "lineage_ref": "sat_d1bbac5b1671e6afc08d743d",
+        "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
+        "accepted_answer_shape": [
+            "domain_owner_receipt_ref",
+            "quality_gate_receipt_ref",
+            "typed_blocker_ref",
+        ],
+        "latest_owner_answer_ref": None,
+        "domain_ready_authorized": False,
+        "owner_answer_missing": True,
+        "mas_can_create_owner_answer": True,
+        "opl_can_create_owner_answer": False,
+    }
+    result = payload["dispatch"]["result"]
+    assert result["current_owner_delta"] == {
+        key: value
+        for key, value in current_owner_delta.items()
+        if value is not None
+    }
+    assert result["current_owner_delta_binding"] == binding
+    assert result["status"] == "typed_blocker"
+    assert result["typed_blockers"][0]["blocker_id"].startswith("mas_owner_apply_receipt_missing:")
+
+
 def test_domain_handler_dispatch_keys_guarded_apply_receipts_by_task_source_fingerprint(
     monkeypatch,
     tmp_path: Path,

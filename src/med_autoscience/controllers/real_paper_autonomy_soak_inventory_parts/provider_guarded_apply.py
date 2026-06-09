@@ -317,7 +317,6 @@ def _source_refs(
         ]
     )
 
-
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
