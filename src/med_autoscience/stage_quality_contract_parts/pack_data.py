@@ -22,6 +22,7 @@ _PACK_TITLES = {
     "life_science_source_discovery_pack": "Life science source discovery pack",
     "route_memory_pack": "Route memory pack",
     "stop_loss_pack": "Stop-loss pack",
+    "external_pattern_intake_pack": "External pattern intake pack",
     "artifact_freshness_pack": "Artifact freshness pack",
     "human_gate_pack": "Human gate pack",
 }
@@ -97,6 +98,11 @@ _PACK_OWNER_REFS = {
     "stop_loss_pack": [
         _ref("workspace_locator", "artifacts/controller_decisions/latest.json", "controller_decision"),
         _ref("surface_kind", "stop_loss_memo", "decision_owner"),
+    ],
+    "external_pattern_intake_pack": [
+        _ref("surface_kind", "stage_quality_pack_contract", "mas_native_contract_owner"),
+        _ref("surface_kind", "AI reviewer workflow", "reviewer_refusal_rehearsal_owner"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "fresh_evidence_log_ref_owner"),
     ],
     "artifact_freshness_pack": [
         _ref("workspace_locator", "manuscript/current_package", "current_package"),
@@ -179,6 +185,11 @@ _PACK_REQUIRED_REFS = {
     "stop_loss_pack": [
         _ref("workspace_locator", "artifacts/controller_decisions/latest.json", "required_decision_refs"),
         _ref("surface_kind", "runtime_escalation_record", "escalation_context"),
+    ],
+    "external_pattern_intake_pack": [
+        _ref("surface_kind", "stage_quality_pack_contract", "clean_room_pattern_descriptor"),
+        _ref("surface_kind", "typed_blocker", "route_required_ref_blocker_only_for_current_delta"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "fresh_evidence_log_ref_when_current_delta_requires_it"),
     ],
     "artifact_freshness_pack": [
         _ref("workspace_locator", "artifacts/delivery_manifest/latest.json", "freshness_proof"),

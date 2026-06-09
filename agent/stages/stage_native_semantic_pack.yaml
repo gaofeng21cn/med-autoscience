@@ -57,6 +57,36 @@ stage_native_semantic_pack:
       - reviewer_workload_shaping
       - route_option_context
       - failed_path_recall
+    clean_room_pattern_sources:
+      light_external_pattern_intake:
+        source_project: Light0305/Light
+        source_paths:
+          - README.md
+          - CONVENTIONS.md
+          - ROUTER.md
+          - skills/light-idea-generation/SKILL.md
+          - skills/light-idea-critique/SKILL.md
+          - skills/light-self-review/SKILL.md
+          - _verification_log/*.md
+        absorbed_as: mas_native_progress_first_advisory_contract_pattern
+        useful_patterns:
+          - verification_log_three_state_fresh_evidence
+          - core_collision_check
+          - reviewer_refusal_rehearsal
+          - bounded_template_or_skill_card
+          - self_review_evidence_gate
+        vendor_dependency: false
+        runtime_dependency: false
+        install_script_dependency: false
+        skill_router_dependency: false
+        knowledge_base_dependency: false
+        default_skill_source: false
+        may_authorize_publication_readiness: false
+        may_authorize_quality_verdict: false
+        may_authorize_source_readiness: false
+        may_sign_owner_receipt: false
+        may_mutate_artifacts: false
+        may_admit_route: false
     forbidden_authority_uses:
       - source_readiness
       - medical_quality_verdict
@@ -97,6 +127,7 @@ stage_native_semantic_pack:
         reviewer_hint_limit_per_attempt: 3
         memory_writeback_limit_per_attempt: at_most_one_reusable_refs_only_lesson_ref
         opportunistic_prefetch_limit: only refs needed by the next declared owner delta or reviewer hint
+        external_pattern_intake_limit: advisory_or_evidence_log_gaps_do_not_preflight_block_dispatch
         meta_review_trigger_only:
           - stop_loss
           - repeated_failure
@@ -162,6 +193,19 @@ stage_native_semantic_pack:
             - reviewer_concern_refs
             - journal_neighbor_refs
           forbidden_effect: missing or stale prefetch must not block owner dispatch; it can only produce a typed blocker if a route-required ref is actually missing
+        light_external_pattern_intake:
+          role: absorb Light-style evidence, collision-check, refusal-rehearsal, bounded-card, and self-review patterns as MAS-native advisory refs.
+          output_refs:
+            - external_pattern_intake_advisory_ref
+            - fresh_evidence_check_ref
+            - reviewer_refusal_rehearsal_ref
+          missing_ref_behavior: missing advisory or evidence-log refs must not block unrelated owner dispatch
+          typed_blocker_only_when: current_delta_route_required_ref_missing
+          cannot_replace:
+            - controller_decision_ref
+            - owner_receipt_ref
+            - source_readiness_verdict_ref
+            - publication_quality_gate_ref
   execution_review_independence:
     policy: fail_closed
     requirement: quality gates require a reviewer/auditor invocation that is separate from the executor invocation that produced the work

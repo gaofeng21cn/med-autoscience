@@ -4,6 +4,7 @@ from med_autoscience.stage_quality_contract import (
     REQUIRED_STAGE_QUALITY_PACK_IDS,
     STRONG_PROMOTION_EVIDENCE_KINDS,
     build_stage_quality_pack_contract,
+    build_stage_quality_pack_ref_projection,
 )
 
 
@@ -420,3 +421,84 @@ def test_autosci_research_lifecycle_patterns_land_as_quality_pack_contracts() ->
             assert item["typed_blocker_if_missing"] == expectation["blocker"]
             assert item["may_authorize_publication_readiness"] is False
             assert item["may_authorize_quality_verdict"] is False
+
+
+def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisory_contract() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+
+    pack = packs["external_pattern_intake_pack"]
+    assert "external_pattern_intake_pack" in REQUIRED_STAGE_QUALITY_PACK_IDS
+    assert pack["title"] == "External pattern intake pack"
+    assert set(pack["applies_to"]["stages"]) == {"scout", "idea", "review", "decision", "write"}
+
+    assert pack["clean_room_absorption"] == {
+        "source_project": "Light0305/Light",
+        "source_repository": "https://github.com/Light0305/Light",
+        "source_paths": [
+            "README.md",
+            "CONVENTIONS.md",
+            "ROUTER.md",
+            "skills/light-idea-generation/SKILL.md",
+            "skills/light-idea-critique/SKILL.md",
+            "skills/light-self-review/SKILL.md",
+            "_verification_log/*.md",
+        ],
+        "absorbed_as": "mas_native_progress_first_advisory_contract_pattern",
+        "vendor_dependency": False,
+        "runtime_dependency": False,
+        "install_script_dependency": False,
+        "skill_router_dependency": False,
+        "knowledge_base_dependency": False,
+        "default_skill_source": False,
+        "copy_external_runtime_or_install_scripts": False,
+    }
+
+    forbidden = pack["forbidden_authority"]
+    assert forbidden == {
+        "may_authorize_publication_readiness": False,
+        "may_authorize_quality_verdict": False,
+        "may_authorize_source_readiness": False,
+        "may_sign_owner_receipt": False,
+        "may_mutate_artifacts": False,
+        "may_admit_route": False,
+        "may_write_domain_truth": False,
+    }
+    assert all(value is False for value in forbidden.values())
+
+    patterns = {pattern["pattern_id"]: pattern for pattern in pack["pattern_adoptions"]}
+    assert set(patterns) == {
+        "verification_log_three_state_fresh_evidence",
+        "core_collision_check",
+        "reviewer_refusal_rehearsal",
+        "bounded_template_or_skill_card",
+        "self_review_evidence_gate",
+    }
+    assert patterns["verification_log_three_state_fresh_evidence"]["learned_from"] == "_verification_log/*.md"
+    assert patterns["core_collision_check"]["learned_from"] == "skills/light-idea-generation/SKILL.md"
+    assert patterns["reviewer_refusal_rehearsal"]["learned_from"] == "skills/light-idea-critique/SKILL.md"
+    assert patterns["self_review_evidence_gate"]["learned_from"] == "skills/light-self-review/SKILL.md"
+    assert all(pattern["adoption_class"] == "adopt_contract" for pattern in patterns.values())
+
+    missing_ref_policy = {item["missing_ref_class"]: item for item in pack["missing_ref_policy"]}
+    assert missing_ref_policy["advisory_signal_ref"]["blocks_unrelated_owner_dispatch"] is False
+    assert missing_ref_policy["evidence_log_ref"]["blocks_unrelated_owner_dispatch"] is False
+    assert missing_ref_policy["route_required_ref_for_current_delta"] == {
+        "missing_ref_class": "route_required_ref_for_current_delta",
+        "blocks_current_delta": True,
+        "blocks_unrelated_owner_dispatch": False,
+        "response": "typed_blocker",
+        "typed_blocker_id": "external_pattern_intake_route_required_ref_blocker",
+    }
+    assert pack["progress_first_policy"] == {
+        "advisory_or_evidence_log_missing_behavior": "skip_or_repair_hint",
+        "may_block_unrelated_owner_dispatch": False,
+        "typed_blocker_only_when": "current_delta_route_required_ref_missing",
+        "non_blocking_budget": "active_owner_attempt_only",
+    }
+
+    scout_projection = build_stage_quality_pack_ref_projection(["scout"])
+    assert "external_pattern_intake_pack" in scout_projection["pack_refs"]
+
+    unrelated_projection = build_stage_quality_pack_ref_projection(["experiment"])
+    assert "external_pattern_intake_pack" not in unrelated_projection["pack_refs"]

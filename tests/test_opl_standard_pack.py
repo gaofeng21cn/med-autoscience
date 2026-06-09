@@ -27,6 +27,14 @@ def _read_contract(name: str) -> dict[str, object]:
     return json.loads((REPO_ROOT / "contracts" / f"{name}.json").read_text(encoding="utf-8"))
 
 
+def _assert_root_contract_matches_generated(
+    generated: dict[str, object],
+    contract_name: str,
+) -> None:
+    json_ready_generated = json.loads(json.dumps(generated[contract_name], ensure_ascii=False))
+    assert _read_contract(contract_name) == json_ready_generated
+
+
 def _assert_pack_path_is_real(path: str) -> None:
     resolved = REPO_ROOT / path
     assert resolved.exists(), path
@@ -42,11 +50,13 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     action_catalog = build_mas_action_catalog()
     stage_plane = build_family_stage_control_plane(family_action_catalog=action_catalog)
 
-    assert _read_contract("domain_descriptor") == generated["domain_descriptor"]
-    assert _read_contract("action_catalog") == generated["action_catalog"]
-    assert _read_contract("stage_control_plane") == generated["stage_control_plane"]
-    assert _read_contract("foundry_agent_series") == generated["foundry_agent_series"]
-    assert _read_contract("functional_privatization_audit") == generated["functional_privatization_audit"]
+    _assert_root_contract_matches_generated(generated, "domain_descriptor")
+    _assert_root_contract_matches_generated(generated, "action_catalog")
+    _assert_root_contract_matches_generated(generated, "pack_compiler_input")
+    _assert_root_contract_matches_generated(generated, "stage_control_plane")
+    _assert_root_contract_matches_generated(generated, "foundry_agent_series")
+    _assert_root_contract_matches_generated(generated, "generated_surface_handoff")
+    _assert_root_contract_matches_generated(generated, "functional_privatization_audit")
 
     assert generated["action_catalog"]["actions"] == action_catalog["actions"]
     assert generated["stage_control_plane"]["stages"] == stage_plane["stages"]

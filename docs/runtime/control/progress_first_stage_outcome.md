@@ -85,6 +85,8 @@ Progress-first 的 Co-Scientist 增益层只优化“下一步更快、更准、
 
 缺少、陈旧或失败的 prefetch / tournament / meta-review / memory recall 只算 observability 或 platform repair，不能压住已经可执行的 `current_executable_owner_action`。只有这些 signal 暴露了真实 hard gate，例如 missing source/data、forbidden write、human gate、missing owner callable 或 irreversible mutation，才按 Hard gates 归类；否则下一步仍应推进 owner action、reviewer request、memory writeback receipt、typed blocker、route-back 或 stop-loss。
 
+Light-derived external-pattern advisory 遵循同一 Progress-first 规则，详见 [Light External Pattern Intake Runbook](./light_external_pattern_intake.md)。`verified_asset_ref`、`collision_check_ref`、`refusal_rehearsal_ref` 和 `fresh_evidence_gate_ref` 可以进入 stage-quality、knowledge packet、reviewer briefing、repair hints、route-back briefing 或 next owner delta；它们不创造 progress 类别，不关闭 AI reviewer verdict、publication gate、quality gate、artifact authority 或 owner receipt。缺 Light-derived advisory 默认只算 observability / platform repair；只有当前 delta 明确 route-required ref 缺失，并且缺失影响 source/data/evidence、owner-route identity、forbidden write boundary、irreversible mutation 或 reviewer/publication hard gate 时，才能生成 typed blocker。该 blocker 必须命名缺失 ref family，并指明解除 owner。
+
 ## AI-first admission
 
 AI-first 的 admission 锚点是 `current_executable_owner_action`，不是 `next_system_action` 文案。
@@ -271,6 +273,7 @@ When validating a docs-only change in this repo, use documentation review plus g
 - 把 provider handoff 写出当作 provider attempt 已启动。缺 running proof 时只能写 `provider_handoff_written_admission_pending`。
 - 把 telemetry、duration/token/cost、Portal card wording、read-model hygiene、refs-only ledger record/verify 当成 paper progress。
 - 把 `next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`budgeted memory`、`triggered meta-review` 或 `opportunistic knowledge prefetch` 当成 admission gate、route blocking layer、quality closure、publication readiness、artifact authority 或 paper progress。它们只能辅助 route selection、reviewer gap finding 和 failed-path memory reuse。
+- 把 Light 的 skill router、`db09`、知识库、verification log、review score、自审 checklist 或外部 API 表当成 MAS runtime、study truth、source readiness truth、AI reviewer verdict、publication gate、artifact authority、paper progress 或默认 dispatch blocker。Light-derived signal 只能作为 bounded advisory ref；缺失时不得阻塞不相关 owner action。
 - 用显式 `--action-types` 作为正常 Progress-first 必需步骤；它只用于诊断、限流或人工指定，默认 dispatch 必须消费 current ready dispatch。
 - 用 broad recursive scan、mtime、旧 request lifecycle、旧 generated_at、stale consumer dispatch 或旧 package freshness proof 覆盖当前 owner/work-unit currentness。
 - 手工写 DM-CVD study truth、runtime-owned state、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或 submission package 来关闭 currentness 问题。

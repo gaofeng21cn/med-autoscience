@@ -64,6 +64,7 @@ REQUIRED_STAGE_QUALITY_PACK_IDS: tuple[str, ...] = (
     LIFE_SCIENCE_SOURCE_DISCOVERY_PACK_ID,
     "route_memory_pack",
     "stop_loss_pack",
+    "external_pattern_intake_pack",
     "artifact_freshness_pack",
     "human_gate_pack",
 )
@@ -138,6 +139,7 @@ _PACK_STAGE_MAP: dict[str, tuple[str, ...]] = {
     "life_science_source_discovery_pack": ("scout", "baseline", "analysis-campaign", "review"),
     "route_memory_pack": ("scout", "idea", "analysis-campaign", "review", "decision"),
     "stop_loss_pack": ("idea", "baseline", "experiment", "analysis-campaign", "review", "decision"),
+    "external_pattern_intake_pack": ("scout", "idea", "review", "decision", "write"),
     "artifact_freshness_pack": ("write", "finalize", "delivery_sync"),
     "human_gate_pack": ("all_boundary_changing_stages",),
 }
@@ -184,6 +186,7 @@ _PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
     ),
     "route_memory_pack": DEFAULT_STUDY_ARCHETYPES,
     "stop_loss_pack": DEFAULT_STUDY_ARCHETYPES,
+    "external_pattern_intake_pack": DEFAULT_STUDY_ARCHETYPES,
     "artifact_freshness_pack": ("all_submission_or_delivery_candidates",),
     "human_gate_pack": ("all_boundary_changing_studies",),
 }
@@ -308,8 +311,8 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
         "pack_id": pack_id,
         "title": _PACK_TITLES[pack_id],
         "role": PACK_ROLE,
-        "maturity_status": PACK_MATURITY_STATUS[pack_id],
-        "promotion_evidence": build_promotion_evidence(pack_id),
+        "maturity_status": _pack_maturity_status(pack_id),
+        "promotion_evidence": _pack_promotion_evidence(pack_id),
         "publication_readiness_authority": False,
         "quality_verdict_authority": False,
         "applies_to": {
@@ -346,7 +349,43 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
     if pack_id in AUTOSCI_RESEARCH_LIFECYCLE_PACKS:
         pack["autosci_clean_room_absorption"] = build_autosci_clean_room_absorption()
         pack["autosci_extension_contracts"] = build_autosci_pack_contracts(pack_id)
+    if pack_id == "external_pattern_intake_pack":
+        pack["clean_room_absorption"] = _light_clean_room_absorption()
+        pack["pattern_adoptions"] = _light_pattern_adoptions()
+        pack["forbidden_authority"] = _light_forbidden_authority()
+        pack["missing_ref_policy"] = _light_missing_ref_policy()
+        pack["progress_first_policy"] = _light_progress_first_policy()
     return pack
+
+
+def _pack_maturity_status(pack_id: str) -> str:
+    if pack_id == "external_pattern_intake_pack":
+        return "beta_contract"
+    return PACK_MATURITY_STATUS[pack_id]
+
+
+def _pack_promotion_evidence(pack_id: str) -> dict[str, object]:
+    if pack_id == "external_pattern_intake_pack":
+        return {
+            "maturity_model": "mas_contract_maturity_not_vendor_skill_status",
+            "upstream_status_signal": "clean_room_pattern_source_only",
+            "stable_requires_strong_evidence": True,
+            "strong_evidence_kinds": list(STRONG_PROMOTION_EVIDENCE_KINDS),
+            "evidence": [
+                {
+                    "evidence_id": "light_external_pattern_intake_contract_test",
+                    "evidence_kind": "focused_tests",
+                    "ref_kind": "test",
+                    "ref": "tests/test_stage_quality_contract.py",
+                    "role": "clean_room_non_blocking_progress_first_advisory_contract",
+                    "strength": "strong",
+                }
+            ],
+            "stable_strong_evidence_satisfied": False,
+            "may_authorize_publication_readiness": False,
+            "may_authorize_quality_verdict": False,
+        }
+    return build_promotion_evidence(pack_id)
 
 
 def _contract_authority_boundary() -> dict[str, Any]:
@@ -507,6 +546,151 @@ def _clean_room_absorption() -> dict[str, object]:
         "runtime_dependency": False,
         "publication_authority": False,
         "default_skill_source": False,
+    }
+
+
+def _light_clean_room_absorption() -> dict[str, object]:
+    return {
+        "source_project": "Light0305/Light",
+        "source_repository": "https://github.com/Light0305/Light",
+        "source_paths": [
+            "README.md",
+            "CONVENTIONS.md",
+            "ROUTER.md",
+            "skills/light-idea-generation/SKILL.md",
+            "skills/light-idea-critique/SKILL.md",
+            "skills/light-self-review/SKILL.md",
+            "_verification_log/*.md",
+        ],
+        "absorbed_as": "mas_native_progress_first_advisory_contract_pattern",
+        "vendor_dependency": False,
+        "runtime_dependency": False,
+        "install_script_dependency": False,
+        "skill_router_dependency": False,
+        "knowledge_base_dependency": False,
+        "default_skill_source": False,
+        "copy_external_runtime_or_install_scripts": False,
+    }
+
+
+def _light_pattern_adoptions() -> list[dict[str, object]]:
+    return [
+        {
+            "pattern_id": "verification_log_three_state_fresh_evidence",
+            "learned_from": "_verification_log/*.md",
+            "adoption_class": "adopt_contract",
+            "mas_owner_surface": "quality_os_and_evidence_refs",
+            "required_contract_fields": [
+                "fresh_check_ref",
+                "status_pass_warn_fail",
+                "checked_at",
+                "source_ref",
+                "typed_blocker_ref_if_current_delta_requires_ref",
+            ],
+            "may_block_unrelated_owner_dispatch": False,
+        },
+        {
+            "pattern_id": "core_collision_check",
+            "learned_from": "skills/light-idea-generation/SKILL.md",
+            "adoption_class": "adopt_contract",
+            "mas_owner_surface": "idea_review_and_route_memory_refs",
+            "required_contract_fields": [
+                "core_claim_or_mechanism_ref",
+                "nearest_neighbor_work_refs",
+                "negative_search_evidence_refs",
+                "novelty_delta_ref",
+                "route_back_or_continue_ref",
+            ],
+            "may_block_unrelated_owner_dispatch": False,
+        },
+        {
+            "pattern_id": "reviewer_refusal_rehearsal",
+            "learned_from": "skills/light-idea-critique/SKILL.md",
+            "adoption_class": "adopt_contract",
+            "mas_owner_surface": "reviewer_os_and_decision_refs",
+            "required_contract_fields": [
+                "top_refusal_reason_refs",
+                "reviewer_position_ref",
+                "counter_evidence_or_route_back_ref",
+                "unresolved_critical_ref",
+            ],
+            "may_block_unrelated_owner_dispatch": False,
+        },
+        {
+            "pattern_id": "bounded_template_or_skill_card",
+            "learned_from": "README.md",
+            "adoption_class": "adopt_contract",
+            "mas_owner_surface": "stage_quality_pack_descriptor",
+            "required_contract_fields": [
+                "bounded_card_id",
+                "intended_stage_refs",
+                "input_ref_classes",
+                "output_ref_classes",
+                "forbidden_authority_effects",
+            ],
+            "may_block_unrelated_owner_dispatch": False,
+        },
+        {
+            "pattern_id": "self_review_evidence_gate",
+            "learned_from": "skills/light-self-review/SKILL.md",
+            "adoption_class": "adopt_contract",
+            "mas_owner_surface": "quality_os_fresh_evidence_gate_refs",
+            "required_contract_fields": [
+                "claim_to_verify",
+                "fresh_verification_command_or_ref",
+                "verification_exit_state",
+                "failure_count",
+                "claim_supported",
+            ],
+            "may_block_unrelated_owner_dispatch": False,
+        },
+    ]
+
+
+def _light_forbidden_authority() -> dict[str, bool]:
+    return {
+        "may_authorize_publication_readiness": False,
+        "may_authorize_quality_verdict": False,
+        "may_authorize_source_readiness": False,
+        "may_sign_owner_receipt": False,
+        "may_mutate_artifacts": False,
+        "may_admit_route": False,
+        "may_write_domain_truth": False,
+    }
+
+
+def _light_missing_ref_policy() -> list[dict[str, object]]:
+    return [
+        {
+            "missing_ref_class": "advisory_signal_ref",
+            "blocks_current_delta": False,
+            "blocks_unrelated_owner_dispatch": False,
+            "response": "skip_or_emit_repair_hint",
+            "typed_blocker_id": None,
+        },
+        {
+            "missing_ref_class": "evidence_log_ref",
+            "blocks_current_delta": False,
+            "blocks_unrelated_owner_dispatch": False,
+            "response": "skip_or_emit_repair_hint",
+            "typed_blocker_id": None,
+        },
+        {
+            "missing_ref_class": "route_required_ref_for_current_delta",
+            "blocks_current_delta": True,
+            "blocks_unrelated_owner_dispatch": False,
+            "response": "typed_blocker",
+            "typed_blocker_id": "external_pattern_intake_route_required_ref_blocker",
+        },
+    ]
+
+
+def _light_progress_first_policy() -> dict[str, object]:
+    return {
+        "advisory_or_evidence_log_missing_behavior": "skip_or_repair_hint",
+        "may_block_unrelated_owner_dispatch": False,
+        "typed_blocker_only_when": "current_delta_route_required_ref_missing",
+        "non_blocking_budget": "active_owner_attempt_only",
     }
 
 
