@@ -475,6 +475,80 @@
       "can_authorize_artifact_authority": false
     }
   },
+  "evo_scientist_learning_projection": {
+    "surface_kind": "mas_evo_scientist_progress_accelerator_projection",
+    "descriptor_surfaces": [
+      "product_entry_manifest.evo_scientist_learning_projection",
+      "product_entry_manifest.family_stage_control_plane_descriptor.evo_scientist_learning_projection",
+      "domain_handler_export.evo_scientist_learning_projection"
+    ],
+    "source_repository": "https://github.com/EvoScientist/EvoScientist",
+    "observed_release": "v0.1.4",
+    "skills_repository": "https://github.com/EvoScientist/EvoSkills",
+    "skills_release": "v1.0.0",
+    "intake_doc_ref": "docs/runtime/designs/evo_scientist_progress_first_intake.md",
+    "dependency_introduced": false,
+    "absorbed_pattern_ids": [
+      "auxiliary_background_model",
+      "fire_and_forget_observation_memory",
+      "conditional_tool_selection",
+      "skill_routing_eval",
+      "ive_failed_path_memory_taxonomy",
+      "attempt_budget_stop_loss"
+    ],
+    "watch_only_pattern_ids": [
+      "idea_tournament_as_default_gate",
+      "full_research_lifecycle_pipeline_as_mas_default"
+    ],
+    "maps_to_opl_shared_primitive": "progress-first-learning-sidecar.v1",
+    "mas_role": "domain_projection_progress_accelerator_and_refs_only_contract_owner",
+    "allowed_export": [
+      "refs",
+      "metadata",
+      "freshness",
+      "typed_blockers",
+      "owner_boundary",
+      "tool_visibility_policy_refs",
+      "failed_path_taxonomy_refs"
+    ],
+    "forbidden_export": [
+      "external_runtime",
+      "foreign_agent_memory_body",
+      "tool_selector_hard_gate",
+      "self_review_quality_closure",
+      "full_pipeline_preflight_gate",
+      "paper_or_source_body",
+      "evidence_ledger_body",
+      "review_ledger_body",
+      "publication_verdict_body",
+      "artifact_body"
+    ],
+    "target_contracts": [
+      "ordinary_progress_handoff.audit_sidecar_policy",
+      "stage_route.progress_first_learning_sidecar",
+      "publication_route_memory.failed_path_memory_taxonomy",
+      "generated_default_caller.tool_selector_fail_open_policy",
+      "operator_projection.observation_memory_sidecar"
+    ],
+    "authority_boundary": {
+      "source_project_role": "external_pattern_source_only",
+      "opl_owner": "one-person-lab",
+      "mas_domain_truth_owner": "MedAutoScience",
+      "mas_source_readiness_owner": "MedAutoScience",
+      "mas_publication_verdict_owner": "MedAutoScience",
+      "mas_artifact_authority_owner": "MedAutoScience",
+      "can_write_domain_truth": false,
+      "can_write_evidence_ledger": false,
+      "can_write_review_ledger": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_authorize_source_readiness": false,
+      "can_authorize_publication_quality": false,
+      "can_authorize_submission_readiness": false,
+      "can_authorize_artifact_authority": false,
+      "can_close_stage": false
+    }
+  },
   "persistence_lifecycle_owner_route_projection": {
     "adoption_surface_kind": "mas_opl_family_persistence_lifecycle_owner_route_adoption",
     "required_shape": [

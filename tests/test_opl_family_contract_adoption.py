@@ -497,3 +497,51 @@ def test_mas_autosci_learning_projection_declares_contract_first_absorption() ->
     assert projection["authority_boundary"]["can_authorize_source_readiness"] is False
     assert projection["authority_boundary"]["can_authorize_publication_quality"] is False
     assert projection["authority_boundary"]["can_authorize_artifact_authority"] is False
+
+
+def test_mas_evo_scientist_learning_projection_declares_progress_first_absorption() -> None:
+    contract = _contract()
+    projection = contract["evo_scientist_learning_projection"]
+
+    assert projection["surface_kind"] == "mas_evo_scientist_progress_accelerator_projection"
+    assert projection["descriptor_surfaces"] == [
+        "product_entry_manifest.evo_scientist_learning_projection",
+        "product_entry_manifest.family_stage_control_plane_descriptor.evo_scientist_learning_projection",
+        "domain_handler_export.evo_scientist_learning_projection",
+    ]
+    assert projection["source_repository"] == "https://github.com/EvoScientist/EvoScientist"
+    assert projection["observed_release"] == "v0.1.4"
+    assert projection["skills_repository"] == "https://github.com/EvoScientist/EvoSkills"
+    assert projection["skills_release"] == "v1.0.0"
+    assert projection["dependency_introduced"] is False
+    assert projection["maps_to_opl_shared_primitive"] == "progress-first-learning-sidecar.v1"
+    assert projection["mas_role"] == (
+        "domain_projection_progress_accelerator_and_refs_only_contract_owner"
+    )
+    assert projection["absorbed_pattern_ids"] == [
+        "auxiliary_background_model",
+        "fire_and_forget_observation_memory",
+        "conditional_tool_selection",
+        "skill_routing_eval",
+        "ive_failed_path_memory_taxonomy",
+        "attempt_budget_stop_loss",
+    ]
+    assert projection["watch_only_pattern_ids"] == [
+        "idea_tournament_as_default_gate",
+        "full_research_lifecycle_pipeline_as_mas_default",
+    ]
+    assert set(projection["forbidden_export"]) >= {
+        "external_runtime",
+        "foreign_agent_memory_body",
+        "tool_selector_hard_gate",
+        "self_review_quality_closure",
+        "full_pipeline_preflight_gate",
+    }
+    assert projection["authority_boundary"]["source_project_role"] == (
+        "external_pattern_source_only"
+    )
+    assert projection["authority_boundary"]["can_write_domain_truth"] is False
+    assert projection["authority_boundary"]["can_write_evidence_ledger"] is False
+    assert projection["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert projection["authority_boundary"]["can_authorize_artifact_authority"] is False
+    assert projection["authority_boundary"]["can_close_stage"] is False

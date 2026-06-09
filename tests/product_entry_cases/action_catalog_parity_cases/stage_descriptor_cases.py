@@ -66,6 +66,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["source_refs"]["autosci_learning_projection_source"] == (
         "med_autoscience.autosci_learning_projection.build_autosci_learning_projection"
     )
+    assert descriptor["source_refs"]["evo_scientist_learning_projection_source"] == (
+        "med_autoscience.evo_scientist_learning_projection.build_evo_scientist_learning_projection"
+    )
 
     snapshot = descriptor["route_contract_snapshot"]
     assert snapshot["source"] == "agent/stages/stage_route_contract.yaml"
@@ -272,6 +275,56 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     )
     assert autosci_projection["authority_boundary"]["can_write_publication_eval"] is False
     assert autosci_projection["authority_boundary"]["can_authorize_source_readiness"] is False
+    evo_projection = descriptor["evo_scientist_learning_projection"]
+    assert manifest["evo_scientist_learning_projection"] == evo_projection
+    assert evo_projection["surface_kind"] == "mas_evo_scientist_progress_accelerator_projection"
+    assert evo_projection["source_snapshot"] == {
+        "source_project": "EvoScientist/EvoScientist + EvoScientist/EvoSkills",
+        "repository": "https://github.com/EvoScientist/EvoScientist",
+        "skills_repository": "https://github.com/EvoScientist/EvoSkills",
+        "observed_release": "v0.1.4",
+        "observed_release_published_at": "2026-06-06T23:57:20Z",
+        "skills_release": "v1.0.0",
+        "intake_doc_ref": "docs/runtime/designs/evo_scientist_progress_first_intake.md",
+        "dependency_introduced": False,
+    }
+    absorbed = {pattern["pattern_id"]: pattern for pattern in evo_projection["absorbed_patterns"]}
+    assert set(absorbed) == {
+        "auxiliary_background_model",
+        "fire_and_forget_observation_memory",
+        "conditional_tool_selection",
+        "skill_routing_eval",
+        "ive_failed_path_memory_taxonomy",
+        "attempt_budget_stop_loss",
+    }
+    assert absorbed["auxiliary_background_model"]["authority"] == "advisory_background_only"
+    assert absorbed["conditional_tool_selection"]["authority"] == "fail_open_tool_visibility"
+    assert evo_projection["ordinary_progress_boundary"]["can_block_current_owner_action"] is False
+    assert evo_projection["ordinary_progress_boundary"]["ordinary_progress_spine"] == [
+        "current_owner_delta",
+        "concrete_delta",
+        "ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker",
+        "next_current_owner_delta",
+    ]
+    assert evo_projection["tool_selector_contract"]["fail_open_to_all_tools"] is True
+    assert evo_projection["tool_selector_contract"]["owner_required_tools_always_include"] is True
+    assert evo_projection["observation_memory_contract"]["can_write_domain_truth"] is False
+    assert evo_projection["observation_memory_contract"]["mainline_waits_for_memory_worker"] is False
+    assert evo_projection["failed_path_memory_contract"]["fundamental_failure_requires_reviewer_or_owner_evidence"] is True
+    assert evo_projection["watch_only_patterns"] == [
+        {
+            "pattern_id": "idea_tournament_as_default_gate",
+            "reason": "ranking is useful only as advisory next-delta prioritization; it cannot gate writing, analysis, review, or owner-action dispatch",
+        },
+        {
+            "pattern_id": "full_research_lifecycle_pipeline_as_mas_default",
+            "reason": "MAS default path stays ordinary progress spine with just-in-time readiness, not a mandatory end-to-end EvoSkills pipeline",
+        },
+    ]
+    assert "external_deepagents_runtime_as_mas_runtime" in evo_projection["rejected_patterns"]
+    assert evo_projection["authority_boundary"]["source_project_role"] == "external_pattern_source_only"
+    assert evo_projection["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert evo_projection["authority_boundary"]["can_close_stage"] is False
     assert set(stage_skill_projection) == {
         "surface_kind",
         "version",

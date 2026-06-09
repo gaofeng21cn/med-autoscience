@@ -247,6 +247,19 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     )
     assert autosci_projection["authority_boundary"]["can_write_evidence_ledger"] is False
     assert autosci_projection["authority_boundary"]["can_authorize_publication_quality"] is False
+    evo_projection = payload["evo_scientist_learning_projection"]
+    assert evo_projection["surface_kind"] == "mas_evo_scientist_progress_accelerator_projection"
+    assert evo_projection["source_snapshot"]["repository"] == (
+        "https://github.com/EvoScientist/EvoScientist"
+    )
+    assert evo_projection["source_snapshot"]["observed_release"] == "v0.1.4"
+    assert evo_projection["ordinary_progress_boundary"]["can_block_current_owner_action"] is False
+    assert evo_projection["tool_selector_contract"]["fail_open_to_all_tools"] is True
+    assert evo_projection["observation_memory_contract"]["can_write_domain_truth"] is False
+    assert evo_projection["authority_boundary"]["source_project_role"] == (
+        "external_pattern_source_only"
+    )
+    assert evo_projection["authority_boundary"]["can_authorize_artifact_authority"] is False
     provider = payload["provider_ready_adapter"]
     assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
     assert provider["provider_topology"]["target_provider"] == "temporal"

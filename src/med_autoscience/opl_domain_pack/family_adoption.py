@@ -10,6 +10,9 @@ from med_autoscience import stage_quality_contract
 from med_autoscience import stage_skill_surface_projection
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
 from med_autoscience.autosci_learning_projection import build_autosci_learning_projection
+from med_autoscience.evo_scientist_learning_projection import (
+    build_evo_scientist_learning_projection,
+)
 from med_autoscience.stage_route_contract import (
     PROGRESS_FIRST_SPRINT_CONTRACT_FIELD,
     STAGE_ROUTE_CONTRACT_REF,
@@ -193,6 +196,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     stage_deliverable_index = _stage_deliverable_index_projection(stage_surface)
     ars_learning_projection = build_ars_learning_projection()
     autosci_learning_projection = build_autosci_learning_projection()
+    evo_scientist_learning_projection = build_evo_scientist_learning_projection()
     hypothesis_portfolio_evidence_pack = (
         hypothesis_portfolio_pack.build_hypothesis_portfolio_evidence_pack_descriptor()
     )
@@ -222,6 +226,9 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "life_science_source_discovery_pack_source": STAGE_QUALITY_PACK_CONTRACT_REF,
             "autosci_learning_projection_source": (
                 "med_autoscience.autosci_learning_projection.build_autosci_learning_projection"
+            ),
+            "evo_scientist_learning_projection_source": (
+                "med_autoscience.evo_scientist_learning_projection.build_evo_scientist_learning_projection"
             ),
             "stage_skill_surface_projection_source": STAGE_SKILL_SURFACE_PROJECTION_REF,
             "stage_deliverable_index_contract_source": STAGE_DELIVERABLE_INDEX_CONTRACT_REF,
@@ -283,6 +290,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
         ),
         "ars_learning_projection": ars_learning_projection,
         "autosci_learning_projection": autosci_learning_projection,
+        "evo_scientist_learning_projection": evo_scientist_learning_projection,
         "quality_and_publication_surfaces": {
             "evidence_ledger": "paper/evidence/evidence_ledger.json",
             "review_ledger": "paper/review/review_ledger.json",
@@ -294,6 +302,9 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             ),
             "autosci_research_lifecycle_contract": (
                 "/product_entry_manifest/family_stage_control_plane_descriptor/autosci_learning_projection"
+            ),
+            "evo_scientist_progress_accelerator_contract": (
+                "/product_entry_manifest/family_stage_control_plane_descriptor/evo_scientist_learning_projection"
             ),
         },
         "allowed_family_actions": [

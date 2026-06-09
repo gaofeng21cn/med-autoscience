@@ -5,6 +5,16 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-09：EvoScientist / EvoSkills 只作为 progress accelerator / audit sidecar
+
+- 决策：EvoScientist v0.1.4 的 auxiliary model for background memory workers / tool selector 与 fire-and-forget observation memory，以及 EvoSkills v1.0.0 的 research lifecycle skills with IDE / IVE / ESE memory，进入 MAS 时只映射为 `async_learning_sidecar`、`auxiliary_helper`、`tool_selector_helper`、`observation_memory_sidecar` 和 `failed_path_taxonomy`。这些 surface 必须跟随当前 `current_owner_delta`，只产出 refs-only hint、reviewer briefing、memory reuse candidate、tool ranking 或 no-loop signal。
+- 决策：tool selector 必须 fail open。sidecar 缺失、失败、超时、低置信、与 MAS owner policy 冲突或没有 memory hit 时，当前可执行 owner action 继续按 MAS owner policy、OPL allowed action、owner receipt / typed blocker contract 执行；不得把 sidecar 状态升级为 admission blocker、route blocker、quality blocker 或 publication gate。
+- 决策：failed-path taxonomy 只能给失败路径命名，例如 stale currentness、missing owner answer、quality gap、source gap、tool/auth gap、platform repair、human gate 和 artifact authority gap。分类本身不关闭 Stage，不授权 artifact mutation，不写 paper progress，也不替代 typed blocker；需要阻断时必须由 MAS owner surface、OPL Stage Transition Authority、independent reviewer/auditor、human gate 或 typed blocker materializer 产生正式 gate。
+- 决策：observation memory / lifecycle memory 不能写 MAS publication-route memory body，不能做 memory accept/reject/blocker decision，也不能被当作 owner answer。MAS memory authority 仍只接受 owner route 明确的 accepted / rejected / blocked writeback receipt 或 stable typed blocker。
+- 决策：sidecar-generated reviewer briefing、tool score、observation memory、taxonomy label 或 lifecycle skill match 不能替代 independent reviewer/auditor invocation。AI-first quality gate 仍必须消费独立 context/task record、quality receipt、route-back 或 typed blocker。
+- 理由：EvoScientist / EvoSkills 的可学习点能提升连续推进体感和失败路径复用，但 MAS 当前首要目标是 progress-first ordinary spine：尽快产出 concrete paper / evidence / reviewer / gate delta，并用 `ProgressDeltaReceipt`、`OwnerReceipt` 或 `TypedBlocker` 接力。若把 background memory、tool selector 或 failed-path taxonomy 放成默认 gate，会重新制造 MAS 刚清掉的 read-model / receipt / advisory layer 抢占普通推进问题。
+- 影响：这是 docs/status foldback 和后续机器合同设计边界，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、typed blocker、quality verdict、memory body、artifact body、OPL queue 或 provider attempt。后续若实现机器 surface，必须证明 fail-open、refs-only、budgeted、current-owner-following 和 independent-reviewer boundary。
+
 ## 2026-06-09：root action_queue 完整 currentness identity 可作为 provider admission fallback
 
 - 决策：`opl_current_control_state.action_queue` 携带 provider-admissible action、allowed owner、work-unit id、work-unit fingerprint，并且 `owner_route.source_refs.owner_route_currentness_basis` 同时具备 `work_unit_id`、`work_unit_fingerprint`、`truth_epoch` 和 `runtime_health_epoch` 或 `source_eval_id` 时，MAS provider admission 可以把该 root queue item 作为 current action identity fallback。该 fallback 只用于 provider admission matching，不升级为 domain truth、owner receipt、typed blocker、quality verdict、paper-ready 或 publication-ready。
