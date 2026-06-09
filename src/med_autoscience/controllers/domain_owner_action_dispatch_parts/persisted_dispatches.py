@@ -283,22 +283,12 @@ def selected_dispatches(
                 return stage_native_selected
         if _consumed_transition_owner_route(current_study):
             return []
+        if _current_control_authority_present(current_study):
+            return []
         return [
             payload
             for payload in consumer_dispatches
             if _text(payload.get("action_type")) in supported_action_types
-            if not runtime_current_dispatch_selection.current_route_allows_dispatch_action(
-                current_study=current_study,
-                dispatch=payload,
-                current_owner_route_from_scan=lambda study, selected_dispatch: _current_owner_route_from_scan(
-                    study,
-                    dispatch=selected_dispatch,
-                ),
-                route_allows_action=lambda selected_dispatch, route: owner_route_part.route_allows_action(
-                    action=selected_dispatch,
-                    owner_route=route,
-                ),
-            )
         ]
     selected = [
         payload
@@ -375,6 +365,8 @@ def selected_dispatches(
     )
     if current_selected:
         return current_selected
+    if _current_control_authority_present(current_study):
+        return []
     return selected
 
 def _selected_dispatches_only(
@@ -468,6 +460,14 @@ def _runtime_current_dispatches_only(
 
 def _with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
     return consumed_transition_owner_routes.with_consumed_transition_owner_route(current_study)
+
+
+def _current_control_authority_present(current_study: Mapping[str, Any]) -> bool:
+    return bool(
+        owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
+        or current_study.get("action_queue")
+        or current_study.get("running_provider_attempt") is True
+    )
 
 
 def _fresh_progress_envelope_blocks_dispatch_selection(

@@ -9,6 +9,7 @@ from .test_domain_owner_action_dispatch_cases.ai_reviewer_workflow_dispatch impo
 from .test_domain_owner_action_dispatch_cases.consumed_gate_replay_currentness import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.consumer_dispatch_selection import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.clean_rebuild_route import *  # noqa: F403,F401
+from .test_domain_owner_action_dispatch_cases.current_control_authority_selection import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.current_package_freshness import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.hard_methodology_harmonization import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.medical_paper_readiness_followthrough import *  # noqa: F403,F401
