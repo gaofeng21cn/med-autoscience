@@ -202,6 +202,11 @@ def build_current_work_unit(
         )
     if running_attempt is not None and _running_attempt_invalidated_by_progress(progress_payload):
         running_attempt = None
+    if running_attempt is not None and not _running_attempt_matches_current_action(
+        running_attempt=running_attempt,
+        action=action,
+    ):
+        running_attempt = None
     if (
         running_attempt is not None
         and stage_owner_answer_action is not None
@@ -588,6 +593,68 @@ def _running_attempt_satisfies_stage_owner_answer(
         ref in observed_answer_refs
         for ref in _text_items(owner_answer_action.get("acceptance_refs")) + [expected_owner_answer_ref]
     )
+
+
+def _running_attempt_matches_current_action(
+    *,
+    running_attempt: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+) -> bool:
+    action_payload = _mapping(action)
+    if not action_payload:
+        return True
+    expected_action_type = _action_type(action_payload)
+    expected_work_unit = _work_unit_id(action_payload.get("work_unit_id")) or _work_unit_id(
+        action_payload.get("next_work_unit")
+    )
+    action_source_refs = _mapping(action_payload.get("source_refs"))
+    action_basis = (
+        _mapping(action_payload.get("owner_route_currentness_basis"))
+        or _mapping(action_payload.get("currentness_basis"))
+        or _mapping(action_source_refs.get("owner_route_currentness_basis"))
+    )
+    expected_fingerprint = _work_unit_fingerprint(action_payload, currentness_basis=action_basis)
+    running_health = _mapping(running_attempt.get("runtime_health"))
+    if expected_action_type is not None:
+        running_action_types = {
+            text
+            for value in (
+                running_attempt.get("action_type"),
+                running_health.get("action_type"),
+            )
+            if (text := _text(value)) is not None
+        }
+        if running_action_types and expected_action_type not in running_action_types:
+            return False
+    if expected_work_unit is not None:
+        running_work_units = {
+            text
+            for value in (
+                running_attempt.get("work_unit_id"),
+                running_attempt.get("next_work_unit"),
+                running_health.get("work_unit_id"),
+                running_health.get("next_work_unit"),
+            )
+            if (text := _work_unit_id(value)) is not None
+        }
+        if running_work_units and expected_work_unit not in running_work_units:
+            return False
+    if expected_fingerprint is not None:
+        running_fingerprints = {
+            text
+            for value in (
+                running_attempt.get("work_unit_fingerprint"),
+                running_attempt.get("action_fingerprint"),
+                running_attempt.get("lineage_ref"),
+                running_health.get("work_unit_fingerprint"),
+                running_health.get("action_fingerprint"),
+                running_health.get("lineage_ref"),
+            )
+            if (text := _text(value)) is not None
+        }
+        if running_fingerprints and expected_fingerprint not in running_fingerprints:
+            return False
+    return True
 
 
 def _stage_owner_answer_refs(payload: Mapping[str, Any]) -> set[str]:
