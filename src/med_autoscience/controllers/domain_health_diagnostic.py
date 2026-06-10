@@ -482,11 +482,13 @@ def run_domain_health_diagnostic_for_quest(
     quest_root: Path,
     controller_runners: dict[str, ControllerRunner] | None = None,
     apply: bool,
+    persist_diagnostic_reports: bool | None = None,
 ) -> dict[str, Any]:
     return _run_domain_health_diagnostic_for_quest_impl(
         quest_root=quest_root,
         controller_runners=controller_runners,
         apply=apply,
+        persist_diagnostic_reports=persist_diagnostic_reports,
         publication_gate_refresh_mask=_publication_gate_ai_reviewer_eval_masks_return_to_gate,
     )
 
@@ -496,6 +498,7 @@ def run_domain_health_diagnostic_for_runtime(
     runtime_root: Path,
     controller_runners: dict[str, ControllerRunner] | None = None,
     apply: bool,
+    persist_diagnostic_reports: bool | None = None,
     profile: WorkspaceProfile | None = None,
     study_ids: tuple[str, ...] = (),
     request_opl_stage_attempts: bool = False,
@@ -505,6 +508,7 @@ def run_domain_health_diagnostic_for_runtime(
         runtime_root=runtime_root,
         controller_runners=controller_runners or build_default_controller_runners(),
         apply=apply,
+        persist_diagnostic_reports=persist_diagnostic_reports,
         run_domain_health_diagnostic_for_quest_fn=run_domain_health_diagnostic_for_quest,
         runtime_control_ports=_build_runtime_control_ports(),
         profile=profile,
@@ -1242,6 +1246,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--quest-root", type=Path)
     parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--refresh-diagnostic-reports", action="store_true")
     return parser.parse_args()
 
 
@@ -1250,9 +1255,17 @@ def main() -> None:
     if bool(args.quest_root) == bool(args.runtime_root):
         raise SystemExit("Specify exactly one of --quest-root or --runtime-root")
     if args.quest_root:
-        result = run_domain_health_diagnostic_for_quest(quest_root=args.quest_root, apply=args.apply)
+        result = run_domain_health_diagnostic_for_quest(
+            quest_root=args.quest_root,
+            apply=args.apply,
+            persist_diagnostic_reports=args.apply or args.refresh_diagnostic_reports,
+        )
     else:
-        result = run_domain_health_diagnostic_for_runtime(runtime_root=args.runtime_root, apply=args.apply)
+        result = run_domain_health_diagnostic_for_runtime(
+            runtime_root=args.runtime_root,
+            apply=args.apply,
+            persist_diagnostic_reports=args.apply or args.refresh_diagnostic_reports,
+        )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 

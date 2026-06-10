@@ -85,7 +85,7 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_auto_recover_submissi
     ]
     assert result["managed_study_auto_recoveries"] == []
 
-def test_watch_quest_writes_latest_domain_health_diagnostic_alias(tmp_path: Path) -> None:
+def test_watch_quest_dry_run_does_not_write_latest_domain_health_diagnostic_alias(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     quest_root = make_quest(tmp_path, "q001", status="running")
 
@@ -105,6 +105,35 @@ def test_watch_quest_writes_latest_domain_health_diagnostic_alias(tmp_path: Path
     latest_json = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     latest_markdown = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.md"
 
+    assert result["diagnostic_report_persistence"]["persisted"] is False
+    assert "latest_report_json" not in result
+    assert "latest_report_markdown" not in result
+    assert not latest_json.exists()
+    assert not latest_markdown.exists()
+
+
+def test_watch_quest_report_refresh_writes_latest_domain_health_diagnostic_alias(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+
+    result = module.run_domain_health_diagnostic_for_quest(
+        quest_root=quest_root,
+        controller_runners={
+            "publication_gate": lambda *, quest_root, apply: {
+                "status": "clear",
+                "blockers": [],
+                "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+                "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+            }
+        },
+        apply=False,
+        persist_diagnostic_reports=True,
+    )
+
+    latest_json = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
+    latest_markdown = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.md"
+
+    assert result["diagnostic_report_persistence"]["persisted"] is True
     assert result["latest_report_json"] == str(latest_json)
     assert result["latest_report_markdown"] == str(latest_markdown)
     assert latest_json.exists()

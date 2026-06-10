@@ -118,7 +118,7 @@ def test_run_domain_health_diagnostic_for_runtime_rechecks_managed_study_immedia
     monkeypatch.setattr(
         module,
         "run_domain_health_diagnostic_for_quest",
-        lambda *, quest_root, controller_runners, apply: {
+        lambda *, quest_root, controller_runners, apply, **_: {
             "quest_root": str(quest_root),
             "quest_status": "running",
             "controllers": {

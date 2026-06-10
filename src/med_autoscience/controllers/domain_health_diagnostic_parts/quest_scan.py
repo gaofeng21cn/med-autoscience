@@ -129,8 +129,10 @@ def run_domain_health_diagnostic_for_quest(
     quest_root: Path,
     controller_runners: dict[str, ControllerRunner] | None = None,
     apply: bool,
+    persist_diagnostic_reports: bool | None = None,
     publication_gate_refresh_mask: PublicationGateRefreshMask = _publication_gate_ai_reviewer_eval_masks_return_to_gate,
 ) -> dict[str, Any]:
+    persist_reports = apply if persist_diagnostic_reports is None else bool(persist_diagnostic_reports)
     controller_runners = controller_runners or build_default_controller_runners()
     current_state = domain_health_diagnostic_protocol.load_domain_health_diagnostic_state(quest_root)
     controller_state = dict(current_state.controllers)
@@ -222,19 +224,24 @@ def run_domain_health_diagnostic_for_quest(
             )
 
     _attach_family_companion_to_quest_report(report, quest_root=quest_root)
-    domain_health_diagnostic_protocol.save_domain_health_diagnostic_state(
-        quest_root=quest_root,
-        payload=domain_health_diagnostic_protocol.DomainHealthDiagnosticState(
-            schema_version=1,
-            updated_at=report["scanned_at"],
-            controllers=controller_state,
-        ),
-    )
-    json_path, md_path, latest_json, latest_markdown = write_domain_health_diagnostic_report(quest_root, report)
-    report["report_json"] = str(json_path)
-    report["report_markdown"] = str(md_path)
-    report["latest_report_json"] = str(latest_json)
-    report["latest_report_markdown"] = str(latest_markdown)
+    report["diagnostic_report_persistence"] = {
+        "persisted": persist_reports,
+        "policy": "apply_or_explicit_refresh",
+    }
+    if persist_reports:
+        domain_health_diagnostic_protocol.save_domain_health_diagnostic_state(
+            quest_root=quest_root,
+            payload=domain_health_diagnostic_protocol.DomainHealthDiagnosticState(
+                schema_version=1,
+                updated_at=report["scanned_at"],
+                controllers=controller_state,
+            ),
+        )
+        json_path, md_path, latest_json, latest_markdown = write_domain_health_diagnostic_report(quest_root, report)
+        report["report_json"] = str(json_path)
+        report["report_markdown"] = str(md_path)
+        report["latest_report_json"] = str(latest_json)
+        report["latest_report_markdown"] = str(latest_markdown)
     return report
 
 

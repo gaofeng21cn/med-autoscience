@@ -52,6 +52,43 @@ def test_scan_runtime_processes_managed_quests_including_non_live_states(tmp_pat
         "q-stopped",
         "q-waiting",
     ]
+    for report in result["reports"]:
+        assert report["diagnostic_report_persistence"]["persisted"] is False
+        assert "report_json" not in report
+        assert not (Path(report["quest_root"]) / "artifacts" / "reports" / "domain_health_diagnostic").exists()
+
+
+def test_runtime_dry_run_report_refresh_requires_explicit_persistence(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    runtime_root = tmp_path / "runtime" / "quests"
+    quest_root = make_quest(tmp_path, "q-running", status="running")
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        return {
+            "status": "clear",
+            "blockers": [],
+            "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+        }
+
+    observed = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=runtime_root,
+        controller_runners={"publication_gate": fake_runner},
+        apply=False,
+    )
+
+    assert observed["reports"][0]["diagnostic_report_persistence"]["persisted"] is False
+    assert not (quest_root / "artifacts" / "reports" / "domain_health_diagnostic").exists()
+
+    refreshed = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=runtime_root,
+        controller_runners={"publication_gate": fake_runner},
+        apply=False,
+        persist_diagnostic_reports=True,
+    )
+
+    assert refreshed["reports"][0]["diagnostic_report_persistence"]["persisted"] is True
+    assert (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").exists()
 
 def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
