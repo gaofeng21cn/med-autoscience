@@ -161,11 +161,14 @@ def test_installed_medautosci_mcp_calls_artifact_lifecycle_continuous_soak_summa
     assert envelope["authority_boundary"]["can_write_domain_truth"] is False
     structured = envelope["structured_payload"]
 
-    assert structured["surface"] == "continuous_soak_summary"
-    assert structured["mutating_actions"] == 0
-    assert structured["unclassified_authority_surface"] == 0
-    assert structured["writes_workspace"] is False
-    assert structured["read_only_contract"] == {
+    assert structured["surface_kind"] == "mas_tool_result_envelope"
+    assert structured["tool_id"] == "authority_operations:artifact_lifecycle_continuous_soak_summary"
+    structured_payload = structured["structured_payload"]
+    assert structured_payload["surface"] == "continuous_soak_summary"
+    assert structured_payload["mutating_actions"] == 0
+    assert structured_payload["unclassified_authority_surface"] == 0
+    assert structured_payload["writes_workspace"] is False
+    assert structured_payload["read_only_contract"] == {
         "dry_run": True,
         "physical_cleanup_owned_by": "one-person-lab",
         "writes_workspace": False,

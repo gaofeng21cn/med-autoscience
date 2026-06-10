@@ -5,6 +5,15 @@ import json
 from pathlib import Path
 
 
+def _structured_payload(result: dict[str, object]) -> dict[str, object]:
+    structured = result["structuredContent"]
+    assert isinstance(structured, dict)
+    assert structured["surface_kind"] == "mas_tool_result_envelope"
+    payload = structured["structured_payload"]
+    assert isinstance(payload, dict)
+    return payload
+
+
 def test_scientific_capability_registry_resolves_current_delta_bound_candidates() -> None:
     module = importlib.import_module("med_autoscience.scientific_capability_registry")
 

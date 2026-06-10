@@ -15,6 +15,7 @@ from med_autoscience.action_catalog import (
 )
 from med_autoscience.agent_tool_arsenal import (
     FORBIDDEN_DOMAIN_AUTHORITY,
+    build_agent_tool_arsenal_completeness_diagnostic,
     build_agent_tool_arsenal_index,
     build_capability_invocation_plan,
     build_tool_result_envelope_schema,
@@ -147,6 +148,12 @@ def _tool_result_envelope(
         **({"tool_mode": tool_mode} if tool_mode else {}),
         "status": "failed" if is_error else "succeeded",
         "structured_payload": payload,
+        "raw_surface_kind": str(
+            payload.get("surface_kind")
+            or payload.get("surface")
+            or payload.get("status")
+            or ""
+        ),
         "structured_content_ref": f"mcp://{SERVER_NAME}/tools/{tool_name}/structuredContent",
         "result_summary": text[:500],
         "audit_trail": {
@@ -690,6 +697,14 @@ def _call_agent_tool_arsenal_result_envelope_schema(arguments: dict[str, Any]) -
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_agent_tool_arsenal_completeness_diagnostic(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = build_agent_tool_arsenal_completeness_diagnostic(
+        arsenal=build_agent_tool_arsenal_index(ACTION_CATALOG),
+        mcp_tool_manifest=list_tools(),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_agent_tool_arsenal(arguments: dict[str, Any]) -> dict[str, Any]:
     return call_mode_handler(
         tool_name="agent_tool_arsenal",
@@ -699,6 +714,7 @@ def _call_agent_tool_arsenal(arguments: dict[str, Any]) -> dict[str, Any]:
             "card": _call_agent_tool_arsenal_card,
             "plan": _call_agent_tool_arsenal_plan,
             "result_envelope_schema": _call_agent_tool_arsenal_result_envelope_schema,
+            "completeness_diagnostic": _call_agent_tool_arsenal_completeness_diagnostic,
         },
     )
 

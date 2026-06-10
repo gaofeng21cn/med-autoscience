@@ -800,6 +800,9 @@
       "owner_receipt_ref": {
         "type": "string"
       },
+      "raw_surface_kind": {
+        "type": "string"
+      },
       "result_summary": {
         "type": "string"
       },
@@ -815,10 +818,16 @@
       "structured_content_ref": {
         "type": "string"
       },
+      "structured_payload": {
+        "type": "object"
+      },
       "surface_kind": {
         "const": "mas_tool_result_envelope"
       },
       "tool_id": {
+        "type": "string"
+      },
+      "tool_mode": {
         "type": "string"
       },
       "typed_blocker_ref": {

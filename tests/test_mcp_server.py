@@ -37,6 +37,29 @@ def _structured_payload(result: dict[str, object]) -> dict[str, object]:
     return payload
 
 
+def _assert_tool_result_envelope(
+    result: dict[str, object],
+    *,
+    tool_id: str,
+    tool_mode: str | None = None,
+) -> dict[str, object]:
+    structured = result["structuredContent"]
+    assert isinstance(structured, dict)
+    assert structured["surface_kind"] == "mas_tool_result_envelope"
+    assert structured["tool_id"] == tool_id
+    if tool_mode is not None:
+        assert structured["tool_mode"] == tool_mode
+    assert structured["status"] in {"succeeded", "blocked", "no_op_current", "failed"}
+    assert structured["structured_content_ref"] == (
+        f"mcp://med-autoscience/tools/{tool_id}/structuredContent"
+    )
+    assert structured["audit_trail"]["surface_kind"] == "mas_tool_audit_trail"
+    assert "publication_quality" in structured["audit_trail"]["forbidden_authority"]
+    assert structured["authority_boundary"]["tool_result_envelope_is_authority_outcome"] is False
+    assert isinstance(structured["structured_payload"], dict)
+    return structured
+
+
 def test_mcp_server_tool_registry_import_is_lightweight(monkeypatch: pytest.MonkeyPatch) -> None:
     original_import = builtins.__import__
     blocked_roots = {"pypdf", "matplotlib"}
@@ -118,6 +141,7 @@ def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> No
         "card",
         "plan",
         "result_envelope_schema",
+        "completeness_diagnostic",
     ]
     assert arsenal["metadata"]["surface_kind"] == "mas_agent_tool_arsenal_mcp_surface"
     assert arsenal["outputSchema"]["title"] == "MAS ToolResultEnvelope"
@@ -348,6 +372,7 @@ def test_mcp_default_status_progress_does_not_require_external_mds_repo(tmp_path
         },
     )
 
+    _assert_tool_result_envelope(progress_result, tool_id="study_progress")
     assert progress_result["isError"] is False
     progress_payload = _structured_payload(progress_result)
     assert progress_payload["quest_root"] == str(workspace_root / "runtime" / "quests" / "quest-001")
@@ -404,6 +429,7 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
 
     index_result = module.call_tool("agent_tool_arsenal", {"mode": "index"})
 
+    _assert_tool_result_envelope(index_result, tool_id="agent_tool_arsenal", tool_mode="index")
     assert index_result["isError"] is False
     index_payload = _structured_payload(index_result)
     assert index_payload["surface_kind"] == "mas_agent_tool_arsenal_index"
@@ -415,6 +441,7 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
         {"mode": "card", "tool_id": "study_progress"},
     )
 
+    _assert_tool_result_envelope(card_result, tool_id="agent_tool_arsenal", tool_mode="card")
     assert card_result["isError"] is False
     card_payload = _structured_payload(card_result)
     assert card_payload["tool_id"] == "study_progress"
@@ -431,6 +458,7 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
         },
     )
 
+    _assert_tool_result_envelope(plan_result, tool_id="agent_tool_arsenal", tool_mode="plan")
     assert plan_result["isError"] is False
     plan_payload = _structured_payload(plan_result)
     assert plan_payload["selected_tool_id"] == "owner_callable:run_quality_repair_batch"
@@ -438,9 +466,32 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
 
     schema_result = module.call_tool("agent_tool_arsenal", {"mode": "result_envelope_schema"})
 
+    _assert_tool_result_envelope(
+        schema_result,
+        tool_id="agent_tool_arsenal",
+        tool_mode="result_envelope_schema",
+    )
     assert schema_result["isError"] is False
     schema_payload = _structured_payload(schema_result)
     assert schema_payload["title"] == "MAS ToolResultEnvelope"
+
+    diagnostic_result = module.call_tool("agent_tool_arsenal", {"mode": "completeness_diagnostic"})
+
+    _assert_tool_result_envelope(
+        diagnostic_result,
+        tool_id="agent_tool_arsenal",
+        tool_mode="completeness_diagnostic",
+    )
+    assert diagnostic_result["isError"] is False
+    diagnostic_payload = _structured_payload(diagnostic_result)
+    assert diagnostic_payload["surface_kind"] == (
+        "mas_agent_tool_arsenal_completeness_diagnostic"
+    )
+    assert diagnostic_payload["status"] == "complete"
+    assert diagnostic_payload["issues"] == []
+    assert "doctor_audit" in diagnostic_payload["support_or_diagnostic_mcp_tools"]
+    assert "workspace_readiness" in diagnostic_payload["support_or_diagnostic_mcp_tools"]
+    assert "display_pack_agent" in diagnostic_payload["public_runtime_mcp_tools"]
 
 
 def test_mcp_display_pack_agent_plans_from_structured_figure_request() -> None:
@@ -462,10 +513,12 @@ def test_mcp_display_pack_agent_plans_from_structured_figure_request() -> None:
     )
 
     assert result["isError"] is False
+    envelope = _assert_tool_result_envelope(result, tool_id="display_pack_agent", tool_mode="plan")
     payload = _structured_payload(result)
     assert payload["surface_kind"] == "display_pack_agent_figure_plan"
     assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
     assert payload["next_callable"] == "display-pack-preflight"
+    assert envelope["raw_surface_kind"] == "display_pack_agent_figure_plan"
 
 
 def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() -> None:
@@ -473,6 +526,11 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() 
     repo_root = Path(__file__).resolve().parents[1]
 
     index_result = module.call_tool("scientific_capability_registry", {"mode": "index"})
+    _assert_tool_result_envelope(
+        index_result,
+        tool_id="scientific_capability_registry",
+        tool_mode="index",
+    )
     assert index_result["isError"] is False
     index_payload = _structured_payload(index_result)
     assert index_payload["surface_kind"] == "mas_scientific_capability_registry"
@@ -491,6 +549,11 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() 
                 "capability_families": ["display_pack"],
             },
         },
+    )
+    _assert_tool_result_envelope(
+        resolve_result,
+        tool_id="scientific_capability_registry",
+        tool_mode="resolve",
     )
     assert resolve_result["isError"] is False
     resolve_payload = _structured_payload(resolve_result)
@@ -517,6 +580,11 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() 
                 },
             },
         },
+    )
+    _assert_tool_result_envelope(
+        invoke_result,
+        tool_id="scientific_capability_registry",
+        tool_mode="invoke",
     )
     assert invoke_result["isError"] is False
     invoke_payload = _structured_payload(invoke_result)
@@ -632,6 +700,7 @@ def test_mcp_server_progress_projection_prefers_progress_projection_markdown_whe
     )
 
     assert result["isError"] is False
+    _assert_tool_result_envelope(result, tool_id="study_progress")
     projection = _structured_payload(result)
     assert projection["study_id"] == "001-risk"
     assert projection["mcp_projection"]["compacted"] is True
@@ -758,6 +827,7 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     )
 
     assert result["isError"] is False
+    _assert_tool_result_envelope(result, tool_id="study_progress")
     assert captured["sync_runtime_summary"] is False
     payload = _structured_payload(result)
     assert payload["study_id"] == "001-risk"
@@ -1087,6 +1157,7 @@ def test_mcp_server_can_call_prepare_external_research_tool(monkeypatch) -> None
     assert result["isError"] is False
     assert captured["workspace_root"] == Path("/tmp/medautosci-demo")
     assert captured["as_of_date"] == "2026-03-30"
+    assert result["structuredContent"]["status"] == "succeeded"
     assert _structured_payload(result)["status"] == "ready"
 
 

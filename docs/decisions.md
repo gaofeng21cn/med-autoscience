@@ -21,6 +21,15 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 出现过 `sat_874630c42f23f77d537c5781.closeout.json` 已记录 `status=blocked` 和 `publication_gate_replay_blocked`，但 OPL queue/attempt ledger 仍把同一 stage attempt 投影为 running，导致 `study progress` 显示假 running。根因是 MAS provider liveness projection 只信 OPL live 状态，没有消费 MAS workspace 中同一 attempt 的 terminal closeout。
 - 影响：这是 read-model/currentness hardening，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、quality verdict、human gate、OPL queue 或 provider attempt。真实论文推进仍只按 owner receipt、quality gate receipt、stable typed blocker、human gate、route-back evidence、paper/gate/package semantic delta 或严格 live provider proof 计数。
 
+## 2026-06-11：Agent Tool Arsenal 完成口径必须覆盖实际 MCP 结果 envelope
+
+- 决策：`agent_tool_arsenal` MCP mode 增加 `completeness_diagnostic`，用于机器检查每张 action `ToolUseCard` 必须含 `mcp_invocation`、`risk_annotations`、`authority_boundary`、`result_envelope_schema_ref`、`forbidden_authority`、`idempotency_policy` 和 `current_delta_applicability`，并证明 public runtime action cards 已映射到 MCP manifest。
+- 决策：所有成功 MCP `call_tool()` / `tools/call` 的 `structuredContent` 统一返回 `surface_kind=mas_tool_result_envelope`。原工具 payload 放在 `structured_payload`，非冲突字段继续镜像在 envelope 顶层，`content` 文本保留原输出；错误工具调用保持 MCP error text，不伪造成功 envelope。
+- 决策：非 current-owner-delta action card 的 MCP tools 必须显式归类为 support / diagnostic MCP tools，例如 `doctor_audit`、`workspace_readiness`、`research_assets`、`publication_status`、`open_auto_research_soak` 和 `agent_tool_arsenal`。这些工具可以服务诊断、准备、状态读取或管理面，但不得被硬塞成 current owner action，也不得从工具存在性推导 publication readiness。
+- 决策：Display Pack / Scientific Capability Registry 作为 Agent Tool Arsenal 的 capability invocation surface 被 MAS 消费；OPL 十大品牌模块 taxonomy 与品牌模块 owner truth 继续归 OPL。MAS 不新增第 11 个品牌模块，不复制 OPL brand module 列表，只声明 domain intent、authority boundary、handler target、refs-only output 和晋级门。
+- 理由：此前合同已有 `ToolResultEnvelope` schema 和 MCP `outputSchema`，但实际 `structuredContent` 仍直接返回各工具 payload，Agent 无法把不同工具结果当成同一 ABI 消费；同时 support/diagnostic MCP tools 与 action card runtime tools 没有机器分账，容易把“工具可调用”误读成“当前 owner action 已授权”。统一实际 call result envelope 和 completeness diagnostic 后，工具调用对 Agent 稳定，对 MAS authority 边界可审计。
+- 影响：这是 Agent invocation ABI / MCP result shape / documentation hardening，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、artifact authority、owner receipt、typed blocker、quality verdict、human gate、OPL queue、OPL brand module taxonomy 或 provider attempt。后续 production 完成仍取决于 hosted OPL ordinary-path consumption、direct/hosted parity、current-owner-delta live soak 和真实 production evidence。
+
 ## 2026-06-10：publication style profile 成为 Display Pack 论文级风格单一真相
 
 - 决策：`paper/publication_style_profile.json` 是 Display Pack E2E 的 paper-owned article-level style-token truth。它固定 `style_profile_id`、`journal_palette_ref`、`palette`、`semantic_roles`、`typography`、`stroke` 和 `grid`，用于整篇论文配色、语义颜色角色、字体族、字号、线宽、marker size、网格可见性、网格轴向、网格颜色和线型的一致性。

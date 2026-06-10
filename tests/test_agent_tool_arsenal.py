@@ -139,3 +139,44 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert display_plan["selected_tool_id"] == "display_pack_agent"
     assert display_plan["selected_tool_mode"] == "preflight"
     assert display_plan["requires"]["owner_receipt_or_typed_blocker"] is False
+
+
+def test_agent_tool_arsenal_completeness_diagnostic_maps_runtime_and_support_tools() -> None:
+    module = importlib.import_module("med_autoscience.agent_tool_arsenal")
+
+    diagnostic = module.build_agent_tool_arsenal_completeness_diagnostic(
+        mcp_tool_names={
+            "doctor_audit",
+            "workspace_readiness",
+            "research_assets",
+            "study_progress",
+            "open_auto_research_soak",
+            "publication_status",
+            "display_pack_agent",
+            "scientific_capability_registry",
+            "authority_operations",
+            "agent_tool_arsenal",
+        }
+    )
+
+    assert diagnostic["surface_kind"] == "mas_agent_tool_arsenal_completeness_diagnostic"
+    assert diagnostic["status"] == "complete"
+    assert diagnostic["issues"] == []
+    assert diagnostic["required_tool_card_fields"] == [
+        "mcp_invocation",
+        "risk_annotations",
+        "authority_boundary",
+        "result_envelope_schema_ref",
+        "forbidden_authority",
+        "idempotency_policy",
+        "current_delta_applicability",
+    ]
+    assert diagnostic["public_runtime_mcp_tools"] == [
+        "authority_operations",
+        "display_pack_agent",
+        "scientific_capability_registry",
+        "study_progress",
+    ]
+    assert "agent_tool_arsenal" in diagnostic["support_or_diagnostic_mcp_tools"]
+    assert "doctor_audit" in diagnostic["support_or_diagnostic_mcp_tools"]
+    assert diagnostic["authority_boundary"]["diagnostic_only"] is True

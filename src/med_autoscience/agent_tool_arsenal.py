@@ -25,6 +25,15 @@ FORBIDDEN_DOMAIN_AUTHORITY = [
     "memory_accept_reject",
     "current_package",
 ]
+REQUIRED_TOOL_CARD_FIELDS = [
+    "mcp_invocation",
+    "risk_annotations",
+    "authority_boundary",
+    "result_envelope_schema_ref",
+    "forbidden_authority",
+    "idempotency_policy",
+    "current_delta_applicability",
+]
 
 
 def build_tool_result_envelope_schema() -> dict[str, Any]:
@@ -43,17 +52,108 @@ def build_tool_result_envelope_schema() -> dict[str, Any]:
         "properties": {
             "surface_kind": {"const": "mas_tool_result_envelope"},
             "tool_id": {"type": "string"},
+            "tool_mode": {"type": "string"},
             "status": {
                 "type": "string",
                 "enum": ["succeeded", "blocked", "no_op_current", "failed"],
             },
             "content_ref": {"type": "string"},
             "structured_content_ref": {"type": "string"},
+            "structured_payload": {"type": "object"},
+            "raw_surface_kind": {"type": "string"},
             "owner_receipt_ref": {"type": "string"},
             "typed_blocker_ref": {"type": "string"},
             "result_summary": {"type": "string"},
             "audit_trail": {"$ref": "#/tool_audit_trail_schema"},
             "authority_boundary": {"type": "object"},
+        },
+    }
+
+
+def build_agent_tool_arsenal_completeness_diagnostic(
+    *,
+    arsenal: Mapping[str, Any] | None = None,
+    mcp_tool_names: list[str] | tuple[str, ...] | set[str] | None = None,
+    mcp_tool_manifest: list[Mapping[str, Any]] | tuple[Mapping[str, Any], ...] | None = None,
+) -> dict[str, Any]:
+    payload = arsenal if arsenal is not None else build_agent_tool_arsenal_index()
+    tool_cards = [item for item in list(payload.get("tool_cards") or []) if isinstance(item, Mapping)]
+    manifest_names = _manifest_tool_names(
+        mcp_tool_names=mcp_tool_names,
+        mcp_tool_manifest=mcp_tool_manifest,
+    )
+    public_runtime_cards = [
+        card
+        for card in tool_cards
+        if card.get("callability") == "mcp_runtime"
+        and bool(_mapping(card.get("mcp_invocation")).get("public_runtime"))
+    ]
+    public_runtime_tool_names = {
+        _text(_mapping(card.get("mcp_invocation")).get("tool_name")) or _text(card.get("tool_id"))
+        for card in public_runtime_cards
+    }
+    public_runtime_tool_names = {name for name in public_runtime_tool_names if name}
+    support_or_diagnostic = sorted(manifest_names - public_runtime_tool_names)
+    missing_manifest = sorted(public_runtime_tool_names - manifest_names) if manifest_names else []
+    issues: list[dict[str, Any]] = []
+    for card in tool_cards:
+        missing_fields = [
+            field
+            for field in REQUIRED_TOOL_CARD_FIELDS
+            if field not in card or card.get(field) in (None, "", [], {})
+        ]
+        if missing_fields:
+            issues.append(
+                {
+                    "issue_id": "tool_card_missing_required_abi_fields",
+                    "action_id": _text(card.get("action_id")),
+                    "tool_id": _text(card.get("tool_id")),
+                    "missing_fields": missing_fields,
+                }
+            )
+        forbidden = set(str(item) for item in list(card.get("forbidden_authority") or []))
+        missing_forbidden = sorted(set(FORBIDDEN_DOMAIN_AUTHORITY) - forbidden)
+        if missing_forbidden:
+            issues.append(
+                {
+                    "issue_id": "tool_card_missing_forbidden_authority",
+                    "action_id": _text(card.get("action_id")),
+                    "tool_id": _text(card.get("tool_id")),
+                    "missing_forbidden_authority": missing_forbidden,
+                }
+            )
+    for name in missing_manifest:
+        issues.append(
+            {
+                "issue_id": "public_runtime_action_missing_mcp_manifest_tool",
+                "tool_id": name,
+            }
+        )
+    return {
+        "surface_kind": "mas_agent_tool_arsenal_completeness_diagnostic",
+        "schema_version": 1,
+        "contract_id": CONTRACT_ID,
+        "status": "complete" if not issues else "attention_required",
+        "ordinary_planning_root": ORDINARY_PLANNING_ROOT,
+        "required_tool_card_fields": list(REQUIRED_TOOL_CARD_FIELDS),
+        "tool_card_count": len(tool_cards),
+        "public_runtime_action_card_count": len(public_runtime_cards),
+        "public_runtime_mcp_tools": sorted(public_runtime_tool_names),
+        "mcp_manifest_tools": sorted(manifest_names),
+        "support_or_diagnostic_mcp_tools": support_or_diagnostic,
+        "descriptor_only_action_count": len(
+            [card for card in tool_cards if card.get("callability") == "descriptor_only"]
+        ),
+        "owner_callable_card_count": len(
+            [item for item in list(payload.get("owner_callable_cards") or []) if isinstance(item, Mapping)]
+        ),
+        "issues": issues,
+        "authority_boundary": {
+            "diagnostic_only": True,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+            "support_or_diagnostic_tools_are_not_current_owner_delta_action_cards": True,
         },
     }
 
@@ -530,6 +630,21 @@ def _owner_card_by_action_type(payload: Mapping[str, Any]) -> dict[str, Mapping[
     return cards
 
 
+def _manifest_tool_names(
+    *,
+    mcp_tool_names: list[str] | tuple[str, ...] | set[str] | None,
+    mcp_tool_manifest: list[Mapping[str, Any]] | tuple[Mapping[str, Any], ...] | None,
+) -> set[str]:
+    names = {str(item).strip() for item in (mcp_tool_names or []) if str(item).strip()}
+    for item in list(mcp_tool_manifest or []):
+        if not isinstance(item, Mapping):
+            continue
+        name = _text(item.get("name"))
+        if name:
+            names.add(name)
+    return names
+
+
 def _list_text(value: object) -> list[str]:
     if not isinstance(value, (list, tuple)):
         return []
@@ -557,6 +672,7 @@ __all__ = [
     "CONTRACT_REF",
     "ORDINARY_PLANNING_ROOT",
     "RESULT_ENVELOPE_SCHEMA_REF",
+    "build_agent_tool_arsenal_completeness_diagnostic",
     "build_agent_tool_arsenal_index",
     "build_capability_invocation_plan",
     "build_tool_audit_trail_schema",

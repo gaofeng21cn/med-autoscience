@@ -285,6 +285,7 @@ def build_tool_registry(
                             "card",
                             "plan",
                             "result_envelope_schema",
+                            "completeness_diagnostic",
                         ],
                     },
                     "tool_id": {"type": "string"},
