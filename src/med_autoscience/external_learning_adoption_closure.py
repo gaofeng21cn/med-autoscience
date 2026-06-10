@@ -148,6 +148,10 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
             projection=autosci,
             closure_status="sidecar_or_worker_landed",
             owner_surface="stage_quality_pack_contract_autosci_learning_projection_and_sidecar_advisory",
+            extra_source_refs=[
+                "med_autoscience.external_learning_progress_workers."
+                "build_autosci_source_experiment_advisory",
+            ],
             worker_or_executor_landing=(
                 "research lifecycle, source discovery, reviewer verdict, and artifact QA "
                 "patterns are consumable as MAS refs and quality-pack contracts; refs-only "
@@ -411,6 +415,7 @@ def _framework_from_projection(
     worker_or_executor_landing: str,
     missing_landing_work: list[str],
     next_landing_path: str,
+    extra_source_refs: list[str | None] | None = None,
 ) -> dict[str, Any]:
     source = _mapping(projection.get("source_snapshot"))
     return _framework(
@@ -421,6 +426,7 @@ def _framework_from_projection(
             _text(source.get("intake_doc_ref")),
             _text(projection.get("contract_ref")),
             _text(projection.get("progress_accelerator_contract_ref")),
+            *(extra_source_refs or []),
         ],
         absorbed_pattern_ids=[
             _text(pattern.get("pattern_id"))
