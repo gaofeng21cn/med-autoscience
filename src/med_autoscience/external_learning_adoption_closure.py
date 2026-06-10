@@ -11,6 +11,9 @@ from med_autoscience.autosci_learning_projection import build_autosci_learning_p
 from med_autoscience.evo_scientist_learning_projection import (
     build_evo_scientist_learning_projection,
 )
+from med_autoscience.lightweight_executor_receipts import (
+    build_lightweight_executor_receipt_contract,
+)
 from med_autoscience.progress_first_external_learning_contract import (
     build_ark_progress_first_learning_contract,
 )
@@ -333,6 +336,9 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
         "frameworks": frameworks,
         "counts": counts,
         "sidecar_execution_contract": _sidecar_execution_contract(),
+        "lightweight_executor_receipt_contract": (
+            build_lightweight_executor_receipt_contract()
+        ),
         "progress_first_friction_guard": {
             "mainline_waits_for_sidecar": False,
             "sidecar_missing_blocks_dispatch": False,

@@ -259,6 +259,51 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
     } <= set(ordinary["hard_gate_ref_families"])
 
 
+def test_lightweight_executor_receipt_policy_forbids_default_container_runtime() -> None:
+    policy = _envelope()["lightweight_executor_receipt_policy"]
+
+    assert policy["surface_kind"] == "mas_lightweight_executor_receipt_contract"
+    assert policy["role"] == "executor_evidence_contract_without_default_container_runtime"
+    assert policy["default_isolation_levels"] == [
+        "L0_host_clean_runner",
+        "L1_process_workspace",
+    ]
+    assert policy["containerized_sandbox_default"] is False
+    assert policy["docker_in_docker_default"] is False
+    assert policy["docker_socket_mount_default"] is False
+    assert policy["openhands_runtime_default"] is False
+    assert policy["explicit_l3_proof_lane_only"] is True
+    assert policy["execution_model"] == "receipt_only_no_command_execution"
+    assert policy["mainline_waits_for_executor_receipt"] is False
+    assert policy["missing_receipt_blocks_dispatch"] is False
+    assert policy["docker_unavailable_blocks_dispatch"] is False
+    assert policy["receipt_counts_as_owner_receipt"] is False
+    assert policy["receipt_counts_as_stage_closeout"] is False
+    assert policy["receipt_counts_as_quality_verdict"] is False
+    assert {
+        "exit_code",
+        "stdout_ref",
+        "stderr_ref",
+        "artifact_refs",
+        "changed_file_refs",
+        "duration_ms",
+        "env_fingerprint",
+    } <= set(policy["execution_ref_fields"])
+    assert {
+        "publication_eval",
+        "controller_decisions",
+        "owner_receipt",
+        "typed_blocker",
+        "quality_verdict",
+        "stage_closeout",
+    } <= set(policy["forbidden_authority"])
+    assert policy["inside_container_policy"] == {
+        "inside_container_disables_default_docker": True,
+        "docker_socket_mount_is_not_implicit_authorization": True,
+        "dind_requires_explicit_deployment_owner": True,
+    }
+
+
 def test_safety_envelope_covers_all_false_completion_and_drift_risk_classes() -> None:
     risks = {risk["risk_id"]: risk for risk in _envelope()["risk_classes"]}
 

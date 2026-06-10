@@ -256,6 +256,64 @@ def test_mas_action_catalog_exposes_publication_aftercare_plan_as_refs_only_surf
     assert manifest["product_entry_shell"]["publication_aftercare_plan"]["command"] == aftercare_cli["command"]
 
 
+def test_mas_action_catalog_exposes_lightweight_executor_receipt_as_descriptor_only_contract(
+    tmp_path: Path,
+) -> None:
+    action_catalog = importlib.import_module("med_autoscience.action_catalog")
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    mcp_server = importlib.import_module("med_autoscience.mcp_server")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    catalog = action_catalog.build_mas_action_catalog(profile_ref=profile_ref)
+    neutral_catalog = action_catalog.build_mas_action_catalog()
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    skill_catalog = product_entry.build_skill_catalog(profile=profile, profile_ref=profile_ref)
+    actions = {item["action_id"]: item for item in catalog["actions"]}
+    cli_projection = {item["action_id"]: item for item in action_catalog.project_mas_action_catalog("cli", catalog)}
+    product_entry_projection = {
+        item["action_key"]: item for item in action_catalog.project_mas_action_catalog("product_entry", catalog)
+    }
+    skill_projection = {
+        item["action_id"]: item for item in action_catalog.project_mas_action_catalog("skill", catalog)
+    }
+    mcp_projection = {
+        item["name"]: item for item in action_catalog.project_mas_action_catalog("mcp", neutral_catalog)
+    }
+    mcp_tool_names = {tool["name"] for tool in mcp_server.build_tool_manifest()}
+
+    receipt_action = actions["lightweight_executor_receipt"]
+    receipt_cli = cli_projection["lightweight_executor_receipt"]
+    boundary = receipt_action["authority_boundary"]
+
+    assert receipt_action["effect"] == "read_only"
+    assert receipt_cli["surface_kind"] == "mas_lightweight_executor_receipt_contract"
+    assert receipt_cli["command"] == (
+        "medautosci domain-handler export --profile " + str(profile_ref.resolve()) + " --format json"
+    )
+    assert boundary["surface_authority"] == "executor_receipt_contract_read_model"
+    assert boundary["can_execute_command"] is False
+    assert boundary["can_start_docker"] is False
+    assert boundary["can_mount_docker_socket"] is False
+    assert boundary["can_write_owner_receipt"] is False
+    assert boundary["can_write_typed_blocker"] is False
+    assert boundary["can_authorize_publication_quality"] is False
+    assert boundary["can_authorize_submission_readiness"] is False
+    assert boundary["can_block_current_owner_action"] is False
+
+    assert product_entry_projection["lightweight_executor_receipt"]["command"] == receipt_cli["command"]
+    assert skill_projection["lightweight_executor_receipt"]["command"] == receipt_cli["command"]
+    assert manifest["family_action_catalog"]["actions"] == catalog["actions"]
+    assert manifest["product_entry_shell"]["lightweight_executor_receipt"]["command"] == receipt_cli["command"]
+    assert skill_catalog["skills"][0]["domain_projection"]["shell_commands"][
+        "lightweight_executor_receipt"
+    ] == receipt_cli["command"]
+
+    assert mcp_projection["lightweight_executor_receipt"]["descriptor_only"] is True
+    assert mcp_projection["lightweight_executor_receipt"]["public_runtime"] is False
+    assert "lightweight_executor_receipt" not in mcp_tool_names
+
+
 def test_product_entry_manifest_exposes_foundry_agent_product_positioning(tmp_path: Path) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
 

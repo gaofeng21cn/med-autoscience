@@ -390,6 +390,38 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             },
         },
         {
+            "action_id": "lightweight_executor_receipt",
+            "title": "Inspect lightweight executor receipt contract",
+            "summary": (
+                "Read the MAS/OPL lightweight executor receipt contract. It records command "
+                "evidence refs for Codex/uv/local executor attempts without executing commands, "
+                "starting Docker, mounting the Docker socket, or introducing OpenHands as a default runtime."
+            ),
+            "effect": "read_only",
+            "command": "medautosci domain-handler export --profile {profile} --format json",
+            "surface_kind": "mas_lightweight_executor_receipt_contract",
+            "workspace_locator_fields": ["profile_ref"],
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": "MedAutoScience",
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "executor_receipt_contract_read_model",
+                "can_execute_command": False,
+                "can_start_docker": False,
+                "can_mount_docker_socket": False,
+                "can_write_publication_eval": False,
+                "can_write_controller_decisions": False,
+                "can_write_current_package": False,
+                "can_write_owner_receipt": False,
+                "can_write_typed_blocker": False,
+                "can_authorize_publication_quality": False,
+                "can_authorize_submission_readiness": False,
+                "can_block_current_owner_action": False,
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
+            },
+        },
+        {
             "action_id": "mainline_status",
             "title": "Inspect MAS mainline status",
             "summary": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",

@@ -241,6 +241,57 @@
       ]
     }
   },
+  "lightweight_executor_receipt_policy": {
+    "surface_kind": "mas_lightweight_executor_receipt_contract",
+    "role": "executor_evidence_contract_without_default_container_runtime",
+    "default_isolation_levels": [
+      "L0_host_clean_runner",
+      "L1_process_workspace"
+    ],
+    "containerized_sandbox_default": false,
+    "docker_in_docker_default": false,
+    "docker_socket_mount_default": false,
+    "openhands_runtime_default": false,
+    "explicit_l3_proof_lane_only": true,
+    "execution_model": "receipt_only_no_command_execution",
+    "mainline_waits_for_executor_receipt": false,
+    "missing_receipt_blocks_dispatch": false,
+    "docker_unavailable_blocks_dispatch": false,
+    "receipt_counts_as_owner_receipt": false,
+    "receipt_counts_as_stage_closeout": false,
+    "receipt_counts_as_quality_verdict": false,
+    "allowed_writes": [
+      "artifacts/executor_receipts/**/*.json"
+    ],
+    "execution_ref_fields": [
+      "exit_code",
+      "stdout_ref",
+      "stderr_ref",
+      "artifact_refs",
+      "changed_file_refs",
+      "duration_ms",
+      "resource_usage_ref",
+      "working_dir_ref",
+      "env_fingerprint",
+      "failure_class"
+    ],
+    "forbidden_authority": [
+      "publication_eval",
+      "controller_decisions",
+      "owner_receipt",
+      "typed_blocker",
+      "quality_verdict",
+      "stage_closeout",
+      "publication_readiness",
+      "submission_readiness",
+      "artifact_authority"
+    ],
+    "inside_container_policy": {
+      "inside_container_disables_default_docker": true,
+      "docker_socket_mount_is_not_implicit_authorization": true,
+      "dind_requires_explicit_deployment_owner": true
+    }
+  },
   "closeout_authority": {
     "accepted_progress_outputs": [
       "ProgressDeltaReceipt",

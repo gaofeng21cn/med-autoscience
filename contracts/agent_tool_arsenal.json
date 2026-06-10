@@ -1753,6 +1753,89 @@
       "when_to_use": "Use display_pack_render when an autonomous agent needs this capability from the current_owner_delta path: Materialize Display Pack figure artifacts and paper-level display refs from a prepared paper_root or frozen data payload. This writes display artifacts, visual-audit receipt, polish lifecycle, display_pack_lock, and publication manifest refs only; it cannot sign publication readiness or owner receipt."
     },
     {
+      "action_id": "lightweight_executor_receipt",
+      "action_surface_kind": "mas_lightweight_executor_receipt_contract",
+      "allowed_writes": [],
+      "audit_trail_schema_ref": "contracts/agent_tool_arsenal.json#/tool_audit_trail_schema",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_block_current_owner_action": false,
+        "can_execute_command": false,
+        "can_mount_docker_socket": false,
+        "can_start_docker": false,
+        "can_write_controller_decisions": false,
+        "can_write_current_package": false,
+        "can_write_owner_receipt": false,
+        "can_write_publication_eval": false,
+        "can_write_typed_blocker": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "surface_authority": "executor_receipt_contract_read_model"
+      },
+      "authority_effects": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_return_owner_receipt": false,
+        "can_return_typed_blocker": false,
+        "can_write_domain_truth": false
+      },
+      "callability": "descriptor_only",
+      "card_kind": "action_catalog",
+      "command": "medautosci domain-handler export --profile <profile> --format json",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
+      "effect": "read_only",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "human_gate_ids": [],
+      "idempotency_policy": "read_only_no_side_effects",
+      "input_refs": [
+        "profile_ref"
+      ],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema": {
+        "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
+      },
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
+      "risk_annotations": {
+        "destructiveHint": false,
+        "domain_truth_write": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "requires_human_gate": false,
+        "requires_opl_stage_attempt_or_lease": false
+      },
+      "summary": "Read the MAS/OPL lightweight executor receipt contract. It records command evidence refs for Codex/uv/local executor attempts without executing commands, starting Docker, mounting the Docker socket, or introducing OpenHands as a default runtime.",
+      "supported_surfaces": [
+        "ai_sdk",
+        "cli",
+        "mcp",
+        "openai",
+        "product_entry",
+        "skill"
+      ],
+      "surface_kind": "mas_tool_use_card",
+      "title": "Inspect lightweight executor receipt contract",
+      "tool_id": "lightweight_executor_receipt",
+      "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
+      "when_to_use": "Use lightweight_executor_receipt when an autonomous agent needs this capability from the current_owner_delta path: Read the MAS/OPL lightweight executor receipt contract. It records command evidence refs for Codex/uv/local executor attempts without executing commands, starting Docker, mounting the Docker socket, or introducing OpenHands as a default runtime."
+    },
+    {
       "action_id": "mainline_status",
       "action_surface_kind": "mainline_status",
       "allowed_writes": [],
@@ -2207,6 +2290,14 @@
       "effect": "mutating",
       "read_only": false,
       "tool_id": "display_pack_render"
+    },
+    {
+      "action_id": "lightweight_executor_receipt",
+      "callability": "descriptor_only",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
+      "effect": "read_only",
+      "read_only": true,
+      "tool_id": "lightweight_executor_receipt"
     },
     {
       "action_id": "mainline_status",
