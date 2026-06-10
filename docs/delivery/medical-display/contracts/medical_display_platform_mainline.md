@@ -18,6 +18,8 @@ For the current baseline-completion provenance across `A-H`, see [medical_displa
 
 For the top-level evidence roadmap, see [medical_display_family_roadmap.md](../portfolio/medical_display_family_roadmap.md).
 
+For the current Display Pack v2 landing status, E2E path, MAS/OPL boundary, AI/VLM lifecycle, and external absorption order, see [display_pack_v2_landing_status.md](./display_pack_v2_landing_status.md).
+
 For the strict audited engineering truth, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).
 
 For the generated template inventory, see [medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md).
@@ -29,12 +31,17 @@ For the package architecture that separates template-library evolution from host
 For the machine-readable Display Pack v2 figure-quality surface index, see
 [`contracts/publication_figure_quality_contract.json`](../../../../contracts/publication_figure_quality_contract.json).
 
+For the machine-readable Display Pack v2 descriptor and OPL Pack OS handoff boundary, see
+[`contracts/display-pack-contract.v2.json`](../../../../contracts/display-pack-contract.v2.json).
+
 For the machine-readable AI/VLM figure polish lifecycle, see
 [`contracts/figure_polish_lifecycle_contract.json`](../../../../contracts/figure_polish_lifecycle_contract.json).
 
 For the tracked active execution surface that replaces retired project-local runtime state, see [medical_display_active_board.md](../board/medical_display_active_board.md).
 
 Historical OMX / Codex materials under [`docs/history/omx/`](../../../history/omx/README.md) remain audit provenance only. They must not be treated as the current execution surface.
+
+Current Display Pack v2 status is intentionally split: MAS has landed the domain pack descriptor, template descriptor, paper-level figure-quality refs, medical figure grammar, AI/VLM polish lifecycle, display lock refs, and submission manifest refs preservation; OPL generic Pack OS remains a handoff tail until an OPL-owned install/registry/version/asset surface lands with its own tests and consumer projection.
 
 ## North Star
 

@@ -5,6 +5,16 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-10：Display Pack v2 完成度固定为 MAS 域内落地加 OPL Pack OS tail
+
+- 决策：Display Pack v2 当前完成度固定为 `MAS Display Pack v2 domain landing complete, OPL generic Pack OS handoff tail open`。MAS 已落地 pack descriptor、template descriptor、paper-level figure-quality refs、`paper/figure_spec.json` medical figure grammar、`paper/figure_polish_lifecycle.json` AI/VLM polish lifecycle、`paper/build/display_pack_lock.json#/publication_figure_quality_refs` 和 submission manifest refs preservation。
+- 决策：[Display Pack v2 落地状态](./delivery/medical-display/contracts/display_pack_v2_landing_status.md) 是当前人读入口；最小字段关系示例放在 [Display Pack v2 E2E Skeleton](./delivery/medical-display/examples/display_pack_v2_e2e_skeleton.md)。示例只说明 payload shape 和 authority boundary，不作为 fixture、golden、真实论文证据或测试输入。
+- 决策：MAS/OPL 边界按 `contracts/display-pack-contract.v2.json` 读取。MAS 持有 pack descriptor authority 与 publication-quality authority；OPL 只能后续承接 generic pack install、registry、version resolution、lock projection、asset inventory、workbench display 和 lifecycle transport。`opl_handoff.tail_status=not_landed_gap` 不能写成 MAS 已落地 generic Pack OS。
+- 决策：AI/VLM audit lifecycle 只作为 display quality loop 和 audit receipt evidence。`figure_visual_audit_receipt` 记录真实渲染图 findings，`figure_polish_lifecycle` 固定 ordered prefix 与 lock refs 关系；AI/VLM event 必须带 `model_ref` 或 `reviewer_ref`，并禁止 `mutates_data=true` 或 `carries_publication_verdict=true`。AI illustration 只能服务 `illustration_shell`，且 `scientific_claim_carried=false` 是硬边界。
+- 决策：外部 display / visualization / paper-figure 项目按 link-only exemplar、style/audit hint、template gap candidate、display-pack descriptor candidate、verified landed template/pack、OPL Pack OS handoff 的顺序吸收。外部脚本、图片、截图、gallery runtime 或 style score 不能直接成为 MAS template、golden、runtime dependency、publication owner、quality gate、artifact authority 或 dispatch blocker。
+- 理由：主线 E2E 已把 Display Pack v2 的 contract / validator / lock / submission refs preservation 打到 MAS 域内闭环，但如果不把完成度与 OPL generic Pack OS tail 分开，后续会把 display lock、visual audit 或外部 exemplar 误写成 publication-ready、artifact authority 或通用 pack substrate。固定状态入口可以让 E2E 实现、文档、外部吸收和后续 OPL handoff 使用同一口径。
+- 影响：这是 docs/status 与 delivery docs 落地，不修改 contracts、src、tests、study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、typed blocker、human gate、OPL queue 或 provider attempt。后续若修改机器合同或 validators，必须运行 Display Pack v2 focused pytest、`make test-meta`、`scripts/verify.sh` 和 `git diff --check`；纯文档状态更新按 `documentation_review_only`，至少跑 `git diff --check`。
+
 ## 2026-06-10：数据资产 v3 固定四 plane、runbook 与 runtime retention 边界
 
 - 决策：MAS 数据资产目标态固定为 body、contract、registry-lineage 和 study-binding 四个 plane。`data/datasets/**` 是 release body，`dataset_manifest.yaml` / `release_contract` 是机器 contract，`memory/portfolio/data_assets/**` 是 controller-derived registry / lineage / impact / readiness projection，study contract 只绑定可消费 release 并把 study-local derived artifacts 留在 study analysis tree。
