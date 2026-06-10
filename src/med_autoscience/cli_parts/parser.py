@@ -476,6 +476,45 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     display_pack_surface_sync_parser = subparsers.add_parser("sync-display-pack-surface")
     display_pack_surface_sync_parser.add_argument("--paper-root", required=True)
 
+    display_pack_list_parser = subparsers.add_parser("display-pack-list-templates")
+    display_pack_list_parser.add_argument("--repo-root", required=True)
+    display_pack_list_parser.add_argument("--paper-root")
+    display_pack_list_parser.add_argument("--kind", default="")
+    display_pack_list_parser.add_argument("--renderer-family", default="")
+    display_pack_list_parser.add_argument("--audit-family", default="")
+    display_pack_list_parser.add_argument("--paper-family", default="")
+    display_pack_list_parser.add_argument("--query", default="")
+
+    display_pack_describe_parser = subparsers.add_parser("display-pack-describe-template")
+    display_pack_describe_parser.add_argument("--repo-root", required=True)
+    display_pack_describe_parser.add_argument("--paper-root")
+    display_pack_describe_parser.add_argument("--template-id", required=True)
+
+    display_pack_scaffold_parser = subparsers.add_parser("display-pack-scaffold-render")
+    display_pack_scaffold_parser.add_argument("--repo-root", required=True)
+    display_pack_scaffold_parser.add_argument("--paper-root", required=True)
+    display_pack_scaffold_parser.add_argument("--template-id", required=True)
+    display_pack_scaffold_parser.add_argument("--data-payload-file", required=True)
+    display_pack_scaffold_parser.add_argument("--figure-id", default="F1")
+    display_pack_scaffold_parser.add_argument("--claim-ref", default="claim:display-pack-scaffold")
+    display_pack_scaffold_parser.add_argument("--cohort-ref", default="cohort:display-pack-scaffold")
+    display_pack_scaffold_parser.add_argument("--endpoint-ref", default="endpoint:display-pack-scaffold")
+    display_pack_scaffold_parser.add_argument("--risk-horizon", default="unspecified")
+
+    display_pack_golden_parser = subparsers.add_parser("display-pack-golden")
+    display_pack_golden_subparsers = display_pack_golden_parser.add_subparsers(
+        dest="display_pack_golden_command",
+        required=True,
+    )
+    for golden_command in ("refresh", "check"):
+        golden_parser = display_pack_golden_subparsers.add_parser(golden_command)
+        golden_parser.add_argument("--repo-root", required=True)
+        golden_parser.add_argument("--paper-root", required=True)
+        golden_parser.add_argument("--template-id", required=True)
+        golden_parser.add_argument("--data-payload-file", required=True)
+        golden_parser.add_argument("--golden-root", required=True)
+        golden_parser.add_argument("--figure-id", default="G1")
+
     display_pack_e2e_parser = subparsers.add_parser("display-pack-e2e")
     display_pack_e2e_parser.add_argument("--repo-root", required=True)
     display_pack_e2e_parser.add_argument("--paper-root", required=True)

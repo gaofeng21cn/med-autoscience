@@ -25,6 +25,63 @@ def _load_visual_audit_review_from_args(args: argparse.Namespace) -> dict[str, o
 
 
 def handle_display_pack_command(args: argparse.Namespace) -> dict[str, Any] | None:
+    if args.command == "display-pack-list-templates":
+        from med_autoscience.display_pack_usability import list_display_pack_templates
+
+        return list_display_pack_templates(
+            repo_root=Path(args.repo_root),
+            paper_root=Path(args.paper_root) if args.paper_root else None,
+            kind=str(args.kind),
+            renderer_family=str(args.renderer_family),
+            audit_family=str(args.audit_family),
+            paper_family=str(args.paper_family),
+            query=str(args.query),
+        )
+
+    if args.command == "display-pack-describe-template":
+        from med_autoscience.display_pack_usability import describe_display_pack_template
+
+        return describe_display_pack_template(
+            repo_root=Path(args.repo_root),
+            paper_root=Path(args.paper_root) if args.paper_root else None,
+            template_id=str(args.template_id),
+        )
+
+    if args.command == "display-pack-scaffold-render":
+        from med_autoscience.display_pack_usability import scaffold_display_pack_render
+
+        return scaffold_display_pack_render(
+            repo_root=Path(args.repo_root),
+            paper_root=Path(args.paper_root),
+            template_id=str(args.template_id),
+            data_payload_file=Path(args.data_payload_file),
+            figure_id=str(args.figure_id),
+            claim_ref=str(args.claim_ref),
+            cohort_ref=str(args.cohort_ref),
+            endpoint_ref=str(args.endpoint_ref),
+            risk_horizon=str(args.risk_horizon),
+        )
+
+    if args.command == "display-pack-golden":
+        from med_autoscience.display_pack_usability import (
+            check_display_pack_golden,
+            refresh_display_pack_golden,
+        )
+
+        golden_kwargs = {
+            "repo_root": Path(args.repo_root),
+            "paper_root": Path(args.paper_root),
+            "template_id": str(args.template_id),
+            "data_payload_file": Path(args.data_payload_file),
+            "golden_root": Path(args.golden_root),
+            "figure_id": str(args.figure_id),
+        }
+        if args.display_pack_golden_command == "refresh":
+            return refresh_display_pack_golden(**golden_kwargs)
+        if args.display_pack_golden_command == "check":
+            return check_display_pack_golden(**golden_kwargs)
+        raise SystemExit(f"Unsupported display-pack-golden command: {args.display_pack_golden_command}")
+
     if args.command == "display-pack-render-candidate":
         from med_autoscience.display_pack_e2e_runtime import render_display_pack_candidate_asset
 

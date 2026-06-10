@@ -190,8 +190,8 @@ def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
     ]
 
     assert len(evidence_records) == 84
-    assert len(r_records) == 22
-    assert len(python_records) == 62
+    assert len(r_records) == 55
+    assert len(python_records) == 29
     for record in r_records:
         assert record.template_manifest.execution_mode == "subprocess"
         assert record.template_manifest.entrypoint == "Rscript render.R --request {request_json}"

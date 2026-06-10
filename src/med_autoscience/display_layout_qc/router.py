@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from med_autoscience import display_readability_qc
 
-from .shared import ENGINE_ID, _normalize_layout_sidecar, _utc_now
+from .shared import ENGINE_ID, LayoutSidecar, _all_boxes, _check_boxes_within_device, _check_pairwise_non_overlap, _normalize_layout_sidecar, _utc_now
 from .atlas_primary import _check_publication_atlas_spatial_bridge_panel, _check_publication_celltype_signature_panel, _check_publication_embedding_scatter, _check_publication_single_cell_atlas_overview_panel, _check_publication_spatial_niche_map_panel, _check_publication_trajectory_progression_panel
 from .atlas_storyboards import _check_publication_atlas_spatial_trajectory_context_support_panel, _check_publication_atlas_spatial_trajectory_density_coverage_panel, _check_publication_atlas_spatial_trajectory_multimanifold_context_support_panel, _check_publication_atlas_spatial_trajectory_storyboard_panel
 from .curves_extended import _check_publication_landmark_performance_panel, _check_publication_model_complexity_audit, _check_publication_time_to_event_multihorizon_calibration_panel, _check_publication_time_to_event_threshold_governance_panel
@@ -15,6 +15,31 @@ from .response_panels import _check_publication_accumulated_local_effects_panel,
 from .shap_path_panels import _check_publication_shap_grouped_decision_path_panel, _check_publication_shap_grouped_local_explanation_panel, _check_publication_shap_multigroup_decision_path_panel
 from .shap_summary_panels import _check_publication_shap_bar_importance, _check_publication_shap_dependence_panel, _check_publication_shap_force_like_summary_panel, _check_publication_shap_multicohort_importance_panel, _check_publication_shap_signed_importance_panel, _check_publication_shap_summary, _check_publication_shap_waterfall_local_explanation_panel
 from .support_domain_panels import _check_publication_feature_response_support_domain_panel, _check_publication_shap_grouped_local_support_domain_panel, _check_publication_shap_multigroup_decision_path_support_domain_panel, _check_publication_shap_signed_importance_local_support_domain_panel
+
+
+def _check_publication_result_display(sidecar: LayoutSidecar) -> list[dict[str, object]]:
+    issues: list[dict[str, object]] = []
+    issues.extend(_check_boxes_within_device(sidecar))
+    text_boxes = tuple(
+        box
+        for box in _all_boxes(sidecar)
+        if box.box_type in {"title", "subtitle", "axis_title", "x_axis_title", "y_axis_title", "label", "annotation"}
+    )
+    issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="text_box_overlap", target="text"))
+    return issues
+
+
+def _check_publication_table_shell(sidecar: LayoutSidecar) -> list[dict[str, object]]:
+    issues: list[dict[str, object]] = []
+    issues.extend(_check_boxes_within_device(sidecar))
+    text_boxes = tuple(
+        box
+        for box in _all_boxes(sidecar)
+        if box.box_type in {"title", "subtitle", "table_title", "table_note", "caption", "text"}
+    )
+    issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="text_box_overlap", target="text"))
+    return issues
+
 
 QC_PROFILE_RUNNERS = {
     "publication_illustration_flow": _check_publication_illustration_flow,
@@ -84,6 +109,12 @@ QC_PROFILE_RUNNERS = {
     "publication_shap_grouped_local_support_domain_panel": _check_publication_shap_grouped_local_support_domain_panel,
     "publication_shap_multigroup_decision_path_support_domain_panel": _check_publication_shap_multigroup_decision_path_support_domain_panel,
     "publication_shap_signed_importance_local_support_domain_panel": _check_publication_shap_signed_importance_local_support_domain_panel,
+    "publication_risk_group_summary": _check_publication_risk_layering_bars,
+    "publication_result_display": _check_publication_result_display,
+    "publication_table_shell": _check_publication_table_shell,
+    "publication_table_baseline": _check_publication_table_shell,
+    "publication_table_interpretation": _check_publication_table_shell,
+    "publication_table_performance": _check_publication_table_shell,
 }
 
 
