@@ -116,6 +116,7 @@ def _domain_descriptor() -> dict[str, Any]:
             ),
             "stage_control_plane": "contracts/stage_control_plane.json",
             "pack_compiler_input": "contracts/pack_compiler_input.json",
+            "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
             "generated_surface_handoff": "contracts/generated_surface_handoff.json",
             "functional_privatization_audit": "contracts/functional_privatization_audit.json",
         },
