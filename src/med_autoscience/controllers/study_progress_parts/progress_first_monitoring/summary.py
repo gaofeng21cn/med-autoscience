@@ -85,8 +85,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         latest_terminal_stage_log=latest_terminal_stage_log,
         paper_stage_log=paper_stage_log,
     )
+    canonical_current_work_unit = _mapping(payload.get("current_work_unit"))
+    canonical_work_unit_state = _mapping(canonical_current_work_unit.get("state"))
     raw_typed_blocker = (
-        _mapping(execution.get("typed_blocker"))
+        _mapping(canonical_work_unit_state.get("typed_blocker"))
+        or _mapping(execution.get("typed_blocker"))
         or _mapping(domain_transition.get("typed_blocker"))
         or terminal_closeout_blocker
     )
@@ -133,7 +136,12 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or payload_current_action
         or non_artifact_current_action
     )
-    canonical_current_work_unit = _mapping(payload.get("current_work_unit"))
+    current_work_unit_status = _text(canonical_current_work_unit.get("status"))
+    if (
+        current_work_unit_status in {"typed_blocker", "blocked_current_work_unit"}
+        and _next_forced_delta_owner_action(current_action)
+    ):
+        current_action = {}
     envelope_blocks_current_action = _envelope_typed_blocker_blocks_current_action(
         execution=execution,
         raw_typed_blocker=raw_typed_blocker,
@@ -229,7 +237,6 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         state_kind = "executable_owner_action"
     else:
         state_kind = _text(execution.get("state_kind"))
-    current_work_unit_status = _text(canonical_current_work_unit.get("status"))
     if current_work_unit_status in {"executable_owner_action", "running_provider_attempt", "typed_blocker"}:
         state_kind = current_work_unit_status
     if state_kind is None:

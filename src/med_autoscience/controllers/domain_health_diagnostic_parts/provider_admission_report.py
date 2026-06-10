@@ -42,6 +42,10 @@ def materialize_report_provider_admission_current_control_state(
                 progress_currentness=progress_currentness,
             )
     scanned_studies = _provider_admission_scanned_currentness_studies(progress_currentness)
+    candidates = _filter_provider_admission_candidates_by_progress_currentness(
+        candidates,
+        progress_currentness=progress_currentness,
+    )
     candidates = _merge_provider_admission_candidates(
         candidates,
         _provider_admission_candidates_from_progress_currentness(
@@ -64,21 +68,28 @@ def sync_report_provider_admission_current_control_state(
     *,
     current_control_state: Mapping[str, Any],
 ) -> None:
+    current_execution_evidence = _mapping(report.get("current_execution_evidence"))
+    progress_currentness = _mapping(current_execution_evidence.get("progress_currentness"))
     candidates = _merge_provider_admission_candidates(
-        [
-            dict(item)
-            for item in report.get("managed_study_opl_provider_admission_candidates") or []
-            if isinstance(item, Mapping)
-        ],
-        [
-            dict(item)
-            for item in current_control_state.get("provider_admission_candidates") or []
-            if isinstance(item, Mapping)
-        ],
+        _filter_provider_admission_candidates_by_progress_currentness(
+            [
+                dict(item)
+                for item in report.get("managed_study_opl_provider_admission_candidates") or []
+                if isinstance(item, Mapping)
+            ],
+            progress_currentness=progress_currentness,
+        ),
+        _filter_provider_admission_candidates_by_progress_currentness(
+            [
+                dict(item)
+                for item in current_control_state.get("provider_admission_candidates") or []
+                if isinstance(item, Mapping)
+            ],
+            progress_currentness=progress_currentness,
+        ),
     )
     report["managed_study_opl_provider_admission_candidates"] = candidates
     report["provider_admission_pending_count"] = len(candidates)
-    current_execution_evidence = _mapping(report.get("current_execution_evidence"))
     current_execution_evidence["provider_admission_candidates"] = candidates
     report["current_execution_evidence"] = current_execution_evidence
     fingerprints = _same_tick_text_items(report.get("action_fingerprints"))
@@ -201,6 +212,27 @@ def _merge_provider_admission_candidates(
             seen.add(key)
             merged.append(dict(candidate))
     return merged
+
+
+def _filter_provider_admission_candidates_by_progress_currentness(
+    candidates: list[dict[str, Any]],
+    *,
+    progress_currentness: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    current_action_by_study = _same_tick_progress_current_actions(progress_currentness)
+    if not current_action_by_study:
+        return [dict(candidate) for candidate in candidates]
+    filtered: list[dict[str, Any]] = []
+    for candidate in candidates:
+        study_id = _non_empty_text(candidate.get("study_id"))
+        current_action_identity = current_action_by_study.get(study_id) if study_id is not None else None
+        if current_action_identity is not None and not _same_tick_candidate_matches_current_action(
+            candidate,
+            current_action_identity=current_action_identity,
+        ):
+            continue
+        filtered.append(dict(candidate))
+    return filtered
 
 
 def _provider_admission_candidates_from_same_tick_materialize(

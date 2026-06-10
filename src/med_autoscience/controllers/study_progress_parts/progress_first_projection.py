@@ -162,6 +162,12 @@ def _current_owner_route(
         )
         if not route:
             pass
+        elif _stale_provider_admission_route(
+            route,
+            handoff=handoff,
+            transition_route=transition_route,
+        ):
+            pass
         else:
             return route
     if route := _mapping(handoff.get("owner_route")):
@@ -173,6 +179,12 @@ def _current_owner_route(
             running_provider_attempt=handoff.get("running_provider_attempt") is True,
         )
         if not route:
+            pass
+        elif _stale_provider_admission_route(
+            route,
+            handoff=handoff,
+            transition_route=transition_route,
+        ):
             pass
         elif transition_route and not _route_has_explicit_target_surface(route):
             return transition_route
@@ -186,7 +198,11 @@ def _current_owner_route(
             paper_progress_delta_counted=paper_progress_delta_counted,
             running_provider_attempt=evidence_handoff.get("running_provider_attempt") is True,
         )
-        if route:
+        if route and not _stale_provider_admission_route(
+            route,
+            handoff=evidence_handoff,
+            transition_route=transition_route,
+        ):
             return route
     if route := _mapping(evidence_handoff.get("owner_route")):
         route = _owner_route_with_policy_target_surface(route)
@@ -197,6 +213,12 @@ def _current_owner_route(
             running_provider_attempt=evidence_handoff.get("running_provider_attempt") is True,
         )
         if not route:
+            pass
+        elif _stale_provider_admission_route(
+            route,
+            handoff=evidence_handoff,
+            transition_route=transition_route,
+        ):
             pass
         elif transition_route and not _route_has_explicit_target_surface(route):
             return transition_route
@@ -268,6 +290,62 @@ def _readiness_route_superseded_by_paper_delta(
         *_text_items(owner_action.get("allowed_actions")),
     }
     return READINESS_ACTION in candidates
+
+
+def _stale_provider_admission_route(
+    route: Mapping[str, Any],
+    *,
+    handoff: Mapping[str, Any],
+    transition_route: Mapping[str, Any],
+) -> bool:
+    if handoff.get("running_provider_attempt") is True:
+        return False
+    if not transition_route:
+        return False
+    if not _provider_admission_handoff_action_queue(handoff):
+        return False
+    return not _same_owner_route_identity(route, transition_route)
+
+
+def _provider_admission_handoff_action_queue(handoff: Mapping[str, Any]) -> bool:
+    action = _first_current_action_queue_item(handoff.get("action_queue"))
+    if action is None:
+        return False
+    authority = _text(action.get("authority")) or _text(handoff.get("authority"))
+    if authority != "mas_provider_admission_identity":
+        return False
+    status = _text(action.get("status")) or _text(handoff.get("quest_status"))
+    return status == "provider_admission_pending" or handoff.get("provider_admission_pending_count") not in (
+        None,
+        0,
+    )
+
+
+def _same_owner_route_identity(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    left_action = _first_text(left.get("allowed_actions")) or _first_text(
+        _mapping(left.get("owner_action")).get("allowed_actions")
+    )
+    right_action = _first_text(right.get("allowed_actions")) or _first_text(
+        _mapping(right.get("owner_action")).get("allowed_actions")
+    )
+    return (
+        _route_work_unit_id(left) is not None
+        and _route_work_unit_id(left) == _route_work_unit_id(right)
+        and left_action is not None
+        and left_action == right_action
+    )
+
+
+def _route_work_unit_id(route: Mapping[str, Any]) -> str | None:
+    source_refs = _mapping(route.get("source_refs"))
+    owner_action = _mapping(route.get("owner_action"))
+    next_work_unit = _mapping(route.get("next_work_unit"))
+    return (
+        _text(source_refs.get("work_unit_id"))
+        or _text(owner_action.get("work_unit_id"))
+        or _text(next_work_unit.get("unit_id"))
+        or _text(route.get("work_unit_id"))
+    )
 
 
 def _owner_route_from_handoff_action_queue(handoff: Mapping[str, Any]) -> dict[str, Any]:

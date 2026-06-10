@@ -377,6 +377,84 @@ def test_next_forced_delta_prefers_current_handoff_action_queue_over_stale_trans
     }
 
 
+def test_next_forced_delta_ignores_stale_provider_admission_action_queue_when_transition_routes_write() -> None:
+    projection = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_projection"
+    )
+
+    result = projection.build_progress_first_projection(
+        {
+            "deliverable_progress_delta": {"count": 0},
+            "platform_repair_delta": {"count": 0},
+            "opl_current_control_state_handoff": {
+                "authority": "mas_provider_admission_identity",
+                "quest_status": "provider_admission_pending",
+                "running_provider_attempt": False,
+                "provider_admission_pending_count": 1,
+                "owner_route": {
+                    "next_owner": "finalize",
+                    "source_refs": {
+                        "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    },
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                },
+                "action_queue": [
+                    {
+                        "source": "opl_current_control_state_action_queue",
+                        "authority": "mas_provider_admission_identity",
+                        "status": "provider_admission_pending",
+                        "action_type": "run_gate_clearing_batch",
+                        "owner": "finalize",
+                        "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                        "fingerprint": (
+                            "study-progress-current-owner-ticket::003::"
+                            "dpcc_publication_gate_replay_after_current_ai_reviewer_record::"
+                            "run_gate_clearing_batch"
+                        ),
+                    }
+                ],
+            },
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "review",
+                },
+                "guard_boundary": {
+                    "required_owner_surface": "artifacts/publication_eval/latest.json",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "eval_id": "publication-eval::003::current-inputs",
+                    "action_fingerprint": (
+                        "domain-transition::route_back_same_line::medical_prose_write_repair"
+                    ),
+                },
+            },
+        }
+    )
+
+    assert result["progress_first_sprint_state"]["next_owner"] == "write"
+    assert result["next_forced_delta"]["work_unit_id"] == "medical_prose_write_repair"
+    assert result["next_forced_delta"]["target_surface"] == {
+        "ref_kind": "route_obligation",
+        "route_target": "write",
+        "surface_ref": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+    }
+    assert result["next_forced_delta"]["owner_action"] == {
+        "next_owner": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "owner_receipt_required": True,
+    }
+
+
 def test_next_forced_delta_does_not_redrive_readiness_queue_after_paper_delta_with_current_transition() -> None:
     projection = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_projection"
