@@ -1,0 +1,324 @@
+{
+  "surface_kind": "mas_opl_stage_route_reconcile_contract",
+  "version": "stage-route-reconcile.v1",
+  "owner": "MedAutoScience / OPL Framework",
+  "state": "active_contract",
+  "purpose": "Machine-readable contract for the MAS/OPL stage-route reconcile handshake, currentness precedence, and anti-loop budget.",
+  "machine_boundary": "This contract defines route/currentness/reconcile rules. It does not declare study truth, paper closure, publication readiness, submission readiness, quality verdicts, artifact mutation authority, current_package freshness, or production readiness.",
+  "source_design_ref": "docs/runtime/designs/stage_route_reconcile_target.md",
+  "related_contract_refs": [
+    "contracts/stage_run_kernel_profile.json",
+    "contracts/progress_first_safety_envelope.json",
+    "contracts/foundry_agent_series.json",
+    "contracts/agent_tool_arsenal.json",
+    "contracts/stage_control_plane.json"
+  ],
+  "ordinary_planning_root": {
+    "root": "current_owner_delta",
+    "derived_operator_surfaces": [
+      "current_work_unit",
+      "current_execution_envelope",
+      "current_executable_owner_action",
+      "provider_admission_current_control"
+    ],
+    "audit_only_surfaces": [
+      "raw_worklist",
+      "OPL queue history",
+      "attempt ledger",
+      "stage artifact index",
+      "sidecar advisory refs",
+      "legacy owner_route_handoff",
+      "runtime observability traces",
+      "lineage refs"
+    ],
+    "forbidden_default_roots": [
+      "active_run_id",
+      "transport_status",
+      "latest_json_mtime",
+      "zero_open_worklist",
+      "old_route_back_packet",
+      "descriptor_ready",
+      "advisory_score_or_ranking"
+    ],
+    "no_second_truth": true
+  },
+  "identity_policy": {
+    "required_owner_identity_fields": [
+      "study_id",
+      "quest_id",
+      "stage_id",
+      "action_type",
+      "work_unit_id",
+      "work_unit_fingerprint",
+      "idempotency_key",
+      "target_surface"
+    ],
+    "provider_attempt_identity_fields": [
+      "stage_attempt_id",
+      "active_run_id",
+      "active_workflow_id",
+      "task_id",
+      "dispatch_ref",
+      "dispatch_path"
+    ],
+    "currentness_basis_fields": [
+      "truth_epoch",
+      "runtime_health_epoch",
+      "source_eval_id",
+      "source_fingerprint",
+      "route_epoch"
+    ],
+    "minimum_match_for_provider_running": [
+      "same_study_id",
+      "same_action_type",
+      "same_work_unit_id_or_fingerprint",
+      "same_dispatch_ref_or_stage_attempt_id",
+      "no_terminal_closeout_for_stage_attempt"
+    ],
+    "minimum_match_for_closeout_consumption": [
+      "same_study_id",
+      "same_stage_attempt_id_or_work_unit_identity",
+      "same_action_type_when_present",
+      "same_work_unit_fingerprint_when_present"
+    ],
+    "missing_identity_policy": "fail_closed_to_diagnostic_or_typed_blocker_candidate",
+    "weak_label_match_can_authorize_route": false
+  },
+  "lifecycle_state_machine": {
+    "main_chain": [
+      "DesiredOwnerDelta",
+      "ProviderAdmissionRequested",
+      "OPLStageRunAdmitted",
+      "ProviderRunning",
+      "ProviderTerminalCloseoutObserved",
+      "MASCloseoutConsumed",
+      "DomainAcceptedOrTypedBlocked",
+      "NextOwnerDeltaProjected"
+    ],
+    "exception_states": [
+      "HumanGateWaiting",
+      "RetryScheduled",
+      "DeadLettered",
+      "InfrastructureCrashed",
+      "StaleObservationIgnored",
+      "NoProgressBudgetExhausted",
+      "SupervisorOnlyRunningWatch"
+    ],
+    "transition_authority": {
+      "DesiredOwnerDelta": "MAS current_owner_delta reducer",
+      "ProviderAdmissionRequested": "MAS provider admission identity bound to current owner delta",
+      "OPLStageRunAdmitted": "OPL StageRun Kernel",
+      "ProviderRunning": "OPL liveness plus MAS identity match and no terminal closeout",
+      "ProviderTerminalCloseoutObserved": "OPL/default-executor closeout packet",
+      "MASCloseoutConsumed": "domain-health-diagnostic apply or equivalent MAS authority consumer",
+      "DomainAcceptedOrTypedBlocked": "MAS owner receipt, quality gate receipt, stable typed blocker, human gate, or route-back evidence",
+      "NextOwnerDeltaProjected": "MAS current_owner_delta/current_work_unit projection"
+    },
+    "provider_completion_counts_as_domain_accepted": false,
+    "queue_completion_counts_as_next_owner_delta": false,
+    "active_run_id_counts_as_paper_progress": false
+  },
+  "currentness_precedence": [
+    {
+      "rank": 1,
+      "signal": "terminal_closeout_for_same_stage_attempt",
+      "effect": "suppress_running_projection",
+      "required_match": [
+        "study_id",
+        "stage_attempt_id"
+      ],
+      "allowed_output": "terminal_closeout_diagnostic_or_closeout_consumption_candidate"
+    },
+    {
+      "rank": 2,
+      "signal": "strict_live_provider_attempt_for_current_identity",
+      "effect": "project_running_provider_attempt",
+      "required_match": [
+        "study_id",
+        "action_type",
+        "work_unit_id_or_fingerprint",
+        "dispatch_ref_or_stage_attempt_id"
+      ],
+      "allowed_output": "running_provider_attempt"
+    },
+    {
+      "rank": 3,
+      "signal": "accepted_typed_closeout_for_same_identity",
+      "effect": "consume_provider_admission_pending",
+      "required_match": [
+        "study_id",
+        "stage_attempt_id_or_work_unit_identity"
+      ],
+      "allowed_output": "typed_blocker_or_next_owner_projection"
+    },
+    {
+      "rank": 4,
+      "signal": "fresh_current_owner_action",
+      "effect": "project_executable_owner_action",
+      "required_match": [
+        "currentness_basis",
+        "allowed_action",
+        "work_unit_identity"
+      ],
+      "allowed_output": "executable_owner_action"
+    },
+    {
+      "rank": 5,
+      "signal": "stable_typed_blocker_for_current_identity",
+      "effect": "project_typed_blocker",
+      "required_match": [
+        "study_id",
+        "work_unit_identity_or_currentness_basis"
+      ],
+      "allowed_output": "typed_blocker"
+    },
+    {
+      "rank": 6,
+      "signal": "stale_or_unmatched_runtime_residue",
+      "effect": "audit_only",
+      "required_match": [],
+      "allowed_output": "ignored_diagnostic"
+    }
+  ],
+  "closeout_handshake": {
+    "required_sequence": [
+      "OPL attempt reaches terminal state",
+      "terminal closeout packet exists for the same stage attempt or work-unit identity",
+      "MAS consumes closeout through domain-health-diagnostic apply or equivalent authority consumer",
+      "fresh study progress/read-model is regenerated",
+      "if provider_admission_pending remains for a new identity, OPL scoped tick/hydrate may start the next attempt",
+      "if the same identity remains pending, classify as closeout consumption/currentness bug"
+    ],
+    "dry_run_semantics": {
+      "starts_llm_or_provider": false,
+      "observe_only_for_runtime_execution": true,
+      "may_refresh_diagnostic_evidence": true,
+      "must_not_be_called_no_write": false
+    },
+    "terminal_closeout_status_prefixes": [
+      "blocked",
+      "closed",
+      "completed",
+      "executed",
+      "failed",
+      "materialized_record",
+      "owner_output_already_current",
+      "progress_delta",
+      "record_materialized",
+      "record_only_archive",
+      "succeeded",
+      "terminal",
+      "typed_blocker",
+      "typed_blocked"
+    ],
+    "non_terminal_statuses": [
+      "admitted",
+      "checkpointed",
+      "created",
+      "human_gate",
+      "hydrated",
+      "in_progress",
+      "pending",
+      "queued",
+      "running",
+      "started",
+      "starting"
+    ]
+  },
+  "anti_loop_policy": {
+    "surface_kind": "mas_opl_stage_route_anti_loop_policy",
+    "budget_scope": "study_id + action_type + work_unit_id + work_unit_fingerprint + source_eval_id",
+    "max_same_identity_terminal_without_progress": 2,
+    "max_same_identity_noop_or_owner_output_current": 1,
+    "max_same_identity_provider_admission_echo": 1,
+    "progress_resets_budget_when_any_present": [
+      "OwnerReceipt",
+      "quality_gate_receipt",
+      "stable TypedBlocker with new blocker identity",
+      "human_gate_ref",
+      "route_back_evidence_ref",
+      "canonical paper/artifact delta ref",
+      "reviewer/auditor record ref for current artifact digest",
+      "new current_owner_delta identity"
+    ],
+    "no_progress_signals": [
+      "same_work_unit_terminal_closeout_without_domain_consumption",
+      "provider_admission_pending_for_consumed_identity",
+      "idempotent_noop_without_new_owner_delta",
+      "owner_output_already_current_without_next_owner_delta",
+      "repeated_gate_replay_same_blockers",
+      "stale_route_back_replayed_as_current",
+      "advisory_refs_only_without_owner_consumption",
+      "queue_dead_letter_without_mas_typed_blocker_or_next_owner"
+    ],
+    "classifications": [
+      "stale_running_projection",
+      "closeout_unconsumed",
+      "same_work_unit_no_delta",
+      "provider_admission_echo",
+      "repeated_noop_route",
+      "advisory_only_loop",
+      "dead_letter_unconsumed"
+    ],
+    "budget_exhaustion_action": "stop_redrive_and_emit_mas_typed_blocker_candidate_or_route_back_evidence",
+    "automatic_redrive_after_budget_exhaustion_allowed": false
+  },
+  "opl_substrate_optimization": {
+    "opl_owns": [
+      "StageRun Kernel",
+      "durable queue",
+      "retry and dead-letter",
+      "provider liveness query",
+      "human gate transport",
+      "state index",
+      "route reconciler transport",
+      "observability",
+      "workbench shell"
+    ],
+    "mas_owns": [
+      "study truth",
+      "current_owner_delta",
+      "source/data readiness verdict",
+      "publication quality verdict",
+      "artifact mutation authorization",
+      "owner receipt",
+      "typed blocker",
+      "quality gate receipt",
+      "human gate semantic acceptance"
+    ],
+    "handoff_interface": [
+      "current_owner_delta",
+      "provider_admission_identity",
+      "StageRun attempt refs",
+      "ToolResultEnvelope",
+      "OwnerReceipt",
+      "TypedBlocker",
+      "HumanGate",
+      "RouteBackEvidence"
+    ],
+    "forbidden_opl_authority": [
+      "study_truth_write",
+      "publication_ready_claim",
+      "quality_verdict",
+      "artifact_authority",
+      "owner_receipt_signing",
+      "typed_blocker_semantic_materialization"
+    ],
+    "forbidden_mas_runtime_residue": [
+      "generic_queue_owner",
+      "generic_attempt_ledger_owner",
+      "private_scheduler",
+      "worker_residency_owner",
+      "second_route_table",
+      "second_active_backlog"
+    ]
+  },
+  "verification_refs": [
+    "tests/test_stage_route_reconcile_contract.py",
+    "tests/owner_route_reconcile_cases/test_opl_provider_attempt_projection.py",
+    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/provider_admission_current_control_cases.py",
+    "tests/test_current_work_unit.py",
+    "scripts/verify.sh",
+    "make test-meta"
+  ]
+}
