@@ -1,0 +1,121 @@
+{
+  "surface_kind": "foundry_agent_os_domain_kernel_manifest",
+  "version": "foundry-agent-os-domain-kernel-manifest.v1",
+  "domain_id": "med-autoscience",
+  "domain_agent_id": "mas",
+  "owner": "MedAutoScience",
+  "state": "active_contract",
+  "role": "w4_domain_kernel_manifest",
+  "source_of_truth_refs": [
+    "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md",
+    "contracts/foundry_agent_series.json",
+    "contracts/private_functional_surface_policy.json",
+    "contracts/functional_privatization_audit.json"
+  ],
+  "default_read_root": {
+    "surface": "current_owner_delta",
+    "ordinary_operator_root": true,
+    "raw_worklist_role": "drilldown_only",
+    "provider_completion_role": "transport_evidence_only",
+    "evidence_count_role": "audit_only",
+    "projection_can_be_owner_answer": false
+  },
+  "domain_authority_kernel": {
+    "retained_surfaces": [
+      "medical_research_truth",
+      "study_truth",
+      "source_and_data_readiness_verdict",
+      "ai_reviewer_or_auditor_quality_verdict",
+      "publication_gate",
+      "artifact_mutation_authorization",
+      "publication_route_memory_accept_reject_or_blocker",
+      "owner_receipt_signer",
+      "typed_blocker_materializer",
+      "domain_native_helper_guard"
+    ],
+    "retained_surface_owner": "med-autoscience",
+    "owner_receipt_signer": "med-autoscience_authority_kernel",
+    "typed_blocker_signer": "med-autoscience_authority_kernel",
+    "quality_export_publication_review_verdict_signers": [
+      "ai_reviewer_or_auditor_quality_verdict",
+      "publication_gate",
+      "source_and_data_readiness_verdict",
+      "artifact_mutation_authorization"
+    ],
+    "accepted_answer_shapes": [
+      "mas_owner_receipt_ref",
+      "mas_typed_blocker_ref",
+      "quality_gate_receipt_ref",
+      "publication_gate_receipt_ref",
+      "human_gate_ref",
+      "route_back_evidence_ref",
+      "no_regression_evidence_ref"
+    ]
+  },
+  "opl_upcollect_surfaces": [
+    "generic_runtime",
+    "stage_run_kernel",
+    "queue_and_attempt_ledger",
+    "retry_dead_letter_resume",
+    "human_gate_transport",
+    "state_index_kernel",
+    "workspace_source_shell",
+    "artifact_memory_lifecycle_shell",
+    "generated_cli_mcp_skill_product_workbench_surfaces",
+    "console_current_owner_delta_projection",
+    "refs_only_vault_lineage",
+    "capability_registry_abi"
+  ],
+  "forbidden_authority_flags": {
+    "opl": {
+      "can_write_domain_truth": false,
+      "can_sign_owner_receipt": false,
+      "can_create_domain_typed_blocker": false,
+      "can_authorize_quality_export_publication_or_review_verdict": false
+    },
+    "vault": {
+      "can_write_domain_truth": false,
+      "can_sign_owner_receipt": false,
+      "can_create_domain_typed_blocker": false,
+      "can_authorize_quality_export_publication_or_review_verdict": false
+    },
+    "console": {
+      "can_write_domain_truth": false,
+      "can_sign_owner_receipt": false,
+      "can_create_domain_typed_blocker": false,
+      "can_authorize_quality_export_publication_or_review_verdict": false
+    },
+    "runway": {
+      "can_write_domain_truth": false,
+      "can_sign_owner_receipt": false,
+      "can_create_domain_typed_blocker": false,
+      "can_authorize_quality_export_publication_or_review_verdict": false
+    },
+    "pack": {
+      "can_write_domain_truth": false,
+      "can_sign_owner_receipt": false,
+      "can_create_domain_typed_blocker": false,
+      "can_authorize_quality_export_publication_or_review_verdict": false
+    },
+    "capability_registry": {
+      "can_write_domain_truth": false,
+      "can_sign_owner_receipt": false,
+      "can_create_domain_typed_blocker": false,
+      "can_authorize_quality_export_publication_or_review_verdict": false
+    }
+  },
+  "non_claims": {
+    "domain_ready": false,
+    "publication_ready": false,
+    "submission_ready": false,
+    "production_ready": false,
+    "app_release_ready": false,
+    "physical_delete_authorized": false
+  },
+  "verification": {
+    "focused_tests": [
+      "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py"
+    ],
+    "docs_ref": "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md"
+  }
+}

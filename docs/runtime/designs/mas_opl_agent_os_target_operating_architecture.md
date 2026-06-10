@@ -16,6 +16,7 @@ Date: `2026-06-10`
 
 - `OPL` 是 Agent OS / runtime substrate。
 - `MAS` 是 Medical Research Pack + Medical Authority Kernel。
+- `contracts/foundry-agent-os-domain-kernel-manifest.json` 是 W4 `domain-kernel-manifest` 的机器合同入口，固定 retained authority kernel、OPL upcollect surfaces、`current_owner_delta` 默认读根和 false-authority flags。
 - 外部 Co-Scientist / Light / EvoScientist / PaperSpine / ARIS / ARK 等只进入 Scientific Capability Registry 或 refs-only advisory worker；它们不是 MAS runtime owner，也不是 publication / artifact / memory authority。
 - OPL family 计划已经把 Scientific Capability Registry 抽象为 `Atlas + Pack + Stagecraft` 的 family-level ABI / use-policy；MAS 不再新增独立 external-learning selector、第二 active backlog 或 always-on advisory pipeline。MAS 后续只声明 domain refs consumption、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级门。
 - 默认 operator / executor 读面固定为 `current_owner_delta`；audit、lineage、sidecar、observability、raw worklist 只做 drilldown。
