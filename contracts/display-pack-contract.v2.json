@@ -38,7 +38,7 @@
       "goldens": "Golden regression refs and status.",
       "exemplars": "Link-only exemplar refs and intake provenance.",
       "provenance": "Source, lock, hash, release, and audit provenance refs.",
-      "opl_handoff": "Refs-only handoff to the future generic OPL Pack OS."
+      "opl_handoff": "Refs-only handoff to the external OPL-owned generic Pack OS."
     }
   },
   "template_descriptor": {
@@ -79,6 +79,7 @@
     "paper_quality_refs": [
       "paper/figure_intent.json",
       "paper/figure_spec.json",
+      "paper/figure_specs.json",
       "paper/figure_style_reference_bundle.json",
       "paper/figure_visual_audit_receipt.json",
       "paper/figure_polish_lifecycle.json",
@@ -98,12 +99,14 @@
   "opl_handoff": {
     "surface_kind": "display_pack_v2_opl_pack_os_handoff",
     "status": "handoff_tail",
-    "tail_status": "opl_consumer_smoke_landed",
+    "tail_status": "opl_pack_os_substrate_landed_external",
     "target_owner": "OPL Pack OS",
     "target_capabilities": [
       "generic_pack_install",
       "generic_pack_registry",
       "generic_pack_version_resolution",
+      "generic_pack_cache",
+      "generic_pack_distribution",
       "generic_pack_lock_projection",
       "generic_pack_submission_handoff",
       "generic_pack_asset_inventory"
@@ -128,14 +131,37 @@
         "one-person-lab:tests/src/pack-os.test.ts",
         "one-person-lab:tests/src/cli/cases/pack-os-command-surface.test.ts"
       ],
-      "boundary": "OPL can consume this MAS Display Pack v2 contract and emit a generic pack lock/audit smoke receipt. This does not land generic install, registry, distribution, cache, or publication authority inside MAS."
+      "boundary": "OPL can consume this MAS Display Pack v2 contract and emit a generic pack lock/audit smoke receipt. This consumer preserves MAS authority boundaries and does not land publication authority inside MAS."
     },
-    "handoff_rule": "MAS exposes refs and boundaries for OPL-owned Pack OS consumers. An OPL Pack OS MAS Display Pack consumer smoke surface has landed outside MAS, but MAS still does not own or close the generic OPL Pack OS substrate.",
+    "handoff_rule": "MAS exposes refs and boundaries for OPL-owned Pack OS consumers. OPL repo has landed generic Pack OS install, registry, cache, distribution, lock, validation, and MAS Display Pack smoke surfaces; MAS still does not own or close generic Pack OS inside this repository.",
     "forbidden_claims": [
       "MAS owns generic OPL Pack OS",
-      "Display Pack v2 contract closes the OPL generic pack substrate",
-      "OPL generic pack substrate is landed inside this repository"
-    ]
+      "Display Pack v2 contract closes generic Pack OS inside MAS",
+      "OPL Pack OS can write MAS publication truth",
+      "OPL Pack OS can authorize MAS publication readiness"
+    ],
+    "external_opl_pack_os_substrate": {
+      "status": "landed_in_opl_repo",
+      "owner_repo": "one-person-lab",
+      "contract_ref": "one-person-lab:contracts/opl-framework/pack-os-contract.json",
+      "cli_surfaces": [
+        "opl pack os install",
+        "opl pack os registry",
+        "opl pack os cache",
+        "opl pack os distribute",
+        "opl pack os lock",
+        "opl pack os validate",
+        "opl pack os mas-display-smoke"
+      ],
+      "verification_refs": [
+        "one-person-lab:src/pack-os.ts",
+        "one-person-lab:src/pack-os-contract.ts",
+        "one-person-lab:contracts/opl-framework/pack-os-contract.json",
+        "one-person-lab:tests/src/pack-os.test.ts",
+        "one-person-lab:tests/src/cli/cases/pack-os-command-surface.test.ts"
+      ],
+      "boundary": "Generic install, registry, cache, distribute, lock, validate, and MAS display smoke surfaces are landed in the OPL repo. MAS only references these external OPL-owned surfaces and still does not own generic Pack OS or publication authority."
+    }
   },
   "verification": {
     "focused_tests": [

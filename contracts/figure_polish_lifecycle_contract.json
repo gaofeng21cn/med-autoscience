@@ -19,7 +19,7 @@
       "audit_clear",
       "publication_manifested"
     ],
-    "prefix_policy": "Events must begin with draft_rendered and may only be an ordered prefix of the state sequence. Hard gates cannot be skipped or reordered; publication_manifested requires prior audit_clear.",
+    "prefix_policy": "Events are validated per figure sequence. Each sequence must begin with draft_rendered and may only be an ordered prefix of the state sequence. Hard gates cannot be skipped or reordered; publication_manifested requires prior audit_clear.",
     "ai_vlm_actor_policy": "Any AI/VLM actor event must carry model_ref or reviewer_ref.",
     "forbidden_event_claims": ["mutates_data=true", "carries_publication_verdict=true"]
   },

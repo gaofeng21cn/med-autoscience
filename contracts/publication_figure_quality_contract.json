@@ -21,6 +21,13 @@
       "relationship": "Binds figure_intent, Display Template, figure kind, medical semantics, and optional panel roles.",
       "authority_boundary": "Declarative medical figure grammar only; it is not a renderer, Vega-Lite runtime, publication verdict, or data/statistics mutation surface."
     },
+    "medical_figure_specs": {
+      "path": "paper/figure_specs.json",
+      "loader": "med_autoscience.medical_figure_spec_contract:load_medical_figure_specs",
+      "required_top_level": ["schema_version", "figures"],
+      "relationship": "Optional multi-figure batch surface. Each figures[] entry binds figure_intent, Display Template, figure kind, medical semantics, and optional panel roles using the same authority boundary as paper/figure_spec.json.",
+      "authority_boundary": "Declarative batch grammar only; it enables one E2E lifecycle to materialize multiple figures without becoming a renderer, Vega-Lite runtime, publication verdict, or data/statistics mutation surface."
+    },
     "figure_style_reference_bundle": {
       "path": "paper/figure_style_reference_bundle.json",
       "loader": "med_autoscience.publication_figure_quality_contract:load_figure_style_reference_bundle",

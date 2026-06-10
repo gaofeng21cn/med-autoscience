@@ -87,7 +87,7 @@ def _validate_event_authority_flags(event: dict[str, Any], *, context: str) -> N
             raise ValueError(f"{context}.{field_name} must be false when provided")
 
 
-def _require_state_sequence(events: list[dict[str, Any]]) -> None:
+def _require_state_sequence_chunk(events: list[dict[str, Any]]) -> None:
     states = [event.get("state") for event in events]
     if states[0] != VALID_LIFECYCLE_STATES[0]:
         raise ValueError("figure_polish_lifecycle.events state sequence must start with draft_rendered")
@@ -100,6 +100,18 @@ def _require_state_sequence(events: list[dict[str, Any]]) -> None:
                 "figure_polish_lifecycle.events state sequence must be an ordered hard-gate prefix; "
                 f"expected {expected!r} at index {index}, got {actual!r}"
             )
+
+
+def _require_state_sequence(events: list[dict[str, Any]]) -> None:
+    chunk: list[dict[str, Any]] = []
+    for event in events:
+        state = event.get("state")
+        if state == VALID_LIFECYCLE_STATES[0] and chunk:
+            _require_state_sequence_chunk(chunk)
+            chunk = []
+        chunk.append(event)
+    if chunk:
+        _require_state_sequence_chunk(chunk)
 
 
 def _require_relationship_refs(payload: dict[str, Any]) -> dict[str, str]:

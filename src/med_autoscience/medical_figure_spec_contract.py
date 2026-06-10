@@ -8,6 +8,7 @@ from med_autoscience.publication_figure_quality_contract import VALID_FIGURE_KIN
 
 
 MEDICAL_FIGURE_SPEC_BASENAME = "figure_spec.json"
+MEDICAL_FIGURE_SPECS_BASENAME = "figure_specs.json"
 SUPPORTED_MEDICAL_SEMANTIC_FIELDS = frozenset(
     (
         "cohort_ref",
@@ -113,22 +114,21 @@ def _normalize_panels(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return normalized_panels
 
 
-def load_medical_figure_spec(path: Path) -> dict[str, Any]:
-    payload = _read_json_object(path)
+def _normalize_medical_figure_spec_payload(payload: dict[str, Any], *, context: str) -> dict[str, Any]:
     _require_schema_version(payload, contract_name="medical_figure_spec")
 
-    figure_id = _require_non_empty_string(payload, "figure_id", context="medical_figure_spec")
-    intent_ref = _require_non_empty_string(payload, "intent_ref", context="medical_figure_spec")
-    template_id = _require_non_empty_string(payload, "template_id", context="medical_figure_spec")
-    figure_kind = _require_non_empty_string(payload, "figure_kind", context="medical_figure_spec")
+    figure_id = _require_non_empty_string(payload, "figure_id", context=context)
+    intent_ref = _require_non_empty_string(payload, "intent_ref", context=context)
+    template_id = _require_non_empty_string(payload, "template_id", context=context)
+    figure_kind = _require_non_empty_string(payload, "figure_kind", context=context)
     if figure_kind not in VALID_FIGURE_KINDS:
-        raise ValueError(f"medical_figure_spec.figure_kind must be one of {sorted(VALID_FIGURE_KINDS)!r}")
+        raise ValueError(f"{context}.figure_kind must be one of {sorted(VALID_FIGURE_KINDS)!r}")
 
-    semantics = _require_object(payload, "medical_semantics", context="medical_figure_spec")
+    semantics = _require_object(payload, "medical_semantics", context=context)
     normalized_semantics = _normalize_medical_semantics(
         semantics,
         figure_kind=figure_kind,
-        context="medical_figure_spec.medical_semantics",
+        context=f"{context}.medical_semantics",
     )
     normalized_panels = _normalize_panels(payload)
 
@@ -143,3 +143,37 @@ def load_medical_figure_spec(path: Path) -> dict[str, Any]:
     if "panels" in payload:
         normalized["panels"] = normalized_panels
     return normalized
+
+
+def load_medical_figure_spec(path: Path) -> dict[str, Any]:
+    payload = _read_json_object(path)
+    return _normalize_medical_figure_spec_payload(payload, context="medical_figure_spec")
+
+
+def _normalize_figure_spec_from_batch(item: dict[str, Any], *, index: int) -> dict[str, Any]:
+    context = f"medical_figure_specs.figures[{index}]"
+    payload = dict(item)
+    payload.setdefault("schema_version", 1)
+    return _normalize_medical_figure_spec_payload(payload, context=context)
+
+
+def load_medical_figure_specs(path: Path) -> dict[str, Any]:
+    payload = _read_json_object(path)
+    _require_schema_version(payload, contract_name="medical_figure_specs")
+    figures = payload.get("figures")
+    if not isinstance(figures, list) or not figures:
+        raise ValueError("medical_figure_specs.figures must be a non-empty list")
+
+    normalized_figures: list[dict[str, Any]] = []
+    seen_figure_ids: set[str] = set()
+    for index, item in enumerate(figures):
+        if not isinstance(item, dict):
+            raise ValueError(f"medical_figure_specs.figures[{index}] must be a JSON object")
+        normalized = _normalize_figure_spec_from_batch(item, index=index)
+        figure_id = str(normalized["figure_id"])
+        if figure_id in seen_figure_ids:
+            raise ValueError(f"medical_figure_specs.figures[].figure_id contains duplicate value `{figure_id}`")
+        seen_figure_ids.add(figure_id)
+        normalized_figures.append(normalized)
+
+    return {**payload, "figures": normalized_figures}

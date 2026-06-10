@@ -479,6 +479,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     display_pack_e2e_parser = subparsers.add_parser("display-pack-e2e")
     display_pack_e2e_parser.add_argument("--repo-root", required=True)
     display_pack_e2e_parser.add_argument("--paper-root", required=True)
+    display_pack_e2e_parser.add_argument("--figure-id", action="append", default=[])
     display_pack_e2e_review = display_pack_e2e_parser.add_mutually_exclusive_group(required=True)
     display_pack_e2e_review.add_argument("--visual-audit-review-json")
     display_pack_e2e_review.add_argument("--visual-audit-review-file")

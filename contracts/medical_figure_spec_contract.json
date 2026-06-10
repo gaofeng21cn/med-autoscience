@@ -44,6 +44,20 @@
     },
     "authority_boundary": "Declarative medical figure grammar only; it binds figure intent, Display Template, and medical semantics without rendering figures, changing data/statistics, or issuing publication readiness verdicts."
   },
+  "batch_paper_surface": {
+    "name": "medical_figure_specs",
+    "path": "paper/figure_specs.json",
+    "loader": "med_autoscience.medical_figure_spec_contract:load_medical_figure_specs",
+    "required_top_level": [
+      "schema_version",
+      "figures"
+    ],
+    "entry_contract": "Each figures[] item follows the same required fields and authority boundary as paper/figure_spec.json. Item schema_version is optional and defaults to 1 for batch entries.",
+    "uniqueness": [
+      "figures[].figure_id"
+    ],
+    "authority_boundary": "Batch declarative medical figure grammar only; it selects multiple paper figures for one Display Pack E2E lifecycle without rendering figures, changing data/statistics, or issuing publication readiness verdicts."
+  },
   "integration_points": {
     "figure_intent": {
       "path": "paper/figure_intent.json",

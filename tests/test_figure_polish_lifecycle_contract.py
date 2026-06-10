@@ -82,6 +82,24 @@ def test_load_figure_polish_lifecycle_accepts_valid_unfinished_prefix(tmp_path: 
     assert payload["relationship_refs"]["figure_visual_audit_receipt"] == "paper/figure_visual_audit_receipt.json"
 
 
+def test_load_figure_polish_lifecycle_accepts_multi_figure_gate_sequences(tmp_path: Path) -> None:
+    from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
+
+    payload = _valid_payload()
+    second_sequence = [
+        {**event, "figure_id": "F2", "artifact_ref": str(event["artifact_ref"]).replace("F1", "F2")}
+        for event in _valid_payload()["events"]
+    ]
+    payload["events"] = [*payload["events"], *second_sequence]
+    path = tmp_path / "figure_polish_lifecycle.json"
+    _write_json(path, payload)
+
+    loaded = load_figure_polish_lifecycle(path)
+
+    assert [event["figure_id"] for event in loaded["events"][:5]] == ["F1"] * 5
+    assert [event["figure_id"] for event in loaded["events"][5:]] == ["F2"] * 5
+
+
 def test_load_figure_polish_lifecycle_rejects_skipped_hard_gate(tmp_path: Path) -> None:
     from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
 

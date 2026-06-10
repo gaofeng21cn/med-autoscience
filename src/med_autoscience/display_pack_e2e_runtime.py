@@ -4,8 +4,12 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import shlex
+import subprocess
+import time
 from typing import Any
 
 from med_autoscience import display_layout_qc
@@ -15,7 +19,12 @@ from med_autoscience.display_pack_runtime import (
     resolve_display_template_runtime,
 )
 from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
-from med_autoscience.medical_figure_spec_contract import load_medical_figure_spec
+from med_autoscience.medical_figure_spec_contract import (
+    MEDICAL_FIGURE_SPEC_BASENAME,
+    MEDICAL_FIGURE_SPECS_BASENAME,
+    load_medical_figure_spec,
+    load_medical_figure_specs,
+)
 from med_autoscience.publication_display_contract import (
     load_display_overrides,
     load_publication_style_profile,
@@ -101,11 +110,15 @@ def _intent_figure(intent_payload: Mapping[str, Any], *, figure_id: str) -> dict
     return dict(matches[0])
 
 
-def _load_required_quality_inputs(paper_root: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+def _load_required_quality_inputs(paper_root: Path) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
     intent = load_figure_intent(paper_root / "figure_intent.json")
-    figure_spec = load_medical_figure_spec(paper_root / "figure_spec.json")
+    batch_spec_path = paper_root / MEDICAL_FIGURE_SPECS_BASENAME
+    if batch_spec_path.exists():
+        figure_specs = list(load_medical_figure_specs(batch_spec_path)["figures"])
+    else:
+        figure_specs = [load_medical_figure_spec(paper_root / MEDICAL_FIGURE_SPEC_BASENAME)]
     style_reference_bundle = load_figure_style_reference_bundle(paper_root / "figure_style_reference_bundle.json")
-    return intent, figure_spec, style_reference_bundle
+    return intent, figure_specs, style_reference_bundle
 
 
 def _validate_intent_spec_binding(*, intent_figure: Mapping[str, Any], figure_spec: Mapping[str, Any]) -> None:
@@ -150,6 +163,172 @@ def _data_payload_and_digest(*, paper_root: Path, data_ref: str) -> tuple[dict[s
     return data_payload, digest
 
 
+def _subprocess_placeholders(
+    *,
+    request_path: Path,
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+    figure_id: str,
+    paper_root: Path,
+    template_root: Path,
+    pack_root: Path,
+) -> dict[str, str]:
+    return {
+        "request_json": str(request_path),
+        "input_json": str(request_path),
+        "output_png": str(output_png_path),
+        "output_pdf": str(output_pdf_path),
+        "layout_sidecar": str(layout_sidecar_path),
+        "figure_id": figure_id,
+        "paper_root": str(paper_root),
+        "template_root": str(template_root),
+        "pack_root": str(pack_root),
+    }
+
+
+def _expand_subprocess_entrypoint(entrypoint: str, *, placeholders: Mapping[str, str]) -> list[str]:
+    raw_argv = shlex.split(entrypoint)
+    if not raw_argv:
+        raise ValueError("subprocess display template entrypoint must not be empty")
+    expanded: list[str] = []
+    for token in raw_argv:
+        expanded_token = token
+        for placeholder, value in placeholders.items():
+            expanded_token = expanded_token.replace("{" + placeholder + "}", value)
+        if "{" in expanded_token or "}" in expanded_token:
+            raise ValueError(f"unsupported subprocess renderer placeholder in `{entrypoint}`")
+        expanded.append(expanded_token)
+    return expanded
+
+
+def _run_subprocess_renderer(
+    *,
+    runtime_template_root: Path,
+    pack_root: Path,
+    template_manifest: Any,
+    paper_root: Path,
+    figure_id: str,
+    full_template_id: str,
+    display_payload: Mapping[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> dict[str, Any]:
+    request_dir = paper_root / "build" / "display_pack_render_requests"
+    log_dir = paper_root / "build" / "display_pack_renderer_logs"
+    request_path = request_dir / f"{_safe_artifact_stem(figure_id)}.render_request.json"
+    stdout_path = log_dir / f"{_safe_artifact_stem(figure_id)}.stdout.txt"
+    stderr_path = log_dir / f"{_safe_artifact_stem(figure_id)}.stderr.txt"
+    render_request = {
+        "schema_version": 1,
+        "execution_mode": "subprocess",
+        "renderer_family": template_manifest.renderer_family,
+        "figure_id": figure_id,
+        "template_id": full_template_id,
+        "short_template_id": template_manifest.template_id,
+        "display_payload": dict(display_payload),
+        "output_png_path": str(output_png_path),
+        "output_pdf_path": str(output_pdf_path),
+        "layout_sidecar_path": str(layout_sidecar_path),
+    }
+    _write_json(request_path, render_request)
+    placeholders = _subprocess_placeholders(
+        request_path=request_path,
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+        figure_id=figure_id,
+        paper_root=paper_root,
+        template_root=runtime_template_root,
+        pack_root=pack_root,
+    )
+    argv = _expand_subprocess_entrypoint(template_manifest.entrypoint, placeholders=placeholders)
+    env = {
+        **os.environ,
+        "MAS_DISPLAY_RENDER_REQUEST": str(request_path),
+        "MAS_DISPLAY_OUTPUT_PNG": str(output_png_path),
+        "MAS_DISPLAY_OUTPUT_PDF": str(output_pdf_path),
+        "MAS_DISPLAY_LAYOUT_SIDECAR": str(layout_sidecar_path),
+        "MAS_DISPLAY_FIGURE_ID": figure_id,
+        "MAS_DISPLAY_TEMPLATE_ID": full_template_id,
+    }
+    started_at = time.monotonic()
+    completed = subprocess.run(
+        argv,
+        cwd=runtime_template_root,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+        env=env,
+    )
+    duration_seconds = round(time.monotonic() - started_at, 3)
+    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    stdout_path.write_text(completed.stdout, encoding="utf-8")
+    stderr_path.parent.mkdir(parents=True, exist_ok=True)
+    stderr_path.write_text(completed.stderr, encoding="utf-8")
+    result = {
+        "status": "rendered" if completed.returncode == 0 else "failed",
+        "execution_mode": "subprocess",
+        "renderer_family": template_manifest.renderer_family,
+        "entrypoint": template_manifest.entrypoint,
+        "argv": argv,
+        "cwd": str(runtime_template_root),
+        "returncode": completed.returncode,
+        "duration_seconds": duration_seconds,
+        "request_path": str(request_path),
+        "request_ref": _workspace_ref(request_path, paper_root=paper_root),
+        "stdout_path": str(stdout_path),
+        "stdout_ref": _workspace_ref(stdout_path, paper_root=paper_root),
+        "stderr_path": str(stderr_path),
+        "stderr_ref": _workspace_ref(stderr_path, paper_root=paper_root),
+    }
+    if completed.returncode != 0:
+        raise ValueError(
+            f"subprocess display renderer failed for `{figure_id}` with return code "
+            f"{completed.returncode}; stderr ref: {result['stderr_ref']}"
+        )
+    return result
+
+
+def _run_python_plugin_renderer(
+    *,
+    repo_root: Path,
+    paper_root: Path,
+    template_manifest: Any,
+    full_template_id: str,
+    display_payload: Mapping[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> dict[str, Any]:
+    renderer = load_python_plugin_callable(
+        repo_root=repo_root,
+        paper_root=paper_root,
+        template_id=full_template_id,
+    )
+    plugin_result = renderer(
+        template_id=full_template_id,
+        display_payload=display_payload,
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+    if isinstance(plugin_result, Mapping):
+        return {
+            "execution_mode": "python_plugin",
+            "renderer_family": template_manifest.renderer_family,
+            **dict(plugin_result),
+        }
+    return {
+        "status": "rendered",
+        "execution_mode": "python_plugin",
+        "renderer_family": template_manifest.renderer_family,
+        "plugin_result": plugin_result,
+    }
+
+
 def _render_figure(
     *,
     repo_root: Path,
@@ -165,11 +344,6 @@ def _render_figure(
         template_id=full_template_id,
     )
     template_manifest = runtime.template_manifest
-    renderer = load_python_plugin_callable(
-        repo_root=repo_root,
-        paper_root=paper_root,
-        template_id=full_template_id,
-    )
     data_payload, data_digest = _data_payload_and_digest(
         paper_root=paper_root,
         data_ref=str(intent_figure["data_ref"]),
@@ -196,13 +370,32 @@ def _render_figure(
         "data_payload": data_payload,
         "render_context": render_context,
     }
-    render_result = renderer(
-        template_id=full_template_id,
-        display_payload=display_payload,
-        output_png_path=output_png_path,
-        output_pdf_path=output_pdf_path,
-        layout_sidecar_path=layout_sidecar_path,
-    )
+    if template_manifest.execution_mode == "python_plugin":
+        render_result = _run_python_plugin_renderer(
+            repo_root=repo_root,
+            paper_root=paper_root,
+            template_manifest=template_manifest,
+            full_template_id=full_template_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=layout_sidecar_path,
+        )
+    elif template_manifest.execution_mode == "subprocess":
+        render_result = _run_subprocess_renderer(
+            runtime_template_root=runtime.template_path.parent,
+            pack_root=runtime.pack_root,
+            template_manifest=template_manifest,
+            paper_root=paper_root,
+            figure_id=figure_id,
+            full_template_id=full_template_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=layout_sidecar_path,
+        )
+    else:
+        raise ValueError(f"unsupported display template execution mode `{template_manifest.execution_mode}`")
     for path in (output_png_path, output_pdf_path, layout_sidecar_path):
         if not path.exists():
             raise FileNotFoundError(f"display pack renderer did not write required artifact: {path}")
@@ -220,6 +413,8 @@ def _render_figure(
         "template_id": full_template_id,
         "short_template_id": template_manifest.template_id,
         "figure_kind": figure_spec["figure_kind"],
+        "renderer_family": template_manifest.renderer_family,
+        "execution_mode": template_manifest.execution_mode,
         "claim_ref": intent_figure["claim_ref"],
         "data_ref": intent_figure["data_ref"],
         "data_digest": data_digest,
@@ -307,78 +502,82 @@ def _write_figure_polish_lifecycle(
 ) -> dict[str, Any]:
     if audit_receipt.get("final_status") != "clear":
         raise ValueError("publication manifest requires clear visual audit status")
-    primary = figure_entries[0]
-    figure_id = str(primary["figure_id"])
-    artifact_ref = str(primary["rendered_artifacts"]["png_ref"])
-    qc_ref = str(primary["deterministic_qc"]["ref"])
     audit_actor = str(audit_receipt.get("audit_mode") or "").strip() or "human_visual_review"
+    events: list[dict[str, Any]] = []
+    for entry in figure_entries:
+        figure_id = str(entry["figure_id"])
+        artifact_ref = str(entry["rendered_artifacts"]["png_ref"])
+        qc_ref = str(entry["deterministic_qc"]["ref"])
+        events.extend(
+            [
+                {
+                    "state": "draft_rendered",
+                    "figure_id": figure_id,
+                    "artifact_ref": artifact_ref,
+                    "actor": "display_pack_builder",
+                    "evidence_ref": DISPLAY_PACK_LOCK_REF,
+                    "mutates_data": False,
+                    "carries_publication_verdict": False,
+                },
+                {
+                    "state": "deterministic_qc_clear",
+                    "figure_id": figure_id,
+                    "artifact_ref": artifact_ref,
+                    "actor": "deterministic_qc",
+                    "evidence_ref": qc_ref,
+                    "mutates_data": False,
+                    "carries_publication_verdict": False,
+                },
+                {
+                    "state": "visual_audit_findings",
+                    "figure_id": figure_id,
+                    "artifact_ref": artifact_ref,
+                    "actor": audit_actor,
+                    "evidence_ref": FIGURE_VISUAL_AUDIT_RECEIPT_REF,
+                    "reviewer_ref": "paper/figure_visual_audit_receipt.json#/reviewer",
+                    "mutates_data": False,
+                    "carries_publication_verdict": False,
+                },
+                {
+                    "state": "revised",
+                    "figure_id": figure_id,
+                    "artifact_ref": artifact_ref,
+                    "actor": "display_pack_builder",
+                    "evidence_ref": qc_ref,
+                    "mutates_data": False,
+                    "carries_publication_verdict": False,
+                },
+                {
+                    "state": "audit_clear",
+                    "figure_id": figure_id,
+                    "artifact_ref": artifact_ref,
+                    "actor": audit_actor,
+                    "evidence_ref": FIGURE_VISUAL_AUDIT_RECEIPT_REF,
+                    "reviewer_ref": "paper/figure_visual_audit_receipt.json#/reviewer",
+                    "mutates_data": False,
+                    "carries_publication_verdict": False,
+                },
+                {
+                    "state": "publication_manifested",
+                    "figure_id": figure_id,
+                    "artifact_ref": artifact_ref,
+                    "actor": "display_pack_builder",
+                    "evidence_ref": "paper/build/display_pack_publication_manifest.json",
+                    "mutates_data": False,
+                    "carries_publication_verdict": False,
+                },
+            ]
+        )
     lifecycle_payload = {
         "schema_version": 1,
-        "lifecycle_id": f"display-pack-{figure_id}-polish",
+        "lifecycle_id": "display-pack-polish",
         "relationship_refs": {
             "figure_visual_audit_receipt": FIGURE_VISUAL_AUDIT_RECEIPT_REF,
             "display_pack_lock_publication_figure_quality_refs": (
                 f"{DISPLAY_PACK_LOCK_REF}#/publication_figure_quality_refs"
             ),
         },
-        "events": [
-            {
-                "state": "draft_rendered",
-                "figure_id": figure_id,
-                "artifact_ref": artifact_ref,
-                "actor": "display_pack_builder",
-                "evidence_ref": DISPLAY_PACK_LOCK_REF,
-                "mutates_data": False,
-                "carries_publication_verdict": False,
-            },
-            {
-                "state": "deterministic_qc_clear",
-                "figure_id": figure_id,
-                "artifact_ref": artifact_ref,
-                "actor": "deterministic_qc",
-                "evidence_ref": qc_ref,
-                "mutates_data": False,
-                "carries_publication_verdict": False,
-            },
-            {
-                "state": "visual_audit_findings",
-                "figure_id": figure_id,
-                "artifact_ref": artifact_ref,
-                "actor": audit_actor,
-                "evidence_ref": FIGURE_VISUAL_AUDIT_RECEIPT_REF,
-                "reviewer_ref": "paper/figure_visual_audit_receipt.json#/reviewer",
-                "mutates_data": False,
-                "carries_publication_verdict": False,
-            },
-            {
-                "state": "revised",
-                "figure_id": figure_id,
-                "artifact_ref": artifact_ref,
-                "actor": "display_pack_builder",
-                "evidence_ref": qc_ref,
-                "mutates_data": False,
-                "carries_publication_verdict": False,
-            },
-            {
-                "state": "audit_clear",
-                "figure_id": figure_id,
-                "artifact_ref": artifact_ref,
-                "actor": audit_actor,
-                "evidence_ref": FIGURE_VISUAL_AUDIT_RECEIPT_REF,
-                "reviewer_ref": "paper/figure_visual_audit_receipt.json#/reviewer",
-                "mutates_data": False,
-                "carries_publication_verdict": False,
-            },
-            {
-                "state": "publication_manifested",
-                "figure_id": figure_id,
-                "artifact_ref": artifact_ref,
-                "actor": "display_pack_builder",
-                "evidence_ref": "paper/build/display_pack_publication_manifest.json",
-                "mutates_data": False,
-                "carries_publication_verdict": False,
-            },
-        ],
+        "events": events,
     }
     lifecycle_path = paper_root / "figure_polish_lifecycle.json"
     _write_json(lifecycle_path, lifecycle_payload)
@@ -427,22 +626,34 @@ def materialize_display_pack_publication_manifest(
     repo_root: Path,
     paper_root: Path,
     visual_audit_review: Mapping[str, Any],
+    figure_ids: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     normalized_repo_root = Path(repo_root).expanduser().resolve()
     normalized_paper_root = Path(paper_root).expanduser().resolve()
-    intent, figure_spec, _style_reference_bundle = _load_required_quality_inputs(normalized_paper_root)
-    figure_id = str(figure_spec["figure_id"])
-    intent_figure = _intent_figure(intent, figure_id=figure_id)
-    _validate_intent_spec_binding(intent_figure=intent_figure, figure_spec=figure_spec)
+    intent, loaded_figure_specs, _style_reference_bundle = _load_required_quality_inputs(normalized_paper_root)
+    requested_figure_ids = [str(item).strip() for item in (figure_ids or []) if str(item).strip()]
+    if requested_figure_ids:
+        specs_by_id = {str(item["figure_id"]): item for item in loaded_figure_specs}
+        missing = [figure_id for figure_id in requested_figure_ids if figure_id not in specs_by_id]
+        if missing:
+            raise ValueError(f"requested figure_id not found in medical figure specs: {missing[0]}")
+        figure_specs = [specs_by_id[figure_id] for figure_id in requested_figure_ids]
+    else:
+        figure_specs = loaded_figure_specs
 
-    figure_entries = [
-        _render_figure(
-            repo_root=normalized_repo_root,
-            paper_root=normalized_paper_root,
-            figure_spec=figure_spec,
-            intent_figure=intent_figure,
+    figure_entries = []
+    for figure_spec in figure_specs:
+        figure_id = str(figure_spec["figure_id"])
+        intent_figure = _intent_figure(intent, figure_id=figure_id)
+        _validate_intent_spec_binding(intent_figure=intent_figure, figure_spec=figure_spec)
+        figure_entries.append(
+            _render_figure(
+                repo_root=normalized_repo_root,
+                paper_root=normalized_paper_root,
+                figure_spec=figure_spec,
+                intent_figure=intent_figure,
+            )
         )
-    ]
     audit_receipt = _write_visual_audit_receipt(
         paper_root=normalized_paper_root,
         figure_entries=figure_entries,

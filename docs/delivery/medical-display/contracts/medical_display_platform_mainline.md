@@ -41,7 +41,7 @@ For the tracked active execution surface that replaces retired project-local run
 
 Historical OMX / Codex materials under [`docs/history/omx/`](../../../history/omx/README.md) remain audit provenance only. They must not be treated as the current execution surface.
 
-Current Display Pack v2 status is intentionally split: MAS has landed the domain pack descriptor, template descriptor, paper-level figure-quality refs, medical figure grammar, AI/VLM polish lifecycle, deterministic E2E render/QC/publication manifest, display lock refs, and submission manifest refs preservation; the OPL repo has landed an `opl pack os mas-display-smoke` consumer for this MAS contract; generic OPL Pack OS install/registry/cache/distribution substrate remains outside MAS.
+Current Display Pack v2 status is intentionally split: MAS has landed the domain pack descriptor, template descriptor, paper-level figure-quality refs, single/batch medical figure grammar, R/ggplot2-first subprocess renderer, Python plugin adapter, AI/VLM polish lifecycle, deterministic E2E render/QC/publication manifest, display lock refs, and submission manifest refs preservation; the OPL repo has landed `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke` surfaces for this MAS contract; generic OPL Pack OS remains outside MAS ownership.
 
 ## North Star
 

@@ -152,14 +152,100 @@ def test_load_medical_figure_spec_validates_panel_grammar(tmp_path: Path) -> Non
         load_medical_figure_spec(path)
 
 
+def test_load_medical_figure_specs_accepts_multi_figure_batch(tmp_path: Path) -> None:
+    from med_autoscience.medical_figure_spec_contract import load_medical_figure_specs
+
+    path = tmp_path / "figure_specs.json"
+    _write_json(
+        path,
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "intent_ref": "paper/figure_intent.json#/figures/F1",
+                    "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
+                    "figure_kind": "evidence_figure",
+                    "medical_semantics": {
+                        "cohort_ref": "study/cohorts/derivation",
+                        "endpoint_ref": "endpoint:mace",
+                        "claim_role": "primary_evidence",
+                    },
+                },
+                {
+                    "schema_version": 1,
+                    "figure_id": "F2",
+                    "intent_ref": "paper/figure_intent.json#/figures/F2",
+                    "template_id": "fenggaolab.org.medical-display-core::time_dependent_roc_horizon",
+                    "figure_kind": "evidence_figure",
+                    "medical_semantics": {
+                        "cohort_ref": "study/cohorts/validation",
+                        "endpoint_ref": "endpoint:mace",
+                        "risk_horizon": "5y",
+                        "claim_role": "secondary_evidence",
+                    },
+                },
+            ],
+        },
+    )
+
+    payload = load_medical_figure_specs(path)
+
+    assert [item["figure_id"] for item in payload["figures"]] == ["F1", "F2"]
+    assert payload["figures"][0]["schema_version"] == 1
+
+
+def test_load_medical_figure_specs_rejects_duplicate_figure_id(tmp_path: Path) -> None:
+    from med_autoscience.medical_figure_spec_contract import load_medical_figure_specs
+
+    path = tmp_path / "figure_specs.json"
+    _write_json(
+        path,
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "intent_ref": "paper/figure_intent.json#/figures/F1",
+                    "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
+                    "figure_kind": "evidence_figure",
+                    "medical_semantics": {
+                        "cohort_ref": "study/cohorts/derivation",
+                        "endpoint_ref": "endpoint:mace",
+                        "claim_role": "primary_evidence",
+                    },
+                },
+                {
+                    "figure_id": "F1",
+                    "intent_ref": "paper/figure_intent.json#/figures/F1b",
+                    "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
+                    "figure_kind": "evidence_figure",
+                    "medical_semantics": {
+                        "cohort_ref": "study/cohorts/validation",
+                        "endpoint_ref": "endpoint:mace",
+                        "claim_role": "secondary_evidence",
+                    },
+                },
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match="duplicate"):
+        load_medical_figure_specs(path)
+
+
 def test_root_contract_indexes_medical_figure_spec_surface() -> None:
-    from med_autoscience.medical_figure_spec_contract import MEDICAL_FIGURE_SPEC_BASENAME
+    from med_autoscience.medical_figure_spec_contract import (
+        MEDICAL_FIGURE_SPEC_BASENAME,
+        MEDICAL_FIGURE_SPECS_BASENAME,
+    )
 
     contract = json.loads((REPO_ROOT / "contracts" / "medical_figure_spec_contract.json").read_text())
 
     assert contract["contract_id"] == "medical_figure_spec_contract.v1"
     assert contract["source_module"] == "src/med_autoscience/medical_figure_spec_contract.py"
     assert contract["paper_surface"]["path"] == f"paper/{MEDICAL_FIGURE_SPEC_BASENAME}"
+    assert contract["batch_paper_surface"]["path"] == f"paper/{MEDICAL_FIGURE_SPECS_BASENAME}"
     assert contract["paper_surface"]["loader"] == "med_autoscience.medical_figure_spec_contract:load_medical_figure_spec"
     assert contract["paper_surface"]["authority_boundary"] == (
         "Declarative medical figure grammar only; it binds figure intent, Display Template, "

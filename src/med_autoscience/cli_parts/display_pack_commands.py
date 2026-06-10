@@ -34,4 +34,5 @@ def handle_display_pack_command(args: argparse.Namespace) -> dict[str, Any] | No
         repo_root=Path(args.repo_root),
         paper_root=Path(args.paper_root),
         visual_audit_review=_load_visual_audit_review_from_args(args),
+        figure_ids=list(getattr(args, "figure_id", []) or []),
     )

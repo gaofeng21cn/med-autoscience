@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 FIGURE_INTENT_BASENAME = "figure_intent.json"
 MEDICAL_FIGURE_SPEC_BASENAME = "figure_spec.json"
+MEDICAL_FIGURE_SPECS_BASENAME = "figure_specs.json"
 FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME = "figure_style_reference_bundle.json"
 FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME = "figure_visual_audit_receipt.json"
 FIGURE_POLISH_LIFECYCLE_BASENAME = "figure_polish_lifecycle.json"
@@ -293,6 +294,12 @@ def _load_medical_figure_spec(path: Path) -> dict[str, Any]:
     return load_medical_figure_spec(path)
 
 
+def _load_medical_figure_specs(path: Path) -> dict[str, Any]:
+    from med_autoscience.medical_figure_spec_contract import load_medical_figure_specs
+
+    return load_medical_figure_specs(path)
+
+
 def _load_figure_polish_lifecycle(path: Path) -> dict[str, Any]:
     from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
 
@@ -340,6 +347,11 @@ def collect_publication_figure_quality_refs(*, paper_root: Path) -> dict[str, di
             paper_root=resolved_paper_root,
             basename=MEDICAL_FIGURE_SPEC_BASENAME,
             loader=_load_medical_figure_spec,
+        ),
+        "medical_figure_specs": _surface_ref(
+            paper_root=resolved_paper_root,
+            basename=MEDICAL_FIGURE_SPECS_BASENAME,
+            loader=_load_medical_figure_specs,
         ),
         "figure_style_reference_bundle": _surface_ref(
             paper_root=resolved_paper_root,

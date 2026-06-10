@@ -85,7 +85,7 @@ Machine boundary: Human-readable implementation support only; active execution t
   - 外部 source 的安装/获取机制仍未独立成完整分发链；
   - pack 内 `examples / goldens / exemplars / audit` 资产仍需继续真实充实，而不只是 contract 已落地；
   - 更广的 submission/manuscript-facing pack provenance 对账还可以继续扩展。
-  - OPL repo 已有 `opl pack os mas-display-smoke` consumer 可消费 MAS contract；generic install/registry/version/cache/distribution substrate 仍不归 MAS 关闭。
+  - OPL repo 已有 `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke` surfaces 可消费 MAS contract；这些是 OPL-owned 外部 substrate refs，不归 MAS 拥有。
 - PaperPlotHub 这类公开绘图库已进入 link-only exemplar intake 口径：
   - 它可以作为模板包 `exemplar_refs` 和军火库学习证据；
   - 它不是 `display_pack` source kind；
@@ -237,9 +237,9 @@ Machine boundary: Human-readable implementation support only; active execution t
 `contracts/display-pack-contract.v2.json` 把 MAS 当前已落地的 Display Pack v2 域内能力和 OPL 通用 Pack OS 拆开：
 
 - MAS 已落地并验证的是 pack descriptor、template descriptor、deterministic E2E render/QC、`display_pack_lock.json`、publication manifest、paper-level quality refs、submission manifest ref preservation，以及这些 surface 的 authority boundary；
-- OPL repo 已落地 `opl pack os mas-display-smoke` consumer，可读取 MAS Display Pack v2 contract 并输出 generic pack lock/audit smoke receipt；
-- OPL Pack OS 的长期目标仍包括通用 pack install、registry、version resolution、cache、distribution、lock projection、submission handoff 和 asset inventory；
-- 这些通用 substrate 能力仍不写成 MAS 已经拥有的通用基座。
+- OPL repo 已落地 `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke` surfaces，可读取 MAS Display Pack v2 contract 并输出 generic pack lock/audit smoke receipt；
+- 这些通用 substrate 能力是 OPL-owned 外部基座，只以 refs-only 方式进入 MAS handoff；
+- 不能把外部 OPL substrate 写成 MAS 已经拥有的通用基座。
 
 ## 命名与标识
 

@@ -54,6 +54,8 @@ def test_display_pack_v2_root_contract_declares_descriptor_boundaries() -> None:
     from med_autoscience.display_pack_v2_contract import (
         OPL_EXTERNAL_CONSUMER_STATUS,
         OPL_EXTERNAL_CONSUMER_SURFACE,
+        OPL_EXTERNAL_SUBSTRATE_STATUS,
+        OPL_EXTERNAL_SUBSTRATE_SURFACES,
         OPL_HANDOFF_TAIL_STATUS,
         validate_display_pack_v2_contract,
     )
@@ -79,7 +81,14 @@ def test_display_pack_v2_root_contract_declares_descriptor_boundaries() -> None:
     assert handoff["external_opl_consumer"]["status"] == OPL_EXTERNAL_CONSUMER_STATUS
     assert handoff["external_opl_consumer"]["surface"] == OPL_EXTERNAL_CONSUMER_SURFACE
     assert handoff["external_opl_consumer"]["verification_refs"]
+    external_substrate = handoff["external_opl_pack_os_substrate"]
+    assert external_substrate["status"] == OPL_EXTERNAL_SUBSTRATE_STATUS
+    assert set(external_substrate["cli_surfaces"]) == OPL_EXTERNAL_SUBSTRATE_SURFACES
+    assert external_substrate["verification_refs"]
+    assert "generic_pack_cache" in handoff["target_capabilities"]
+    assert "generic_pack_distribution" in handoff["target_capabilities"]
     assert "paper/figure_spec.json" in payload["quality_surfaces"]["paper_quality_refs"]
+    assert "paper/figure_specs.json" in payload["quality_surfaces"]["paper_quality_refs"]
     assert "paper/figure_polish_lifecycle.json" in payload["quality_surfaces"]["paper_quality_refs"]
 
 
@@ -127,4 +136,14 @@ def test_display_pack_v2_validator_rejects_wrong_external_opl_consumer_surface()
     payload["opl_handoff"]["external_opl_consumer"]["surface"] = "opl pack os other"
 
     with pytest.raises(ValueError, match="opl_handoff.external_opl_consumer.surface"):
+        validate_display_pack_v2_contract(payload)
+
+
+def test_display_pack_v2_validator_rejects_missing_external_opl_substrate() -> None:
+    from med_autoscience.display_pack_v2_contract import validate_display_pack_v2_contract
+
+    payload = copy.deepcopy(_load_contract_payload())
+    del payload["opl_handoff"]["external_opl_pack_os_substrate"]
+
+    with pytest.raises(ValueError, match="opl_handoff.external_opl_pack_os_substrate"):
         validate_display_pack_v2_contract(payload)

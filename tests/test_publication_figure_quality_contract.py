@@ -232,6 +232,7 @@ def test_root_contract_indexes_publication_figure_quality_surfaces() -> None:
         FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME,
         FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME,
         MEDICAL_FIGURE_SPEC_BASENAME,
+        MEDICAL_FIGURE_SPECS_BASENAME,
     )
 
     contract = json.loads((REPO_ROOT / "contracts" / "publication_figure_quality_contract.json").read_text())
@@ -239,6 +240,7 @@ def test_root_contract_indexes_publication_figure_quality_surfaces() -> None:
     assert contract["source_module"] == "src/med_autoscience/publication_figure_quality_contract.py"
     assert contract["paper_surfaces"]["figure_intent"]["path"] == f"paper/{FIGURE_INTENT_BASENAME}"
     assert contract["paper_surfaces"]["medical_figure_spec"]["path"] == f"paper/{MEDICAL_FIGURE_SPEC_BASENAME}"
+    assert contract["paper_surfaces"]["medical_figure_specs"]["path"] == f"paper/{MEDICAL_FIGURE_SPECS_BASENAME}"
     assert (
         contract["paper_surfaces"]["figure_style_reference_bundle"]["path"]
         == f"paper/{FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME}"

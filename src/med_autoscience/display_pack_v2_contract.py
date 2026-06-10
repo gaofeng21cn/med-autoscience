@@ -58,9 +58,21 @@ REQUIRED_AUTHORITY_BOUNDARIES = {
     "display_pack_lock_can_authorize_publication_readiness": False,
 }
 
-OPL_HANDOFF_TAIL_STATUS = "opl_consumer_smoke_landed"
+OPL_HANDOFF_TAIL_STATUS = "opl_pack_os_substrate_landed_external"
 OPL_EXTERNAL_CONSUMER_STATUS = "landed_in_opl_repo"
 OPL_EXTERNAL_CONSUMER_SURFACE = "opl pack os mas-display-smoke"
+OPL_EXTERNAL_SUBSTRATE_STATUS = "landed_in_opl_repo"
+OPL_EXTERNAL_SUBSTRATE_SURFACES = frozenset(
+    (
+        "opl pack os install",
+        "opl pack os registry",
+        "opl pack os cache",
+        "opl pack os distribute",
+        "opl pack os lock",
+        "opl pack os validate",
+        "opl pack os mas-display-smoke",
+    )
+)
 
 
 def default_contract_path() -> Path:
@@ -200,6 +212,40 @@ def _require_opl_handoff_tail(contract: Mapping[str, Any]) -> None:
         "verification_refs",
         context="opl_handoff.external_opl_consumer",
     )
+    external_substrate = _require_object(
+        handoff.get("external_opl_pack_os_substrate"),
+        "opl_handoff.external_opl_pack_os_substrate",
+    )
+    substrate_status = _require_non_empty_string(
+        external_substrate,
+        "status",
+        context="opl_handoff.external_opl_pack_os_substrate",
+    )
+    if substrate_status != OPL_EXTERNAL_SUBSTRATE_STATUS:
+        raise ValueError(
+            "opl_handoff.external_opl_pack_os_substrate.status must equal "
+            f"{OPL_EXTERNAL_SUBSTRATE_STATUS!r}"
+        )
+    substrate_surfaces = set(
+        _require_string_list(
+            external_substrate,
+            "cli_surfaces",
+            context="opl_handoff.external_opl_pack_os_substrate",
+        )
+    )
+    if substrate_surfaces != OPL_EXTERNAL_SUBSTRATE_SURFACES:
+        missing = sorted(OPL_EXTERNAL_SUBSTRATE_SURFACES - substrate_surfaces)
+        unexpected = sorted(substrate_surfaces - OPL_EXTERNAL_SUBSTRATE_SURFACES)
+        raise ValueError(
+            "opl_handoff.external_opl_pack_os_substrate.cli_surfaces must match "
+            f"OPL Pack OS external substrate surfaces; missing={missing!r}; "
+            f"unexpected={unexpected!r}"
+        )
+    _require_string_list(
+        external_substrate,
+        "verification_refs",
+        context="opl_handoff.external_opl_pack_os_substrate",
+    )
 
 
 def _require_non_empty_string(item: Mapping[str, Any], field_name: str, *, context: str) -> str:
@@ -214,6 +260,8 @@ __all__ = [
     "CONTRACT_FILENAME",
     "OPL_EXTERNAL_CONSUMER_STATUS",
     "OPL_EXTERNAL_CONSUMER_SURFACE",
+    "OPL_EXTERNAL_SUBSTRATE_STATUS",
+    "OPL_EXTERNAL_SUBSTRATE_SURFACES",
     "OPL_HANDOFF_TAIL_STATUS",
     "REQUIRED_PACK_DESCRIPTOR_FIELDS",
     "REQUIRED_TEMPLATE_DESCRIPTOR_FIELDS",
