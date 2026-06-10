@@ -161,6 +161,10 @@ def _current_execution_envelopes(
             **action,
             **_mapping(progress_currentness.get(study_id)),
         }
+        progress_envelope = _fresh_progress_current_execution_envelope(action_with_currentness)
+        if progress_envelope is not None:
+            envelopes[study_id] = progress_envelope
+            continue
         status_envelope = _current_status_envelope(action_with_currentness)
         if status_envelope is not None and _text(status_envelope.get("state_kind")) in {
             "parked",
@@ -183,6 +187,25 @@ def _current_execution_envelopes(
             else None,
         )
     return envelopes
+
+
+def _fresh_progress_current_execution_envelope(status: Mapping[str, Any]) -> dict[str, Any] | None:
+    envelope = _current_status_envelope(status)
+    if envelope is None:
+        return None
+    state_kind = _text(envelope.get("state_kind"))
+    if state_kind != "executable_owner_action":
+        return None
+    work_unit = _mapping(status.get("current_work_unit"))
+    if _text(work_unit.get("status")) != "executable_owner_action":
+        return None
+    owner = _text(work_unit.get("owner"))
+    if owner in {None, "user", "human"}:
+        return None
+    next_work_unit = _text(work_unit.get("work_unit_id")) or _text(work_unit.get("action_type"))
+    if next_work_unit is None:
+        return None
+    return envelope
 
 
 def _current_status_envelope(status: Mapping[str, Any]) -> dict[str, Any] | None:

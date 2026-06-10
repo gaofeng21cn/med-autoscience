@@ -398,6 +398,58 @@ def test_materialized_current_control_clears_previous_gate_queue_when_ai_reviewe
     assert latest["current_execution_envelopes"][study_id]["owner"] == "ai_reviewer"
 
 
+def test_runtime_report_prefers_fresh_progress_envelope_over_stale_user_waiting_action() -> None:
+    report_aggregation = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.report_aggregation"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+
+    result = report_aggregation._current_execution_envelopes(
+        managed_study_actions=[
+            {
+                "study_id": study_id,
+                "decision": "blocked",
+                "reason": "quest_waiting_for_user",
+                "runtime_health_snapshot": {
+                    "canonical_runtime_action": "continue_supervising_runtime",
+                },
+            }
+        ],
+        suppressions=[],
+        progress_currentness={
+            study_id: {
+                "current_work_unit": {
+                    "status": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": work_unit_id,
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "next_work_unit": work_unit_id,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                    "source_refs": [
+                        "/workspace/studies/003/artifacts/controller/repair_execution_evidence/latest.json"
+                    ],
+                    "conflict_suppression_refs": [
+                        "runtime_health:continue_supervising_runtime"
+                    ],
+                },
+            }
+        },
+    )
+
+    envelope = result[study_id]
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "ai_reviewer"
+    assert envelope["next_work_unit"] == work_unit_id
+    assert envelope["typed_blocker"] is None
+    assert envelope["parked_state"] is None
+
+
 def test_same_tick_materialized_current_ai_reviewer_dispatch_survives_progress_currentness(
     tmp_path: Path,
 ) -> None:

@@ -83,6 +83,7 @@ def build_current_execution_envelope(
             status=status_payload,
             progress=progress_payload,
             parked=parked,
+            current_work_unit=canonical_work_unit,
         ):
             return _envelope(
                 state_kind="parked",
@@ -227,8 +228,15 @@ def _parked_state_requires_human_resume(
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
     parked: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
 ) -> bool:
     if _text(parked.get("parked_state")) == "explicit_resume_pending":
+        if _current_work_unit_supersedes_explicit_resume(
+            status=status,
+            progress=progress,
+            current_work_unit=current_work_unit,
+        ):
+            return False
         return True
     auto_parked = _mapping(status.get("auto_runtime_parked")) or _mapping(progress.get("auto_runtime_parked"))
     if auto_parked.get("auto_execution_complete") is True:
@@ -243,6 +251,24 @@ def _parked_state_requires_human_resume(
         return True
     runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
     return _text(runtime_health.get("canonical_runtime_action")) == "await_explicit_resume"
+
+
+def _current_work_unit_supersedes_explicit_resume(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+) -> bool:
+    if _current_work_unit_status(current_work_unit) != "executable_owner_action":
+        return False
+    owner = _text(current_work_unit.get("owner"))
+    if owner in {None, "user", "human"}:
+        return False
+    if _has_human_gate_authority_ref(status=status, progress=progress):
+        return False
+    auto_parked = _mapping(status.get("auto_runtime_parked")) or _mapping(progress.get("auto_runtime_parked"))
+    classification = _mapping(auto_parked.get("runtime_failure_classification"))
+    return classification.get("requires_human_gate") is not True
 
 
 def _minimal_blocker(blocker_type: str, *, owner: str | None) -> dict[str, Any]:

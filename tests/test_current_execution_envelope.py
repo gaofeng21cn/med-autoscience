@@ -12,7 +12,42 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_owner_route_envelope_prefers_explicit_resume_pending_over_ai_reviewer_queue(
+def test_current_work_unit_supersedes_non_human_explicit_resume_residue() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        status={
+            "auto_runtime_parked": {
+                "parked": True,
+                "parked_state": "explicit_resume_pending",
+                "parked_owner": "user",
+                "awaiting_explicit_wakeup": True,
+                "runtime_failure_classification": {"requires_human_gate": False},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "await_explicit_resume",
+            },
+        },
+        progress={
+            "parked_state": "explicit_resume_pending",
+            "parked_owner": "user",
+        },
+        current_work_unit_payload={
+            "status": "executable_owner_action",
+            "owner": "ai_reviewer",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        },
+    )
+
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "ai_reviewer"
+    assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert envelope["parked_state"] is None
+    assert "runtime_health:await_explicit_resume" in envelope["conflict_suppression_refs"]
+
+
+def test_owner_route_envelope_projects_ai_reviewer_action_past_non_human_explicit_resume_residue(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -115,11 +150,11 @@ def test_owner_route_envelope_prefers_explicit_resume_pending_over_ai_reviewer_q
     study = result["studies"][0]
     envelope = study["current_execution_envelope"]
     assert envelope == {
-        "state_kind": "parked",
-        "owner": "user",
-        "next_work_unit": None,
+        "state_kind": "executable_owner_action",
+        "owner": "ai_reviewer",
+        "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
         "typed_blocker": None,
-        "parked_state": "explicit_resume_pending",
+        "parked_state": None,
         "source_refs": [
             str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             str(study_root / "artifacts" / "publication_eval" / "latest.json"),
@@ -143,7 +178,7 @@ def test_owner_route_envelope_prefers_explicit_resume_pending_over_ai_reviewer_q
     assert result["current_execution_envelopes"][study_id] == envelope
 
 
-def test_study_progress_envelope_treats_opl_queue_as_evidence_under_explicit_resume(
+def test_study_progress_envelope_projects_handoff_action_past_non_human_explicit_resume_residue(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -214,10 +249,10 @@ def test_study_progress_envelope_treats_opl_queue_as_evidence_under_explicit_res
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
     envelope = result["current_execution_envelope"]
-    assert envelope["state_kind"] == "parked"
-    assert envelope["owner"] == "user"
-    assert envelope["parked_state"] == "explicit_resume_pending"
-    assert envelope["next_work_unit"] is None
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "ai_reviewer"
+    assert envelope["parked_state"] is None
+    assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     assert envelope["typed_blocker"] is None
     assert "runtime_health:await_explicit_resume" in envelope["conflict_suppression_refs"]
     assert result["current_execution_evidence"]["action_queue"][0]["action_type"] == "return_to_ai_reviewer_workflow"
