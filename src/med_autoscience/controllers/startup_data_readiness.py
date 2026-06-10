@@ -332,9 +332,10 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
     data_assets.init_data_assets(workspace_root=workspace_root)
     public_validation = data_assets.validate_public_registry(workspace_root=workspace_root)
     impact_report = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
+    data_asset_status = data_assets.data_assets_status(workspace_root=workspace_root)
     private_payload = data_assets._load_json(
         data_assets._private_registry_path(workspace_root),
-        default={"schema_version": 2, "releases": []},
+        default={"schema_version": data_assets.PRIVATE_REGISTRY_SCHEMA_VERSION, "releases": []},
     )
     releases = [
         item
@@ -370,6 +371,8 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
         "status": (
             "attention_needed"
             if len(releases) == 0
+            or data_asset_status["layout_validation"].get("is_valid") is not True
+            or data_asset_status["lineage"].get("validation", {}).get("is_valid") is not True
             or bool(study_summary["unresolved_contract_study_ids"])
             or bool(study_summary["outdated_private_release_study_ids"])
             or bool(study_summary.get("standardization_blocked_study_ids"))
@@ -379,6 +382,14 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
             else "clear"
         ),
         "private_release_count": len(releases),
+        "data_asset_contract": {
+            "layout_contract": data_asset_status["layout_contract"],
+            "layout_validation": data_asset_status["layout_validation"],
+            "retention": data_asset_status["retention"],
+            "read_model": data_asset_status["read_model"],
+            "study_binding": data_asset_status["study_binding"],
+            "lineage": data_asset_status["lineage"],
+        },
         "latest_private_releases_by_family": _latest_private_releases_by_family(releases),
         "private_semantic_readiness": private_semantic_readiness,
         "data_availability_summary": data_availability_summary,

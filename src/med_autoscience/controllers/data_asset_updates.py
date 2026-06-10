@@ -197,10 +197,21 @@ def _upsert_private_release_manifest(*, workspace_root: Path, payload: dict[str,
     manifest = payload.get("manifest")
     if not isinstance(family_id, str) or not family_id:
         raise ValueError("upsert_private_release_manifest requires family_id")
+    if family_id not in data_assets.ALLOWED_DATASET_LAYERS:
+        raise ValueError(
+            "upsert_private_release_manifest requires family_id to be a supported data asset layer: "
+            + ", ".join(data_assets.DATA_ASSET_LAYER_IDS)
+        )
     if not isinstance(version_id, str) or not version_id:
         raise ValueError("upsert_private_release_manifest requires version_id")
+    if not version_id.startswith("v"):
+        raise ValueError("upsert_private_release_manifest requires version_id to start with 'v'")
     if not isinstance(manifest, dict):
         raise ValueError("upsert_private_release_manifest requires manifest")
+    manifest_refs = data_assets._manifest_refs(manifest)
+    manifest_ref_errors = manifest_refs["validation"]["errors"]
+    if manifest_ref_errors:
+        raise ValueError("upsert_private_release_manifest requires refs-only manifest refs: " + ", ".join(manifest_ref_errors))
     dataset_id = manifest.get("dataset_id")
     raw_snapshot = manifest.get("raw_snapshot")
     generated_by = manifest.get("generated_by")
@@ -227,6 +238,7 @@ def _upsert_private_release_manifest(*, workspace_root: Path, payload: dict[str,
     manifest_payload: dict[str, Any] = {
         "dataset_id": dataset_id,
         "version": version_id,
+        "layer_id": family_id,
         "raw_snapshot": raw_snapshot,
         "generated_by": generated_by,
         "main_outputs": normalized_main_outputs,
@@ -238,6 +250,10 @@ def _upsert_private_release_manifest(*, workspace_root: Path, payload: dict[str,
     supersedes_versions = data_assets._normalize_string_list(manifest.get("supersedes_versions"))
     if supersedes_versions:
         manifest_payload["supersedes_versions"] = supersedes_versions
+    if manifest_refs["lineage_refs"]:
+        manifest_payload["lineage_refs"] = manifest.get("lineage_refs")
+    if manifest_refs["manifest_refs"]:
+        manifest_payload["manifest_refs"] = manifest.get("manifest_refs")
     for key in (
         "data_dictionary",
         "codebook",

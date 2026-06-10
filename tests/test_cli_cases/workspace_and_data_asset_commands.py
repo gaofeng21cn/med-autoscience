@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from . import shared as _shared
+from med_autoscience.workspace_paths import DATA_ASSET_LAYER_IDS, DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS
 
 globals().update({
     name: value
     for name, value in vars(_shared).items()
     if not name.startswith('__')
 })
+
+
+DATASET_LAYER_NAMES = DATA_ASSET_LAYER_IDS
+DATA_ASSET_REGISTRY_DIRS = tuple(path.as_posix() for path in DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS)
 
 
 def test_init_data_assets_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -19,12 +24,27 @@ def test_init_data_assets_command_dispatches_controller(monkeypatch, tmp_path: P
 
     monkeypatch.setattr(cli.data_assets, "init_data_assets", fake_init)
 
-    exit_code = cli.main(["data", "init-assets", "--workspace-root", str(tmp_path / "workspace")])
+    workspace_root = tmp_path / "workspace"
+    exit_code = cli.main(["data", "init-assets", "--workspace-root", str(workspace_root)])
     captured = capsys.readouterr()
+    payload = json.loads(captured.out)
 
     assert exit_code == 0
-    assert called["workspace_root"] == tmp_path / "workspace"
+    assert called["workspace_root"] == workspace_root
     assert '"release_count": 1' in captured.out
+    for layer_name in DATASET_LAYER_NAMES:
+        assert (workspace_root / "data" / "datasets" / layer_name).is_dir()
+    for registry_dir in DATA_ASSET_REGISTRY_DIRS:
+        assert (workspace_root / "memory" / "portfolio" / "data_assets" / registry_dir).is_dir()
+    assert payload["layout"]["schema_version"] == 2
+    assert payload["layout"]["layout_ready"] is True
+    assert payload["layout"]["missing_directories"] == []
+    assert payload["layout"]["body_plane"]["layer_names"] == list(DATASET_LAYER_NAMES)
+    assert payload["layout"]["registry_lineage_plane"]["directory_names"] == list(DATA_ASSET_REGISTRY_DIRS)
+    assert payload["layout"]["study_binding_plane"]["study_yaml_pattern"] == "studies/<study-id>/study.yaml"
+    assert payload["layout"]["study_binding_plane"]["data_body_allowed"] is False
+
+
 def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
@@ -118,12 +138,20 @@ def test_data_assets_status_command_dispatches_controller(monkeypatch, tmp_path:
 
     monkeypatch.setattr(cli.data_assets, "data_assets_status", fake_status)
 
-    exit_code = cli.main(["data", "assets-status", "--workspace-root", str(tmp_path / "workspace")])
+    workspace_root = tmp_path / "workspace"
+    exit_code = cli.main(["data", "assets-status", "--workspace-root", str(workspace_root)])
     captured = capsys.readouterr()
+    payload = json.loads(captured.out)
 
     assert exit_code == 0
-    assert called["workspace_root"] == tmp_path / "workspace"
+    assert called["workspace_root"] == workspace_root
     assert '"layout_ready": true' in captured.out
+    assert payload["layout"]["layout_ready"] is False
+    assert payload["layout"]["missing_directories"]
+    assert payload["layout"]["body_plane"]["layer_names"] == list(DATASET_LAYER_NAMES)
+    assert payload["layout"]["registry_lineage_plane"]["directory_names"] == list(DATA_ASSET_REGISTRY_DIRS)
+
+
 def test_assess_data_asset_impact_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

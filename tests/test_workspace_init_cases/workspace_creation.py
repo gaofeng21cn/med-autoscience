@@ -5,6 +5,11 @@ import os
 from pathlib import Path
 import subprocess
 
+from med_autoscience.workspace_paths import DATA_ASSET_LAYER_IDS, DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS
+
+DATASET_LAYER_NAMES = DATA_ASSET_LAYER_IDS
+DATA_ASSET_REGISTRY_DIRS = tuple(path.as_posix() for path in DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS)
+
 
 def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
@@ -27,11 +32,30 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert str(workspace_root / "runtime" / "restore_index") in result["created_directories"]
     assert str(workspace_root / "runtime" / "artifacts") in result["created_directories"]
     assert str(workspace_root / "runtime" / "artifacts" / "progress_portal") in result["created_directories"]
+    for layer_name in DATASET_LAYER_NAMES:
+        assert str(workspace_root / "data" / "datasets" / layer_name) in result["created_directories"]
+    for registry_dir in DATA_ASSET_REGISTRY_DIRS:
+        assert str(workspace_root / "memory" / "portfolio" / "data_assets" / registry_dir) in result["created_directories"]
     assert str(workspace_root / "ops" / "mas" / "bin") not in result["created_directories"]
     assert str(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests") not in result["created_directories"]
     assert str(workspace_root / "ops" / "med-deepscientist" / "config.env") not in result["created_files"]
     assert str(workspace_root / "AGENTS.md") in result["created_files"]
     assert str(workspace_root / "ops" / "mas" / "progress" / "index.html") not in result["created_files"]
+    layout = result["data_assets_layout"]
+    assert layout["schema_version"] == 2
+    assert layout["layout_ready"] is False
+    assert layout["body_plane"]["root"] == str(workspace_root / "data" / "datasets")
+    assert [layer["name"] for layer in layout["body_plane"]["layers"]] == list(DATASET_LAYER_NAMES)
+    assert layout["registry_lineage_plane"]["root"] == str(workspace_root / "memory" / "portfolio" / "data_assets")
+    assert layout["registry_lineage_plane"]["directories"]["lineage"] == str(
+        workspace_root / "memory" / "portfolio" / "data_assets" / "lineage"
+    )
+    assert layout["study_binding_plane"] == {
+        "root": str(workspace_root / "studies"),
+        "study_yaml_pattern": "studies/<study-id>/study.yaml",
+        "data_body_allowed": False,
+    }
+    assert str(workspace_root / "studies") not in layout["body_plane"]["root"]
     assert not workspace_root.exists()
 
 
@@ -49,9 +73,18 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert result["dry_run"] is False
     assert workspace_root.exists()
     assert (workspace_root / "data" / "datasets").is_dir()
+    for layer_name in DATASET_LAYER_NAMES:
+        assert (workspace_root / "data" / "datasets" / layer_name).is_dir()
     assert not (workspace_root / "contracts").exists()
     assert (workspace_root / "studies").is_dir()
+    assert not (workspace_root / "studies" / "datasets").exists()
     assert (workspace_root / "memory" / "portfolio" / "data_assets").is_dir()
+    for registry_dir in DATA_ASSET_REGISTRY_DIRS:
+        assert (workspace_root / "memory" / "portfolio" / "data_assets" / registry_dir).is_dir()
+    assert result["data_assets_layout"]["layout_ready"] is True
+    assert result["data_assets_layout"]["missing_directories"] == []
+    assert result["data_assets_layout"]["body_plane"]["layer_names"] == list(DATASET_LAYER_NAMES)
+    assert result["data_assets_layout"]["registry_lineage_plane"]["directory_names"] == list(DATA_ASSET_REGISTRY_DIRS)
     assert (workspace_root / "memory" / "portfolio" / "research_memory").is_dir()
     assert (workspace_root / "memory" / "portfolio" / "research_memory" / "literature").is_dir()
     assert (workspace_root / "memory" / "portfolio" / "research_memory" / "literature" / "coverage").is_dir()

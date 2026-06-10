@@ -17,6 +17,12 @@ Machine boundary: 人读索引。Source truth 继续归 study workspaces、exter
 - [Workspace Knowledge And Literature Contract](../runtime/contracts/workspace_knowledge_and_literature_contract.md)
 - [Standard Domain Agent Skeleton](../runtime/contracts/standard_domain_agent_skeleton.md)
 
+## Medical Data Asset Boundary
+
+[Medical Data Asset Target Operating Model](./medical_data_asset_target_operating_model.md) 是 MAS 数据资产 v2 的 canonical 人读入口。它把医学数据资产拆为 body、contract、registry-lineage 和 study-binding 四个 plane：`data/datasets/**` 保存 release body，`dataset_manifest.yaml` 保存 release contract，`memory/portfolio/data_assets/**` 保存 controller-derived registry / lineage / impact / readiness projection，study contract 只绑定可消费 release 并把 study-local cohort / event / sensitivity artifacts 留在 study analysis tree。
+
+通用 runtime storage retention、payload externalization、restore-proof compaction 和 SQLite compact 只治理 runtime / attempt / refs-index / historical payload 面。它们不得把 `data/datasets/**` 的真实数据 body 当作冗余过程体处理；数据 release 的保留、冷归档、移动或删除必须回到 dataset manifest、source readiness、study impact 和 MAS owner-authorized data asset command。OPL 可以持有 generic locator、cold-store、lineage event、quality-result index 和 workbench projection；MAS 继续持有 access tier、direct study consumption、clinical semantic mapping、source readiness、study binding、owner receipt 与 typed blocker。
+
 ## Standard Agent Source Boundary
 
 标准 OPL Domain Agent skeleton 只把 repo-source 语义面固定到 `agent/`、`contracts/`、`runtime/` 和 `docs/` 这些 anchors。它不会把 workspace source body、provider raw response body、publication-route memory body、artifact body、quality verdict 或 submission package 纳入仓库。

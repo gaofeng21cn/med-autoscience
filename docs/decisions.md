@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-10：数据资产 v2 固定四 plane 与 runtime retention 边界
+
+- 决策：MAS 数据资产目标态固定为 body、contract、registry-lineage 和 study-binding 四个 plane。`data/datasets/**` 是 release body，`dataset_manifest.yaml` / `release_contract` 是机器 contract，`memory/portfolio/data_assets/**` 是 controller-derived registry / lineage / impact / readiness projection，study contract 只绑定可消费 release 并把 study-local derived artifacts 留在 study analysis tree。
+- 决策：OPL 可持有 generic locator、cold-store、restore、lineage event、quality-result index 和 workbench projection；MAS 继续持有 access tier、direct study consumption、clinical semantic mapping、source readiness、study binding、owner receipt 与 typed blocker。Runtime storage retention、payload externalization、restore-proof compaction 和 SQLite compact 不得把 `data/datasets/**` 当作冗余过程体处理。
+- 理由：DM-CVD / DPCC 当前已把受限原始、去标识 episode 和标准化分析 release 收到 `data/datasets` layer，但历史 mutation / manifest / prune 证据仍可能含旧 `datasets/` 或 `portfolio/data_assets` 短路径。固定四 plane 可避免 runtime 文件生命周期治理、SQLite refs index 或 legacy path provenance 重新定义数据资产 authority。
+- 影响：这是 source docs 与 workspace 管理文件口径收敛，不移动或删除数据 body，不手写 registry，不修改 study truth、publication verdict、artifact authority、owner receipt、typed blocker、runtime current-control 或 SQLite refs index。
+
 ## 2026-06-10：Progress-first safety envelope 固定五类误完成风险与无摩擦混合模式
 
 - 决策：新增 `contracts/progress_first_safety_envelope.json` 作为 MAS / OPL 普通推进安全信封，覆盖 `false_completion`、`pseudo_evidence`、`stale_read_model`、`duplicate_receipt` 和 `artifact_authority_drift` 五类高代价风险。该 contract 只定义可关闭 shape、非 authority signal、currentness / receipt / artifact authority 边界和 fail-closed 条件；不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、quality verdict、typed blocker、human gate、OPL queue 或 provider attempt。

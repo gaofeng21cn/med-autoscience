@@ -44,7 +44,16 @@ from med_autoscience.controllers.workspace_init_parts.profile_config import (
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
-from med_autoscience.workspace_paths import data_assets_root, datasets_root, research_memory_root
+from med_autoscience.workspace_paths import (
+    DATA_ASSET_LAYER_IDS,
+    DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS,
+    data_assets_root,
+    datasets_root,
+    research_memory_root,
+)
+
+
+DATA_ASSETS_LAYOUT_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -68,6 +77,72 @@ def _display_path_from_workspace_root(*, workspace_root: Path, target_path: Path
         return target_path.relative_to(workspace_root)
     except ValueError:
         return target_path
+
+
+def data_assets_v2_directories(workspace_root: Path) -> list[Path]:
+    dataset_root = datasets_root(workspace_root)
+    registry_root = data_assets_root(workspace_root)
+    return [
+        dataset_root,
+        *(dataset_root / layer_name for layer_name in DATA_ASSET_LAYER_IDS),
+        registry_root,
+        *(registry_root / relpath for relpath in DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS),
+    ]
+
+
+def ensure_data_assets_v2_layout(workspace_root: Path) -> dict[str, object]:
+    for path in data_assets_v2_directories(workspace_root):
+        path.mkdir(parents=True, exist_ok=True)
+    return build_data_assets_v2_layout_metadata(workspace_root=workspace_root)
+
+
+def build_data_assets_v2_layout_metadata(*, workspace_root: Path) -> dict[str, object]:
+    workspace_root = workspace_root.expanduser().resolve()
+    dataset_root = datasets_root(workspace_root)
+    registry_root = data_assets_root(workspace_root)
+    body_layers = [
+        {
+            "name": layer_name,
+            "path": str(dataset_root / layer_name),
+            "exists": (dataset_root / layer_name).is_dir(),
+        }
+        for layer_name in DATA_ASSET_LAYER_IDS
+    ]
+    registry_directories = {
+        _layout_directory_key(relpath): str(registry_root / relpath)
+        for relpath in DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS
+    }
+    registry_directory_status = {
+        _layout_directory_key(relpath): (registry_root / relpath).is_dir()
+        for relpath in DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS
+    }
+    required_directories = data_assets_v2_directories(workspace_root)
+    missing_directories = [str(path) for path in required_directories if not path.is_dir()]
+    return {
+        "schema_version": DATA_ASSETS_LAYOUT_SCHEMA_VERSION,
+        "layout_ready": not missing_directories,
+        "missing_directories": missing_directories,
+        "body_plane": {
+            "root": str(dataset_root),
+            "layer_names": list(DATA_ASSET_LAYER_IDS),
+            "layers": body_layers,
+        },
+        "registry_lineage_plane": {
+            "root": str(registry_root),
+            "directory_names": [relpath.as_posix() for relpath in DATA_ASSET_REGISTRY_DIRECTORY_RELPATHS],
+            "directories": registry_directories,
+            "directory_status": registry_directory_status,
+        },
+        "study_binding_plane": {
+            "root": str(workspace_root / "studies"),
+            "study_yaml_pattern": "studies/<study-id>/study.yaml",
+            "data_body_allowed": False,
+        },
+    }
+
+
+def _layout_directory_key(relpath: Path) -> str:
+    return relpath.as_posix().replace("/", "_")
 
 
 def _configured_medautoscience_profile_path(workspace_root: Path) -> Path | None:
@@ -106,9 +181,8 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
     layout = build_workspace_runtime_layout(workspace_root=workspace_root)
     memory_root = research_memory_root(workspace_root)
     return [
-        datasets_root(workspace_root),
+        *data_assets_v2_directories(workspace_root),
         workspace_root / "studies",
-        data_assets_root(workspace_root),
         memory_root,
         memory_root / "literature",
         memory_root / "literature" / "coverage",
@@ -698,6 +772,7 @@ def init_workspace(
         "retained_retired_files": retained_retired_files,
         "workspace_git": workspace_git,
         "profile_path": str(profile_path),
+        "data_assets_layout": build_data_assets_v2_layout_metadata(workspace_root=workspace_root),
         "next_steps": [
             f"edit {workspace_root / 'ops' / 'medautoscience' / 'config.env'}",
             f"review {profile_path}",

@@ -27,12 +27,21 @@ def handle_workspace_data_command(
     load_json_payload_from_args: Any,
 ) -> int | None:
     if args.command == "init-data-assets":
-        result = data_assets.init_data_assets(workspace_root=Path(args.workspace_root))
+        workspace_root = Path(args.workspace_root)
+        workspace_init_controller.ensure_data_assets_v2_layout(workspace_root)
+        result = data_assets.init_data_assets(workspace_root=workspace_root)
+        result["layout"] = workspace_init_controller.build_data_assets_v2_layout_metadata(
+            workspace_root=workspace_root,
+        )
         _print_json(result)
         return 0
 
     if args.command == "data-assets-status":
-        result = data_assets.data_assets_status(workspace_root=Path(args.workspace_root))
+        workspace_root = Path(args.workspace_root)
+        result = data_assets.data_assets_status(workspace_root=workspace_root)
+        result["layout"] = workspace_init_controller.build_data_assets_v2_layout_metadata(
+            workspace_root=workspace_root,
+        )
         _print_json(result)
         return 0
 

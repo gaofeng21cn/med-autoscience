@@ -219,6 +219,8 @@ def test_apply_data_asset_update_upserts_private_release_manifest(tmp_path: Path
                 "generated_by": "pipeline/v2.py",
                 "source_release": {"family_id": "master", "version": "v2026-03-28"},
                 "supersedes_versions": ["v2026-03-28"],
+                "lineage_refs": ["memory/portfolio/data_assets/lineage/master/v2026-04-10.json"],
+                "manifest_refs": {"qc": "memory/portfolio/data_assets/private/qc/master_v2026-04-10.json"},
                 "main_outputs": {"analysis_csv": "analysis.csv"},
                 "notes": ["followup release"],
                 "release_contract": {"update_type": ["followup_refresh"], "qc_status": "locked"},
@@ -228,10 +230,24 @@ def test_apply_data_asset_update_upserts_private_release_manifest(tmp_path: Path
 
     manifest = yaml.safe_load((release_root / "dataset_manifest.yaml").read_text(encoding="utf-8"))
     assert manifest["dataset_id"] == "nfpitnet_master"
+    assert manifest["layer_id"] == "master"
     assert manifest["source_release"] == {"family_id": "master", "version": "v2026-03-28"}
     assert manifest["supersedes_versions"] == ["v2026-03-28"]
+    assert manifest["lineage_refs"] == ["memory/portfolio/data_assets/lineage/master/v2026-04-10.json"]
+    assert manifest["manifest_refs"] == {"qc": "memory/portfolio/data_assets/private/qc/master_v2026-04-10.json"}
     assert manifest["main_outputs"] == {"analysis_csv": "analysis.csv"}
     assert result["refresh"]["status"]["private"]["release_count"] == 1
+    assert result["refresh"]["status"]["lineage"]["manifest_ref_count"] == 1
+    manifest_refs = load_json(
+        workspace_root / "memory" / "portfolio" / "data_assets" / "lineage" / "manifest_refs.json"
+    )
+    assert manifest_refs["entries"][0]["lineage_refs"] == [
+        "memory/portfolio/data_assets/lineage/master/v2026-04-10.json"
+    ]
+    assert manifest_refs["entries"][0]["manifest_refs"] == [
+        "memory/portfolio/data_assets/private/qc/master_v2026-04-10.json"
+    ]
+    assert manifest_refs["validation"]["is_valid"] is True
     assert result["mutation"]["family_id"] == "master"
     assert Path(result["mutation_log_path"]).exists()
 
@@ -459,6 +475,68 @@ def test_apply_data_asset_update_rejects_private_manifest_with_missing_outputs(t
         assert "Missing declared main outputs" in str(exc)
     else:
         raise AssertionError("Expected FileNotFoundError for missing declared outputs")
+
+    assert not (release_root / "dataset_manifest.yaml").exists()
+
+
+def test_apply_data_asset_update_rejects_unsupported_private_release_layer(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
+    workspace_root = tmp_path / "workspace"
+
+    try:
+        module.apply_data_asset_update(
+            workspace_root=workspace_root,
+            payload={
+                "action": "upsert_private_release_manifest",
+                "family_id": "legacy_layer",
+                "version_id": "v2026-04-10",
+                "manifest": {
+                    "dataset_id": "nfpitnet_master",
+                    "raw_snapshot": "followup_refresh",
+                    "generated_by": "pipeline/v2.py",
+                    "main_outputs": {"analysis_csv": "analysis.csv"},
+                },
+            },
+        )
+    except ValueError as exc:
+        assert "supported data asset layer" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for unsupported data asset layer")
+
+    mutation_logs = sorted((workspace_root / "memory" / "portfolio" / "data_assets" / "mutations").glob("*.json"))
+    assert len(mutation_logs) == 1
+    mutation_log = load_json(mutation_logs[0])
+    assert mutation_log["status"] == "mutation_failed"
+    assert mutation_log["error"]["type"] == "ValueError"
+
+
+def test_apply_data_asset_update_rejects_manifest_refs_that_point_to_dataset_body(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
+    workspace_root = tmp_path / "workspace"
+    release_root = workspace_root / "data" / "datasets" / "master" / "v2026-04-10"
+    release_root.mkdir(parents=True, exist_ok=True)
+    (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+
+    try:
+        module.apply_data_asset_update(
+            workspace_root=workspace_root,
+            payload={
+                "action": "upsert_private_release_manifest",
+                "family_id": "master",
+                "version_id": "v2026-04-10",
+                "manifest": {
+                    "dataset_id": "nfpitnet_master",
+                    "raw_snapshot": "followup_refresh",
+                    "generated_by": "pipeline/v2.py",
+                    "main_outputs": {"analysis_csv": "analysis.csv"},
+                    "lineage_refs": ["data/datasets/master/v2026-04-10/analysis.csv"],
+                },
+            },
+        )
+    except ValueError as exc:
+        assert "manifest_ref_points_to_dataset_body" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for dataset-body manifest ref")
 
     assert not (release_root / "dataset_manifest.yaml").exists()
 

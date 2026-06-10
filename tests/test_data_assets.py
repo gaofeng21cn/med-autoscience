@@ -68,10 +68,36 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
     private_registry = json.loads(
         (workspace_root / "memory" / "portfolio" / "data_assets" / "private" / "registry.json").read_text(encoding="utf-8")
     )
-    assert private_registry["schema_version"] == 2
+    assert private_registry["schema_version"] == 3
+    assert private_registry["layout_contract"]["body_plane"]["layout"] == "data/datasets/<layer>/<version>/"
+    assert private_registry["layout_contract"]["body_plane"]["allowed_layers"] == [
+        "restricted_raw",
+        "deidentified_linkage",
+        "master",
+        "deidentified_longitudinal",
+        "standardized_longitudinal",
+        "external",
+    ]
+    assert private_registry["layout_contract"]["body_plane"]["retention_exclusion"][
+        "excluded_from_runtime_residue_cleanup"
+    ] is True
+    assert private_registry["layout_validation"]["is_valid"] is True
     assert private_registry["releases"][0]["family_id"] == "master"
+    assert private_registry["releases"][0]["layer_id"] == "master"
     assert private_registry["releases"][0]["version_id"] == "v2026-03-28"
+    assert private_registry["releases"][0]["body_plane"]["runtime_residue"] is False
+    assert private_registry["releases"][0]["body_plane"]["retention_excluded"] is True
+    assert private_registry["releases"][0]["registry_plane"]["contains_dataset_body"] is False
     assert private_registry["releases"][0]["inventory_summary"]["file_count"] == 1
+    manifest_refs = json.loads(
+        (workspace_root / "memory" / "portfolio" / "data_assets" / "lineage" / "manifest_refs.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert manifest_refs["refs_only"] is True
+    assert manifest_refs["contains_dataset_body"] is False
+    assert manifest_refs["entries"][0]["layer_id"] == "master"
+    assert result["lineage"]["manifest_ref_count"] == 1
 
     public_registry = json.loads(
         (workspace_root / "memory" / "portfolio" / "data_assets" / "public" / "registry.json").read_text(encoding="utf-8")
@@ -86,6 +112,54 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
         },
         "datasets": [],
     }
+
+
+def test_data_assets_status_exposes_v2_plane_boundaries_and_retention_exclusion(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "data" / "datasets" / "restricted_raw" / "v2026-06-01"
+    version_root.mkdir(parents=True, exist_ok=True)
+    (version_root / "raw.csv").write_text("id\n1\n", encoding="utf-8")
+
+    module.init_data_assets(workspace_root=workspace_root)
+    result = module.data_assets_status(workspace_root=workspace_root)
+
+    assert result["layout_contract"]["body_plane"]["root"] == "data/datasets"
+    assert result["layout_validation"]["is_valid"] is True
+    assert result["retention"] == {
+        "dataset_body_plane_ref": "data/datasets",
+        "dataset_body_is_runtime_residue": False,
+        "excluded_from_runtime_residue_cleanup": True,
+    }
+    assert result["read_model"] == {
+        "sqlite_role": "refs_only_rebuildable",
+        "stores_artifact_or_dataset_body": False,
+        "authority": "projection_only",
+    }
+    assert result["study_binding"] == {
+        "plane": "studies/<study-id>/study.yaml",
+        "binding_policy": "asset_refs_only",
+        "body_storage_allowed": False,
+    }
+
+
+def test_init_data_assets_reports_unsupported_dataset_layer_as_contract_error(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "data" / "datasets" / "legacy_layer" / "v2026-06-01"
+    version_root.mkdir(parents=True, exist_ok=True)
+    (version_root / "legacy.csv").write_text("id\n1\n", encoding="utf-8")
+
+    result = module.init_data_assets(workspace_root=workspace_root)
+
+    assert result["layout_validation"]["is_valid"] is False
+    assert result["layout_validation"]["invalid_layers"] == ["legacy_layer"]
+    private_registry = json.loads(
+        (workspace_root / "memory" / "portfolio" / "data_assets" / "private" / "registry.json").read_text(encoding="utf-8")
+    )
+    release = private_registry["releases"][0]
+    assert release["layout_validation"]["is_valid"] is False
+    assert release["layout_validation"]["errors"] == ["unsupported_dataset_layer"]
 
 
 def test_write_json_does_not_open_final_path_for_truncating_write(monkeypatch, tmp_path: Path) -> None:

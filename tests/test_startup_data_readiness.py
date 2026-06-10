@@ -139,6 +139,14 @@ def test_startup_data_readiness_summarizes_private_and_public_opportunities(tmp_
     result = module.startup_data_readiness(workspace_root=workspace_root)
 
     assert result["status"] == "attention_needed"
+    assert result["data_asset_contract"]["layout_contract"]["body_plane"]["layout"] == "data/datasets/<layer>/<version>/"
+    assert result["data_asset_contract"]["layout_validation"]["is_valid"] is True
+    assert result["data_asset_contract"]["retention"]["excluded_from_runtime_residue_cleanup"] is True
+    assert result["data_asset_contract"]["retention"]["dataset_body_is_runtime_residue"] is False
+    assert result["data_asset_contract"]["read_model"]["stores_artifact_or_dataset_body"] is False
+    assert result["data_asset_contract"]["read_model"]["authority"] == "projection_only"
+    assert result["data_asset_contract"]["study_binding"]["binding_policy"] == "asset_refs_only"
+    assert result["data_asset_contract"]["lineage"]["refs_only"] is True
     assert result["private_release_count"] == 2
     assert result["latest_private_releases_by_family"] == [
         {
@@ -345,8 +353,8 @@ def test_startup_data_readiness_excludes_rejected_public_datasets_from_opportuni
 def test_startup_data_readiness_summarizes_data_availability_and_fair_blockers(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
-    ready_root = workspace_root / "data" / "datasets" / "ready" / "v2026-05-10"
-    blocked_root = workspace_root / "data" / "datasets" / "blocked" / "v2026-05-10"
+    ready_root = workspace_root / "data" / "datasets" / "master" / "v2026-05-10"
+    blocked_root = workspace_root / "data" / "datasets" / "external" / "v2026-05-10"
     ready_root.mkdir(parents=True, exist_ok=True)
     blocked_root.mkdir(parents=True, exist_ok=True)
     write_private_release_manifest(
@@ -400,12 +408,12 @@ def test_startup_data_readiness_summarizes_data_availability_and_fair_blockers(t
     write_study_manifest(
         workspace_root / "studies" / "001-ready" / "data_input" / "dataset_manifest.yaml",
         dataset_id="ready_dataset",
-        relative_path="../../../datasets/ready/v2026-05-10/analysis.csv",
+        relative_path="../../../datasets/master/v2026-05-10/analysis.csv",
     )
     write_study_manifest(
         workspace_root / "studies" / "002-blocked" / "data_input" / "dataset_manifest.yaml",
         dataset_id="blocked_dataset",
-        relative_path="../../../datasets/blocked/v2026-05-10/analysis.csv",
+        relative_path="../../../datasets/external/v2026-05-10/analysis.csv",
     )
 
     result = module.startup_data_readiness(workspace_root=workspace_root)
@@ -416,7 +424,7 @@ def test_startup_data_readiness_summarizes_data_availability_and_fair_blockers(t
     assert result["data_availability_summary"]["blocked_release_count"] == 1
     assert result["data_availability_summary"]["blocked_releases"] == [
         {
-            "family_id": "blocked",
+            "family_id": "external",
             "version_id": "v2026-05-10",
             "dataset_id": "blocked_dataset",
             "blockers": [
