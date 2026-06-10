@@ -120,3 +120,31 @@ def test_paper_work_unit_lifecycle_contract_declares_readiness_stage_native_clos
     assert lifecycle["completion_proof"]["terminal_projection_writer"] == (
         "publication_handoff_stage_projection.py"
     )
+
+
+def test_paper_work_unit_lifecycle_contract_declares_external_learning_sidecar_nonblocking() -> None:
+    registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+
+    lifecycle = registry.paper_work_unit_lifecycle_for_action("run_external_learning_sidecar")
+
+    assert lifecycle is not None
+    assert lifecycle["owner"] == "external_learning_sidecar"
+    assert lifecycle["allowed_writes"] == [
+        "artifacts/supervision/requests/external_learning_sidecar/latest.json",
+        "artifacts/advisory/external_learning_sidecar/latest.json",
+    ]
+    assert "artifacts/publication_eval/latest.json" in lifecycle["forbidden_writes"]
+    assert "artifacts/controller_decisions/latest.json" in lifecycle["forbidden_writes"]
+    assert "paper/**" in lifecycle["forbidden_writes"]
+    assert lifecycle["completion_proof"] == {
+        "requires_owner_receipt_or_typed_blocker": False,
+        "refs_only_advisory": True,
+        "mainline_waits_for_sidecar": False,
+        "publication_ready_claim_authorized": False,
+        "submission_ready_claim_authorized": False,
+        "artifact_authority_authorized": False,
+    }
+    assert lifecycle["next_owner_rules"] == {
+        "on_completed": ["current_owner_action_continues"],
+        "on_blocked": ["current_owner_action_continues"],
+    }

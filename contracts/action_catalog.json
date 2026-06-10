@@ -382,6 +382,70 @@
       ]
     },
     {
+      "action_id": "external_learning_adoption_closure",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_block_current_owner_action": false,
+        "can_write_controller_decisions": false,
+        "can_write_current_package": false,
+        "can_write_publication_eval": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "surface_authority": "external_learning_adoption_closure_read_model"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+        "surface_kind": "mas_external_learning_adoption_closure"
+      },
+      "summary": "Read the MAS-owned closure surface for Co-Scientist, Nature-skills, ARS, AutoSci, EvoScientist/EvoSkills, ARK, ARIS, PaperSpine, and Open Auto Research learning. It distinguishes owner-surface landed work from contract-only or not-landed gaps, and declares the nonblocking external-learning sidecar execution slot.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "external_learning_adoption_closure"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "surface_kind": "mas_external_learning_adoption_closure"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "mas_external_learning_adoption_closure",
+          "tool_name": "external_learning_adoption_closure"
+        },
+        "openai": {
+          "tool_name": "external_learning_adoption_closure"
+        },
+        "product_entry": {
+          "action_key": "external_learning_adoption_closure",
+          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "surface_kind": "mas_external_learning_adoption_closure"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command_contract_id": "external_learning_adoption_closure",
+          "surface_kind": "mas_external_learning_adoption_closure"
+        }
+      },
+      "title": "Inspect external learning adoption closure",
+      "workspace_locator_fields": [
+        "profile_ref"
+      ]
+    },
+    {
       "action_id": "mainline_status",
       "authority_boundary": {
         "authoritative_truth_refs": [

@@ -29,6 +29,9 @@ SOURCE_PROVENANCE_RESULT_RELATIVE_PATH = Path("artifacts/controller/source_prove
 PROVENANCE_LIMITED_HARMONIZATION_RESULT_RELATIVE_PATH = Path(
     "artifacts/controller/provenance_limited_harmonization/latest.json"
 )
+EXTERNAL_LEARNING_SIDECAR_RESULT_RELATIVE_PATH = Path(
+    "artifacts/advisory/external_learning_sidecar/latest.json"
+)
 CONTROLLER_DECISION_RELATIVE_PATH = Path("artifacts/controller_decisions/latest.json")
 _ROUTE_TARGET_ALIASES = {
     "analysis": "analysis-campaign",
@@ -58,6 +61,8 @@ def required_output_pending(
         return methodology_reframe_route_decision_output_pending(profile=profile, study_id=study_id)
     if action_type == "provenance_limited_harmonization_audit":
         return provenance_limited_harmonization_audit_output_pending(profile=profile, study_id=study_id)
+    if action_type == "run_external_learning_sidecar":
+        return external_learning_sidecar_output_pending(profile=profile, study_id=study_id)
     if action_type != "return_to_ai_reviewer_workflow":
         return False
     return ai_reviewer_output_pending(
@@ -307,6 +312,19 @@ def provenance_limited_harmonization_audit_output_pending(*, profile: WorkspaceP
     return provenance_limited_harmonization_owner_result.output_pending_for_result(payload)
 
 
+def external_learning_sidecar_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
+    payload = _read_json_object(profile.studies_root / study_id / EXTERNAL_LEARNING_SIDECAR_RESULT_RELATIVE_PATH)
+    if not payload:
+        return True
+    if _text(payload.get("surface_kind")) != "mas_external_learning_sidecar_result":
+        return True
+    if payload.get("refs_only") is not True or payload.get("body_included") is not False:
+        return True
+    if payload.get("mainline_waits_for_sidecar") is not False:
+        return True
+    return _text(payload.get("status")) not in {"executed", "dry_run"}
+
+
 def methodology_reframe_route_decision_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
     payload = _read_json_object(profile.studies_root / study_id / CONTROLLER_DECISION_RELATIVE_PATH)
     if not payload:
@@ -376,11 +394,13 @@ __all__ = [
     "PUBLICATION_EVAL_RELATIVE_PATH",
     "ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH",
     "CONTROLLER_DECISION_RELATIVE_PATH",
+    "EXTERNAL_LEARNING_SIDECAR_RESULT_RELATIVE_PATH",
     "PROVENANCE_LIMITED_HARMONIZATION_RESULT_RELATIVE_PATH",
     "SOURCE_PROVENANCE_RESULT_RELATIVE_PATH",
     "ai_reviewer_output_pending",
     "canonical_paper_inputs_rehydrate_output_pending",
     "current_package_freshness_output_pending",
+    "external_learning_sidecar_output_pending",
     "methodology_reframe_route_decision_output_pending",
     "provenance_limited_harmonization_audit_output_pending",
     "required_output_pending",

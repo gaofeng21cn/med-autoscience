@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from med_autoscience import external_learning_adoption_closure
+
 
 @dataclass(frozen=True)
 class OwnerCallable:
@@ -182,6 +184,23 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
         gate_replay_target=None,
         idempotency_scope="provenance_limited_harmonization_work_unit",
         source_fingerprint_scope="controller_decision.work_unit_fingerprint",
+    ),
+    OwnerCallable(
+        owner=external_learning_adoption_closure.SIDECAR_OWNER,
+        action_type=external_learning_adoption_closure.SIDECAR_ACTION_TYPE,
+        callable_surface=external_learning_adoption_closure.SIDECAR_CALLABLE_SURFACE,
+        required_inputs=(
+            "current owner action dispatch or owner route",
+            "external_learning_adoption_closure",
+        ),
+        required_outputs=(
+            external_learning_adoption_closure.SIDECAR_RESULT_RELATIVE_PATH.as_posix(),
+            "refs-only advisory candidates",
+        ),
+        artifact_delta_predicate="external_learning_advisory_refs_written_or_dry_run_projected",
+        gate_replay_target=None,
+        idempotency_scope="external_learning_sidecar_current_owner_action",
+        source_fingerprint_scope="owner_route.work_unit_fingerprint",
     ),
     OwnerCallable(
         owner="gate_clearing_batch",
@@ -386,6 +405,37 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                 "next_owner_rules": {
                     "on_completed": ["write", "publication_gate", "delivery_sync", "controller_stop"],
                     "on_blocked": ["ai_reviewer", "write", "awaiting_human"],
+                },
+            },
+            "run_external_learning_sidecar": {
+                "owner": external_learning_adoption_closure.SIDECAR_OWNER,
+                "allowed_writes": [
+                    path.as_posix()
+                    for path in (
+                        external_learning_adoption_closure.REQUEST_RELATIVE_PATH,
+                        external_learning_adoption_closure.SIDECAR_RESULT_RELATIVE_PATH,
+                    )
+                ],
+                "forbidden_writes": list(external_learning_adoption_closure.FORBIDDEN_WRITES),
+                "required_input_refs": [
+                    "current owner action dispatch or owner route",
+                    "external_learning_adoption_closure",
+                ],
+                "required_output_refs": [
+                    external_learning_adoption_closure.SIDECAR_RESULT_RELATIVE_PATH.as_posix(),
+                    "refs-only advisory candidates",
+                ],
+                "completion_proof": {
+                    "requires_owner_receipt_or_typed_blocker": False,
+                    "refs_only_advisory": True,
+                    "mainline_waits_for_sidecar": False,
+                    "publication_ready_claim_authorized": False,
+                    "submission_ready_claim_authorized": False,
+                    "artifact_authority_authorized": False,
+                },
+                "next_owner_rules": {
+                    "on_completed": ["current_owner_action_continues"],
+                    "on_blocked": ["current_owner_action_continues"],
                 },
             },
         },

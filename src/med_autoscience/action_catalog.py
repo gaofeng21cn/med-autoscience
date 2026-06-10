@@ -203,6 +203,34 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             },
         },
         {
+            "action_id": "external_learning_adoption_closure",
+            "title": "Inspect external learning adoption closure",
+            "summary": (
+                "Read the MAS-owned closure surface for Co-Scientist, Nature-skills, ARS, AutoSci, "
+                "EvoScientist/EvoSkills, ARK, ARIS, PaperSpine, and Open Auto Research learning. "
+                "It distinguishes owner-surface landed work from contract-only or not-landed gaps, and "
+                "declares the nonblocking external-learning sidecar execution slot."
+            ),
+            "effect": "read_only",
+            "command": "{prefix} product-entry-manifest --profile {profile} --format json",
+            "surface_kind": "mas_external_learning_adoption_closure",
+            "workspace_locator_fields": ["profile_ref"],
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": "MedAutoScience",
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "external_learning_adoption_closure_read_model",
+                "can_write_publication_eval": False,
+                "can_write_controller_decisions": False,
+                "can_write_current_package": False,
+                "can_authorize_publication_quality": False,
+                "can_authorize_submission_readiness": False,
+                "can_block_current_owner_action": False,
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
+            },
+        },
+        {
             "action_id": "mainline_status",
             "title": "Inspect MAS mainline status",
             "summary": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",

@@ -69,6 +69,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["source_refs"]["evo_scientist_learning_projection_source"] == (
         "med_autoscience.evo_scientist_learning_projection.build_evo_scientist_learning_projection"
     )
+    assert descriptor["source_refs"]["external_learning_adoption_closure_source"] == (
+        "med_autoscience.external_learning_adoption_closure.build_external_learning_adoption_closure"
+    )
 
     snapshot = descriptor["route_contract_snapshot"]
     assert snapshot["source"] == "agent/stages/stage_route_contract.yaml"
@@ -336,6 +339,23 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert evo_projection["authority_boundary"]["source_project_role"] == "external_pattern_source_only"
     assert evo_projection["authority_boundary"]["can_authorize_publication_quality"] is False
     assert evo_projection["authority_boundary"]["can_close_stage"] is False
+    external_learning_closure = descriptor["external_learning_adoption_closure"]
+    assert manifest["external_learning_adoption_closure"] == external_learning_closure
+    assert external_learning_closure["surface_kind"] == "mas_external_learning_adoption_closure"
+    closure_frameworks = {
+        item["framework_id"]: item for item in external_learning_closure["frameworks"]
+    }
+    assert closure_frameworks["evo_scientist_evoskills"]["closure_status"] == (
+        "sidecar_execution_slot_landed"
+    )
+    assert closure_frameworks["ark_progress_first"]["closure_status"] == "contract_only_gap"
+    assert closure_frameworks["aris"]["closure_status"] == "history_only_gap"
+    assert closure_frameworks["paperspine"]["closure_status"] == "not_landed_gap"
+    assert external_learning_closure["sidecar_execution_contract"]["action_type"] == (
+        "run_external_learning_sidecar"
+    )
+    assert external_learning_closure["sidecar_execution_contract"]["mainline_waits_for_sidecar"] is False
+    assert external_learning_closure["progress_first_friction_guard"]["owner_policy_wins"] is True
     assert set(stage_skill_projection) == {
         "surface_kind",
         "version",
