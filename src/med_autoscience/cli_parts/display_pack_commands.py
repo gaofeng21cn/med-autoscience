@@ -25,6 +25,16 @@ def _load_visual_audit_review_from_args(args: argparse.Namespace) -> dict[str, o
 
 
 def handle_display_pack_command(args: argparse.Namespace) -> dict[str, Any] | None:
+    if args.command == "display-pack-render-candidate":
+        from med_autoscience.display_pack_e2e_runtime import render_display_pack_candidate_asset
+
+        return render_display_pack_candidate_asset(
+            repo_root=Path(args.repo_root),
+            template_id=str(args.template_id),
+            display_payload_file=Path(args.display_payload_file),
+            output_dir=Path(args.output_dir),
+        )
+
     if args.command != "display-pack-e2e":
         return None
 

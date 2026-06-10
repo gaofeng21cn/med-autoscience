@@ -25,11 +25,12 @@ Evidence-figure renderer assets are split by execution mode:
 
 - R/ggplot2 evidence templates use `execution_mode = "subprocess"` and template-local `entrypoint = "Rscript render.R --request {request_json}"`.
 - Python evidence templates use `execution_mode = "python_plugin"` and `fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure`.
+- P1 Python evidence templates can additionally carry a template-local R/ggplot2 candidate asset at `render_candidate.R`, invoked as `Rscript render_candidate.R --request {request_json}` by the MAS candidate runner.
 
 The current evidence inventory is tracked in `renderer_migration_ledger.json`:
 
 - P0: 22 R/ggplot2 evidence templates landed as subprocess assets with local `render.R`.
-- P1: 33 Python templates are R/ggplot2 subprocess candidates for future dual-stack/golden/visual-audit promotion.
+- P1: 33 Python templates have landed R/ggplot2 subprocess candidate assets with local `render_candidate.R`; they remain candidate-only until golden and visual audit promotion.
 - P2: 29 Python templates remain Python-first or later dual-stack candidates because they are MAS-specific composites, storyboards, or custom layouts.
 
 Renderer runtime dependencies are tracked in `renderer_dependency_profile.json`.
@@ -37,10 +38,21 @@ Renderer runtime dependencies are tracked in `renderer_dependency_profile.json`.
 R shared helpers live under:
 
 - `rlib/medicaldisplaycore/evidence_renderer.R`
+- `rlib/medicaldisplaycore/candidate_renderer.R`
 
 Each R template has a local wrapper:
 
 - `templates/<template_id>/render.R`
+
+Each P1 R candidate has a local wrapper:
+
+- `templates/<template_id>/render_candidate.R`
+
+The repo-native candidate trigger is:
+
+`medautosci publication display-pack-render-candidate --repo-root <repo> --template-id <template_id> --display-payload-file <payload.json> --output-dir <dir>`
+
+Candidate output is an audit/proposal asset only: it records request/stdout/stderr, PNG, PDF and layout sidecar with `candidate_only=true` and `publication_readiness_verdict=false`; it cannot replace the default renderer or authorize publication readiness.
 
 The Python implementation is split under `src/fenggaolab_org_medical_display_core/evidence_figures/`:
 

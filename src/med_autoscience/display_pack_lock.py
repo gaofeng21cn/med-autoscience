@@ -71,6 +71,7 @@ def _collect_template_entry(
 ) -> dict[str, Any]:
     template_root = record.template_path.parent
     render_script_path = template_root / "render.R"
+    candidate_render_script_path = template_root / "render_candidate.R"
     payload = {
         "template_id": record.template_manifest.template_id,
         "full_template_id": record.template_manifest.full_template_id,
@@ -86,6 +87,16 @@ def _collect_template_entry(
         else None,
         "render_script_sha256": _sha256_file(render_script_path)
         if render_script_path.is_file()
+        else None,
+        "candidate_execution_mode": "subprocess" if candidate_render_script_path.is_file() else None,
+        "candidate_entrypoint": "Rscript render_candidate.R --request {request_json}"
+        if candidate_render_script_path.is_file()
+        else None,
+        "candidate_render_script_path": _relative_or_absolute(candidate_render_script_path, repo_root=repo_root)
+        if candidate_render_script_path.is_file()
+        else None,
+        "candidate_render_script_sha256": _sha256_file(candidate_render_script_path)
+        if candidate_render_script_path.is_file()
         else None,
         "golden_case_paths": list(record.template_manifest.golden_case_paths),
         "exemplar_refs": list(record.template_manifest.exemplar_refs),
@@ -141,6 +152,7 @@ def _collect_pack_entry(
     renderer_migration_ledger_path = record.pack_root / "renderer_migration_ledger.json"
     renderer_dependency_profile_path = record.pack_root / "renderer_dependency_profile.json"
     r_evidence_helper_path = record.pack_root / "rlib" / "medicaldisplaycore" / "evidence_renderer.R"
+    r_candidate_helper_path = record.pack_root / "rlib" / "medicaldisplaycore" / "candidate_renderer.R"
     payload = {
         "pack_id": record.pack_manifest.pack_id,
         "version": record.pack_manifest.version,
@@ -174,6 +186,12 @@ def _collect_pack_entry(
         else None,
         "r_evidence_helper_sha256": _sha256_file(r_evidence_helper_path)
         if r_evidence_helper_path.is_file()
+        else None,
+        "r_candidate_helper_path": _relative_or_absolute(r_candidate_helper_path, repo_root=repo_root)
+        if r_candidate_helper_path.is_file()
+        else None,
+        "r_candidate_helper_sha256": _sha256_file(r_candidate_helper_path)
+        if r_candidate_helper_path.is_file()
         else None,
         "template_count": len(template_records),
         "templates": [

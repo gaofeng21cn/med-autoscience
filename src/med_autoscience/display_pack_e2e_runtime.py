@@ -292,6 +292,99 @@ def _run_subprocess_renderer(
     return result
 
 
+def _run_candidate_subprocess_renderer(
+    *,
+    runtime_template_root: Path,
+    pack_root: Path,
+    paper_root: Path,
+    figure_id: str,
+    full_template_id: str,
+    short_template_id: str,
+    display_payload: Mapping[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> dict[str, Any]:
+    request_dir = paper_root / "requests"
+    log_dir = paper_root / "logs"
+    request_path = request_dir / f"{_safe_artifact_stem(figure_id)}.render_candidate_request.json"
+    stdout_path = log_dir / f"{_safe_artifact_stem(figure_id)}.stdout.txt"
+    stderr_path = log_dir / f"{_safe_artifact_stem(figure_id)}.stderr.txt"
+    render_request = {
+        "schema_version": 1,
+        "execution_mode": "subprocess",
+        "renderer_family": "r_ggplot2",
+        "candidate_only": True,
+        "figure_id": figure_id,
+        "template_id": full_template_id,
+        "short_template_id": short_template_id,
+        "display_payload": dict(display_payload),
+        "output_png_path": str(output_png_path),
+        "output_pdf_path": str(output_pdf_path),
+        "layout_sidecar_path": str(layout_sidecar_path),
+    }
+    _write_json(request_path, render_request)
+    entrypoint = "Rscript render_candidate.R --request {request_json}"
+    placeholders = _subprocess_placeholders(
+        request_path=request_path,
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+        figure_id=figure_id,
+        paper_root=paper_root,
+        template_root=runtime_template_root,
+        pack_root=pack_root,
+    )
+    argv = _expand_subprocess_entrypoint(entrypoint, placeholders=placeholders)
+    env = {
+        **os.environ,
+        "MAS_DISPLAY_RENDER_REQUEST": str(request_path),
+        "MAS_DISPLAY_OUTPUT_PNG": str(output_png_path),
+        "MAS_DISPLAY_OUTPUT_PDF": str(output_pdf_path),
+        "MAS_DISPLAY_LAYOUT_SIDECAR": str(layout_sidecar_path),
+        "MAS_DISPLAY_FIGURE_ID": figure_id,
+        "MAS_DISPLAY_TEMPLATE_ID": full_template_id,
+        "MAS_DISPLAY_RENDERER_CANDIDATE_ONLY": "1",
+    }
+    started_at = time.monotonic()
+    completed = subprocess.run(
+        argv,
+        cwd=runtime_template_root,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+        env=env,
+    )
+    duration_seconds = round(time.monotonic() - started_at, 3)
+    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    stdout_path.write_text(completed.stdout, encoding="utf-8")
+    stderr_path.parent.mkdir(parents=True, exist_ok=True)
+    stderr_path.write_text(completed.stderr, encoding="utf-8")
+    result = {
+        "status": "rendered" if completed.returncode == 0 else "failed",
+        "execution_mode": "subprocess",
+        "renderer_family": "r_ggplot2",
+        "candidate_entrypoint": entrypoint,
+        "argv": argv,
+        "cwd": str(runtime_template_root),
+        "returncode": completed.returncode,
+        "duration_seconds": duration_seconds,
+        "request_path": str(request_path),
+        "request_ref": _workspace_ref(request_path, paper_root=paper_root),
+        "stdout_path": str(stdout_path),
+        "stdout_ref": _workspace_ref(stdout_path, paper_root=paper_root),
+        "stderr_path": str(stderr_path),
+        "stderr_ref": _workspace_ref(stderr_path, paper_root=paper_root),
+    }
+    if completed.returncode != 0:
+        raise ValueError(
+            f"candidate display renderer failed for `{figure_id}` with return code "
+            f"{completed.returncode}; stderr ref: {result['stderr_ref']}"
+        )
+    return result
+
+
 def _run_python_plugin_renderer(
     *,
     repo_root: Path,
@@ -717,7 +810,81 @@ def materialize_display_pack_publication_manifest(
     return manifest
 
 
+def render_display_pack_candidate_asset(
+    *,
+    repo_root: Path,
+    template_id: str,
+    display_payload_file: Path,
+    output_dir: Path,
+) -> dict[str, Any]:
+    normalized_repo_root = Path(repo_root).expanduser().resolve()
+    normalized_output_dir = Path(output_dir).expanduser().resolve()
+    payload_path = Path(display_payload_file).expanduser().resolve()
+    display_payload = _read_json_object(payload_path)
+    runtime = resolve_display_template_runtime(
+        repo_root=normalized_repo_root,
+        paper_root=None,
+        template_id=template_id,
+    )
+    template_manifest = runtime.template_manifest
+    candidate_script_path = runtime.template_path.parent / "render_candidate.R"
+    if not candidate_script_path.is_file():
+        raise ValueError(
+            f"display template `{template_id}` does not provide render_candidate.R"
+        )
+    figure_id = f"candidate-{template_manifest.template_id}"
+    stem = _safe_artifact_stem(template_manifest.template_id)
+    output_png_path = normalized_output_dir / f"{stem}.png"
+    output_pdf_path = normalized_output_dir / f"{stem}.pdf"
+    layout_sidecar_path = normalized_output_dir / f"{stem}.layout.json"
+    render_result = _run_candidate_subprocess_renderer(
+        runtime_template_root=runtime.template_path.parent,
+        pack_root=runtime.pack_root,
+        paper_root=normalized_output_dir,
+        figure_id=figure_id,
+        full_template_id=template_manifest.full_template_id,
+        short_template_id=template_manifest.template_id,
+        display_payload=display_payload,
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+    for path in (output_png_path, output_pdf_path, layout_sidecar_path):
+        if not path.exists():
+            raise FileNotFoundError(f"candidate display renderer did not write required artifact: {path}")
+    return {
+        "schema_version": 1,
+        "status": "rendered",
+        "candidate_only": True,
+        "publication_readiness_verdict": False,
+        "repo_root": str(normalized_repo_root),
+        "template_id": template_manifest.full_template_id,
+        "short_template_id": template_manifest.template_id,
+        "display_payload_path": str(payload_path),
+        "candidate_entrypoint": "Rscript render_candidate.R --request {request_json}",
+        "authority_boundary": {
+            "candidate_can_authorize_publication_readiness": False,
+            "candidate_can_mutate_data_or_statistics": False,
+            "candidate_can_replace_default_renderer": False,
+            "promotion_requires_golden_regression_and_visual_audit": True,
+        },
+        "render_result": render_result,
+        "rendered_artifacts": {
+            "png_path": str(output_png_path),
+            "pdf_path": str(output_pdf_path),
+            "layout_sidecar_path": str(layout_sidecar_path),
+            "png_ref": _workspace_ref(output_png_path, paper_root=normalized_output_dir),
+            "pdf_ref": _workspace_ref(output_pdf_path, paper_root=normalized_output_dir),
+            "layout_sidecar_ref": _workspace_ref(layout_sidecar_path, paper_root=normalized_output_dir),
+            "png_sha256": _sha256_file(output_png_path),
+            "pdf_sha256": _sha256_file(output_pdf_path),
+            "layout_sidecar_sha256": _sha256_file(layout_sidecar_path),
+        },
+    }
+
+
 __all__ = [
     "PUBLICATION_MANIFEST_BASENAME",
     "materialize_display_pack_publication_manifest",
+    "render_display_pack_candidate_asset",
 ]

@@ -30,7 +30,11 @@ payload_from_request <- function(request) {
   display_payload <- request$display_payload
   data_payload <- display_payload$data_payload
   if (!is.null(data_payload) && is.list(data_payload)) {
-    return(data_payload)
+    merged_payload <- display_payload
+    for (field_name in names(data_payload)) {
+      merged_payload[[field_name]] <- data_payload[[field_name]]
+    }
+    return(merged_payload)
   }
   display_payload
 }
@@ -551,7 +555,11 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     forest_effect_main = list(rows = display_payload$rows),
     subgroup_forest = list(rows = display_payload$rows),
     multivariable_forest = list(rows = display_payload$rows),
-    list()
+    if (exists("build_candidate_metrics", mode = "function")) {
+      build_candidate_metrics(template_id, display_payload, panel_box)
+    } else {
+      list()
+    }
   )
 }
 
@@ -632,7 +640,11 @@ build_evidence_plot <- function(template_id, payload) {
     forest_effect_main = plot_forest(payload),
     subgroup_forest = plot_forest(payload),
     multivariable_forest = plot_forest(payload),
-    stop(sprintf("unsupported evidence template `%s`", template_id))
+    if (exists("build_candidate_evidence_plot", mode = "function")) {
+      build_candidate_evidence_plot(template_id, payload)
+    } else {
+      stop(sprintf("unsupported evidence template `%s`", template_id))
+    }
   )
 }
 
@@ -678,13 +690,15 @@ render_legacy_payload <- function(template_id, payload_path, output_png, output_
   render_evidence_request(request_path, expected_template_id = template_id)
 }
 
-args <- commandArgs(trailingOnly = TRUE)
-if (length(args) == 0) {
-  invisible(NULL)
-} else if (length(args) == 2 && identical(args[[1]], "--request")) {
-  render_evidence_request(args[[2]])
-} else if (length(args) == 5) {
-  render_legacy_payload(args[[1]], args[[2]], args[[3]], args[[4]], args[[5]])
-} else {
-  stop("expected args: --request <request_json> or <template_id> <payload_json> <output_png> <output_pdf> <output_layout>")
+if (!identical(Sys.getenv("MAS_DISPLAY_RENDERER_SOURCE_ONLY", unset = ""), "1")) {
+  args <- commandArgs(trailingOnly = TRUE)
+  if (length(args) == 0) {
+    invisible(NULL)
+  } else if (length(args) == 2 && identical(args[[1]], "--request")) {
+    render_evidence_request(args[[2]])
+  } else if (length(args) == 5) {
+    render_legacy_payload(args[[1]], args[[2]], args[[3]], args[[4]], args[[5]])
+  } else {
+    stop("expected args: --request <request_json> or <template_id> <payload_json> <output_png> <output_pdf> <output_layout>")
+  }
 }
