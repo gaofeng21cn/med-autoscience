@@ -108,6 +108,28 @@ RUNNING_HEALTH_VALUES = frozenset(
         "running",
     }
 )
+TERMINAL_CLOSEOUT_STATUSES = frozenset(
+    {
+        "blocked",
+        "closed",
+        "closed_with_domain_owner_refs",
+        "closed_with_owner_receipt_refs",
+        "completed",
+        "completed_with_domain_owner_record_only_archive",
+        "completed_with_record_only_artifact_delta",
+        "executed_progress_delta",
+        "executed_record_only",
+        "executed_record_only_archive_materialized",
+        "executed_with_domain_side_effect_observed",
+        "executed_with_owner_receipt",
+        "failed",
+        "materialized_record_only_archive",
+        "record_materialized_with_domain_owner_followthrough_observed",
+        "record_only_archive_materialized",
+        "terminal",
+        "typed_blocked",
+    }
+)
 AUTHORITY_BOUNDARY = {
     "surface_kind": SURFACE_KIND,
     "authority": "mas_current_work_unit_reducer",
@@ -202,7 +224,7 @@ def build_current_work_unit(
                 status="running_provider_attempt",
                 owner=_text(running_attempt.get("owner")) or _text(next_owner),
                 action_type=_text(running_attempt.get("action_type")),
-                work_unit_id=_running_work_unit_id(running_attempt),
+                work_unit_id=_running_work_unit_id(running_attempt, currentness_basis=basis),
                 work_unit_fingerprint=_text(running_attempt.get("work_unit_fingerprint")),
                 action_fingerprint=_text(running_attempt.get("action_fingerprint")),
                 input_refs=resolved_source_refs,
@@ -474,16 +496,19 @@ def _has_running_health(health: Mapping[str, Any]) -> bool:
     return bool(values.intersection(RUNNING_HEALTH_VALUES))
 
 
-def _running_work_unit_id(running_attempt: Mapping[str, Any]) -> str | None:
+def _running_work_unit_id(
+    running_attempt: Mapping[str, Any],
+    *,
+    currentness_basis: Mapping[str, Any] | None = None,
+) -> str | None:
     health = _mapping(running_attempt.get("runtime_health"))
+    basis = _mapping(currentness_basis)
     return (
         _work_unit_id(running_attempt.get("work_unit_id"))
         or _work_unit_id(running_attempt.get("next_work_unit"))
         or _work_unit_id(health.get("work_unit_id"))
+        or _work_unit_id(basis.get("work_unit_id"))
         or _text(running_attempt.get("action_type"))
-        or _text(running_attempt.get("active_stage_attempt_id"))
-        or _text(running_attempt.get("active_workflow_id"))
-        or _text(running_attempt.get("active_run_id"))
     )
 
 
@@ -618,15 +643,7 @@ def _attempt_has_matching_terminal_closeout(attempt: Mapping[str, Any]) -> bool:
     if active_attempt_id is None and terminal_attempt_id is None:
         return False
     status = _text(terminal.get("status"))
-    if status in {
-        "blocked",
-        "closed",
-        "closed_with_domain_owner_refs",
-        "completed",
-        "failed",
-        "terminal",
-        "typed_blocked",
-    }:
+    if status in TERMINAL_CLOSEOUT_STATUSES:
         return True
     return _text(terminal.get("source_path")) is not None and _text(terminal.get("record_path")) is not None
 
@@ -1043,6 +1060,7 @@ def _currentness_basis(
         ),
         "work_unit_id": _work_unit_id(action_payload.get("work_unit_id"))
         or _work_unit_id(action_payload.get("next_work_unit"))
+        or _route_work_unit_id(owner_route)
         or _running_work_unit_id(running),
         "work_unit_fingerprint": _work_unit_fingerprint(action_payload, currentness_basis=result)
         or _text(running.get("work_unit_fingerprint")),
@@ -1108,6 +1126,11 @@ def _action_consumed_by_dispatch_receipt(
     if not action_fingerprints or not consumed_fingerprints:
         return False
     return bool(action_fingerprints.intersection(consumed_fingerprints))
+
+
+def _route_work_unit_id(route: Mapping[str, Any]) -> str | None:
+    payload = _mapping(route)
+    return _work_unit_id(payload.get("work_unit_id")) or _work_unit_id(payload.get("next_work_unit"))
 
 
 def _action_from_current_action(current_action: Mapping[str, Any] | None) -> dict[str, Any] | None:

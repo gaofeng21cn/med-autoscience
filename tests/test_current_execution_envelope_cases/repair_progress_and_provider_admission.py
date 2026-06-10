@@ -353,7 +353,7 @@ def test_envelope_does_not_borrow_next_work_unit_from_stale_action_queue_for_run
 
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "sat-live"
+    assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
 
 
 def test_envelope_prefers_running_provider_attempt_over_stale_parked_projection() -> None:
@@ -406,7 +406,7 @@ def test_envelope_prefers_running_provider_attempt_over_stale_parked_projection(
 
     assert envelope["state_kind"] == "running_provider_attempt"
     assert envelope["owner"] == "MedAutoScience"
-    assert envelope["next_work_unit"] == "sat-live"
+    assert envelope["next_work_unit"] == "complete_medical_paper_readiness_surface"
     assert envelope["parked_state"] is None
 
 
@@ -495,6 +495,51 @@ def test_envelope_does_not_report_closed_stage_attempt_as_running_provider() -> 
     assert envelope["state_kind"] == "executable_owner_action"
     assert envelope["owner"] == "ai_reviewer"
     assert envelope["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+
+
+def test_envelope_does_not_report_record_only_archive_closeout_as_running_provider() -> None:
+    module = importlib.import_module("med_autoscience.controllers.current_execution_envelope")
+
+    envelope = module.build_current_execution_envelope(
+        actions=[
+            {
+                "source": "domain_transition",
+                "action_type": "run_gate_clearing_batch",
+                "owner": "finalize",
+                "next_owner": "finalize",
+                "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+            }
+        ],
+        next_owner="MedAutoScience",
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat-record-only",
+            "active_stage_attempt_id": "sat-record-only",
+            "active_workflow_id": "wf-record-only",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+            "latest_terminal_stage_log": {
+                "stage_attempt_id": "sat-record-only",
+                "status": "executed_record_only_archive_materialized",
+                "source_path": (
+                    "artifacts/supervision/consumer/default_executor_execution/"
+                    "sat-record-only.closeout.json"
+                ),
+            },
+        },
+        runtime_health={
+            "canonical_runtime_action": "continue_supervising_runtime",
+            "runtime_liveness_status": "live",
+        },
+    )
+
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "finalize"
+    assert envelope["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
 
 
 def test_envelope_prefers_repair_progress_followup_over_runtime_recovery_blocker() -> None:

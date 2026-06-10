@@ -1120,6 +1120,44 @@ def test_current_work_unit_running_attempt_supersedes_provider_admission_current
     assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-live-gate-replay"
 
 
+def test_running_provider_attempt_uses_currentness_work_unit_before_attempt_identity() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+        },
+        owner_route={
+            "next_work_unit": {
+                "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "lane": "finalize",
+            }
+        },
+        next_owner="med-autoscience",
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat-live-current-gate",
+            "active_stage_attempt_id": "sat-live-current-gate",
+            "active_workflow_id": "wf-live-current-gate",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "running_provider_attempt"
+    assert work_unit["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert work_unit["currentness_basis"]["work_unit_id"] == (
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    )
+    assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-live-current-gate"
+    assert work_unit["work_unit_id"] != work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"]
+
+
 def test_current_work_unit_running_attempt_supersedes_prior_dispatch_zero_blocker() -> None:
     module = _module()
 
