@@ -729,6 +729,9 @@ def _live_projection_from_queue_task(
     stage_attempt_id = _text(liveness.get("stage_attempt_id"))
     if stage_attempt_id is None:
         return None
+    liveness_observed_at = _liveness_observed_at(liveness)
+    if liveness_observed_at is None:
+        return None
     if has_terminal_default_executor_closeout(
         profile=profile,
         study_id=study_id,
@@ -749,6 +752,7 @@ def _live_projection_from_queue_task(
             "provider_status": provider_status,
             "last_heartbeat_at": _text(liveness.get("last_heartbeat_at")),
             "ledger_last_heartbeat_at": _text(liveness.get("ledger_last_heartbeat_at")),
+            "liveness_observed_at": liveness_observed_at,
             "liveness_source": _text(liveness.get("liveness_source")),
             "last_activity_heartbeat_kind": _text(liveness.get("last_activity_heartbeat_kind")),
             "last_runner_event_kind": _text(liveness.get("last_runner_event_kind")),
@@ -783,6 +787,7 @@ def _live_projection_from_queue_task(
             "runtime_liveness_status": "live",
             "summary": "OPL family-runtime has a live provider-backed stage attempt for this study.",
             "provider_status": provider_status,
+            "liveness_observed_at": liveness_observed_at,
         },
         "refs": {
             "opl_queue_task": f"opl://family-runtime/tasks/{task_id}" if task_id is not None else None,
@@ -885,6 +890,15 @@ def _first_attempt(task_surface: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(item, Mapping):
             return dict(item)
     return {}
+
+
+def _liveness_observed_at(liveness: Mapping[str, Any]) -> str | None:
+    return (
+        _text(liveness.get("last_heartbeat_at"))
+        or _text(liveness.get("ledger_last_heartbeat_at"))
+        or _text(liveness.get("updated_at"))
+        or _text(liveness.get("observed_at"))
+    )
 
 
 def _stage_attempt_id_from_active_run_id(active_run_id: str) -> str | None:

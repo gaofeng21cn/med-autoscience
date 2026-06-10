@@ -770,6 +770,7 @@ def test_current_work_unit_projects_matching_current_control_repair_over_prior_a
         "domain_owner_action_dispatch_execution_count_zero",
         "no_selected_dispatch_for_requested_action_types",
         "stage_packet_superseded_by_current_consumed_domain_transition",
+        "stale_stage_attempt_current_owner_route_superseded",
         "stale_stage_packet_current_owner_route_changed",
     ):
         work_unit = module.build_current_work_unit(

@@ -181,12 +181,15 @@ def provider_attempt_matches_identity(
     *,
     identity: Mapping[str, str],
 ) -> bool:
+    strong_match = False
     expected_action = _non_empty_text(identity.get("action_type"))
     if expected_action is not None and _non_empty_text(live_attempt.get("action_type")) != expected_action:
         return False
     expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
     if expected_work_unit is not None and _non_empty_text(live_attempt.get("work_unit_id")) != expected_work_unit:
         return False
+    if expected_work_unit is not None:
+        strong_match = True
     expected_fingerprints = {
         text
         for value in (identity.get("action_fingerprint"), identity.get("work_unit_fingerprint"))
@@ -196,13 +199,18 @@ def provider_attempt_matches_identity(
         live_fingerprints = _provider_attempt_fingerprints(live_attempt)
         if not live_fingerprints or live_fingerprints.isdisjoint(expected_fingerprints):
             return False
+        strong_match = True
     expected_dispatch = _non_empty_text(identity.get("dispatch_path"))
     live_dispatch = _non_empty_text(live_attempt.get("dispatch_ref")) or _non_empty_text(live_attempt.get("dispatch_path"))
-    if expected_dispatch is None or live_dispatch is None:
-        return True
+    if expected_dispatch is None:
+        return strong_match
+    if live_dispatch is None:
+        return False
     normalized_expected = expected_dispatch.replace("\\", "/")
     normalized_live = live_dispatch.replace("\\", "/")
-    return normalized_expected == normalized_live or normalized_expected.endswith(f"/{normalized_live}")
+    if normalized_expected == normalized_live or normalized_expected.endswith(f"/{normalized_live}"):
+        return True
+    return False
 
 
 def _provider_attempt_fingerprints(live_attempt: Mapping[str, Any]) -> set[str]:

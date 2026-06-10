@@ -1087,6 +1087,41 @@ def test_provider_probe_requires_running_attempt_fingerprint_match() -> None:
     assert provider_admission.provider_probe_has_matching_attempt(scan_result, identity=identity) is True
 
 
+def test_provider_probe_rejects_action_only_running_attempt_match() -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    scan_result = {
+        "studies": [
+            {
+                "study_id": study_id,
+                "running_provider_attempt": True,
+                "active_run_id": "opl-stage-attempt://sat-action-only",
+                "active_stage_attempt_id": "sat-action-only",
+                "opl_provider_attempt": {
+                    "running_provider_attempt": True,
+                    "active_run_id": "opl-stage-attempt://sat-action-only",
+                    "active_stage_attempt_id": "sat-action-only",
+                    "action_type": "run_gate_clearing_batch",
+                },
+            }
+        ]
+    }
+    identity = {
+        "study_id": study_id,
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        "work_unit_fingerprint": "sha256:current-gate-replay",
+        "dispatch_path": (
+            f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
+            "default_executor_dispatches/run_gate_clearing_batch.json"
+        ),
+    }
+
+    assert provider_admission.provider_probe_has_matching_attempt(scan_result, identity=identity) is False
+
+
 def test_domain_health_diagnostic_rewrites_provider_admission_after_same_tick_owner_route_scan(
     tmp_path: Path,
     monkeypatch,
