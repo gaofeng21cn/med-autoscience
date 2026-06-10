@@ -303,7 +303,31 @@ def _action_consumed_by_dispatch_receipt(
         or _non_empty_text(consumption.get("action_fingerprint"))
         or _non_empty_text(_mapping_copy(consumption.get("canonical_work_unit_identity")).get("work_unit_fingerprint"))
     )
-    return action_fingerprint is not None and action_fingerprint == consumed_fingerprint
+    if action_fingerprint is not None and action_fingerprint == consumed_fingerprint:
+        return True
+    return _ai_reviewer_eval_receipt_consumes_repair_followup(
+        action=action,
+        consumption=consumption,
+    )
+
+
+def _ai_reviewer_eval_receipt_consumes_repair_followup(
+    *,
+    action: Mapping[str, Any],
+    consumption: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+    if _non_empty_text(action.get("action_type")) != AI_REVIEWER_ACTION:
+        return False
+    if _non_empty_text(action.get("work_unit_id")) != AI_REVIEWER_WORK_UNIT:
+        return False
+    if _non_empty_text(consumption.get("receipt_kind")) != "ai_reviewer_publication_eval":
+        return False
+    receipt_ref = _non_empty_text(consumption.get("receipt_ref"))
+    if receipt_ref is None or "publication_eval" not in receipt_ref:
+        return False
+    return _non_empty_text(consumption.get("work_unit_id")) == AI_REVIEWER_WORK_UNIT
 
 
 def owner_action_next_step(action: Mapping[str, Any]) -> str | None:

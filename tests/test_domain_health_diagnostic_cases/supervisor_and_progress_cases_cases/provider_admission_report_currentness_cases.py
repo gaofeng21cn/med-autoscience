@@ -103,6 +103,100 @@ def test_materialized_currentness_current_action_becomes_provider_admission_cand
     assert result["action_queue"][0]["work_unit_fingerprint"] == action_fingerprint
 
 
+def test_opl_route_owner_gate_current_action_becomes_provider_admission_candidate(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    action_fingerprint = f"study-progress-current-owner-ticket::{study_id}::{work_unit_id}::run_gate_clearing_batch"
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "gate_clearing_batch",
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    result = module._materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        apply=False,
+        report={
+            "scanned_at": "2026-06-10T10:24:56+00:00",
+            "managed_study_opl_provider_admission_candidates": [],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "current_work_unit": {
+                            "surface_kind": "current_work_unit",
+                            "status": "executable_owner_action",
+                            "study_id": study_id,
+                            "owner": "one-person-lab",
+                            "action_type": "run_gate_clearing_batch",
+                            "work_unit_id": work_unit_id,
+                            "currentness_basis": {
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": action_fingerprint,
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-current",
+                            },
+                        },
+                        "current_executable_owner_action": {
+                            "surface_kind": "current_executable_owner_action",
+                            "schema_version": 1,
+                            "status": "ready",
+                            "source": "study_progress.next_forced_delta.owner_action",
+                            "next_owner": "one-person-lab",
+                            "work_unit_id": work_unit_id,
+                            "allowed_actions": ["run_gate_clearing_batch"],
+                            "target_surface": {
+                                "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                                "route_target": "one-person-lab",
+                            },
+                        },
+                        "current_execution_envelope": {
+                            "state_kind": "executable_owner_action",
+                            "owner": "one-person-lab",
+                            "next_work_unit": work_unit_id,
+                        },
+                    },
+                },
+            },
+        },
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    candidate = result["provider_admission_candidates"][0]
+    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+    assert candidate["study_id"] == study_id
+    assert candidate["action_type"] == "run_gate_clearing_batch"
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["action_fingerprint"] == action_fingerprint
+    assert candidate["dispatch_path"] == str(dispatch_path)
+    assert candidate["next_executable_owner"] == "gate_clearing_batch"
+    assert result["action_queue"][0]["owner"] == "gate_clearing_batch"
+    assert result["action_queue"][0]["work_unit_fingerprint"] == action_fingerprint
+
+
 def test_domain_health_diagnostic_syncs_materialized_currentness_candidate_to_top_level_report(
     tmp_path: Path,
     monkeypatch,

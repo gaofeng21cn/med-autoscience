@@ -492,6 +492,70 @@ def test_current_executable_owner_action_skips_consumed_repair_progress_followup
     assert action["allowed_actions"] == ["run_gate_clearing_batch"]
 
 
+def test_current_executable_owner_action_consumes_ai_reviewer_followup_when_eval_fingerprint_differs() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "source_fingerprint": "sha256:repair-route-request",
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "ai_reviewer_recheck_request_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
+                "gate_replay_refs": [
+                    "runtime/quests/002/artifacts/reports/publishability_gate/current.json"
+                ],
+            },
+            "progress_first_monitoring_summary": {
+                "dispatch_consumption": {
+                    "consumption_status": "consumed",
+                    "receipt_ref": "artifacts/publication_eval/latest.json",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "work_unit_fingerprint": "sha256:reviewer-output-record",
+                    "canonical_work_unit_identity": {
+                        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                        "work_unit_fingerprint": "sha256:reviewer-output-record",
+                        "source_eval_id": (
+                            "publication-eval::002-dm-china-us-mortality-attribution::"
+                            "stage-attempt-sat_current::2026-06-10T08:04:48+00:00"
+                        ),
+                    },
+                }
+            },
+            "next_forced_delta": {
+                "required_delta_kind": "review_current_paper_delta",
+                "next_owner": "write",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "owner_action": {
+                    "next_owner": "write",
+                    "work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+                "target_surface": {
+                    "ref_kind": "route_obligation",
+                    "route_target": "write",
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "study_progress.next_forced_delta.owner_action"
+    assert action["next_owner"] == "write"
+    assert action["work_unit_id"] == "ai_reviewer_record_gate_consumption"
+    assert action["allowed_actions"] == ["run_gate_clearing_batch"]
+
+
 def test_current_executable_owner_action_skips_consumed_repair_progress_from_domain_transition() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"

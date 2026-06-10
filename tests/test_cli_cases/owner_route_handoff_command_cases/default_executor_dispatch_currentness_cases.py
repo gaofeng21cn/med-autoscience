@@ -67,6 +67,96 @@ def _patch_canonical_current_work_unit(
     monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
 
 
+def test_domain_handler_export_uses_current_owner_action_fingerprint_when_current_work_unit_lacks_one(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    action_type = "return_to_ai_reviewer_workflow"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    work_unit_fingerprint = "sha256:c82b52d55725eb89ed014ff1f805c07d6a6c2ee25a47c5e5713367a54fd88917"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    _write_dispatch(
+        workspace_root=workspace_root,
+        study_id=study_id,
+        filename="return_to_ai_reviewer_workflow.json",
+        action_type=action_type,
+        next_owner="ai_reviewer",
+        dispatch_authority="ai_reviewer_record_production_handoff",
+        generated_at="2026-06-10T09:05:58+00:00",
+        allowed_write_surfaces=[
+            "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        ],
+        owner_route=_owner_route(
+            study_id=study_id,
+            next_owner="ai_reviewer",
+            owner_reason="repair_progress_ai_reviewer_recheck_required",
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+            work_unit_fingerprint=work_unit_fingerprint,
+            runtime_health_epoch="runtime-health-event-006758-0ac91a25224dc45c",
+            blocked_actions=["run_quality_repair_batch"],
+        ),
+    )
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "ai_reviewer",
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "truth_epoch": "truth-event-000040-1a4d1f9cfed66d87",
+                    "runtime_health_epoch": "runtime-health-event-006760-d897d9ca5c5e348f",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "ai_reviewer",
+                "next_work_unit": work_unit_id,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "ai_reviewer",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "action_type": action_type,
+                "allowed_actions": [action_type],
+            },
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert [task["payload"]["action_type"] for task in tasks] == [action_type]
+    assert tasks[0]["payload"]["work_unit_id"] == work_unit_id
+    assert tasks[0]["payload"]["work_unit_fingerprint"] == work_unit_fingerprint
+
+
 def _owner_route(
     *,
     study_id: str,

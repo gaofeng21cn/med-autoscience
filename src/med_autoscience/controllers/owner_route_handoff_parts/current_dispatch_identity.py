@@ -36,6 +36,11 @@ def canonical_current_dispatch_identity(
         return {"blocked": True, "source": "current_execution_envelope", "state_kind": envelope_state}
     if work_unit_status == "executable_owner_action":
         identity = _current_work_unit_dispatch_identity(current_work_unit, study_id=study_id)
+        owner_action_identity = _current_owner_action_dispatch_identity(current_owner_action, study_id=study_id)
+        identity = _merge_equivalent_current_owner_action_identity(
+            current_work_unit_identity=identity,
+            current_owner_action_identity=owner_action_identity,
+        )
         if identity:
             return identity
         return {"blocked": True, "source": "current_work_unit", "state_kind": work_unit_status}
@@ -387,6 +392,52 @@ def _current_owner_action_work_unit_fingerprint(
         or _text(basis.get("work_unit_fingerprint"))
         or _text(basis.get("source_fingerprint"))
     )
+
+
+def _merge_equivalent_current_owner_action_identity(
+    *,
+    current_work_unit_identity: Mapping[str, Any],
+    current_owner_action_identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    work_unit = dict(current_work_unit_identity)
+    owner_action = _mapping(current_owner_action_identity)
+    if not work_unit or not owner_action:
+        return work_unit
+    action_type = _text(work_unit.get("action_type"))
+    if action_type != _text(owner_action.get("action_type")):
+        return work_unit
+    work_unit_id = _text(work_unit.get("work_unit_id"))
+    owner_action_work_unit_id = _text(owner_action.get("work_unit_id"))
+    if not work_unit_ids_equivalent_for_action(
+        action_type=action_type,
+        left=work_unit_id,
+        right=owner_action_work_unit_id,
+    ):
+        return work_unit
+    owner_action_fingerprint = _text(owner_action.get("work_unit_fingerprint"))
+    if owner_action_fingerprint is None:
+        return work_unit
+    work_unit["work_unit_fingerprint"] = owner_action_fingerprint
+    action_ids = list(
+        dict.fromkeys(
+            [
+                *list(work_unit.get("action_ids") or []),
+                *list(owner_action.get("action_ids") or []),
+            ]
+        )
+    )
+    if action_ids:
+        work_unit["action_ids"] = action_ids
+    current_basis = dict(_mapping(work_unit.get("owner_route_currentness_basis")))
+    owner_action_basis = _mapping(owner_action.get("owner_route_currentness_basis"))
+    for key in ("truth_epoch", "runtime_health_epoch", "source_eval_id"):
+        if not _text(current_basis.get(key)) and (value := _text(owner_action_basis.get(key))):
+            current_basis[key] = value
+    if work_unit_id is not None:
+        current_basis["work_unit_id"] = work_unit_id
+    current_basis["work_unit_fingerprint"] = owner_action_fingerprint
+    work_unit["owner_route_currentness_basis"] = current_basis
+    return work_unit
 
 
 def _current_owner_action_expected_fingerprint(

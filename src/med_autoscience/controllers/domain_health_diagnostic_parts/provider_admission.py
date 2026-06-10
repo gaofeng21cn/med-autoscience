@@ -18,6 +18,12 @@ CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS = {
     "run_quality_repair_batch": {"write"},
     "run_gate_clearing_batch": {"finalize", "gate_clearing_batch", "write"},
 }
+CURRENT_CONTROL_PROVIDER_ADMISSION_DEFAULT_EXECUTABLE_OWNERS = {
+    "return_to_ai_reviewer_workflow": "ai_reviewer",
+    "run_quality_repair_batch": "write",
+    "run_gate_clearing_batch": "gate_clearing_batch",
+}
+OPL_RUNTIME_ROUTE_OWNERS = {"one-person-lab"}
 CURRENT_CONTROL_PROVIDER_ADMISSION_DISPATCH_AUTHORITIES = {
     "return_to_ai_reviewer_workflow": {"ai_reviewer_record_production_handoff"},
     "run_quality_repair_batch": {None, "quality_repair_batch_writer_handoff", "consumer_default_executor_dispatch"},
@@ -385,6 +391,18 @@ def provider_admission_candidate_from_current_control_action(
         dispatch_authority=_non_empty_text(dispatch_payload.get("dispatch_authority")),
     ):
         return None
+    next_executable_owner = _current_control_executable_owner(
+        action_type=action_type,
+        owner=(
+            _non_empty_text(action.get("next_executable_owner"))
+            or _non_empty_text(action.get("owner"))
+            or _non_empty_text(owner_route.get("next_owner"))
+        ),
+        dispatch_payload=dispatch_payload,
+        owner_route=owner_route,
+    )
+    if next_executable_owner is None:
+        return None
     if work_unit_id is None:
         work_unit_id = handoff_work_unit_id(dispatch_payload)
     if action_fingerprint is None:
@@ -406,12 +424,7 @@ def provider_admission_candidate_from_current_control_action(
         "owner_route_current": True,
         "dispatch_path": str(dispatch_path),
         "action_fingerprint": action_fingerprint,
-        "next_executable_owner": (
-            _non_empty_text(action.get("next_executable_owner"))
-            or _non_empty_text(action.get("owner"))
-            or _non_empty_text(owner_route.get("next_owner"))
-            or _non_empty_text(dispatch_payload.get("next_executable_owner"))
-        ),
+        "next_executable_owner": next_executable_owner,
         "required_output_surface": (
             _non_empty_text(action.get("required_output_surface"))
             or _non_empty_text(_mapping(owner_route.get("target_surface")).get("surface_ref"))
@@ -478,7 +491,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     if action_type is None:
         return None
     owner = _non_empty_text(current.get("next_owner")) or _non_empty_text(current.get("owner"))
-    if not _current_control_owner_allowed(action_type=action_type, owner=owner):
+    executable_owner = _current_control_executable_owner(action_type=action_type, owner=owner)
+    if executable_owner is None:
         return None
     work_unit_id = _non_empty_text(current.get("work_unit_id")) or _non_empty_text(current.get("next_work_unit"))
     if work_unit_id is None:
@@ -514,8 +528,8 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "quest_id": _non_empty_text(study.get("quest_id")),
         "action_type": action_type,
         "status": "queued",
-        "owner": owner,
-        "next_executable_owner": owner,
+        "owner": executable_owner,
+        "next_executable_owner": executable_owner,
         "next_work_unit": work_unit_id,
         "work_unit_id": work_unit_id,
         "action_fingerprint": action_fingerprint,
@@ -525,7 +539,7 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         "provider_completion_is_domain_completion": False,
         "source_surface": "opl_current_control_state.study_current_executable_owner_action",
         "owner_route": {
-            "next_owner": owner,
+            "next_owner": executable_owner,
             "allowed_actions": [action_type],
             "work_unit_fingerprint": action_fingerprint,
             "source_refs": source_refs,
@@ -1324,12 +1338,33 @@ def _current_control_action_requests_provider_admission(action: Mapping[str, Any
     if _non_empty_text(action.get("status")) not in {"queued", "pending", "ready"}:
         return False
     owner = _non_empty_text(action.get("next_executable_owner")) or _non_empty_text(action.get("owner"))
-    return _current_control_owner_allowed(action_type=action_type, owner=owner)
+    return _current_control_executable_owner(action_type=action_type, owner=owner) is not None
 
 
 def _current_control_owner_allowed(*, action_type: str, owner: str | None) -> bool:
     expected_owners = CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS.get(action_type)
     return owner in expected_owners if expected_owners is not None else False
+
+
+def _current_control_executable_owner(
+    *,
+    action_type: str,
+    owner: str | None,
+    dispatch_payload: Mapping[str, Any] | None = None,
+    owner_route: Mapping[str, Any] | None = None,
+) -> str | None:
+    if _current_control_owner_allowed(action_type=action_type, owner=owner):
+        return owner
+    if owner not in OPL_RUNTIME_ROUTE_OWNERS:
+        return None
+    for candidate in (
+        _non_empty_text(_mapping(dispatch_payload).get("next_executable_owner")),
+        _non_empty_text(_mapping(owner_route).get("next_owner")),
+        CURRENT_CONTROL_PROVIDER_ADMISSION_DEFAULT_EXECUTABLE_OWNERS.get(action_type),
+    ):
+        if _current_control_owner_allowed(action_type=action_type, owner=candidate):
+            return candidate
+    return None
 
 
 def _dispatch_authority_allows_current_control_provider_admission(
