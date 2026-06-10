@@ -5,11 +5,28 @@ from pathlib import Path
 from typing import Any
 
 
+STAGE_PACKET_TEMPLATE_NAME = "medical-research-stage-packet.block.md"
+SKILL_CONTENT_PATTERN_TEMPLATE_NAME = "medical-research-skill-content-patterns.block.md"
+CITATION_LOCATOR_AUDIT_TEMPLATE_NAME = "medical-research-citation-locator-audit.template.md"
+PRISMA_FLOW_TEMPLATE_NAME = "medical-research-prisma-flow.template.md"
+FIGURE_INTEGRITY_TEMPLATE_NAME = "medical-research-figure-integrity.template.md"
+
+MANUSCRIPT_HELPER_TEMPLATE_NAMES = (
+    SKILL_CONTENT_PATTERN_TEMPLATE_NAME,
+    CITATION_LOCATOR_AUDIT_TEMPLATE_NAME,
+    PRISMA_FLOW_TEMPLATE_NAME,
+    FIGURE_INTEGRITY_TEMPLATE_NAME,
+)
+
 COMPANION_TEMPLATE_MAP = {
-    "decision": ("medical-research-stage-packet.block.md",),
-    "finalize": ("medical-research-stage-packet.block.md",),
-    "idea": ("medical-research-stage-packet.block.md",),
-    "write": ("medical-research-stage-packet.block.md",),
+    "analysis-campaign": MANUSCRIPT_HELPER_TEMPLATE_NAMES,
+    "decision": (STAGE_PACKET_TEMPLATE_NAME,),
+    "finalize": (STAGE_PACKET_TEMPLATE_NAME,) + MANUSCRIPT_HELPER_TEMPLATE_NAMES,
+    "idea": (STAGE_PACKET_TEMPLATE_NAME,),
+    "journal-resolution": (SKILL_CONTENT_PATTERN_TEMPLATE_NAME, CITATION_LOCATOR_AUDIT_TEMPLATE_NAME),
+    "review": MANUSCRIPT_HELPER_TEMPLATE_NAMES,
+    "scout": (SKILL_CONTENT_PATTERN_TEMPLATE_NAME, CITATION_LOCATOR_AUDIT_TEMPLATE_NAME, PRISMA_FLOW_TEMPLATE_NAME),
+    "write": (STAGE_PACKET_TEMPLATE_NAME,) + MANUSCRIPT_HELPER_TEMPLATE_NAMES,
 }
 
 

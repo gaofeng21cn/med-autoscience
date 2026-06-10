@@ -38,6 +38,24 @@ ROUTE_BIAS_TOKEN = "{{MED_AUTOSCIENCE_ROUTE_BIAS}}"
 STUDY_ARCHETYPES_TOKEN = "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}"
 MEDICAL_RUNTIME_CONTRACT_TOKEN = "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}"
 STAGE_PACKET_TEMPLATE_NAME = "medical-research-stage-packet.block.md"
+SKILL_CONTENT_PATTERN_TEMPLATE_NAME = "medical-research-skill-content-patterns.block.md"
+CITATION_LOCATOR_AUDIT_TEMPLATE_NAME = "medical-research-citation-locator-audit.template.md"
+PRISMA_FLOW_TEMPLATE_NAME = "medical-research-prisma-flow.template.md"
+FIGURE_INTEGRITY_TEMPLATE_NAME = "medical-research-figure-integrity.template.md"
+HELPER_TEMPLATE_NAMES = (
+    SKILL_CONTENT_PATTERN_TEMPLATE_NAME,
+    CITATION_LOCATOR_AUDIT_TEMPLATE_NAME,
+    PRISMA_FLOW_TEMPLATE_NAME,
+    FIGURE_INTEGRITY_TEMPLATE_NAME,
+)
+COMPANION_EXPECTATIONS = (
+    ("scout", HELPER_TEMPLATE_NAMES[:3]),
+    ("analysis-campaign", HELPER_TEMPLATE_NAMES),
+    ("write", (STAGE_PACKET_TEMPLATE_NAME, *HELPER_TEMPLATE_NAMES)),
+    ("review", HELPER_TEMPLATE_NAMES),
+    ("finalize", (STAGE_PACKET_TEMPLATE_NAME, *HELPER_TEMPLATE_NAMES)),
+    ("journal-resolution", HELPER_TEMPLATE_NAMES[:2]),
+)
 STAGE_SKILL_TEMPLATE_FILES = {
     "analysis-campaign": "medical-research-analysis-campaign.SKILL.md",
     "baseline": "medical-research-baseline.SKILL.md",
@@ -88,6 +106,10 @@ def read_stage_packet_template() -> str:
 
 def stage_packet_path(root: Path, skill_id: str) -> Path:
     return root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-{skill_id}" / STAGE_PACKET_TEMPLATE_NAME
+
+
+def companion_path(root: Path, skill_id: str, template_name: str) -> Path:
+    return root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-{skill_id}" / template_name
 
 
 def write_system_prompt(root: Path, body: str) -> Path:
@@ -507,6 +529,50 @@ def test_install_medical_overlay_materializes_workspace_full_template_skill_with
         assert skill_path.exists(), skill_path
         assert skill_path.read_text(encoding="utf-8") == module.load_overlay_skill_text(skill_id)
     assert stage_packet_path(quest_root, "write").read_text(encoding="utf-8") == read_stage_packet_template()
+
+
+@pytest.mark.parametrize(("skill_id", "expected_template_names"), COMPANION_EXPECTATIONS)
+def test_install_medical_overlay_materializes_light_style_helper_companions(
+    tmp_path: Path, skill_id: str, expected_template_names: tuple[str, ...]
+) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    quest_root = tmp_path / "workspace"
+
+    module.install_medical_overlay(quest_root=quest_root, skill_ids=(skill_id,))
+
+    for template_name in expected_template_names:
+        installed_text = companion_path(quest_root, skill_id, template_name).read_text(encoding="utf-8")
+        template_text = (OVERLAY_TEMPLATE_ROOT / template_name).read_text(encoding="utf-8")
+        assert installed_text == template_text
+        if template_name in HELPER_TEMPLATE_NAMES:
+            assert all(
+                needle in template_text
+                for needle in ("MAS-owned", "MAS authority", "progress-first", "not a runtime")
+            )
+
+
+def test_overlay_status_tracks_helper_companion_ready_and_drifted(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    quest_root = tmp_path / "workspace"
+
+    module.install_medical_overlay(quest_root=quest_root, skill_ids=("write",))
+    ready_status = module.describe_medical_overlay(quest_root=quest_root, skill_ids=("write",))
+    ready_write = {item["skill_id"]: item for item in ready_status["targets"]}["write"]
+
+    assert ready_write["status"] == "overlay_applied"
+    assert all(item["status"] == "ready" for item in ready_write["companion_files"])
+
+    drifted_companion = companion_path(quest_root, "write", CITATION_LOCATOR_AUDIT_TEMPLATE_NAME)
+    drifted_companion.write_text("drifted helper template\n", encoding="utf-8")
+
+    drifted_status = module.describe_medical_overlay(quest_root=quest_root, skill_ids=("write",))
+    drifted_write = {item["skill_id"]: item for item in drifted_status["targets"]}["write"]
+
+    assert drifted_write["status"] == "drifted"
+    assert any(
+        item["template_name"] == CITATION_LOCATOR_AUDIT_TEMPLATE_NAME and item["status"] == "drifted"
+        for item in drifted_write["companion_files"]
+    )
 
 
 def test_ensure_medical_overlay_noops_when_targets_are_ready(tmp_path: Path) -> None:
