@@ -32,6 +32,9 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     if _stage_kernel_owner_answer_recorded_without_next_action(payload):
         return stage_native_action or domain_transition_action
     if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
+        next_forced_delta_action = _from_next_forced_delta(payload)
+        if _next_forced_delta_supersedes_stale_readiness_blocker(next_forced_delta_action):
+            return next_forced_delta_action
         return (
             stage_native_action
             or domain_transition_action
@@ -240,6 +243,32 @@ def _from_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None
             "acceptance_refs": _text_items(next_forced_delta.get("acceptance_refs")),
             "authority_boundary": _authority_boundary(),
         }
+    )
+
+
+def _next_forced_delta_supersedes_stale_readiness_blocker(
+    action: Mapping[str, Any] | None,
+) -> bool:
+    payload = _mapping_copy(action)
+    if _non_empty_text(payload.get("source")) != "study_progress.next_forced_delta.owner_action":
+        return False
+    if _non_empty_text(payload.get("required_delta_kind")) != "review_current_paper_delta":
+        return False
+    values = {
+        _non_empty_text(payload.get("action_type")),
+        _non_empty_text(payload.get("work_unit_id")),
+        *_text_items(payload.get("allowed_actions")),
+    }
+    if READINESS_ACTION in values:
+        return False
+    return bool(
+        values.intersection(
+            {
+                "return_to_ai_reviewer_workflow",
+                "run_gate_clearing_batch",
+                "run_quality_repair_batch",
+            }
+        )
     )
 
 

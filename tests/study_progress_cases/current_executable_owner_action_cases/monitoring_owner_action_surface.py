@@ -79,6 +79,88 @@ def test_progress_first_monitoring_exposes_current_executable_owner_action_from_
     assert monitoring["controller_action"] == "run_gate_clearing_batch"
     assert monitoring["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
 
+
+def test_progress_first_monitoring_routes_next_forced_delta_over_stale_readiness_blocker() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "medical_paper_readiness": {"overall_status": "not_ready"},
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "source_kind": "typed_blocker",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "owner": "MedAutoScience",
+                    "reason": "medical_paper_readiness_missing",
+                    "required_input": "complete_medical_paper_readiness_surface",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                    "latest_owner_answer_kind": "typed_blocker",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_id": "medical_paper_readiness_missing",
+                    "blocker_type": "medical_paper_readiness_missing",
+                    "owner": "MedAutoScience",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                },
+            },
+            "next_forced_delta": {
+                "required_delta_kind": "review_current_paper_delta",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "reason": "paper_progress_delta_observed",
+                "target_surface": {
+                    "ref_kind": "route_obligation",
+                    "route_target": "finalize",
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+                "target_surface_specificity": "explicit_owner_route_target",
+                "acceptance_refs": ["progress_first_sprint_state.deliverable_progress_delta"],
+                "owner_action": {
+                    "next_owner": "finalize",
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "finalize",
+                "owner": "finalize",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "finalize",
+                },
+                "completion_receipt_consumption": {
+                    "status": "consumed",
+                    "receipt_kind": "ai_reviewer_publication_eval",
+                    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                    "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+                },
+            },
+        }
+    )
+
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["typed_blocker"] is None
+    assert monitoring["current_blockers"] == []
+    assert monitoring["next_owner"] == "finalize"
+    assert monitoring["controller_action"] == "run_gate_clearing_batch"
+    assert monitoring["next_work_unit"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    action = monitoring["current_executable_owner_action"]
+    assert action["source"] == "study_progress.next_forced_delta.owner_action"
+    assert action["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert monitoring["owner_action_admission"]["admission_requested"] is True
+
 def test_progress_first_monitoring_requests_admission_for_current_executable_owner_action_without_hard_gate() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

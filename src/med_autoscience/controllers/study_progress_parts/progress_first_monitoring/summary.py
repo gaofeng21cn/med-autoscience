@@ -183,6 +183,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         if running_provider_attempt is True
         or artifact_first_supersedes_blocker
         or _repair_progress_owner_action(current_action)
+        or _next_forced_delta_owner_action(current_action)
         or handoff_owner_action is not None
         or (
             transition_consumed_owner_action
@@ -209,6 +210,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _stage_kernel_owner_action(current_action)
         or _stage_native_owner_action(current_action)
         or _repair_progress_owner_action(current_action)
+        or _next_forced_delta_owner_action(current_action)
         or handoff_owner_action is not None
         or (
             transition_consumed_owner_action
@@ -702,6 +704,13 @@ def _repair_progress_owner_action(action: Mapping[str, Any]) -> bool:
     )
 
 
+def _next_forced_delta_owner_action(action: Mapping[str, Any]) -> bool:
+    return (
+        _text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
+        and bool(_sequence(action.get("allowed_actions")))
+    )
+
+
 def _envelope_typed_blocker_blocks_current_action(
     *,
     execution: Mapping[str, Any],
@@ -714,6 +723,8 @@ def _envelope_typed_blocker_blocks_current_action(
     if _stage_native_owner_action(current_action):
         return False
     if _repair_progress_owner_action(current_action):
+        return False
+    if _next_forced_delta_owner_action(current_action):
         return False
     if _text(execution.get("state_kind")) != "typed_blocker":
         return False
