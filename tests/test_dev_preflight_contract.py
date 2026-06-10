@@ -684,7 +684,10 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "scripts/run-pytest-clean.sh "
             "tests/test_opl_family_contract_adoption.py "
             "tests/test_progress_first_safety_envelope_contract.py "
-            "tests/test_test_lane_governance.py -q"
+            "tests/test_test_lane_governance.py "
+            "tests/test_stage_quality_contract.py "
+            "tests/test_stage_route_contract.py "
+            "tests/test_overlay_installer.py -q"
         ),
         "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
     ]
@@ -706,6 +709,32 @@ def test_classify_changed_files_matches_evo_scientist_progress_accelerator_surfa
     assert module.plan_commands_for_categories(result.matched_categories) == [
         "scripts/run-pytest-clean.sh tests/test_evo_scientist_learning_projection.py -q",
     ]
+
+
+def test_classify_changed_files_matches_data_asset_display_and_overlay_contracts() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "contracts/data_asset_operating_contract.json",
+            "contracts/display-pack-contract.v2.json",
+            "contracts/figure_polish_lifecycle_contract.json",
+            "contracts/medical_figure_spec_contract.json",
+            "contracts/publication_figure_quality_contract.json",
+            "src/med_autoscience/overlay/templates/medical-research-citation-locator-audit.template.md",
+            "src/med_autoscience/overlay/templates/medical-research-figure-integrity.template.md",
+            "src/med_autoscience/overlay/templates/medical-research-prisma-flow.template.md",
+            "src/med_autoscience/overlay/templates/medical-research-skill-content-patterns.block.md",
+            "src/med_autoscience/resources/stage_route_contract.yaml",
+        ]
+    )
+
+    assert result.matched_categories == (
+        "data_asset_operating_surface",
+        "display_publication_surface",
+        "standard_agent_pack_surface",
+    )
+    assert result.unclassified_changes == ()
 
 
 def test_classify_changed_files_matches_stage_kernel_pack_contract_surface() -> None:

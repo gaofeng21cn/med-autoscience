@@ -52,11 +52,13 @@
       "owner_surface_landed",
       "read_model_landed",
       "sidecar_or_worker_landed",
+      "sidecar_execution_slot_landed",
       "contract_projection_landed"
     ],
     "gap_statuses": [
       "contract_only_gap",
       "projection_only_gap",
+      "thin_projection_landed_worker_scaleout_gap",
       "history_only_gap",
       "not_landed_gap"
     ],
@@ -73,6 +75,7 @@
       "mas_owner_surface_consumes_pattern",
       "generated_or_read_model_projection_is_consumed_by_owner",
       "worker_or_sidecar_execution_slot_declared",
+      "single_nonblocking_external_learning_sidecar_action_declared",
       "callable_or_action_catalog_entry_declared",
       "quality_pack_consumer_declared",
       "controller_authorized_soak_declared"
@@ -85,6 +88,122 @@
       "nonblocking_or_fail_open_policy",
       "verification_gate"
     ],
+    "single_sidecar_action_catalog": {
+      "action_type": "run_external_learning_sidecar",
+      "owner": "external_learning_sidecar",
+      "callable_surface": "external_learning_sidecar.run_external_learning_sidecar",
+      "execution_model": "single_nonblocking_current_owner_following_sidecar",
+      "allowed_writes": [
+        "artifacts/supervision/requests/external_learning_sidecar/latest.json",
+        "artifacts/advisory/external_learning_sidecar/latest.json"
+      ],
+      "forbidden_authority": [
+        "external_runtime_landed",
+        "admission_gate",
+        "current_owner_blocker",
+        "study_truth",
+        "paper_body",
+        "publication_eval",
+        "controller_decisions",
+        "current_package",
+        "owner_receipt",
+        "typed_blocker",
+        "quality_verdict",
+        "artifact_authority"
+      ],
+      "mainline_waits_for_sidecar": false,
+      "missing_sidecar_blocks_current_owner_action": false,
+      "sidecar_failure_blocks_current_owner_action": false,
+      "advisory_refs_count_as_paper_progress": false,
+      "candidate_source_families": [
+        {
+          "source_id": "PaperSpine",
+          "source_status": "not_landed_gap_to_refs_only_candidate",
+          "candidate_ref_families": [
+            "motivation_spine_ref",
+            "writing_rationale_ref",
+            "latex_safe_audit_ref"
+          ],
+          "forbidden_claims": [
+            "paper_body_writer",
+            "publication_owner",
+            "latex_build_authority"
+          ]
+        },
+        {
+          "source_id": "ARIS",
+          "source_status": "history_only_gap_to_refs_only_candidate",
+          "candidate_ref_families": [
+            "cross_model_review_ref",
+            "experiment_queue_ref",
+            "claim_assurance_ref"
+          ],
+          "forbidden_claims": [
+            "mas_provider_runtime",
+            "review_authority",
+            "experiment_scheduler"
+          ]
+        },
+        {
+          "source_id": "Academic Research Skills",
+          "source_status": "thin_projection_landed_worker_scaleout_gap",
+          "candidate_ref_families": [
+            "claim_citation_support_ref",
+            "material_passport_ref",
+            "data_access_oversight_ref"
+          ],
+          "forbidden_claims": [
+            "evidence_truth",
+            "quality_verdict",
+            "publication_readiness"
+          ]
+        },
+        {
+          "source_id": "ARK",
+          "source_status": "contract_only_gap_to_refs_only_candidate",
+          "candidate_ref_families": [
+            "micro_canary_ref",
+            "real_run_closeout_ref",
+            "citation_lifecycle_queue_ref"
+          ],
+          "forbidden_claims": [
+            "ark_queue_runtime",
+            "stage_closeout",
+            "admission_gate"
+          ]
+        },
+        {
+          "source_id": "AutoSci/OmegaWiki",
+          "source_status": "contract_projection_landed_to_refs_only_candidate",
+          "candidate_ref_families": [
+            "source_discovery_ref",
+            "experiment_lifecycle_ref",
+            "negative_memory_ref",
+            "artifact_qa_ref"
+          ],
+          "forbidden_claims": [
+            "autosci_runtime",
+            "wiki_truth_db",
+            "experiment_authority"
+          ]
+        },
+        {
+          "source_id": "PaperOrchestra",
+          "source_status": "history_only_gap_or_contract_projection_to_refs_only_candidate",
+          "candidate_ref_families": [
+            "authoring_dag_ref",
+            "outline_plot_ref",
+            "literature_section_ref",
+            "autorater_ref"
+          ],
+          "forbidden_claims": [
+            "paperorchestra_runtime",
+            "paper_generator",
+            "publication_authority"
+          ]
+        }
+      ]
+    },
     "forbidden_landing_claims": [
       "learned",
       "absorbed",

@@ -109,16 +109,29 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="display_publication_surface",
         exact_paths=(
+            "contracts/display-pack-contract.v2.json",
+            "contracts/figure_polish_lifecycle_contract.json",
+            "contracts/medical_figure_spec_contract.json",
+            "contracts/publication_figure_quality_contract.json",
+            "src/med_autoscience/display_pack_v2_contract.py",
             "src/med_autoscience/display_registry.py",
             "src/med_autoscience/display_schema_contract.py",
             "src/med_autoscience/display_template_catalog.py",
+            "src/med_autoscience/figure_polish_lifecycle_contract.py",
+            "src/med_autoscience/medical_figure_spec_contract.py",
+            "src/med_autoscience/publication_figure_quality_contract.py",
             "src/med_autoscience/controllers/medical_publication_surface.py",
             "src/med_autoscience/controllers/publication_gate.py",
             "tests/test_display_layout_qc.py",
             "tests/test_display_schema_contract.py",
             "tests/test_display_surface_materialization.py",
+            "tests/test_display_pack_v2_contract.py",
+            "tests/test_display_pack_v2_figure_quality_refs.py",
+            "tests/test_figure_polish_lifecycle_contract.py",
+            "tests/test_medical_figure_spec_contract.py",
             "tests/test_medical_publication_surface.py",
             "tests/test_publication_gate.py",
+            "tests/test_publication_figure_quality_contract.py",
         ),
         prefix_paths=(
             "src/med_autoscience/display_layout_qc/",
@@ -130,6 +143,37 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             f"{PYTEST_CLEAN_RUNNER} tests/test_display_layout_qc.py -q",
             f"{PYTEST_CLEAN_RUNNER} tests/test_publication_gate.py -q",
             f"{PYTEST_CLEAN_RUNNER} tests/test_medical_publication_surface.py -q",
+            (
+                f"{PYTEST_CLEAN_RUNNER} "
+                "tests/test_display_pack_v2_contract.py "
+                "tests/test_display_pack_v2_figure_quality_refs.py "
+                "tests/test_figure_polish_lifecycle_contract.py "
+                "tests/test_medical_figure_spec_contract.py "
+                "tests/test_publication_figure_quality_contract.py -q"
+            ),
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="data_asset_operating_surface",
+        exact_paths=(
+            "contracts/data_asset_operating_contract.json",
+            "src/med_autoscience/cli_parts/workspace_data_commands.py",
+            "src/med_autoscience/controllers/data_assets.py",
+            "src/med_autoscience/controllers/data_assets_parts/layout.py",
+            "src/med_autoscience/controllers/data_assets_parts/public_registry.py",
+            "src/med_autoscience/controllers/data_assets_parts/release_inventory.py",
+            "tests/test_cli_cases/workspace_and_data_asset_commands.py",
+            "tests/test_data_asset_operating_contract.py",
+            "tests/test_data_assets.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            (
+                f"{PYTEST_CLEAN_RUNNER} "
+                "tests/test_data_asset_operating_contract.py "
+                "tests/test_data_assets.py "
+                "tests/test_cli_cases/workspace_and_data_asset_commands.py -q"
+            ),
         ),
     ),
     PreflightCategorySpec(
@@ -262,6 +306,11 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/stage_run_kernel_profile.json",
             "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
+            "src/med_autoscience/overlay/templates/medical-research-citation-locator-audit.template.md",
+            "src/med_autoscience/overlay/templates/medical-research-figure-integrity.template.md",
+            "src/med_autoscience/overlay/templates/medical-research-prisma-flow.template.md",
+            "src/med_autoscience/overlay/templates/medical-research-skill-content-patterns.block.md",
+            "src/med_autoscience/resources/stage_route_contract.yaml",
             "templates/codex/medautoscience-entry.SKILL.md",
             "templates/openclaw/medautoscience-entry.prompt.md",
             "templates/stage_route_contract.yaml",
@@ -278,7 +327,10 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
                 f"{PYTEST_CLEAN_RUNNER} "
                 "tests/test_opl_family_contract_adoption.py "
                 "tests/test_progress_first_safety_envelope_contract.py "
-                "tests/test_test_lane_governance.py -q"
+                "tests/test_test_lane_governance.py "
+                "tests/test_stage_quality_contract.py "
+                "tests/test_stage_route_contract.py "
+                "tests/test_overlay_installer.py -q"
             ),
             f"{PYTEST_CLEAN_RUNNER} tests/test_product_entry.py -q",
         ),

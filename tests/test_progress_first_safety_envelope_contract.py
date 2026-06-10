@@ -93,6 +93,7 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
         "ARK",
         "ARIS",
         "PaperSpine",
+        "PaperOrchestra",
         "Open Auto Research",
         "Light0305/Light",
     } <= set(policy["applies_to_source_families"])
@@ -100,11 +101,13 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
         "owner_surface_landed",
         "read_model_landed",
         "sidecar_or_worker_landed",
+        "sidecar_execution_slot_landed",
         "contract_projection_landed",
     ]
     assert policy["gap_statuses"] == [
         "contract_only_gap",
         "projection_only_gap",
+        "thin_projection_landed_worker_scaleout_gap",
         "history_only_gap",
         "not_landed_gap",
     ]
@@ -118,6 +121,7 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
         "mas_owner_surface_consumes_pattern",
         "generated_or_read_model_projection_is_consumed_by_owner",
         "worker_or_sidecar_execution_slot_declared",
+        "single_nonblocking_external_learning_sidecar_action_declared",
         "callable_or_action_catalog_entry_declared",
         "quality_pack_consumer_declared",
         "controller_authorized_soak_declared",
@@ -136,6 +140,65 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
         "next_safe_landing_path",
         "verification_gate",
     } <= set(policy["gap_reporting_requires"])
+
+    sidecar = policy["single_sidecar_action_catalog"]
+    assert sidecar["action_type"] == "run_external_learning_sidecar"
+    assert sidecar["owner"] == "external_learning_sidecar"
+    assert (
+        sidecar["callable_surface"] == "external_learning_sidecar.run_external_learning_sidecar"
+    )
+    assert sidecar["execution_model"] == "single_nonblocking_current_owner_following_sidecar"
+    assert sidecar["allowed_writes"] == [
+        "artifacts/supervision/requests/external_learning_sidecar/latest.json",
+        "artifacts/advisory/external_learning_sidecar/latest.json",
+    ]
+    assert {
+        "external_runtime_landed",
+        "admission_gate",
+        "current_owner_blocker",
+        "study_truth",
+        "paper_body",
+        "publication_eval",
+        "controller_decisions",
+        "current_package",
+        "owner_receipt",
+        "typed_blocker",
+        "quality_verdict",
+        "artifact_authority",
+    } <= set(sidecar["forbidden_authority"])
+    assert sidecar["mainline_waits_for_sidecar"] is False
+    assert sidecar["missing_sidecar_blocks_current_owner_action"] is False
+    assert sidecar["sidecar_failure_blocks_current_owner_action"] is False
+    assert sidecar["advisory_refs_count_as_paper_progress"] is False
+    candidate_sources = {
+        item["source_id"]: item for item in sidecar["candidate_source_families"]
+    }
+    assert set(candidate_sources) == {
+        "PaperSpine",
+        "ARIS",
+        "Academic Research Skills",
+        "ARK",
+        "AutoSci/OmegaWiki",
+        "PaperOrchestra",
+    }
+    assert "motivation_spine_ref" in candidate_sources["PaperSpine"][
+        "candidate_ref_families"
+    ]
+    assert "cross_model_review_ref" in candidate_sources["ARIS"]["candidate_ref_families"]
+    assert "claim_citation_support_ref" in candidate_sources["Academic Research Skills"][
+        "candidate_ref_families"
+    ]
+    assert "micro_canary_ref" in candidate_sources["ARK"]["candidate_ref_families"]
+    assert "source_discovery_ref" in candidate_sources["AutoSci/OmegaWiki"][
+        "candidate_ref_families"
+    ]
+    assert "authoring_dag_ref" in candidate_sources["PaperOrchestra"][
+        "candidate_ref_families"
+    ]
+    assert "paper_generator" in candidate_sources["PaperOrchestra"]["forbidden_claims"]
+    assert "publication_authority" in candidate_sources["PaperOrchestra"][
+        "forbidden_claims"
+    ]
 
     ordinary = policy["ordinary_progress_policy"]
     assert ordinary["external_learning_is_admission_layer"] is False
