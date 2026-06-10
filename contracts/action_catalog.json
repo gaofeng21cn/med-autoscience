@@ -407,7 +407,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+        "command": "medautosci domain-handler export --profile <profile> --format json",
         "surface_kind": "mas_external_learning_adoption_closure"
       },
       "summary": "Read the MAS-owned closure surface for Co-Scientist, Nature-skills, ARS, AutoSci, EvoScientist/EvoSkills, ARK, ARIS, PaperSpine, and Open Auto Research learning. It distinguishes owner-surface landed work from contract-only or not-landed gaps, and declares the nonblocking external-learning sidecar execution slot.",
@@ -416,11 +416,11 @@
           "tool_name": "external_learning_adoption_closure"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command": "medautosci domain-handler export --profile <profile> --format json",
           "surface_kind": "mas_external_learning_adoption_closure"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command": "medautosci domain-handler export --profile <profile> --format json",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "mas_external_learning_adoption_closure",
@@ -431,11 +431,11 @@
         },
         "product_entry": {
           "action_key": "external_learning_adoption_closure",
-          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command": "medautosci domain-handler export --profile <profile> --format json",
           "surface_kind": "mas_external_learning_adoption_closure"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command": "medautosci domain-handler export --profile <profile> --format json",
           "command_contract_id": "external_learning_adoption_closure",
           "surface_kind": "mas_external_learning_adoption_closure"
         }
