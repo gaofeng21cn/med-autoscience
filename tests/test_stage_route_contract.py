@@ -93,14 +93,17 @@ def test_stage_native_semantic_pack_covers_all_stage_obligation_fields() -> None
     assert light_source["orchestrator_dependency"] is False
     assert light_source["copy_external_skill_inventory"] is False
     assert light_source["may_create_or_replace_stage_router"] is False
-    assert pack["progress_enhancement"]["advisory_strategy"]["non_blocking_budget"][
+    jit_affordance_strategy = pack["progress_enhancement"]["jit_affordance_strategy"]
+    assert jit_affordance_strategy["default_invocation"] == "none"
+    assert jit_affordance_strategy["default_design"] == "ordinary_progress_has_no_extra_advisory_stage"
+    assert jit_affordance_strategy["secondary_invocation_cap"][
         "skill_engineering_intake_limit"
-    ] == "skill_engineering_advisory_gaps_do_not_preflight_block_dispatch"
-    light_mechanism = pack["progress_enhancement"]["advisory_strategy"]["mechanisms"][
+    ] == "skill_engineering_affordance_gaps_do_not_preflight_block_dispatch"
+    light_mechanism = pack["progress_enhancement"]["jit_affordance_strategy"]["mechanisms"][
         "light_external_pattern_intake"
     ]
     assert {
-        "skill_engineering_advisory_ref",
+        "skill_engineering_affordance_ref",
         "progress_passport_ref",
         "citation_locator_audit_ref",
         "prisma_flow_reconciliation_ref",

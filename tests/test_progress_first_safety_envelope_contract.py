@@ -226,13 +226,49 @@ def test_safety_envelope_covers_all_false_completion_and_drift_risk_classes() ->
     )
 
 
-def test_hybrid_policy_is_current_owner_following_fail_open_and_budgeted() -> None:
+def test_hybrid_policy_is_owner_native_jit_affordance_not_budgeted_sidecar() -> None:
     policy = _envelope()["hybrid_progress_accelerator_policy"]
 
     assert policy["surface_kind"] == "mas_light_coscientist_progress_first_hybrid_policy"
-    assert policy["role"] == "current_owner_following_advisory_sidecar"
+    assert policy["role"] == "current_owner_native_jit_affordance"
     assert policy["ordinary_path_root"] == "current_owner_delta"
-    assert policy["default_posture"] == "advisory_refs_only_fail_open_budgeted"
+    assert (
+        policy["default_posture"]
+        == "affordance_available_no_standing_sidecar_no_default_scan_current_delta_declares_or_implies_affordance_need"
+    )
+    assert policy["default_design"] == "ordinary_progress_has_no_extra_advisory_stage"
+    assert policy["standing_sidecar_enabled"] is False
+    assert policy["standing_advisory_scan_each_attempt"] is False
+    assert policy["affordance_invocation_default"] == "none"
+    assert policy["affordance_invocation_trigger"] == (
+        "current_delta_declares_or_implies_affordance_need"
+    )
+    assert policy["affordance_invocation_only_when"] == [
+        "current_owner_action_declares_named_ref_family_or_briefing_need",
+        "current_delta_shape_implies_named_ref_family_or_briefing_need",
+        "owner_route_requires_named_ref_family_for_current_delta",
+        "owner_route_shape_implies_repair_context_or_arbitration_need_for_current_delta",
+        "typed_blocker_or_route_back_requests_specific_repair_context",
+        "independent_reviewer_or_publication_gate_requests_specific_brief",
+        "stop_loss_or_repeated_failure_requires_route_arbitration",
+    ]
+    assert {
+        "current_work_unit_identity",
+        "target_surface",
+        "requested_ref_family_or_question",
+        "owner_policy",
+        "bounded_output_shape",
+        "no_new_default_next_action",
+    } <= set(policy["affordance_invocation_must_bind"])
+    assert {
+        "always_generate_micro_candidates",
+        "always_run_next_delta_tournament",
+        "always_run_meta_review",
+        "always_prefetch_context",
+        "always_scan_memory",
+        "always_score_routes",
+        "build_complete_external_skill_map_before_dispatch",
+    } <= set(policy["forbidden_default_motions"])
     assert policy["can_generate_default_next_action"] is False
     assert policy["can_block_current_owner_action"] is False
     assert policy["missing_sidecar_blocks_dispatch"] is False
@@ -241,14 +277,16 @@ def test_hybrid_policy_is_current_owner_following_fail_open_and_budgeted() -> No
     assert policy["mainline_waits_for_sidecar"] is False
     assert policy["platform_repair_or_prefetch_counts_as_paper_progress"] is False
 
-    budget = policy["friction_budget"]
-    assert budget["max_micro_candidates_per_attempt"] == 3
-    assert budget["max_next_delta_tournaments_per_attempt"] == 1
-    assert budget["max_reviewer_repair_hints_per_attempt"] == 3
-    assert budget["max_reusable_lesson_refs_per_attempt"] == 1
-    assert budget["meta_review_runs_every_attempt"] is False
-    assert budget["opportunistic_prefetch_mainline_waits"] is False
-    assert budget["missing_advisory_scan_blocks_owner_action"] is False
+    cap = policy["secondary_invocation_cap"]
+    assert cap["role"] == "last_resort_sprawl_cap_after_jit_invocation_not_design_driver"
+    assert cap["cap_applies_only_after_affordance_is_invoked"] is True
+    assert cap["max_micro_candidates_per_attempt"] == 3
+    assert cap["max_next_delta_tournaments_per_attempt"] == 1
+    assert cap["max_reviewer_repair_hints_per_attempt"] == 3
+    assert cap["max_reusable_lesson_refs_per_attempt"] == 1
+    assert cap["meta_review_runs_every_attempt"] is False
+    assert cap["opportunistic_prefetch_mainline_waits"] is False
+    assert cap["missing_advisory_scan_blocks_owner_action"] is False
 
     assert policy["hard_gate_escalation_only_when"] == [
         "route_required_ref_missing_for_current_delta",
@@ -274,7 +312,7 @@ def test_hybrid_policy_keeps_external_sources_as_advisory_patterns_only() -> Non
     }
 
     light = sources["Light0305/Light"]
-    assert light["source_role"] == "external_pattern_source_only"
+    assert light["source_role"] == "external_pattern_ref_library_invoked_by_current_owner_need"
     assert light["allowed_ref_families"] == [
         "verified_asset_ref",
         "collision_check_ref",
@@ -288,10 +326,10 @@ def test_hybrid_policy_keeps_external_sources_as_advisory_patterns_only() -> Non
         "quality_gate_owner",
         "artifact_authority_owner",
     } <= set(light["forbidden_roles"])
-    assert light["missing_advisory_default"] == "observability_or_platform_repair"
+    assert light["missing_advisory_default"] == "no_lookup_continue_current_owner_action"
 
     coscientist = sources["Co-Scientist"]
-    assert coscientist["source_role"] == "within_stage_exploration_strategy"
+    assert coscientist["source_role"] == "jit_within_stage_strategy_affordance"
     assert "ranking_ref" in coscientist["allowed_ref_families"]
     assert {
         "route_authority_by_ranking",
@@ -299,10 +337,10 @@ def test_hybrid_policy_keeps_external_sources_as_advisory_patterns_only() -> Non
         "publication_ready_authority",
         "stage_promotion_authority",
     } <= set(coscientist["forbidden_roles"])
-    assert coscientist["missing_advisory_default"] == "continue_current_owner_delta"
+    assert coscientist["missing_advisory_default"] == "do_not_invoke_continue_current_owner_delta"
 
     evo = sources["EvoScientist/EvoSkills"]
-    assert evo["source_role"] == "learning_sidecar_and_tool_affordance_pattern"
+    assert evo["source_role"] == "jit_learning_and_tool_affordance_pattern"
     assert "tool_affordance_ref" in evo["allowed_ref_families"]
     assert {
         "default_runtime_owner",
@@ -311,7 +349,7 @@ def test_hybrid_policy_keeps_external_sources_as_advisory_patterns_only() -> Non
         "admission_gate",
         "quality_owner",
     } <= set(evo["forbidden_roles"])
-    assert evo["missing_advisory_default"] == "fail_open"
+    assert evo["missing_advisory_default"] == "no_op_fail_open"
 
 
 def test_safety_envelope_matches_existing_stage_and_learning_sidecar_boundaries() -> None:
@@ -339,7 +377,7 @@ def test_safety_envelope_matches_existing_stage_and_learning_sidecar_boundaries(
     coscientist = profile["coscientist_stage_strategy_boundary"]
     assert coscientist["strategy_refs_are_advisory"] is True
     assert coscientist["strategy_refs_can_close_quality_gate"] is False
-    assert coscientist["progress_enhancement_can_block_attempt_when_missing"] is False
+    assert coscientist["progress_jit_affordance_can_block_attempt_when_missing"] is False
     assert coscientist["opportunistic_prefetch_mainline_waits"] is False
 
     evo_progress = evo["ordinary_progress_policy"]

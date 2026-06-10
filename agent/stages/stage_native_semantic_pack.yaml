@@ -128,9 +128,26 @@ stage_native_semantic_pack:
       - testability_refs
       - required_reviewer_or_human_gate_refs
   progress_enhancement:
-    state: progress_first_advisory_layer
-    purpose: use Co-Scientist-style search to improve the next MAS delta without slowing the owner route
-    advisory_strategy:
+    state: current_owner_native_jit_affordance
+    purpose: keep Co-Scientist-style affordances available to the current owner and auto-invoke them only when the current owner action or current delta shape explicitly declares or implicitly requires the needed ref family, repair context, briefing, or arbitration
+    jit_affordance_strategy:
+      default_invocation: none
+      default_design: ordinary_progress_has_no_extra_advisory_stage
+      invocation_only_when:
+        - current_owner_action_declares_named_ref_family_or_briefing_need
+        - current_delta_shape_implies_named_ref_family_or_briefing_need
+        - owner_route_requires_named_ref_family_for_current_delta
+        - owner_route_shape_implies_repair_context_or_arbitration_need_for_current_delta
+        - typed_blocker_or_route_back_requests_specific_repair_context
+        - independent_reviewer_or_publication_gate_requests_specific_brief
+        - stop_loss_or_repeated_failure_requires_route_arbitration
+      invocation_must_bind:
+        - current_work_unit_identity
+        - target_surface
+        - requested_ref_family_or_question
+        - owner_policy
+        - bounded_output_shape
+        - no_new_default_next_action
       allowed_effects:
         - rank_next_owner_delta_candidates
         - generate_reviewer_repair_hints
@@ -143,15 +160,16 @@ stage_native_semantic_pack:
         - mutate_artifact_body
         - mutate_memory_body
         - authorize_publication_or_submission_readiness
-      non_blocking_budget:
-        mainline_policy: advisory work must run inside the active owner attempt budget or be skipped; it cannot create a preflight loop before the next owner delta
+      secondary_invocation_cap:
+        role: last_resort_sprawl_cap_after_jit_invocation_not_design_driver
+        cap_applies_only_after_affordance_is_invoked: true
         micro_candidate_limit_per_attempt: 3
         tournament_limit_per_attempt: 1
         reviewer_hint_limit_per_attempt: 3
-        memory_writeback_limit_per_attempt: at_most_one_reusable_refs_only_lesson_ref
+        reusable_lesson_limit_per_invoked_attempt: at_most_one_reusable_refs_only_lesson_ref
         opportunistic_prefetch_limit: only refs needed by the next declared owner delta or reviewer hint
         external_pattern_intake_limit: advisory_or_evidence_log_gaps_do_not_preflight_block_dispatch
-        skill_engineering_intake_limit: skill_engineering_advisory_gaps_do_not_preflight_block_dispatch
+        skill_engineering_intake_limit: skill_engineering_affordance_gaps_do_not_preflight_block_dispatch
         meta_review_trigger_only:
           - stop_loss
           - repeated_failure
@@ -186,10 +204,10 @@ stage_native_semantic_pack:
             - ai_reviewer_auditor_gate
             - artifact_source_authority_gate
             - publication_quality_gate
-        budgeted_memory:
-          role: preserve at most one reusable lesson ref when the attempt exposes a durable pattern.
+        reusable_lesson_extraction:
+          role: preserve at most one reusable lesson ref when the explicitly invoked current-owner need exposes a durable pattern.
           writeback_policy: refs_only_summary_no_memory_body_copy
-          max_writebacks_per_attempt: 1
+          max_reusable_lessons_per_invocation: 1
           eligible_when:
             - repeated_failure
             - stop_loss
@@ -218,18 +236,18 @@ stage_native_semantic_pack:
             - journal_neighbor_refs
           forbidden_effect: missing or stale prefetch must not block owner dispatch; it can only produce a typed blocker if a route-required ref is actually missing
         light_external_pattern_intake:
-          role: absorb Light-style evidence, collision-check, refusal-rehearsal, bounded-card, self-review, and skill-engineering patterns as MAS-native advisory refs.
+          role: absorb Light-style evidence, collision-check, refusal-rehearsal, bounded-card, self-review, and skill-engineering patterns as current-owner-requested MAS-native affordance refs.
           output_refs:
-            - external_pattern_intake_advisory_ref
+            - external_pattern_intake_affordance_ref
             - fresh_evidence_check_ref
             - reviewer_refusal_rehearsal_ref
-            - skill_engineering_advisory_ref
+            - skill_engineering_affordance_ref
             - progress_passport_ref
             - citation_locator_audit_ref
             - prisma_flow_reconciliation_ref
             - argument_review_hint_ref
             - figure_integrity_warning_ref
-          missing_ref_behavior: missing advisory or evidence-log refs must not block unrelated owner dispatch
+          missing_ref_behavior: missing affordance or evidence-log refs must not block unrelated owner dispatch
           typed_blocker_only_when: current_delta_route_required_ref_missing
           skill_engineering_policy:
             passport_maps_to: mas_stage_attempt_ledger_and_owner_receipt_refs

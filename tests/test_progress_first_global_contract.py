@@ -281,7 +281,7 @@ def test_typed_blocker_repeat_budget_escalates_without_paper_delta() -> None:
     assert terminal["progress_delta_classification"] == "human_gate"
 
 
-def test_current_owner_ticket_exposes_advisory_progress_enhancement_policy() -> None:
+def test_current_owner_ticket_exposes_current_owner_native_jit_affordance_policy() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_projection"
     )
@@ -309,24 +309,35 @@ def test_current_owner_ticket_exposes_advisory_progress_enhancement_policy() -> 
     )
 
     ticket = projection["current_owner_ticket"]
-    policy = ticket["progress_enhancement_policy"]
+    policy = ticket["progress_jit_affordance_policy"]
 
+    assert policy["surface_kind"] == "mas_progress_jit_affordance_policy"
     assert policy["mechanisms"] == [
         "next_delta_tournament",
         "bounded_micro_candidate_generation",
         "critique_as_repair_hint",
-        "budgeted_memory_writeback",
+        "reusable_lesson_extraction",
         "triggered_meta_review",
         "opportunistic_knowledge_prefetch",
     ]
-    assert policy["default_posture"] == "advisory_progress_accelerator_only"
+    assert policy["default_posture"] == "current_owner_native_jit_affordance"
+    assert policy["default_invocation"] == "none"
+    assert policy["default_design"] == "ordinary_progress_has_no_extra_advisory_stage"
+    assert policy["invocation_trigger"] == "current_delta_declares_or_implies_affordance_need"
+    assert (
+        policy["invocation_only_when"]
+        == (
+            "current_owner_action_or_gate_explicitly_declares_or_current_delta_shape_implies_"
+            "named_ref_family_repair_context_briefing_or_arbitration_need"
+        )
+    )
     assert policy["route_option_board_ref"] == "refs/route-option-board.json"
     assert policy["next_delta_tournament"]["selects"] == "one_next_attempt"
     assert policy["bounded_micro_candidates"]["max_candidates_per_attempt"] == 3
     assert policy["bounded_micro_candidates"]["unselected_candidates_do_not_block"] is True
     assert policy["critique_as_repair_hint"]["can_close_quality_gate"] is False
-    assert policy["budgeted_memory_writeback"]["max_reusable_lesson_refs_per_attempt"] == 1
-    assert policy["budgeted_memory_writeback"]["missing_lesson_blocks_route"] is False
+    assert policy["reusable_lesson_extraction"]["max_reusable_lesson_refs_per_invocation"] == 1
+    assert policy["reusable_lesson_extraction"]["missing_lesson_blocks_route"] is False
     assert policy["triggered_meta_review"]["runs_every_attempt"] is False
     assert policy["triggered_meta_review"]["trigger_reasons"] == [
         "stop_loss_candidate",

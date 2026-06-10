@@ -23,11 +23,11 @@ PROGRESS_FIRST_OUTCOME_CLASSES = (
     "human_gate",
     "stop_loss",
 )
-PROGRESS_ENHANCEMENT_MECHANISMS = (
+PROGRESS_JIT_AFFORDANCE_MECHANISMS = (
     "next_delta_tournament",
     "bounded_micro_candidate_generation",
     "critique_as_repair_hint",
-    "budgeted_memory_writeback",
+    "reusable_lesson_extraction",
     "triggered_meta_review",
     "opportunistic_knowledge_prefetch",
 )
@@ -666,7 +666,7 @@ def _current_owner_ticket(
             "provider_completion_is_not_closeout": True,
             "repeat_same_work_unit_requires_typed_blocker_or_new_target_surface": True,
         },
-        "progress_enhancement_policy": _progress_enhancement_policy(owner_route=owner_route),
+        "progress_jit_affordance_policy": _progress_jit_affordance_policy(owner_route=owner_route),
         "authority_boundary": {
             "ticket_authorizes_next_attempt_only": True,
             "ticket_authorizes_publication_quality": False,
@@ -676,7 +676,7 @@ def _current_owner_ticket(
     }
 
 
-def _progress_enhancement_policy(*, owner_route: Mapping[str, Any]) -> dict[str, Any]:
+def _progress_jit_affordance_policy(*, owner_route: Mapping[str, Any]) -> dict[str, Any]:
     option_board_ref = (
         _text(owner_route.get("route_option_board_ref"))
         or _text(owner_route.get("next_delta_tournament_ref"))
@@ -686,10 +686,17 @@ def _progress_enhancement_policy(*, owner_route: Mapping[str, Any]) -> dict[str,
     if not prefetch_refs:
         prefetch_refs = _ref_items(_mapping(owner_route.get("source_refs")).get("opportunistic_prefetch_refs"))
     return {
-        "surface_kind": "mas_progress_enhancement_policy",
+        "surface_kind": "mas_progress_jit_affordance_policy",
         "schema_version": 1,
-        "mechanisms": list(PROGRESS_ENHANCEMENT_MECHANISMS),
-        "default_posture": "advisory_progress_accelerator_only",
+        "mechanisms": list(PROGRESS_JIT_AFFORDANCE_MECHANISMS),
+        "default_posture": "current_owner_native_jit_affordance",
+        "default_invocation": "none",
+        "default_design": "ordinary_progress_has_no_extra_advisory_stage",
+        "invocation_trigger": "current_delta_declares_or_implies_affordance_need",
+        "invocation_only_when": (
+            "current_owner_action_or_gate_explicitly_declares_or_current_delta_shape_implies_"
+            "named_ref_family_repair_context_briefing_or_arbitration_need"
+        ),
         "route_option_board_ref": option_board_ref,
         "next_delta_tournament": {
             "ranks": "candidate_current_owner_tickets",
@@ -719,8 +726,8 @@ def _progress_enhancement_policy(*, owner_route: Mapping[str, Any]) -> dict[str,
             ],
             "can_close_quality_gate": False,
         },
-        "budgeted_memory_writeback": {
-            "max_reusable_lesson_refs_per_attempt": 1,
+        "reusable_lesson_extraction": {
+            "max_reusable_lesson_refs_per_invocation": 1,
             "body_included": False,
             "missing_lesson_blocks_route": False,
         },
@@ -838,7 +845,7 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
-    "PROGRESS_ENHANCEMENT_MECHANISMS",
+    "PROGRESS_JIT_AFFORDANCE_MECHANISMS",
     "PROGRESS_ENHANCEMENT_TRIGGER_REASONS",
     "PROGRESS_FIRST_OUTCOME_CLASSES",
     "build_progress_first_projection",

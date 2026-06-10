@@ -308,9 +308,40 @@
   ],
   "hybrid_progress_accelerator_policy": {
     "surface_kind": "mas_light_coscientist_progress_first_hybrid_policy",
-    "role": "current_owner_following_advisory_sidecar",
-    "default_posture": "advisory_refs_only_fail_open_budgeted",
+    "role": "current_owner_native_jit_affordance",
+    "default_posture": "affordance_available_no_standing_sidecar_no_default_scan_current_delta_declares_or_implies_affordance_need",
     "ordinary_path_root": "current_owner_delta",
+    "default_design": "ordinary_progress_has_no_extra_advisory_stage",
+    "standing_sidecar_enabled": false,
+    "standing_advisory_scan_each_attempt": false,
+    "affordance_invocation_default": "none",
+    "affordance_invocation_trigger": "current_delta_declares_or_implies_affordance_need",
+    "affordance_invocation_only_when": [
+      "current_owner_action_declares_named_ref_family_or_briefing_need",
+      "current_delta_shape_implies_named_ref_family_or_briefing_need",
+      "owner_route_requires_named_ref_family_for_current_delta",
+      "owner_route_shape_implies_repair_context_or_arbitration_need_for_current_delta",
+      "typed_blocker_or_route_back_requests_specific_repair_context",
+      "independent_reviewer_or_publication_gate_requests_specific_brief",
+      "stop_loss_or_repeated_failure_requires_route_arbitration"
+    ],
+    "affordance_invocation_must_bind": [
+      "current_work_unit_identity",
+      "target_surface",
+      "requested_ref_family_or_question",
+      "owner_policy",
+      "bounded_output_shape",
+      "no_new_default_next_action"
+    ],
+    "forbidden_default_motions": [
+      "always_generate_micro_candidates",
+      "always_run_next_delta_tournament",
+      "always_run_meta_review",
+      "always_prefetch_context",
+      "always_scan_memory",
+      "always_score_routes",
+      "build_complete_external_skill_map_before_dispatch"
+    ],
     "can_generate_default_next_action": false,
     "can_block_current_owner_action": false,
     "missing_sidecar_blocks_dispatch": false,
@@ -321,7 +352,7 @@
     "source_patterns": [
       {
         "source_id": "Light0305/Light",
-        "source_role": "external_pattern_source_only",
+        "source_role": "external_pattern_ref_library_invoked_by_current_owner_need",
         "allowed_ref_families": [
           "verified_asset_ref",
           "collision_check_ref",
@@ -336,11 +367,11 @@
           "publication_gate_owner",
           "artifact_authority_owner"
         ],
-        "missing_advisory_default": "observability_or_platform_repair"
+        "missing_advisory_default": "no_lookup_continue_current_owner_action"
       },
       {
         "source_id": "Co-Scientist",
-        "source_role": "within_stage_exploration_strategy",
+        "source_role": "jit_within_stage_strategy_affordance",
         "allowed_ref_families": [
           "candidate_generation_ref",
           "debate_or_tournament_ref",
@@ -355,11 +386,11 @@
           "publication_ready_authority",
           "stage_promotion_authority"
         ],
-        "missing_advisory_default": "continue_current_owner_delta"
+        "missing_advisory_default": "do_not_invoke_continue_current_owner_delta"
       },
       {
         "source_id": "EvoScientist/EvoSkills",
-        "source_role": "learning_sidecar_and_tool_affordance_pattern",
+        "source_role": "jit_learning_and_tool_affordance_pattern",
         "allowed_ref_families": [
           "tool_affordance_ref",
           "failed_path_memory_ref",
@@ -373,10 +404,12 @@
           "admission_gate",
           "quality_owner"
         ],
-        "missing_advisory_default": "fail_open"
+        "missing_advisory_default": "no_op_fail_open"
       }
     ],
-    "friction_budget": {
+    "secondary_invocation_cap": {
+      "role": "last_resort_sprawl_cap_after_jit_invocation_not_design_driver",
+      "cap_applies_only_after_affordance_is_invoked": true,
       "max_micro_candidates_per_attempt": 3,
       "max_next_delta_tournaments_per_attempt": 1,
       "max_reviewer_repair_hints_per_attempt": 3,

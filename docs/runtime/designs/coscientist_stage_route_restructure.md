@@ -39,9 +39,9 @@ Stage-native scientific work system
   -> OPL 只持有 runtime substrate 和 refs-only projection
 ```
 
-## Progress-first Co-Scientist 增益层落地口径
+## Progress-first Co-Scientist affordance 落地口径
 
-2026-06-05 起，Co-Scientist 剩余可学习点在 MAS 中只落为 `progress_first_enhancement_layer`：它服务 Progress-first route supervisor、独立 reviewer/auditor briefing 和 publication-route memory 复用，不能改变 stage admission、route authority、quality closure、publication readiness、artifact authority 或 owner receipt / typed blocker 边界。
+2026-06-10 起，Co-Scientist 剩余可学习点在 MAS 中只落为 `current_owner_native_jit_affordance`：affordance 默认可供 current owner 使用，但 ordinary path 默认不运行额外探索、tournament、meta-review、prefetch 或 memory scan；只有当前 owner action、owner route、route-back、typed blocker、reviewer gate 或 stop-loss 判断显式声明，或 current delta / gate 形态本身隐含需要 ref family、repair context、briefing 或 arbitration 时，才即时调用对应 affordance。它服务当前 owner 的 route selection、独立 reviewer/auditor briefing 和 publication-route memory 复用，不能改变 stage admission、route authority、quality closure、publication readiness、artifact authority 或 owner receipt / typed blocker 边界。
 
 这层增益只回答三个问题：
 
@@ -49,16 +49,16 @@ Stage-native scientific work system
 - 帮助 reviewer / auditor 更快发现 claim、evidence、artifact 或 source 缺口。
 - 帮助 memory 复用失败路径、negative result、rejected candidate 和 reviewer concern，减少同义空转。
 
-六项机制固定为 advisory / refs-only / budgeted 形态：
+六项机制固定为 current-owner-native JIT affordance 形态：
 
 | 机制 | Progress-first 用法 | 禁止升级 |
 | --- | --- | --- |
-| `next-delta tournament` | 在当前 owner ticket 已有 source/currentness basis 后，对候选下一 delta 做 bounded 比较，输出 route advisory：哪个 paper、artifact、reviewer、memory、human-gate 或 typed-blocker delta 最值得下一次 attempt 追。 | 不成为 admission gate、route blocking layer、quality closure、publication readiness、artifact authority 或 owner receipt。 |
-| `bounded micro-candidate generation` | 在当前 stage / work unit 内生成少量可执行候选，例如 claim repair、analysis check、display fix、review question 或 memory lookup target；候选必须绑定 target surface、预算和停止条件。 | 不扩成无限 brainstorm、后台研究队列、hard preflight、route 前置阻塞或替代 executor 直接推进。 |
+| `next-delta tournament` | 只在当前 owner / route-back / stop-loss 显式要求或由 current delta 形态隐含需要 route arbitration 时，对候选下一 delta 做 bounded 比较，输出 route advisory：哪个 paper、artifact、reviewer、memory、human-gate 或 typed-blocker delta 最值得下一次 attempt 追。 | 不成为默认 route scan、admission gate、route blocking layer、quality closure、publication readiness、artifact authority 或 owner receipt。 |
+| `bounded micro-candidate generation` | 只在当前 owner 显式要求或由 current delta 形态隐含需要候选时，在当前 stage / work unit 内生成少量可执行候选，例如 claim repair、analysis check、display fix、review question 或 memory lookup target；候选必须绑定 target surface、预算和停止条件。 | 不成为默认 brainstorm、后台研究队列、hard preflight、route 前置阻塞或替代 executor 直接推进。 |
 | `critique-as-repair-hint` | 把 reviewer / auditor 批评转成下一 owner 可消费的 repair hint、target surface、missing evidence ref 和 route-back reason。 | 批评本身不关闭 quality gate，不声明 paper ready，不替代独立 reviewer/auditor record 或 MAS owner receipt。 |
-| `budgeted memory` | 在固定 token / time / ref budget 内召回失败路径、negative result、曾拒候选、route-back、human decision 和 reviewer concern，作为下一 attempt 的 context refs。 | memory recall / writeback score 不等于 memory accept/reject verdict、paper progress、artifact authority 或 publication-route closure。 |
+| `reusable lesson extraction` | 只在当前 owner 显式要求或由 current delta 形态隐含需要 failure recall / reviewer concern 时，召回失败路径、negative result、曾拒候选、route-back、human decision 和 reviewer concern，作为当前 attempt 的 context refs；最多产出一个 refs-only reusable lesson。 | memory recall / writeback score 不等于 memory accept/reject verdict、paper progress、artifact authority 或 publication-route closure。 |
 | `triggered meta-review` | 只在 route 停滞、重复同一 work unit、reviewer 输出冲突、高风险 promotion 或 stop-loss 候选出现时触发，用来给 decision / route owner 生成 arbitration brief。 | 不作为每轮必经 gate，不阻断正常 admission，不替代 publication gate、human gate、owner receipt 或 stable typed blocker。 |
-| `opportunistic knowledge prefetch` | 在下一 owner 已明确且不会拖慢 admission 时，提前准备文献、source、journal constraint、prior failed path 和 reviewer concern refs，供 executor/reviewer 快速 hydrate context。 | 缺失、陈旧或低分 prefetch 只能记为 observability / platform repair；不得计为 paper progress、route blocker、quality score 或 readiness proof。 |
+| `opportunistic knowledge prefetch` | 只在下一 owner 已明确、当前 owner 显式要求或 current delta 形态隐含需要、且不会拖慢 admission 时，准备文献、source、journal constraint、prior failed path 和 reviewer concern refs，供 executor/reviewer 快速 hydrate context。 | 缺失、陈旧或低分 prefetch 只能记为 observability / platform repair；不得计为 paper progress、route blocker、quality score 或 readiness proof。 |
 
 因此，Progress-first controller 读到这些 signal 时只能把它们当作 next-owner selection、reviewer briefing、memory reuse 或 no-loop suppression 的输入。真正推进仍必须落到 paper/artifact/reviewer/memory/human-gate delta、MAS owner receipt、stable typed blocker、route-back、stop-loss 或可消费 next owner handoff。
 
@@ -281,9 +281,9 @@ Write scope:
 ## 当前禁止误写
 
 - 不能把本文写成 MAS 已经实现 Co-Scientist-like runtime。
-- 不能把 progress-first Co-Scientist 增益层写成真实 paper-line 已关闭、production-ready、domain-ready、publication-ready、submission-ready 或 `current_package` fresh。
+- 不能把 progress-first Co-Scientist affordance 写成默认前置流程、真实 paper-line 已关闭、production-ready、domain-ready、publication-ready、submission-ready 或 `current_package` fresh。
 - 不能引入外部 Co-Scientist runtime、外部 authority、不可审计 provider body 或 ranking owner。
 - 不能把 Elo、pairwise debate、novelty score、proximity representative、meta-review summary 写成 source readiness、quality verdict、publication gate、human gate、artifact authority、owner receipt 或 typed blocker。
-- 不能把 `next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`budgeted memory`、`triggered meta-review` 或 `opportunistic knowledge prefetch` 写成 admission gate、quality closure、publication readiness、artifact authority、route blocking layer，或把 platform repair / prefetch / review score 计为 paper progress。
+- 不能把 `next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`reusable lesson extraction`、`triggered meta-review` 或 `opportunistic knowledge prefetch` 写成 admission gate、quality closure、publication readiness、artifact authority、route blocking layer，或把 platform repair / prefetch / review score 计为 paper progress。
 - 不能把 active docs 中的执行规格当成 machine interface；机器 truth 必须进入 contracts/source/tests/runtime surfaces。
 - 不能把 specs landing、suite pass、contract generated、provider completion 或 OPL worklist 清零写成 paper closure、publication-ready、domain-ready、submission-ready 或 `current_package` 更新。

@@ -70,20 +70,20 @@ paper / deliverable progress 只承认五类 owner delta：
 
 Stage Operating Layer 分账进一步约束 stage MVP：`stage_kernel_projection` 是 Workbench primary progress 的当前 truth source；`stage_artifact_index` / Stage Deliverable Index 更新本身只算 derived locator/projection，除非它引用了新的 canonical paper / artifact delta、owner receipt、reviewer/gate delta、stable typed blocker、human gate、route-back 或 stop-loss。physical stage folder 只有通过 current pointer promotion、semantic receipt validation、consumability gate、lineage 和 retention / restore 检查后，才可被写成 current artifact progress；仅刷新 currentness、telemetry、read-model、receipt reconcile、provider liveness 或 evidence-tail 分类时，记为 platform repair / observability；不能写成 Stage Operating Layer landed，也不能显示成 primary progress。
 
-## Co-Scientist 增益层分账
+## Co-Scientist Affordance 分账
 
-Progress-first 的 Co-Scientist 增益层只优化“下一步更快、更准、更少重复”，不创造独立 progress 类别。Operator 读取这层 signal 时按以下规则分账：
+Progress-first 的 Co-Scientist affordance 只优化“下一步更快、更准、更少重复”，不创造独立 progress 类别。它不是默认增强层；只有 `current_delta_declares_or_implies_affordance_need` 成立时才即时调用。Operator 读取这层 signal 时按以下规则分账：
 
 | signal | 可计入 | 不可计入 |
 | --- | --- | --- |
 | `next-delta tournament` | next owner selection evidence、route advisory、no-loop suppression hint。 | paper progress、route blocker、admission gate、publication readiness。 |
 | `bounded micro-candidate generation` | 当前 work unit 的候选 repair / analysis / display / review target refs。 | 独立 stage completion、质量闭环、后台 paper-line progress。 |
 | `critique-as-repair-hint` | reviewer gap list、repair target surface、route-back briefing。 | AI reviewer verdict、quality closure、publication gate closeout。 |
-| `budgeted memory` | failed-path recall、negative result reuse、rejected candidate context、memory routing hint。 | memory accept/reject verdict、artifact authority、paper progress。 |
+| `reusable lesson extraction` | failed-path recall、negative result reuse、rejected candidate context、memory routing hint。 | memory accept/reject verdict、artifact authority、paper progress。 |
 | `triggered meta-review` | route arbitration brief、stop-loss candidate、human-gate suggestion。 | 每轮必经 admission gate、route blocking layer、publication readiness。 |
 | `opportunistic knowledge prefetch` | context hydration、literature/source/journal refs availability、reviewer briefing support。 | paper progress、quality score、readiness proof、hard blocker。 |
 
-缺少、陈旧或失败的 prefetch / tournament / meta-review / memory recall 只算 observability 或 platform repair，不能压住已经可执行的 `current_executable_owner_action`。只有这些 signal 暴露了真实 hard gate，例如 missing source/data、forbidden write、human gate、missing owner callable 或 irreversible mutation，才按 Hard gates 归类；否则下一步仍应推进 owner action、reviewer request、memory writeback receipt、typed blocker、route-back 或 stop-loss。
+缺少、陈旧或失败的 prefetch / tournament / meta-review / reusable lesson extraction 只算 observability 或 platform repair，不能压住已经可执行的 `current_executable_owner_action`。只有这些 signal 暴露了真实 hard gate，例如 missing source/data、forbidden write、human gate、missing owner callable 或 irreversible mutation，才按 Hard gates 归类；否则下一步仍应推进 owner action、reviewer request、memory writeback receipt、typed blocker、route-back 或 stop-loss。
 
 Light-derived external-pattern advisory 遵循同一 Progress-first 规则，详见 [Light External Pattern Intake Runbook](./light_external_pattern_intake.md)。Light 的 progress passport、checkpoint、references/scripts/assets 分层、PRISMA flow、style fingerprint、locator audit 和 mode registry 只能被 MAS 吸收为 skill-engineering 方法：它们帮助下一 owner 更快拿到 ref ledger、source-readiness hint、reviewer/writing hint、citation integrity hint 和 bounded mode discipline。它们不创造 progress 类别，不关闭 AI reviewer verdict、publication gate、quality gate、artifact authority 或 owner receipt，不安装 Light，不复制 27-skill router，也不把 Light `db09`、score、checklist 或 API 表写成 MAS truth。
 
@@ -116,17 +116,17 @@ Light-derived external-pattern advisory 遵循同一 Progress-first 规则，详
 
 ## 无摩擦混合模式
 
-Light、Co-Scientist 和 EvoScientist / EvoSkills 的吸收方式统一为 `current_owner_following_advisory_sidecar`：
+Light、Co-Scientist 和 EvoScientist / EvoSkills 的吸收方式统一为 `current_owner_native_jit_affordance`。默认 ordinary path 没有常驻 sidecar、没有每轮 advisory scan、没有默认 tournament、没有默认 meta-review、没有默认 prefetch 或 memory scan；系统只推进当前 `current_owner_delta`。
 
-- Light 提供 `verified_asset_ref`、`collision_check_ref`、`refusal_rehearsal_ref`、`fresh_evidence_gate_ref`，用于 stage-quality、knowledge packet、reviewer briefing 和 repair hint。
-- Co-Scientist 提供 stage 内探索策略：候选生成、辩论 / tournament、ranking、evolution、meta-review、research overview，只服务 next owner selection 和 reviewer gap finding。
-- EvoScientist / EvoSkills 提供 async learning sidecar、fail-open tool selector、observation memory 和 failed-path taxonomy，只服务工具可见性、失败路径复用和 no-loop hint。
+这些机制只在当前 owner action、owner route、route-back、typed blocker、independent reviewer / publication gate 或 stop-loss 判断显式声明，或 current delta / gate 形态本身隐含需要某个 ref family、repair context、briefing 或 arbitration 时即时调用：
 
-三者都不得生成默认下一步、阻塞 current owner action、替代 owner receipt / typed blocker、替代 independent reviewer / auditor、写 study truth / memory body / artifact body，或授权 publication / submission / artifact readiness。
+- Light 是外部 pattern ref library；只在当前 delta 需要时读取 `verified_asset_ref`、`collision_check_ref`、`refusal_rehearsal_ref` 或 `fresh_evidence_gate_ref`。
+- Co-Scientist 是 stage 内 strategy affordance；只在当前 owner 显式要求或 current delta 形态隐含需要候选、对比、ranking、evolution、meta-review 或 overview 时产出对应 refs。
+- EvoScientist / EvoSkills 是 learning / tool affordance pattern；只在当前 owner 显式要求或 current delta 形态隐含需要工具提示、失败路径复用、observation ref 或 stop-loss hint 时调用。
 
-摩擦预算固定如下：每次 attempt 最多 3 个 micro-candidate、1 次 next-delta tournament、3 条 reviewer repair hint、1 条 reusable lesson ref；meta-review 只在 stop-loss、repeated failure、human gate pressure、claim-boundary drift 或 no-loop budget exhausted 时触发；opportunistic prefetch 不让 mainline 等待。sidecar 缺失、失败、超时、低置信或没命中 memory，默认 fail open。
+每次即时调用必须绑定 current work-unit identity、target surface、requested ref family / question、owner policy、bounded output shape 和 `no_new_default_next_action`。调用缺失、失败、超时、低置信或没命中 memory 时默认 no-op，继续 current owner action；它不得回退成“先把外部 skill map / memory / tournament / prefetch 补齐再推进”的流程。
 
-只有一种情况可以从 advisory 升级为 hard gate：当前 delta 明确需要的 ref family 缺失，并且缺失会影响 source/data/evidence、owner-route identity、forbidden write boundary、不可逆 mutation，或独立 reviewer / publication gate。升级后的 typed blocker 必须命名缺失 ref family、route-back owner、current work-unit identity、repair condition 和 avoided forbidden shortcut。
+数量上限只是已触发即时调用后的扩散上限，不是低摩擦的设计来源。低摩擦来自能力默认可用、额外流程默认不运行、current delta 显式或由形态隐含需要时自动触发：只有当前 delta 需要、且缺失会影响 source/data/evidence、owner-route identity、forbidden write boundary、不可逆 mutation，或独立 reviewer / publication gate 时，才升级为 typed blocker。升级后的 typed blocker 必须命名缺失 ref family、route-back owner、current work-unit identity、repair condition 和 avoided forbidden shortcut。
 
 ## AI-first admission
 
@@ -313,7 +313,7 @@ When validating a docs-only change in this repo, use documentation review plus g
 - 在 `ai_reviewer_record_production_handoff` persisted dispatch 已存在后，继续让 stale `consumer/latest.json` inline dispatch 覆盖它，导致重复写 handoff 而不是把 AI reviewer record-production owner action 交给下一 owner。应优先 persisted record-only handoff，并把旧 inline 当作 read-model lag。
 - 把 provider handoff 写出当作 provider attempt 已启动。缺 running proof 时只能写 `provider_handoff_written_admission_pending`。
 - 把 telemetry、duration/token/cost、Portal card wording、read-model hygiene、refs-only ledger record/verify 当成 paper progress。
-- 把 `next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`budgeted memory`、`triggered meta-review` 或 `opportunistic knowledge prefetch` 当成 admission gate、route blocking layer、quality closure、publication readiness、artifact authority 或 paper progress。它们只能辅助 route selection、reviewer gap finding 和 failed-path memory reuse。
+- 把 `next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`reusable lesson extraction`、`triggered meta-review` 或 `opportunistic knowledge prefetch` 当成 admission gate、route blocking layer、quality closure、publication readiness、artifact authority 或 paper progress。它们只能在当前 owner / gate 明确需要时辅助 route selection、reviewer gap finding 和 failed-path memory reuse。
 - 把 Light 的 skill router、`db09`、知识库、verification log、review score、自审 checklist 或外部 API 表当成 MAS runtime、study truth、source readiness truth、AI reviewer verdict、publication gate、artifact authority、paper progress 或默认 dispatch blocker。Light-derived signal 只能作为 bounded advisory ref；缺失时不得阻塞不相关 owner action。
 - 用显式 `--action-types` 作为正常 Progress-first 必需步骤；它只用于诊断、限流或人工指定，默认 dispatch 必须消费 current ready dispatch。
 - 用 broad recursive scan、mtime、旧 request lifecycle、旧 generated_at、stale consumer dispatch 或旧 package freshness proof 覆盖当前 owner/work-unit currentness。

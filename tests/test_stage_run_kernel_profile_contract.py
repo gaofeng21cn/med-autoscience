@@ -267,22 +267,22 @@ def test_coscientist_strategy_refs_stay_within_stage_and_advisory() -> None:
     assert boundary["strategy_refs_can_promote_stage"] is False
     assert boundary["quality_gate_requires_independent_reviewer_or_auditor_receipt"] is True
     assert boundary["promotion_requires_owner_receipt_or_stable_typed_blocker"] is True
-    assert boundary["progress_enhancement_role"] == (
-        "advisory_progress_accelerator_not_control_surface"
+    assert boundary["progress_jit_affordance_role"] == (
+        "current_owner_native_jit_affordance_not_control_surface"
     )
-    assert boundary["progress_enhancement_mechanisms"] == [
+    assert boundary["progress_jit_affordance_mechanisms"] == [
         "next_delta_tournament",
         "bounded_micro_candidate_generation",
         "critique_as_repair_hint",
-        "budgeted_memory_writeback",
+        "reusable_lesson_extraction",
         "triggered_meta_review",
         "opportunistic_knowledge_prefetch",
     ]
-    assert boundary["progress_enhancement_can_block_attempt_when_missing"] is False
+    assert boundary["progress_jit_affordance_can_block_attempt_when_missing"] is False
     assert boundary["next_delta_tournament_authorizes"] == "single_next_attempt_only"
     assert boundary["micro_candidate_unselected_branch_blocks_route"] is False
     assert boundary["critique_hint_can_close_quality_gate"] is False
-    assert boundary["budgeted_memory_max_reusable_lesson_refs_per_attempt"] == 1
+    assert boundary["reusable_lesson_max_refs_per_invoked_attempt"] == 1
     assert boundary["meta_review_triggered_only_by"] == [
         "stop_loss_candidate",
         "repeated_failure",
