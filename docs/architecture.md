@@ -108,6 +108,7 @@ Co-Scientist 论文启发进入 MAS 时，架构落点是 `hypothesis portfolio 
 
 长线目标固定为 `MAS AI-first Research OS`。它是 owner、authority、contract 与验收口径的目标架构，再按可运行能力逐步吸收和替换。
 
+- 当前 target operating architecture 入口是 [MAS / OPL Agent OS 目标运行架构与重构计划](./runtime/designs/mas_opl_agent_os_target_operating_architecture.md)。该计划把目标态明确为 `OPL Agent OS + MAS Declarative Medical Research Pack + MAS Minimal Authority Kernel + Scientific Capability Registry`，并把后续重构拆成 Lane 0 文档/合同入口 + Pack Compiler / generated surface、OPL StageRun durable execution、`current_owner_delta` 默认读面、MAS authority function 收薄、evidence lineage、AI-first Quality OS、Scientific Capability Registry、Workbench UX 和 production evidence soak 九条实施 lane。它不改变本文 owner boundary：OPL 持有通用 runtime substrate，MAS 持有医学研究 truth 和 authority verdict。
 - `MAS Core` 是目标 owner 层：study truth、quality truth、publication truth、artifact truth 与用户可见 truth 都应归 MAS。
 - `Quality OS` 的当前落点是 pre-draft quality runtime、evidence ledger、review ledger 与 AI reviewer-backed `publication_eval/latest.json` 的闭环；真实论文 soak 仍需继续积累。
 - `Runtime OS` 的当前落点是 OPL-owned stage/runtime control plane 加 MAS domain authority refs。OPL 持有 attempt、queue、wakeup、provider query、typed closeout、retry/dead-letter、worker residency、human gate transport、current-control-state 和 lifecycle/index；MAS 只持有 DomainIntent / owner route、owner receipt、typed blocker、artifact/source/quality refs、guarded apply receipt、paper-progress SLO 解释与 diagnostic explanation。

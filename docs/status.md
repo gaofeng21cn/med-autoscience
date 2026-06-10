@@ -15,10 +15,13 @@ Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `
 最近一次已记录 Progress-first safety envelope：`2026-06-10`
 最近一次已记录 External-learning adoption closure：`2026-06-10`
 最近一次已记录 external-learning worker closure：`2026-06-10`
+最近一次已记录 MAS / OPL Agent OS 目标运行架构：`2026-06-10`
 
 Plugin native profile pointer: `contracts/opl-native-profile.json` 只声明 OPL Flow / OPL Doc 插件同步与 drift 检查所需的 repo-native profile；它不是 MAS medical truth、runtime truth、publication verdict、artifact authority、owner receipt 或 production-ready 证据。
 
 Progress-first / AI-first operator runbook: [Progress-First Stage Outcome Runbook](./runtime/control/progress_first_stage_outcome.md) 是当前 DM002/DM003 同类 receipt/currentness/read-model/preflight 空转的稳定人读入口；它固定非终局 stage outcome、paper/deliverable 与 platform repair 分账、AI-first admission、hard gates、live verification commands 和错误路径。该 runbook 不写 study truth，也不替代 live `study_progress`、OPL current-control、owner receipt、AI reviewer verdict 或 publication gate。
+
+MAS / OPL Agent OS 目标运行架构：[MAS / OPL Agent OS 目标运行架构与重构计划](./runtime/designs/mas_opl_agent_os_target_operating_architecture.md) 是当前顶层重构方向。目标态固定为 `OPL Agent OS + MAS Declarative Medical Research Pack + MAS Minimal Authority Kernel + Scientific Capability Registry`。OPL 持有 durable execution、StageRun、State Index、Route Reconciler、Lifecycle、Observability 和 Workbench Shell；MAS 持有 study truth、source/data readiness、AI reviewer / auditor verdict、publication gate、artifact mutation authorization、publication-route memory decision、owner receipt 和 typed blocker；外部 Co-Scientist / Light / EvoScientist / PaperSpine / ARIS / ARK 等只进入 capability registry 或 refs-only advisory worker。该文档给出 Lane 0 文档/合同入口 + Pack Compiler、StageRun 上收、`current_owner_delta` 默认读面、Authority Kernel 收薄、evidence lineage、AI-first Quality OS、capability registry、workbench UX 和 production soak 九条实施 lane；它不声明 live paper-line 完成、publication-ready、artifact mutation authorization 或 production-ready。
 
 External-learning adoption closure: [External Learning Adoption Closure Runbook](./runtime/control/external_learning_adoption_closure.md) 是当前所有外部自动研究框架 intake 的统一口径。Co-Scientist、Nature-skills、Academic Research Skills、AutoSci / OmegaWiki、EvoScientist / EvoSkills、ARK、ARIS、PaperSpine、PaperOrchestra、Open Auto Research 等材料只有 contract、reference intake 或 design doc 时，不能写成 learned / absorbed / landed；必须标注对应 landing status。只有进入 owner surface、generated/read-model projection、worker/sidecar execution slot、callable/action catalog、quality pack consumer、controller-authorized soak 或等价 repo-native surface，并有验证证明 allowed writes、forbidden authority 和 nonblocking / fail-open 边界，才算实际落地。当前 ARS、AutoSci / OmegaWiki、ARK、ARIS、PaperSpine 和 PaperOrchestra 已进入 single nonblocking `run_external_learning_sidecar` 的 refs-only advisory worker landing；这不等于 owner receipt、study progress、publication quality、paper progress 或 external runtime landed。缺 external advisory 默认不阻断完整 `current_executable_owner_action`，除非命中 source/data/evidence、owner-route identity、forbidden write、不可逆 mutation、independent reviewer、publication gate、human gate 或 MAS hard gate。
 
@@ -188,6 +191,7 @@ Medical quality regression lane 已收口为 `make test-medical-quality-regressi
 ## 下一跳
 
 - 目标态：[MAS 理想目标态](./references/positioning/mas_ideal_state.md)
+- 目标运行架构：[MAS / OPL Agent OS 目标运行架构与重构计划](./runtime/designs/mas_opl_agent_os_target_operating_architecture.md)
 - 差距与顺序：[MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md)
 - 当前执行地图：[MAS 当前开发线路](./active/current-development-lines.md)
 - Runtime 边界：[Runtime boundary](./runtime/contracts/runtime_boundary.md)
