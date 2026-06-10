@@ -46,7 +46,7 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert capability_card["tool_id"] == "scientific_capability_registry"
     assert capability_card["callability"] == "mcp_runtime"
     assert capability_card["risk_annotations"]["readOnlyHint"] is False
-    assert capability_card["risk_annotations"]["destructiveHint"] is True
+    assert capability_card["risk_annotations"]["destructiveHint"] is False
     assert capability_card["risk_annotations"]["requires_opl_stage_attempt_or_lease"] is False
     assert capability_card["authority_effects"]["can_return_owner_receipt"] is False
     assert "artifacts/advisory/external_learning_sidecar/latest.json" in capability_card["allowed_writes"]

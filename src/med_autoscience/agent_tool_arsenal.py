@@ -180,11 +180,16 @@ def get_tool_use_card(
     return dict(card)
 
 
-def mcp_tool_annotations(tool_id: str, *, read_only: bool | None = None) -> dict[str, Any]:
+def mcp_tool_annotations(
+    tool_id: str,
+    *,
+    read_only: bool | None = None,
+    destructive: bool = False,
+) -> dict[str, Any]:
     is_read_only = bool(read_only)
     return {
         "readOnlyHint": is_read_only,
-        "destructiveHint": False if is_read_only else True,
+        "destructiveHint": False if is_read_only else bool(destructive),
         "idempotentHint": is_read_only,
         "openWorldHint": False,
     }
@@ -236,6 +241,7 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
             **mcp_tool_annotations(
                 mcp_tool_name,
                 read_only=read_only and not refs_only_runtime_write,
+                destructive=False,
             ),
             "requires_human_gate": bool(human_gate_ids),
             "requires_opl_stage_attempt_or_lease": requires_stage_attempt,
@@ -246,7 +252,11 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         "output_schema_ref": _text(action.get("output_schema_ref")),
         "output_schema": _output_schema_for_action(action),
         "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
-        "allowed_writes": _allowed_writes_for_action(action_id),
+        "allowed_writes": (
+            _allowed_writes_for_action(action_id)
+            if (not read_only or refs_only_runtime_write)
+            else []
+        ),
         "forbidden_authority": list(FORBIDDEN_DOMAIN_AUTHORITY),
         "human_gate_ids": human_gate_ids,
         "idempotency_policy": (
