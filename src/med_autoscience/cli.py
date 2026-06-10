@@ -26,6 +26,9 @@ from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
 from med_autoscience.cli_parts.retention_commands import handle_retention_command
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
+from med_autoscience.cli_parts.scientific_capability_registry_commands import (
+    handle_scientific_capability_registry_command,
+)
 from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_command
 from med_autoscience.cli_parts.study_action_commands import handle_study_action_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
@@ -331,6 +334,10 @@ def main(argv: list[str] | None = None) -> int:
     evo_scientist_sidecar_result = handle_evo_scientist_sidecar_command(args)
     if evo_scientist_sidecar_result is not None:
         return evo_scientist_sidecar_result
+
+    scientific_capability_registry_result = handle_scientific_capability_registry_command(args)
+    if scientific_capability_registry_result is not None:
+        return scientific_capability_registry_result
 
     domain_handler_result = handle_domain_handler_command(
         args,

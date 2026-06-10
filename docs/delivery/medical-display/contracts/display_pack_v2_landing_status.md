@@ -60,7 +60,7 @@ medautosci publication display-pack-agent-preflight --repo-root <mas_repo> --pap
 medautosci publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'
 ```
 
-同一能力也通过 `MedAutoScienceDomainEntry` 暴露给 OPL generated/hosted surfaces。`domain-handler export` 会给出 `display_pack_agent_capability`，`contracts/action_catalog.json` 会给出 `display_pack_capability_discover`、`display_pack_figure_plan`、`display_pack_preflight`、`display_pack_render` 的 descriptor-only action projection。CLI 只是 debug/资产管理入口；domain entry 和 action catalog 是 agent consumption 的稳定合同面。
+同一能力也通过 `MedAutoScienceDomainEntry` 暴露给 OPL generated/hosted surfaces。`domain-handler export` 会给出 `display_pack_agent_capability`，`contracts/action_catalog.json` 会把 `display_pack_capability_discover`、`display_pack_figure_plan`、`display_pack_preflight`、`display_pack_render` 映射到同一个 MCP runtime tool `display_pack_agent`，由 `mode=discover|plan|preflight|render` 选择底层 action surface。CLI 仍是 debug/资产管理入口；MCP `display_pack_agent`、domain entry 和 action catalog 是 agent consumption 的稳定合同面。
 
 | 步骤 | Surface | 完成信号 | 不授权内容 |
 | --- | --- | --- | --- |

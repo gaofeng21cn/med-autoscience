@@ -70,6 +70,18 @@ MCP_INPUT_SCHEMA_BY_ACTION_ID = {
             "visual_audit_review": {"type": "object"},
         },
     },
+    "scientific_capability_registry": {
+        "type": "object",
+        "properties": {
+            "mode": {"type": "string", "enum": ["index", "resolve", "invoke"]},
+            "capability_id": {"type": "string"},
+            "current_owner_delta": {"type": "object"},
+            "study_root": {"type": "string"},
+            "apply": {"type": "boolean"},
+            "payload": {"type": "object"},
+        },
+        "required": ["mode"],
+    },
 }
 AUTHORITATIVE_TRUTH_REFS = [
     "/progress_projection",
@@ -280,8 +292,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "command": "{prefix} publication display-pack-agent-discover --repo-root <mas_repo>",
             "surface_kind": "display_pack_agent_capability",
             "workspace_locator_fields": ["repo_root", "paper_root"],
-            "mcp_tool_name": "display_pack_capability_discover",
-            "mcp_public_runtime": False,
+            "mcp_tool_name": "display_pack_agent",
+            "mcp_tool_mode": "discover",
+            "mcp_public_runtime": True,
             "authority_boundary": {
                 "domain_truth_owner": MAS_TRUTH_OWNER,
                 "helper_owner": MAS_TRUTH_OWNER,
@@ -310,8 +323,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             ),
             "surface_kind": "display_pack_agent_figure_plan",
             "workspace_locator_fields": ["repo_root", "paper_root", "figure_request"],
-            "mcp_tool_name": "display_pack_figure_plan",
-            "mcp_public_runtime": False,
+            "mcp_tool_name": "display_pack_agent",
+            "mcp_tool_mode": "plan",
+            "mcp_public_runtime": True,
             "authority_boundary": {
                 "domain_truth_owner": MAS_TRUTH_OWNER,
                 "helper_owner": MAS_TRUTH_OWNER,
@@ -340,8 +354,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             ),
             "surface_kind": "display_pack_agent_preflight",
             "workspace_locator_fields": ["repo_root", "paper_root", "template_id", "figure_request"],
-            "mcp_tool_name": "display_pack_preflight",
-            "mcp_public_runtime": False,
+            "mcp_tool_name": "display_pack_agent",
+            "mcp_tool_mode": "preflight",
+            "mcp_public_runtime": True,
             "authority_boundary": {
                 "domain_truth_owner": MAS_TRUTH_OWNER,
                 "helper_owner": MAS_TRUTH_OWNER,
@@ -371,8 +386,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             ),
             "surface_kind": "display_pack_agent_render_receipt",
             "workspace_locator_fields": ["repo_root", "paper_root", "figure_request", "visual_audit_review"],
-            "mcp_tool_name": "display_pack_render",
-            "mcp_public_runtime": False,
+            "mcp_tool_name": "display_pack_agent",
+            "mcp_tool_mode": "render",
+            "mcp_public_runtime": True,
             "authority_boundary": {
                 "domain_truth_owner": MAS_TRUTH_OWNER,
                 "helper_owner": MAS_TRUTH_OWNER,
@@ -418,6 +434,39 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "can_authorize_publication_quality": False,
                 "can_authorize_submission_readiness": False,
                 "can_block_current_owner_action": False,
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
+            },
+        },
+        {
+            "action_id": "scientific_capability_registry",
+            "title": "Resolve or invoke scientific capabilities",
+            "summary": (
+                "Expose the MAS scientific capability registry as a current-owner-delta-bound "
+                "resolver. It can list capabilities, resolve refs-only advisory candidates for "
+                "the current owner delta, or invoke already-landed refs-only capability surfaces "
+                "without adding a default external runtime, selector, backlog, or admission gate."
+            ),
+            "effect": "read_only",
+            "command": "{prefix} scientific-capability-registry --mode <index|resolve|invoke>",
+            "surface_kind": "mas_scientific_capability_registry",
+            "workspace_locator_fields": ["current_owner_delta", "study_root", "capability_id"],
+            "mcp_tool_name": "scientific_capability_registry",
+            "mcp_public_runtime": True,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": "one-person-lab",
+                "helper_write_policy": "refs_only_capability_invocation",
+                "surface_authority": "current_delta_bound_capability_resolver",
+                "can_write_publication_eval": False,
+                "can_write_controller_decisions": False,
+                "can_write_current_package": False,
+                "can_write_owner_receipt": False,
+                "can_write_typed_blocker": False,
+                "can_authorize_publication_quality": False,
+                "can_authorize_submission_readiness": False,
+                "can_block_current_owner_action": False,
+                "can_launch_external_runtime": False,
+                "can_create_default_selector": False,
                 "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
             },
         },
@@ -505,6 +554,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
         mcp_tool_name = str(spec.get("mcp_tool_name") or "").strip()
         if mcp_tool_name:
             action["supported_surfaces"]["mcp"]["tool_name"] = mcp_tool_name
+        mcp_tool_mode = str(spec.get("mcp_tool_mode") or "").strip()
+        if mcp_tool_mode:
+            action["supported_surfaces"]["mcp"]["mode"] = mcp_tool_mode
         built.append(action)
     return tuple(built)
 
@@ -629,10 +681,28 @@ def action_catalog_command_map(catalog: Mapping[str, Any]) -> dict[str, str]:
 
 
 def action_catalog_metadata_by_mcp_tool(catalog: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    return {
-        str(item["name"]): item
-        for item in project_mas_action_catalog("mcp", catalog)
-    }
+    grouped: dict[str, dict[str, Any]] = {}
+    for item in project_mas_action_catalog("mcp", catalog):
+        name = str(item["name"])
+        if name not in grouped:
+            grouped[name] = item
+            continue
+        existing = grouped[name]
+        if existing.get("surface_kind") != "mas_mcp_tool_group_projection":
+            grouped[name] = {
+                "name": name,
+                "description": (
+                    "Grouped MAS MCP tool projection. Use the mode field to select the "
+                    "underlying action catalog surface."
+                ),
+                "surface_kind": "mas_mcp_tool_group_projection",
+                "descriptor_only": False,
+                "public_runtime": True,
+                "actions": [existing],
+            }
+            existing = grouped[name]
+        existing.setdefault("actions", []).append(item)
+    return grouped
 
 
 def validate_mas_action_catalog_parity(catalog: Mapping[str, Any] | None = None) -> dict[str, Any]:

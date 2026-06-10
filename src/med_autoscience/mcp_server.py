@@ -37,6 +37,11 @@ from med_autoscience.mcp_server_parts.handler_adapter import (
     require_string as _require_string,
 )
 from med_autoscience.mcp_server_parts.tool_result_rendering import json_text, tool_text_result
+from med_autoscience.scientific_capability_registry import (
+    build_scientific_capability_registry,
+    invoke_scientific_capability,
+    resolve_scientific_capabilities,
+)
 from med_autoscience.mcp_server_parts.tool_registry import build_tool_registry, manifest_from_registry
 
 
@@ -80,6 +85,7 @@ workspace_literature = _LazyModuleProxy(lambda: _load_controller("workspace_lite
 doctor = _LazyModuleProxy(_load_doctor_module)
 overlay_installer = _LazyModuleProxy(_load_overlay_installer)
 profiles = _LazyModuleProxy(_load_profiles_module)
+display_pack_agent = _LazyModuleProxy(lambda: import_module("med_autoscience.display_pack_agent"))
 _PRODUCT_ENTRY_CONTRACT_GAP_TEXT = PRODUCT_ENTRY_CONTRACT_GAP_TEXT
 ACTION_CATALOG = build_mas_action_catalog()
 TOOL_REGISTRY = build_tool_registry(
@@ -431,6 +437,116 @@ def _call_publication_status(arguments: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def _call_display_pack_agent_discover(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = display_pack_agent.display_pack_capability_discover(
+        repo_root=_optional_path(arguments, "repo_root"),
+        paper_root=_optional_path(arguments, "paper_root"),
+        include_templates=_optional_bool(arguments, "include_templates", default=False),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_display_pack_agent_plan(arguments: dict[str, Any]) -> dict[str, Any]:
+    figure_request = _optional_mapping(arguments.get("figure_request"), field_name="figure_request")
+    if figure_request is None:
+        raise ValueError("figure_request is required for display_pack_agent plan mode")
+    result = display_pack_agent.display_pack_figure_plan(
+        repo_root=_optional_path(arguments, "repo_root"),
+        paper_root=_optional_path(arguments, "paper_root"),
+        figure_request=figure_request,
+        max_recommendations=_optional_int(arguments, "max_recommendations") or 5,
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_display_pack_agent_preflight(arguments: dict[str, Any]) -> dict[str, Any]:
+    template_id_value = arguments.get("template_id")
+    if template_id_value is not None and (
+        not isinstance(template_id_value, str) or not template_id_value.strip()
+    ):
+        raise ValueError("template_id must be a non-empty string when provided")
+    result = display_pack_agent.display_pack_preflight(
+        repo_root=_optional_path(arguments, "repo_root"),
+        paper_root=_optional_path(arguments, "paper_root"),
+        template_id=template_id_value.strip() if isinstance(template_id_value, str) else None,
+        figure_request=_optional_mapping(arguments.get("figure_request"), field_name="figure_request"),
+        check_runtime_dependencies=_optional_bool(
+            arguments,
+            "check_runtime_dependencies",
+            default=True,
+        ),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_display_pack_agent_render(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = display_pack_agent.display_pack_render(
+        repo_root=_optional_path(arguments, "repo_root"),
+        paper_root=_require_string(arguments, "paper_root"),
+        figure_request=_optional_mapping(arguments.get("figure_request"), field_name="figure_request"),
+        visual_audit_review=_optional_mapping(
+            arguments.get("visual_audit_review"),
+            field_name="visual_audit_review",
+        ),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_display_pack_agent(arguments: dict[str, Any]) -> dict[str, Any]:
+    return call_mode_handler(
+        tool_name="display_pack_agent",
+        arguments=arguments,
+        handlers={
+            "discover": _call_display_pack_agent_discover,
+            "plan": _call_display_pack_agent_plan,
+            "preflight": _call_display_pack_agent_preflight,
+            "render": _call_display_pack_agent_render,
+        },
+    )
+
+
+def _call_scientific_capability_registry_index(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = build_scientific_capability_registry()
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_scientific_capability_registry_resolve(arguments: dict[str, Any]) -> dict[str, Any]:
+    current_owner_delta = _optional_mapping(
+        arguments.get("current_owner_delta"),
+        field_name="current_owner_delta",
+    )
+    result = resolve_scientific_capabilities(current_owner_delta=current_owner_delta)
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_scientific_capability_registry_invoke(arguments: dict[str, Any]) -> dict[str, Any]:
+    current_owner_delta = _optional_mapping(
+        arguments.get("current_owner_delta"),
+        field_name="current_owner_delta",
+    )
+    payload = _optional_mapping(arguments.get("payload"), field_name="payload") or {}
+    result = invoke_scientific_capability(
+        capability_id=_require_string(arguments, "capability_id"),
+        current_owner_delta=current_owner_delta,
+        study_root=_optional_path(arguments, "study_root"),
+        apply=_optional_bool(arguments, "apply", default=False),
+        payload=payload,
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_scientific_capability_registry(arguments: dict[str, Any]) -> dict[str, Any]:
+    return call_mode_handler(
+        tool_name="scientific_capability_registry",
+        arguments=arguments,
+        handlers={
+            "index": _call_scientific_capability_registry_index,
+            "resolve": _call_scientific_capability_registry_resolve,
+            "invoke": _call_scientific_capability_registry_invoke,
+        },
+    )
+
+
 def _call_authority_operations(arguments: dict[str, Any]) -> dict[str, Any]:
     return call_mode_handler(
         tool_name="authority_operations",
@@ -487,6 +603,8 @@ TOOL_HANDLERS = {
     "study_progress": _call_study_progress,
     "open_auto_research_soak": _call_open_auto_research_soak,
     "publication_status": _call_publication_status,
+    "display_pack_agent": _call_display_pack_agent,
+    "scientific_capability_registry": _call_scientific_capability_registry,
     "authority_operations": _call_authority_operations,
     "agent_tool_arsenal": _call_agent_tool_arsenal,
 }

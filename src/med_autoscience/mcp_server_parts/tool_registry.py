@@ -178,6 +178,66 @@ def build_tool_registry(
             },
         ),
         McpToolSpec(
+            name="display_pack_agent",
+            description=(
+                "Use the MAS Display Pack agent-facing capability surface through one tool: "
+                "discover, plan, preflight, or render. This lets autonomous agents consume "
+                "Display Pack inventory, template planning, pre-render checks, and display "
+                "artifact receipts without manually browsing template directories or composing CLI commands."
+            ),
+            metadata=_tool_metadata(metadata_by_tool, "display_pack_agent"),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=False),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "mode": {
+                        "type": "string",
+                        "enum": ["discover", "plan", "preflight", "render"],
+                    },
+                    "repo_root": {"type": "string"},
+                    "paper_root": {"type": "string"},
+                    "include_templates": {"type": "boolean"},
+                    "figure_request": {"type": "object"},
+                    "max_recommendations": {"type": "integer", "minimum": 1},
+                    "template_id": {"type": "string"},
+                    "check_runtime_dependencies": {"type": "boolean"},
+                    "visual_audit_review": {"type": "object"},
+                },
+                "required": ["mode"],
+                "additionalProperties": False,
+            },
+        ),
+        McpToolSpec(
+            name="scientific_capability_registry",
+            description=(
+                "Resolve or invoke MAS scientific capabilities from current_owner_delta. "
+                "Modes: index lists the registry; resolve returns refs-only capability candidates; "
+                "invoke calls an already-landed refs-only surface such as external-learning sidecar, "
+                "Light advisory, EvoScientist sidecar, or Display Pack planning. This is fail-open "
+                "and cannot authorize publication, artifact, owner receipt, or runtime authority."
+            ),
+            metadata=_tool_metadata(metadata_by_tool, "scientific_capability_registry"),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=False),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "mode": {
+                        "type": "string",
+                        "enum": ["index", "resolve", "invoke"],
+                    },
+                    "capability_id": {"type": "string"},
+                    "current_owner_delta": {"type": "object"},
+                    "study_root": {"type": "string"},
+                    "apply": {"type": "boolean"},
+                    "payload": {"type": "object"},
+                },
+                "required": ["mode"],
+                "additionalProperties": False,
+            },
+        ),
+        McpToolSpec(
             name="authority_operations",
             description=authority_description,
             metadata=_tool_metadata(metadata_by_tool, "authority_operations"),

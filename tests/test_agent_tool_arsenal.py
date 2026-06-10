@@ -34,6 +34,35 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     )
     assert "current_owner_delta" in progress["when_to_use"]
 
+    capability_registry = arsenal["scientific_capability_registry"]
+    assert capability_registry["surface_kind"] == "mas_scientific_capability_registry"
+    assert capability_registry["default_policy"]["fail_open"] is True
+    assert capability_registry["default_policy"]["mainline_waits_for_capability"] is False
+    assert any(
+        item["capability_id"] == "display_pack_visual_capability"
+        for item in capability_registry["capabilities"]
+    )
+    capability_card = cards["scientific_capability_registry"]
+    assert capability_card["tool_id"] == "scientific_capability_registry"
+    assert capability_card["callability"] == "mcp_runtime"
+    assert capability_card["risk_annotations"]["readOnlyHint"] is False
+    assert capability_card["risk_annotations"]["destructiveHint"] is True
+    assert capability_card["risk_annotations"]["requires_opl_stage_attempt_or_lease"] is False
+    assert capability_card["authority_effects"]["can_return_owner_receipt"] is False
+    assert "artifacts/advisory/external_learning_sidecar/latest.json" in capability_card["allowed_writes"]
+    assert "artifacts/runtime/evo_scientist_sidecar/latest.json" in capability_card["allowed_writes"]
+
+    display_preflight = cards["display_pack_preflight"]
+    assert display_preflight["tool_id"] == "display_pack_agent"
+    assert display_preflight["tool_mode"] == "preflight"
+    assert display_preflight["callability"] == "mcp_runtime"
+    assert display_preflight["mcp_invocation"] == {
+        "tool_name": "display_pack_agent",
+        "mode": "preflight",
+        "public_runtime": True,
+    }
+    assert display_preflight["risk_annotations"]["readOnlyHint"] is True
+
     dispatch = cards["domain_handler_dispatch"]
     assert dispatch["effect"] == "mutating"
     assert dispatch["callability"] == "descriptor_only"
@@ -96,3 +125,17 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert plan["authority_boundary"]["can_write_publication_quality"] is False
     assert "verify_required_input_refs" in plan["invocation_steps"]
     assert "emit_tool_result_envelope" in plan["invocation_steps"]
+
+    display_plan = module.build_capability_invocation_plan(
+        current_owner_delta={
+            "action_type": "display_pack_preflight",
+            "source_ref": "paper/figure_intent.json",
+            "work_unit_fingerprint": "sha256:display",
+        }
+    )
+
+    assert display_plan["selected_card_kind"] == "action_catalog"
+    assert display_plan["selected_action_id"] == "display_pack_preflight"
+    assert display_plan["selected_tool_id"] == "display_pack_agent"
+    assert display_plan["selected_tool_mode"] == "preflight"
+    assert display_plan["requires"]["owner_receipt_or_typed_blocker"] is False

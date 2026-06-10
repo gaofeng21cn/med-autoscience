@@ -17,6 +17,8 @@ EXPECTED_MCP_TOOLS = [
     "study_progress",
     "open_auto_research_soak",
     "publication_status",
+    "display_pack_agent",
+    "scientific_capability_registry",
     "authority_operations",
     "agent_tool_arsenal",
 ]
@@ -106,6 +108,24 @@ def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> No
     ]
     assert arsenal["metadata"]["surface_kind"] == "mas_agent_tool_arsenal_mcp_surface"
     assert arsenal["outputSchema"]["title"] == "MAS ToolResultEnvelope"
+
+    display_agent = tools["display_pack_agent"]
+    assert display_agent["annotations"]["readOnlyHint"] is False
+    assert display_agent["inputSchema"]["properties"]["mode"]["enum"] == [
+        "discover",
+        "plan",
+        "preflight",
+        "render",
+    ]
+    assert display_agent["outputSchema"]["title"] == "MAS ToolResultEnvelope"
+    capability_registry = tools["scientific_capability_registry"]
+    assert capability_registry["annotations"]["readOnlyHint"] is False
+    assert capability_registry["inputSchema"]["properties"]["mode"]["enum"] == [
+        "index",
+        "resolve",
+        "invoke",
+    ]
+    assert capability_registry["outputSchema"]["title"] == "MAS ToolResultEnvelope"
 
     assert tools["workspace_readiness"]["annotations"]["readOnlyHint"] is False
     assert tools["authority_operations"]["annotations"]["readOnlyHint"] is False
@@ -373,6 +393,89 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
 
     assert schema_result["isError"] is False
     assert schema_result["structuredContent"]["title"] == "MAS ToolResultEnvelope"
+
+
+def test_mcp_display_pack_agent_plans_from_structured_figure_request() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+
+    result = module.call_tool(
+        "display_pack_agent",
+        {
+            "mode": "plan",
+            "repo_root": str(Path(__file__).resolve().parents[1]),
+            "figure_request": {
+                "figure_kind": "evidence_figure",
+                "audit_family": "Prediction Performance",
+                "preferred_renderer_family": "r_ggplot2",
+                "query": "roc",
+            },
+            "max_recommendations": 2,
+        },
+    )
+
+    assert result["isError"] is False
+    payload = result["structuredContent"]
+    assert payload["surface_kind"] == "display_pack_agent_figure_plan"
+    assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert payload["next_callable"] == "display-pack-preflight"
+
+
+def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    repo_root = Path(__file__).resolve().parents[1]
+
+    index_result = module.call_tool("scientific_capability_registry", {"mode": "index"})
+    assert index_result["isError"] is False
+    index_payload = index_result["structuredContent"]
+    assert index_payload["surface_kind"] == "mas_scientific_capability_registry"
+    assert index_payload["default_policy"]["fail_open"] is True
+    assert any(
+        item["capability_id"] == "display_pack_visual_capability"
+        for item in index_payload["capabilities"]
+    )
+
+    resolve_result = module.call_tool(
+        "scientific_capability_registry",
+        {
+            "mode": "resolve",
+            "current_owner_delta": {
+                "action_type": "display_pack_preflight",
+                "capability_families": ["display_pack"],
+            },
+        },
+    )
+    assert resolve_result["isError"] is False
+    resolve_payload = resolve_result["structuredContent"]
+    assert resolve_payload["surface_kind"] == "mas_scientific_capability_resolution"
+    assert resolve_payload["status"] == "resolved"
+    assert any(
+        item["capability_id"] == "display_pack_visual_capability"
+        for item in resolve_payload["selected_capabilities"]
+    )
+    assert resolve_payload["missing_capability_blocks_owner_action"] is False
+
+    invoke_result = module.call_tool(
+        "scientific_capability_registry",
+        {
+            "mode": "invoke",
+            "capability_id": "display_pack_visual_capability",
+            "payload": {
+                "repo_root": str(repo_root),
+                "figure_request": {
+                    "figure_kind": "evidence_figure",
+                    "audit_family": "Prediction Performance",
+                    "preferred_renderer_family": "r_ggplot2",
+                    "query": "roc",
+                },
+            },
+        },
+    )
+    assert invoke_result["isError"] is False
+    invoke_payload = invoke_result["structuredContent"]
+    assert invoke_payload["surface_kind"] == "mas_scientific_capability_invocation"
+    assert invoke_payload["capability_id"] == "display_pack_visual_capability"
+    assert invoke_payload["can_block_current_owner_action"] is False
+    assert invoke_payload["result"]["recommended_template"]["template_id"] == "roc_curve_binary"
 
 
 def test_mcp_server_rejects_ensure_study_runtime_mode_on_retired_mcp_tool(tmp_path: Path) -> None:

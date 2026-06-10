@@ -837,6 +837,280 @@
   },
   "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
   "schema_version": 1,
+  "scientific_capability_registry": {
+    "authority_boundary": {
+      "can_authorize_artifact_authority": false,
+      "can_authorize_owner_action": false,
+      "can_authorize_publication_readiness": false,
+      "can_authorize_quality_verdict": false,
+      "can_close_stage": false,
+      "can_write_controller_decisions": false,
+      "can_write_domain_truth": false,
+      "can_write_memory_body": false,
+      "can_write_owner_receipt": false,
+      "can_write_paper_or_package": false,
+      "can_write_publication_eval": false,
+      "can_write_typed_blocker": false,
+      "surface_role": "current_delta_bound_capability_resolver"
+    },
+    "capabilities": [
+      {
+        "action_triggers": [
+          "run_quality_repair_batch"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "external_learning_sidecar.run_external_learning_sidecar",
+        "capability_family": "external_learning_sidecar",
+        "capability_id": "external_learning_authoring_advisory",
+        "capability_ref": "scientific-capability:external_learning_authoring_advisory",
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "external_learning_sidecar",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "artifacts/advisory/external_learning_sidecar/latest.json"
+        ],
+        "refs_only": true,
+        "role": "authoring_and_claim_support_refs_only_advisory",
+        "source_frameworks": [
+          "PaperSpine",
+          "PaperOrchestra",
+          "Academic Research Skills"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "unit_harmonized_external_validation_rerun",
+          "run_gate_clearing_batch",
+          "return_to_ai_reviewer_workflow"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "external_learning_sidecar.run_external_learning_sidecar",
+        "capability_family": "external_learning_sidecar",
+        "capability_id": "external_learning_review_and_progress_advisory",
+        "capability_ref": "scientific-capability:external_learning_review_and_progress_advisory",
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "external_learning_sidecar",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "artifacts/advisory/external_learning_sidecar/latest.json"
+        ],
+        "refs_only": true,
+        "role": "review_import_source_experiment_and_progress_refs_only_advisory",
+        "source_frameworks": [
+          "ARIS",
+          "ARK",
+          "AutoSci / OmegaWiki"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "*"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation",
+        "capability_family": "progress_accelerator",
+        "capability_id": "evo_scientist_progress_sidecar",
+        "capability_ref": "scientific-capability:evo_scientist_progress_sidecar",
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "evo_scientist_sidecar",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "artifacts/runtime/evo_scientist_sidecar/latest.json"
+        ],
+        "refs_only": true,
+        "role": "background_memory_tool_affordance_failed_path_stop_loss_refs",
+        "source_frameworks": [
+          "EvoScientist",
+          "EvoSkills"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "*"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "med_autoscience.controllers.light_advisory_materializer.materialize_light_advisory_refs",
+        "capability_family": "light_advisory",
+        "capability_id": "light_external_skill_content_advisory",
+        "capability_ref": "scientific-capability:light_external_skill_content_advisory",
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "light_advisory_materializer",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json"
+        ],
+        "refs_only": true,
+        "role": "verified_asset_collision_fresh_evidence_and_skill_content_refs",
+        "source_frameworks": [
+          "Light"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "return_to_ai_reviewer_workflow",
+          "run_quality_repair_batch",
+          "run_gate_clearing_batch"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "stage_route_contract_and_hypothesis_portfolio_pack",
+        "capability_family": "hypothesis_review_affordance",
+        "capability_id": "co_scientist_current_owner_affordance",
+        "capability_ref": "scientific-capability:co_scientist_current_owner_affordance",
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "descriptor_only_current_owner_input_refs",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "external-learning:co_scientist:<action_type>"
+        ],
+        "refs_only": true,
+        "role": "hypothesis_portfolio_tournament_meta_review_refs_only_affordance",
+        "source_frameworks": [
+          "Co-Scientist"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      },
+      {
+        "action_triggers": [
+          "display_pack_figure_plan",
+          "display_pack_preflight",
+          "display_pack_render",
+          "artifact_display_surface_materialization_required"
+        ],
+        "authority_boundary": {
+          "can_authorize_artifact_authority": false,
+          "can_authorize_owner_action": false,
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_stage": false,
+          "can_write_controller_decisions": false,
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_write_owner_receipt": false,
+          "can_write_paper_or_package": false,
+          "can_write_publication_eval": false,
+          "can_write_typed_blocker": false,
+          "surface_role": "current_delta_bound_capability_resolver"
+        },
+        "body_included": false,
+        "callable_surface": "display_pack_agent.plan",
+        "capability_family": "display_pack",
+        "capability_id": "display_pack_visual_capability",
+        "capability_ref": "scientific-capability:display_pack_visual_capability",
+        "external_runtime_dependency": false,
+        "fail_open": true,
+        "invocation_kind": "display_pack_agent",
+        "mainline_waits_for_capability": false,
+        "output_refs": [
+          "display_pack_agent_figure_plan"
+        ],
+        "refs_only": true,
+        "role": "figure_template_planning_preflight_and_render_receipts",
+        "source_frameworks": [
+          "MAS Display Pack"
+        ],
+        "trigger": "current_delta_declares_or_implies_affordance_need"
+      }
+    ],
+    "capability_count": 6,
+    "default_policy": {
+      "always_on_scan": false,
+      "external_runtime_dependency": false,
+      "fail_open": true,
+      "mainline_waits_for_capability": false,
+      "missing_capability_blocks_owner_action": false,
+      "second_route_table": false
+    },
+    "default_trigger": "current_delta_declares_or_implies_affordance_need",
+    "ordinary_planning_root": "current_owner_delta",
+    "owner": "MedAutoScience",
+    "resolver_owner": "one-person-lab",
+    "schema_version": 1,
+    "surface_kind": "mas_scientific_capability_registry"
+  },
   "surface_kind": "mas_agent_tool_arsenal_index",
   "tool_audit_trail_schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -933,6 +1207,10 @@
         "task_intent"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "submit_study_task"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1011,6 +1289,10 @@
         "study_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "launch_study"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1085,6 +1367,10 @@
         "study_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": true,
+        "tool_name": "study_progress"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1165,6 +1451,10 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "study_state_matrix"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1242,6 +1532,10 @@
         "study_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "export_inspection_package"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1323,6 +1617,10 @@
         "quest_root"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "publication_aftercare_plan"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1401,6 +1699,10 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "external_learning_adoption_closure"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1459,7 +1761,7 @@
         "can_return_typed_blocker": false,
         "can_write_domain_truth": false
       },
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "card_kind": "action_catalog",
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
@@ -1479,6 +1781,11 @@
         "paper_root"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "mode": "discover",
+        "public_runtime": true,
+        "tool_name": "display_pack_agent"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1504,7 +1811,8 @@
       ],
       "surface_kind": "mas_tool_use_card",
       "title": "Discover MAS Display Pack capability",
-      "tool_id": "display_pack_capability_discover",
+      "tool_id": "display_pack_agent",
+      "tool_mode": "discover",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use display_pack_capability_discover when an autonomous agent needs this capability from the current_owner_delta path: Return the agent-facing Display Pack inventory, callable actions, expected receipt refs, and forbidden authority boundary. This is the low-friction discovery entry for MAS agents; humans manage assets, agents consume this structured capability surface."
     },
@@ -1537,7 +1845,7 @@
         "can_return_typed_blocker": false,
         "can_write_domain_truth": false
       },
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "card_kind": "action_catalog",
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
@@ -1558,6 +1866,11 @@
         "figure_request"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "mode": "plan",
+        "public_runtime": true,
+        "tool_name": "display_pack_agent"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1583,7 +1896,8 @@
       ],
       "surface_kind": "mas_tool_use_card",
       "title": "Plan a Display Pack figure",
-      "tool_id": "display_pack_figure_plan",
+      "tool_id": "display_pack_agent",
+      "tool_mode": "plan",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use display_pack_figure_plan when an autonomous agent needs this capability from the current_owner_delta path: Given a structured figure_request, rank Display Pack templates and choose the next preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates."
     },
@@ -1616,7 +1930,7 @@
         "can_return_typed_blocker": false,
         "can_write_domain_truth": false
       },
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "card_kind": "action_catalog",
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
@@ -1638,6 +1952,11 @@
         "figure_request"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "mode": "preflight",
+        "public_runtime": true,
+        "tool_name": "display_pack_agent"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1663,7 +1982,8 @@
       ],
       "surface_kind": "mas_tool_use_card",
       "title": "Preflight a Display Pack figure",
-      "tool_id": "display_pack_preflight",
+      "tool_id": "display_pack_agent",
+      "tool_mode": "preflight",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use display_pack_preflight when an autonomous agent needs this capability from the current_owner_delta path: Check selected template assets, QC profile, R runtime dependencies, style profile lock, and golden coverage before render. Findings route to style/profile/runtime/template repair without mutating data, statistics, evidence marks, or publication verdicts."
     },
@@ -1701,7 +2021,7 @@
         "can_return_typed_blocker": false,
         "can_write_domain_truth": false
       },
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "card_kind": "action_catalog",
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
       "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
@@ -1723,6 +2043,11 @@
         "visual_audit_review"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "mode": "render",
+        "public_runtime": true,
+        "tool_name": "display_pack_agent"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1748,7 +2073,8 @@
       ],
       "surface_kind": "mas_tool_use_card",
       "title": "Render a Display Pack figure receipt",
-      "tool_id": "display_pack_render",
+      "tool_id": "display_pack_agent",
+      "tool_mode": "render",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use display_pack_render when an autonomous agent needs this capability from the current_owner_delta path: Materialize Display Pack figure artifacts and paper-level display refs from a prepared paper_root or frozen data payload. This writes display artifacts, visual-audit receipt, polish lifecycle, display_pack_lock, and publication manifest refs only; it cannot sign publication readiness or owner receipt."
     },
@@ -1806,6 +2132,10 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "lightweight_executor_receipt"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1834,6 +2164,94 @@
       "tool_id": "lightweight_executor_receipt",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use lightweight_executor_receipt when an autonomous agent needs this capability from the current_owner_delta path: Read the MAS/OPL lightweight executor receipt contract. It records command evidence refs for Codex/uv/local executor attempts without executing commands, starting Docker, mounting the Docker socket, or introducing OpenHands as a default runtime."
+    },
+    {
+      "action_id": "scientific_capability_registry",
+      "action_surface_kind": "mas_scientific_capability_registry",
+      "allowed_writes": [],
+      "audit_trail_schema_ref": "contracts/agent_tool_arsenal.json#/tool_audit_trail_schema",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_block_current_owner_action": false,
+        "can_create_default_selector": false,
+        "can_launch_external_runtime": false,
+        "can_write_controller_decisions": false,
+        "can_write_current_package": false,
+        "can_write_owner_receipt": false,
+        "can_write_publication_eval": false,
+        "can_write_typed_blocker": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "refs_only_capability_invocation",
+        "surface_authority": "current_delta_bound_capability_resolver"
+      },
+      "authority_effects": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_return_owner_receipt": false,
+        "can_return_typed_blocker": false,
+        "can_write_domain_truth": false
+      },
+      "callability": "mcp_runtime",
+      "card_kind": "action_catalog",
+      "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
+      "effect": "read_only",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "human_gate_ids": [],
+      "idempotency_policy": "read_only_no_side_effects",
+      "input_refs": [
+        "current_owner_delta",
+        "study_root",
+        "capability_id"
+      ],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": true,
+        "tool_name": "scientific_capability_registry"
+      },
+      "output_schema": {
+        "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
+      },
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
+      "risk_annotations": {
+        "destructiveHint": false,
+        "domain_truth_write": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "requires_human_gate": false,
+        "requires_opl_stage_attempt_or_lease": false
+      },
+      "summary": "Expose the MAS scientific capability registry as a current-owner-delta-bound resolver. It can list capabilities, resolve refs-only advisory candidates for the current owner delta, or invoke already-landed refs-only capability surfaces without adding a default external runtime, selector, backlog, or admission gate.",
+      "supported_surfaces": [
+        "ai_sdk",
+        "cli",
+        "mcp",
+        "openai",
+        "product_entry",
+        "skill"
+      ],
+      "surface_kind": "mas_tool_use_card",
+      "title": "Resolve or invoke scientific capabilities",
+      "tool_id": "scientific_capability_registry",
+      "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
+      "when_to_use": "Use scientific_capability_registry when an autonomous agent needs this capability from the current_owner_delta path: Expose the MAS scientific capability registry as a current-owner-delta-bound resolver. It can list capabilities, resolve refs-only advisory candidates for the current owner delta, or invoke already-landed refs-only capability surfaces without adding a default external runtime, selector, backlog, or admission gate."
     },
     {
       "action_id": "mainline_status",
@@ -1877,6 +2295,10 @@
       "idempotency_policy": "read_only_no_side_effects",
       "input_refs": [],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "mainline_status"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1948,6 +2370,10 @@
       "idempotency_policy": "read_only_no_side_effects",
       "input_refs": [],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "mainline_phase"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -2021,6 +2447,10 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "domain_handler_export"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -2099,6 +2529,10 @@
         "task_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "domain_handler_dispatch"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -2172,6 +2606,10 @@
         "workspace_roots"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": true,
+        "tool_name": "authority_operations"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -2261,35 +2699,39 @@
     },
     {
       "action_id": "display_pack_capability_discover",
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
       "read_only": true,
-      "tool_id": "display_pack_capability_discover"
+      "tool_id": "display_pack_agent",
+      "tool_mode": "discover"
     },
     {
       "action_id": "display_pack_figure_plan",
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
       "read_only": true,
-      "tool_id": "display_pack_figure_plan"
+      "tool_id": "display_pack_agent",
+      "tool_mode": "plan"
     },
     {
       "action_id": "display_pack_preflight",
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
       "read_only": true,
-      "tool_id": "display_pack_preflight"
+      "tool_id": "display_pack_agent",
+      "tool_mode": "preflight"
     },
     {
       "action_id": "display_pack_render",
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
       "effect": "mutating",
       "read_only": false,
-      "tool_id": "display_pack_render"
+      "tool_id": "display_pack_agent",
+      "tool_mode": "render"
     },
     {
       "action_id": "lightweight_executor_receipt",
@@ -2298,6 +2740,14 @@
       "effect": "read_only",
       "read_only": true,
       "tool_id": "lightweight_executor_receipt"
+    },
+    {
+      "action_id": "scientific_capability_registry",
+      "callability": "mcp_runtime",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
+      "effect": "read_only",
+      "read_only": true,
+      "tool_id": "scientific_capability_registry"
     },
     {
       "action_id": "mainline_status",
@@ -2345,6 +2795,7 @@
     "mcp_registry": "src/med_autoscience/mcp_server_parts/tool_registry.py",
     "owner_callable_registry": "src/med_autoscience/runtime_control/owner_callable_registry.py",
     "plugin_skill": "plugins/mas/skills/mas/SKILL.md",
+    "scientific_capability_registry": "src/med_autoscience/scientific_capability_registry.py",
     "stage_control_plane": "contracts/stage_control_plane.json"
   }
 }

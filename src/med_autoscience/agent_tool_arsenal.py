@@ -7,6 +7,9 @@ from med_autoscience.runtime_control.owner_callable_registry import (
     owner_callable_registry,
     paper_work_unit_lifecycle_for_action,
 )
+from med_autoscience.scientific_capability_registry import (
+    build_scientific_capability_registry,
+)
 
 
 CONTRACT_ID = "mas_agent_tool_arsenal.v1"
@@ -106,6 +109,9 @@ def build_agent_tool_arsenal_index(
             "owner_callable_registry": (
                 "src/med_autoscience/runtime_control/owner_callable_registry.py"
             ),
+            "scientific_capability_registry": (
+                "src/med_autoscience/scientific_capability_registry.py"
+            ),
             "stage_control_plane": "contracts/stage_control_plane.json",
             "plugin_skill": "plugins/mas/skills/mas/SKILL.md",
         },
@@ -119,6 +125,7 @@ def build_agent_tool_arsenal_index(
         "tool_index_entries": [_index_entry(card) for card in tool_cards],
         "tool_cards": tool_cards,
         "owner_callable_cards": owner_cards,
+        "scientific_capability_registry": build_scientific_capability_registry(),
         "capability_invocation_plan_contract": _capability_invocation_plan_contract(),
         "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
         "result_envelope_schema": build_tool_result_envelope_schema(),
@@ -189,21 +196,24 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
     source_command = action.get("source_command") if isinstance(action.get("source_command"), Mapping) else {}
     mcp_descriptor = _surface_descriptor(action, "mcp")
     mcp_tool_name = _text(mcp_descriptor.get("tool_name")) or action_id
+    mcp_tool_mode = _text(mcp_descriptor.get("mode"))
     descriptor_only = bool(mcp_descriptor.get("descriptor_only", True))
     public_runtime = bool(mcp_descriptor.get("public_runtime", False))
     callability = "mcp_runtime" if public_runtime and not descriptor_only else "descriptor_only"
     read_only = effect == "read_only"
+    refs_only_runtime_write = action_id == "scientific_capability_registry"
     human_gate_ids = [str(item) for item in list(action.get("human_gate_ids") or [])]
     authority_boundary = (
         dict(action.get("authority_boundary"))
         if isinstance(action.get("authority_boundary"), Mapping)
         else {}
     )
-    requires_stage_attempt = (not read_only) and not human_gate_ids
+    requires_stage_attempt = (not read_only) and not human_gate_ids and not refs_only_runtime_write
     return {
         "surface_kind": "mas_tool_use_card",
         "card_kind": "action_catalog",
         "tool_id": mcp_tool_name,
+        **({"tool_mode": mcp_tool_mode} if mcp_tool_mode else {}),
         "action_id": action_id,
         "title": _required_text(action.get("title"), "title"),
         "summary": _required_text(action.get("summary"), "summary"),
@@ -211,6 +221,11 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         "callability": callability,
         "action_surface_kind": _text(source_command.get("surface_kind")),
         "command": _text(source_command.get("command")),
+        "mcp_invocation": {
+            "tool_name": mcp_tool_name,
+            **({"mode": mcp_tool_mode} if mcp_tool_mode else {}),
+            "public_runtime": public_runtime,
+        },
         "supported_surfaces": sorted(str(item) for item in _surfaces(action)),
         "when_to_use": _when_to_use(action_id=action_id, summary=_text(action.get("summary"))),
         "when_not_to_use": (
@@ -218,7 +233,10 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
             "tool recipe, or infer publication readiness from tool availability."
         ),
         "risk_annotations": {
-            **mcp_tool_annotations(mcp_tool_name, read_only=read_only),
+            **mcp_tool_annotations(
+                mcp_tool_name,
+                read_only=read_only and not refs_only_runtime_write,
+            ),
             "requires_human_gate": bool(human_gate_ids),
             "requires_opl_stage_attempt_or_lease": requires_stage_attempt,
             "domain_truth_write": False,
@@ -228,12 +246,12 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         "output_schema_ref": _text(action.get("output_schema_ref")),
         "output_schema": _output_schema_for_action(action),
         "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
-        "allowed_writes": [] if read_only else _allowed_writes_for_action(action_id),
+        "allowed_writes": _allowed_writes_for_action(action_id),
         "forbidden_authority": list(FORBIDDEN_DOMAIN_AUTHORITY),
         "human_gate_ids": human_gate_ids,
         "idempotency_policy": (
             "read_only_no_side_effects"
-            if read_only
+            if read_only and not refs_only_runtime_write
             else "requires_current_owner_delta_or_human_gate_fingerprint"
         ),
         "current_delta_applicability": (
@@ -369,6 +387,7 @@ def _action_invocation_plan(
         "selected_card_kind": "action_catalog",
         "selected_action_id": action_card["action_id"],
         "selected_tool_id": action_card["tool_id"],
+        **({"selected_tool_mode": action_card["tool_mode"]} if action_card.get("tool_mode") else {}),
         "source_ref": _text(current_owner_delta.get("source_ref")),
         "work_unit_fingerprint": _text(current_owner_delta.get("work_unit_fingerprint")),
         "requires": {
@@ -421,6 +440,7 @@ def _capability_invocation_plan_contract() -> dict[str, Any]:
 def _index_entry(card: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "tool_id": card["tool_id"],
+        **({"tool_mode": card["tool_mode"]} if card.get("tool_mode") else {}),
         "action_id": card["action_id"],
         "effect": card["effect"],
         "callability": card["callability"],
@@ -437,6 +457,13 @@ def _output_schema_for_action(action: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _allowed_writes_for_action(action_id: str) -> list[str]:
+    if action_id == "scientific_capability_registry":
+        return [
+            "artifacts/advisory/external_learning_sidecar/latest.json",
+            "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json",
+            "artifacts/runtime/evo_scientist_sidecar/latest.json",
+            "display_pack_agent refs-only plan outputs",
+        ]
     if action_id == "domain_handler_dispatch":
         return [
             "MAS owner-route dispatch receipt refs",

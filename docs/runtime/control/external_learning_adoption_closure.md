@@ -75,13 +75,13 @@ MAS 当前吸收的不是 Docker / OpenHands sandbox runtime，而是 lightweigh
 
 ## 后续优化折回
 
-External-learning 后续优化不再作为 MAS standalone selector / backlog 推进。当前 OPL family-level 入口是 `docs/active/foundry-agent-os-family-target-implementation-plan.md`：
+External-learning 后续优化不再作为 MAS standalone selector / backlog 推进。当前 MAS repo-native callable 入口是 `scientific_capability_registry`，由 action catalog、MCP runtime、CLI/product-entry 和 Agent Tool Arsenal 暴露 `index / resolve / invoke` ABI；hosted OPL ordinary path 仍按 OPL family-level `W3-capability-registry-fail-open` 消费该 ABI。
 
-- `W3-capability-registry-fail-open`：OPL `Atlas + Pack + Stagecraft` 负责 current-delta-bound capability resolver / selector、fail-open policy 和 route-required blocker policy。
+- `W3-capability-registry-fail-open`：OPL `Atlas + Pack + Stagecraft` 负责 hosted current-delta-bound capability resolver / selector、fail-open policy 和 route-required blocker policy；MAS 只提供 repo-native capability registry ABI 和 domain authority boundary。
 - `W4-domain-kernel-manifest`：MAS 负责声明每个 external-learning ref family 的 domain consumption boundary、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级条件。
 - `W7-production-evidence-soak`：只有 ARS claim-support、AutoSci source discovery、ARK micro-canary 等 refs 被真实 owner action 消费并产出 owner receipt、typed blocker、reviewer receipt、human gate 或 route-back evidence 后，才计入 study progress。
 
-因此，MAS 侧不得新增第二 selector、第二 active backlog、always-on sidecar、默认 advisory scan 或独立外部学习调度面；已有 `run_external_learning_sidecar` 继续只是 refs-only worker execution slot。
+因此，MAS 侧不得新增第二 selector、第二 active backlog、always-on sidecar、默认 advisory scan 或独立外部学习调度面；已有 `run_external_learning_sidecar` 继续只是 refs-only worker execution slot，`scientific_capability_registry` 只负责按 `current_owner_delta` 列出、解析或显式调用已落地 refs-only capability。
 
 ## 不再走的路径
 
@@ -89,7 +89,7 @@ External-learning 后续优化不再作为 MAS standalone selector / backlog 推
 - 不复制外部 runtime、queue、scheduler、worker residency、memory DB、project DB、router、dashboard、Telegram/webapp service 或 slash skill source。
 - 不把 external review score、self-review checklist、tool selector score、observation memory、wiki graph、passport、issue DB 或 citation table 写成 MAS truth、quality verdict、publication readiness、artifact authority、memory accept/reject 或 owner receipt。
 - 不为补齐外部 intake 重新制造 full lifecycle preflight、read-model reconcile loop 或每步 checklist gate。
-- 不把 external-learning 后续优化写成 MAS 私有 selector / resolver / backlog；selector / resolver 归 OPL Capability Registry，MAS 只声明 refs 消费与 authority 晋级边界。
+- 不把 external-learning 后续优化写成 MAS 私有 selector / resolver / backlog；hosted selector / resolver 归 OPL Capability Registry，MAS repo 只暴露 `scientific_capability_registry` ABI、refs 消费与 authority 晋级边界。
 
 ## 验证门槛
 

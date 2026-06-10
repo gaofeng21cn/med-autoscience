@@ -484,10 +484,11 @@
         },
         "mcp": {
           "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
-          "descriptor_only": true,
-          "public_runtime": false,
+          "descriptor_only": false,
+          "mode": "discover",
+          "public_runtime": true,
           "surface_kind": "display_pack_agent_capability",
-          "tool_name": "display_pack_capability_discover"
+          "tool_name": "display_pack_agent"
         },
         "openai": {
           "tool_name": "display_pack_capability_discover"
@@ -548,10 +549,11 @@
         },
         "mcp": {
           "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
-          "descriptor_only": true,
-          "public_runtime": false,
+          "descriptor_only": false,
+          "mode": "plan",
+          "public_runtime": true,
           "surface_kind": "display_pack_agent_figure_plan",
-          "tool_name": "display_pack_figure_plan"
+          "tool_name": "display_pack_agent"
         },
         "openai": {
           "tool_name": "display_pack_figure_plan"
@@ -613,10 +615,11 @@
         },
         "mcp": {
           "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
-          "descriptor_only": true,
-          "public_runtime": false,
+          "descriptor_only": false,
+          "mode": "preflight",
+          "public_runtime": true,
           "surface_kind": "display_pack_agent_preflight",
-          "tool_name": "display_pack_preflight"
+          "tool_name": "display_pack_agent"
         },
         "openai": {
           "tool_name": "display_pack_preflight"
@@ -682,10 +685,11 @@
         },
         "mcp": {
           "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
-          "descriptor_only": true,
-          "public_runtime": false,
+          "descriptor_only": false,
+          "mode": "render",
+          "public_runtime": true,
           "surface_kind": "display_pack_agent_render_receipt",
-          "tool_name": "display_pack_render"
+          "tool_name": "display_pack_agent"
         },
         "openai": {
           "tool_name": "display_pack_render"
@@ -776,6 +780,76 @@
       "title": "Inspect lightweight executor receipt contract",
       "workspace_locator_fields": [
         "profile_ref"
+      ]
+    },
+    {
+      "action_id": "scientific_capability_registry",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_block_current_owner_action": false,
+        "can_create_default_selector": false,
+        "can_launch_external_runtime": false,
+        "can_write_controller_decisions": false,
+        "can_write_current_package": false,
+        "can_write_owner_receipt": false,
+        "can_write_publication_eval": false,
+        "can_write_typed_blocker": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "refs_only_capability_invocation",
+        "surface_authority": "current_delta_bound_capability_resolver"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+        "surface_kind": "mas_scientific_capability_registry"
+      },
+      "summary": "Expose the MAS scientific capability registry as a current-owner-delta-bound resolver. It can list capabilities, resolve refs-only advisory candidates for the current owner delta, or invoke already-landed refs-only capability surfaces without adding a default external runtime, selector, backlog, or admission gate.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "scientific_capability_registry"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+          "surface_kind": "mas_scientific_capability_registry"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+          "descriptor_only": false,
+          "public_runtime": true,
+          "surface_kind": "mas_scientific_capability_registry",
+          "tool_name": "scientific_capability_registry"
+        },
+        "openai": {
+          "tool_name": "scientific_capability_registry"
+        },
+        "product_entry": {
+          "action_key": "scientific_capability_registry",
+          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+          "surface_kind": "mas_scientific_capability_registry"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
+          "command_contract_id": "scientific_capability_registry",
+          "surface_kind": "mas_scientific_capability_registry"
+        }
+      },
+      "title": "Resolve or invoke scientific capabilities",
+      "workspace_locator_fields": [
+        "current_owner_delta",
+        "study_root",
+        "capability_id"
       ]
     },
     {

@@ -7,6 +7,9 @@ from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
     register_evo_scientist_sidecar_parsers,
 )
 from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
+from med_autoscience.cli_parts.scientific_capability_registry_commands import (
+    register_scientific_capability_registry_parser,
+)
 from med_autoscience.cli_parts.study_action_commands import register_study_action_parsers
 from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.foundry_command_surface import FOUNDRY_OPERATIONS
@@ -55,6 +58,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     sync_agent_entry_assets_parser.add_argument("--repo-root", default=".")
 
     register_evo_scientist_sidecar_parsers(subparsers)
+    register_scientific_capability_registry_parser(subparsers)
 
     preflight_parser = subparsers.add_parser("preflight-changes")
     preflight_sources = preflight_parser.add_mutually_exclusive_group(required=True)
