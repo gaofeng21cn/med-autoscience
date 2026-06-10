@@ -7,7 +7,6 @@ from typing import Any
 from med_autoscience.controllers.real_paper_autonomy_soak_inventory_parts import (
     forbidden_write_guard,
     guarded_apply,
-    provider_guarded_apply,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -223,24 +222,28 @@ def build_guarded_apply_proof_for_profile(
         surface=inventory.GUARDED_APPLY_PROOF_SURFACE,
         target_studies=targets,
     )
-    provider_receipt = provider_guarded_apply.build_provider_hosted_guarded_apply_receipt_from_proof(
-        proof=proof,
-        schema_version=inventory.SCHEMA_VERSION,
-        surface=inventory.PROVIDER_HOSTED_GUARDED_APPLY_RECEIPT_SURFACE,
-        provider_attempt_id=f"product-entry-manifest:{profile.name}:real-paper-owner-payload-closeout",
-        idempotency_key=f"mas:{profile.name}:product-entry-manifest:real-paper-owner-payload-closeout",
-        target_studies=targets,
-    )
     return {
         **proof,
-        "paper_line_provider_canary_closeout": provider_receipt["paper_line_provider_canary_closeout"],
         "source_provider_hosted_guarded_apply_receipt_summary": {
-            "surface": provider_receipt.get("surface"),
-            "schema_version": provider_receipt.get("schema_version"),
-            "status": provider_receipt.get("status"),
-            "provider_attempt": dict(_mapping(provider_receipt.get("provider_attempt"))),
-            "source_fingerprint": provider_receipt.get("source_fingerprint"),
-            "summary": dict(_mapping(provider_receipt.get("summary"))),
+            "surface": inventory.PROVIDER_HOSTED_GUARDED_APPLY_RECEIPT_SURFACE,
+            "schema_version": inventory.SCHEMA_VERSION,
+            "status": "not_materialized_without_live_current_owner_delta",
+            "provider_attempt": {
+                "attempt_id": f"product-entry-manifest:{profile.name}:real-paper-owner-payload-closeout",
+                "attempt_owner": "one-person-lab",
+                "attempt_ready": False,
+                "provider_attempt_is_truth": False,
+                "provider_attempt_wrote_workspace": False,
+            },
+            "source_fingerprint": None,
+            "summary": {
+                "reason": (
+                    "product-entry manifest is a read-only projection; provider-hosted guarded apply "
+                    "receipt materialization requires a live current_owner_delta from dispatch."
+                ),
+                "writes_performed_by_this_receipt": False,
+                "receipt_wrote_forbidden_surfaces": False,
+            },
         },
     }
 

@@ -371,8 +371,16 @@ def test_product_entry_manifest_exposes_real_paper_owner_payload_closeout(
     assert proof["provider_attempt_projection"]["can_advance_paper_progress_without_mas_owner_receipt"] is False
     assert proof["summary"]["writes_performed"] is True
     assert proof["summary"]["real_workspace_mutation_allowed"] is True
+    provider_summary = proof["source_provider_hosted_guarded_apply_receipt_summary"]
+    assert provider_summary["surface"] == "real_paper_autonomy_provider_hosted_guarded_apply_receipt"
+    assert provider_summary["status"] == "not_materialized_without_live_current_owner_delta"
+    assert provider_summary["provider_attempt"]["attempt_ready"] is False
+    assert provider_summary["provider_attempt"]["provider_attempt_is_truth"] is False
+    assert provider_summary["provider_attempt"]["provider_attempt_wrote_workspace"] is False
+    assert provider_summary["summary"]["writes_performed_by_this_receipt"] is False
+    assert provider_summary["summary"]["receipt_wrote_forbidden_surfaces"] is False
     closeout = proof["paper_line_provider_canary_closeout"]
-    assert closeout["surface_kind"] == "mas_real_paper_line_provider_canary_closeout"
+    assert closeout["surface_kind"] == "mas_real_paper_line_owner_chain_closeout"
     assert closeout["selected_opl_ingestable_ref_surface"]["ref"] == (
         "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
     )
@@ -442,6 +450,11 @@ def test_product_entry_guarded_apply_default_targets_ignore_noncanonical_paper_r
     closeout_text = json.dumps(closeout, sort_keys=True)
     assert "idea-idea-3839d99b" not in closeout_text
     assert "paper-run-dfcc79d2" not in closeout_text
+    provider_summary = manifest["real_paper_autonomy_guarded_apply_proof"][
+        "source_provider_hosted_guarded_apply_receipt_summary"
+    ]
+    assert provider_summary["status"] == "not_materialized_without_live_current_owner_delta"
+    assert provider_summary["summary"]["writes_performed_by_this_receipt"] is False
 
 
 def test_product_entry_manifest_consumes_opl_production_proof_for_provider_availability(
