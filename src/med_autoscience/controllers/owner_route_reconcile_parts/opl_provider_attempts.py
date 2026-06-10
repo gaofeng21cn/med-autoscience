@@ -10,6 +10,9 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.owner_route_reconcile_parts.default_executor_closeouts import (
+    has_terminal_default_executor_closeout,
+)
 
 LIVE_ATTEMPT_STATES = {"running", "checkpointed", "human_gate"}
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
@@ -358,6 +361,11 @@ def _candidate_tasks(
         if _task_matches_study(task, profile=profile, study_id=study_id)
         and _text(task.get("task_kind")) == "domain_owner/default-executor-dispatch"
         and _text(task.get("status")) in LIVE_ATTEMPT_STATES
+        and not _task_linked_liveness_has_terminal_closeout(
+            task,
+            profile=profile,
+            study_id=study_id,
+        )
     ]
     preferred = _preferred_action_keys(preferred_actions)
     matched.sort(key=lambda task: _text(task.get("updated_at")) or "", reverse=True)
@@ -399,6 +407,12 @@ def _live_projection_from_attempt_ledger(
         stage_attempt_id = _text(attempt.get("stage_attempt_id"))
         if stage_attempt_id is None:
             continue
+        if has_terminal_default_executor_closeout(
+            profile=profile,
+            study_id=study_id,
+            stage_attempt_id=stage_attempt_id,
+        ):
+            continue
         inspected = _run_opl_json(
             opl_bin,
             ("family-runtime", "attempt", "inspect", stage_attempt_id, "--json"),
@@ -434,6 +448,11 @@ def _candidate_attempts(
         and _text(attempt.get("domain_id")) == "medautoscience"
         and _text(attempt.get("stage_id")) == "domain_owner/default-executor-dispatch"
         and _attempt_is_live(attempt)
+        and not has_terminal_default_executor_closeout(
+            profile=profile,
+            study_id=study_id,
+            stage_attempt_id=_text(attempt.get("stage_attempt_id")),
+        )
     ]
     preferred = _preferred_action_keys(preferred_actions)
     matched.sort(key=lambda attempt: _attempt_updated_at(attempt) or "", reverse=True)
@@ -514,6 +533,23 @@ def _task_matches_study(task: Mapping[str, Any], *, profile: Any, study_id: str)
 def _task_status_priority(task: Mapping[str, Any]) -> int:
     status = _text(task.get("status"))
     return 0 if status in LIVE_ATTEMPT_STATES else 1
+
+
+def _task_linked_liveness_has_terminal_closeout(
+    task: Mapping[str, Any],
+    *,
+    profile: Any,
+    study_id: str,
+) -> bool:
+    liveness = _mapping(task.get("linked_stage_attempt_liveness"))
+    stage_attempt_id = _text(liveness.get("stage_attempt_id"))
+    if stage_attempt_id is None:
+        return False
+    return has_terminal_default_executor_closeout(
+        profile=profile,
+        study_id=study_id,
+        stage_attempt_id=stage_attempt_id,
+    )
 
 
 def _preferred_action_keys(
@@ -610,6 +646,15 @@ def _live_projection_from_inspect(
     active_run_id = _text(control.get("active_run_id"))
     if active_run_id is None:
         return None
+    stage_attempt_id = _text(control.get("active_stage_attempt_id")) or _stage_attempt_id_from_active_run_id(
+        active_run_id
+    )
+    if stage_attempt_id is not None and has_terminal_default_executor_closeout(
+        profile=profile,
+        study_id=study_id,
+        stage_attempt_id=stage_attempt_id,
+    ):
+        return None
     provider_run = _mapping(control.get("provider_run"))
     provider_status = _text(provider_run.get("provider_status"))
     attempt_state = _text(control.get("current_attempt_state")) or _text(control.get("reconciliation_status"))
@@ -623,7 +668,7 @@ def _live_projection_from_inspect(
         "surface_kind": "opl_current_control_state_provider_attempt",
         "source": "opl_family_runtime_queue_inspect",
         "active_run_id": active_run_id,
-        "active_stage_attempt_id": _text(control.get("active_stage_attempt_id")),
+        "active_stage_attempt_id": stage_attempt_id,
         "active_workflow_id": _text(control.get("active_workflow_id")),
         "running_provider_attempt": True,
         "runtime_owner": "one-person-lab",
@@ -683,6 +728,12 @@ def _live_projection_from_queue_task(
         return None
     stage_attempt_id = _text(liveness.get("stage_attempt_id"))
     if stage_attempt_id is None:
+        return None
+    if has_terminal_default_executor_closeout(
+        profile=profile,
+        study_id=study_id,
+        stage_attempt_id=stage_attempt_id,
+    ):
         return None
     payload = _mapping(task.get("payload"))
     workspace_root = _text(payload.get("workspace_root"))
@@ -770,6 +821,12 @@ def _live_projection_from_attempt_inspect(
     stage_attempt_id = _text(attempt.get("stage_attempt_id"))
     if stage_attempt_id is None:
         return None
+    if has_terminal_default_executor_closeout(
+        profile=profile,
+        study_id=study_id,
+        stage_attempt_id=stage_attempt_id,
+    ):
+        return None
     locator = _mapping(attempt.get("workspace_locator"))
     provider_run = _mapping(attempt.get("provider_run"))
     provider_status = _text(provider_run.get("provider_status"))
@@ -828,6 +885,13 @@ def _first_attempt(task_surface: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(item, Mapping):
             return dict(item)
     return {}
+
+
+def _stage_attempt_id_from_active_run_id(active_run_id: str) -> str | None:
+    prefix = "opl-stage-attempt://"
+    if active_run_id.startswith(prefix):
+        return active_run_id[len(prefix) :] or None
+    return None
 
 
 def _iter_values(value: object) -> Iterable[object]:

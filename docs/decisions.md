@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-11：default-executor closeout 必须压过同一 stage attempt 的 OPL live 投影
+
+- 决策：MAS 在投影 `domain_owner/default-executor-dispatch` provider liveness 时，必须先检查同一 workspace、study 和 `stage_attempt_id` 下的 `artifacts/supervision/consumer/default_executor_execution/<stage_attempt_id>.closeout.json`。若该 closeout 是 `stage_attempt_closeout_packet` 或状态属于 blocked / closed / completed / executed / failed / progress-delta / typed-blocker 等终态，MAS 必须 fail closed，不得从 OPL queue linked liveness、queue inspect 或 attempt ledger 返回 `running_provider_attempt=true`。
+- 决策：只有明确非终态的 closeout status，如 running / checkpointed / human_gate / pending / queued / started / in_progress，才不压制 live projection。closeout 的 `stage_attempt_id` 若存在且不匹配当前 attempt，只能作为无关诊断证据。
+- 理由：DM003 出现过 `sat_874630c42f23f77d537c5781.closeout.json` 已记录 `status=blocked` 和 `publication_gate_replay_blocked`，但 OPL queue/attempt ledger 仍把同一 stage attempt 投影为 running，导致 `study progress` 显示假 running。根因是 MAS provider liveness projection 只信 OPL live 状态，没有消费 MAS workspace 中同一 attempt 的 terminal closeout。
+- 影响：这是 read-model/currentness hardening，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、quality verdict、human gate、OPL queue 或 provider attempt。真实论文推进仍只按 owner receipt、quality gate receipt、stable typed blocker、human gate、route-back evidence、paper/gate/package semantic delta 或严格 live provider proof 计数。
+
 ## 2026-06-10：publication style profile 成为 Display Pack 论文级风格单一真相
 
 - 决策：`paper/publication_style_profile.json` 是 Display Pack E2E 的 paper-owned article-level style-token truth。它固定 `style_profile_id`、`journal_palette_ref`、`palette`、`semantic_roles`、`typography`、`stroke` 和 `grid`，用于整篇论文配色、语义颜色角色、字体族、字号、线宽、marker size、网格可见性、网格轴向、网格颜色和线型的一致性。
