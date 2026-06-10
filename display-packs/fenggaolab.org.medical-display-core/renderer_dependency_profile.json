@@ -39,7 +39,7 @@
       "template_wrapper_ref": "templates/<template_id>/render.R"
     },
     {
-      "profile_id": "r_ggplot2_evidence_candidate_subprocess_v1",
+      "profile_id": "r_ggplot2_p1_comparison_subprocess_v1",
       "execution_mode": "subprocess",
       "renderer_family": "r_ggplot2",
       "entrypoint_pattern": "Rscript render_candidate.R --request {request_json}",
@@ -74,7 +74,9 @@
       "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",
       "candidate_helper_ref": "rlib/medicaldisplaycore/candidate_renderer.R",
       "template_wrapper_ref": "templates/<template_id>/render_candidate.R",
-      "promotion_gate": "golden_regression_and_visual_audit_required_before_default_entrypoint_switch"
+      "surface_role": "legacy_comparison_receipt",
+      "default_renderer_profile_ref": "r_ggplot2_evidence_subprocess_v1",
+      "publication_readiness_verdict": false
     }
   ]
 }

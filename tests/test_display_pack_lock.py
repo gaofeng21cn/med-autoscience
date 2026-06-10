@@ -188,7 +188,7 @@ def test_build_display_pack_lock_payload_captures_git_repo_source_provenance(tmp
     assert pack_entry["resolved_source_root"].endswith("display-core-git")
 
 
-def test_build_display_pack_lock_payload_projects_core_p1_candidate_assets() -> None:
+def test_build_display_pack_lock_payload_projects_core_p1_promoted_default_renderers() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     payload = build_display_pack_lock_payload(repo_root=repo_root)
     template_entries = {
@@ -197,21 +197,29 @@ def test_build_display_pack_lock_payload_projects_core_p1_candidate_assets() -> 
         if pack["pack_id"] == "fenggaolab.org.medical-display-core"
         for item in pack["templates"]
     }
-    p1_candidates = [
+    p1_promoted = [
         item
         for item in template_entries.values()
-        if item["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
+        if item["renderer_family"] == "r_ggplot2"
+        and item["execution_mode"] == "subprocess"
+        and item["entrypoint"] == "Rscript render.R --request {request_json}"
+        and item["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
     ]
 
-    assert len(p1_candidates) == 33
-    assert template_entries["time_to_event_risk_group_summary"]["candidate_execution_mode"] == "subprocess"
+    assert len(p1_promoted) == 33
+    assert template_entries["time_to_event_risk_group_summary"]["renderer_family"] == "r_ggplot2"
+    assert template_entries["time_to_event_risk_group_summary"]["execution_mode"] == "subprocess"
+    assert template_entries["time_to_event_risk_group_summary"]["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert template_entries["time_to_event_risk_group_summary"]["render_script_path"].endswith(
+        "templates/time_to_event_risk_group_summary/render.R"
+    )
+    assert len(template_entries["time_to_event_risk_group_summary"]["render_script_sha256"]) == 64
     assert template_entries["time_to_event_risk_group_summary"]["candidate_render_script_path"].endswith(
         "templates/time_to_event_risk_group_summary/render_candidate.R"
     )
-    assert len(template_entries["time_to_event_risk_group_summary"]["candidate_render_script_sha256"]) == 64
-    assert template_entries["omics_volcano_panel"]["candidate_render_script_path"].endswith(
-        "templates/omics_volcano_panel/render_candidate.R"
+    assert template_entries["omics_volcano_panel"]["render_script_path"].endswith(
+        "templates/omics_volcano_panel/render.R"
     )
-    assert template_entries["shap_summary_beeswarm"]["candidate_render_script_path"].endswith(
-        "templates/shap_summary_beeswarm/render_candidate.R"
+    assert template_entries["shap_summary_beeswarm"]["render_script_path"].endswith(
+        "templates/shap_summary_beeswarm/render.R"
     )

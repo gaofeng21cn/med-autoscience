@@ -396,8 +396,20 @@ build_candidate_evidence_plot <- function(template_id, payload) {
 }
 
 build_candidate_metrics <- function(template_id, display_payload, panel_box) {
+  renderer_role <- if (identical(Sys.getenv("MAS_DISPLAY_RENDERER_CANDIDATE_ONLY", unset = ""), "1")) {
+    "comparison"
+  } else {
+    "default"
+  }
+  renderer_id <- if (identical(renderer_role, "comparison")) {
+    "r_ggplot2_comparison_subprocess_v1"
+  } else {
+    "r_ggplot2_promoted_subprocess_v1"
+  }
   list(
-    candidate_renderer = "r_ggplot2_candidate_subprocess_v1",
+    renderer = renderer_id,
+    renderer_family = "r_ggplot2",
+    renderer_role = renderer_role,
     template_id = template_id,
     data_fields = sort(names(display_payload)),
     panel_box_present = !is.null(panel_box)

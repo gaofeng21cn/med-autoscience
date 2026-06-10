@@ -2,26 +2,26 @@
 
 Owner: `MedAutoScience Medical Display`
 Purpose: `display_pack_renderer_topology_and_migration_assessment`
-State: `landed_p0_with_p1_candidate_assets_and_p2_retained`
+State: `landed_p0_p1_default_r_ggplot2_with_p2_retained`
 Machine boundary: 本文是人读结构评估和迁移计划。机器真相继续归 `display-packs/**/display_pack.toml`、`display-packs/**/templates/*/template.toml`、renderer source、`contracts/display-pack-contract.v2.json`、E2E runtime、tests、真实 paper artifacts、visual-audit receipt、owner receipt 和 publication gate。
 
 ## 当前结论
 
-`R/ggplot2-first` 的方向已经在 core pack 落成两层：P0 的 22 个 `renderer_family = "r_ggplot2"` evidence templates 已升级为 template-local `render.R` + `execution_mode = "subprocess"`；P1 的 33 个高价值 Python evidence templates 已落地 template-local `render_candidate.R` 一等 R/ggplot2 candidate asset，可通过 CLI/API 单独触发，但尚未提升为默认 renderer。
+`R/ggplot2-first` 的方向已经在 core pack 落成默认路径：P0 的 22 个 `renderer_family = "r_ggplot2"` evidence templates 已升级为 template-local `render.R` + `execution_mode = "subprocess"`；P1 的 33 个高价值 evidence templates 已从 Python 默认路线提升为默认 R/ggplot2 subprocess renderer。P1 的 Python 实现继续作为 baseline / legacy comparison provenance，不再是默认 renderer。
 
 当前 `fenggaolab.org.medical-display-core` 的真实 inventory 是：
 
 | 口径 | 数量 | 当前真实状态 |
 | --- | ---: | --- |
 | Evidence figure template descriptor | 84 | 已在 `templates/*/template.toml` 注册。 |
-| `renderer_family = "r_ggplot2"` | 22 | 已迁为一等 R subprocess：`execution_mode = "subprocess"`，entrypoint 为 `Rscript render.R --request {request_json}`。 |
-| `renderer_family = "python"` | 62 | Python renderer，主要是 matplotlib / pack-local layout code。 |
-| `execution_mode = "subprocess"` | 22 | 全部来自 P0 R/ggplot2 evidence templates。 |
-| 模板目录内 `render.R` | 22 | 每个 P0 R/ggplot2 template 都有 local wrapper，source 到 shared R helper。 |
-| 模板目录内 `render_candidate.R` | 33 | 每个 P1 template 都有 local R/ggplot2 candidate wrapper，source 到 shared R helper 和 candidate helper。 |
-| `display-pack-render-candidate` CLI/API | 1 | 可对 P1 candidate asset 生成 request/stdout/stderr、PNG、PDF 和 layout sidecar，结果固定 `candidate_only=true`。 |
+| `renderer_family = "r_ggplot2"` | 55 | P0 22 个和 P1 33 个已是默认 R/ggplot2 subprocess renderer。 |
+| `renderer_family = "python"` | 29 | P2 retained Python / later dual-stack templates，主要是 MAS-specific composite、storyboard 或 custom layout code。 |
+| `execution_mode = "subprocess"` | 55 | P0 `render.R` 默认入口加 P1 promoted R/ggplot2 subprocess 默认入口。 |
+| 模板目录内 `render.R` | 55 | 每个 P0/P1 default R/ggplot2 template 都有 local wrapper，source 到 shared R helper。 |
+| 模板目录内 `render_candidate.R` | 33 | P1 legacy comparison wrapper，source 到 shared R helper 和 comparison helper。 |
+| `display-pack-render-candidate` CLI/API | 1 | 保留为 legacy comparison receipt surface，可生成 request/stdout/stderr、PNG、PDF 和 layout sidecar，结果固定 `candidate_only=true`、`comparison_only=true`。 |
 
-因此，现状应读作：**22 个 R/ggplot2 evidence templates 已经是一等默认 subprocess 路径；33 个 Python evidence templates 已有一等 R/ggplot2 candidate asset；29 个 Python evidence templates 继续保留 Python 或后续按真实论文需求双栈。**
+因此，现状应读作：**55 个 evidence templates 已经是一等默认 R/ggplot2 subprocess 路径，其中 P0 22 个来自原生 R 模板，P1 33 个来自已完成 promotion 的 R/ggplot2 renderer；29 个 P2 templates 继续保留 Python 或后续按真实论文需求双栈。**
 
 ## 已关闭问题与剩余治理点
 
@@ -35,10 +35,10 @@ P0 之前的结构把三个概念混在了一起；当前 core pack 已把 R/ggp
 
 剩余维护点是：
 
-1. P0 已解决 `r_ggplot2` descriptor 与 template-local `render.R` 不一致的问题；P1 已把高价值 Python 模板的 R candidate asset 实体化。
-2. Display lock 现在记录 `renderer_family`、`execution_mode`、`entrypoint`、`render_script_sha256` 以及 candidate script inventory，可以按默认 renderer 和 candidate asset 分账审计。
+1. P0 已解决 `r_ggplot2` descriptor 与 template-local `render.R` 不一致的问题；P1 已把高价值模板的 R/ggplot2 asset promotion 为默认 renderer。
+2. Display lock 现在记录 `renderer_family`、`execution_mode`、`entrypoint`、`render_script_sha256` 以及 legacy comparison script inventory，可以按默认 renderer、baseline 和 comparison 分账审计。
 3. bootstrap 现在会把 `renderer_family = "r_ggplot2"` evidence template 生成为 `subprocess` descriptor，避免新增 R 模板回落到 Python bridge。
-4. P1 default promotion 仍必须等 golden regression、visual audit 和 reviewer/owner gate；candidate render receipt 不授权 publication readiness、artifact authority 或默认 renderer 替换。
+4. P1 default promotion 已完成，但 renderer promotion、display lock、visual audit receipt 或 comparison receipt 仍不授权 publication readiness、artifact authority、owner receipt 或 publication gate closure。
 
 ## 建议目标结构
 
@@ -52,8 +52,8 @@ display-packs/fenggaolab.org.medical-display-core/
   templates/
     <template_id>/
       template.toml
-      render.R                 # R/ggplot2 subprocess 模板的一等入口
-      render_candidate.R       # P1 Python 模板的 R/ggplot2 candidate 入口
+      render.R                 # P0/P1 R/ggplot2 subprocess 模板的一等入口
+      render_candidate.R       # P1 promoted renderer 的 legacy comparison 入口
       example_input.json       # 可选，最小输入
       goldens/                 # 可选，template-local regression assets
   src/
@@ -67,15 +67,15 @@ display-packs/fenggaolab.org.medical-display-core/
 
 | 模板类型 | `renderer_family` | `execution_mode` | `entrypoint` |
 | --- | --- | --- | --- |
-| 一等 R 模板 | `r_ggplot2` | `subprocess` | `Rscript render.R --request {request_json}` |
-| Python 模板 | `python` | `python_plugin` | `fenggaolab_org_medical_display_core...:render_python_evidence_figure` |
+| P0/P1 一等 R 模板 | `r_ggplot2` | `subprocess` | `Rscript render.R --request {request_json}` |
+| P2 retained Python 模板 | `python` | `python_plugin` | `fenggaolab_org_medical_display_core...:render_python_evidence_figure` |
 | 迁移过渡模板 | `r_ggplot2` | `python_plugin` | 只允许短期存在，并在 migration ledger 标注。 |
 
 新增治理面：
 
 - `renderer_inventory`：由 `template.toml` 生成，统计 `kind`、`renderer_family`、`execution_mode`、entrypoint 和 migration status；当前机器落点是 `display-packs/fenggaolab.org.medical-display-core/renderer_migration_ledger.json`。
 - `r_subprocess_contract`：R renderer 必须读取 `{request_json}`，写出 PNG/PDF/layout sidecar，stdout/stderr 由 MAS runtime 收集。
-- `migration_ledger`：记录每个模板的 `current_mode`、`target_mode`、R package candidates、迁移难度、golden/QC 要求和不迁理由。
+- `migration_ledger`：记录每个模板的 `current_mode`、`target_mode`、P0/P1/P2 status、R package candidates、golden/QC 要求、baseline / legacy comparison 和不迁理由。
 - `dependency_profile`：R 包依赖进入 pack-level profile，当前机器落点是 `display-packs/fenggaolab.org.medical-display-core/renderer_dependency_profile.json`，不能散落在脚本注释里。
 
 ## R 生态证据
@@ -115,11 +115,11 @@ P0 验收标准：
 - PNG/PDF/layout sidecar、stdout/stderr refs、QC、visual-audit receipt、publication manifest 和 display lock 继续闭合；`landed`，包含真实 core `roc_curve_binary` smoke。
 - `r_renderer.py` 不再保存内嵌 R 大字符串；只保留旧 host materialization 兼容调用器。
 
-### P1：优先迁移现有 Python 里 R 生态明显更成熟的模板
+### P1：已将现有 Python 里 R 生态明显更成熟的模板 promotion 为默认 R renderer
 
-这些模板默认 renderer 仍是 Python，但医学论文和 R 生态已有成熟惯例，适合优先做 R/ggplot2 subprocess candidate。P1 已完成 candidate asset 落地：33 个模板目录都有 `render_candidate.R`，共享 helper 位于 `rlib/medicaldisplaycore/candidate_renderer.R`，可通过 `display-pack-render-candidate` 对裸 `display_payload` 单独渲染。Python 默认实现保留为 comparison baseline；只有 golden 和 visual audit 稳定后，candidate 才能 promotion 为默认 renderer。
+这些模板原默认 renderer 是 Python，但医学论文和 R 生态已有成熟惯例，适合优先切换到 R/ggplot2 subprocess。P1 33 个模板已完成 default promotion：默认 renderer 口径已切到 R/ggplot2 subprocess，共享 helper 位于 `rlib/medicaldisplaycore/candidate_renderer.R`，`display-pack-render-candidate` 继续保留为 legacy comparison receipt surface。Python 实现保留为 baseline / legacy comparison，不再承担默认渲染路线。
 
-| 图类 | 当前 Python 模板 | 迁移理由 |
+| 图类 | 原 Python 模板 | 迁移理由 |
 | --- | --- | --- |
 | Time-to-event composite | `time_dependent_roc_comparison_panel`, `time_to_event_discrimination_calibration_panel`, `time_to_event_landmark_performance_panel`, `time_to_event_multihorizon_calibration_panel`, `time_to_event_risk_group_summary`, `time_to_event_stratified_cumulative_incidence_panel`, `time_to_event_decision_curve`, `time_to_event_threshold_governance_panel`, `risk_layering_monotonic_bars` | R 侧 survival / time-dependent ROC / calibration / DCA 生态更成熟；医学论文读者也更熟悉这类图面。 |
 | Clinical utility composite | `binary_calibration_decision_curve_panel` | 可用 ggplot2 + dcurves / calibration helpers 形成更标准的多面板图。 |
@@ -146,9 +146,9 @@ P0 验收标准：
 1. **结构护栏**：`renderer_migration_ledger.json` 已覆盖 84/84 evidence templates，P0/P1/P2 无未分类项。
 2. **P0 迁移**：22 个现有 R/ggplot2 模板已迁到 `execution_mode = "subprocess"`，每个模板有 local `render.R`，共享 helper 下沉到 R helper library。
 3. **P0 验证**：focused tests 覆盖 bootstrap、loader、lock、renderer structure 和真实 core `roc_curve_binary` R subprocess E2E。
-4. **P1 候选双栈**：time-to-event composite、forest/effect、omics/SHAP 标准图等 33 个 Python templates 已有 `render_candidate.R` 一等 R/ggplot2 candidate asset；CLI/API 可单独触发并产出 request/stdout/stderr、PNG、PDF 和 layout sidecar。
+4. **P1 默认 R/ggplot2 promotion**：time-to-event composite、forest/effect、omics/SHAP 标准图等 33 个原 Python templates 已 promotion 为默认 R/ggplot2 subprocess renderer；Python 保留 baseline / legacy comparison；CLI/API comparison surface 仍可产出 request/stdout/stderr、PNG、PDF 和 layout sidecar。
 5. **P2 保留边界**：29 个 Python templates 标为 retained Python / later dual-stack，原因是 MAS-specific composite、storyboard 或 custom layout 风险较高。
-6. **Promotion 边界**：P1 candidate 只证明资产可发布、可锁定、可审计，不替换默认 renderer；promotion 仍需要 golden regression、visual audit 和 MAS owner gate。
+6. **Authority 边界**：P1 renderer promotion 只改变默认 renderer route；golden regression、visual audit、display lock、comparison receipt 或 renderer 自身都不能代签 publication readiness、artifact authority、MAS owner receipt 或 publication gate。
 7. **桥接退役边界**：core descriptor 已不再引用 `render_r_evidence_figure`；`r_renderer.py` 仅保留旧 host materialization 兼容调用器。
 
 ## 验收口径
@@ -157,7 +157,7 @@ P0 验收标准：
 
 - runtime 协议：`landed`；
 - core pack 现有 R templates：P0 `landed`，22/22 为 `subprocess + render.R`；
-- core pack subprocess R templates：当前 `22`；
-- Python-to-R 候选迁移：P1 `33` 个 candidate asset 已落地为 `render_candidate.R` + `display-pack-render-candidate` 可触发面，P2 `29` 个 retained Python / later dual-stack，均写入 `renderer_migration_ledger.json`；
-- P1 default promotion：`not_landed`，必须等 golden regression、visual audit 和 owner gate；
+- core pack default R/ggplot2 subprocess templates：当前 `55`，包含 P0 22 个和 P1 promoted 33 个；
+- Python-to-R 默认化：P1 `33` 个已切到默认 R/ggplot2 subprocess renderer，Python 保留 baseline / legacy comparison；P2 `29` 个 retained Python / later dual-stack，均写入 `renderer_migration_ledger.json`；
+- P1 default promotion：`landed`，但不代签 publication readiness、artifact authority、visual audit clear、owner receipt 或 publication gate；
 - publication readiness：仍必须走 deterministic render、QC、visual audit、owner receipt / publication gate。

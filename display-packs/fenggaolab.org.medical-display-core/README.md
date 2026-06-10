@@ -25,12 +25,12 @@ Evidence-figure renderer assets are split by execution mode:
 
 - R/ggplot2 evidence templates use `execution_mode = "subprocess"` and template-local `entrypoint = "Rscript render.R --request {request_json}"`.
 - Python evidence templates use `execution_mode = "python_plugin"` and `fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure`.
-- P1 Python evidence templates can additionally carry a template-local R/ggplot2 candidate asset at `render_candidate.R`, invoked as `Rscript render_candidate.R --request {request_json}` by the MAS candidate runner.
+- P1 evidence templates have been promoted to default R/ggplot2 `subprocess` renderers. Their former Python implementation remains baseline / legacy comparison provenance rather than the default route.
 
 The current evidence inventory is tracked in `renderer_migration_ledger.json`:
 
 - P0: 22 R/ggplot2 evidence templates landed as subprocess assets with local `render.R`.
-- P1: 33 Python templates have landed R/ggplot2 subprocess candidate assets with local `render_candidate.R`; they remain candidate-only until golden and visual audit promotion.
+- P1: 33 evidence templates have been promoted to default R/ggplot2 subprocess assets with local `render.R`; `render_candidate.R` remains a legacy comparison receipt entrypoint.
 - P2: 29 Python templates remain Python-first or later dual-stack candidates because they are MAS-specific composites, storyboards, or custom layouts.
 
 Renderer runtime dependencies are tracked in `renderer_dependency_profile.json`.
@@ -44,15 +44,15 @@ Each R template has a local wrapper:
 
 - `templates/<template_id>/render.R`
 
-Each P1 R candidate has a local wrapper:
+Each P1 promoted R renderer also keeps a legacy comparison wrapper:
 
 - `templates/<template_id>/render_candidate.R`
 
-The repo-native candidate trigger is:
+The repo-native comparison trigger is:
 
 `medautosci publication display-pack-render-candidate --repo-root <repo> --template-id <template_id> --display-payload-file <payload.json> --output-dir <dir>`
 
-Candidate output is an audit/proposal asset only: it records request/stdout/stderr, PNG, PDF and layout sidecar with `candidate_only=true` and `publication_readiness_verdict=false`; it cannot replace the default renderer or authorize publication readiness.
+Comparison output is an audit/proposal asset only: it records request/stdout/stderr, PNG, PDF and layout sidecar with `candidate_only=true`, `comparison_only=true`, and `publication_readiness_verdict=false`; it cannot replace the promoted default renderer or authorize publication readiness.
 
 The Python implementation is split under `src/fenggaolab_org_medical_display_core/evidence_figures/`:
 

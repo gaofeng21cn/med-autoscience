@@ -103,7 +103,7 @@ def test_core_pack_r_ggplot2_templates_do_not_reference_python_bridge() -> None:
             assert "render_r_evidence_figure" not in payload["entrypoint"]
             assert (manifest_path.parent / "render.R").is_file()
 
-    assert len(r_templates) == 22
+    assert len(r_templates) == 55
 
 
 def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> None:
@@ -124,7 +124,7 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
     assert sorted(records_by_template) == sorted(manifest_ids)
     assert ledger["summary"]["evidence_template_count"] == 84
     assert ledger["summary"]["p0_landed_r_ggplot2_subprocess"] == 22
-    assert ledger["summary"]["p1_r_candidate_python_templates"] == 33
+    assert ledger["summary"]["p1_promoted_to_default_r_ggplot2_subprocess"] == 33
     assert ledger["summary"]["p2_retained_python_or_dual_stack_later"] == 29
     assert ledger["summary"]["unclassified"] == 0
     assert lane_counts == {"P0": 22, "P1": 33, "P2": 29}
@@ -134,20 +134,25 @@ def test_core_pack_renderer_migration_ledger_covers_all_evidence_templates() -> 
     assert records_by_template["center_transportability_governance_summary_panel"]["migration_lane"] == "P2"
 
 
-def test_core_pack_p1_renderer_candidates_are_first_class_assets() -> None:
+def test_core_pack_p1_renderers_are_promoted_r_subprocess_defaults() -> None:
     ledger = json.loads((CORE_PACK_ROOT / "renderer_migration_ledger.json").read_text(encoding="utf-8"))
     p1_records = [item for item in ledger["records"] if item["migration_lane"] == "P1"]
 
     assert len(p1_records) == 33
     for record in p1_records:
         template_root = CORE_PACK_ROOT / "templates" / record["template_id"]
-        candidate_path = template_root / "render_candidate.R"
-        assert candidate_path.is_file(), record["template_id"]
-        assert record["migration_status"] == "r_candidate_asset_landed"
-        assert record["candidate_execution_mode"] == "subprocess"
-        assert record["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
-        assert record["candidate_render_script_path"] == "render_candidate.R"
-        wrapper_source = candidate_path.read_text(encoding="utf-8")
+        render_path = template_root / "render.R"
+        comparison_path = template_root / "render_candidate.R"
+        assert render_path.is_file(), record["template_id"]
+        assert comparison_path.is_file(), record["template_id"]
+        assert record["renderer_family"] == "r_ggplot2"
+        assert record["execution_mode"] == "subprocess"
+        assert record["entrypoint"] == "Rscript render.R --request {request_json}"
+        assert record["render_script_path"] == "render.R"
+        assert record["migration_status"] == "promoted_to_default_r_ggplot2_subprocess"
+        assert record["previous_renderer_family"] == "python"
+        assert record["previous_execution_mode"] == "python_plugin"
+        wrapper_source = render_path.read_text(encoding="utf-8")
         assert f'expected_template_id = "{record["template_id"]}"' in wrapper_source
 
 
@@ -155,7 +160,7 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     profile = json.loads((CORE_PACK_ROOT / "renderer_dependency_profile.json").read_text(encoding="utf-8"))
     r_profile = next(item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_evidence_subprocess_v1")
     candidate_profile = next(
-        item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_evidence_candidate_subprocess_v1"
+        item for item in profile["profiles"] if item["profile_id"] == "r_ggplot2_p1_comparison_subprocess_v1"
     )
     package_names = {item["name"] for item in r_profile["r_packages"]}
 
@@ -171,10 +176,13 @@ def test_core_pack_renderer_dependency_profile_declares_r_subprocess_runtime() -
     assert candidate_profile["shared_helper_ref"] == "rlib/medicaldisplaycore/evidence_renderer.R"
     assert candidate_profile["candidate_helper_ref"] == "rlib/medicaldisplaycore/candidate_renderer.R"
     assert candidate_profile["template_wrapper_ref"] == "templates/<template_id>/render_candidate.R"
+    assert candidate_profile["surface_role"] == "legacy_comparison_receipt"
+    assert candidate_profile["default_renderer_profile_ref"] == "r_ggplot2_evidence_subprocess_v1"
+    assert candidate_profile["publication_readiness_verdict"] is False
 
 
-def test_core_pack_representative_p1_candidates_render_with_r_subprocess() -> None:
-    candidate_payloads: dict[str, dict[str, object]] = {
+def test_core_pack_representative_p1_default_renderers_render_with_r_subprocess() -> None:
+    promoted_payloads: dict[str, dict[str, object]] = {
         "time_to_event_risk_group_summary": {
             "title": "Risk group summary",
             "x_label": "Risk group",
@@ -228,12 +236,12 @@ def test_core_pack_representative_p1_candidates_render_with_r_subprocess() -> No
             ],
         },
     }
-    with tempfile.TemporaryDirectory(prefix="mas-display-candidate-") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="mas-display-promoted-r-") as tmpdir:
         output_dir = Path(tmpdir)
-        for template_id, payload in candidate_payloads.items():
+        for template_id, payload in promoted_payloads.items():
             request_path = _candidate_request(template_id=template_id, payload=payload, output_dir=output_dir)
             completed = subprocess.run(
-                ["Rscript", "render_candidate.R", "--request", str(request_path)],
+                ["Rscript", "render.R", "--request", str(request_path)],
                 cwd=CORE_PACK_ROOT / "templates" / template_id,
                 capture_output=True,
                 text=True,
@@ -244,10 +252,11 @@ def test_core_pack_representative_p1_candidates_render_with_r_subprocess() -> No
             assert (output_dir / f"{template_id}.pdf").is_file()
             sidecar = json.loads((output_dir / f"{template_id}.layout.json").read_text(encoding="utf-8"))
             assert sidecar["template_id"] == template_id
-            assert sidecar["metrics"]["candidate_renderer"] == "r_ggplot2_candidate_subprocess_v1"
+            assert sidecar["metrics"]["renderer"] == "r_ggplot2_promoted_subprocess_v1"
+            assert sidecar["metrics"]["renderer_role"] == "default"
 
 
-def test_cli_display_pack_render_candidate_runs_r_candidate_asset(tmp_path: Path, capsys) -> None:
+def test_cli_display_pack_render_candidate_runs_legacy_comparison_surface(tmp_path: Path, capsys) -> None:
     from med_autoscience import cli
 
     payload_path = tmp_path / "payload.json"
@@ -288,13 +297,18 @@ def test_cli_display_pack_render_candidate_runs_r_candidate_asset(tmp_path: Path
     assert exit_code == 0
     assert result["status"] == "rendered"
     assert result["candidate_only"] is True
+    assert result["comparison_only"] is True
     assert result["publication_readiness_verdict"] is False
     assert result["template_id"] == "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
     assert result["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
     assert result["authority_boundary"]["candidate_can_authorize_publication_readiness"] is False
     assert result["authority_boundary"]["candidate_can_mutate_data_or_statistics"] is False
     assert result["authority_boundary"]["candidate_can_replace_default_renderer"] is False
-    assert result["authority_boundary"]["promotion_requires_golden_regression_and_visual_audit"] is True
+    assert result["authority_boundary"]["comparison_receipt_can_replace_default_renderer"] is False
+    assert result["authority_boundary"]["default_renderer_promotion_already_landed"] is True
+    assert result["default_renderer"]["renderer_family"] == "r_ggplot2"
+    assert result["default_renderer"]["execution_mode"] == "subprocess"
+    assert result["default_renderer"]["entrypoint"] == "Rscript render.R --request {request_json}"
     assert result["render_result"]["status"] == "rendered"
     assert Path(result["rendered_artifacts"]["png_path"]).is_file()
     assert Path(result["rendered_artifacts"]["pdf_path"]).is_file()
@@ -302,3 +316,9 @@ def test_cli_display_pack_render_candidate_runs_r_candidate_asset(tmp_path: Path
     assert Path(result["render_result"]["request_path"]).is_file()
     assert Path(result["render_result"]["stdout_path"]).is_file()
     assert Path(result["render_result"]["stderr_path"]).is_file()
+    render_request = json.loads(Path(result["render_result"]["request_path"]).read_text(encoding="utf-8"))
+    assert render_request["candidate_only"] is True
+    assert render_request["comparison_only"] is True
+    sidecar = json.loads(Path(result["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
+    assert sidecar["metrics"]["renderer"] == "r_ggplot2_comparison_subprocess_v1"
+    assert sidecar["metrics"]["renderer_role"] == "comparison"

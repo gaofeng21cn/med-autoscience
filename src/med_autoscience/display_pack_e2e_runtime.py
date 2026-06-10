@@ -315,6 +315,7 @@ def _run_candidate_subprocess_renderer(
         "execution_mode": "subprocess",
         "renderer_family": "r_ggplot2",
         "candidate_only": True,
+        "comparison_only": True,
         "figure_id": figure_id,
         "template_id": full_template_id,
         "short_template_id": short_template_id,
@@ -856,17 +857,30 @@ def render_display_pack_candidate_asset(
         "schema_version": 1,
         "status": "rendered",
         "candidate_only": True,
+        "comparison_only": True,
         "publication_readiness_verdict": False,
         "repo_root": str(normalized_repo_root),
         "template_id": template_manifest.full_template_id,
         "short_template_id": template_manifest.template_id,
         "display_payload_path": str(payload_path),
         "candidate_entrypoint": "Rscript render_candidate.R --request {request_json}",
+        "comparison_entrypoint": "Rscript render_candidate.R --request {request_json}",
+        "default_renderer": {
+            "renderer_family": template_manifest.renderer_family,
+            "execution_mode": template_manifest.execution_mode,
+            "entrypoint": template_manifest.entrypoint,
+        },
         "authority_boundary": {
             "candidate_can_authorize_publication_readiness": False,
             "candidate_can_mutate_data_or_statistics": False,
             "candidate_can_replace_default_renderer": False,
-            "promotion_requires_golden_regression_and_visual_audit": True,
+            "comparison_receipt_can_authorize_publication_readiness": False,
+            "comparison_receipt_can_replace_default_renderer": False,
+            "default_renderer_promotion_already_landed": (
+                template_manifest.renderer_family == "r_ggplot2"
+                and template_manifest.execution_mode == "subprocess"
+                and template_manifest.entrypoint == "Rscript render.R --request {request_json}"
+            ),
         },
         "render_result": render_result,
         "rendered_artifacts": {
