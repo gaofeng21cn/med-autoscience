@@ -145,6 +145,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         current_action = {}
     owner_action_supersedes_envelope_blocker = handoff_owner_action is not None or (
         transition_consumed_owner_action
+        and _text(execution.get("state_kind")) != "typed_blocker"
         and not transition_consumed_same_work_unit
         and gate_clearing_dispatch_consumption is None
     )
