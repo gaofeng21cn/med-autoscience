@@ -45,6 +45,32 @@ def handle_workspace_data_command(
         _print_json(result)
         return 0
 
+    if args.command == "data-asset-manifest-refs-rebuild":
+        result = data_assets.rebuild_manifest_refs(workspace_root=Path(args.workspace_root))
+        _print_json(result)
+        return 0
+
+    if args.command == "data-asset-retention-plan":
+        result = data_assets.data_asset_retention_plan(
+            workspace_root=Path(args.workspace_root),
+            family_id=args.family_id,
+            version_id=args.version_id,
+            owner_authorization_ref=args.owner_authorization_ref,
+            cold_ref=args.cold_ref,
+            restore_proof_ref=args.restore_proof_ref,
+            apply=bool(args.apply),
+        )
+        _print_json(result)
+        return 0
+
+    if args.command == "data-asset-sqlite-compact-plan":
+        result = data_assets.data_asset_sqlite_compact_plan(
+            workspace_root=Path(args.workspace_root),
+            db_path=Path(args.db),
+        )
+        _print_json(result)
+        return 0
+
     if args.command == "init-portfolio-memory":
         result = portfolio_memory_controller.init_portfolio_memory(workspace_root=Path(args.workspace_root))
         _print_json(result)

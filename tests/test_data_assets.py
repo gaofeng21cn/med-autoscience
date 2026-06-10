@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import sqlite3
 from pathlib import Path
 
 
@@ -96,6 +97,7 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
     )
     assert manifest_refs["refs_only"] is True
     assert manifest_refs["contains_dataset_body"] is False
+    assert manifest_refs["rebuildable_projection"] is True
     assert manifest_refs["entries"][0]["layer_id"] == "master"
     assert result["lineage"]["manifest_ref_count"] == 1
 
@@ -141,6 +143,7 @@ def test_data_assets_status_exposes_v2_plane_boundaries_and_retention_exclusion(
         "binding_policy": "asset_refs_only",
         "body_storage_allowed": False,
     }
+    assert result["lineage"]["rebuildable_projection"] is True
 
 
 def test_init_data_assets_reports_unsupported_dataset_layer_as_contract_error(tmp_path: Path) -> None:
@@ -820,3 +823,137 @@ def test_validate_public_registry_reports_invalid_entries(tmp_path: Path) -> Non
     assert result["datasets"][0]["validation"]["is_valid"] is False
     assert "missing_roles" in result["datasets"][0]["validation"]["errors"]
     assert "missing_target_scope" in result["datasets"][0]["validation"]["errors"]
+
+
+def test_rebuild_manifest_refs_recreates_projection_without_dataset_body(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "data" / "datasets" / "standardized_longitudinal" / "v2026-06-01"
+    version_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        version_root / "dataset_manifest.yaml",
+        dataset_id="dpcc_standardized",
+        version="v2026-06-01",
+        raw_snapshot="deidentified_episode_release",
+        generated_by="pipelines/standardize_dpcc.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        release_contract={
+            "semantic_readiness_required": True,
+            "data_dictionary": {"status": "locked", "path": "dictionary/data_dictionary.csv"},
+        },
+    )
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    module.init_data_assets(workspace_root=workspace_root)
+    projection_path = workspace_root / "memory" / "portfolio" / "data_assets" / "lineage" / "manifest_refs.json"
+    projection_path.unlink()
+
+    result = module.rebuild_manifest_refs(workspace_root=workspace_root)
+    payload = json.loads(projection_path.read_text(encoding="utf-8"))
+
+    assert result["status"] == "rebuilt"
+    assert result["manifest_ref_count"] == 1
+    assert result["refs_only"] is True
+    assert result["contains_dataset_body"] is False
+    assert payload["rebuildable_projection"] is True
+    assert payload["entries"][0]["manifest_ref"] == (
+        "data/datasets/standardized_longitudinal/v2026-06-01/dataset_manifest.yaml"
+    )
+    assert payload["entries"][0]["contains_dataset_body"] is False
+
+
+def test_data_asset_retention_plan_requires_owner_cold_ref_and_restore_proof(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "data" / "datasets" / "standardized_longitudinal" / "v2026-06-01"
+    version_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        version_root / "dataset_manifest.yaml",
+        dataset_id="dpcc_standardized",
+        version="v2026-06-01",
+        raw_snapshot="dpcc_visit_episode_release",
+        generated_by="pipelines/standardize_dpcc.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "003-dpcc" / "study.yaml",
+        dataset_id="dpcc_standardized",
+        relative_path="../../data/datasets/standardized_longitudinal/v2026-06-01/analysis.csv",
+    )
+
+    blocked = module.data_asset_retention_plan(
+        workspace_root=workspace_root,
+        family_id="standardized_longitudinal",
+        version_id="v2026-06-01",
+        apply=True,
+    )
+
+    assert blocked["status"] == "blocked_receipt_not_recorded"
+    assert blocked["body_plane"]["generic_runtime_cleanup_allowed"] is False
+    assert blocked["body_plane"]["physical_delete_allowed"] is False
+    assert blocked["study_impact"]["affected_studies"] == ["003-dpcc"]
+    assert blocked["study_impact"]["study_impact_review_required"] is True
+    assert set(blocked["blockers"]) == {
+        "missing_owner_authorization_ref",
+        "missing_cold_ref",
+        "missing_restore_proof_ref",
+    }
+    assert not Path(blocked["receipt_path"]).exists()
+
+    recorded = module.data_asset_retention_plan(
+        workspace_root=workspace_root,
+        family_id="standardized_longitudinal",
+        version_id="v2026-06-01",
+        owner_authorization_ref="memory/portfolio/data_assets/retention/owner_receipt.json",
+        cold_ref="memory/portfolio/data_assets/retention/cold_ref.json",
+        restore_proof_ref="memory/portfolio/data_assets/retention/restore_proof.json",
+        apply=True,
+    )
+
+    assert recorded["status"] == "retention_receipt_recorded_no_body_delete"
+    assert recorded["contract"]["body_manifest"]["file_count"] == 2
+    assert recorded["cold_store"]["byte_for_byte_restore_required_for_body_retirement"] is True
+    assert Path(recorded["receipt_path"]).exists()
+    assert (version_root / "analysis.csv").exists()
+
+
+def test_data_asset_sqlite_compact_plan_blocks_dataset_body_sqlite(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    db_path = workspace_root / "data" / "datasets" / "master" / "v1" / "release.sqlite"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("CREATE TABLE release_rows (id INTEGER PRIMARY KEY)")
+        conn.execute("INSERT INTO release_rows (id) VALUES (1)")
+
+    result = module.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=db_path)
+
+    assert result["status"] == "blocked"
+    assert result["under_dataset_body"] is True
+    assert result["integrity_check"]["status"] == "ok"
+    assert result["dataset_body_compact_boundary"] == {
+        "generic_sqlite_compact_allowed": False,
+        "dataset_release_sqlite_is_body_or_release_sidecar": True,
+        "required_owner_surface": "dataset_manifest_retention_policy",
+    }
+    assert result["recommended_command"] is None
+
+
+def test_data_asset_sqlite_compact_plan_allows_non_dataset_runtime_sqlite_after_integrity(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    db_path = workspace_root / "runtime" / "artifacts" / "runtime_lifecycle.sqlite"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("CREATE TABLE refs (id INTEGER PRIMARY KEY)")
+        conn.execute("INSERT INTO refs (id) VALUES (1)")
+
+    result = module.data_asset_sqlite_compact_plan(workspace_root=workspace_root, db_path=db_path)
+
+    assert result["status"] == "eligible_for_runtime_sqlite_compact_surface"
+    assert result["under_dataset_body"] is False
+    assert result["integrity_check"]["status"] == "ok"
+    assert result["dataset_body_compact_boundary"]["generic_sqlite_compact_allowed"] is True
+    assert result["recommended_command"].endswith(
+        "runtime/artifacts/runtime_lifecycle.sqlite --compact --apply"
+    )

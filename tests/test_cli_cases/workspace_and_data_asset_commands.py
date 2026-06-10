@@ -152,6 +152,120 @@ def test_data_assets_status_command_dispatches_controller(monkeypatch, tmp_path:
     assert payload["layout"]["registry_lineage_plane"]["directory_names"] == list(DATA_ASSET_REGISTRY_DIRS)
 
 
+def test_manifest_refs_rebuild_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_rebuild(*, workspace_root: Path) -> dict:
+        called["workspace_root"] = workspace_root
+        return {"surface_kind": "mas_data_asset_manifest_refs_rebuild", "status": "rebuilt"}
+
+    monkeypatch.setattr(cli.data_assets, "rebuild_manifest_refs", fake_rebuild)
+
+    workspace_root = tmp_path / "workspace"
+    exit_code = cli.main(["data", "manifest-refs-rebuild", "--workspace-root", str(workspace_root)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == workspace_root
+    assert '"status": "rebuilt"' in captured.out
+
+
+def test_asset_retention_plan_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_plan(
+        *,
+        workspace_root: Path,
+        family_id: str,
+        version_id: str,
+        owner_authorization_ref: str | None,
+        cold_ref: str | None,
+        restore_proof_ref: str | None,
+        apply: bool,
+    ) -> dict:
+        called.update(
+            {
+                "workspace_root": workspace_root,
+                "family_id": family_id,
+                "version_id": version_id,
+                "owner_authorization_ref": owner_authorization_ref,
+                "cold_ref": cold_ref,
+                "restore_proof_ref": restore_proof_ref,
+                "apply": apply,
+            }
+        )
+        return {"surface_kind": "mas_data_asset_retention_plan", "status": "retention_receipt_recorded_no_body_delete"}
+
+    monkeypatch.setattr(cli.data_assets, "data_asset_retention_plan", fake_plan)
+
+    workspace_root = tmp_path / "workspace"
+    exit_code = cli.main(
+        [
+            "data",
+            "asset-retention-plan",
+            "--workspace-root",
+            str(workspace_root),
+            "--family-id",
+            "standardized_longitudinal",
+            "--version-id",
+            "v2026-06-01",
+            "--owner-authorization-ref",
+            "owner_receipts/data_asset/v2026-06-01.json",
+            "--cold-ref",
+            "memory/portfolio/data_assets/retention/cold_ref.json",
+            "--restore-proof-ref",
+            "memory/portfolio/data_assets/retention/restore_proof.json",
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "workspace_root": workspace_root,
+        "family_id": "standardized_longitudinal",
+        "version_id": "v2026-06-01",
+        "owner_authorization_ref": "owner_receipts/data_asset/v2026-06-01.json",
+        "cold_ref": "memory/portfolio/data_assets/retention/cold_ref.json",
+        "restore_proof_ref": "memory/portfolio/data_assets/retention/restore_proof.json",
+        "apply": True,
+    }
+    assert '"retention_receipt_recorded_no_body_delete"' in captured.out
+
+
+def test_asset_sqlite_compact_plan_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_plan(*, workspace_root: Path, db_path: Path) -> dict:
+        called["workspace_root"] = workspace_root
+        called["db_path"] = db_path
+        return {"surface_kind": "mas_data_asset_sqlite_compact_plan", "status": "blocked"}
+
+    monkeypatch.setattr(cli.data_assets, "data_asset_sqlite_compact_plan", fake_plan)
+
+    workspace_root = tmp_path / "workspace"
+    db_path = workspace_root / "data" / "datasets" / "master" / "v1" / "release.sqlite"
+    exit_code = cli.main(
+        [
+            "data",
+            "sqlite-compact-plan",
+            "--workspace-root",
+            str(workspace_root),
+            "--db",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == workspace_root
+    assert called["db_path"] == db_path
+    assert '"status": "blocked"' in captured.out
+
+
 def test_assess_data_asset_impact_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

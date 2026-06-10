@@ -1,10 +1,57 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import sqlite3
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 from med_autoscience.controllers.data_assets_parts import impact_assessment as _impact_assessment
+from med_autoscience.controllers.data_assets_parts.layout import (
+    ALLOWED_DATASET_LAYERS,
+    DATA_ASSET_LAYOUT_CONTRACT_SCHEMA_VERSION,
+    DATA_ASSET_MANIFEST_REFS_SCHEMA_VERSION,
+    PUBLIC_DATASET_ALLOWED_ROLES,
+    PUBLIC_DATASET_ALLOWED_STATUSES,
+    PUBLIC_DATASET_DISCOVERY_ALLOWED_STATUSES,
+    PRIVATE_DIFF_REPORT_SCHEMA_VERSION,
+    PRIVATE_REGISTRY_SCHEMA_VERSION,
+    PUBLIC_REGISTRY_SCHEMA_VERSION,
+    data_asset_layout_contract,
+    data_assets_root_path,
+    dataset_layout_validation,
+    impact_report_path,
+    impact_root,
+    layer_validation,
+    lineage_root,
+    manifest_ref_errors,
+    manifest_refs,
+    manifest_refs_path,
+    manifest_refs_payload,
+    private_diff_report_path,
+    private_diffs_root,
+    private_registry_path,
+    private_root,
+    public_registry_path,
+    public_root,
+    workspace_ref,
+)
+from med_autoscience.controllers.data_assets_parts.public_registry import (
+    load_public_registry,
+    normalize_public_dataset_entry,
+    normalize_public_registry_discovery,
+    normalize_public_registry_payload,
+    validate_public_registry,
+)
+from med_autoscience.controllers.data_assets_parts.release_inventory import (
+    build_private_release,
+    inventory_summary,
+    list_release_files,
+    scan_private_releases,
+    standardization_status,
+)
 from med_autoscience.controllers.data_assets_parts.serialization import (
     load_json as _load_json,
     load_yaml_dict as _load_yaml_dict,
@@ -14,632 +61,40 @@ from med_autoscience.controllers.data_assets_parts.serialization import (
     normalize_string_map as _normalize_string_map,
     write_json as _write_json,
 )
-from med_autoscience.workspace_paths import (
-    DATA_ASSET_LAYER_IDS,
-    DATA_ASSETS_RELPATH,
-    DATASETS_RELPATH,
-    data_asset_lineage_root,
-    data_assets_root,
-    datasets_root,
-)
-
-
-PRIVATE_REGISTRY_BASENAME = "registry.json"
-PUBLIC_REGISTRY_BASENAME = "registry.json"
-IMPACT_REPORT_BASENAME = "latest_impact_report.json"
-PRIVATE_DIFF_REPORT_SCHEMA_VERSION = 1
-PUBLIC_REGISTRY_SCHEMA_VERSION = 2
-PRIVATE_REGISTRY_SCHEMA_VERSION = 3
-DATA_ASSET_LAYOUT_CONTRACT_SCHEMA_VERSION = 2
-DATA_ASSET_MANIFEST_REFS_SCHEMA_VERSION = 1
-PUBLIC_DATASET_ALLOWED_ROLES = {
-    "external_validation",
-    "cohort_extension",
-    "mechanistic_extension",
-    "benchmark_transfer",
-}
-PUBLIC_DATASET_ALLOWED_STATUSES = {
-    "candidate",
-    "screened",
-    "accepted",
-    "rejected",
-}
-PUBLIC_DATASET_DISCOVERY_ALLOWED_STATUSES = {
-    "not_started",
-    "completed",
-}
-DATA_DOCUMENTATION_COMPONENTS = (
-    "data_dictionary",
-    "codebook",
-    "derived_variables",
-)
-COHORT_ACCOUNTING_COMPONENT = "cohort_accounting"
-RELEASE_READINESS_READY_STATUSES = {"ready", "complete", "locked"}
-ALLOWED_DATASET_LAYERS = set(DATA_ASSET_LAYER_IDS)
-
-
-def _data_assets_root(workspace_root: Path) -> Path:
-    return data_assets_root(workspace_root)
-
-
-def _private_root(workspace_root: Path) -> Path:
-    return _data_assets_root(workspace_root) / "private"
-
-
-def _public_root(workspace_root: Path) -> Path:
-    return _data_assets_root(workspace_root) / "public"
-
-
-def _impact_root(workspace_root: Path) -> Path:
-    return _data_assets_root(workspace_root) / "impact"
-
-
-def _lineage_root(workspace_root: Path) -> Path:
-    return data_asset_lineage_root(workspace_root)
-
-
-def _manifest_refs_path(workspace_root: Path) -> Path:
-    return _lineage_root(workspace_root) / "manifest_refs.json"
-
-
-def _private_registry_path(workspace_root: Path) -> Path:
-    return _private_root(workspace_root) / PRIVATE_REGISTRY_BASENAME
-
-
-def _private_diffs_root(workspace_root: Path) -> Path:
-    return _private_root(workspace_root) / "diffs"
-
-
-def _public_registry_path(workspace_root: Path) -> Path:
-    return _public_root(workspace_root) / PUBLIC_REGISTRY_BASENAME
-
-
-def _impact_report_path(workspace_root: Path) -> Path:
-    return _impact_root(workspace_root) / IMPACT_REPORT_BASENAME
-
-
-def _private_diff_report_path(*, workspace_root: Path, family_id: str, from_version: str, to_version: str) -> Path:
-    return _private_diffs_root(workspace_root) / family_id / f"{from_version}__{to_version}.json"
-
-
-def _workspace_ref(*, workspace_root: Path, path: Path) -> str:
-    resolved_workspace = Path(workspace_root).expanduser().resolve()
-    resolved_path = path.expanduser().resolve()
-    try:
-        return resolved_path.relative_to(resolved_workspace).as_posix()
-    except ValueError:
-        return resolved_path.as_posix()
-
-
-def _data_asset_layout_contract(workspace_root: Path) -> dict[str, object]:
-    return {
-        "schema_version": DATA_ASSET_LAYOUT_CONTRACT_SCHEMA_VERSION,
-        "surface_kind": "mas_data_asset_operating_contract",
-        "body_plane": {
-            "root": DATASETS_RELPATH.as_posix(),
-            "layout": "data/datasets/<layer>/<version>/",
-            "allowed_layers": list(DATA_ASSET_LAYER_IDS),
-            "dataset_body_is_runtime_residue": False,
-            "retention_exclusion": {
-                "excluded_from_runtime_residue_cleanup": True,
-                "reason": "dataset_body_plane_is_domain_data_asset_authority",
-            },
-        },
-        "contract_registry_lineage_plane": {
-            "root": DATA_ASSETS_RELPATH.as_posix(),
-            "private_registry_ref": "memory/portfolio/data_assets/private/registry.json",
-            "public_registry_ref": "memory/portfolio/data_assets/public/registry.json",
-            "impact_ref": "memory/portfolio/data_assets/impact/latest_impact_report.json",
-            "startup_ref": "memory/portfolio/data_assets/startup/latest_startup_data_readiness.json",
-            "mutations_ref": "memory/portfolio/data_assets/mutations/",
-            "lineage_ref": "memory/portfolio/data_assets/lineage/",
-            "manifest_refs_ref": "memory/portfolio/data_assets/lineage/manifest_refs.json",
-            "contains_dataset_body": False,
-        },
-        "study_binding_plane": {
-            "root": "studies/<study-id>/study.yaml",
-            "binding_policy": "asset_refs_only",
-            "body_storage_allowed": False,
-            "accepted_ref_fields": ["dataset_id", "version", "family_id", "source", "asset_ref"],
-        },
-        "sqlite_read_model_plane": {
-            "role": "refs_only_rebuildable_read_model",
-            "stores_artifact_or_dataset_body": False,
-            "authority": "projection_only",
-        },
-        "authority_boundary": {
-            "mas_owns": [
-                "data_asset_contract",
-                "registry",
-                "lineage_refs",
-                "study_binding_validation",
-            ],
-            "opl_owns": [
-                "generic_runtime_lifecycle",
-                "queue",
-                "attempt_ledger",
-                "generic_retention_cleanup_shell",
-            ],
-        },
-        "workspace_refs": {
-            "datasets_root": _workspace_ref(workspace_root=workspace_root, path=datasets_root(workspace_root)),
-            "data_assets_root": _workspace_ref(workspace_root=workspace_root, path=_data_assets_root(workspace_root)),
-        },
-    }
-
-
-def _layer_validation(layer_id: str) -> dict[str, object]:
-    errors: list[str] = []
-    if layer_id not in ALLOWED_DATASET_LAYERS:
-        errors.append("unsupported_dataset_layer")
-    return {
-        "layer_id": layer_id,
-        "is_valid": not errors,
-        "errors": errors,
-        "allowed_layers": list(DATA_ASSET_LAYER_IDS),
-    }
-
-
-def _dataset_layout_validation(workspace_root: Path) -> dict[str, object]:
-    root = datasets_root(workspace_root)
-    layers: list[dict[str, object]] = []
-    invalid_layers: list[str] = []
-    if root.exists():
-        for layer_root in sorted(path for path in root.iterdir() if path.is_dir()):
-            validation = _layer_validation(layer_root.name)
-            versions = sorted(path.name for path in layer_root.iterdir() if path.is_dir() and path.name.startswith("v"))
-            validation["version_count"] = len(versions)
-            validation["versions"] = versions
-            layers.append(validation)
-            if not validation["is_valid"]:
-                invalid_layers.append(layer_root.name)
-    return {
-        "is_valid": not invalid_layers,
-        "root": _workspace_ref(workspace_root=workspace_root, path=root),
-        "allowed_layers": list(DATA_ASSET_LAYER_IDS),
-        "layers": layers,
-        "invalid_layers": invalid_layers,
-        "errors": ["unsupported_dataset_layer"] if invalid_layers else [],
-    }
-
-
-def _normalize_ref_list(value: object) -> list[str]:
-    if isinstance(value, str):
-        return [value]
-    if isinstance(value, list):
-        return [item for item in value if isinstance(item, str)]
-    if isinstance(value, dict):
-        refs: list[str] = []
-        for item in value.values():
-            refs.extend(_normalize_ref_list(item))
-        return refs
-    return []
-
-
-def _manifest_ref_errors(refs: list[str]) -> list[str]:
-    errors: list[str] = []
-    for ref in refs:
-        if ref.startswith(DATASETS_RELPATH.as_posix() + "/") or ref.startswith("datasets/"):
-            errors.append(f"manifest_ref_points_to_dataset_body:{ref}")
-        if Path(ref).is_absolute():
-            errors.append(f"manifest_ref_must_be_workspace_relative:{ref}")
-    return errors
-
-
-def _manifest_refs(manifest: dict[str, object]) -> dict[str, object]:
-    refs = {
-        "lineage_refs": _normalize_ref_list(manifest.get("lineage_refs")),
-        "manifest_refs": _normalize_ref_list(manifest.get("manifest_refs")),
-    }
-    all_refs = refs["lineage_refs"] + refs["manifest_refs"]
-    errors = _manifest_ref_errors(all_refs)
-    return {
-        **refs,
-        "refs_only": True,
-        "contains_dataset_body": False,
-        "validation": {
-            "is_valid": not errors,
-            "errors": errors,
-        },
-    }
-
-
-def _manifest_refs_payload(*, workspace_root: Path, releases: list[dict[str, object]]) -> dict[str, object]:
-    entries: list[dict[str, object]] = []
-    invalid_entries: list[dict[str, object]] = []
-    for release in releases:
-        entry = {
-            "dataset_id": release.get("dataset_id"),
-            "layer_id": release.get("layer_id"),
-            "version_id": release.get("version_id"),
-            "manifest_ref": release.get("manifest_ref"),
-            "lineage_refs": release.get("manifest_refs", {}).get("lineage_refs", [])
-            if isinstance(release.get("manifest_refs"), dict)
-            else [],
-            "manifest_refs": release.get("manifest_refs", {}).get("manifest_refs", [])
-            if isinstance(release.get("manifest_refs"), dict)
-            else [],
-            "refs_only": True,
-            "contains_dataset_body": False,
-        }
-        entries.append(entry)
-        refs_validation = release.get("manifest_refs", {}).get("validation", {}) if isinstance(release.get("manifest_refs"), dict) else {}
-        layout_validation = release.get("layout_validation", {}) if isinstance(release.get("layout_validation"), dict) else {}
-        errors = []
-        if isinstance(refs_validation.get("errors"), list):
-            errors.extend(refs_validation["errors"])
-        if isinstance(layout_validation.get("errors"), list):
-            errors.extend(layout_validation["errors"])
-        if errors:
-            invalid_entries.append(
-                {
-                    "dataset_id": release.get("dataset_id"),
-                    "layer_id": release.get("layer_id"),
-                    "version_id": release.get("version_id"),
-                    "errors": errors,
-                }
-            )
-    return {
-        "schema_version": DATA_ASSET_MANIFEST_REFS_SCHEMA_VERSION,
-        "surface_kind": "mas_data_asset_manifest_refs",
-        "workspace_root": str(workspace_root),
-        "refs_only": True,
-        "contains_dataset_body": False,
-        "entries": entries,
-        "validation": {
-            "is_valid": not invalid_entries,
-            "invalid_entry_count": len(invalid_entries),
-            "invalid_entries": invalid_entries,
-        },
-    }
-
-
-def _standardization_status(release_contract: dict[str, object]) -> dict[str, object]:
-    access_tier = release_contract.get("access_tier") if isinstance(release_contract.get("access_tier"), str) else None
-    contracts = _normalize_dict(release_contract.get("standardization_contracts"))
-    has_medication = bool(contracts.get("medication_standardization"))
-    has_numeric = bool(contracts.get("numeric_unit_and_plausibility"))
-    is_standardized = access_tier in {"analysis_ready_standardized", "publication_ready_standardized"}
-    return {
-        "is_standardized": is_standardized,
-        "access_tier": access_tier,
-        "has_medication_standardization": has_medication,
-        "has_numeric_unit_and_plausibility": has_numeric,
-        "contracts": contracts,
-    }
-
-
-def _release_contract_field(
-    *,
-    manifest: dict[str, object],
-    release_contract: dict[str, object],
-    key: str,
-) -> dict[str, object]:
-    value = manifest.get(key)
-    if value is None:
-        value = release_contract.get(key)
-    return _normalize_dict(value)
-
-
-def _component_path_exists(*, version_root: Path, contract: dict[str, object]) -> bool:
-    relative_path = contract.get("path")
-    if not isinstance(relative_path, str) or not relative_path:
-        return False
-    return (version_root / relative_path).is_file()
-
-
-def _document_component_readiness(*, version_root: Path, contract: dict[str, object]) -> dict[str, object]:
-    status = contract.get("status") if isinstance(contract.get("status"), str) else None
-    path_exists = _component_path_exists(version_root=version_root, contract=contract)
-    errors: list[str] = []
-    if not contract:
-        errors.append("missing_contract")
-    if status not in RELEASE_READINESS_READY_STATUSES:
-        errors.append("status_not_ready")
-    if not path_exists:
-        errors.append("missing_declared_path")
-    return {
-        "status": status,
-        "path": contract.get("path") if isinstance(contract.get("path"), str) else None,
-        "path_exists": path_exists,
-        "ready": not errors,
-        "errors": errors,
-        "contract": contract,
-    }
-
-
-def _cohort_accounting_readiness(*, version_root: Path, contract: dict[str, object]) -> dict[str, object]:
-    status = contract.get("status") if isinstance(contract.get("status"), str) else None
-    source_n = _normalize_int(contract.get("source_n"))
-    analysis_n = _normalize_int(contract.get("analysis_n"))
-    exclusions = contract.get("exclusions") if isinstance(contract.get("exclusions"), list) else []
-    cohort_flow_path = contract.get("cohort_flow_path") if isinstance(contract.get("cohort_flow_path"), str) else None
-    cohort_flow_exists = (version_root / cohort_flow_path).is_file() if cohort_flow_path else False
-    errors: list[str] = []
-    if not contract:
-        errors.append("missing_contract")
-    if status not in RELEASE_READINESS_READY_STATUSES:
-        errors.append("status_not_ready")
-    if source_n is None:
-        errors.append("missing_source_n")
-    if analysis_n is None:
-        errors.append("missing_analysis_n")
-    if source_n is not None and analysis_n is not None and analysis_n > source_n:
-        errors.append("analysis_n_exceeds_source_n")
-    if not cohort_flow_exists:
-        errors.append("missing_cohort_flow")
-    return {
-        "status": status,
-        "source_n": source_n,
-        "analysis_n": analysis_n,
-        "exclusions": exclusions,
-        "cohort_flow_path": cohort_flow_path,
-        "cohort_flow_exists": cohort_flow_exists,
-        "ready": not errors,
-        "errors": errors,
-        "contract": contract,
-    }
-
-
-def _release_semantic_readiness(
-    *,
-    version_root: Path,
-    manifest: dict[str, object],
-    release_contract: dict[str, object],
-) -> dict[str, object]:
-    component_contracts = {
-        key: _release_contract_field(manifest=manifest, release_contract=release_contract, key=key)
-        for key in DATA_DOCUMENTATION_COMPONENTS
-    }
-    component_contracts[COHORT_ACCOUNTING_COMPONENT] = _release_contract_field(
-        manifest=manifest,
-        release_contract=release_contract,
-        key=COHORT_ACCOUNTING_COMPONENT,
-    )
-    required = bool(
-        manifest.get("semantic_readiness_required")
-        or release_contract.get("semantic_readiness_required")
-        or any(component_contracts.values())
-    )
-    components: dict[str, dict[str, object]] = {}
-    errors: list[str] = []
-    for key in DATA_DOCUMENTATION_COMPONENTS:
-        readiness = _document_component_readiness(
-            version_root=version_root,
-            contract=component_contracts[key],
-        )
-        components[key] = readiness
-        if required:
-            errors.extend(f"{key}:{error}" for error in readiness["errors"])
-    cohort_readiness = _cohort_accounting_readiness(
-        version_root=version_root,
-        contract=component_contracts[COHORT_ACCOUNTING_COMPONENT],
-    )
-    components[COHORT_ACCOUNTING_COMPONENT] = cohort_readiness
-    if required:
-        errors.extend(f"{COHORT_ACCOUNTING_COMPONENT}:{error}" for error in cohort_readiness["errors"])
-    return {
-        "required": required,
-        "ready": not errors,
-        "errors": errors,
-        "components": components,
-    }
-
-
-def _list_release_files(version_root: Path) -> list[Path]:
-    return sorted(path for path in version_root.rglob("*") if path.is_file())
-
-
-def _inventory_summary(*, version_root: Path, main_outputs: dict[str, str]) -> dict[str, object]:
-    files = _list_release_files(version_root)
-    declared_outputs_present = {output_name: (version_root / relative_path).exists() for output_name, relative_path in main_outputs.items()}
-    return {
-        "file_count": len(files),
-        "total_size_bytes": sum(path.stat().st_size for path in files),
-        "declared_outputs_present": declared_outputs_present,
-    }
-
-
-def _build_private_release(*, workspace_root: Path, family_id: str, version_root: Path) -> dict[str, object]:
-    manifest_path = version_root / "dataset_manifest.yaml"
-    manifest = _load_yaml_dict(manifest_path)
-    main_outputs = _normalize_string_map(manifest.get("main_outputs"))
-    notes = _normalize_string_list(manifest.get("notes"))
-    dataset_id = manifest.get("dataset_id") if isinstance(manifest.get("dataset_id"), str) else None
-    raw_snapshot = manifest.get("raw_snapshot") if isinstance(manifest.get("raw_snapshot"), str) else None
-    generated_by = manifest.get("generated_by") if isinstance(manifest.get("generated_by"), str) else None
-    source_release = _normalize_dict(manifest.get("source_release"))
-    declared_release_contract = _normalize_dict(manifest.get("release_contract"))
-    supersedes_versions = _normalize_string_list(manifest.get("supersedes_versions"))
-    if not supersedes_versions:
-        supersedes_versions = _normalize_string_list(declared_release_contract.get("supersedes_versions"))
-    inventory_summary = _inventory_summary(version_root=version_root, main_outputs=main_outputs)
-    semantic_readiness = _release_semantic_readiness(
-        version_root=version_root,
-        manifest=manifest,
-        release_contract=declared_release_contract,
-    )
-    layer_validation = _layer_validation(family_id)
-    manifest_refs = _manifest_refs(manifest)
-    return {
-        "family_id": family_id,
-        "version_id": version_root.name,
-        "layer_id": family_id,
-        "dataset_id": dataset_id,
-        "data_root": str(version_root),
-        "data_root_ref": _workspace_ref(workspace_root=workspace_root, path=version_root),
-        "manifest_path": str(manifest_path) if manifest_path.exists() else None,
-        "manifest_ref": _workspace_ref(workspace_root=workspace_root, path=manifest_path) if manifest_path.exists() else None,
-        "contract_status": "manifest_backed" if manifest_path.exists() else "directory_scan_only",
-        "layout_validation": layer_validation,
-        "manifest_refs": manifest_refs,
-        "body_plane": {
-            "role": "dataset_body",
-            "root_ref": DATASETS_RELPATH.as_posix(),
-            "layout": "data/datasets/<layer>/<version>/",
-            "runtime_residue": False,
-            "retention_excluded": True,
-        },
-        "registry_plane": {
-            "role": "refs_only_registry_projection",
-            "contains_dataset_body": False,
-        },
-        "raw_snapshot": raw_snapshot,
-        "generated_by": generated_by,
-        "source_release": source_release,
-        "main_outputs": main_outputs,
-        "notes": notes,
-        "supersedes_versions": supersedes_versions,
-        "declared_release_contract": declared_release_contract,
-        "standardization_status": _standardization_status(declared_release_contract),
-        "semantic_readiness": semantic_readiness,
-        "data_dictionary": semantic_readiness["components"]["data_dictionary"],
-        "codebook": semantic_readiness["components"]["codebook"],
-        "derived_variables": semantic_readiness["components"]["derived_variables"],
-        "cohort_accounting": semantic_readiness["components"]["cohort_accounting"],
-        "inventory_summary": inventory_summary,
-        "file_count": inventory_summary["file_count"],
-    }
-
-
-def _scan_private_releases(workspace_root: Path) -> list[dict[str, object]]:
-    releases: list[dict[str, object]] = []
-    seen: set[tuple[str, str]] = set()
-    for releases_root in _private_release_roots(workspace_root):
-        for family_root in sorted(path for path in releases_root.iterdir() if path.is_dir()):
-            for version_root in sorted(
-                path for path in family_root.iterdir() if path.is_dir() and path.name.startswith("v")
-            ):
-                key = (family_root.name, version_root.name)
-                if key in seen:
-                    continue
-                seen.add(key)
-                releases.append(
-                    _build_private_release(
-                        workspace_root=workspace_root,
-                        family_id=family_root.name,
-                        version_root=version_root,
-                    )
-                )
-    return releases
-
-
-def _private_release_roots(workspace_root: Path) -> list[Path]:
-    current_root = datasets_root(workspace_root)
-    roots: list[Path] = []
-    seen: set[Path] = set()
-    for root in (current_root,):
-        resolved = root.resolve()
-        if resolved in seen or not root.exists():
-            continue
-        seen.add(resolved)
-        roots.append(root)
-    return roots
-
-
-def _normalize_public_dataset_entry(item: object) -> dict[str, object]:
-    payload = _normalize_dict(item)
-    roles = [role for role in _normalize_string_list(payload.get("roles")) if role in PUBLIC_DATASET_ALLOWED_ROLES]
-    status = payload.get("status") if isinstance(payload.get("status"), str) else "candidate"
-    normalized = {
-        "dataset_id": payload.get("dataset_id") if isinstance(payload.get("dataset_id"), str) else None,
-        "source_type": payload.get("source_type") if isinstance(payload.get("source_type"), str) else None,
-        "accession": payload.get("accession") if isinstance(payload.get("accession"), str) else None,
-        "disease": payload.get("disease") if isinstance(payload.get("disease"), str) else None,
-        "modality": _normalize_string_list(payload.get("modality")),
-        "endpoints": _normalize_string_list(payload.get("endpoints")),
-        "roles": roles,
-        "target_families": _normalize_string_list(payload.get("target_families")),
-        "target_dataset_ids": _normalize_string_list(payload.get("target_dataset_ids")),
-        "target_study_archetypes": _normalize_string_list(payload.get("target_study_archetypes")),
-        "cohort_size": _normalize_int(payload.get("cohort_size")),
-        "license": payload.get("license") if isinstance(payload.get("license"), str) else None,
-        "access_url": payload.get("access_url") if isinstance(payload.get("access_url"), str) else None,
-        "status": status if status in PUBLIC_DATASET_ALLOWED_STATUSES else "candidate",
-        "rationale": payload.get("rationale") if isinstance(payload.get("rationale"), str) else None,
-        "notes": _normalize_string_list(payload.get("notes")),
-    }
-    errors: list[str] = []
-    if not normalized["dataset_id"]:
-        errors.append("missing_dataset_id")
-    if not normalized["source_type"]:
-        errors.append("missing_source_type")
-    if not normalized["roles"]:
-        errors.append("missing_roles")
-    if not (
-        normalized["target_families"]
-        or normalized["target_dataset_ids"]
-        or normalized["target_study_archetypes"]
-    ):
-        errors.append("missing_target_scope")
-    normalized["validation"] = {
-        "is_valid": not errors,
-        "errors": errors,
-    }
-    return normalized
-
-
-def _normalize_public_registry_discovery(value: object) -> dict[str, object]:
-    payload = _normalize_dict(value)
-    status = payload.get("status") if isinstance(payload.get("status"), str) else "not_started"
-    last_scouted_on = payload.get("last_scouted_on") if isinstance(payload.get("last_scouted_on"), str) else None
-    scope = payload.get("scope") if isinstance(payload.get("scope"), str) and payload.get("scope").strip() else "route_selection"
-    return {
-        "status": status if status in PUBLIC_DATASET_DISCOVERY_ALLOWED_STATUSES else "not_started",
-        "last_scouted_on": last_scouted_on,
-        "scope": scope,
-        "notes": _normalize_string_list(payload.get("notes")),
-    }
-
-
-def _normalize_public_registry_payload(payload: dict) -> dict[str, object]:
-    datasets_value = payload.get("datasets")
-    datasets: list[dict[str, object]] = []
-    if isinstance(datasets_value, list):
-        datasets = [_normalize_public_dataset_entry(item) for item in datasets_value]
-    return {
-        "schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION,
-        "discovery": _normalize_public_registry_discovery(payload.get("discovery")),
-        "datasets": datasets,
-    }
-
-
-def _load_public_registry(workspace_root: Path) -> dict[str, object]:
-    public_path = _public_registry_path(workspace_root)
-    payload = _load_json(
-        public_path,
-        default={
-            "schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION,
-            "discovery": _normalize_public_registry_discovery({}),
-            "datasets": [],
-        },
-    )
-    normalized = _normalize_public_registry_payload(payload)
-    if payload != normalized:
-        _write_json(public_path, normalized)
-    return normalized
-
-
-def validate_public_registry(*, workspace_root: Path) -> dict[str, object]:
-    payload = _load_public_registry(workspace_root)
-    datasets = payload["datasets"]
-    assert isinstance(datasets, list)
-    valid_dataset_count = sum(1 for item in datasets if isinstance(item, dict) and item.get("validation", {}).get("is_valid"))
-    invalid_dataset_count = len(datasets) - valid_dataset_count
-    return {
-        "schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION,
-        "workspace_root": str(workspace_root),
-        "registry_path": str(_public_registry_path(workspace_root)),
-        "discovery": payload["discovery"],
-        "dataset_count": len(datasets),
-        "valid_dataset_count": valid_dataset_count,
-        "invalid_dataset_count": invalid_dataset_count,
-        "datasets": datasets,
-    }
+from med_autoscience.workspace_paths import DATA_ASSET_LAYER_IDS, DATASETS_RELPATH, datasets_root
+
+
+_data_assets_root = data_assets_root_path
+_private_root = private_root
+_public_root = public_root
+_impact_root = impact_root
+_lineage_root = lineage_root
+_manifest_refs_path = manifest_refs_path
+_private_registry_path = private_registry_path
+_private_diffs_root = private_diffs_root
+_public_registry_path = public_registry_path
+_impact_report_path = impact_report_path
+_private_diff_report_path = private_diff_report_path
+_workspace_ref = workspace_ref
+_data_asset_layout_contract = data_asset_layout_contract
+_layer_validation = layer_validation
+_dataset_layout_validation = dataset_layout_validation
+_manifest_ref_errors = manifest_ref_errors
+_manifest_refs = manifest_refs
+_manifest_refs_payload = manifest_refs_payload
+_standardization_status = standardization_status
+_inventory_summary = inventory_summary
+_list_release_files = list_release_files
+_build_private_release = build_private_release
+_scan_private_releases = scan_private_releases
+_normalize_public_dataset_entry = normalize_public_dataset_entry
+_normalize_public_registry_discovery = normalize_public_registry_discovery
+_normalize_public_registry_payload = normalize_public_registry_payload
+_load_public_registry = load_public_registry
 
 
 def _private_diff_count(workspace_root: Path) -> int:
-    diffs_root = _private_diffs_root(workspace_root)
+    diffs_root = private_diffs_root(workspace_root)
     if not diffs_root.exists():
         return 0
     return sum(1 for path in diffs_root.rglob("*.json") if path.is_file())
@@ -672,7 +127,7 @@ def _release_snapshot_for_report(release: dict[str, object]) -> dict[str, object
 
 def _release_inventory_map(version_root: Path) -> dict[str, dict[str, int]]:
     inventory: dict[str, dict[str, int]] = {}
-    for path in _list_release_files(version_root):
+    for path in list_release_files(version_root):
         inventory[str(path.relative_to(version_root))] = {"size_bytes": path.stat().st_size}
     return inventory
 
@@ -710,7 +165,7 @@ def _main_output_changes(from_release: dict[str, object], to_release: dict[str, 
 
 def _studies_affected_by_release(*, workspace_root: Path, family_id: str, version_id: str) -> tuple[list[str], list[str]]:
     studies_root = workspace_root / "studies"
-    releases = _scan_private_releases(workspace_root)
+    releases = scan_private_releases(workspace_root)
     release_index = _release_index(releases)
     dataset_version_index = _release_index_by_dataset_version(releases)
     affected_studies: list[str] = []
@@ -738,8 +193,8 @@ def _studies_affected_by_release(*, workspace_root: Path, family_id: str, versio
 def build_private_release_diff(*, workspace_root: Path, family_id: str, from_version: str, to_version: str) -> dict[str, object]:
     from_root = _find_release_root(workspace_root=workspace_root, family_id=family_id, version_id=from_version)
     to_root = _find_release_root(workspace_root=workspace_root, family_id=family_id, version_id=to_version)
-    from_release = _build_private_release(workspace_root=workspace_root, family_id=family_id, version_root=from_root)
-    to_release = _build_private_release(workspace_root=workspace_root, family_id=family_id, version_root=to_root)
+    from_release = build_private_release(workspace_root=workspace_root, family_id=family_id, version_root=from_root)
+    to_release = build_private_release(workspace_root=workspace_root, family_id=family_id, version_root=to_root)
     from_inventory = _release_inventory_map(from_root)
     to_inventory = _release_inventory_map(to_root)
     added_files = sorted(path for path in to_inventory if path not in from_inventory)
@@ -754,7 +209,7 @@ def build_private_release_diff(*, workspace_root: Path, family_id: str, from_ver
         family_id=family_id,
         version_id=from_version,
     )
-    report_path = _private_diff_report_path(
+    report_path = private_diff_report_path(
         workspace_root=workspace_root,
         family_id=family_id,
         from_version=from_version,
@@ -777,12 +232,8 @@ def build_private_release_diff(*, workspace_root: Path, family_id: str, from_ver
                 "removed_files": removed_files,
                 "resized_files": resized_files,
             },
-            "contract": {
-                "changed_fields": _contract_changes(from_release, to_release),
-            },
-            "main_outputs": {
-                "changed_outputs": _main_output_changes(from_release, to_release),
-            },
+            "contract": {"changed_fields": _contract_changes(from_release, to_release)},
+            "main_outputs": {"changed_outputs": _main_output_changes(from_release, to_release)},
             "study_impact": {
                 "affected_studies": affected_studies,
                 "affected_dataset_ids": affected_dataset_ids,
@@ -794,43 +245,38 @@ def build_private_release_diff(*, workspace_root: Path, family_id: str, from_ver
 
 
 def init_data_assets(*, workspace_root: Path) -> dict[str, object]:
-    private_root = _private_root(workspace_root)
-    public_root = _public_root(workspace_root)
-    impact_root = _impact_root(workspace_root)
-    lineage_root = _lineage_root(workspace_root)
-    private_diffs_root = _private_diffs_root(workspace_root)
-    private_root.mkdir(parents=True, exist_ok=True)
-    public_root.mkdir(parents=True, exist_ok=True)
-    impact_root.mkdir(parents=True, exist_ok=True)
-    lineage_root.mkdir(parents=True, exist_ok=True)
-    private_diffs_root.mkdir(parents=True, exist_ok=True)
+    private_root(workspace_root).mkdir(parents=True, exist_ok=True)
+    public_root(workspace_root).mkdir(parents=True, exist_ok=True)
+    impact_root(workspace_root).mkdir(parents=True, exist_ok=True)
+    lineage_root(workspace_root).mkdir(parents=True, exist_ok=True)
+    private_diffs_root(workspace_root).mkdir(parents=True, exist_ok=True)
 
-    releases = _scan_private_releases(workspace_root)
-    layout_validation = _dataset_layout_validation(workspace_root)
-    manifest_refs_payload = _manifest_refs_payload(workspace_root=workspace_root, releases=releases)
+    releases = scan_private_releases(workspace_root)
+    layout_validation = dataset_layout_validation(workspace_root)
+    refs_payload = manifest_refs_payload(workspace_root=workspace_root, releases=releases)
     private_payload = {
         "schema_version": PRIVATE_REGISTRY_SCHEMA_VERSION,
-        "layout_contract": _data_asset_layout_contract(workspace_root),
+        "layout_contract": data_asset_layout_contract(workspace_root),
         "layout_validation": layout_validation,
-        "manifest_refs_ref": _workspace_ref(workspace_root=workspace_root, path=_manifest_refs_path(workspace_root)),
+        "manifest_refs_ref": workspace_ref(workspace_root=workspace_root, path=manifest_refs_path(workspace_root)),
         "releases": releases,
     }
-    _write_json(_private_registry_path(workspace_root), private_payload)
-    _write_json(_manifest_refs_path(workspace_root), manifest_refs_payload)
+    _write_json(private_registry_path(workspace_root), private_payload)
+    _write_json(manifest_refs_path(workspace_root), refs_payload)
 
-    public_path = _public_registry_path(workspace_root)
-    public_payload = _load_public_registry(workspace_root)
+    public_path = public_registry_path(workspace_root)
+    public_payload = load_public_registry(workspace_root)
     _write_json(public_path, public_payload)
 
-    impact_path = _impact_report_path(workspace_root)
+    impact_path = impact_report_path(workspace_root)
     return {
         "workspace_root": str(workspace_root),
         "layout_contract": private_payload["layout_contract"],
         "layout_validation": layout_validation,
         "private": {
-            "registry_path": str(_private_registry_path(workspace_root)),
+            "registry_path": str(private_registry_path(workspace_root)),
             "release_count": len(private_payload["releases"]),
-            "diff_root": str(private_diffs_root),
+            "diff_root": str(private_diffs_root(workspace_root)),
             "diff_count": _private_diff_count(workspace_root),
         },
         "public": {
@@ -849,28 +295,47 @@ def init_data_assets(*, workspace_root: Path) -> dict[str, object]:
             "report_exists": impact_path.exists(),
         },
         "lineage": {
-            "root": str(lineage_root),
-            "manifest_refs_path": str(_manifest_refs_path(workspace_root)),
-            "manifest_ref_count": len(manifest_refs_payload["entries"]),
+            "root": str(lineage_root(workspace_root)),
+            "manifest_refs_path": str(manifest_refs_path(workspace_root)),
+            "manifest_ref_count": len(refs_payload["entries"]),
             "refs_only": True,
             "contains_dataset_body": False,
-            "validation": manifest_refs_payload["validation"],
+            "rebuildable_projection": True,
+            "validation": refs_payload["validation"],
         },
     }
 
 
+def rebuild_manifest_refs(*, workspace_root: Path) -> dict[str, object]:
+    releases = scan_private_releases(workspace_root)
+    refs_payload = manifest_refs_payload(workspace_root=workspace_root, releases=releases)
+    path = manifest_refs_path(workspace_root)
+    _write_json(path, refs_payload)
+    return {
+        "workspace_root": str(workspace_root),
+        "surface_kind": "mas_data_asset_manifest_refs_rebuild",
+        "status": "rebuilt" if refs_payload["validation"]["is_valid"] else "rebuilt_with_invalid_entries",
+        "manifest_refs_path": str(path),
+        "manifest_ref_count": len(refs_payload["entries"]),
+        "refs_only": True,
+        "contains_dataset_body": False,
+        "rebuildable_projection": True,
+        "validation": refs_payload["validation"],
+    }
+
+
 def data_assets_status(*, workspace_root: Path) -> dict[str, object]:
-    private_path = _private_registry_path(workspace_root)
-    public_path = _public_registry_path(workspace_root)
-    impact_path = _impact_report_path(workspace_root)
+    private_path = private_registry_path(workspace_root)
+    public_path = public_registry_path(workspace_root)
+    impact_path = impact_report_path(workspace_root)
     private_payload = _load_json(private_path, default={"schema_version": 1, "releases": []})
-    public_payload = _load_public_registry(workspace_root)
-    layout_validation = _dataset_layout_validation(workspace_root)
-    layout_contract = _data_asset_layout_contract(workspace_root)
-    manifest_refs_path = _manifest_refs_path(workspace_root)
-    manifest_refs_payload = _load_json(
-        manifest_refs_path,
-        default=_manifest_refs_payload(
+    public_payload = load_public_registry(workspace_root)
+    layout_validation = dataset_layout_validation(workspace_root)
+    layout_contract = data_asset_layout_contract(workspace_root)
+    refs_path = manifest_refs_path(workspace_root)
+    refs_payload = _load_json(
+        refs_path,
+        default=manifest_refs_payload(
             workspace_root=workspace_root,
             releases=[item for item in private_payload.get("releases", []) if isinstance(item, dict)],
         ),
@@ -900,7 +365,7 @@ def data_assets_status(*, workspace_root: Path) -> dict[str, object]:
             "registry_exists": private_path.exists(),
             "release_count": len(private_payload["releases"]),
             "schema_version": private_payload.get("schema_version"),
-            "diff_root": str(_private_diffs_root(workspace_root)),
+            "diff_root": str(private_diffs_root(workspace_root)),
             "diff_count": _private_diff_count(workspace_root),
         },
         "public": {
@@ -921,13 +386,14 @@ def data_assets_status(*, workspace_root: Path) -> dict[str, object]:
             "report_exists": impact_path.exists(),
         },
         "lineage": {
-            "root": str(_lineage_root(workspace_root)),
-            "manifest_refs_path": str(manifest_refs_path),
-            "manifest_refs_exists": manifest_refs_path.exists(),
-            "manifest_ref_count": len(manifest_refs_payload.get("entries", [])),
+            "root": str(lineage_root(workspace_root)),
+            "manifest_refs_path": str(refs_path),
+            "manifest_refs_exists": refs_path.exists(),
+            "manifest_ref_count": len(refs_payload.get("entries", [])),
             "refs_only": True,
             "contains_dataset_body": False,
-            "validation": manifest_refs_payload.get("validation", {}),
+            "rebuildable_projection": True,
+            "validation": refs_payload.get("validation", {}),
         },
     }
 
@@ -1026,11 +492,7 @@ def _load_dataset_inputs(path: Path) -> list[dict[str, object]]:
         dataset_inputs = payload.get("locked_inputs", [])
     if not isinstance(dataset_inputs, list):
         return []
-    normalized: list[dict[str, object]] = []
-    for item in dataset_inputs:
-        if isinstance(item, dict):
-            normalized.append(item)
-    return normalized
+    return [item for item in dataset_inputs if isinstance(item, dict)]
 
 
 def _study_versions_by_family(
@@ -1067,8 +529,8 @@ def _study_dataset_inputs_path(study_root: Path) -> Path | None:
 
 def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
     init_data_assets(workspace_root=workspace_root)
-    private_payload = _load_json(_private_registry_path(workspace_root), default={"schema_version": 1, "releases": []})
-    public_payload = _load_public_registry(workspace_root)
+    private_payload = _load_json(private_registry_path(workspace_root), default={"schema_version": 1, "releases": []})
+    public_payload = load_public_registry(workspace_root)
     latest_versions = _latest_versions_by_family(private_payload["releases"])
     release_index = _release_index(private_payload["releases"])
     dataset_version_index = _release_index_by_dataset_version(private_payload["releases"])
@@ -1145,18 +607,200 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
             if review_needed:
                 overall_status = "review_needed"
             dataset_reports.append(dataset_report)
-        study_reports.append(
-            {
-                "study_id": study_root.name,
-                "status": overall_status,
-                "dataset_inputs": dataset_reports,
-            }
-        )
+        study_reports.append({"study_id": study_root.name, "status": overall_status, "dataset_inputs": dataset_reports})
 
-    report = {
-        "workspace_root": str(workspace_root),
-        "study_count": len(study_reports),
-        "studies": study_reports,
-    }
-    _write_json(_impact_report_path(workspace_root), report)
+    report = {"workspace_root": str(workspace_root), "study_count": len(study_reports), "studies": study_reports}
+    _write_json(impact_report_path(workspace_root), report)
     return report
+
+
+def _release_selector(*, workspace_root: Path, family_id: str, version_id: str) -> dict[str, object]:
+    for release in scan_private_releases(workspace_root):
+        if release.get("family_id") == family_id and release.get("version_id") == version_id:
+            return release
+    raise FileNotFoundError(f"Private release not found: {family_id}/{version_id}")
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _release_body_manifest(*, release_root: Path) -> dict[str, object]:
+    entries: list[dict[str, object]] = []
+    aggregate = hashlib.sha256()
+    for path in list_release_files(release_root):
+        relative = path.relative_to(release_root).as_posix()
+        sha256 = _sha256_file(path)
+        size = path.stat().st_size
+        entries.append({"path": relative, "bytes": size, "sha256": sha256})
+        aggregate.update(relative.encode("utf-8"))
+        aggregate.update(str(size).encode("utf-8"))
+        aggregate.update(sha256.encode("utf-8"))
+    return {
+        "file_count": len(entries),
+        "total_size_bytes": sum(int(item["bytes"]) for item in entries),
+        "aggregate_sha256": aggregate.hexdigest(),
+        "entries": entries,
+    }
+
+
+def data_asset_retention_plan(
+    *,
+    workspace_root: Path,
+    family_id: str,
+    version_id: str,
+    owner_authorization_ref: str | None = None,
+    cold_ref: str | None = None,
+    restore_proof_ref: str | None = None,
+    apply: bool = False,
+) -> dict[str, object]:
+    release = _release_selector(workspace_root=workspace_root, family_id=family_id, version_id=version_id)
+    release_root = Path(str(release["data_root"]))
+    manifest_path = release_root / "dataset_manifest.yaml"
+    body_manifest = _release_body_manifest(release_root=release_root)
+    affected_studies, affected_dataset_ids = _studies_affected_by_release(
+        workspace_root=workspace_root,
+        family_id=family_id,
+        version_id=version_id,
+    )
+    blockers: list[str] = []
+    if not manifest_path.exists():
+        blockers.append("missing_dataset_manifest")
+    if not owner_authorization_ref:
+        blockers.append("missing_owner_authorization_ref")
+    if not cold_ref:
+        blockers.append("missing_cold_ref")
+    if not restore_proof_ref:
+        blockers.append("missing_restore_proof_ref")
+    status = "ready_to_record_retention_receipt" if not blockers else "blocked"
+    receipt_path = (
+        data_assets_root_path(workspace_root)
+        / "retention"
+        / family_id
+        / version_id
+        / "latest.json"
+    )
+    payload = {
+        "schema_version": 1,
+        "surface_kind": "mas_data_asset_retention_plan",
+        "workspace_root": str(workspace_root),
+        "family_id": family_id,
+        "version_id": version_id,
+        "dataset_id": release.get("dataset_id"),
+        "status": status,
+        "apply": bool(apply),
+        "receipt_path": str(receipt_path),
+        "body_plane": {
+            "release_root_ref": release.get("data_root_ref"),
+            "dataset_body_is_runtime_residue": False,
+            "generic_runtime_cleanup_allowed": False,
+            "physical_delete_allowed": False,
+        },
+        "contract": {
+            "manifest_ref": release.get("manifest_ref"),
+            "manifest_sha256": _sha256_file(manifest_path) if manifest_path.exists() else None,
+            "body_manifest": body_manifest,
+        },
+        "cold_store": {
+            "cold_ref": cold_ref,
+            "restore_proof_ref": restore_proof_ref,
+            "byte_for_byte_restore_required_for_body_retirement": True,
+        },
+        "study_impact": {
+            "affected_studies": affected_studies,
+            "affected_dataset_ids": affected_dataset_ids,
+            "study_impact_review_required": bool(affected_studies),
+        },
+        "owner_authorization_ref": owner_authorization_ref,
+        "blockers": blockers,
+    }
+    if apply and blockers:
+        payload["status"] = "blocked_receipt_not_recorded"
+    elif apply:
+        payload["status"] = "retention_receipt_recorded_no_body_delete"
+        _write_json(receipt_path, payload)
+    return payload
+
+
+def _sqlite_integrity_check(db_path: Path) -> dict[str, object]:
+    try:
+        with sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True) as conn:
+            value = conn.execute("PRAGMA integrity_check").fetchone()[0]
+    except sqlite3.Error as exc:
+        return {"status": "error", "error": str(exc)}
+    return {"status": "ok" if value == "ok" else "failed", "result": value}
+
+
+def data_asset_sqlite_compact_plan(*, workspace_root: Path, db_path: Path) -> dict[str, object]:
+    resolved_workspace = workspace_root.expanduser().resolve()
+    resolved_db = db_path.expanduser().resolve()
+    datasets = datasets_root(resolved_workspace).resolve()
+    try:
+        relative_db = resolved_db.relative_to(resolved_workspace).as_posix()
+    except ValueError:
+        relative_db = resolved_db.as_posix()
+    under_dataset_body = False
+    try:
+        resolved_db.relative_to(datasets)
+        under_dataset_body = True
+    except ValueError:
+        under_dataset_body = False
+    if not resolved_db.exists():
+        return {
+            "surface_kind": "mas_data_asset_sqlite_compact_plan",
+            "status": "blocked_missing_db",
+            "workspace_root": str(workspace_root),
+            "db_path": str(db_path),
+            "db_ref": relative_db,
+        }
+    integrity = _sqlite_integrity_check(resolved_db)
+    blockers: list[str] = []
+    if integrity.get("status") != "ok":
+        blockers.append("sqlite_integrity_check_failed")
+    if under_dataset_body:
+        blockers.append("dataset_body_sqlite_requires_dataset_manifest_retention_policy")
+    return {
+        "surface_kind": "mas_data_asset_sqlite_compact_plan",
+        "status": "blocked" if blockers else "eligible_for_runtime_sqlite_compact_surface",
+        "workspace_root": str(workspace_root),
+        "db_path": str(db_path),
+        "db_ref": relative_db,
+        "under_dataset_body": under_dataset_body,
+        "integrity_check": integrity,
+        "blockers": blockers,
+        "dataset_body_compact_boundary": {
+            "generic_sqlite_compact_allowed": not under_dataset_body,
+            "dataset_release_sqlite_is_body_or_release_sidecar": under_dataset_body,
+            "required_owner_surface": "dataset_manifest_retention_policy" if under_dataset_body else None,
+        },
+        "recommended_command": (
+            None
+            if under_dataset_body or blockers
+            else f"medautosci runtime-lifecycle-payload-retention --db {resolved_db} --compact --apply"
+        ),
+    }
+
+
+__all__ = [
+    "DATA_ASSET_LAYOUT_CONTRACT_SCHEMA_VERSION",
+    "DATA_ASSET_MANIFEST_REFS_SCHEMA_VERSION",
+    "ALLOWED_DATASET_LAYERS",
+    "DATA_ASSET_LAYER_IDS",
+    "PRIVATE_REGISTRY_SCHEMA_VERSION",
+    "PUBLIC_DATASET_ALLOWED_ROLES",
+    "PUBLIC_DATASET_ALLOWED_STATUSES",
+    "PUBLIC_DATASET_DISCOVERY_ALLOWED_STATUSES",
+    "PUBLIC_REGISTRY_SCHEMA_VERSION",
+    "assess_data_asset_impact",
+    "build_private_release_diff",
+    "data_asset_retention_plan",
+    "data_asset_sqlite_compact_plan",
+    "data_assets_status",
+    "init_data_assets",
+    "rebuild_manifest_refs",
+    "validate_public_registry",
+]
