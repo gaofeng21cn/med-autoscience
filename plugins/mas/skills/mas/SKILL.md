@@ -8,9 +8,9 @@ description: Use when Codex should operate MedAutoScience through its stable run
 Series: OPL Foundry Agent
 Agent id: mas
 Ordinary path: study -> stage -> domain owner receipt or typed blocker -> handoff
-Executable frontdoor: `medautosci foundry status|inspect|interfaces|validate|doctor|peers --format json`
+Executable command surface: `medautosci foundry status|inspect|interfaces|validate|doctor|peers --format json`
 Runtime controller tick: `medautosci runtime domain-health-diagnostic`
-OPL series frontdoor: `opl foundry agents inspect mas --json`
+OPL series command surface: `opl foundry agents inspect mas --json`
 
 当 Codex 需要通过稳定运行面操作 `MedAutoScience`，而不是把仓库当成临时脚本集合来直接拼装时，使用这个 app skill。
 
@@ -18,7 +18,7 @@ OPL series frontdoor: `opl foundry agents inspect mas --json`
 
 - `MedAutoScience` 的 direct domain entry / handler target；它把 Codex 调回 MAS owner surface，而不是让本仓长期拥有 Skill descriptor。
 - OPL generated descriptors 是 CLI、MCP、Skill、product-entry、status、workbench metadata 的统一 owner；MAS repo-local skill 文件只保留当前 direct path 约束、handler target 说明和 domain authority 护栏。
-- `medautosci foundry ...` 是 MAS 的只读 OPL Foundry Agent series identity / interface surface；顶层 `medautosci status|inspect|interfaces|validate|doctor` 是同一读面的薄 alias。`mas` 是 series agent id / brand shorthand，不作为本机 PATH readiness 的唯一证据，也不要用它判断 shell 命令是否安装；macOS 上 `/opt/homebrew/bin/mas` 通常是 Mac App Store CLI。旧 `runtime`、`index`、`stage-artifact`、裸 MCP/server 细节只作为 diagnostic 或 handler target，不是新用户 frontdoor。
+- `medautosci foundry ...` 是 MAS 的只读 OPL Foundry Agent series identity / interface surface；顶层 `medautosci status|inspect|interfaces|validate|doctor` 是同一读面的薄 alias。`mas` 是 series agent id / brand shorthand，不作为本机 PATH readiness 的唯一证据，也不要用它判断 shell 命令是否安装；macOS 上 `/opt/homebrew/bin/mas` 通常是 Mac App Store CLI。旧 `runtime`、`index`、`stage-artifact`、裸 MCP/server 细节只作为 diagnostic 或 handler target，不是新用户 command surface。
 - MAS 保留 `MedAutoScienceDomainEntry`、CLI/controller/workspace commands、study truth、publication quality、artifact gate、current package authority、memory writeback decision 和 owner receipt signer。
 - skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`product-entry-status` 等命令是 MAS domain handler contract，供 OPL generated surfaces 或 direct path 调用。
 - `product-entry manifest` 暴露 MAS-owned domain action intents、handler target refs 与 authority boundaries；CLI、MCP、Skill、product/status/workbench descriptors 由 OPL 从同一份 pack/compiler input 生成或托管。
@@ -103,7 +103,7 @@ medautosci runtime domain-health-diagnostic \
 - `domain-handler dispatch` 只接收 OPL typed queue 的 guarded task，并回到 MAS owner surface 产出 domain control receipt / recommended command；不得直接写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、artifact gate 或 study truth
 - `paper_autonomy/repair-recheck` task 只能通过 MAS-owned repair executor 修改 canonical manuscript / evidence ledger / review ledger / revision log，并必须写 owner receipt、gate replay request、AI reviewer recheck request 和 package freshness proof；缺结构化 canonical patch 时返回 typed blocker，不把 repair note 写入正文
 - `paper_autonomy/ai-reviewer-recheck` task 只能触发 MAS supervisor executor 的 AI reviewer workflow；最终质量、publishability 或 submission-facing readiness 仍以 AI reviewer-backed `publication_eval/latest.json` 和 publication gate truth 为准
-- 当前已落地的是 MAS repo-level AI-first paper autonomy callable loop 与 read-only real-paper soak projection；不要把它表述成 Hermes Full App 打包、MAG/RCA adapters、真实 24h gateway restart soak 或三篇 live paper finalization 已完成
+- 当前已落地的是 MAS repo-level AI-first paper autonomy callable loop 与 read-only real-paper soak projection；不要把它表述成 Hermes Full App 打包、MAG/RCA adapters、真实 24h online-runtime restart soak 或三篇 live paper finalization 已完成
 - 保持 `MedAutoScience` 作为 domain handler target，不要把 controller、profile、overlay、workspace 逻辑塌缩进 plugin 私有文件
 - 保持 CLI 和 controller handler 入口稳定，避免破坏 OPL generated descriptors 和 direct path 的兼容性
 - plugin-local MCP 通过当前 repo checkout 的 `scripts/run-python-clean.sh -m med_autoscience.mcp_server` 启动，避免 repo-local `.venv`、`__pycache__` 和 editable install metadata 污染
