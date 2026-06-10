@@ -377,10 +377,30 @@
       "adopt": "durable retry with idempotent activities and attempt history",
       "reject": "provider completion counting as MAS domain acceptance"
     },
+    "argo_workflows": {
+      "source_ref": "https://argo-workflows.readthedocs.io/en/latest/retries/",
+      "adopt": "retry policy, exit-handler-style closeout hooks, workflow archive refs, and bounded synchronization for transport execution",
+      "reject": "workflow archive, memoized step result, or retry success replacing MAS owner receipt, typed blocker, or evidence body"
+    },
+    "airflow": {
+      "source_ref": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/xcoms.html",
+      "adopt": "task metadata and XCom-like small refs for stage-internal handoff",
+      "reject": "small task metadata becoming artifact body, memory body, study truth, or publication verdict"
+    },
     "aws_step_functions": {
       "source_ref": "https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html",
       "adopt": "idempotent execution identity and explicit redrive boundary",
       "reject": "transport idempotency replacing owner receipt or typed blocker"
+    },
+    "durable_functions": {
+      "source_ref": "https://learn.microsoft.com/en-us/azure/durable-task/common/durable-task-code-constraints",
+      "adopt": "deterministic orchestration constraints for replayable route/control-plane logic",
+      "reject": "open-ended LLM medical judgment or non-idempotent artifact mutation inside deterministic orchestration"
+    },
+    "openlineage": {
+      "source_ref": "https://openlineage.io/docs/spec/facets/",
+      "adopt": "run, job, dataset, and facet refs for provenance correlation",
+      "reject": "lineage proving medical validity, quality closure, or publication readiness"
     },
     "opentelemetry": {
       "source_ref": "https://opentelemetry.io/docs/concepts/signals/traces/",

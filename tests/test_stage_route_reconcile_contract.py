@@ -211,8 +211,20 @@ def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_p
     assert practices["temporal"]["reject"] == (
         "provider completion counting as MAS domain acceptance"
     )
+    assert practices["argo_workflows"]["reject"] == (
+        "workflow archive, memoized step result, or retry success replacing MAS owner receipt, typed blocker, or evidence body"
+    )
+    assert practices["airflow"]["reject"] == (
+        "small task metadata becoming artifact body, memory body, study truth, or publication verdict"
+    )
     assert practices["aws_step_functions"]["reject"] == (
         "transport idempotency replacing owner receipt or typed blocker"
+    )
+    assert practices["durable_functions"]["reject"] == (
+        "open-ended LLM medical judgment or non-idempotent artifact mutation inside deterministic orchestration"
+    )
+    assert practices["openlineage"]["reject"] == (
+        "lineage proving medical validity, quality closure, or publication readiness"
     )
     assert practices["opentelemetry"]["reject"] == (
         "observability traces closing quality gate or publication verdict"

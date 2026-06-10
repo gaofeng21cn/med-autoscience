@@ -126,6 +126,8 @@ MAS 侧对应收薄：
 - Durable Functions / Step Functions：借鉴 deterministic orchestrator、callback token、redrive 从失败点继续；human answer 必须由 MAS authority surface 消费。
 - OpenLineage / OpenTelemetry：借鉴 lineage 和 observability 分层；lineage/trace 不能关闭 quality gate 或 publication verdict。
 
+这些映射的 machine-readable source refs 归 `contracts/stage_route_reconcile_contract.json`；当前采用的官方来源包括 Kubernetes controller、Temporal activity、Argo retry、Airflow XCom、AWS Step Functions StartExecution、Durable Functions code constraints、OpenLineage facets 和 OpenTelemetry traces。
+
 ## 运行态监督链
 
 1. `study progress --format json`
