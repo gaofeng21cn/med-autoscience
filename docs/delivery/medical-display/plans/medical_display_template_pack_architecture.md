@@ -77,6 +77,7 @@ Machine boundary: Human-readable implementation support only; active execution t
   - `paper/figure_spec.json` 负责轻量 MAS-native 医学 figure grammar，声明 `figure_intent`、Display Template、figure kind、医学语义与 panel role 的绑定；
   - `paper/figure_style_reference_bundle.json` 负责 AgentFigureGallery 式 link-only 喜欢/拒绝/采用参考；
   - `paper/figure_visual_audit_receipt.json` 负责 VLM/human/hybrid 对真实渲染图的结构化视觉审计回执；
+  - `paper/figure_polish_lifecycle.json` 负责从 `draft_rendered` 到 `publication_manifested` 的 AI/VLM polish 状态前缀，绑定 visual-audit evidence 与 lock refs；
   - `paper/ai_illustration_receipt.json` 只允许记录 `illustration_shell` AI 候选，且 `scientific_claim_carried=false` 是硬边界；
   - `paper/build/display_pack_lock.json` 会记录这些 surface 的 path / status / hash，submission manifest 会继续保留这些 refs。
 - 当前唯一活跃缺口，不再是“能不能包化”，而是：
@@ -399,8 +400,10 @@ Machine boundary: Human-readable implementation support only; active execution t
   - `manifest_sha256`
 - `publication_figure_quality_refs`：
   - `figure_intent`
+  - `medical_figure_spec`
   - `figure_style_reference_bundle`
   - `figure_visual_audit_receipt`
+  - `figure_polish_lifecycle`
   - `ai_illustration_receipt`
   - 每项记录 path、`present|missing` 状态，以及 present 文件的 `sha256`
 
@@ -705,6 +708,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 - 包级 execution contract
 - `contracts/publication_figure_quality_contract.json`
 - `contracts/medical_figure_spec_contract.json`
+- `contracts/figure_polish_lifecycle_contract.json`
 - `paper/build/display_pack_lock.json#/publication_figure_quality_refs`
 
 当前实际推进口径：

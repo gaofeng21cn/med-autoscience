@@ -7,8 +7,10 @@ from typing import Any, Callable
 
 
 FIGURE_INTENT_BASENAME = "figure_intent.json"
+MEDICAL_FIGURE_SPEC_BASENAME = "figure_spec.json"
 FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME = "figure_style_reference_bundle.json"
 FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME = "figure_visual_audit_receipt.json"
+FIGURE_POLISH_LIFECYCLE_BASENAME = "figure_polish_lifecycle.json"
 AI_ILLUSTRATION_RECEIPT_BASENAME = "ai_illustration_receipt.json"
 
 VALID_FIGURE_KINDS = frozenset(("evidence_figure", "illustration_shell", "table_shell"))
@@ -285,6 +287,18 @@ def load_ai_illustration_receipt(path: Path) -> dict[str, Any]:
     return {**payload, "receipt_id": receipt_id, "illustrations": normalized_illustrations}
 
 
+def _load_medical_figure_spec(path: Path) -> dict[str, Any]:
+    from med_autoscience.medical_figure_spec_contract import load_medical_figure_spec
+
+    return load_medical_figure_spec(path)
+
+
+def _load_figure_polish_lifecycle(path: Path) -> dict[str, Any]:
+    from med_autoscience.figure_polish_lifecycle_contract import load_figure_polish_lifecycle
+
+    return load_figure_polish_lifecycle(path)
+
+
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -322,6 +336,11 @@ def collect_publication_figure_quality_refs(*, paper_root: Path) -> dict[str, di
             basename=FIGURE_INTENT_BASENAME,
             loader=load_figure_intent,
         ),
+        "medical_figure_spec": _surface_ref(
+            paper_root=resolved_paper_root,
+            basename=MEDICAL_FIGURE_SPEC_BASENAME,
+            loader=_load_medical_figure_spec,
+        ),
         "figure_style_reference_bundle": _surface_ref(
             paper_root=resolved_paper_root,
             basename=FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME,
@@ -331,6 +350,11 @@ def collect_publication_figure_quality_refs(*, paper_root: Path) -> dict[str, di
             paper_root=resolved_paper_root,
             basename=FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME,
             loader=load_figure_visual_audit_receipt,
+        ),
+        "figure_polish_lifecycle": _surface_ref(
+            paper_root=resolved_paper_root,
+            basename=FIGURE_POLISH_LIFECYCLE_BASENAME,
+            loader=_load_figure_polish_lifecycle,
         ),
         "ai_illustration_receipt": _surface_ref(
             paper_root=resolved_paper_root,

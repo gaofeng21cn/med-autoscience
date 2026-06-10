@@ -71,6 +71,8 @@ def test_display_pack_v2_root_contract_declares_descriptor_boundaries() -> None:
     assert handoff["status"] == "handoff_tail"
     assert handoff["tail_status"] != "landed"
     assert handoff["target_owner"] == "OPL Pack OS"
+    assert "paper/figure_spec.json" in payload["quality_surfaces"]["paper_quality_refs"]
+    assert "paper/figure_polish_lifecycle.json" in payload["quality_surfaces"]["paper_quality_refs"]
 
 
 def test_display_pack_v2_validator_rejects_non_object_payload() -> None:

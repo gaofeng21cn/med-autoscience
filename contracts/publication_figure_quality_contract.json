@@ -2,7 +2,7 @@
   "schema_version": 1,
   "contract_id": "publication_figure_quality_contract.v1",
   "owner": "MedAutoScience",
-  "purpose": "Paper-level figure quality surfaces for Display Pack v2: figure intent, style references, visual audit receipts, and AI illustration receipts.",
+  "purpose": "Paper-level figure quality surfaces for Display Pack v2: figure intent, declarative medical figure specs, style references, visual audit receipts, AI/VLM polish lifecycle, and AI illustration receipts.",
   "machine_boundary": "The enforceable validators live in med_autoscience.publication_figure_quality_contract. This JSON file indexes the stable surface names, paths, consumers, and authority boundaries for other agents and contract readers.",
   "source_module": "src/med_autoscience/publication_figure_quality_contract.py",
   "paper_surfaces": {
@@ -13,6 +13,13 @@
       "required_entry_fields": ["figure_id", "claim_ref", "data_ref", "template_id", "figure_kind"],
       "allowed_figure_kinds": ["evidence_figure", "illustration_shell", "table_shell"],
       "authority_boundary": "Binds each paper display to a claim ref, data ref, template id, and display kind; it does not authorize publication readiness or mutate artifacts."
+    },
+    "medical_figure_spec": {
+      "path": "paper/figure_spec.json",
+      "loader": "med_autoscience.medical_figure_spec_contract:load_medical_figure_spec",
+      "required_top_level": ["schema_version", "figure_id", "intent_ref", "template_id", "figure_kind", "medical_semantics"],
+      "relationship": "Binds figure_intent, Display Template, figure kind, medical semantics, and optional panel roles.",
+      "authority_boundary": "Declarative medical figure grammar only; it is not a renderer, Vega-Lite runtime, publication verdict, or data/statistics mutation surface."
     },
     "figure_style_reference_bundle": {
       "path": "paper/figure_style_reference_bundle.json",
@@ -31,6 +38,14 @@
       "allowed_audit_modes": ["vlm_visual_verification", "human_visual_review", "hybrid_visual_review"],
       "allowed_promotion_decisions": ["paper_local_only", "promote_to_contract", "promote_to_qc", "promote_to_golden_regression", "needs_human_decision"],
       "authority_boundary": "Records review of real rendered artifacts and routes concrete findings. It is quality evidence, not a publication verdict or artifact authority."
+    },
+    "figure_polish_lifecycle": {
+      "path": "paper/figure_polish_lifecycle.json",
+      "loader": "med_autoscience.figure_polish_lifecycle_contract:load_figure_polish_lifecycle",
+      "required_top_level": ["schema_version", "lifecycle_id", "relationship_refs", "events"],
+      "state_sequence": ["draft_rendered", "deterministic_qc_clear", "visual_audit_findings", "revised", "audit_clear", "publication_manifested"],
+      "relationship": "Binds AI/VLM polish events to figure_visual_audit_receipt and display_pack_lock.publication_figure_quality_refs.",
+      "authority_boundary": "Quality lifecycle evidence only; events cannot mutate data/statistics/evidence marks or carry publication verdicts."
     },
     "ai_illustration_receipt": {
       "path": "paper/ai_illustration_receipt.json",

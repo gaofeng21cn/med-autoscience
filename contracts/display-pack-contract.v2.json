@@ -78,8 +78,10 @@
     "display_pack_lock_surface": "paper/build/display_pack_lock.json",
     "paper_quality_refs": [
       "paper/figure_intent.json",
+      "paper/figure_spec.json",
       "paper/figure_style_reference_bundle.json",
       "paper/figure_visual_audit_receipt.json",
+      "paper/figure_polish_lifecycle.json",
       "paper/ai_illustration_receipt.json"
     ],
     "boundary": "display_pack_lock.json and submission manifests preserve refs, status, and hashes. They do not become publication verdicts or artifact authority."

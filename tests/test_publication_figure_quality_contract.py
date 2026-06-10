@@ -227,15 +227,18 @@ def test_collect_publication_figure_quality_refs_reports_present_and_missing_sur
 def test_root_contract_indexes_publication_figure_quality_surfaces() -> None:
     from med_autoscience.publication_figure_quality_contract import (
         AI_ILLUSTRATION_RECEIPT_BASENAME,
+        FIGURE_POLISH_LIFECYCLE_BASENAME,
         FIGURE_INTENT_BASENAME,
         FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME,
         FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME,
+        MEDICAL_FIGURE_SPEC_BASENAME,
     )
 
     contract = json.loads((REPO_ROOT / "contracts" / "publication_figure_quality_contract.json").read_text())
 
     assert contract["source_module"] == "src/med_autoscience/publication_figure_quality_contract.py"
     assert contract["paper_surfaces"]["figure_intent"]["path"] == f"paper/{FIGURE_INTENT_BASENAME}"
+    assert contract["paper_surfaces"]["medical_figure_spec"]["path"] == f"paper/{MEDICAL_FIGURE_SPEC_BASENAME}"
     assert (
         contract["paper_surfaces"]["figure_style_reference_bundle"]["path"]
         == f"paper/{FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME}"
@@ -243,6 +246,10 @@ def test_root_contract_indexes_publication_figure_quality_surfaces() -> None:
     assert (
         contract["paper_surfaces"]["figure_visual_audit_receipt"]["path"]
         == f"paper/{FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME}"
+    )
+    assert (
+        contract["paper_surfaces"]["figure_polish_lifecycle"]["path"]
+        == f"paper/{FIGURE_POLISH_LIFECYCLE_BASENAME}"
     )
     assert contract["paper_surfaces"]["ai_illustration_receipt"]["path"] == f"paper/{AI_ILLUSTRATION_RECEIPT_BASENAME}"
     assert contract["consumers"]["display_pack_lock"]["field"] == "publication_figure_quality_refs"

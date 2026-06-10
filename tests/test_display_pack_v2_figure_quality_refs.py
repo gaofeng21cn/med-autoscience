@@ -103,10 +103,56 @@ def test_display_pack_lock_payload_includes_figure_quality_refs(tmp_path: Path) 
             "final_status": "clear",
         },
     )
+    _write_json(
+        paper_root / "figure_spec.json",
+        {
+            "schema_version": 1,
+            "figure_id": "F1",
+            "intent_ref": "paper/figure_intent.json#/figures/F1",
+            "template_id": "fenggaolab.org.medical-display-core::roc_curve_binary",
+            "figure_kind": "evidence_figure",
+            "medical_semantics": {
+                "cohort_ref": "study/cohorts/derivation",
+                "endpoint_ref": "endpoint:mace",
+                "claim_role": "primary_evidence",
+            },
+        },
+    )
+    _write_json(
+        paper_root / "figure_polish_lifecycle.json",
+        {
+            "schema_version": 1,
+            "lifecycle_id": "fig-F1-polish",
+            "relationship_refs": {
+                "figure_visual_audit_receipt": "paper/figure_visual_audit_receipt.json",
+                "display_pack_lock_publication_figure_quality_refs": (
+                    "paper/build/display_pack_lock.json#/publication_figure_quality_refs"
+                ),
+            },
+            "events": [
+                {
+                    "state": "draft_rendered",
+                    "figure_id": "F1",
+                    "artifact_ref": "paper/figures/generated/F1.png",
+                    "actor": "display_pack_builder",
+                    "evidence_ref": "paper/build/display_pack_lock.json",
+                },
+                {
+                    "state": "deterministic_qc_clear",
+                    "figure_id": "F1",
+                    "artifact_ref": "paper/figures/generated/F1.png",
+                    "actor": "deterministic_qc",
+                    "evidence_ref": "paper/qc/F1.layout.json",
+                },
+            ],
+        },
+    )
 
     payload = build_display_pack_lock_payload(repo_root=repo_root, paper_root=paper_root)
 
     refs = payload["publication_figure_quality_refs"]
     assert refs["figure_intent"]["status"] == "present"
+    assert refs["medical_figure_spec"]["status"] == "present"
     assert refs["figure_visual_audit_receipt"]["status"] == "present"
+    assert refs["figure_polish_lifecycle"]["status"] == "present"
     assert refs["ai_illustration_receipt"]["status"] == "missing"

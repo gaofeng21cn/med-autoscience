@@ -133,6 +133,7 @@ The AI-first layer is a formal review loop, not a hidden patching step.
 Current paper-level handoff surfaces are:
 
 - `paper/figure_intent.json` for claim/data/template/kind binding;
+- `paper/figure_spec.json` for MAS-native medical figure grammar binding;
 - `paper/figure_style_reference_bundle.json` for link-only style references;
 - `paper/figure_visual_audit_receipt.json` for structured VLM/human visual audit;
 - `paper/figure_polish_lifecycle.json` for the ordered AI/VLM polish lifecycle from rendered draft to manifest ref;
