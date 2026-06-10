@@ -78,6 +78,82 @@ def test_safety_envelope_declares_progress_first_scope_without_authority_claims(
     } <= set(closeout["cannot_authorize"])
 
 
+def test_external_learning_adoption_closure_requires_functional_landing_status() -> None:
+    policy = _envelope()["external_learning_adoption_closure_policy"]
+
+    assert policy["surface_kind"] == "mas_external_learning_adoption_closure_policy"
+    assert policy["role"] == "landing_status_contract_for_external_research_agent_intake"
+    assert policy["default_posture"] == "contract_intake_is_not_functional_landing"
+    assert {
+        "Co-Scientist",
+        "Nature-skills",
+        "Academic Research Skills",
+        "AutoSci/OmegaWiki",
+        "EvoScientist/EvoSkills",
+        "ARK",
+        "ARIS",
+        "PaperSpine",
+        "Open Auto Research",
+        "Light0305/Light",
+    } <= set(policy["applies_to_source_families"])
+    assert policy["accepted_landing_statuses"] == [
+        "owner_surface_landed",
+        "read_model_landed",
+        "sidecar_or_worker_landed",
+        "contract_projection_landed",
+    ]
+    assert policy["gap_statuses"] == [
+        "contract_only_gap",
+        "projection_only_gap",
+        "history_only_gap",
+        "not_landed_gap",
+    ]
+    assert {
+        "adopt_contract",
+        "reference_intake_recorded",
+        "design_doc_recorded",
+        "read_model_projection_without_owner_or_worker_consumption",
+    } <= set(policy["non_landing_signals"])
+    assert {
+        "mas_owner_surface_consumes_pattern",
+        "generated_or_read_model_projection_is_consumed_by_owner",
+        "worker_or_sidecar_execution_slot_declared",
+        "callable_or_action_catalog_entry_declared",
+        "quality_pack_consumer_declared",
+        "controller_authorized_soak_declared",
+    } <= set(policy["functional_landing_requires_one_of"])
+    assert {
+        "required_inputs",
+        "allowed_writes",
+        "forbidden_authority",
+        "output_refs",
+        "nonblocking_or_fail_open_policy",
+        "verification_gate",
+    } <= set(policy["worker_or_sidecar_boundary_requires"])
+    assert {
+        "landing_status",
+        "missing_landing_surface",
+        "next_safe_landing_path",
+        "verification_gate",
+    } <= set(policy["gap_reporting_requires"])
+
+    ordinary = policy["ordinary_progress_policy"]
+    assert ordinary["external_learning_is_admission_layer"] is False
+    assert ordinary["missing_external_advisory_blocks_current_owner_action"] is False
+    assert ordinary["missing_worker_or_projection_blocks_current_owner_action"] is False
+    assert ordinary["hard_gate_escalation_requires_current_delta_route_required_ref"] is True
+    assert {
+        "source_data_or_evidence",
+        "owner_route_identity",
+        "forbidden_write_boundary",
+        "irreversible_mutation_authorization",
+        "independent_reviewer_record",
+        "publication_gate",
+        "human_gate",
+        "mas_hard_gate",
+    } <= set(ordinary["hard_gate_ref_families"])
+
+
 def test_safety_envelope_covers_all_false_completion_and_drift_risk_classes() -> None:
     risks = {risk["risk_id"]: risk for risk in _envelope()["risk_classes"]}
 

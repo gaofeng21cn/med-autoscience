@@ -5,6 +5,8 @@ Purpose: `external_research_pattern_intake`
 State: `active_reference`
 Machine boundary: 本文是人读 external intake 叙事。机器真相继续归 `agent/` pack、`contracts/`、源码、runtime/controller durable surfaces、study workspaces、owner receipts、AI reviewer / auditor record、publication gate 和 artifact authority。
 
+Landing boundary: 本 reference 只记录 Co-Scientist pattern 的 clean-room absorption narrative；是否已经落到 owner surface、read-model、worker/sidecar、callable/action catalog 或 quality pack consumer，按 [External Learning Adoption Closure Runbook](../../runtime/control/external_learning_adoption_closure.md) 判断。Ranking、portfolio 或 design doc 本身不能声明 functional landing。
+
 本文把 Google / Nature Co-Scientist 论文与公开说明中可学习的科研 agent pattern 吸收到 MAS-native contract-first 叙事中。它不引入 Co-Scientist runtime、不复制外部 agent 编排、不把外部 ranking metric 写成 MAS 质量门；机器落点以 MAS `agent/` semantic pack、generated contracts、focused tests 与 OPL refs-only projection contract 为准。当前外部依据是 Nature 2026 论文 [Accelerating scientific discovery with Co-Scientist](https://www.nature.com/articles/s41586-026-10644-y)、Google Research 2025 说明 [Accelerating scientific breakthroughs with an AI co-scientist](https://research.google/blog/accelerating-scientific-breakthroughs-with-an-ai-co-scientist/) 与 arXiv 预印本 [Towards an AI co-scientist](https://arxiv.org/abs/2502.18864)。
 
 ## 可吸收启发

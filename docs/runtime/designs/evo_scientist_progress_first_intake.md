@@ -14,6 +14,8 @@ EvoScientist / EvoSkills 的可吸收点进入 MAS 时只作为 `ordinary progre
 
 本设计不保留“后续学习计划”。EvoScientist / EvoSkills 的可取点已经一次性折成 MAS 目标态 sidecar execution architecture，并已落到 repo 可调用执行面：`med_autoscience.runtime_protocol.evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation` 可写 `artifacts/runtime/evo_scientist_sidecar/` 下的 refs-only observation，`medautosci evo-scientist-sidecar observe/read-latest` 可手工或由 OPL 调用，`study_progress` 在 materialize read-model 时会在 current owner/action 投影后 best-effort 写入 sidecar ref。后续工作只能是在同一合同下扩面生产接入或增加真实 evidence，不再重新决定是否学习、如何学习，也不能新增会阻断 ordinary progress spine 的阶段门。
 
+Landing boundary: 本 intake 的完成状态按 `sidecar_or_worker_landed` target architecture 读取，并由 `contracts/evo_scientist_progress_accelerator.json` 与 `contracts/progress_first_safety_envelope.json#/external_learning_adoption_closure_policy` 约束。它说明 MAS 已有 nonblocking sidecar execution slot 和机器边界；具体 provider worker / scheduler / owner-consumed evidence 扩面仍必须在同一合同下单独验证，不能把 sidecar target architecture 写成 MAS runtime owner、quality authority、paper progress 或 publication readiness。
+
 MAS 普通推进主干保持不变：
 
 ```text
