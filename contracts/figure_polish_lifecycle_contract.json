@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "contract_id": "figure_polish_lifecycle_contract.v1",
+  "owner": "MedAutoScience",
+  "purpose": "MAS-native machine surface for the paper figure AI/VLM polish lifecycle after deterministic rendering.",
+  "machine_boundary": "The enforceable validator lives in med_autoscience.figure_polish_lifecycle_contract. This JSON file indexes the stable surface name, path, state sequence, relationships, and authority boundaries for other agents and contract readers.",
+  "source_module": "src/med_autoscience/figure_polish_lifecycle_contract.py",
+  "paper_surface": {
+    "surface": "figure_polish_lifecycle",
+    "path": "paper/figure_polish_lifecycle.json",
+    "loader": "med_autoscience.figure_polish_lifecycle_contract:load_figure_polish_lifecycle",
+    "required_top_level": ["schema_version", "lifecycle_id", "relationship_refs", "events"],
+    "required_event_fields": ["state", "figure_id", "artifact_ref", "actor", "evidence_ref"],
+    "state_sequence": [
+      "draft_rendered",
+      "deterministic_qc_clear",
+      "visual_audit_findings",
+      "revised",
+      "audit_clear",
+      "publication_manifested"
+    ],
+    "prefix_policy": "Events must begin with draft_rendered and may only be an ordered prefix of the state sequence. Hard gates cannot be skipped or reordered; publication_manifested requires prior audit_clear.",
+    "ai_vlm_actor_policy": "Any AI/VLM actor event must carry model_ref or reviewer_ref.",
+    "forbidden_event_claims": ["mutates_data=true", "carries_publication_verdict=true"]
+  },
+  "relationships": {
+    "figure_visual_audit_receipt": {
+      "surface": "figure_visual_audit_receipt",
+      "path": "paper/figure_visual_audit_receipt.json",
+      "contract": "contracts/publication_figure_quality_contract.json",
+      "relationship": "Lifecycle events cite the visual audit receipt as evidence for visual_audit_findings and audit_clear states. The receipt remains quality evidence, not publication authority."
+    },
+    "display_pack_lock_publication_figure_quality_refs": {
+      "surface": "display_pack_lock",
+      "path": "paper/build/display_pack_lock.json",
+      "field": "publication_figure_quality_refs",
+      "contract": "contracts/publication_figure_quality_contract.json",
+      "relationship": "The lifecycle cites the display_pack_lock publication_figure_quality_refs block to bind the polish loop to the paper-level figure quality refs, status, and hashes preserved by packaging."
+    }
+  },
+  "authority_boundaries": {
+    "ai_vlm_role": "quality_loop_and_audit_receipt_only_no_publication_authority",
+    "data_statistics_evidence_marks": "Figure polish lifecycle events cannot mutate data, statistics, or evidence marks.",
+    "publication_authority": "No lifecycle event can carry publication verdicts, submission readiness, source readiness, artifact authority, domain ready, or production ready claims."
+  },
+  "verification": {
+    "focused_tests": ["tests/test_figure_polish_lifecycle_contract.py"],
+    "required_when_changed": [
+      "rtk ./scripts/run-pytest-clean.sh tests/test_figure_polish_lifecycle_contract.py -q",
+      "rtk git diff --check"
+    ]
+  }
+}

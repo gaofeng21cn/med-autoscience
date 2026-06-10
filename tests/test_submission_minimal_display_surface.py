@@ -235,6 +235,12 @@ def test_create_submission_minimal_package_preserves_figure_quality_refs(tmp_pat
                     "status": "present",
                     "sha256": "b" * 64,
                 },
+                "medical_figure_spec": {"path": "paper/figure_spec.json", "status": "present", "sha256": "c" * 64},
+                "figure_polish_lifecycle": {
+                    "path": "paper/figure_polish_lifecycle.json",
+                    "status": "present",
+                    "sha256": "d" * 64,
+                },
                 "ai_illustration_receipt": {"path": "paper/ai_illustration_receipt.json", "status": "missing"},
             },
         },
@@ -247,7 +253,9 @@ def test_create_submission_minimal_package_preserves_figure_quality_refs(tmp_pat
 
     refs = manifest["publication_figure_quality_refs"]
     assert refs["figure_intent"]["path"] == "paper/figure_intent.json"
+    assert refs["medical_figure_spec"]["path"] == "paper/figure_spec.json"
     assert refs["figure_visual_audit_receipt"]["status"] == "present"
+    assert refs["figure_polish_lifecycle"]["status"] == "present"
     assert refs["ai_illustration_receipt"]["status"] == "missing"
 
 
