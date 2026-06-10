@@ -64,6 +64,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("study", "reconcile-truth"): "reconcile-study-truth",
     ("study", "profile-cycle"): "study-profile-cycle",
     ("study", "quality-repair-batch"): "quality-repair-batch",
+    ("study", "light-advisory-materialize"): "light-advisory-materialize",
     ("study", "paper-story-repair"): "paper-story-repair",
     ("study", "gate-clearing-batch"): "gate-clearing-batch",
     ("study", "real-paper-autonomy-soak-projection"): "real-paper-autonomy-soak-projection",

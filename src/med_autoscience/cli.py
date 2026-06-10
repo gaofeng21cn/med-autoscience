@@ -80,6 +80,7 @@ delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspect
 domain_action_request_materializer = _LazyModuleProxy(lambda: _load_controller("domain_action_request_materializer"))
 domain_owner_action_dispatch = _LazyModuleProxy(lambda: _load_controller("domain_owner_action_dispatch"))
 stage_artifact_materializer = _LazyModuleProxy(lambda: _load_controller("stage_artifact_materializer"))
+light_advisory_materializer = _LazyModuleProxy(lambda: _load_controller("light_advisory_materializer"))
 owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 legacy_ds_retirement = _LazyModuleProxy(lambda: _load_controller("legacy_ds_retirement"))
@@ -483,6 +484,44 @@ def main(argv: list[str] | None = None) -> int:
                     "apply": bool(args.apply),
                     "results": results,
                 },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+
+    if args.command == "light-advisory-materialize":
+        profile = load_profile(args.profile)
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        study_root = Path(args.study_root) if args.study_root else profile.studies_root / args.study_id
+        result = light_advisory_materializer.materialize_light_advisory_refs(
+            study_root=study_root,
+            study_id=args.study_id,
+            work_unit_id=args.work_unit_id,
+            owner_action=args.owner_action,
+            stage=args.stage,
+            source_refs=tuple(args.source_refs or ()),
+            payload=(
+                _load_json_payload_from_args(args)
+                if getattr(args, "payload_file", None) or getattr(args, "payload_json", None)
+                else None
+            ),
+            route_required_ref_kinds=tuple(args.route_required_ref_kind or ()),
+            hard_gate=bool(args.hard_gate),
+            apply=bool(args.apply),
+        )
+        print(
+            json.dumps(
+                json_safe(
+                    {
+                        "surface_kind": "light_external_advisory_materialize_command",
+                        "schema_version": 1,
+                        "profile": profile.name,
+                        "apply": bool(args.apply),
+                        "result": result,
+                    }
+                ),
                 ensure_ascii=False,
                 indent=2,
             )

@@ -26,5 +26,6 @@ from .test_cli_cases.owner_route_handoff_guarded_apply_cases import *  # noqa: F
 from .test_cli_cases.domain_handler_functional_closure_command import *  # noqa: F403,F401
 from .test_cli_cases.stage_memory_cli_commands import *  # noqa: F403,F401
 from .test_cli_cases.stage_artifact_materialize_command import *  # noqa: F403,F401
+from .test_cli_cases.light_advisory_materializer_command import *  # noqa: F403,F401
 from .test_cli_cases.bootstrap_and_bundle_commands import *  # noqa: F403,F401
 from .test_cli_cases.authority_operation_commands import *  # noqa: F403,F401

@@ -214,6 +214,27 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     stage_artifact_materialize_mode.add_argument("--dry-run", action="store_true")
     stage_artifact_materialize_mode.add_argument("--apply", action="store_true")
 
+    light_advisory_materialize_parser = subparsers.add_parser("light-advisory-materialize")
+    light_advisory_materialize_parser.add_argument("--profile", required=True)
+    light_advisory_study = light_advisory_materialize_parser.add_mutually_exclusive_group(required=True)
+    light_advisory_study.add_argument("--study-id", type=str)
+    light_advisory_study.add_argument("--study-root", type=str)
+    light_advisory_materialize_parser.add_argument("--work-unit-id", required=True)
+    light_advisory_materialize_parser.add_argument("--owner-action", required=True)
+    light_advisory_materialize_parser.add_argument("--stage", type=str)
+    light_advisory_materialize_parser.add_argument("--source-ref", action="append", dest="source_refs")
+    light_advisory_materialize_parser.add_argument("--payload-file", type=str)
+    light_advisory_materialize_parser.add_argument("--payload-json", type=str)
+    light_advisory_materialize_parser.add_argument(
+        "--route-required-ref-kind",
+        action="append",
+        dest="route_required_ref_kind",
+    )
+    light_advisory_materialize_parser.add_argument("--hard-gate", action="store_true")
+    light_advisory_materialize_mode = light_advisory_materialize_parser.add_mutually_exclusive_group(required=True)
+    light_advisory_materialize_mode.add_argument("--dry-run", action="store_true")
+    light_advisory_materialize_mode.add_argument("--apply", action="store_true")
+
     readiness_owner_blocker_parser = subparsers.add_parser("medical-paper-readiness-owner-blocker")
     readiness_owner_blocker_parser.add_argument("--study-root", required=True)
     readiness_owner_blocker_parser.add_argument("--source", default="cli")

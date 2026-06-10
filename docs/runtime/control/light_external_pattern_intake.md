@@ -48,7 +48,21 @@ Light skill 本身可学习的是 skill-engineering 方法，不是 skill invent
 
 ## Operator 读取规则
 
-Light intake 进入 MAS 时只允许产生四类 advisory ref：
+Light intake 进入 MAS 时只允许产生四类 advisory ref。当前 canonical MAS-owned 自动物化入口是：
+
+```bash
+medautosci study light-advisory-materialize \
+  --profile <profile.toml> \
+  --study-id <study-id> \
+  --work-unit-id <current-work-unit-id> \
+  --owner-action <current-owner-action> \
+  --stage <stage-id> \
+  --source-ref study.yaml \
+  --payload-file <advisory-payload.json> \
+  --apply
+```
+
+该命令由 `med_autoscience.controllers.light_advisory_materializer.materialize_light_advisory_refs` 执行，写入 `artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json` 和 `artifacts/stage_outputs/<stage>/advisory/refs/*.json`。它是 MAS 的 ref materializer，不调用 Light runtime、router 或 `db09`；它只写 refs-only advisory bundle 和必要的 typed-blocker candidate，不写 study truth、paper body、artifact body、memory body、owner receipt、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package 或 `current_package`。
 
 - `verified_asset_ref`：记录模板、脚本、代码资产、API 字段或库行为的来源、核验命令、日期、license / auth / rate-limit 风险和适用边界。
 - `collision_check_ref`：记录核心机制 / 核心结论关键词、检索库、最像前作、delta、阴性证据和 novelty risk。
@@ -62,6 +76,8 @@ Light intake 进入 MAS 时只允许产生四类 advisory ref：
 Light-derived advisory 只优化当前 delta 的选择和 briefing，不创造新 progress 类别。
 
 - 当当前 `current_executable_owner_action` 已有 owner、action、work unit、required output surface、source refs 和 forbidden write boundary，且 Light-derived advisory 缺失或陈旧时，operator 继续推进 owner action；缺 advisory 不阻塞不相关 dispatch。
+- 自动物化器没有收到 `--hard-gate` 时，即使 `--route-required-ref-kind` 指向缺失 ref，也只输出 advisory gap，不阻断 dispatch。
+- 自动物化器收到 `--hard-gate` 且当前 delta 的 route-required ref 缺失时，只写 `artifacts/stage_outputs/<stage>/advisory/typed_blocker_candidate.json`，后续仍需当前 owner / reviewer 物化正式 typed blocker；它本身不签 owner receipt。
 - 每个 work unit 的 Light-derived advisory 预算必须有上限。默认只读取当前 delta 需要的最小 Light evidence：一个模式对应的 skill / verification log / asset 证据即可；不得为补齐外部知识库或完整 27-skill map 延迟 owner admission。
 - 只有当前 delta 的 route-required ref 缺失，且缺失会影响 source/data/evidence、owner-route identity、forbidden write boundary、irreversible mutation 或 reviewer/publication hard gate 时，才能生成 typed blocker。typed blocker 必须命名缺失 ref family，例如 `collision_check_ref_required`、`fresh_evidence_gate_ref_required`、`verified_asset_ref_required` 或 `refusal_rehearsal_ref_required`，并指明解除 owner。
 - Light review score、skill self-check、template completeness、API endpoint freshness 或 db09 memory 缺失本身不是 hard gate。它们只在当前 MAS owner route 明确要求同类 ref，且缺失会导致无法形成 safe owner output 时，才升级为 typed blocker。

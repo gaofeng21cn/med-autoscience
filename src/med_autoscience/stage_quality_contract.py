@@ -352,6 +352,7 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
     if pack_id == "external_pattern_intake_pack":
         pack["clean_room_absorption"] = _light_clean_room_absorption()
         pack["pattern_adoptions"] = _light_pattern_adoptions()
+        pack["materializer_contract"] = _light_materializer_contract()
         pack["forbidden_authority"] = _light_forbidden_authority()
         pack["missing_ref_policy"] = _light_missing_ref_policy()
         pack["progress_first_policy"] = _light_progress_first_policy()
@@ -361,7 +362,7 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
 
 def _pack_maturity_status(pack_id: str) -> str:
     if pack_id == "external_pattern_intake_pack":
-        return "beta_contract"
+        return "stable_contract"
     return PACK_MATURITY_STATUS[pack_id]
 
 
@@ -380,9 +381,25 @@ def _pack_promotion_evidence(pack_id: str) -> dict[str, object]:
                     "ref": "tests/test_stage_quality_contract.py",
                     "role": "clean_room_non_blocking_progress_first_advisory_contract",
                     "strength": "strong",
+                },
+                {
+                    "evidence_id": "light_external_advisory_materializer_tests",
+                    "evidence_kind": "focused_tests",
+                    "ref_kind": "test",
+                    "ref": "tests/test_light_advisory_materializer.py",
+                    "role": "mas_owned_runtime_materializer_for_advisory_refs",
+                    "strength": "strong",
+                },
+                {
+                    "evidence_id": "light_external_advisory_materializer_cli_tests",
+                    "evidence_kind": "focused_tests",
+                    "ref_kind": "test",
+                    "ref": "tests/test_cli_cases/light_advisory_materializer_command.py",
+                    "role": "operator_callable_materializer_command",
+                    "strength": "strong",
                 }
             ],
-            "stable_strong_evidence_satisfied": False,
+            "stable_strong_evidence_satisfied": True,
             "may_authorize_publication_readiness": False,
             "may_authorize_quality_verdict": False,
         }
@@ -786,6 +803,48 @@ def _light_pattern_adoptions() -> list[dict[str, object]]:
             "may_block_unrelated_owner_dispatch": False,
         },
     ]
+
+
+def _light_materializer_contract() -> dict[str, object]:
+    return {
+        "surface_kind": "light_external_advisory_materializer_contract",
+        "schema_version": 1,
+        "owner": "MedAutoScience",
+        "controller_ref": "med_autoscience.controllers.light_advisory_materializer.materialize_light_advisory_refs",
+        "cli_entry": "medautosci study light-advisory-materialize",
+        "flat_cli_entry": "medautosci light-advisory-materialize",
+        "writes": [
+            "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json",
+            "artifacts/stage_outputs/<stage>/advisory/refs/verified_asset_ref.json",
+            "artifacts/stage_outputs/<stage>/advisory/refs/collision_check_ref.json",
+            "artifacts/stage_outputs/<stage>/advisory/refs/refusal_rehearsal_ref.json",
+            "artifacts/stage_outputs/<stage>/advisory/refs/fresh_evidence_gate_ref.json",
+            "artifacts/stage_outputs/<stage>/advisory/typed_blocker_candidate.json",
+        ],
+        "does_not_write": [
+            "study truth",
+            "paper body",
+            "artifact body",
+            "memory body",
+            "owner receipt",
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+            "submission package",
+            "current_package",
+        ],
+        "output_ref_kinds": [
+            "verified_asset_ref",
+            "collision_check_ref",
+            "refusal_rehearsal_ref",
+            "fresh_evidence_gate_ref",
+        ],
+        "typed_blocker_materialization": "candidate_only_current_delta_hard_gate_required",
+        "missing_advisory_behavior": "do_not_block_dispatch",
+        "blocks_unrelated_owner_dispatch": False,
+        "external_light_runtime_dependency": False,
+        "external_light_router_dependency": False,
+        "external_light_db09_dependency": False,
+    }
 
 
 def _light_forbidden_authority() -> dict[str, bool]:

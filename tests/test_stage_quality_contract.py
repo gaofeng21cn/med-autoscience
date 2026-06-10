@@ -430,6 +430,7 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
     pack = packs["external_pattern_intake_pack"]
     assert "external_pattern_intake_pack" in REQUIRED_STAGE_QUALITY_PACK_IDS
     assert pack["title"] == "External pattern intake pack"
+    assert pack["maturity_status"] == "stable_contract"
     assert set(pack["applies_to"]["stages"]) == {"scout", "idea", "review", "decision", "write"}
 
     assert pack["clean_room_absorption"] == {
@@ -538,6 +539,57 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
         "caption_disclosure_ref",
         "display_owner_action_ref",
     } <= set(patterns["figure_integrity_lint_warning_ref"]["required_contract_fields"])
+
+    materializer = pack["materializer_contract"]
+    assert materializer == {
+        "surface_kind": "light_external_advisory_materializer_contract",
+        "schema_version": 1,
+        "owner": "MedAutoScience",
+        "controller_ref": (
+            "med_autoscience.controllers.light_advisory_materializer.materialize_light_advisory_refs"
+        ),
+        "cli_entry": "medautosci study light-advisory-materialize",
+        "flat_cli_entry": "medautosci light-advisory-materialize",
+        "writes": [
+            "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json",
+            "artifacts/stage_outputs/<stage>/advisory/refs/verified_asset_ref.json",
+            "artifacts/stage_outputs/<stage>/advisory/refs/collision_check_ref.json",
+            "artifacts/stage_outputs/<stage>/advisory/refs/refusal_rehearsal_ref.json",
+            "artifacts/stage_outputs/<stage>/advisory/refs/fresh_evidence_gate_ref.json",
+            "artifacts/stage_outputs/<stage>/advisory/typed_blocker_candidate.json",
+        ],
+        "does_not_write": [
+            "study truth",
+            "paper body",
+            "artifact body",
+            "memory body",
+            "owner receipt",
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+            "submission package",
+            "current_package",
+        ],
+        "output_ref_kinds": [
+            "verified_asset_ref",
+            "collision_check_ref",
+            "refusal_rehearsal_ref",
+            "fresh_evidence_gate_ref",
+        ],
+        "typed_blocker_materialization": "candidate_only_current_delta_hard_gate_required",
+        "missing_advisory_behavior": "do_not_block_dispatch",
+        "blocks_unrelated_owner_dispatch": False,
+        "external_light_runtime_dependency": False,
+        "external_light_router_dependency": False,
+        "external_light_db09_dependency": False,
+    }
+
+    promotion = pack["promotion_evidence"]
+    assert promotion["stable_strong_evidence_satisfied"] is True
+    assert {item["evidence_id"] for item in promotion["evidence"]} >= {
+        "light_external_pattern_intake_contract_test",
+        "light_external_advisory_materializer_tests",
+        "light_external_advisory_materializer_cli_tests",
+    }
 
     missing_ref_policy = {item["missing_ref_class"]: item for item in pack["missing_ref_policy"]}
     assert missing_ref_policy["advisory_signal_ref"]["blocks_unrelated_owner_dispatch"] is False
