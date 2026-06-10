@@ -92,6 +92,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         _mapping(canonical_work_unit_state.get("typed_blocker"))
         or _mapping(execution.get("typed_blocker"))
         or _mapping(domain_transition.get("typed_blocker"))
+        or _mapping(handoff.get("typed_blocker"))
         or terminal_closeout_blocker
     )
     payload_current_action = _mapping(payload.get("current_executable_owner_action"))

@@ -543,7 +543,137 @@ def _apply_matching_terminal_closeout_to_handoff(projection: dict[str, Any]) -> 
         runtime_health["runtime_liveness_status"] = "terminal"
         runtime_health["health_status"] = "terminal"
         updated["runtime_health"] = runtime_health
+    return _apply_terminal_closeout_owner_answer_gate(updated)
+
+
+def _apply_terminal_closeout_owner_answer_gate(projection: dict[str, Any]) -> dict[str, Any]:
+    terminal = _observability_mapping(projection.get("latest_terminal_stage_log"))
+    if not terminal or _terminal_closeout_has_owner_answer(terminal, projection):
+        return projection
+    action_queue = [dict(item) for item in projection.get("action_queue") or [] if isinstance(item, Mapping)]
+    matching_actions = [
+        item
+        for item in action_queue
+        if _terminal_closeout_matches_handoff_action(terminal=terminal, action=item)
+    ]
+    if action_queue and not matching_actions:
+        return projection
+    updated = dict(projection)
+    blocker = _terminal_closeout_owner_answer_blocker(
+        terminal=terminal,
+        matching_action=matching_actions[0] if matching_actions else None,
+    )
+    updated["typed_blocker"] = blocker
+    updated["blocked_reason"] = blocker["blocker_id"]
+    updated["next_owner"] = blocker["owner"]
+    updated["external_supervisor_required"] = True
+    why_not_applied = _string_list(updated.get("why_not_applied"))
+    if blocker["blocker_id"] not in why_not_applied:
+        why_not_applied.append(blocker["blocker_id"])
+    updated["why_not_applied"] = why_not_applied
+    if matching_actions:
+        source_ref = _non_empty_text(terminal.get("record_path")) or _non_empty_text(terminal.get("source_path"))
+        updated["consumed_action_queue"] = [
+            {
+                **dict(item),
+                "consumption": {
+                    **_observability_mapping(item.get("consumption")),
+                    "state": "blocked_by_terminal_closeout_missing_owner_answer",
+                    "typed_blocker_ref": source_ref,
+                },
+            }
+            for item in matching_actions
+        ]
+        updated["action_queue"] = [
+            dict(item)
+            for item in action_queue
+            if item not in matching_actions
+        ]
     return updated
+
+
+def _terminal_closeout_has_owner_answer(
+    terminal: Mapping[str, Any],
+    projection: Mapping[str, Any],
+) -> bool:
+    if _observability_mapping(projection.get("latest_typed_default_executor_closeout")):
+        return True
+    if _observability_mapping(projection.get("typed_blocker")):
+        return True
+    if _observability_mapping(terminal.get("typed_blocker")):
+        return True
+    if _string_list(terminal.get("typed_blocker_refs")) or _string_list(terminal.get("owner_receipt_refs")):
+        return True
+    paper_stage_log = _observability_mapping(terminal.get("paper_stage_log"))
+    if _string_list(paper_stage_log.get("changed_paper_surfaces")):
+        return True
+    outcome = _non_empty_text(paper_stage_log.get("outcome"))
+    return outcome in {
+        "typed_blocker",
+        "blocked_with_domain_typed_blocker",
+        "owner_receipt",
+        "owner_receipt_recorded",
+        "handoff_ready",
+        "next_handoff",
+    }
+
+
+def _terminal_closeout_matches_handoff_action(
+    *,
+    terminal: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    terminal_attempt_id = _non_empty_text(terminal.get("stage_attempt_id"))
+    action_attempt_id = _non_empty_text(action.get("stage_attempt_id")) or _non_empty_text(
+        action.get("active_stage_attempt_id")
+    )
+    if terminal_attempt_id and action_attempt_id:
+        return terminal_attempt_id == action_attempt_id
+    terminal_action_type = _non_empty_text(terminal.get("action_type"))
+    action_type = _non_empty_text(action.get("action_type"))
+    if terminal_action_type and action_type and terminal_action_type != action_type:
+        return False
+    terminal_work_unit = _work_unit_identity(terminal.get("work_unit_id")) or _work_unit_identity(
+        terminal.get("next_work_unit")
+    )
+    action_work_unit = _work_unit_identity(action.get("work_unit_id")) or _work_unit_identity(
+        action.get("next_work_unit")
+    )
+    if terminal_work_unit and action_work_unit:
+        return terminal_work_unit == action_work_unit
+    return terminal_action_type is not None and terminal_action_type == action_type
+
+
+def _terminal_closeout_owner_answer_blocker(
+    *,
+    terminal: Mapping[str, Any],
+    matching_action: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    action = _observability_mapping(matching_action)
+    source_ref = _non_empty_text(terminal.get("record_path")) or _non_empty_text(terminal.get("source_path"))
+    blocker = {
+        "blocker_id": "terminal_closeout_owner_answer_required",
+        "blocker_type": "terminal_closeout_owner_answer_required",
+        "owner": "one-person-lab",
+        "summary": (
+            "Terminal provider closeout must include a MAS owner receipt, typed blocker, or next handoff "
+            "before the current work unit can continue."
+        ),
+        "required_input": "MAS owner receipt, typed blocker, or next handoff",
+        "stage_attempt_id": _non_empty_text(terminal.get("stage_attempt_id")),
+        "action_type": _non_empty_text(terminal.get("action_type")) or _non_empty_text(action.get("action_type")),
+        "work_unit_id": _work_unit_identity(action.get("work_unit_id")) or _work_unit_identity(
+            action.get("next_work_unit")
+        ),
+        "work_unit_fingerprint": _non_empty_text(action.get("work_unit_fingerprint"))
+        or _non_empty_text(action.get("fingerprint")),
+        "action_fingerprint": _non_empty_text(action.get("action_fingerprint"))
+        or _non_empty_text(action.get("fingerprint")),
+        "source_ref": source_ref,
+        "typed_blocker_ref": source_ref,
+        "closeout_refs": _string_list(terminal.get("closeout_refs")),
+    }
+    return {key: value for key, value in blocker.items() if value not in (None, "", [], {})}
 
 
 def _apply_typed_default_executor_closeout_to_handoff(
