@@ -43,4 +43,3 @@ MAS authority stays in source readiness records, evidence ledgers, claim-evidenc
 - Missing source or retrieval blockers:
 - Reporting-guideline gate status:
 - Next MAS route:
-

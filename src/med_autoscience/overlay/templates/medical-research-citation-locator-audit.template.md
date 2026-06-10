@@ -28,4 +28,3 @@ MAS authority remains in citation ledgers, claim-evidence maps, review ledgers, 
 - Missing official or primary sources:
 - Blocking citation issues:
 - Next MAS route:
-

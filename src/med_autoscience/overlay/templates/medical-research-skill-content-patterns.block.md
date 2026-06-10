@@ -13,4 +13,3 @@ Use local companion files as quest-local working aids:
 - Generated evidence, manuscript, display, and review outputs remain in MAS-owned paper/artifact surfaces, not in the skill directory.
 
 Do not import external scripts, runtime state, memory databases, score sheets, checklist verdicts, or tool routers into this layout. If a helper needs executable behavior, implement it through MAS owner code, contracts, and tests first.
-
