@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.agent_tool_arsenal import build_agent_tool_arsenal_index
 from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_catalog
 from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration import (
     build_functional_consumer_boundary,
@@ -69,6 +70,7 @@ def build_standard_pack() -> dict[str, Any]:
         "action_catalog": _with_forbidden_roles(action_catalog),
         "stage_control_plane": stage_control_plane,
         "foundry_agent_series": _foundry_agent_series_contract(stage_control_plane),
+        "agent_tool_arsenal": build_agent_tool_arsenal_index(action_catalog),
         "memory_descriptor": _memory_descriptor(),
         "artifact_locator_contract": _artifact_locator_contract(),
         "owner_receipt_contract": _owner_receipt_contract(),
@@ -110,6 +112,7 @@ def _domain_descriptor() -> dict[str, Any]:
         "generated_descriptor_surfaces": list(GENERATED_SURFACES),
         "standard_contract_refs": {
             "action_catalog": "contracts/action_catalog.json",
+            "agent_tool_arsenal": "contracts/agent_tool_arsenal.json",
             "foundry_agent_series": "contracts/foundry_agent_series.json",
             "foundry_agent_series_policy_release": (
                 "contracts/opl-framework/foundry-agent-series-policy-release.json"
@@ -301,6 +304,9 @@ def _pack_compiler_input() -> dict[str, Any]:
             "canonical_agent_pack_root": "agent/",
             "required_domain_pack_paths": REQUIRED_DOMAIN_PACK_PATHS,
             "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
+            "agent_tool_arsenal": (
+                "src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index"
+            ),
             "stage_control_plane": (
                 "src/med_autoscience/opl_domain_pack/family_adoption.py::build_family_stage_control_plane"
             ),

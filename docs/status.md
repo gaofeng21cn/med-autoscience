@@ -5,7 +5,7 @@ Purpose: `current_truth_summary`
 State: `active_current_truth`
 Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `agent/` pack、`contracts/`、CLI/MCP/API 行为、product-entry manifest、domain-handler receipt、runtime/controller durable surfaces、真实 workspace artifact、owner receipt 和 generated artifact proof。具体 study 当前状态必须 fresh 读取 live `study_progress`、workspace artifacts、controller decisions、publication eval、OPL current-control 和 owner receipts。
 
-文档更新时间：`2026-06-10`
+文档更新时间：`2026-06-11`
 最近一次已记录 live runtime audit：`2026-06-05`
 最近一次已记录 DM002 / DM003 paper-line pause closeout：`2026-06-05`
 最近一次已记录 DM002 / DM003 stage-native live canary：`2026-06-06`
@@ -16,7 +16,7 @@ Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `
 最近一次已记录 External-learning adoption closure：`2026-06-10`
 最近一次已记录 external-learning worker closure：`2026-06-10`
 最近一次已记录 MAS / OPL Agent OS 目标运行架构：`2026-06-10`
-最近一次已记录 Agent Tool Arsenal / Capability Invocation OS：`2026-06-10`
+最近一次已记录 Agent Tool Arsenal / Capability Invocation OS：`2026-06-11`
 最近一次已记录 Foundry Agent OS domain kernel manifest：`2026-06-10`
 最近一次已记录 Display Pack v2 landing status：`2026-06-10`
 最近一次已记录 accepted typed closeout / current-control handoff currentness hardening：`2026-06-10`
@@ -29,7 +29,7 @@ Accepted typed closeout currentness hardening：当 OPL / default executor close
 
 MAS / OPL Agent OS 目标运行架构：[MAS / OPL Agent OS 目标运行架构与重构计划](./runtime/designs/mas_opl_agent_os_target_operating_architecture.md) 是当前顶层重构方向。目标态固定为 `OPL Agent OS + MAS Declarative Medical Research Pack + MAS Minimal Authority Kernel + Scientific Capability Registry`。OPL 持有 durable execution、StageRun、State Index、Route Reconciler、Lifecycle、Observability、Tool Arsenal 和 Workbench Shell；MAS 持有 study truth、source/data readiness、AI reviewer / auditor verdict、publication gate、artifact mutation authorization、publication-route memory decision、owner receipt 和 typed blocker；外部 Co-Scientist / Light / EvoScientist / PaperSpine / ARIS / ARK 等只进入 capability registry 或 refs-only advisory worker。External-learning 后续优化已折回 OPL family `W3-capability-registry-fail-open` / MAS `W4-domain-kernel-manifest` / `W7-production-evidence-soak`：不新增 MAS standalone selector、第二 active backlog 或 always-on advisory flow。该文档给出 Lane 0 文档/合同入口 + Pack Compiler、StageRun 上收、`current_owner_delta` 默认读面、Authority Kernel 收薄、evidence lineage、AI-first Quality OS、Agent Tool Arsenal / capability registry、workbench UX 和 production soak 实施 lane；它不声明 live paper-line 完成、publication-ready、artifact mutation authorization 或 production-ready。
 
-Agent Tool Arsenal / Capability Invocation OS：MAS 的 CLI、MCP、skill、domain-handler、owner callable、sidecar、native helper 和 OPL hosted action 都按 agent-facing invocation ABI 读取，不作为用户手动学习和拼装的工具箱。当前审计显示 MAS action catalog 已有 12 个 action，MCP registry 暴露 7 个 task tools，owner callable registry 已声明 required inputs / outputs / idempotency / fingerprint scope，但这些 surface 尚未统一成 `ToolArsenalIndex`、`ToolUseCard`、`CapabilityInvocationPlan`、`ToolResultEnvelope` 和 `ToolAuditTrail`。下一层优化由 OPL Pack Compiler / Capability Registry 生成 compact index、延迟加载 tool cards、risk annotations、output schema、human-gate requirement 和 structured result envelope；MAS 只声明 authority boundary、allowed writes、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级门。该设计不新增 MAS 私有 selector、always-on sidecar、默认 preflight 或人类操作手册依赖。
+Agent Tool Arsenal / Capability Invocation OS：`contracts/agent_tool_arsenal.json` 已把 MAS action catalog、MCP registry、owner callable registry、plugin skill 和 stage refs 汇总成 agent-facing invocation ABI，并由 `src/med_autoscience/agent_tool_arsenal.py` 生成 `ToolArsenalIndex`、`ToolUseCard`、`CapabilityInvocationPlan`、`ToolResultEnvelope` 和 `ToolAuditTrail` 的 source refs、authority boundary、risk annotations、allowed writes、forbidden authority、output schema 与 current-delta applicability。MCP 现在暴露只读 `agent_tool_arsenal` 工具，可让 autonomous agent 读取 index、单张 card、current-owner-delta invocation plan 或 result envelope schema；人类用户仍只管理目标、授权和异常，不学习底层 CLI/MCP/helper 拼装。该 landing 不声明 paper progress、domain-ready、production-ready、publication-ready、quality verdict、owner receipt 实例、artifact authority 或 current package freshness；剩余 tail 是 OPL resolver/runtime 消费、direct/hosted parity、current-owner-delta live soak 和真实 production evidence。
 
 Foundry Agent OS domain kernel manifest：`contracts/foundry-agent-os-domain-kernel-manifest.json` 是 W4 `domain-kernel-manifest` 的 MAS machine-readable 落点。它把 retained Medical Authority Kernel、OPL upcollect surfaces、`current_owner_delta` 默认读根、owner receipt / typed blocker / quality-publication signer 归属和 OPL/Vault/Console/Runway/Pack/Capability Registry false-authority flags 固定为可测试合同；它不声明 domain-ready、publication-ready、submission-ready、production-ready、App release-ready 或 physical delete authority。
 

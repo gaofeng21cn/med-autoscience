@@ -10,6 +10,8 @@ class McpToolSpec:
     description: str
     input_schema: dict[str, Any]
     metadata: dict[str, Any] | None = None
+    output_schema: dict[str, Any] | None = None
+    annotations: dict[str, Any] | None = None
 
     def as_manifest_entry(self) -> dict[str, Any]:
         payload = {
@@ -17,6 +19,10 @@ class McpToolSpec:
             "description": self.description,
             "inputSchema": self.input_schema,
         }
+        if self.output_schema is not None:
+            payload["outputSchema"] = self.output_schema
+        if self.annotations is not None:
+            payload["annotations"] = self.annotations
         if self.metadata is not None:
             payload["metadata"] = self.metadata
         return payload
@@ -48,6 +54,8 @@ def build_tool_registry(
                 "Run doctor-side MedAutoScience audits through one task tool: "
                 "report, profile, overlay_status, or backend_audit."
             ),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=False),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -67,6 +75,8 @@ def build_tool_registry(
                 "init_workspace, startup_data_readiness, portfolio_memory_status, "
                 "init_portfolio_memory, workspace_literature_status, or init_workspace_literature."
             ),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=False),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -90,6 +100,8 @@ def build_tool_registry(
                 "Read or prepare research-side assets through one tool: data_assets_status, "
                 "external_research_status, or prepare_external_research."
             ),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=False),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -109,6 +121,8 @@ def build_tool_registry(
                 "blockers, and supervision links without becoming a second runtime authority."
             ),
             metadata=_tool_metadata(metadata_by_tool, "study_progress"),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=True),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -129,6 +143,8 @@ def build_tool_registry(
                 "allows controller writes; this tool never authorizes publication quality or "
                 "ad-hoc artifact mutation."
             ),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=False),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -148,6 +164,8 @@ def build_tool_registry(
                 "Read publication-side controller status through one task tool: "
                 "medical_literature_audit or medical_reporting_audit."
             ),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=False),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -163,6 +181,8 @@ def build_tool_registry(
             name="authority_operations",
             description=authority_description,
             metadata=_tool_metadata(metadata_by_tool, "authority_operations"),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=False),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -183,6 +203,37 @@ def build_tool_registry(
                 "additionalProperties": False,
             },
         ),
+        McpToolSpec(
+            name="agent_tool_arsenal",
+            description=(
+                "Read the MAS Agent Tool Arsenal / Capability Invocation OS index, cards, "
+                "current_owner_delta invocation plan, or result envelope schema for autonomous agents."
+            ),
+            metadata={
+                "surface_kind": "mas_agent_tool_arsenal_mcp_surface",
+                "contract_ref": "contracts/agent_tool_arsenal.json",
+            },
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=True),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "mode": {
+                        "type": "string",
+                        "enum": [
+                            "index",
+                            "card",
+                            "plan",
+                            "result_envelope_schema",
+                        ],
+                    },
+                    "tool_id": {"type": "string"},
+                    "current_owner_delta": {"type": "object"},
+                },
+                "required": ["mode"],
+                "additionalProperties": False,
+            },
+        ),
     )
 
 
@@ -195,3 +246,15 @@ def _tool_metadata(metadata_by_tool: dict[str, dict[str, Any]], tool_name: str) 
 
 def manifest_from_registry(registry: tuple[McpToolSpec, ...]) -> list[dict[str, Any]]:
     return [spec.as_manifest_entry() for spec in registry]
+
+
+def _result_envelope_schema() -> dict[str, Any]:
+    from med_autoscience.agent_tool_arsenal import build_tool_result_envelope_schema
+
+    return build_tool_result_envelope_schema()
+
+
+def _annotations(*, read_only: bool) -> dict[str, Any]:
+    from med_autoscience.agent_tool_arsenal import mcp_tool_annotations
+
+    return mcp_tool_annotations("", read_only=read_only)

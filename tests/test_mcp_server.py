@@ -18,6 +18,7 @@ EXPECTED_MCP_TOOLS = [
     "open_auto_research_soak",
     "publication_status",
     "authority_operations",
+    "agent_tool_arsenal",
 ]
 
 
@@ -70,6 +71,44 @@ def test_mcp_server_lists_read_only_tools() -> None:
     names = [tool["name"] for tool in tools]
 
     assert names == EXPECTED_MCP_TOOLS
+
+
+def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+
+    tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
+
+    for tool in tools.values():
+        assert tool["outputSchema"]["title"] == "MAS ToolResultEnvelope"
+        assert "readOnlyHint" in tool["annotations"]
+        assert "destructiveHint" in tool["annotations"]
+        assert "idempotentHint" in tool["annotations"]
+
+    progress = tools["study_progress"]
+    assert progress["annotations"]["readOnlyHint"] is True
+    assert progress["annotations"]["destructiveHint"] is False
+    assert progress["annotations"]["idempotentHint"] is True
+    assert progress["outputSchema"]["properties"]["status"]["enum"] == [
+        "succeeded",
+        "blocked",
+        "no_op_current",
+        "failed",
+    ]
+
+    arsenal = tools["agent_tool_arsenal"]
+    assert arsenal["annotations"]["readOnlyHint"] is True
+    assert arsenal["annotations"]["destructiveHint"] is False
+    assert arsenal["inputSchema"]["properties"]["mode"]["enum"] == [
+        "index",
+        "card",
+        "plan",
+        "result_envelope_schema",
+    ]
+    assert arsenal["metadata"]["surface_kind"] == "mas_agent_tool_arsenal_mcp_surface"
+    assert arsenal["outputSchema"]["title"] == "MAS ToolResultEnvelope"
+
+    assert tools["workspace_readiness"]["annotations"]["readOnlyHint"] is False
+    assert tools["authority_operations"]["annotations"]["readOnlyHint"] is False
 
 
 @pytest.mark.parametrize(
@@ -291,6 +330,49 @@ def test_mcp_server_rejects_study_runtime_tool_calls(tmp_path: Path) -> None:
 
     assert result["isError"] is True
     assert result["content"][0]["text"] == "Unknown tool: study_runtime"
+
+
+def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+
+    index_result = module.call_tool("agent_tool_arsenal", {"mode": "index"})
+
+    assert index_result["isError"] is False
+    index_payload = index_result["structuredContent"]
+    assert index_payload["surface_kind"] == "mas_agent_tool_arsenal_index"
+    assert index_payload["ordinary_planning_root"] == "current_owner_delta"
+    assert any(item["tool_id"] == "study_progress" for item in index_payload["tool_cards"])
+
+    card_result = module.call_tool(
+        "agent_tool_arsenal",
+        {"mode": "card", "tool_id": "study_progress"},
+    )
+
+    assert card_result["isError"] is False
+    assert card_result["structuredContent"]["tool_id"] == "study_progress"
+    assert card_result["structuredContent"]["risk_annotations"]["readOnlyHint"] is True
+
+    plan_result = module.call_tool(
+        "agent_tool_arsenal",
+        {
+            "mode": "plan",
+            "current_owner_delta": {
+                "action_type": "run_quality_repair_batch",
+                "source_ref": "controller_decisions/latest.json",
+            },
+        },
+    )
+
+    assert plan_result["isError"] is False
+    assert plan_result["structuredContent"]["selected_tool_id"] == (
+        "owner_callable:run_quality_repair_batch"
+    )
+    assert plan_result["structuredContent"]["requires"]["owner_receipt_or_typed_blocker"] is True
+
+    schema_result = module.call_tool("agent_tool_arsenal", {"mode": "result_envelope_schema"})
+
+    assert schema_result["isError"] is False
+    assert schema_result["structuredContent"]["title"] == "MAS ToolResultEnvelope"
 
 
 def test_mcp_server_rejects_ensure_study_runtime_mode_on_retired_mcp_tool(tmp_path: Path) -> None:

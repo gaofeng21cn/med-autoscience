@@ -63,8 +63,19 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     _assert_root_contract_matches_generated(generated, "foundry_agent_series")
     _assert_root_contract_matches_generated(generated, "generated_surface_handoff")
     _assert_root_contract_matches_generated(generated, "functional_privatization_audit")
+    _assert_root_contract_matches_generated(generated, "agent_tool_arsenal")
 
     assert generated["action_catalog"]["actions"] == action_catalog["actions"]
+    assert generated["agent_tool_arsenal"]["tool_index_refs"]["action_catalog"] == (
+        "contracts/action_catalog.json"
+    )
+    assert generated["agent_tool_arsenal"]["authority_boundary"] == {
+        "mas_owns_domain_truth_and_authority_functions": True,
+        "opl_owns_generated_descriptor_projection": True,
+        "tool_arsenal_can_write_domain_truth": False,
+        "tool_arsenal_can_authorize_quality_or_export": False,
+        "human_operator_manual_composition_required": False,
+    }
     assert generated["stage_control_plane"]["stages"] == stage_plane["stages"]
     assert generated["pack_compiler_input"]["generated_surface_owner"] == "one-person-lab"
     assert generated["pack_compiler_input"]["canonical_semantic_pack_root"] == "agent/"

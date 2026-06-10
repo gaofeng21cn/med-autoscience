@@ -148,10 +148,10 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 当前实现状态：
 
 - `src/med_autoscience/action_catalog.py` 当前生成 12 个 MAS action，已经表达 action id、effect、command、surface kind、MCP tool name、workspace locator fields 和 authority boundary。
-- `src/med_autoscience/mcp_server_parts/tool_registry.py` 当前暴露 7 个 MCP task tools，只有 `inputSchema` 和少量 action catalog metadata；尚未统一提供 `outputSchema`、tool annotations、task execution hint、risk class、idempotency policy 或 structured result envelope。
-- `src/med_autoscience/runtime_control/owner_callable_registry.py` 当前表达 owner action 到 callable surface 的 required inputs / outputs / idempotency / fingerprint scope，但它还不是由 `current_owner_delta` 自动解析的 agent tool-use plan。
-- `plugins/mas/skills/mas/SKILL.md` 仍是 direct path skill 约束和人读护栏；OPL generated descriptor 还需要把这些护栏编译为 agent-facing tool cards，而不是让 executor 读长 runbook 后自行判断。
-- `contracts/pack_compiler_input.json` 已请求 CLI / MCP / Skill / product-entry / domain-handler / status / workbench / harness generated surfaces；下一层缺口是把这些 generated surface 对齐到统一 Tool Arsenal ABI。
+- `src/med_autoscience/mcp_server_parts/tool_registry.py` 当前暴露 8 个 MCP task tools；`study_progress`、`authority_operations` 和只读 `agent_tool_arsenal` 已携带 `outputSchema` 与 tool annotations，`agent_tool_arsenal` 支持读取 index、card、plan 和 result envelope schema。
+- `src/med_autoscience/runtime_control/owner_callable_registry.py` 当前表达 owner action 到 callable surface 的 required inputs / outputs / idempotency / fingerprint scope；`contracts/agent_tool_arsenal.json` 已把这些 owner callable 编成 `owner_callable_cards`，供 `current_owner_delta.action_type` 解析 invocation plan。
+- `plugins/mas/skills/mas/SKILL.md` 仍是 direct path skill 约束和人读护栏；agent-facing 调用材料由 `contracts/agent_tool_arsenal.json` 和 MCP `agent_tool_arsenal` 读取，不要求 executor 读长 runbook 后自行拼装工具。
+- `contracts/pack_compiler_input.json` 已请求 CLI / MCP / Skill / product-entry / domain-handler / status / workbench / harness generated surfaces，并把 `agent_tool_arsenal` source ref 指向 `src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index`；剩余尾项是 OPL resolver/runtime 对该 ABI 的消费、direct/hosted parity 和 live current-owner-delta soak。
 
 目标接口：
 
@@ -198,7 +198,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | `HumanGate` | MAS declares, OPL transports | 明确人类决策项、可选动作、resume token、超时处理 |
 | `ToolArsenalIndex` | OPL generated, MAS domain intent | 按 current delta 暴露 compact tool candidates，避免全量工具上下文噪声 |
 | `ToolUseCard` | OPL generated, MAS bounded | 描述单个工具何时用、何时不用、输入输出、风险注解、examples 和验收 |
-| `CapabilityInvocation` | OPL schedules, MAS bounds | 当前 delta 触发 capability 的 inputs、question、budget、output refs |
+| `CapabilityInvocationPlan` | OPL schedules, MAS bounds | 当前 delta 触发 capability 的 inputs、question、budget、output refs |
 | `ToolResultEnvelope` | Tool / OPL / MAS owner surface | 统一 status、output refs、receipt/blocker refs、error class、retryability 和 no-forbidden-write proof |
 | `ProvenanceEnvelope` | MAS / OPL refs-only | entity / activity / agent / dataset / run / artifact lineage refs |
 | `ObservabilityEvent` | OPL | trace / metric / log / failure class；永不直接授权 domain verdict |
@@ -235,14 +235,14 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 2. 把现有 action catalog、stage route、quality contracts、generated surface handoff 对齐到该 contract。
 3. 给 direct MAS skill path 和 OPL-hosted path 加 parity fixture：同一 action 必须落到同一 MAS owner surface。
 4. 把 repo-local wrapper 标记为 generated target / authority function / diagnostic ref / tombstone 四类。
-5. 从 action catalog、owner callable registry、stage route、MCP registry 和 plugin skill 生成 `ToolArsenalIndex` / `ToolUseCard`，并补齐 output schema、risk annotations、examples、result envelope 和 authority flags。
+5. `contracts/agent_tool_arsenal.json` 已从 action catalog、owner callable registry、stage route、MCP registry 和 plugin skill 汇总 `ToolArsenalIndex` / `ToolUseCard` / `CapabilityInvocationPlan` / `ToolResultEnvelope` / `ToolAuditTrail` 的 machine-readable ABI；后续只按 OPL resolver/runtime 消费、parity 和 live soak 扩展。
 
 验收：
 
 - OPL conformance 能从 pack 发现 MAS stage/action/quality/handoff。
 - hand-written generic wrapper 不再作为长期 owner。
 - 新 stage 只改 pack / contract，不改 runtime scheduler。
-- Agent 能从 `current_owner_delta` 解析 3-7 个候选 tool cards；不需要读取长 skill 文档或人类 runbook 才能决定下一工具。
+- Agent 能通过 MCP `agent_tool_arsenal` 从 `current_owner_delta` 读取 index、card、plan 或 result schema；OPL resolver/runtime 后续负责把该 ABI 接入 ordinary invocation path。
 
 ### Lane 2：OPL StageRun / durable execution 上收
 
@@ -464,7 +464,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 1. **Lane 0 docs landing**：本文和核心入口落地，作为目标态 source of truth。
 2. **Lane 1 contract inventory**：列出 `DomainAgentPack` 所需 machine contract 和现有来源差距。
-3. **Lane 1 tool arsenal inventory**：把现有 12 个 action、7 个 MCP tool、owner callable registry、plugin skill 和 stage route 映射成 ToolArsenalIndex / ToolUseCard 差距清单。
+3. **Lane 1 tool arsenal consumption tail**：`contracts/agent_tool_arsenal.json` 已把 16 个 action、8 个 MCP tool、owner callable registry、plugin skill 和 stage route 映射成 ToolArsenalIndex / ToolUseCard / CapabilityInvocationPlan；下一步是 OPL resolver/runtime 消费、direct/hosted parity 和 live current-owner-delta soak。
 4. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否只以 `current_owner_delta` 为首屏。
 5. **Lane 4 authority function inventory**：给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类。
 6. **Lane 7 capability registry contract**：把 existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 折回 OPL `W3` capability registry schema；MAS 只补 domain consumption / owner receipt 晋级边界。
