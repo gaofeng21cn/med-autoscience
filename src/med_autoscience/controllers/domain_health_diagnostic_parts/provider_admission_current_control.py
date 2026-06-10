@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
+    provider_attempt_matches_identity,
+    study_has_running_provider_attempt,
+)
 from med_autoscience.controllers.owner_route_reconcile_parts import scan_output, supervision_surfaces
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -20,7 +24,15 @@ def materialize_provider_admission_current_control_state(
     latest_path = supervision_surfaces.latest_path(profile)
     history_path = supervision_surfaces.history_path(profile)
     previous_payload = supervision_surfaces.read_json_object(latest_path)
-    studies = [provider_admission_current_control_study(candidate) for candidate in candidates]
+    scanned_studies = _normalized_scanned_studies(scanned_studies)
+    live_studies_by_id = _live_scanned_studies_by_id(scanned_studies)
+    pending_candidates = _candidates_not_covered_by_live_attempt(
+        candidates,
+        live_studies_by_id=live_studies_by_id,
+    )
+    studies = [
+        provider_admission_current_control_study(candidate) for candidate in pending_candidates
+    ]
     candidate_study_ids = {
         study_id
         for study in studies
@@ -69,15 +81,16 @@ def materialize_provider_admission_current_control_state(
         queue_history={
             "history_path": str(history_path),
             "latest_action_count": len(output_actions),
-            "provider_admission_pending_count": len(candidates),
+            "provider_admission_pending_count": len(pending_candidates),
         },
         workspace_daemon_lifecycle={},
         provider_readiness=None,
         latest_path=latest_path,
         history_path=history_path,
+        provider_admission_candidates=[dict(candidate) for candidate in pending_candidates],
     )
-    payload["provider_admission_pending_count"] = len(candidates)
-    payload["provider_admission_candidates"] = [dict(candidate) for candidate in candidates]
+    payload["provider_admission_pending_count"] = len(pending_candidates)
+    payload["provider_admission_candidates"] = [dict(candidate) for candidate in pending_candidates]
     payload["current_control_refresh_source"] = "domain_health_diagnostic.provider_admission_candidates"
     if apply:
         supervision_surfaces.write_json(latest_path, payload)
@@ -91,13 +104,96 @@ def materialize_provider_admission_current_control_state(
                     if (study_id := _non_empty_text(study.get("study_id"))) is not None
                 ],
                 "action_ids": [action.get("action_id") for action in output_actions],
-                "provider_admission_pending_count": len(candidates),
+                "provider_admission_pending_count": len(pending_candidates),
                 "latest_action_count": len(output_actions),
                 "source": "domain_health_diagnostic.provider_admission_candidates",
             },
         )
     payload["written"] = bool(apply)
     return payload
+
+
+def _live_scanned_studies_by_id(
+    scanned_studies: list[dict[str, Any]] | None,
+) -> dict[str, dict[str, Any]]:
+    return {
+        study_id: dict(study)
+        for study in scanned_studies or []
+        if (study_id := _non_empty_text(study.get("study_id"))) is not None
+        and study_has_running_provider_attempt(study)
+    }
+
+
+def _normalized_scanned_studies(
+    scanned_studies: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    return [_scanned_study_with_live_attempt_projection(study) for study in scanned_studies or []]
+
+
+def _scanned_study_with_live_attempt_projection(study: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(study)
+    live_attempt = _running_attempt_from_study(payload)
+    if not live_attempt:
+        return payload
+    work_unit_id = _non_empty_text(live_attempt.get("work_unit_id")) or _non_empty_text(
+        _mapping(payload.get("current_execution_envelope")).get("next_work_unit")
+    )
+    payload.update(
+        {
+            "handoff_scan_status": _non_empty_text(payload.get("handoff_scan_status"))
+            or "running_provider_attempt_observed",
+            "quest_status": _non_empty_text(payload.get("quest_status")) or "running",
+            "active_run_id": _non_empty_text(live_attempt.get("active_run_id")),
+            "active_stage_attempt_id": _non_empty_text(live_attempt.get("active_stage_attempt_id")),
+            "active_workflow_id": _non_empty_text(live_attempt.get("active_workflow_id")),
+            "running_provider_attempt": True,
+            "runtime_health": _mapping(live_attempt.get("runtime_health")),
+            "action_queue": [],
+            "provider_admission_candidates": [],
+            "provider_admission_pending_count": 0,
+            "why_not_applied": None,
+            "blocked_reason": None,
+            "next_owner": "supervisor_only/live_provider_attempt",
+            "external_supervisor_required": False,
+            "opl_provider_attempt": live_attempt,
+            "current_execution_envelope": {
+                "state_kind": "running_provider_attempt",
+                "owner": _non_empty_text(live_attempt.get("owner"))
+                or "supervisor_only/live_provider_attempt",
+                "next_work_unit": work_unit_id,
+                "typed_blocker": None,
+                "parked_state": None,
+                "source": _non_empty_text(live_attempt.get("source"))
+                or "opl_provider_attempt",
+            },
+        }
+    )
+    return payload
+
+
+def _running_attempt_from_study(study: Mapping[str, Any]) -> dict[str, Any]:
+    if study_has_running_provider_attempt(study):
+        return _mapping(study.get("opl_provider_attempt")) or dict(study)
+    nested = _mapping(study.get("opl_provider_attempt"))
+    if study_has_running_provider_attempt(nested):
+        return nested
+    return {}
+
+
+def _candidates_not_covered_by_live_attempt(
+    candidates: list[dict[str, Any]],
+    *,
+    live_studies_by_id: Mapping[str, Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    pending: list[dict[str, Any]] = []
+    for candidate in candidates:
+        study_id = _non_empty_text(candidate.get("study_id"))
+        live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
+        live_attempt = _running_attempt_from_study(live_study)
+        if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
+            continue
+        pending.append(dict(candidate))
+    return pending
 
 
 def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> dict[str, Any]:

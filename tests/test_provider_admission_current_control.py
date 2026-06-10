@@ -242,6 +242,119 @@ def test_provider_admission_candidate_from_current_control_gate_clearing_queue_s
     assert stage_boundary["intent_can_write_domain_truth"] is False
 
 
+def test_provider_admission_current_control_prefers_live_attempt_over_pending_candidate(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    action_fingerprint = (
+        "current-ai-reviewer-gate-replay::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record::"
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260610T155750Z::sat_619d680b6dc5c74022af4a3b"
+    )
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "dispatch_path": (
+            "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+            "artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json"
+        ),
+        "next_executable_owner": "finalize",
+        "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "currentness_basis": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+            "truth_epoch": "truth-event-000032-097fe584ce2a78fb",
+            "runtime_health_epoch": "runtime-health-event-006579-e40441bd3cd1029f",
+        },
+    }
+    live_attempt = {
+        "surface_kind": "opl_current_control_state_provider_attempt",
+        "source": "opl_family_runtime_attempt_inspect",
+        "active_run_id": "opl-stage-attempt://sat-live",
+        "active_stage_attempt_id": "sat-live",
+        "active_workflow_id": "wf-live",
+        "running_provider_attempt": True,
+        "runtime_owner": "one-person-lab",
+        "provider_attempt_owner": "one-person-lab",
+        "queue_owner": "one-person-lab",
+        "task_id": "frt-live",
+        "task_kind": "domain_owner/default-executor-dispatch",
+        "provider_kind": "temporal",
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": action_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "dispatch_ref": candidate["dispatch_path"],
+        "current_attempt_state": "running",
+        "provider_run": {
+            "provider_status": "running",
+            "workflow_id": "wf-live",
+            "last_heartbeat_at": "2026-06-10T17:17:28Z",
+        },
+        "runtime_health": {
+            "health_status": "running",
+            "runtime_liveness_status": "live",
+            "provider_status": "running",
+            "summary": "OPL family-runtime has a live provider-backed stage attempt for this study.",
+        },
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-10T17:18:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned_no_provider_admission",
+                "provider_admission_pending_count": 0,
+                "action_queue": [],
+                "opl_provider_attempt": live_attempt,
+                "current_execution_envelope": {
+                    "state_kind": "running_provider_attempt",
+                    "owner": "supervisor_only/live_provider_attempt",
+                    "next_work_unit": work_unit_id,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                    "source": "opl_provider_attempt",
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["queue_history"]["provider_admission_pending_count"] == 0
+    assert result["action_queue"] == []
+    study = result["studies"][0]
+    assert study["study_id"] == study_id
+    assert study["running_provider_attempt"] is True
+    assert study["active_stage_attempt_id"] == "sat-live"
+    assert study["active_workflow_id"] == "wf-live"
+    assert study["provider_admission_pending_count"] == 0
+    assert study["current_execution_envelope"]["state_kind"] == "running_provider_attempt"
+    assert result["current_execution_envelopes"][study_id]["state_kind"] == "running_provider_attempt"
+
+
 def test_provider_admission_prefers_canonical_current_work_unit_over_stale_current_action(
     tmp_path: Path,
 ) -> None:

@@ -5,6 +5,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission import (
+    _study_current_action_for_provider_admission,
     current_control_provider_admission_candidates,
     handoff_dispatch_path,
     handoff_work_unit_id,
@@ -116,6 +117,11 @@ def _provider_admission_scanned_currentness_studies(
         current_work_unit = _mapping(_mapping(payload).get("current_work_unit"))
         current_owner_ticket = _mapping(_mapping(payload).get("current_owner_ticket"))
         current_execution_envelope = _mapping(_mapping(payload).get("current_execution_envelope"))
+        domain_transition = _mapping(_mapping(payload).get("domain_transition"))
+        progress_first_monitoring_summary = _mapping(
+            _mapping(payload).get("progress_first_monitoring_summary")
+        )
+        intervention_lane = _mapping(_mapping(payload).get("intervention_lane"))
         next_owner = _non_empty_text(current_action.get("next_owner"))
         work_unit_id = _non_empty_text(current_action.get("work_unit_id"))
         execution_envelope = dict(current_execution_envelope) if current_execution_envelope else {
@@ -136,6 +142,10 @@ def _provider_admission_scanned_currentness_studies(
                 "current_executable_owner_action": dict(current_action),
                 **({"current_work_unit": dict(current_work_unit)} if current_work_unit else {}),
                 **({"current_owner_ticket": dict(current_owner_ticket)} if current_owner_ticket else {}),
+                **({"domain_transition": dict(domain_transition)} if domain_transition else {}),
+                **({"progress_first_monitoring_summary": dict(progress_first_monitoring_summary)}
+                   if progress_first_monitoring_summary else {}),
+                **({"intervention_lane": dict(intervention_lane)} if intervention_lane else {}),
                 "current_execution_envelope": execution_envelope,
             }
         )
@@ -320,6 +330,46 @@ def _same_tick_progress_current_actions(
                 repair_precedence.get("source_fingerprint"),
             ]
         )
+        projected_action = _study_current_action_for_provider_admission(
+            {
+                "study_id": normalized_study_id,
+                "quest_id": _non_empty_text(_mapping(payload).get("quest_id")) or normalized_study_id,
+                "current_executable_owner_action": dict(current),
+                **(
+                    {"current_work_unit": dict(_mapping(_mapping(payload).get("current_work_unit")))}
+                    if _mapping(_mapping(payload).get("current_work_unit"))
+                    else {}
+                ),
+                **(
+                    {"domain_transition": dict(_mapping(_mapping(payload).get("domain_transition")))}
+                    if _mapping(_mapping(payload).get("domain_transition"))
+                    else {}
+                ),
+                **(
+                    {
+                        "progress_first_monitoring_summary": dict(
+                            _mapping(_mapping(payload).get("progress_first_monitoring_summary"))
+                        )
+                    }
+                    if _mapping(_mapping(payload).get("progress_first_monitoring_summary"))
+                    else {}
+                ),
+                **(
+                    {"intervention_lane": dict(_mapping(_mapping(payload).get("intervention_lane")))}
+                    if _mapping(_mapping(payload).get("intervention_lane"))
+                    else {}
+                ),
+            }
+        )
+        if projected_action is not None:
+            explicit_fingerprints.extend(
+                _same_tick_text_items(
+                    [
+                        projected_action.get("work_unit_fingerprint"),
+                        projected_action.get("action_fingerprint"),
+                    ]
+                )
+            )
         current_actions[normalized_study_id] = {
             "action_type": _non_empty_text(current.get("action_type")),
             "action_ids": list(

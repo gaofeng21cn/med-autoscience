@@ -1031,14 +1031,12 @@ def test_domain_health_diagnostic_dry_run_aggregates_gate_admission_candidates_f
         request_opl_stage_attempts=True,
     )
 
-    assert result["provider_admission_pending_count"] == 2
+    assert result["provider_admission_pending_count"] == 1
     candidates = result["managed_study_opl_provider_admission_candidates"]
-    assert [candidate["study_id"] for candidate in candidates] == [dm002, dm003]
-    assert [candidate["action_type"] for candidate in candidates] == [
-        "run_gate_clearing_batch",
-        "run_gate_clearing_batch",
-    ]
-    assert result["action_fingerprints"] == [dm002_fingerprint, dm003_fingerprint]
+    assert [candidate["study_id"] for candidate in candidates] == [dm002]
+    assert [candidate["action_type"] for candidate in candidates] == ["run_gate_clearing_batch"]
+    assert [candidate["work_unit_fingerprint"] for candidate in candidates] == [dm002_fingerprint]
+    assert dm003_fingerprint in result["action_fingerprints"]
 
 
 def test_provider_probe_requires_running_attempt_fingerprint_match() -> None:

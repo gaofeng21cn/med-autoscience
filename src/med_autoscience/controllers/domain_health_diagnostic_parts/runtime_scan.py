@@ -309,6 +309,9 @@ def _with_fresh_progress_currentness(
         "current_execution_envelope",
         "current_executable_owner_action",
         "current_owner_ticket",
+        "domain_transition",
+        "progress_first_monitoring_summary",
+        "intervention_lane",
     ):
         if key in progress:
             value = progress.get(key)
@@ -410,6 +413,9 @@ def run_domain_health_diagnostic_for_runtime(
                         "current_execution_envelope",
                         "current_executable_owner_action",
                         "current_owner_ticket",
+                        "domain_transition",
+                        "progress_first_monitoring_summary",
+                        "intervention_lane",
                         "study_progress_generated_at",
                     )
                     if key in status_payload

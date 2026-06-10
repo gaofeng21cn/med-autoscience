@@ -7,6 +7,13 @@ from typing import Any, Mapping
 from med_autoscience.controllers import control_identity
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
+from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
+    current_ai_reviewer_gate_replay_fingerprint,
+    current_ai_reviewer_gate_replay_source_eval_id,
+    is_current_ai_reviewer_gate_replay_fingerprint,
+    source_eval_id_from_mapping,
+    study_currentness_basis,
+)
 
 
 DEFAULT_EXECUTOR_EXECUTION_LATEST = Path(
@@ -498,8 +505,21 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     if work_unit_id is None:
         return None
     study_id = _non_empty_text(study.get("study_id"))
+    source_eval_id = current_ai_reviewer_gate_replay_source_eval_id(
+        study=study,
+        current=current,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    )
+    eval_bound_fingerprint = current_ai_reviewer_gate_replay_fingerprint(
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+    )
     action_fingerprint = (
-        _non_empty_text(current.get("action_fingerprint"))
+        eval_bound_fingerprint
+        or _non_empty_text(current.get("action_fingerprint"))
         or _non_empty_text(current.get("work_unit_fingerprint"))
         or _non_empty_text(_mapping(study.get("current_work_unit")).get("action_fingerprint"))
         or _non_empty_text(_mapping(study.get("current_work_unit")).get("work_unit_fingerprint"))
@@ -514,11 +534,13 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         for key, value in {
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": action_fingerprint,
-            "owner_route_currentness_basis": _study_currentness_basis(
+            "source_eval_id": source_eval_id,
+            "owner_route_currentness_basis": study_currentness_basis(
                 study=study,
                 current=current,
                 work_unit_id=work_unit_id,
                 work_unit_fingerprint=action_fingerprint,
+                source_eval_id=source_eval_id,
             ),
         }.items()
         if value is not None
@@ -548,6 +570,15 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
 
 
 def _provider_admission_action_key(action: Mapping[str, Any]) -> tuple[str | None, str | None, str | None]:
+    fingerprint = _non_empty_text(action.get("work_unit_fingerprint")) or _non_empty_text(
+        action.get("action_fingerprint")
+    )
+    if is_current_ai_reviewer_gate_replay_fingerprint(fingerprint):
+        return (
+            _non_empty_text(action.get("study_id")),
+            _current_action_action_type(action),
+            fingerprint,
+        )
     return (
         _non_empty_text(action.get("study_id")),
         _current_action_action_type(action),
@@ -580,27 +611,6 @@ def _stable_provider_admission_ticket(
         work_unit_id=work_unit_id,
         action_type=action_type,
     )
-
-
-def _study_currentness_basis(
-    *,
-    study: Mapping[str, Any],
-    current: Mapping[str, Any],
-    work_unit_id: str,
-    work_unit_fingerprint: str | None,
-) -> dict[str, Any]:
-    current_work_unit = _mapping(study.get("current_work_unit"))
-    basis = _mapping(current_work_unit.get("currentness_basis"))
-    return {
-        key: value
-        for key, value in {
-            **basis,
-            "work_unit_id": _non_empty_text(basis.get("work_unit_id")) or work_unit_id,
-            "work_unit_fingerprint": _non_empty_text(basis.get("work_unit_fingerprint")) or work_unit_fingerprint,
-            "source": _non_empty_text(current.get("source")),
-        }.items()
-        if value is not None
-    }
 
 
 def _required_output_surface(current: Mapping[str, Any]) -> str | None:
@@ -806,7 +816,11 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
 
 
 def _current_control_action_identity(action: Mapping[str, Any]) -> dict[str, Any]:
-    if _non_empty_text(action.get("source_surface")) not in {None, "opl_current_control_state.action_queue"}:
+    if _non_empty_text(action.get("source_surface")) not in {
+        None,
+        "opl_current_control_state.action_queue",
+        "opl_current_control_state.study_current_executable_owner_action",
+    }:
         return {}
     action_type = _current_action_action_type(action)
     work_unit_id = (
@@ -897,8 +911,21 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
     currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
     action_type = _non_empty_text(current_work_unit.get("action_type"))
     work_unit_id = _non_empty_text(current_work_unit.get("work_unit_id"))
+    source_eval_id = current_ai_reviewer_gate_replay_source_eval_id(
+        study={"current_work_unit": current_work_unit},
+        current={},
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    )
+    eval_bound_fingerprint = current_ai_reviewer_gate_replay_fingerprint(
+        study_id=_non_empty_text(current_work_unit.get("study_id")),
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+    )
     fingerprint = (
-        _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+        eval_bound_fingerprint
+        or _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
         or _non_empty_text(current_work_unit.get("action_fingerprint"))
         or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
         or _non_empty_text(currentness_basis.get("source_fingerprint"))
@@ -911,6 +938,7 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
     fingerprints = [
         item
         for item in (
+            eval_bound_fingerprint,
             _non_empty_text(current_work_unit.get("work_unit_fingerprint")),
             _non_empty_text(current_work_unit.get("action_fingerprint")),
             _non_empty_text(currentness_basis.get("work_unit_fingerprint")),
