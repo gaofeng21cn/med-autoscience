@@ -79,6 +79,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "export-inspection-package"): "export-inspection-package",
     ("publication", "materialize-display-surface"): "materialize-display-surface",
     ("publication", "sync-display-pack"): "sync-display-pack-surface",
+    ("publication", "display-pack-e2e"): "display-pack-e2e",
     ("publication", "time-to-event-migration"): "time-to-event-direct-migration",
     ("publication", "resolve-targets"): "resolve-submission-targets",
     ("publication", "resolve-journal-shortlist"): "resolve-journal-shortlist",

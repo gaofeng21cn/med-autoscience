@@ -21,6 +21,7 @@ from med_autoscience.medical_prose_review_request import materialize_ai_medical_
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
 from med_autoscience.cli_parts.authority_operations import handle_authority_operation_command
+from med_autoscience.cli_parts.display_pack_commands import handle_display_pack_command
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
 from med_autoscience.cli_parts.retention_commands import handle_retention_command
@@ -849,6 +850,12 @@ def main(argv: list[str] | None = None) -> int:
         result = display_pack_surface_sync.sync_display_pack_surface(
             paper_root=Path(args.paper_root),
         )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    display_pack_result = handle_display_pack_command(args)
+    if display_pack_result is not None:
+        result = display_pack_result
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

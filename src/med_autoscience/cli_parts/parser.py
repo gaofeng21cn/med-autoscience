@@ -476,6 +476,13 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     display_pack_surface_sync_parser = subparsers.add_parser("sync-display-pack-surface")
     display_pack_surface_sync_parser.add_argument("--paper-root", required=True)
 
+    display_pack_e2e_parser = subparsers.add_parser("display-pack-e2e")
+    display_pack_e2e_parser.add_argument("--repo-root", required=True)
+    display_pack_e2e_parser.add_argument("--paper-root", required=True)
+    display_pack_e2e_review = display_pack_e2e_parser.add_mutually_exclusive_group(required=True)
+    display_pack_e2e_review.add_argument("--visual-audit-review-json")
+    display_pack_e2e_review.add_argument("--visual-audit-review-file")
+
     time_to_event_direct_migration_parser = subparsers.add_parser("time-to-event-direct-migration")
     time_to_event_direct_migration_parser.add_argument("--study-root", required=True)
     time_to_event_direct_migration_parser.add_argument("--paper-root", required=True)
