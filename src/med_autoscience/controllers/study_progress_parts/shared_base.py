@@ -7,7 +7,7 @@ import sys
 from datetime import datetime, timezone
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 from opl_harness_shared.status_narration import (
     PROGRESS_ANSWER_CHECKLIST,
@@ -43,6 +43,7 @@ from med_autoscience.study_task_intake import (
     summarize_task_intake,
     task_intake_requests_manuscript_fast_lane,
 )
+from med_autoscience.lazy_module_proxy import lazy_controller_module
 
 
 def _controller_override(name: str, default: Any) -> Any:
@@ -103,35 +104,9 @@ _DEFAULT_EVENT_LIMIT = 6
 from .status_text_labels import *  # noqa: F403
 
 
-def _load_controller(module_name: str):
-    return import_module(f"med_autoscience.controllers.{module_name}")
-
-
-class _LazyModuleProxy:
-    def __init__(self, loader: Callable[[], Any]) -> None:
-        object.__setattr__(self, "_loader", loader)
-        object.__setattr__(self, "_module", None)
-
-    def _resolve(self):
-        module = object.__getattribute__(self, "_module")
-        if module is None:
-            module = object.__getattribute__(self, "_loader")()
-            object.__setattr__(self, "_module", module)
-        return module
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._resolve(), name)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name.startswith("_"):
-            object.__setattr__(self, name, value)
-            return
-        setattr(self._resolve(), name, value)
-
-
-gate_clearing_batch = _LazyModuleProxy(lambda: _load_controller("gate_clearing_batch"))
-quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
-domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
+gate_clearing_batch = lazy_controller_module("gate_clearing_batch")
+quality_repair_batch = lazy_controller_module("quality_repair_batch")
+domain_status_projection = lazy_controller_module("domain_status_projection")
 _QUALITY_CLOSURE_BASIS_LABELS = {
     "clinical_significance": "临床意义",
     "evidence_strength": "证据强度",

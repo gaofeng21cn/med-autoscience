@@ -4,7 +4,6 @@ import argparse
 import importlib
 import json
 import sys
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +16,7 @@ from med_autoscience.cli_public_surface import (
 )
 from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.json_payload import json_safe
+from med_autoscience.lazy_module_proxy import LazyModuleProxy as _LazyModuleProxy
 from med_autoscience.medical_prose_review_request import materialize_ai_medical_prose_review_from_response
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
@@ -41,7 +41,6 @@ from med_autoscience.foundry_command_surface import (
     render_foundry_command_surface_text,
 )
 
-@lru_cache(maxsize=None)
 def _load_module(module_name: str) -> Any:
     return importlib.import_module(module_name)
 
@@ -64,14 +63,6 @@ def _load_workspace_python_environment_controller() -> Any:
 
 def _load_doctor_module() -> Any:
     return _load_module("med_autoscience.doctor")
-
-
-class _LazyModuleProxy:
-    def __init__(self, loader) -> None:
-        object.__setattr__(self, "_loader", loader)
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(object.__getattribute__(self, "_loader")(), name)
 
 
 data_asset_gate = _LazyModuleProxy(lambda: _load_controller("data_asset_gate"))

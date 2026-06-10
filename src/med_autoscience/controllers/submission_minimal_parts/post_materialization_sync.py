@@ -1,44 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from importlib import import_module
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
+from med_autoscience.lazy_module_proxy import lazy_controller_module
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.runtime_protocol import resolve_paper_root_context
 
 
-def _load_controller(module_name: str):
-    return import_module(f"med_autoscience.controllers.{module_name}")
-
-
-class _LazyModuleProxy:
-    def __init__(self, loader: Callable[[], Any]) -> None:
-        object.__setattr__(self, "_loader", loader)
-        object.__setattr__(self, "_module", None)
-
-    def _resolve(self):
-        module = object.__getattribute__(self, "_module")
-        if module is None:
-            module = object.__getattribute__(self, "_loader")()
-            object.__setattr__(self, "_module", module)
-        return module
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._resolve(), name)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name.startswith("_"):
-            object.__setattr__(self, name, value)
-            return
-        setattr(self._resolve(), name, value)
-
-
-publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
-study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
-study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
-study_outer_loop = _LazyModuleProxy(lambda: _load_controller("study_outer_loop"))
+publication_gate = lazy_controller_module("publication_gate")
+study_delivery_sync = lazy_controller_module("study_delivery_sync")
+study_progress = lazy_controller_module("study_progress")
+study_outer_loop = lazy_controller_module("study_outer_loop")
 
 
 def _read_optional_config_env_value(*, path: Path, key: str) -> str | None:

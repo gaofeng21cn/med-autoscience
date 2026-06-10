@@ -214,6 +214,11 @@ def _from_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None
     allowed_actions = _text_items(owner_action.get("allowed_actions")) or _text_items(
         next_forced_delta.get("allowed_actions")
     )
+    action_type = (
+        _non_empty_text(owner_action.get("action_type"))
+        or _non_empty_text(next_forced_delta.get("action_type"))
+        or (allowed_actions[0] if len(allowed_actions) == 1 else None)
+    )
     if owner is None and work_unit_id is None and not allowed_actions:
         return None
     return _compact(
@@ -224,6 +229,7 @@ def _from_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None
             "source": "study_progress.next_forced_delta.owner_action",
             "next_owner": owner,
             "work_unit_id": work_unit_id,
+            "action_type": action_type,
             "allowed_actions": allowed_actions,
             "owner_receipt_required": owner_action.get("owner_receipt_required") is not False,
             "required_delta_kind": _non_empty_text(next_forced_delta.get("required_delta_kind")),

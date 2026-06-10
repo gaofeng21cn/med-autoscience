@@ -76,6 +76,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 - 只要 `runtime_supervision/latest.json` 报告 `recovering / degraded / escalated`，前台就必须优先展示 runtime health，论文阶段在展示顺序上后置
 - 只要 `progress_projection.supervisor_tick_audit` 报告 `missing / stale / invalid`，前台就必须明确表述“MAS 外环监管心跳异常”，并停止使用“持续托管监管”口径
 - 前台的人话进度固定来自这些 `MAS` durable surface、MAS owner refs 与 OPL `current_control_state` refs；外部 executor adapter、diagnostic 或历史 substrate 的状态只按实际已验证接入情况描述
+- `study_progress` / `progress_projection` 的 lazy controller import 必须通过 `med_autoscience.lazy_module_proxy` 解析，并在每次访问时尊重 `sys.modules` 当前模块身份。测试、CLI dependency probe 或 MCP runtime reload 可能会删除并重导入 `domain_status_projection`、`study_progress`、`owner_route_handoff` 等模块；projection 入口不得缓存旧模块对象后继续读取旧 currentness、旧 monkeypatch 或旧 provider-admission 状态。新增 lazy import 不得私自复制缓存代理实现，也不得用 `lru_cache` 固定 runtime controller module object。
 
 ## 4. 输出合同
 

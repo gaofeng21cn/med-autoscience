@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from importlib import import_module
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.lazy_module_proxy import lazy_controller_module
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers import current_publication_eval
 from med_autoscience.controllers.gate_clearing_batch_blockers import (
@@ -53,38 +53,12 @@ STABLE_GATE_CLEARING_BATCH_RELATIVE_PATH = Path("artifacts/controller/gate_clear
 CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS = 5_000_000_000
 
 
-def _load_controller(module_name: str):
-    return import_module(f"med_autoscience.controllers.{module_name}")
-
-
-class _LazyModuleProxy:
-    def __init__(self, loader: Callable[[], Any]) -> None:
-        object.__setattr__(self, "_loader", loader)
-        object.__setattr__(self, "_module", None)
-
-    def _resolve(self):
-        module = object.__getattribute__(self, "_module")
-        if module is None:
-            module = object.__getattribute__(self, "_loader")()
-            object.__setattr__(self, "_module", module)
-        return module
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._resolve(), name)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name.startswith("_"):
-            object.__setattr__(self, name, value)
-            return
-        setattr(self._resolve(), name, value)
-
-
-display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
-publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
-study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
-submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
-domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
-time_to_event_direct_migration = _LazyModuleProxy(lambda: _load_controller("time_to_event_direct_migration"))
+display_surface_materialization = lazy_controller_module("display_surface_materialization")
+publication_gate = lazy_controller_module("publication_gate")
+study_delivery_sync = lazy_controller_module("study_delivery_sync")
+submission_minimal = lazy_controller_module("submission_minimal")
+domain_status_projection = lazy_controller_module("domain_status_projection")
+time_to_event_direct_migration = lazy_controller_module("time_to_event_direct_migration")
 
 
 def stable_gate_clearing_batch_path(*, study_root: Path) -> Path:

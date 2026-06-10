@@ -72,6 +72,8 @@ def _current_blockers_respecting_controller_closure(
 
 def _progress_projection_suppressing_stale_opl_route(payload: dict[str, Any]) -> dict[str, Any]:
     handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    if _handoff_is_live_provider_attempt(handoff):
+        return payload
     baseline = (
         _non_empty_text(handoff.get("generated_at"))
         or _non_empty_text(handoff.get("updated_at"))
@@ -283,6 +285,13 @@ def _progress_projection_refreshing_route_back(payload: dict[str, Any]) -> dict[
         refs["opl_current_control_state_handoff_path"] = None
         updated["refs"] = refs
     return updated
+
+
+def _handoff_is_live_provider_attempt(handoff: dict[str, Any]) -> bool:
+    return (
+        _non_empty_text(handoff.get("surface_kind")) == "opl_current_control_state_provider_attempt_handoff"
+        and handoff.get("running_provider_attempt") is True
+    )
 
 
 def _submission_authority_sync_closed_for_eval(

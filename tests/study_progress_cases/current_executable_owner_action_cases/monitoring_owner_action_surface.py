@@ -56,6 +56,7 @@ def test_progress_first_monitoring_exposes_current_executable_owner_action_from_
         "source": "study_progress.next_forced_delta.owner_action",
         "next_owner": "finalize",
         "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        "action_type": "run_gate_clearing_batch",
         "allowed_actions": ["run_gate_clearing_batch"],
         "owner_receipt_required": True,
         "required_delta_kind": "review_current_paper_delta",

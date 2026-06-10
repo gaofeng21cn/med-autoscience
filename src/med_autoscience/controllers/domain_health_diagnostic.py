@@ -76,8 +76,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     provider_probe_has_non_running_actions,
     study_has_running_provider_attempt,
 )
-from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control import (
-    materialize_provider_admission_current_control_state as _materialize_provider_admission_current_control_state,
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report import (
+    materialize_report_provider_admission_current_control_state as _materialize_report_provider_admission_current_control_state_impl,
+    sync_report_provider_admission_current_control_state as _sync_report_provider_admission_current_control_state,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
@@ -525,6 +526,10 @@ def run_domain_health_diagnostic_for_runtime(
         )
         if current_control_state is not None:
             report["provider_admission_current_control_state"] = current_control_state
+            _sync_report_provider_admission_current_control_state(
+                report,
+                current_control_state=current_control_state,
+            )
     return report
 
 
@@ -534,215 +539,12 @@ def _materialize_report_provider_admission_current_control_state(
     report: Mapping[str, Any],
     apply: bool,
 ) -> dict[str, Any] | None:
-    candidates = [
-        dict(item)
-        for item in report.get("managed_study_opl_provider_admission_candidates") or []
-        if isinstance(item, Mapping)
-    ]
-    progress_currentness = _mapping(
-        _mapping(report.get("current_execution_evidence")).get("progress_currentness")
-    )
-    supervisor_tick = _mapping(report.get("developer_supervisor_same_tick"))
-    if supervisor_tick.get("stop_reason") == "provider_handoff_written_admission_pending":
-        terminal_materialize = _mapping(supervisor_tick.get("materialize"))
-        if terminal_materialize:
-            candidates = _provider_admission_candidates_from_same_tick_materialize(
-                materialize_result=terminal_materialize,
-                fallback_candidates=candidates,
-                progress_currentness=progress_currentness,
-            )
-    return _materialize_provider_admission_current_control_state(
+    return _materialize_report_provider_admission_current_control_state_impl(
         profile=profile,
-        candidates=candidates,
-        generated_at=_non_empty_text(report.get("scanned_at")) or utc_now(),
+        report=report,
         apply=apply,
-        scanned_studies=_provider_admission_scanned_currentness_studies(progress_currentness),
+        generated_at=_non_empty_text(report.get("scanned_at")) or utc_now(),
     )
-
-
-def _provider_admission_scanned_currentness_studies(
-    progress_currentness: Mapping[str, Any] | None,
-) -> list[dict[str, Any]]:
-    studies: list[dict[str, Any]] = []
-    for study_id, payload in _mapping(progress_currentness).items():
-        normalized_study_id = _non_empty_text(study_id)
-        if normalized_study_id is None:
-            continue
-        current_action = _mapping(_mapping(payload).get("current_executable_owner_action"))
-        if not current_action:
-            continue
-        next_owner = _non_empty_text(current_action.get("next_owner"))
-        work_unit_id = _non_empty_text(current_action.get("work_unit_id"))
-        studies.append(
-            {
-                "study_id": normalized_study_id,
-                "quest_id": _non_empty_text(current_action.get("quest_id")) or normalized_study_id,
-                "handoff_scan_status": "scanned_no_provider_admission",
-                "provider_admission_pending_count": 0,
-                "action_queue": [],
-                "current_executable_owner_action": dict(current_action),
-                "current_execution_envelope": {
-                    "state_kind": "executable_owner_action",
-                    "owner": next_owner,
-                    "next_work_unit": work_unit_id,
-                    "typed_blocker": None,
-                    "parked_state": None,
-                    "source": "progress_currentness.current_executable_owner_action",
-                },
-            }
-        )
-    return studies
-
-
-def _provider_admission_candidates_from_same_tick_materialize(
-    *,
-    materialize_result: Mapping[str, Any],
-    fallback_candidates: list[dict[str, Any]],
-    progress_currentness: Mapping[str, Any] | None = None,
-) -> list[dict[str, Any]]:
-    fallback_by_identity = {
-        (_non_empty_text(candidate.get("study_id")), _non_empty_text(candidate.get("action_type"))): candidate
-        for candidate in fallback_candidates
-    }
-    current_action_by_study = _same_tick_progress_current_actions(progress_currentness)
-    candidates: list[dict[str, Any]] = []
-    for dispatch in materialize_result.get("default_executor_dispatches") or []:
-        if not isinstance(dispatch, Mapping):
-            continue
-        if _non_empty_text(dispatch.get("dispatch_status")) != "ready":
-            continue
-        study_id = _non_empty_text(dispatch.get("study_id"))
-        action_type = _non_empty_text(dispatch.get("action_type"))
-        base = dict(fallback_by_identity.get((study_id, action_type), {}))
-        candidate = {
-            **base,
-            "surface": "opl_provider_admission_candidate",
-            "schema_version": 1,
-            "status": "provider_admission_pending",
-            "source": _non_empty_text(base.get("source")) or "same_tick_materialized_dispatch",
-            "study_id": study_id,
-            "quest_id": _non_empty_text(dispatch.get("quest_id")) or _non_empty_text(base.get("quest_id")),
-            "action_type": action_type,
-            "work_unit_id": _non_empty_text(dispatch.get("work_unit_id"))
-            or _non_empty_text(base.get("work_unit_id"))
-            or handoff_work_unit_id(dispatch),
-            "work_unit_fingerprint": _non_empty_text(dispatch.get("work_unit_fingerprint"))
-            or _non_empty_text(dispatch.get("action_fingerprint"))
-            or _non_empty_text(base.get("work_unit_fingerprint")),
-            "action_fingerprint": _non_empty_text(dispatch.get("action_fingerprint"))
-            or _non_empty_text(dispatch.get("work_unit_fingerprint"))
-            or _non_empty_text(base.get("action_fingerprint")),
-            "dispatch_path": _non_empty_text(dispatch.get("dispatch_path"))
-            or _non_empty_text(base.get("dispatch_path"))
-            or handoff_dispatch_path(dispatch),
-            "dispatch_authority": _non_empty_text(dispatch.get("dispatch_authority"))
-            or _non_empty_text(base.get("dispatch_authority")),
-            "blocked_reason": OPL_EXECUTION_AUTHORIZATION_BLOCKER,
-            "next_executable_owner": _non_empty_text(dispatch.get("next_executable_owner"))
-            or _non_empty_text(base.get("next_executable_owner")),
-            "required_output_surface": _non_empty_text(dispatch.get("required_output_surface"))
-            or _non_empty_text(base.get("required_output_surface")),
-            "provider_attempt_or_lease_required": True,
-            "provider_completion_is_domain_completion": False,
-            "owner_route_current": True,
-        }
-        if candidate["study_id"] is not None and candidate["action_type"] is not None:
-            current_action_identity = current_action_by_study.get(candidate["study_id"])
-            if current_action_identity is not None and not _same_tick_candidate_matches_current_action(
-                candidate,
-                current_action_identity=current_action_identity,
-            ):
-                continue
-            candidates.append({key: value for key, value in candidate.items() if value is not None})
-    return candidates
-
-
-def _same_tick_progress_current_actions(
-    progress_currentness: Mapping[str, Any] | None,
-) -> dict[str, dict[str, Any]]:
-    current_actions: dict[str, dict[str, Any]] = {}
-    for study_id, payload in _mapping(progress_currentness).items():
-        normalized_study_id = _non_empty_text(study_id)
-        if normalized_study_id is None:
-            continue
-        current = _mapping(_mapping(payload).get("current_executable_owner_action"))
-        if not current:
-            continue
-        next_action = _mapping(current.get("next_action"))
-        repair_precedence = _mapping(current.get("repair_progress_precedence"))
-        allowed_actions = _same_tick_text_items(current.get("allowed_actions"))
-        explicit_fingerprints = _same_tick_text_items(
-            [
-                current.get("work_unit_fingerprint"),
-                current.get("action_fingerprint"),
-                current.get("source_fingerprint"),
-                repair_precedence.get("source_fingerprint"),
-            ]
-        )
-        current_actions[normalized_study_id] = {
-            "action_type": _non_empty_text(current.get("action_type")),
-            "action_ids": list(
-                dict.fromkeys(
-                    [
-                        *allowed_actions,
-                        *_same_tick_text_items([current.get("action_type"), next_action.get("action_id")]),
-                    ]
-                )
-            ),
-            "work_unit_id": _non_empty_text(current.get("work_unit_id"))
-            or _non_empty_text(next_action.get("action_id")),
-            "explicit_fingerprints": explicit_fingerprints,
-            "source_ref": _non_empty_text(current.get("source_ref"))
-            or _non_empty_text(current.get("latest_owner_answer_ref")),
-        }
-    return current_actions
-
-
-def _same_tick_candidate_matches_current_action(
-    candidate: Mapping[str, Any],
-    *,
-    current_action_identity: Mapping[str, Any],
-) -> bool:
-    action_type = _non_empty_text(candidate.get("action_type"))
-    work_unit_id = _non_empty_text(candidate.get("work_unit_id"))
-    work_unit_fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
-        candidate.get("action_fingerprint")
-    )
-    if action_type is None:
-        return False
-    expected_action_type = _non_empty_text(current_action_identity.get("action_type"))
-    if expected_action_type is not None and action_type != expected_action_type:
-        return False
-    action_ids = {
-        item
-        for item in _same_tick_text_items(current_action_identity.get("action_ids"))
-    }
-    if action_ids and action_type not in action_ids:
-        return False
-    expected_work_unit_id = _non_empty_text(current_action_identity.get("work_unit_id"))
-    if expected_work_unit_id is not None and work_unit_id != expected_work_unit_id:
-        return False
-    expected_fingerprints = set(_same_tick_text_items(current_action_identity.get("explicit_fingerprints")))
-    if expected_fingerprints:
-        return work_unit_fingerprint in expected_fingerprints
-    expected_source_ref = _non_empty_text(current_action_identity.get("source_ref"))
-    if expected_source_ref is not None:
-        return work_unit_fingerprint is not None and expected_source_ref in work_unit_fingerprint
-    return True
-
-
-def _same_tick_text_items(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = _non_empty_text(value)
-        return [text] if text is not None else []
-    if not isinstance(value, list | tuple | set):
-        return []
-    result: list[str] = []
-    for item in value:
-        text = _non_empty_text(item)
-        if text is not None and text not in result:
-            result.append(text)
-    return result
 
 
 def _run_developer_supervisor_same_tick(

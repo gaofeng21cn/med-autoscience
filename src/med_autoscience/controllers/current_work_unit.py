@@ -42,6 +42,7 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
 )
 CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS = frozenset(
     {
+        "opl_execution_authorization_required",
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
         "provider_admission_current_control_state_required",

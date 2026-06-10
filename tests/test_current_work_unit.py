@@ -489,6 +489,56 @@ def test_current_work_unit_projects_gate_consumption_action_over_stage_readiness
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_projects_gate_consumption_action_over_opl_authorization_residue_after_paper_delta() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "publication_supervision",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "next_forced_delta": {
+                "required_delta_kind": "review_current_paper_delta",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "owner_action": {
+                    "next_owner": "gate_clearing_batch",
+                    "work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+        },
+        actions=[
+            {
+                "source": "study_progress.next_forced_delta.owner_action",
+                "next_owner": "gate_clearing_batch",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "action_type": "run_gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "target_surface": {
+                    "ref_kind": "route_obligation",
+                    "route_target": "gate_clearing_batch",
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+            }
+        ],
+        typed_blocker={
+            "blocker_type": "opl_execution_authorization_required",
+            "owner": "write",
+        },
+        next_owner="write",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "gate_clearing_batch"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "ai_reviewer_record_gate_consumption"
+    assert work_unit["state"]["source"] == "study_progress.next_forced_delta.owner_action"
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_projects_next_forced_story_repair_over_stage_readiness_blocker_after_paper_delta() -> None:
     module = _module()
 

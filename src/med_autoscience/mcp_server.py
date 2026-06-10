@@ -4,9 +4,10 @@ import json
 import sys
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from med_autoscience import __version__
+from med_autoscience.lazy_module_proxy import LazyModuleProxy as _LazyModuleProxy
 from med_autoscience.action_catalog import (
     PRODUCT_ENTRY_CONTRACT_GAP_TEXT,
     action_catalog_metadata_by_mcp_tool,
@@ -35,14 +36,6 @@ from med_autoscience.mcp_server_parts.tool_registry import build_tool_registry, 
 
 PROTOCOL_VERSION = "2025-03-26"
 SERVER_NAME = "med-autoscience"
-
-
-class _LazyModuleProxy:
-    def __init__(self, loader: Callable[[], Any]) -> None:
-        object.__setattr__(self, "_loader", loader)
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(object.__getattribute__(self, "_loader")(), name)
 
 
 def _load_controller(module_name: str) -> Any:
