@@ -731,7 +731,7 @@ def test_classify_changed_files_matches_data_asset_display_and_overlay_contracts
 
     assert result.matched_categories == (
         "data_asset_operating_surface",
-        "display_publication_surface",
+        "display_pack_v2_contract_surface",
         "standard_agent_pack_surface",
     )
     assert result.unclassified_changes == ()

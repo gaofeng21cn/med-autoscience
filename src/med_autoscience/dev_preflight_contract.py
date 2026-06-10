@@ -109,29 +109,16 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="display_publication_surface",
         exact_paths=(
-            "contracts/display-pack-contract.v2.json",
-            "contracts/figure_polish_lifecycle_contract.json",
-            "contracts/medical_figure_spec_contract.json",
-            "contracts/publication_figure_quality_contract.json",
-            "src/med_autoscience/display_pack_v2_contract.py",
             "src/med_autoscience/display_registry.py",
             "src/med_autoscience/display_schema_contract.py",
             "src/med_autoscience/display_template_catalog.py",
-            "src/med_autoscience/figure_polish_lifecycle_contract.py",
-            "src/med_autoscience/medical_figure_spec_contract.py",
-            "src/med_autoscience/publication_figure_quality_contract.py",
             "src/med_autoscience/controllers/medical_publication_surface.py",
             "src/med_autoscience/controllers/publication_gate.py",
             "tests/test_display_layout_qc.py",
             "tests/test_display_schema_contract.py",
             "tests/test_display_surface_materialization.py",
-            "tests/test_display_pack_v2_contract.py",
-            "tests/test_display_pack_v2_figure_quality_refs.py",
-            "tests/test_figure_polish_lifecycle_contract.py",
-            "tests/test_medical_figure_spec_contract.py",
             "tests/test_medical_publication_surface.py",
             "tests/test_publication_gate.py",
-            "tests/test_publication_figure_quality_contract.py",
         ),
         prefix_paths=(
             "src/med_autoscience/display_layout_qc/",
@@ -143,6 +130,27 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             f"{PYTEST_CLEAN_RUNNER} tests/test_display_layout_qc.py -q",
             f"{PYTEST_CLEAN_RUNNER} tests/test_publication_gate.py -q",
             f"{PYTEST_CLEAN_RUNNER} tests/test_medical_publication_surface.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="display_pack_v2_contract_surface",
+        exact_paths=(
+            "contracts/display-pack-contract.v2.json",
+            "contracts/figure_polish_lifecycle_contract.json",
+            "contracts/medical_figure_spec_contract.json",
+            "contracts/publication_figure_quality_contract.json",
+            "src/med_autoscience/display_pack_v2_contract.py",
+            "src/med_autoscience/figure_polish_lifecycle_contract.py",
+            "src/med_autoscience/medical_figure_spec_contract.py",
+            "src/med_autoscience/publication_figure_quality_contract.py",
+            "tests/test_display_pack_v2_contract.py",
+            "tests/test_display_pack_v2_figure_quality_refs.py",
+            "tests/test_figure_polish_lifecycle_contract.py",
+            "tests/test_medical_figure_spec_contract.py",
+            "tests/test_publication_figure_quality_contract.py",
+        ),
+        prefix_paths=(),
+        commands=(
             (
                 f"{PYTEST_CLEAN_RUNNER} "
                 "tests/test_display_pack_v2_contract.py "
