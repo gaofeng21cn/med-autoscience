@@ -30,6 +30,9 @@ OWNER_REQUEST_RELATIVE_PATHS = {
     "provenance_limited_harmonization_audit": Path(
         "artifacts/supervision/requests/provenance_limited_harmonization/latest.json"
     ),
+    "run_external_learning_sidecar": Path(
+        "artifacts/supervision/requests/external_learning_sidecar/latest.json"
+    ),
 }
 
 

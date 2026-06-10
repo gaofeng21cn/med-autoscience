@@ -22,6 +22,7 @@ from ... import (
     domain_status_projection,
 )
 from . import methodology_reframe_decision
+from . import external_learning_sidecar
 from . import medical_paper_readiness
 from . import publication_handoff
 from . import publication_gate_actions
@@ -32,6 +33,7 @@ from .ai_reviewer_execution import execute_ai_reviewer_workflow, execute_canonic
 
 ANALYSIS_HARMONIZATION_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/analysis_harmonization/latest.json")
 SOURCE_PROVENANCE_REQUEST_RELATIVE_PATH = source_provenance.REQUEST_RELATIVE_PATH
+EXTERNAL_LEARNING_SIDECAR_REQUEST_RELATIVE_PATH = external_learning_sidecar.REQUEST_RELATIVE_PATH
 PROVENANCE_LIMITED_HARMONIZATION_REQUEST_RELATIVE_PATH = (
     provenance_limited_harmonization.REQUEST_RELATIVE_PATH
 )
@@ -485,6 +487,20 @@ def execute_provenance_limited_harmonization_audit(
         dispatch=dispatch,
     )
 
+def execute_external_learning_sidecar(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return external_learning_sidecar.execute(
+        profile=profile,
+        study_id=study_id,
+        apply=apply,
+        dispatch=dispatch,
+    )
+
 def _analysis_harmonization_request(*, study_id: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     source_action = _mapping(dispatch.get("source_action"))
@@ -551,12 +567,14 @@ def _analysis_harmonization_request(*, study_id: str, dispatch: Mapping[str, Any
 __all__ = [
     "ANALYSIS_HARMONIZATION_REQUEST_RELATIVE_PATH",
     "DECISION_REQUEST_RELATIVE_PATH",
+    "EXTERNAL_LEARNING_SIDECAR_REQUEST_RELATIVE_PATH",
     "PROVENANCE_LIMITED_HARMONIZATION_REQUEST_RELATIVE_PATH",
     "SOURCE_PROVENANCE_REQUEST_RELATIVE_PATH",
     "execute_ai_reviewer_workflow",
     "execute_artifact_display_materialization",
     "execute_canonical_paper_inputs_rehydrate",
     "execute_current_package_freshness",
+    "execute_external_learning_sidecar",
     "execute_gate_clearing_batch",
     "execute_clean_room_publication_surface",
     "execute_methodology_reframe_route_decision",

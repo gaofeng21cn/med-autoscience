@@ -563,6 +563,75 @@
       "can_close_stage": false
     }
   },
+  "external_learning_adoption_closure": {
+    "surface_kind": "mas_external_learning_adoption_closure",
+    "descriptor_surfaces": [
+      "product_entry_manifest.external_learning_adoption_closure",
+      "product_entry_manifest.family_stage_control_plane_descriptor.external_learning_adoption_closure",
+      "domain_handler_export.external_learning_adoption_closure"
+    ],
+    "builder_ref": "med_autoscience.external_learning_adoption_closure.build_external_learning_adoption_closure",
+    "role": "external_framework_learning_landing_truth_table",
+    "completion_definition": {
+      "contract_only_is_not_landed": true,
+      "landed_requires_execution_slot_or_owner_surface": true,
+      "worker_or_executor_must_declare_allowed_writes": true,
+      "worker_or_executor_must_preserve_forbidden_authority": true,
+      "tests_must_cover_nonblocking_refs_only_behavior": true
+    },
+    "tracked_framework_ids": [
+      "co_scientist",
+      "nature_skills",
+      "academic_research_skills",
+      "autosci_omegawiki",
+      "evo_scientist_evoskills",
+      "ark_progress_first",
+      "aris",
+      "paperspine",
+      "open_auto_research"
+    ],
+    "known_gap_statuses": [
+      "thin_projection_landed_worker_scaleout_gap",
+      "contract_only_gap",
+      "history_only_gap",
+      "not_landed_gap"
+    ],
+    "sidecar_execution_contract": {
+      "action_type": "run_external_learning_sidecar",
+      "owner": "external_learning_sidecar",
+      "callable_surface": "external_learning_sidecar.run_external_learning_sidecar",
+      "allowed_writes": [
+        "artifacts/supervision/requests/external_learning_sidecar/latest.json",
+        "artifacts/advisory/external_learning_sidecar/latest.json"
+      ],
+      "forbidden_writes": [
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+        "paper/**",
+        "paper/submission_minimal/**",
+        "manuscript/current_package/**",
+        "submission_package/**",
+        "current_package/**",
+        "memory/**/body"
+      ],
+      "mainline_waits_for_sidecar": false,
+      "missing_sidecar_blocks_dispatch": false,
+      "refs_only_advisory": true
+    },
+    "authority_boundary": {
+      "source_project_role": "external_pattern_source_only",
+      "opl_owner": "one-person-lab",
+      "mas_domain_truth_owner": "MedAutoScience",
+      "can_write_domain_truth": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_write_paper_or_package": false,
+      "can_authorize_publication_quality": false,
+      "can_authorize_submission_readiness": false,
+      "can_authorize_artifact_authority": false,
+      "can_close_stage": false
+    }
+  },
   "persistence_lifecycle_owner_route_projection": {
     "adoption_surface_kind": "mas_opl_family_persistence_lifecycle_owner_route_adoption",
     "required_shape": [

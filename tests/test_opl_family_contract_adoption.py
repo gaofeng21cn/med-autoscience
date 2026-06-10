@@ -564,3 +564,52 @@ def test_mas_evo_scientist_learning_projection_declares_progress_first_absorptio
     assert projection["authority_boundary"]["can_authorize_publication_quality"] is False
     assert projection["authority_boundary"]["can_authorize_artifact_authority"] is False
     assert projection["authority_boundary"]["can_close_stage"] is False
+
+
+def test_mas_external_learning_adoption_closure_declares_worker_landing_truth_table() -> None:
+    contract = _contract()
+    closure = contract["external_learning_adoption_closure"]
+
+    assert closure["surface_kind"] == "mas_external_learning_adoption_closure"
+    assert closure["descriptor_surfaces"] == [
+        "product_entry_manifest.external_learning_adoption_closure",
+        "product_entry_manifest.family_stage_control_plane_descriptor.external_learning_adoption_closure",
+        "domain_handler_export.external_learning_adoption_closure",
+    ]
+    assert closure["builder_ref"] == (
+        "med_autoscience.external_learning_adoption_closure.build_external_learning_adoption_closure"
+    )
+    assert closure["completion_definition"] == {
+        "contract_only_is_not_landed": True,
+        "landed_requires_execution_slot_or_owner_surface": True,
+        "worker_or_executor_must_declare_allowed_writes": True,
+        "worker_or_executor_must_preserve_forbidden_authority": True,
+        "tests_must_cover_nonblocking_refs_only_behavior": True,
+    }
+    assert set(closure["tracked_framework_ids"]) >= {
+        "co_scientist",
+        "nature_skills",
+        "academic_research_skills",
+        "evo_scientist_evoskills",
+        "ark_progress_first",
+        "aris",
+        "paperspine",
+    }
+    assert "contract_only_gap" in closure["known_gap_statuses"]
+    assert "not_landed_gap" in closure["known_gap_statuses"]
+    sidecar = closure["sidecar_execution_contract"]
+    assert sidecar["action_type"] == "run_external_learning_sidecar"
+    assert sidecar["owner"] == "external_learning_sidecar"
+    assert sidecar["allowed_writes"] == [
+        "artifacts/supervision/requests/external_learning_sidecar/latest.json",
+        "artifacts/advisory/external_learning_sidecar/latest.json",
+    ]
+    assert "artifacts/publication_eval/latest.json" in sidecar["forbidden_writes"]
+    assert "artifacts/controller_decisions/latest.json" in sidecar["forbidden_writes"]
+    assert sidecar["mainline_waits_for_sidecar"] is False
+    assert sidecar["missing_sidecar_blocks_dispatch"] is False
+    assert sidecar["refs_only_advisory"] is True
+    assert closure["authority_boundary"]["can_write_domain_truth"] is False
+    assert closure["authority_boundary"]["can_write_publication_eval"] is False
+    assert closure["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert closure["authority_boundary"]["can_close_stage"] is False

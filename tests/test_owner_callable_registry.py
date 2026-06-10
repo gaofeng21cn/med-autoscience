@@ -21,6 +21,7 @@ def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
         "source_provenance_owner",
         "gate_clearing_batch",
         "delivery_sync",
+        "external_learning_sidecar",
     }
     for owner, payload in registry.items():
         assert payload["owner"] == owner
@@ -44,6 +45,7 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
     delivery = module.owner_callable_for_action("sync_submission_minimal_delivery")
     handoff = module.owner_callable_for_action("publication_handoff_owner_gate")
     readiness = module.owner_callable_for_action("complete_medical_paper_readiness_surface")
+    external_learning = module.owner_callable_for_action("run_external_learning_sidecar")
 
     assert gate["owner"] == "gate_clearing_batch"
     assert gate["gate_replay_target"] == "publication_gate.run_controller"
@@ -71,3 +73,11 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
     )
     assert readiness["owner"] == "MedAutoScience"
     assert readiness["callable_surface"] == "medical_paper_readiness.complete_medical_paper_readiness_surface"
+    assert external_learning["owner"] == "external_learning_sidecar"
+    assert external_learning["callable_surface"] == (
+        "external_learning_sidecar.run_external_learning_sidecar"
+    )
+    assert external_learning["required_outputs"] == (
+        "artifacts/advisory/external_learning_sidecar/latest.json",
+        "refs-only advisory candidates",
+    )

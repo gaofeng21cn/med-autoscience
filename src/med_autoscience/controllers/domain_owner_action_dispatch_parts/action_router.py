@@ -62,6 +62,13 @@ def execute_owner_dispatch_action(
             apply=apply,
             dispatch=dispatch,
         )
+    if action_type == "run_external_learning_sidecar":
+        return action_execution.execute_external_learning_sidecar(
+            profile=profile,
+            study_id=study_id,
+            apply=apply,
+            dispatch=dispatch,
+        )
     if action_type == "run_quality_repair_batch":
         return action_execution.quality_repair.execute_quality_repair_batch(
             profile=profile,

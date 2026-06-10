@@ -260,6 +260,17 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
         "external_pattern_source_only"
     )
     assert evo_projection["authority_boundary"]["can_authorize_artifact_authority"] is False
+    closure = payload["external_learning_adoption_closure"]
+    assert closure["surface_kind"] == "mas_external_learning_adoption_closure"
+    closure_frameworks = {item["framework_id"]: item for item in closure["frameworks"]}
+    assert closure_frameworks["academic_research_skills"]["closure_status"] == (
+        "thin_projection_landed_worker_scaleout_gap"
+    )
+    assert closure_frameworks["ark_progress_first"]["closure_status"] == "contract_only_gap"
+    assert closure_frameworks["paperspine"]["closure_status"] == "not_landed_gap"
+    assert closure["sidecar_execution_contract"]["action_type"] == "run_external_learning_sidecar"
+    assert closure["sidecar_execution_contract"]["mainline_waits_for_sidecar"] is False
+    assert closure["authority_boundary"]["can_write_publication_eval"] is False
     provider = payload["provider_ready_adapter"]
     assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
     assert provider["provider_topology"]["target_provider"] == "temporal"

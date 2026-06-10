@@ -37,6 +37,9 @@ from med_autoscience.autosci_learning_projection import build_autosci_learning_p
 from med_autoscience.evo_scientist_learning_projection import (
     build_evo_scientist_learning_projection,
 )
+from med_autoscience.external_learning_adoption_closure import (
+    build_external_learning_adoption_closure,
+)
 
 
 def _build_product_positioning() -> dict[str, Any]:
@@ -259,6 +262,7 @@ def build_product_entry_manifest(
     ars_learning_projection = build_ars_learning_projection()
     autosci_learning_projection = build_autosci_learning_projection()
     evo_scientist_learning_projection = build_evo_scientist_learning_projection()
+    external_learning_adoption_closure = build_external_learning_adoption_closure()
     stage_quality_pack_contract = build_stage_quality_pack_contract()
     domain_memory_descriptor = build_domain_memory_descriptor()
     persistence_policy = _build_family_persistence_policy_surface(
@@ -465,6 +469,7 @@ def build_product_entry_manifest(
             "ars_learning_projection": ars_learning_projection,
             "autosci_learning_projection": autosci_learning_projection,
             "evo_scientist_learning_projection": evo_scientist_learning_projection,
+            "external_learning_adoption_closure": external_learning_adoption_closure,
             "real_paper_autonomy_guarded_apply_proof": real_paper_autonomy_guarded_apply_proof,
             "provider_guarded_soak_read_model": provider_guarded_soak_read_model,
             "provider_residency_read_model": provider_residency_read_model,
