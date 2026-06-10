@@ -124,6 +124,19 @@ def test_terminal_stage_log_missing_user_progress_fields_projects_typed_blocker(
         "changed_paper_surfaces",
         "progress_delta_classification",
     ]
+    assert terminal_log["missing_domain_fields"] == terminal_log["missing_user_stage_log_fields"]
+    assert terminal_log["semantic_gap"] == {
+        "reason": "domain_closeout_provided_incomplete_user_stage_log",
+        "missing_domain_fields": [
+            "stage_work_done",
+            "paper_work_done",
+            "changed_stage_surfaces",
+            "changed_paper_surfaces",
+            "progress_delta_classification",
+        ],
+        "source": "paper_stage_log",
+        "owner": "MedAutoScience",
+    }
     assert terminal_log["paper_stage_log"]["outcome"] == "typed_blocker"
     assert terminal_log["paper_stage_log"]["remaining_blockers"] == [
         "typed_closeout_packet_required"
@@ -262,6 +275,19 @@ def test_progress_first_monitoring_projects_terminal_closeout_semantic_completen
         "paper_work_done",
         "progress_delta_classification",
     ]
+    assert terminal["missing_domain_fields"] == [
+        "paper_work_done",
+        "progress_delta_classification",
+    ]
+    assert terminal["semantic_gap"] == {
+        "reason": "domain_closeout_provided_incomplete_user_stage_log",
+        "missing_domain_fields": [
+            "paper_work_done",
+            "progress_delta_classification",
+        ],
+        "source": "paper_stage_log",
+        "owner": "MedAutoScience",
+    }
     assert terminal["missing_observability_fields"] == ["token_usage", "cost"]
     completeness = terminal["terminal_closeout_semantic_completeness"]
     assert completeness == {
@@ -279,6 +305,15 @@ def test_progress_first_monitoring_projects_terminal_closeout_semantic_completen
         "missing_telemetry_fields": ["token_usage", "cost"],
         "typed_blocker": "typed_closeout_packet_required",
         "typed_blocker_diagnostic": "user_stage_log_missing_required_progress_fields",
+        "semantic_gap": {
+            "reason": "domain_closeout_provided_incomplete_user_stage_log",
+            "missing_domain_fields": [
+                "paper_work_done",
+                "progress_delta_classification",
+            ],
+            "source": "paper_stage_log",
+            "owner": "MedAutoScience",
+        },
         "next_forced_delta": {
             "required_delta_kind": "paper_progress_delta_or_typed_blocker",
             "work_unit_id": "publishability_repair_sprint",

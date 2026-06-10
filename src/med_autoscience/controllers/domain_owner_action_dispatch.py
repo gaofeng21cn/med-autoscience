@@ -882,6 +882,9 @@ def _dispatch_execution_payload(
             dispatch=dispatch,
             execution=execution_payload,
         )
+    if isinstance(execution_payload.get("paper_stage_log"), Mapping):
+        execution_payload.setdefault("user_stage_log", execution_payload["paper_stage_log"])
+        execution_payload.setdefault("stage_log_summary", execution_payload["paper_stage_log"])
     return execution_payload
 
 

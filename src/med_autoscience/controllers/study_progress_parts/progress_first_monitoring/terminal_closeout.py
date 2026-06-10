@@ -45,6 +45,10 @@ def _latest_terminal_stage_summary(
         latest_terminal_stage_log=latest_terminal_stage_log,
         paper_stage_log=paper_stage_log,
     )
+    semantic_gap = _semantic_gap(
+        latest_terminal_stage_log=latest_terminal_stage_log,
+        missing_user_fields=missing_user_fields,
+    )
     missing_telemetry_fields = _missing_telemetry_fields(latest_terminal_stage_log)
     changed_stage_status = _field_presence_status(paper_stage_log, "changed_stage_surfaces")
     changed_paper_status = _field_presence_status(paper_stage_log, "changed_paper_surfaces")
@@ -88,6 +92,8 @@ def _latest_terminal_stage_summary(
         "remaining_blockers": _text_list(paper_stage_log.get("remaining_blockers")),
         "evidence_refs": _text_list(paper_stage_log.get("evidence_refs")),
         "missing_user_stage_log_fields": missing_user_fields,
+        "missing_domain_fields": list(missing_user_fields),
+        "semantic_gap": semantic_gap,
         "observability_status": _text(latest_terminal_stage_log.get("observability_status"))
         or ("observed" if not missing_telemetry_fields else "missing"),
         "missing_observability_fields": missing_telemetry_fields,
@@ -105,6 +111,7 @@ def _latest_terminal_stage_summary(
             progress_delta_classification_source=progress_delta_classification_source,
             missing_user_fields=missing_user_fields,
             missing_telemetry_fields=missing_telemetry_fields,
+            semantic_gap=semantic_gap,
         ),
         "source_path": _text(latest_terminal_stage_log.get("source_path")),
     }
@@ -119,6 +126,7 @@ def _terminal_closeout_semantic_completeness(
     progress_delta_classification_source: str | None,
     missing_user_fields: list[str],
     missing_telemetry_fields: list[str],
+    semantic_gap: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     changed_stage_status = _field_presence_status(paper_stage_log, "changed_stage_surfaces")
     changed_paper_status = _field_presence_status(paper_stage_log, "changed_paper_surfaces")
@@ -146,6 +154,7 @@ def _terminal_closeout_semantic_completeness(
         "missing_telemetry_fields": missing_telemetry_fields,
         "typed_blocker": typed_blocker,
         "typed_blocker_diagnostic": _text(latest_terminal_stage_log.get("diagnostic")),
+        "semantic_gap": semantic_gap,
         "next_forced_delta": (
             _compact_mapping(next_forced_delta, NEXT_FORCED_DELTA_SUMMARY_KEYS) or None
             if typed_blocker is not None
@@ -155,6 +164,25 @@ def _terminal_closeout_semantic_completeness(
     if progress_delta_classification_source is not None:
         result["progress_delta_classification_source"] = progress_delta_classification_source
     return result
+
+
+def _semantic_gap(
+    *,
+    latest_terminal_stage_log: Mapping[str, Any],
+    missing_user_fields: list[str],
+) -> dict[str, Any] | None:
+    explicit = _mapping(latest_terminal_stage_log.get("semantic_gap"))
+    if explicit:
+        return explicit
+    missing_domain_fields = _text_list(latest_terminal_stage_log.get("missing_domain_fields")) or missing_user_fields
+    if not missing_domain_fields:
+        return None
+    return {
+        "reason": "domain_closeout_provided_incomplete_user_stage_log",
+        "missing_domain_fields": list(missing_domain_fields),
+        "source": "paper_stage_log",
+        "owner": "MedAutoScience",
+    }
 
 
 def _terminal_closeout_typed_blocker(
@@ -309,7 +337,7 @@ def _missing_telemetry_fields(latest_terminal_stage_log: Mapping[str, Any]) -> l
     return [
         field
         for field in TERMINAL_CLOSEOUT_TELEMETRY_FIELDS
-        if not _mapping(latest_terminal_stage_log.get(field))
+        if _telemetry_field_missing(latest_terminal_stage_log.get(field))
     ]
 
 
@@ -358,12 +386,23 @@ def _stage_semantic_completeness(paper_stage_log: Mapping[str, Any]) -> dict[str
 
 def _stage_telemetry_completeness(latest_terminal_stage_log: Mapping[str, Any]) -> dict[str, Any]:
     required_fields = ("duration", "token_usage", "cost")
-    missing = [field for field in required_fields if not _mapping(latest_terminal_stage_log.get(field))]
+    missing = [
+        field
+        for field in required_fields
+        if _telemetry_field_missing(latest_terminal_stage_log.get(field))
+    ]
     return {
         "status": "complete" if not missing else "missing_required_fields",
         "required_fields": list(required_fields),
         "missing_fields": missing,
     }
+
+
+def _telemetry_field_missing(value: object) -> bool:
+    mapped = _mapping(value)
+    if not mapped:
+        return True
+    return _text(mapped.get("status")) == "missing"
 
 
 def _has_stage_semantic_field(payload: Mapping[str, Any], keys: tuple[str, ...]) -> bool:

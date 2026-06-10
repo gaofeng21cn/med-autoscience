@@ -57,7 +57,7 @@ def _terminal_stage_log_observability(value: Mapping[str, Any]) -> dict[str, Any
             ("token_usage", token_usage),
             ("cost", cost),
         )
-        if not observed
+        if _observability_missing(observed)
     ]
     return {
         "observability_status": "observed" if not missing else "missing",
@@ -103,6 +103,12 @@ def _latest_terminal_stage_log_projection(
         return None
     candidates.sort(key=_terminal_stage_log_sort_key, reverse=True)
     return candidates[0]
+
+
+def _observability_missing(value: Mapping[str, Any]) -> bool:
+    if not value:
+        return True
+    return _non_empty_text(value.get("status")) == "missing"
 
 
 def _terminal_stage_logs_from_execution_latest(
@@ -235,12 +241,15 @@ def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) ->
             )
             projection["diagnostic"] = "progress_delta_classification_inferred_from_changed_surfaces"
             projection["missing_user_stage_log_fields"] = missing
+            projection["missing_domain_fields"] = missing
             projection["paper_stage_log"] = normalized_log
             return projection
     projection = dict(projection)
     projection["typed_blocker_reason"] = "typed_closeout_packet_required"
     projection["diagnostic"] = "user_stage_log_missing_required_progress_fields"
     projection["missing_user_stage_log_fields"] = missing
+    projection["missing_domain_fields"] = missing
+    projection["semantic_gap"] = _semantic_gap(missing)
     if missing == ["progress_delta_classification"]:
         return projection
     normalized_log = dict(paper_stage_log)
@@ -249,6 +258,15 @@ def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) ->
     projection["status"] = "typed_blocker"
     projection["paper_stage_log"] = normalized_log
     return projection
+
+
+def _semantic_gap(missing: list[str]) -> dict[str, Any]:
+    return {
+        "reason": "domain_closeout_provided_incomplete_user_stage_log",
+        "missing_domain_fields": list(missing),
+        "source": "paper_stage_log",
+        "owner": "MedAutoScience",
+    }
 
 
 def _paper_stage_log_field_missing(field: str, paper_stage_log: Mapping[str, Any]) -> bool:

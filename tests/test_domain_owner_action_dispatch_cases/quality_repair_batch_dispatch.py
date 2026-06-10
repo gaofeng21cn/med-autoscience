@@ -46,6 +46,10 @@ def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: 
         "user_stage_log",
         "stage_log_summary",
     ]
+    assert closeout_contract["standard_user_stage_log_aliases"] == {
+        "canonical": "paper_stage_log",
+        "opl_aliases": ["user_stage_log", "stage_log_summary"],
+    }
     assert closeout_contract["required_user_stage_log_fields"] == [
         "stage_name",
         "problem_summary",
@@ -68,6 +72,17 @@ def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: 
             "next_forced_delta",
             "evidence_refs",
         ]
+    assert closeout_contract["accounting_policy"] == {
+        "duration": "observed_or_explicit_missing_null_no_zero_fill",
+        "token_usage": "observed_or_explicit_missing_null_no_zero_fill",
+        "cost": "observed_or_explicit_missing_null_no_zero_fill",
+        "owner": "MAS exposes domain-local accounting shape; OPL may add provider-attempt telemetry refs",
+    }
+    assert closeout_contract["semantic_incomplete_policy"] == {
+        "missing_domain_fields": "must_be_reported_explicitly",
+        "typed_blocker_reason": "domain_closeout_provided_incomplete_user_stage_log",
+        "empty_changed_surface_lists_are_complete_fields": True,
+    }
     assert closeout_contract["user_stage_log_policy"] == {
         "surface_kind": "mas_paper_facing_stage_log_summary",
         "summary_scope": "stage_log_read_model_only",
@@ -99,6 +114,9 @@ def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: 
     assert "exactly one JSON object" in handoff["terminal_output_instruction"]
     assert "Include paper_stage_log" in handoff["terminal_output_instruction"]
     assert "stage_progress_log.user_stage_log" in handoff["terminal_output_instruction"]
+    assert "user_stage_log or stage_log_summary" in handoff["terminal_output_instruction"]
+    assert "observed or explicitly missing" in handoff["terminal_output_instruction"]
+    assert "missing_domain_fields" in handoff["terminal_output_instruction"]
     assert handoff["prompt_contract"]["request_packet_ref"] == (
         "artifacts/supervision/requests/quality_repair_batch/latest.json"
     )
@@ -234,6 +252,29 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
     assert execution["paper_stage_log"]["language_boundary"]["paper_body_included"] is False
     assert execution["paper_stage_log"]["authority"]["can_write_paper"] is False
     assert execution["paper_stage_log"]["authority"]["can_authorize_quality_verdict"] is False
+    assert execution["user_stage_log"] == execution["paper_stage_log"]
+    assert execution["stage_log_summary"] == execution["paper_stage_log"]
+    assert execution["paper_stage_log"]["accounting_policy"] == {
+        "duration": "observed_or_explicit_missing_null_no_zero_fill",
+        "token_usage": "observed_or_explicit_missing_null_no_zero_fill",
+        "cost": "observed_or_explicit_missing_null_no_zero_fill",
+        "owner": "MAS exposes domain-local accounting shape; OPL may add provider-attempt telemetry refs",
+    }
+    assert execution["paper_stage_log"]["duration"] == {
+        "status": "missing",
+        "seconds": None,
+        "missing_duration_reason": "no_mas_execution_duration_observed",
+    }
+    assert execution["paper_stage_log"]["token_usage"] == {
+        "status": "missing",
+        "total_tokens": None,
+        "missing_token_usage_reason": "no_mas_execution_token_usage_observed",
+    }
+    assert execution["paper_stage_log"]["cost"] == {
+        "status": "missing",
+        "usd": None,
+        "missing_cost_reason": "no_mas_execution_cost_observed",
+    }
     closeout_contract = execution["writer_worker_handoff"]["required_closeout_packet"]
     assert closeout_contract["typed_closeout_required_for_completion"] is True
     assert closeout_contract["free_text_closeout_accepted"] is False

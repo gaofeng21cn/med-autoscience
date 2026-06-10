@@ -22,8 +22,15 @@ PAPER_STAGE_LOG_KEYS = (
     "duration",
     "token_usage",
     "cost",
+    "accounting_policy",
+    "semantic_incomplete_policy",
     "usage_refs",
     "cost_refs",
+    "progress_delta_classification",
+    "deliverable_progress_delta",
+    "paper_progress_delta",
+    "platform_repair_delta",
+    "next_forced_delta",
     "evidence_refs",
     "research_pack_progress_summary",
     "research_evidence_pack_summary",
@@ -143,7 +150,13 @@ def _duration_observability(value: Mapping[str, Any]) -> dict[str, Any]:
         value.get("elapsed_seconds"),
         value.get("runtime_duration_seconds"),
     )
-    return {"seconds": seconds} if seconds is not None else {}
+    if seconds is not None:
+        return {"seconds": seconds}
+    return {
+        "status": "missing",
+        "seconds": None,
+        "missing_duration_reason": "no_terminal_stage_duration_observed",
+    }
 
 
 def _token_usage_observability(value: Mapping[str, Any]) -> dict[str, Any]:
@@ -151,7 +164,11 @@ def _token_usage_observability(value: Mapping[str, Any]) -> dict[str, Any]:
         usage = _observability_mapping(value.get(key))
         if usage:
             return usage
-    return {}
+    return {
+        "status": "missing",
+        "total_tokens": None,
+        "missing_token_usage_reason": "no_terminal_stage_token_usage_observed",
+    }
 
 
 def _cost_observability(value: Mapping[str, Any]) -> dict[str, Any]:
@@ -159,7 +176,13 @@ def _cost_observability(value: Mapping[str, Any]) -> dict[str, Any]:
     if cost:
         return cost
     usd = _first_number_value(value.get("cost_usd"), value.get("usd_cost"))
-    return {"usd": usd} if usd is not None else {}
+    if usd is not None:
+        return {"usd": usd}
+    return {
+        "status": "missing",
+        "usd": None,
+        "missing_cost_reason": "no_terminal_stage_cost_observed",
+    }
 
 
 def _refs_from_unknown(value: object) -> list[str]:

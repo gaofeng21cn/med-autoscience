@@ -4,6 +4,22 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+ACCOUNTING_POLICY = {
+    "duration": "observed_or_explicit_missing_null_no_zero_fill",
+    "token_usage": "observed_or_explicit_missing_null_no_zero_fill",
+    "cost": "observed_or_explicit_missing_null_no_zero_fill",
+    "owner": "MAS exposes domain-local accounting shape; OPL may add provider-attempt telemetry refs",
+}
+SEMANTIC_INCOMPLETE_POLICY = {
+    "missing_domain_fields": "must_be_reported_explicitly",
+    "typed_blocker_reason": "domain_closeout_provided_incomplete_user_stage_log",
+    "empty_changed_surface_lists_are_complete_fields": True,
+}
+STANDARD_USER_STAGE_LOG_ALIASES = {
+    "canonical": "paper_stage_log",
+    "opl_aliases": ["user_stage_log", "stage_log_summary"],
+}
+
 
 def paper_stage_log_for_default_executor_execution(
     *,
@@ -68,6 +84,8 @@ def paper_stage_log_for_default_executor_execution(
         "duration": duration,
         "token_usage": token_usage,
         "cost": cost,
+        "accounting_policy": dict(ACCOUNTING_POLICY),
+        "semantic_incomplete_policy": dict(SEMANTIC_INCOMPLETE_POLICY),
         "usage_refs": _usage_refs(execution=execution),
         "cost_refs": _cost_refs(execution=execution),
         **_progress_delta_projection(
@@ -320,29 +338,45 @@ def _first_number_value(*values: object) -> int | float | None:
 def _duration_observability(execution: Mapping[str, Any]) -> dict[str, Any]:
     duration = _observability_mapping(execution.get("duration"))
     if duration:
-        return duration
+        return {"status": "observed", **duration}
     seconds = _first_number_value(
         execution.get("duration_seconds"),
         execution.get("elapsed_seconds"),
         execution.get("runtime_duration_seconds"),
     )
-    return {"seconds": seconds} if seconds is not None else {}
+    if seconds is not None:
+        return {"status": "observed", "seconds": seconds, "source": "mas_execution"}
+    return {
+        "status": "missing",
+        "seconds": None,
+        "missing_duration_reason": "no_mas_execution_duration_observed",
+    }
 
 
 def _token_usage_observability(execution: Mapping[str, Any]) -> dict[str, Any]:
     for key in ("token_usage", "usage", "tokenUsage"):
         usage = _observability_mapping(execution.get(key))
         if usage:
-            return usage
-    return {}
+            return {"status": "observed", **usage}
+    return {
+        "status": "missing",
+        "total_tokens": None,
+        "missing_token_usage_reason": "no_mas_execution_token_usage_observed",
+    }
 
 
 def _cost_observability(execution: Mapping[str, Any]) -> dict[str, Any]:
     cost = _observability_mapping(execution.get("cost"))
     if cost:
-        return cost
+        return {"status": "observed", **cost}
     usd = _first_number_value(execution.get("cost_usd"), execution.get("usd_cost"))
-    return {"usd": usd} if usd is not None else {}
+    if usd is not None:
+        return {"status": "observed", "usd": usd, "source": "mas_execution"}
+    return {
+        "status": "missing",
+        "usd": None,
+        "missing_cost_reason": "no_mas_execution_cost_observed",
+    }
 
 
 def _refs_from_unknown(value: object) -> list[str]:
@@ -534,4 +568,9 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["paper_stage_log_for_default_executor_execution"]
+__all__ = [
+    "ACCOUNTING_POLICY",
+    "SEMANTIC_INCOMPLETE_POLICY",
+    "STANDARD_USER_STAGE_LOG_ALIASES",
+    "paper_stage_log_for_default_executor_execution",
+]

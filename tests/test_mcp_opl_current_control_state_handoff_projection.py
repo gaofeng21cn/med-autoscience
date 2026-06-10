@@ -134,6 +134,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
                 ],
                 "changed_stage_surfaces": [],
                 "changed_paper_surfaces": [],
+                "progress_delta_classification": "platform_repair",
                 "outcome": "blocked_with_domain_typed_blocker",
                 "remaining_blockers": [
                     "authority_route_blocked",
@@ -177,6 +178,7 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
         "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
     ]
     assert terminal_log["paper_stage_log"]["changed_stage_surfaces"] == []
+    assert terminal_log["paper_stage_log"]["progress_delta_classification"] == "platform_repair"
     assert terminal_log["paper_stage_log"]["outcome"] == "blocked_with_domain_typed_blocker"
     assert terminal_log["paper_stage_log"]["remaining_blockers"] == [
         "authority_route_blocked",
@@ -662,9 +664,21 @@ def test_latest_terminal_stage_log_marks_missing_observability(tmp_path) -> None
     terminal_log = projection["latest_terminal_stage_log"]
     assert terminal_log["observability_status"] == "missing"
     assert terminal_log["missing_observability_fields"] == ["duration", "token_usage", "cost"]
-    assert terminal_log["duration"] == {}
-    assert terminal_log["token_usage"] == {}
-    assert terminal_log["cost"] == {}
+    assert terminal_log["duration"] == {
+        "status": "missing",
+        "seconds": None,
+        "missing_duration_reason": "no_terminal_stage_duration_observed",
+    }
+    assert terminal_log["token_usage"] == {
+        "status": "missing",
+        "total_tokens": None,
+        "missing_token_usage_reason": "no_terminal_stage_token_usage_observed",
+    }
+    assert terminal_log["cost"] == {
+        "status": "missing",
+        "usd": None,
+        "missing_cost_reason": "no_terminal_stage_cost_observed",
+    }
 
 
 def test_latest_terminal_stage_log_preserves_zero_observability_values(tmp_path) -> None:

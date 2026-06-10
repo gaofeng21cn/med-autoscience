@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from .default_executor_stage_log import (
+    ACCOUNTING_POLICY,
+    SEMANTIC_INCOMPLETE_POLICY,
+    STANDARD_USER_STAGE_LOG_ALIASES,
+)
+
 
 def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, Any]:
     return {
@@ -20,6 +26,7 @@ def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, A
             "user_stage_log",
             "stage_log_summary",
         ],
+        "standard_user_stage_log_aliases": dict(STANDARD_USER_STAGE_LOG_ALIASES),
         "required_user_stage_log_fields": [
             "stage_name",
             "problem_summary",
@@ -69,6 +76,8 @@ def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, A
                 "next_forced_delta_required_for_no_deliverable_progress": True,
             },
         },
+        "accounting_policy": dict(ACCOUNTING_POLICY),
+        "semantic_incomplete_policy": dict(SEMANTIC_INCOMPLETE_POLICY),
         "completion_boundary": {
             "provider_completion": "typed_closeout_packet_observed",
             "domain_ready_verdict": "read_from_mas_publication_or_gate_surface",
@@ -90,6 +99,12 @@ def default_executor_typed_closeout_contract(*, action_type: str) -> dict[str, A
             "deliverable_progress_delta, paper_progress_delta, platform_repair_delta, "
             "next_forced_delta, and evidence_refs so OPL "
             "stage_progress_log.user_stage_log can answer user progress questions. This "
+            "same content may be supplied as user_stage_log or stage_log_summary only when "
+            "it is identical to paper_stage_log. Report duration, token_usage, and cost as "
+            "observed or explicitly missing with null numeric values; do not zero-fill or "
+            "invent token/cost telemetry. If any required domain log field is missing, include "
+            "missing_domain_fields and typed blocker reason "
+            "domain_closeout_provided_incomplete_user_stage_log. This "
             "paper_stage_log is read-model/log content only; "
             "do not write it into the manuscript body and do not use it to claim quality, submission, "
             "or publication readiness. Do not use prose as the final completion signal."
