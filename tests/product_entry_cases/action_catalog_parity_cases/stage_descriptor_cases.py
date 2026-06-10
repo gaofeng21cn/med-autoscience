@@ -348,7 +348,14 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert closure_frameworks["evo_scientist_evoskills"]["closure_status"] == (
         "sidecar_execution_slot_landed"
     )
-    for framework_id in ("ark_progress_first", "aris", "paperspine", "paperorchestra"):
+    for framework_id in (
+        "academic_research_skills",
+        "autosci_omegawiki",
+        "ark_progress_first",
+        "aris",
+        "paperspine",
+        "paperorchestra",
+    ):
         framework = closure_frameworks[framework_id]
         assert framework["closure_status"] == "sidecar_or_worker_landed"
         assert "sidecar" in framework["owner_surface"]
@@ -357,6 +364,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert external_learning_closure["sidecar_execution_contract"]["action_type"] == (
         "run_external_learning_sidecar"
     )
+    assert "refs-only advisory worker results" in external_learning_closure[
+        "sidecar_execution_contract"
+    ]["required_outputs"]
     assert external_learning_closure["sidecar_execution_contract"]["mainline_waits_for_sidecar"] is False
     assert external_learning_closure["progress_first_friction_guard"]["owner_policy_wins"] is True
     assert set(stage_skill_projection) == {

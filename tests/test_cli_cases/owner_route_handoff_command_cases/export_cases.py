@@ -274,11 +274,19 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     closure = payload["external_learning_adoption_closure"]
     assert closure["surface_kind"] == "mas_external_learning_adoption_closure"
     closure_frameworks = {item["framework_id"]: item for item in closure["frameworks"]}
-    assert closure_frameworks["academic_research_skills"]["closure_status"] == (
-        "thin_projection_landed_worker_scaleout_gap"
-    )
-    assert closure_frameworks["ark_progress_first"]["closure_status"] == "contract_only_gap"
-    assert closure_frameworks["paperspine"]["closure_status"] == "not_landed_gap"
+    for framework_id in (
+        "academic_research_skills",
+        "autosci_omegawiki",
+        "ark_progress_first",
+        "aris",
+        "paperspine",
+        "paperorchestra",
+    ):
+        framework = closure_frameworks[framework_id]
+        assert framework["closure_status"] == "sidecar_or_worker_landed"
+        assert "sidecar" in framework["owner_surface"]
+        assert framework["authority_boundary"]["can_write_publication_eval"] is False
+        assert framework["authority_boundary"]["can_authorize_publication_quality"] is False
     assert closure["sidecar_execution_contract"]["action_type"] == "run_external_learning_sidecar"
     assert closure["sidecar_execution_contract"]["mainline_waits_for_sidecar"] is False
     assert closure["authority_boundary"]["can_write_publication_eval"] is False
