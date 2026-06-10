@@ -494,6 +494,16 @@ def merge_live_attempt_observability_into_handoff(
         if _non_empty_text(merged.get("next_owner")) in LIVE_ATTEMPT_SUPERSEDED_NEXT_OWNERS:
             merged["next_owner"] = _non_empty_text(live_attempt_handoff.get("next_owner"))
     for key in LIVE_ATTEMPT_HANDOFF_KEYS:
+        if (
+            key == "active_stage_attempt_id"
+            and live_attempt_running
+            and _handoff_live_attempt_identity_stale(
+                handoff=merged,
+                live_attempt_handoff=live_attempt_handoff,
+            )
+        ):
+            merged[key] = live_attempt_handoff[key]
+            continue
         if key not in merged or merged.get(key) in {None, "", False}:
             if key in live_attempt_handoff:
                 merged[key] = live_attempt_handoff[key]
@@ -707,12 +717,32 @@ def _handoff_has_matching_terminal_closeout(handoff: Mapping[str, Any]) -> bool:
 def _handoff_stage_attempt_id(handoff: Mapping[str, Any]) -> str | None:
     if text := _non_empty_text(handoff.get("active_stage_attempt_id")):
         return text
-    active_run_id = _non_empty_text(handoff.get("active_run_id"))
+    return _stage_attempt_id_from_active_run_id(handoff.get("active_run_id"))
+
+
+def _stage_attempt_id_from_active_run_id(value: object) -> str | None:
+    active_run_id = _non_empty_text(value)
     prefix = "opl-stage-attempt://"
     if active_run_id is not None and active_run_id.startswith(prefix):
         attempt_id = active_run_id[len(prefix) :].strip()
         return attempt_id or None
     return None
+
+
+def _handoff_live_attempt_identity_stale(
+    *,
+    handoff: Mapping[str, Any],
+    live_attempt_handoff: Mapping[str, Any],
+) -> bool:
+    live_stage_attempt_id = _non_empty_text(live_attempt_handoff.get("active_stage_attempt_id"))
+    if live_stage_attempt_id is None:
+        return False
+    handoff_stage_attempt_id = _non_empty_text(handoff.get("active_stage_attempt_id"))
+    if handoff_stage_attempt_id in {None, live_stage_attempt_id}:
+        return False
+    handoff_run_attempt_id = _stage_attempt_id_from_active_run_id(handoff.get("active_run_id"))
+    live_run_attempt_id = _stage_attempt_id_from_active_run_id(live_attempt_handoff.get("active_run_id"))
+    return live_stage_attempt_id in {handoff_run_attempt_id, live_run_attempt_id}
 
 
 def _live_attempt_supersedes_handoff_blocker(handoff: Mapping[str, Any]) -> bool:

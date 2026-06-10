@@ -405,6 +405,47 @@ def test_handoff_projection_closes_running_flag_for_matching_terminal_attempt(tm
     assert projection["latest_terminal_stage_log"]["status"] == "blocked"
 
 
+def test_live_attempt_merge_replaces_stale_handoff_stage_attempt_identity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+
+    merged = module.merge_live_attempt_observability_into_handoff(
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "study_id": "001-risk",
+            "active_run_id": "opl-stage-attempt://sat-current",
+            "active_stage_attempt_id": "sat-previous-closeout",
+            "active_workflow_id": "wf-current",
+            "running_provider_attempt": True,
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+            "latest_terminal_stage_log": {
+                "stage_attempt_id": "sat-previous-closeout",
+                "status": "blocked",
+            },
+        },
+        live_attempt_handoff={
+            "surface_kind": "opl_current_control_state_provider_attempt_handoff",
+            "study_id": "001-risk",
+            "active_run_id": "opl-stage-attempt://sat-current",
+            "active_stage_attempt_id": "sat-current",
+            "active_workflow_id": "wf-current",
+            "running_provider_attempt": True,
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+        },
+    )
+
+    assert merged is not None
+    assert merged["running_provider_attempt"] is True
+    assert merged["active_run_id"] == "opl-stage-attempt://sat-current"
+    assert merged["active_stage_attempt_id"] == "sat-current"
+    assert merged["active_workflow_id"] == "wf-current"
+
+
 def test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     payload = {
