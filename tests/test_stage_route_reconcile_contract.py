@@ -159,3 +159,61 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "second_route_table",
         "second_active_backlog",
     } <= set(split["forbidden_mas_runtime_residue"])
+
+
+def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_practice_mapping() -> None:
+    contract = _contract()
+
+    follow_through = contract["required_opl_follow_through"]
+    assert follow_through["source"] == "one-person-lab read-only substrate audit 2026-06-11"
+    assert {
+        "current_owner_delta ordinary planning root",
+        "StageRun launch and closeout admission boundary",
+        "attempt ledger terminal observation",
+        "worker_source_stale supervised restart guard",
+    } <= set(follow_through["already_supported"])
+
+    capabilities = {
+        item["capability"]: item
+        for item in follow_through["must_be_promoted_to_contract_and_tests"]
+    }
+    assert capabilities["terminal_closeout_precedes_live_projection"][
+        "identity_mismatch_effect"
+    ] == "fail_closed_currentness_blocker"
+    assert {
+        "stage_run_id",
+        "stage_run_generation",
+        "stage_manifest_ref",
+        "current_pointer_ref",
+        "source_fingerprint",
+        "domain_source_fingerprint",
+        "idempotency_key",
+        "provider_attempt_ref",
+        "active_lease_ref",
+        "execution_authorization_ref",
+        "workflow_id",
+        "task_id",
+    } <= set(capabilities["stage_run_currentness_identity"]["required_fields"])
+    assert "automatic-redrive stop" in capabilities["no_progress_budget_contract"][
+        "required_effect"
+    ]
+    assert "no active attempt exists" in capabilities["worker_source_stale_supervisor_projection"][
+        "required_effect"
+    ]
+    assert "without entering ordinary planning" in capabilities["trace_span_correlation_refs"][
+        "required_effect"
+    ]
+
+    practices = contract["mature_engineering_practice_mapping"]
+    assert practices["kubernetes_controller"]["reject"] == (
+        "status, queue, or worklist deriving domain truth"
+    )
+    assert practices["temporal"]["reject"] == (
+        "provider completion counting as MAS domain acceptance"
+    )
+    assert practices["aws_step_functions"]["reject"] == (
+        "transport idempotency replacing owner receipt or typed blocker"
+    )
+    assert practices["opentelemetry"]["reject"] == (
+        "observability traces closing quality gate or publication verdict"
+    )

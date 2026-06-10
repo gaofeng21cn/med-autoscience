@@ -313,6 +313,81 @@
       "second_active_backlog"
     ]
   },
+  "required_opl_follow_through": {
+    "source": "one-person-lab read-only substrate audit 2026-06-11",
+    "already_supported": [
+      "current_owner_delta ordinary planning root",
+      "StageRun launch and closeout admission boundary",
+      "route reconciler as transport-only owner-route hydrator",
+      "attempt ledger terminal observation",
+      "stop_loss_state anti-spin foundation",
+      "worker_source_stale supervised restart guard"
+    ],
+    "must_be_promoted_to_contract_and_tests": [
+      {
+        "capability": "terminal_closeout_precedes_live_projection",
+        "owner": "OPL Framework",
+        "required_effect": "identity-matched terminal typed closeout or owner receipt suppresses stale running/live projection in current_owner_delta, evidence worklist, queue projection, and workbench drilldown",
+        "identity_mismatch_effect": "fail_closed_currentness_blocker"
+      },
+      {
+        "capability": "stage_run_currentness_identity",
+        "owner": "OPL Framework / MAS handoff",
+        "required_fields": [
+          "stage_run_id",
+          "stage_run_generation",
+          "stage_manifest_ref",
+          "current_pointer_ref",
+          "source_fingerprint",
+          "domain_source_fingerprint",
+          "idempotency_key",
+          "provider_attempt_ref",
+          "active_lease_ref",
+          "execution_authorization_ref",
+          "workflow_id",
+          "task_id"
+        ],
+        "required_effect": "all launch, liveness, closeout, owner-answer, and replay decisions compare the same packet instead of scattered labels"
+      },
+      {
+        "capability": "no_progress_budget_contract",
+        "owner": "OPL Framework / MAS consumer",
+        "required_effect": "lineage budget, repeat thresholds, reset conditions, typed-blocker escalation, and automatic-redrive stop are schema-backed and regression-tested"
+      },
+      {
+        "capability": "worker_source_stale_supervisor_projection",
+        "owner": "OPL Framework",
+        "required_effect": "worker_source_stale remains fail-closed, but operator-facing status exposes supervisor-safe restart only when Temporal is reachable, attempt ledger is readable, and no active attempt exists"
+      },
+      {
+        "capability": "trace_span_correlation_refs",
+        "owner": "OPL Observability Plane",
+        "required_effect": "current_owner_delta, StageRun, attempt ledger, Temporal workflow, ToolResultEnvelope, and owner answer share refs-only trace/span context without entering ordinary planning or domain authority"
+      }
+    ]
+  },
+  "mature_engineering_practice_mapping": {
+    "kubernetes_controller": {
+      "source_ref": "https://kubernetes.io/docs/concepts/architecture/controller/",
+      "adopt": "desired/current/status reconcile; current_owner_delta is desired state and read-models are status",
+      "reject": "status, queue, or worklist deriving domain truth"
+    },
+    "temporal": {
+      "source_ref": "https://docs.temporal.io/activity-definition",
+      "adopt": "durable retry with idempotent activities and attempt history",
+      "reject": "provider completion counting as MAS domain acceptance"
+    },
+    "aws_step_functions": {
+      "source_ref": "https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html",
+      "adopt": "idempotent execution identity and explicit redrive boundary",
+      "reject": "transport idempotency replacing owner receipt or typed blocker"
+    },
+    "opentelemetry": {
+      "source_ref": "https://opentelemetry.io/docs/concepts/signals/traces/",
+      "adopt": "trace/span correlation across distributed execution",
+      "reject": "observability traces closing quality gate or publication verdict"
+    }
+  },
   "verification_refs": [
     "tests/test_stage_route_reconcile_contract.py",
     "tests/owner_route_reconcile_cases/test_opl_provider_attempt_projection.py",
