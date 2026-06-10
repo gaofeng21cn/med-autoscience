@@ -49,9 +49,18 @@ The following supporting surfaces remain important, but they are not sufficient 
 
 - `paper/publication_style_profile.json`
 - `paper/display_overrides.json`
+- `paper/figure_intent.json`
+- `paper/figure_style_reference_bundle.json`
+- `paper/figure_visual_audit_receipt.json`
+- `paper/ai_illustration_receipt.json`
 - template catalogs;
 - QC results;
 - gate status reports.
+
+The machine-readable boundary for these four paper-level Display Pack v2 surfaces is indexed in
+`contracts/publication_figure_quality_contract.json` and enforced by
+`src/med_autoscience/publication_figure_quality_contract.py`. `paper/build/display_pack_lock.json`
+records their refs under `publication_figure_quality_refs`; submission packaging preserves that block.
 
 ## Entry Conditions
 
@@ -104,6 +113,8 @@ Visual audit should explicitly look for at least the following classes of proble
 ## Required Finding Format
 
 Every visual-audit finding should be recorded in a concrete, reviewable format.
+
+The canonical machine file is `paper/figure_visual_audit_receipt.json`.
 
 Use the following fields:
 
@@ -162,6 +173,10 @@ Preferred correction surfaces are:
 - golden regressions.
 
 Do not treat hidden post-processing as the normal response.
+
+AI-generated illustration candidates use `paper/ai_illustration_receipt.json`. That receipt is limited to
+`illustration_shell` work and every candidate must keep `scientific_claim_carried=false`; evidence figures
+continue to require the deterministic MAS renderer/template/data/QC path plus visual audit.
 
 ## Promotion Rules
 

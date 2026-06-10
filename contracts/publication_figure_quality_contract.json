@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "contract_id": "publication_figure_quality_contract.v1",
+  "owner": "MedAutoScience",
+  "purpose": "Paper-level figure quality surfaces for Display Pack v2: figure intent, style references, visual audit receipts, and AI illustration receipts.",
+  "machine_boundary": "The enforceable validators live in med_autoscience.publication_figure_quality_contract. This JSON file indexes the stable surface names, paths, consumers, and authority boundaries for other agents and contract readers.",
+  "source_module": "src/med_autoscience/publication_figure_quality_contract.py",
+  "paper_surfaces": {
+    "figure_intent": {
+      "path": "paper/figure_intent.json",
+      "loader": "med_autoscience.publication_figure_quality_contract:load_figure_intent",
+      "required_top_level": ["schema_version", "figures"],
+      "required_entry_fields": ["figure_id", "claim_ref", "data_ref", "template_id", "figure_kind"],
+      "allowed_figure_kinds": ["evidence_figure", "illustration_shell", "table_shell"],
+      "authority_boundary": "Binds each paper display to a claim ref, data ref, template id, and display kind; it does not authorize publication readiness or mutate artifacts."
+    },
+    "figure_style_reference_bundle": {
+      "path": "paper/figure_style_reference_bundle.json",
+      "loader": "med_autoscience.publication_figure_quality_contract:load_figure_style_reference_bundle",
+      "required_top_level": ["schema_version", "bundle_id", "references"],
+      "required_entry_fields": ["reference_id", "source_ref", "decision", "applies_to", "style_notes"],
+      "allowed_decisions": ["like", "reject", "adopt"],
+      "authority_boundary": "Stores link-only style preferences and reference choices. It is style input only and cannot import external figures, scripts, screenshots, or runtime authority."
+    },
+    "figure_visual_audit_receipt": {
+      "path": "paper/figure_visual_audit_receipt.json",
+      "loader": "med_autoscience.publication_figure_quality_contract:load_figure_visual_audit_receipt",
+      "required_top_level": ["schema_version", "receipt_id", "audit_mode", "inspected_artifacts", "findings", "reviewer", "final_status"],
+      "required_artifact_fields": ["figure_id", "artifact_path", "artifact_sha256"],
+      "required_finding_fields": ["figure_id", "observed_issue", "paper_facing_impact", "suspected_layer", "proposed_action", "promotion_decision", "verification_plan"],
+      "allowed_audit_modes": ["vlm_visual_verification", "human_visual_review", "hybrid_visual_review"],
+      "allowed_promotion_decisions": ["paper_local_only", "promote_to_contract", "promote_to_qc", "promote_to_golden_regression", "needs_human_decision"],
+      "authority_boundary": "Records review of real rendered artifacts and routes concrete findings. It is quality evidence, not a publication verdict or artifact authority."
+    },
+    "ai_illustration_receipt": {
+      "path": "paper/ai_illustration_receipt.json",
+      "loader": "med_autoscience.publication_figure_quality_contract:load_ai_illustration_receipt",
+      "required_top_level": ["schema_version", "receipt_id", "illustrations"],
+      "required_entry_fields": ["figure_id", "template_id", "prompt_hash", "provider", "model", "review_log_ref", "acceptance", "final_export_path", "scientific_claim_carried"],
+      "allowed_acceptance": ["ai_recommended", "human_accepted", "human_rejected"],
+      "hard_boundary": "scientific_claim_carried must be false for every AI-generated illustration candidate.",
+      "authority_boundary": "AI-generated illustration candidates may support illustration_shell quality only. They cannot carry evidence marks, modify data/statistics, or become a second publication owner."
+    }
+  },
+  "consumers": {
+    "display_pack_lock": {
+      "path": "paper/build/display_pack_lock.json",
+      "field": "publication_figure_quality_refs",
+      "behavior": "When a paper root is provided, the lock records each surface path, present/missing status, and sha256 for present valid files."
+    },
+    "submission_manifest": {
+      "path": "paper/submission_minimal/submission_manifest.json",
+      "field": "publication_figure_quality_refs",
+      "behavior": "Submission packaging preserves the refs already recorded in display_pack_lock.json."
+    }
+  },
+  "verification": {
+    "focused_tests": [
+      "tests/test_publication_figure_quality_contract.py",
+      "tests/test_display_pack_v2_figure_quality_refs.py",
+      "tests/test_submission_minimal_display_surface.py"
+    ],
+    "required_when_changed": ["make test-meta", "scripts/verify.sh"]
+  }
+}

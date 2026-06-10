@@ -216,6 +216,41 @@ def test_create_submission_minimal_package_preserves_display_surface_metadata(tm
     assert manifest["enabled_display_packs"][0]["source_kind"] == "git_repo"
 
 
+def test_create_submission_minimal_package_preserves_figure_quality_refs(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+    dump_json(
+        paper_root / "build" / "display_pack_lock.json",
+        {
+            "schema_version": 2,
+            "enabled_packs": [],
+            "publication_figure_quality_refs": {
+                "figure_intent": {"path": "paper/figure_intent.json", "status": "present", "sha256": "a" * 64},
+                "figure_style_reference_bundle": {
+                    "path": "paper/figure_style_reference_bundle.json",
+                    "status": "missing",
+                },
+                "figure_visual_audit_receipt": {
+                    "path": "paper/figure_visual_audit_receipt.json",
+                    "status": "present",
+                    "sha256": "b" * 64,
+                },
+                "ai_illustration_receipt": {"path": "paper/ai_illustration_receipt.json", "status": "missing"},
+            },
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    refs = manifest["publication_figure_quality_refs"]
+    assert refs["figure_intent"]["path"] == "paper/figure_intent.json"
+    assert refs["figure_visual_audit_receipt"]["status"] == "present"
+    assert refs["ai_illustration_receipt"]["status"] == "missing"
+
+
 def test_create_submission_minimal_package_preserves_canonical_main_display_headings(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
