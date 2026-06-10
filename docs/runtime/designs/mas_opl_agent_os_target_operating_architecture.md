@@ -17,6 +17,7 @@ Date: `2026-06-10`
 - `OPL` 是 Agent OS / runtime substrate。
 - `MAS` 是 Medical Research Pack + Medical Authority Kernel。
 - 外部 Co-Scientist / Light / EvoScientist / PaperSpine / ARIS / ARK 等只进入 Scientific Capability Registry 或 refs-only advisory worker；它们不是 MAS runtime owner，也不是 publication / artifact / memory authority。
+- OPL family 计划已经把 Scientific Capability Registry 抽象为 `Atlas + Pack + Stagecraft` 的 family-level ABI / use-policy；MAS 不再新增独立 external-learning selector、第二 active backlog 或 always-on advisory pipeline。MAS 后续只声明 domain refs consumption、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级门。
 - 默认 operator / executor 读面固定为 `current_owner_delta`；audit、lineage、sidecar、observability、raw worklist 只做 drilldown。
 
 ## 目标结论
@@ -277,16 +278,18 @@ MAS 只长期保留无法声明化的最小 authority functions：
 
 实施步骤：
 
-1. 为每个 capability 写 registry entry：input refs、question、target stage、output ref family、allowed writes、forbidden authority、fail-open policy。
-2. 将 Co-Scientist、Light、EvoScientist、PaperSpine、ARIS、ARK、AutoSci 等统一纳入 capability / advisory worker family。
-3. capability invocation 必须绑定 current work-unit identity。
-4. missing capability 默认 fail open；只有 route-required ref 命中 hard gate 才升级 typed blocker candidate。
+1. 把 selector / resolver 归入 OPL `W3-capability-registry-fail-open`：由 `Atlas + Pack + Stagecraft` 表达 capability catalog、pack ABI、current-delta-bound use policy 和 fail-open / fail-blocker 规则。
+2. MAS 只在 pack / authority kernel 中声明每个 external-learning ref family 的 target stage、owner action、input refs、output ref family、allowed writes、forbidden authority 和 owner-consumption boundary。
+3. 将 Co-Scientist、Light、EvoScientist、PaperSpine、ARIS、ARK、AutoSci 等统一纳入 capability / advisory worker family；不能在 MAS 内再建私有 selector、always-on sidecar、第二 route table 或第二 active backlog。
+4. capability invocation 必须绑定 current work-unit identity、target surface、requested ref family / question 和 `no_new_default_next_action`。
+5. missing capability 默认 fail open；只有 route-required ref 命中 hard gate 才升级 typed blocker candidate，正式 typed blocker 仍由 MAS owner / reviewer / human gate 物化。
 
 验收：
 
 - 新 capability 不新增默认 preflight。
 - sidecar / advisory worker 不生成 current owner，不写 owner receipt，不写 paper progress。
 - owner-consumed refs 才能计入当前 delta。
+- Capability selector / resolver 的结构 landing 由 OPL `W3` 证明；ARS claim-support、AutoSci source discovery、ARK micro-canary 等真实进度晋级由 MAS owner receipt / typed blocker / reviewer receipt 证明。
 
 ### Lane 8：OPL Workbench / Operator UX
 
@@ -341,7 +344,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 | StageRun Kernel | `start/query/signal/closeout_stage_run` | MAS 只消费 attempt refs、lease refs、closeout binding |
 | State Index Kernel | `rebuild/read/checkpoint refs index` | MAS 提供 file truth / receipt refs；OPL 生成 read model |
 | Route Reconciler | `reconcile_current_owner_delta` | 只对齐 desired/current，不生成医学 verdict |
-| Capability Registry | `invoke_capability_for_current_delta` | 输出 refs-only advisory / candidate / briefing |
+| Capability Registry | `resolve_capability_for_current_delta` / `invoke_capability_for_current_delta` | OPL 选择 current-delta-bound capability；MAS 只消费 refs-only advisory / candidate / briefing |
 | Human Gate Transport | `open/answer/resume human_gate` | MAS 声明 gate，OPL 承运，MAS 消费 answer refs |
 | Lifecycle Plane | `locate/retain/restore/gc refs` | MAS 授权 artifact mutation，OPL 执行 generic lifecycle |
 | Observability Plane | `trace/metric/log/failure_class` | MAS 只读诊断，不把 observability 当 authority |
@@ -365,7 +368,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 ### Functional / structural gate
 
 - 新 runtime-like 功能必须归 OPL primitive；MAS 只留 authority function 或 refs-only projection。
-- 新 external-learning 功能必须进入 capability registry；不能新增默认 sidecar flow。
+- 新 external-learning 功能必须进入 OPL Capability Registry；MAS 不能新增私有 selector、第二 active backlog、always-on sidecar 或默认 preflight。
 - 新 workbench / status surface 默认显示 `current_owner_delta`；audit detail 不能抢默认入口。
 - 新 lifecycle / artifact / memory 功能必须证明 body / refs / index / authority 分离。
 
@@ -387,6 +390,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 - 不新增 MAS 私有 runtime platform。
 - 不把 Co-Scientist / Light / EvoScientist runtime 引入为 dependency。
 - 不把 sidecar / advisory / score / ranking / checklist 写成 authority。
+- 不把 external-learning 后续优化写成 MAS standalone selector / backlog；selector / resolver 归 OPL Capability Registry，MAS 只声明 domain consumption 与 authority 晋级。
 - 不把 full readiness inventory 变成每个 delta 的默认前置门。
 - 不让 OPL State Index / SQLite / read-model 保存 artifact body、memory body、study truth 或 publication verdict。
 - 不让同一个 executor agent 自审后关闭 AI-first quality gate。
@@ -400,7 +404,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 2. **Lane 1 contract inventory**：列出 `DomainAgentPack` 所需 machine contract 和现有来源差距。
 3. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否只以 `current_owner_delta` 为首屏。
 4. **Lane 4 authority function inventory**：给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类。
-5. **Lane 7 capability registry contract**：把 existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 统一成 registry schema。
+5. **Lane 7 capability registry contract**：把 existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 折回 OPL `W3` capability registry schema；MAS 只补 domain consumption / owner receipt 晋级边界。
 6. **Lane 9 real canary selection**：选择真实 paper-line evidence target，不用 repo tests 代替 production evidence。
 
 每个 lane 的完成声明必须写清：功能/结构是否关闭，测试/证据是否关闭，是否仍需真实 paper-line / provider / reviewer / human gate 证据。
