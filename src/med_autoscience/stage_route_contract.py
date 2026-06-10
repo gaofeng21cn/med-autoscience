@@ -89,6 +89,51 @@ PROGRESS_FIRST_SPRINT_CONTRACT_FIELD = "late_stage_progress_sprint_contract"
 PROGRESS_FIRST_SPRINT_ID = "publishability_repair_sprint"
 PROGRESS_FIRST_SPRINT_WORK_UNIT = "current_manuscript_prose_currentness_and_gate_replay_write_closeout"
 ORDINARY_PROGRESS_HANDOFF_POLICY_FIELD = "ordinary_progress_handoff_policy"
+ANTI_LOOP_POLICY_FIELD = "anti_loop_policy"
+REQUIRED_ANTI_LOOP_POLICY_STRING_FIELDS = (
+    "source_ref",
+    "ordinary_path_root",
+)
+REQUIRED_ANTI_LOOP_POLICY_LIST_FIELDS = (
+    "same_tick_continue_reasons",
+    "repeat_identity_fields",
+    "required_progress_evidence",
+    "allowed_reentry_signals",
+    "forbidden_loop_shapes",
+    "terminal_diagnostics",
+    "exhausted_budget_outputs",
+)
+REQUIRED_ANTI_LOOP_REPEAT_IDENTITY_FIELDS = (
+    "study_id",
+    "stage_run_id",
+    "stage_id",
+    "current_owner",
+    "work_unit_id",
+    "work_unit_fingerprint",
+    "target_surface",
+    "source_fingerprint",
+)
+REQUIRED_ANTI_LOOP_REENTRY_SIGNALS = (
+    "meaningful_artifact_delta",
+    "new_owner_receipt",
+    "new_typed_blocker",
+    "human_gate_ref",
+    "route_back_ref",
+    "stop_loss",
+    "provider_running_proof",
+)
+REQUIRED_ANTI_LOOP_FORBIDDEN_SHAPES = (
+    "repeat_same_work_unit_without_new_consumed_evidence",
+    "repeat_no_op_without_duplicate_failed_path_stale_or_forbidden_ref",
+    "provider_completion_claims_domain_completion_without_owner_receipt_or_typed_blocker",
+    "dry_run_owner_route_reconcile_or_dispatch",
+)
+REQUIRED_ANTI_LOOP_DRY_RUN_WRITE_FALSE_FIELDS = (
+    "may_write_study_truth",
+    "may_write_owner_route_reconcile",
+    "may_dispatch_owner_action",
+    "may_mutate_paper_or_package",
+)
 
 
 @dataclass(frozen=True)
@@ -304,6 +349,7 @@ def _string_tuple(value: object, field: str) -> tuple[str, ...]:
 def _validate_payload_contract(payload: dict[str, Any]) -> None:
     _string_tuple(payload.get("compatible_agents"), "compatible_agents")
     _validate_ordinary_progress_handoff_policy(payload.get(ORDINARY_PROGRESS_HANDOFF_POLICY_FIELD))
+    _validate_anti_loop_policy(payload.get(ANTI_LOOP_POLICY_FIELD))
     route_contracts = _route_contract_payload_map(payload.get("route_contracts"))
     _validate_late_stage_progress_sprint_contract(
         payload.get(PROGRESS_FIRST_SPRINT_CONTRACT_FIELD),
@@ -409,6 +455,50 @@ def _validate_ordinary_progress_handoff_policy(value: object) -> None:
     for bool_field in ("can_generate_default_next_action", "can_close_stage", "can_claim_domain_ready"):
         if not isinstance(audit_sidecar_policy.get(bool_field), bool):
             raise ValueError(f"{field}.audit_sidecar_policy {bool_field} must be a bool")
+
+
+def _validate_anti_loop_policy(value: object) -> None:
+    field = ANTI_LOOP_POLICY_FIELD
+    if not isinstance(value, dict):
+        raise ValueError(f"{field} must be a mapping")
+    for string_field in REQUIRED_ANTI_LOOP_POLICY_STRING_FIELDS:
+        if string_field not in value:
+            raise ValueError(f"{field} missing required field: {string_field}")
+        _non_empty_string_value(value, string_field, field)
+    if value["ordinary_path_root"] != "current_owner_delta":
+        raise ValueError(f"{field}.ordinary_path_root must be current_owner_delta")
+    same_tick_max_passes = value.get("same_tick_max_passes")
+    if not isinstance(same_tick_max_passes, int) or same_tick_max_passes < 1:
+        raise ValueError(f"{field}.same_tick_max_passes must be a positive integer")
+    for list_field in REQUIRED_ANTI_LOOP_POLICY_LIST_FIELDS:
+        if list_field not in value:
+            raise ValueError(f"{field} missing required field: {list_field}")
+        _string_tuple(value[list_field], list_field)
+
+    repeat_identity_fields = set(_string_tuple(value["repeat_identity_fields"], "repeat_identity_fields"))
+    missing_identity_fields = sorted(set(REQUIRED_ANTI_LOOP_REPEAT_IDENTITY_FIELDS) - repeat_identity_fields)
+    if missing_identity_fields:
+        raise ValueError(f"{field}.repeat_identity_fields missing required fields: {', '.join(missing_identity_fields)}")
+
+    reentry_signals = set(_string_tuple(value["allowed_reentry_signals"], "allowed_reentry_signals"))
+    missing_reentry_signals = sorted(set(REQUIRED_ANTI_LOOP_REENTRY_SIGNALS) - reentry_signals)
+    if missing_reentry_signals:
+        raise ValueError(f"{field}.allowed_reentry_signals missing required signals: {', '.join(missing_reentry_signals)}")
+
+    forbidden_shapes = set(_string_tuple(value["forbidden_loop_shapes"], "forbidden_loop_shapes"))
+    missing_forbidden_shapes = sorted(set(REQUIRED_ANTI_LOOP_FORBIDDEN_SHAPES) - forbidden_shapes)
+    if missing_forbidden_shapes:
+        raise ValueError(f"{field}.forbidden_loop_shapes missing required shapes: {', '.join(missing_forbidden_shapes)}")
+
+    dry_run_write_policy = value.get("dry_run_write_policy")
+    if not isinstance(dry_run_write_policy, dict):
+        raise ValueError(f"{field}.dry_run_write_policy must be a mapping")
+    for bool_field in ("may_refresh_diagnostic_reports", *REQUIRED_ANTI_LOOP_DRY_RUN_WRITE_FALSE_FIELDS):
+        if not isinstance(dry_run_write_policy.get(bool_field), bool):
+            raise ValueError(f"{field}.dry_run_write_policy {bool_field} must be a bool")
+    for bool_field in REQUIRED_ANTI_LOOP_DRY_RUN_WRITE_FALSE_FIELDS:
+        if dry_run_write_policy[bool_field] is not False:
+            raise ValueError(f"{field}.dry_run_write_policy {bool_field} must be false")
 
 
 def _validate_late_stage_progress_sprint_contract(

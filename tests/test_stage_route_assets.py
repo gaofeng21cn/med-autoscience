@@ -64,6 +64,17 @@ def test_repo_public_agent_entry_assets_match_renderers() -> None:
         assert output_path.read_text(encoding="utf-8") == expected_content
 
 
+def test_packaged_and_template_stage_route_contracts_match_canonical_payload() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    expected_payload = load_stage_route_contract_payload()
+
+    for path in (
+        repo_root / "templates" / "stage_route_contract.yaml",
+        repo_root / "src" / "med_autoscience" / "resources" / "stage_route_contract.yaml",
+    ):
+        assert yaml.safe_load(path.read_text(encoding="utf-8")) == expected_payload
+
+
 def test_render_public_yaml_round_trip_matches_canonical_payload() -> None:
     rendered = render_public_yaml()
 

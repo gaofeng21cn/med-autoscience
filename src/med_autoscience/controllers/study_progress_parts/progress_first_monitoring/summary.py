@@ -78,6 +78,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     hydration_work_unit = _explicit_wakeup_hydration_work_unit(launch_policy)
     transition_consumed_owner_action = _transition_consumed_owner_action(domain_transition)
+    transition_consumed_same_work_unit = _transition_consumed_same_ai_reviewer_work_unit(domain_transition)
     gate_clearing_dispatch_consumption = _gate_clearing_batch_dispatch_consumption(payload)
     receipt_consumed = _transition_receipt_consumed(domain_transition) or gate_clearing_dispatch_consumption is not None
     handoff_owner_action = _first_current_action_queue_item(handoff.get("action_queue"))
@@ -142,12 +143,17 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         and _next_forced_delta_owner_action(current_action)
     ):
         current_action = {}
+    owner_action_supersedes_envelope_blocker = handoff_owner_action is not None or (
+        transition_consumed_owner_action
+        and not transition_consumed_same_work_unit
+        and gate_clearing_dispatch_consumption is None
+    )
     envelope_blocks_current_action = _envelope_typed_blocker_blocks_current_action(
         execution=execution,
         raw_typed_blocker=raw_typed_blocker,
         artifact_first_supersedes_blocker=artifact_first_supersedes_blocker,
         current_action=current_action,
-    )
+    ) and not owner_action_supersedes_envelope_blocker
     if envelope_blocks_current_action:
         current_action = {}
         handoff_owner_action = None
@@ -196,7 +202,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or (
             transition_consumed_owner_action
             and not envelope_blocks_current_action
-            and not _transition_consumed_same_ai_reviewer_work_unit(domain_transition)
+            and not transition_consumed_same_work_unit
             and gate_clearing_dispatch_consumption is None
         )
         else raw_typed_blocker

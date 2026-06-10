@@ -313,6 +313,49 @@ def test_late_stage_progress_sprint_contract_covers_dm002_gate_replay_work_unit(
     ]
 
 
+def test_stage_route_contract_declares_machine_anti_loop_policy() -> None:
+    payload = load_stage_route_contract_payload()
+
+    policy = payload["anti_loop_policy"]
+
+    assert policy["ordinary_path_root"] == "current_owner_delta"
+    assert policy["same_tick_max_passes"] == 3
+    assert policy["repeat_identity_fields"] == [
+        "study_id",
+        "stage_run_id",
+        "stage_id",
+        "current_owner",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "target_surface",
+        "source_fingerprint",
+    ]
+    assert policy["allowed_reentry_signals"] == [
+        "meaningful_artifact_delta",
+        "new_owner_receipt",
+        "new_typed_blocker",
+        "human_gate_ref",
+        "route_back_ref",
+        "stop_loss",
+        "provider_running_proof",
+    ]
+    assert "repeat_same_work_unit_without_new_consumed_evidence" in policy["forbidden_loop_shapes"]
+    assert "dispatch_materialized_but_not_selected" in policy["terminal_diagnostics"]
+    assert policy["exhausted_budget_outputs"] == [
+        "TypedBlocker",
+        "human_gate_ref",
+        "stop_loss",
+        "route_back_ref",
+    ]
+    assert policy["dry_run_write_policy"] == {
+        "may_refresh_diagnostic_reports": True,
+        "may_write_study_truth": False,
+        "may_write_owner_route_reconcile": False,
+        "may_dispatch_owner_action": False,
+        "may_mutate_paper_or_package": False,
+    }
+
+
 def test_stage_entry_modes_from_payload_preserves_mode_level_managed_entry_actions() -> None:
     payload = load_stage_route_contract_payload()
     payload["modes"] = [

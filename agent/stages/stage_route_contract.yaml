@@ -127,6 +127,66 @@ ordinary_progress_handoff_policy:
     audit_sidecar_can_close_stage: false
     audit_sidecar_can_claim_domain_ready: false
     success_path_requires_owner_receipt_or_stable_typed_blocker: true
+anti_loop_policy:
+  source_ref: agent/stages/stage_route_contract.yaml#/anti_loop_policy
+  ordinary_path_root: current_owner_delta
+  same_tick_max_passes: 3
+  same_tick_continue_reasons:
+    - continue_same_tick_after_sync_owner_delta
+    - continue_same_tick_after_provider_admission_delta
+  repeat_identity_fields:
+    - study_id
+    - stage_run_id
+    - stage_id
+    - current_owner
+    - work_unit_id
+    - work_unit_fingerprint
+    - target_surface
+    - source_fingerprint
+  required_progress_evidence:
+    - changed_surface_refs
+    - produced_refs
+    - consumed_refs
+    - deliverable_progress_delta
+    - platform_repair_delta
+    - next_owner
+    - next_required_delta
+  allowed_reentry_signals:
+    - meaningful_artifact_delta
+    - new_owner_receipt
+    - new_typed_blocker
+    - human_gate_ref
+    - route_back_ref
+    - stop_loss
+    - provider_running_proof
+  forbidden_loop_shapes:
+    - repeat_same_work_unit_without_new_consumed_evidence
+    - repeat_same_dispatch_after_owner_receipt_consumed
+    - repeat_no_op_without_duplicate_failed_path_stale_or_forbidden_ref
+    - route_back_without_next_owner_target_surface_or_escalation
+    - advisory_signal_generates_default_next_action
+    - provider_completion_claims_domain_completion_without_owner_receipt_or_typed_blocker
+    - dry_run_owner_route_reconcile_or_dispatch
+  terminal_diagnostics:
+    - no_owner_action_remaining
+    - dispatch_materialized_but_not_selected
+    - owner_action_projected_but_not_materialized
+    - typed_blocker_or_dispatch_blocker_observed
+    - repeat_suppressed_owner_delta_required
+    - provider_handoff_written_admission_pending
+    - provider_attempt_started
+    - max_passes_exhausted_owner_delta_required
+  exhausted_budget_outputs:
+    - TypedBlocker
+    - human_gate_ref
+    - stop_loss
+    - route_back_ref
+  dry_run_write_policy:
+    may_refresh_diagnostic_reports: true
+    may_write_study_truth: false
+    may_write_owner_route_reconcile: false
+    may_dispatch_owner_action: false
+    may_mutate_paper_or_package: false
 route_contracts:
   scout:
     route_id: scout
