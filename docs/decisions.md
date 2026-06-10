@@ -5,12 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
-## 2026-06-10：数据资产 v2 固定四 plane 与 runtime retention 边界
+## 2026-06-10：数据资产 v3 固定四 plane、runbook 与 runtime retention 边界
 
 - 决策：MAS 数据资产目标态固定为 body、contract、registry-lineage 和 study-binding 四个 plane。`data/datasets/**` 是 release body，`dataset_manifest.yaml` / `release_contract` 是机器 contract，`memory/portfolio/data_assets/**` 是 controller-derived registry / lineage / impact / readiness projection，study contract 只绑定可消费 release 并把 study-local derived artifacts 留在 study analysis tree。
 - 决策：OPL 可持有 generic locator、cold-store、restore、lineage event、quality-result index 和 workbench projection；MAS 继续持有 access tier、direct study consumption、clinical semantic mapping、source readiness、study binding、owner receipt 与 typed blocker。Runtime storage retention、payload externalization、restore-proof compaction 和 SQLite compact 不得把 `data/datasets/**` 当作冗余过程体处理。
+- 决策：[Medical Data Asset Target Operating Model](./source/medical_data_asset_target_operating_model.md) 和 [Data Asset Storage Retention Runbook](./runtime/data_asset_storage_retention.md) 是当前 v3 人读 runbook。DPCC `restricted_raw` / `deidentified_longitudinal` / `standardized_longitudinal` release body、release-local manifest、declared outputs 和 dataset working-copy SQLite 均属于 data asset body plane；`manifest_refs` 是 controller-rebuildable locator/projection，不是手工 registry、body store 或 authority override。
+- 决策：storage/retention 报告必须按 online workspace、dataset assets、cold store、remaining non-dataset large files 四桶分账。Cold-store reference audit / dedupe 只能处理 storage object reference truth；dataset body 的冷归档、语义退役、移动或删除必须有 dataset-level manifest policy、study impact 和 MAS owner-authorized mutation receipt。
 - 理由：DM-CVD / DPCC 当前已把受限原始、去标识 episode 和标准化分析 release 收到 `data/datasets` layer，但历史 mutation / manifest / prune 证据仍可能含旧 `datasets/` 或 `portfolio/data_assets` 短路径。固定四 plane 可避免 runtime 文件生命周期治理、SQLite refs index 或 legacy path provenance 重新定义数据资产 authority。
-- 影响：这是 source docs 与 workspace 管理文件口径收敛，不移动或删除数据 body，不手写 registry，不修改 study truth、publication verdict、artifact authority、owner receipt、typed blocker、runtime current-control 或 SQLite refs index。
+- 影响：这是 source/runtime docs 与 workspace 管理文件口径收敛，不移动或删除数据 body，不手写 registry，不修改 study truth、publication verdict、artifact authority、owner receipt、typed blocker、runtime current-control 或 SQLite refs index。
 
 ## 2026-06-10：External-learning adoption closure 固定合同不等于落地
 
