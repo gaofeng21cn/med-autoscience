@@ -29,15 +29,19 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
     {
         "live_worker_requires_worker_running",
         "managed_runtime_audit_unhealthy",
+        "domain_owner_action_dispatch_execution_count_zero",
         "medical_paper_readiness_missing",
         "medical_paper_readiness_not_ready",
+        "no_selected_dispatch_for_requested_action_types",
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
         "provider_admission_current_control_state_required",
         "quest_waiting_opl_runtime_owner_route",
         "repair_progress_ai_reviewer_recheck_required",
+        "run_quality_repair_batch_not_visible_in_current_opl_control_state",
         "runtime_recovery_not_authorized",
         "runtime_recovery_retry_budget_exhausted",
+        "stage_packet_superseded_by_current_consumed_domain_transition",
     }
 )
 CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS = frozenset(
