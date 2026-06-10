@@ -109,7 +109,7 @@ def _write_dataset_release(
     checksum: str | None = None,
     rehydrate_verified: bool = False,
 ) -> Path:
-    release_root = workspace_root / "datasets" / family_id / version_id
+    release_root = workspace_root / "data" / "datasets" / family_id / version_id
     release_root.mkdir(parents=True, exist_ok=True)
     (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
     source_lines = ["source_release:"]

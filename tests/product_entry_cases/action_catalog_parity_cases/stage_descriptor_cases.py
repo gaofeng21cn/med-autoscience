@@ -348,9 +348,12 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert closure_frameworks["evo_scientist_evoskills"]["closure_status"] == (
         "sidecar_execution_slot_landed"
     )
-    assert closure_frameworks["ark_progress_first"]["closure_status"] == "contract_only_gap"
-    assert closure_frameworks["aris"]["closure_status"] == "history_only_gap"
-    assert closure_frameworks["paperspine"]["closure_status"] == "not_landed_gap"
+    for framework_id in ("ark_progress_first", "aris", "paperspine", "paperorchestra"):
+        framework = closure_frameworks[framework_id]
+        assert framework["closure_status"] == "sidecar_or_worker_landed"
+        assert "sidecar" in framework["owner_surface"]
+        assert framework["authority_boundary"]["can_write_publication_eval"] is False
+        assert framework["authority_boundary"]["can_authorize_publication_quality"] is False
     assert external_learning_closure["sidecar_execution_contract"]["action_type"] == (
         "run_external_learning_sidecar"
     )

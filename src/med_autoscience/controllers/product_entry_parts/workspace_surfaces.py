@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from importlib import import_module as _import_module
 
-from .shared import _LazyModuleProxy
+from med_autoscience.lazy_module_proxy import LazyModuleProxy as _LazyModuleProxy
 
 _LAZY_MODULES = (
     ".workspace_cockpit.state_and_study_items",

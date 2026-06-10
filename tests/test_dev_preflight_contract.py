@@ -632,7 +632,10 @@ def test_classify_changed_files_matches_root_governance_contract_surface() -> No
         ]
     )
 
-    assert result.matched_categories == ("root_governance_contract_surface",)
+    assert result.matched_categories == (
+        "root_governance_contract_surface",
+        "external_learning_sidecar_surface",
+    )
     assert result.unclassified_changes == ()
 
 
@@ -690,6 +693,60 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "tests/test_overlay_installer.py -q"
         ),
         "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
+    ]
+
+
+def test_classify_changed_files_matches_external_learning_sidecar_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "contracts/opl-framework/family-contract-adoption.json",
+            "contracts/progress_first_safety_envelope.json",
+            "src/med_autoscience/external_learning_adoption_closure.py",
+            "src/med_autoscience/external_learning_authoring_advisory.py",
+            "src/med_autoscience/external_learning_progress_workers.py",
+            "src/med_autoscience/external_learning_review_advisory.py",
+            "tests/test_external_learning_adoption_closure.py",
+            "tests/test_opl_family_contract_adoption.py",
+            "tests/test_progress_first_safety_envelope_contract.py",
+        ]
+    )
+
+    assert result.matched_categories == (
+        "root_governance_contract_surface",
+        "external_learning_sidecar_surface",
+        "standard_agent_pack_surface",
+    )
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        (
+            "scripts/run-pytest-clean.sh "
+            "tests/controller_charter/test_controller_charter_module_contract.py "
+            "tests/runtime/test_runtime_module_contract.py "
+            "tests/eval_hygiene/test_eval_hygiene_module_contract.py "
+            "tests/integration/test_monorepo_scaffold_boundaries.py -q"
+        ),
+        "scripts/run-pytest-clean.sh tests/test_opl_family_contract_adoption.py -q",
+        "scripts/run-pytest-clean.sh tests/test_opl_family_persistence_adapter.py -q",
+        "scripts/run-pytest-clean.sh tests/test_test_command_surfaces.py -q",
+        (
+            "scripts/run-pytest-clean.sh "
+            "tests/test_opl_family_contract_adoption.py "
+            "tests/test_progress_first_safety_envelope_contract.py "
+            "tests/test_test_lane_governance.py "
+            "tests/test_stage_quality_contract.py "
+            "tests/test_stage_route_contract.py "
+            "tests/test_overlay_installer.py -q"
+        ),
+        "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
+        (
+            "scripts/run-pytest-clean.sh "
+            "tests/test_external_learning_adoption_closure.py "
+            "tests/test_opl_family_contract_adoption.py "
+            "tests/test_progress_first_safety_envelope_contract.py -q"
+        ),
+        "make test-meta",
     ]
 
 

@@ -181,17 +181,59 @@ def test_external_learning_adoption_closure_requires_functional_landing_status()
         "AutoSci/OmegaWiki",
         "PaperOrchestra",
     }
+    assert candidate_sources["PaperSpine"]["source_status"] == (
+        "sidecar_or_worker_landed_refs_only_authoring_worker"
+    )
+    assert candidate_sources["PaperSpine"]["worker_callable_ref"] == (
+        "med_autoscience.external_learning_authoring_advisory."
+        "build_paperspine_manuscript_advisory"
+    )
     assert "motivation_spine_ref" in candidate_sources["PaperSpine"][
         "candidate_ref_families"
     ]
+    assert candidate_sources["ARIS"]["source_status"] == (
+        "sidecar_or_worker_landed_refs_only_review_import_worker"
+    )
+    assert candidate_sources["ARIS"]["worker_callable_ref"] == (
+        "med_autoscience.external_learning_review_advisory."
+        "build_aris_review_import_advisory"
+    )
     assert "cross_model_review_ref" in candidate_sources["ARIS"]["candidate_ref_families"]
+    assert candidate_sources["Academic Research Skills"]["source_status"] == (
+        "sidecar_or_worker_landed_refs_only_claim_support_worker"
+    )
+    assert candidate_sources["Academic Research Skills"]["worker_callable_ref"] == (
+        "med_autoscience.external_learning_review_advisory."
+        "build_ars_claim_support_advisory"
+    )
     assert "claim_citation_support_ref" in candidate_sources["Academic Research Skills"][
         "candidate_ref_families"
     ]
+    assert candidate_sources["ARK"]["source_status"] == (
+        "sidecar_or_worker_landed_refs_only_progress_worker"
+    )
+    assert candidate_sources["ARK"]["worker_callable_ref"] == (
+        "med_autoscience.external_learning_progress_workers."
+        "build_ark_progress_worker_advisory"
+    )
     assert "micro_canary_ref" in candidate_sources["ARK"]["candidate_ref_families"]
+    assert candidate_sources["AutoSci/OmegaWiki"]["source_status"] == (
+        "sidecar_or_worker_landed_refs_only_source_experiment_worker"
+    )
+    assert candidate_sources["AutoSci/OmegaWiki"]["worker_callable_ref"] == (
+        "med_autoscience.external_learning_progress_workers."
+        "build_autosci_source_experiment_advisory"
+    )
     assert "source_discovery_ref" in candidate_sources["AutoSci/OmegaWiki"][
         "candidate_ref_families"
     ]
+    assert candidate_sources["PaperOrchestra"]["source_status"] == (
+        "sidecar_or_worker_landed_refs_only_authoring_worker"
+    )
+    assert candidate_sources["PaperOrchestra"]["worker_callable_ref"] == (
+        "med_autoscience.external_learning_authoring_advisory."
+        "build_paperorchestra_authoring_advisory"
+    )
     assert "authoring_dag_ref" in candidate_sources["PaperOrchestra"][
         "candidate_ref_families"
     ]

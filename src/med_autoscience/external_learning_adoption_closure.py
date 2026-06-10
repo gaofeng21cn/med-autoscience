@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from importlib import import_module
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
 from med_autoscience.autosci_learning_projection import build_autosci_learning_projection
@@ -37,6 +38,32 @@ ALLOWED_WRITES = (
     REQUEST_RELATIVE_PATH.as_posix(),
     SIDECAR_RESULT_RELATIVE_PATH.as_posix(),
 )
+SIDECAR_WORKER_REGISTRY: Mapping[str, tuple[str, str]] = {
+    "paperspine": (
+        "med_autoscience.external_learning_authoring_advisory",
+        "build_paperspine_manuscript_advisory",
+    ),
+    "paperorchestra": (
+        "med_autoscience.external_learning_authoring_advisory",
+        "build_paperorchestra_authoring_advisory",
+    ),
+    "academic_research_skills": (
+        "med_autoscience.external_learning_review_advisory",
+        "build_ars_claim_support_advisory",
+    ),
+    "aris": (
+        "med_autoscience.external_learning_review_advisory",
+        "build_aris_review_import_advisory",
+    ),
+    "ark_progress_first": (
+        "med_autoscience.external_learning_progress_workers",
+        "build_ark_progress_worker_advisory",
+    ),
+    "autosci_omegawiki": (
+        "med_autoscience.external_learning_progress_workers",
+        "build_autosci_source_experiment_advisory",
+    ),
+}
 
 
 def build_external_learning_adoption_closure() -> dict[str, Any]:
@@ -100,22 +127,34 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
             framework_id="academic_research_skills",
             source_project="Imbad0202/academic-research-skills",
             projection=ars,
-            closure_status="thin_projection_landed_worker_scaleout_gap",
-            owner_surface="medical_material_passport_and_ars_learning_projection",
-            worker_or_executor_landing="medical material passport and source adapter rejection log are landed; full claim-support audit worker is not a separate owner action",
+            closure_status="sidecar_or_worker_landed",
+            owner_surface="medical_material_passport_and_ars_learning_projection_and_sidecar_advisory",
+            worker_or_executor_landing=(
+                "medical material passport and source adapter rejection log are landed; "
+                "refs-only claim-support advisory worker is "
+                "med_autoscience.external_learning_review_advisory."
+                "build_ars_claim_support_advisory; full owner-receipted claim-support "
+                "audit is still not a separate owner action"
+            ),
             missing_landing_work=[
-                "claim-citation support audit needs a current-owner callable before being called landed as execution",
+                "claim-citation support audit needs owner receipt before being counted as study progress",
                 "data-access oversight metadata needs live owner receipts before it can be counted as study progress",
             ],
-            next_landing_path="route through existing source/material passport owner refs or run_external_learning_sidecar advisory output",
+            next_landing_path="route through existing source/material passport owner refs or run_external_learning_sidecar advisory worker output",
         ),
         _framework_from_projection(
             framework_id="autosci_omegawiki",
             source_project="skyllwt/AutoSci / OmegaWiki",
             projection=autosci,
-            closure_status="contract_projection_landed",
-            owner_surface="stage_quality_pack_contract_and_autosci_learning_projection",
-            worker_or_executor_landing="research lifecycle, source discovery, reviewer verdict, and artifact QA patterns are consumable as MAS refs and quality-pack contracts",
+            closure_status="sidecar_or_worker_landed",
+            owner_surface="stage_quality_pack_contract_autosci_learning_projection_and_sidecar_advisory",
+            worker_or_executor_landing=(
+                "research lifecycle, source discovery, reviewer verdict, and artifact QA "
+                "patterns are consumable as MAS refs and quality-pack contracts; refs-only "
+                "source/experiment advisory worker is "
+                "med_autoscience.external_learning_progress_workers."
+                "build_autosci_source_experiment_advisory"
+            ),
             missing_landing_work=[
                 "real source discovery and experiment lifecycle attempts still need owner receipts per study",
             ],
@@ -138,19 +177,26 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
             source_project="kaust-ark/ARK",
             source_refs=[
                 "med_autoscience.progress_first_external_learning_contract.build_ark_progress_first_learning_contract",
+                "med_autoscience.external_learning_progress_workers.build_ark_progress_worker_advisory",
             ],
             absorbed_pattern_ids=list(_mapping(ark).get("outputs") or []),
-            local_execution_state="contract_only_gap",
-            closure_status="contract_only_gap",
-            owner_surface="progress_first_external_learning_contract",
-            worker_or_executor_landing="contracts exist for micro canary, hard human decision request, real-run closeout, visual QA, no-progress evidence, and citation lifecycle queue; no unified owner callable runs them yet",
+            local_execution_state="refs_only_sidecar_worker_landed",
+            closure_status="sidecar_or_worker_landed",
+            owner_surface="progress_first_external_learning_contract_and_sidecar_advisory",
+            worker_or_executor_landing=(
+                "contracts exist for micro canary, hard human decision request, "
+                "real-run closeout, visual QA, no-progress evidence, and citation "
+                "lifecycle queue; refs-only advisory worker is "
+                "med_autoscience.external_learning_progress_workers."
+                "build_ark_progress_worker_advisory"
+            ),
             missing_landing_work=[
-                "micro-study canary worker",
-                "operator preview harness",
-                "executor real-run closeout materializer",
-                "citation lifecycle queue owner action",
+                "owner-receipted micro-study canary evidence",
+                "operator preview harness evidence",
+                "executor real-run closeout materializer receipt",
+                "citation lifecycle queue owner action receipt",
             ],
-            next_landing_path="promote one contract at a time into an owner callable only when it removes a current progress blocker",
+            next_landing_path="emit refs-only candidates through run_external_learning_sidecar; promote to owner receipt only when a current progress blocker requires it",
         ),
         _framework(
             framework_id="aris",
@@ -168,22 +214,28 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
                 "claim_assurance_map",
                 "research_wiki_memory",
             ],
-            local_execution_state="history_and_aftercare_projection_only",
-            closure_status="history_only_gap",
-            owner_surface="publication_aftercare_plan_refs_only_projection",
-            worker_or_executor_landing="publication aftercare can expose ARIS handoff refs; MAS has not landed an ARIS worker/provider import path",
+            local_execution_state="history_aftercare_projection_and_sidecar_worker_landed",
+            closure_status="sidecar_or_worker_landed",
+            owner_surface="publication_aftercare_plan_refs_only_projection_and_sidecar_advisory",
+            worker_or_executor_landing=(
+                "publication aftercare can expose ARIS handoff refs; refs-only review "
+                "import advisory worker is med_autoscience.external_learning_review_advisory."
+                "build_aris_review_import_advisory; MAS has not landed an ARIS provider "
+                "result import path"
+            ),
             missing_landing_work=[
-                "typed ARIS input contract owner action",
-                "body-free ARIS result import receipt",
-                "cross-model reviewer receipt projection",
+                "owner-receipted ARIS input contract action",
+                "body-free ARIS result import owner receipt",
+                "cross-model reviewer receipt projection backed by live reviewer invocation",
             ],
-            next_landing_path="treat ARIS as optional algorithm/review sidecar; import only refs with owner receipt or typed blocker",
+            next_landing_path="project advisory refs through run_external_learning_sidecar and import only refs with owner receipt or typed blocker",
         ),
         _framework(
             framework_id="paperspine",
             source_project="WUBING2023/PaperSpine",
             source_refs=[
                 "https://github.com/WUBING2023/PaperSpine",
+                "med_autoscience.external_learning_authoring_advisory.build_paperspine_manuscript_advisory",
             ],
             absorbed_pattern_ids=[
                 "motivation_spine",
@@ -191,16 +243,51 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
                 "evidence_blueprint",
                 "latex_safe_audit",
             ],
-            local_execution_state="not_previously_landed",
-            closure_status="not_landed_gap",
-            owner_surface="none",
-            worker_or_executor_landing="no MAS machine surface previously represented PaperSpine; this closure records the gap and routes it through the generic sidecar slot only",
+            local_execution_state="refs_only_sidecar_worker_landed",
+            closure_status="sidecar_or_worker_landed",
+            owner_surface="paperspine_manuscript_authoring_sidecar_advisory",
+            worker_or_executor_landing=(
+                "refs-only manuscript authoring advisory worker is "
+                "med_autoscience.external_learning_authoring_advisory."
+                "build_paperspine_manuscript_advisory; it does not write paper body, "
+                "publication eval, package artifacts, or quality verdicts"
+            ),
             missing_landing_work=[
-                "motivation-spine refs in manuscript authoring owner input",
-                "writing-rationale matrix artifact or typed blocker",
-                "LaTeX-safe audit owner action for finalize/package stages",
+                "owner-consumed motivation-spine refs in manuscript authoring work units",
+                "writing-rationale matrix owner receipt or typed blocker",
+                "LaTeX-safe audit owner action receipt for finalize/package stages",
             ],
-            next_landing_path="absorb as manuscript-authoring refs, never as paper-writing authority or external runner",
+            next_landing_path="keep as manuscript-authoring advisory refs, never as paper-writing authority or external runner",
+        ),
+        _framework(
+            framework_id="paperorchestra",
+            source_project="Ar9av/PaperOrchestra",
+            source_refs=[
+                "docs/history/program/paper_orchestra_learning_intake_2026_05_02.md",
+                "docs/history/program/open_auto_research_learning_intake_2026_05_04.md",
+                "med_autoscience.external_learning_authoring_advisory.build_paperorchestra_authoring_advisory",
+            ],
+            absorbed_pattern_ids=[
+                "authoring_dag",
+                "outline_plot_ref",
+                "literature_section_ref",
+                "autorater_ref",
+            ],
+            local_execution_state="refs_only_sidecar_worker_landed",
+            closure_status="sidecar_or_worker_landed",
+            owner_surface="paperorchestra_authoring_sidecar_advisory",
+            worker_or_executor_landing=(
+                "refs-only authoring advisory worker is "
+                "med_autoscience.external_learning_authoring_advisory."
+                "build_paperorchestra_authoring_advisory; it does not introduce a "
+                "PaperOrchestra runtime, paper generator, publication owner, or autorater gate"
+            ),
+            missing_landing_work=[
+                "owner-consumed authoring DAG refs in manuscript work units",
+                "medical-quality-specific autorater calibration evidence",
+                "live reviewer receipt before any quality claim",
+            ],
+            next_landing_path="keep as authoring DAG and evaluator advisory refs under run_external_learning_sidecar",
         ),
         _framework(
             framework_id="open_auto_research",
@@ -297,6 +384,11 @@ def _sidecar_payload(*, study_root: Path, dispatch: Mapping[str, Any], apply: bo
         "can_block_current_owner_action": False,
         "current_owner_action": _current_owner_action(dispatch),
         "advisory_candidates": candidates,
+        "advisory_worker_results": _advisory_worker_results(
+            action_type=action_type,
+            dispatch=dispatch,
+            candidates=candidates,
+        ),
         "closure_counts": closure["counts"],
         "closure_ref": (
             "med_autoscience.external_learning_adoption_closure."
@@ -403,6 +495,7 @@ def _sidecar_execution_contract() -> dict[str, Any]:
         "required_outputs": [
             SIDECAR_RESULT_RELATIVE_PATH.as_posix(),
             "refs-only advisory candidates",
+            "refs-only advisory worker results",
         ],
         "mainline_waits_for_sidecar": False,
         "missing_sidecar_blocks_dispatch": False,
@@ -437,6 +530,7 @@ def _sidecar_authority_boundary() -> dict[str, Any]:
         "can_write_memory_body": False,
         "can_authorize_owner_action": False,
         "can_authorize_quality_verdict": False,
+        "can_authorize_publication_quality": False,
         "can_authorize_publication_readiness": False,
         "can_authorize_submission_readiness": False,
         "can_authorize_artifact_authority": False,
@@ -467,10 +561,19 @@ def _advisory_candidates(*, action_type: str, closure: Mapping[str, Any]) -> lis
     }
     framework_ids = {
         "return_to_ai_reviewer_workflow": ["co_scientist", "nature_skills", "autosci_omegawiki", "aris"],
-        "run_quality_repair_batch": ["nature_skills", "paperspine", "co_scientist", "academic_research_skills"],
+        "run_quality_repair_batch": [
+            "nature_skills",
+            "paperspine",
+            "paperorchestra",
+            "co_scientist",
+            "academic_research_skills",
+        ],
         "unit_harmonized_external_validation_rerun": ["aris", "ark_progress_first", "autosci_omegawiki"],
         "run_gate_clearing_batch": ["nature_skills", "ark_progress_first", "open_auto_research"],
-    }.get(action_type, ["evo_scientist_evoskills", "co_scientist", "academic_research_skills"])
+    }.get(
+        action_type,
+        ["evo_scientist_evoskills", "co_scientist", "academic_research_skills"],
+    )
     candidates: list[dict[str, Any]] = []
     for framework_id in framework_ids:
         framework = frameworks.get(framework_id)
@@ -492,7 +595,8 @@ def _advisory_candidates(*, action_type: str, closure: Mapping[str, Any]) -> lis
         item
         for item in _list(closure.get("frameworks"))
         if isinstance(item, Mapping)
-        and _text(item.get("closure_status")) in {"contract_only_gap", "history_only_gap", "not_landed_gap"}
+        and _text(item.get("closure_status"))
+        in {"contract_only_gap", "history_only_gap", "not_landed_gap"}
     ]
     if gap_candidates:
         candidates.append(
@@ -507,9 +611,123 @@ def _advisory_candidates(*, action_type: str, closure: Mapping[str, Any]) -> lis
     return candidates
 
 
+def _advisory_worker_results(
+    *,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+    candidates: list[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        framework_id = _text(candidate.get("framework_id"))
+        if framework_id is None or framework_id in seen:
+            continue
+        seen.add(framework_id)
+        if framework_id not in SIDECAR_WORKER_REGISTRY:
+            continue
+        results.append(
+            _normalize_advisory_worker_result(
+                framework_id=framework_id,
+                action_type=action_type,
+                result=_run_registered_advisory_worker(
+                    framework_id=framework_id,
+                    action_type=action_type,
+                    dispatch=dispatch,
+                ),
+            )
+        )
+    return results
+
+
+def _run_registered_advisory_worker(
+    *,
+    framework_id: str,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
+    module_name, builder_name = SIDECAR_WORKER_REGISTRY[framework_id]
+    try:
+        builder = _load_advisory_builder(module_name=module_name, builder_name=builder_name)
+    except (AttributeError, ImportError, ModuleNotFoundError) as exc:
+        return _worker_unavailable_result(
+            framework_id=framework_id,
+            action_type=action_type,
+            reason=type(exc).__name__,
+        )
+    try:
+        value = builder(dispatch)
+    except Exception as exc:  # pragma: no cover - defensive fail-open boundary.
+        return _worker_unavailable_result(
+            framework_id=framework_id,
+            action_type=action_type,
+            reason=type(exc).__name__,
+        )
+    return _mapping(value)
+
+
+def _load_advisory_builder(
+    *, module_name: str, builder_name: str
+) -> Callable[[Mapping[str, Any]], Any]:
+    builder = getattr(import_module(module_name), builder_name)
+    if not callable(builder):
+        raise AttributeError(builder_name)
+    return builder
+
+
+def _worker_unavailable_result(
+    *,
+    framework_id: str,
+    action_type: str,
+    reason: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_external_learning_advisory_worker_result",
+        "framework_id": framework_id,
+        "status": "generator_unavailable",
+        "reason": reason,
+        "candidate_ref": f"external-learning:{framework_id}:{action_type}:generator-unavailable",
+        "refs_only": True,
+        "body_included": False,
+        "advisory_only": True,
+        "can_block_current_owner_action": False,
+        "allowed_writes": [],
+        "forbidden_writes": list(FORBIDDEN_WRITES),
+        "authority_boundary": _sidecar_authority_boundary(),
+    }
+
+
+def _normalize_advisory_worker_result(
+    *,
+    framework_id: str,
+    action_type: str,
+    result: Mapping[str, Any],
+) -> dict[str, Any]:
+    normalized = dict(result)
+    normalized["surface_kind"] = (
+        _text(normalized.get("surface_kind"))
+        or "mas_external_learning_advisory_worker_result"
+    )
+    normalized["framework_id"] = _text(normalized.get("framework_id")) or framework_id
+    normalized["candidate_ref"] = (
+        _text(normalized.get("candidate_ref"))
+        or f"external-learning:{framework_id}:{action_type}:advisory-worker"
+    )
+    normalized["refs_only"] = True
+    normalized["body_included"] = False
+    normalized["advisory_only"] = True
+    normalized["can_block_current_owner_action"] = False
+    normalized["allowed_writes"] = []
+    normalized["forbidden_writes"] = list(FORBIDDEN_WRITES)
+    normalized["authority_boundary"] = _sidecar_authority_boundary()
+    return normalized
+
+
 def _candidate_role(*, framework_id: str, action_type: str) -> str:
     if framework_id == "paperspine":
         return "motivation_spine_and_writing_rationale_hint"
+    if framework_id == "paperorchestra":
+        return "authoring_dag_outline_plot_and_autorater_hint"
     if framework_id == "aris":
         return "cross_model_review_or_experiment_queue_hint"
     if framework_id == "academic_research_skills":
@@ -535,11 +753,19 @@ def _counts(frameworks: list[Mapping[str, Any]]) -> dict[str, int]:
     }
     for framework in frameworks:
         status = _text(framework.get("closure_status"))
-        if status in {"owner_surface_landed", "contract_projection_landed", "read_model_landed"}:
+        if status in {
+            "owner_surface_landed",
+            "contract_projection_landed",
+            "read_model_landed",
+        }:
             counts["owner_surface_landed_count"] += 1
-        if status == "sidecar_execution_slot_landed":
+        if status in {"sidecar_execution_slot_landed", "sidecar_or_worker_landed"}:
             counts["sidecar_execution_slot_count"] += 1
-        if status in {"thin_projection_landed_worker_scaleout_gap", "contract_only_gap", "history_only_gap"}:
+        if status in {
+            "thin_projection_landed_worker_scaleout_gap",
+            "contract_only_gap",
+            "history_only_gap",
+        }:
             counts["contract_or_projection_only_gap_count"] += 1
         if status == "not_landed_gap":
             counts["not_landed_gap_count"] += 1
@@ -573,6 +799,7 @@ __all__ = [
     "SIDECAR_OWNER",
     "SIDECAR_RESULT_RELATIVE_PATH",
     "SIDECAR_SURFACE_KIND",
+    "SIDECAR_WORKER_REGISTRY",
     "SURFACE_KIND",
     "build_external_learning_adoption_closure",
     "run_external_learning_sidecar",

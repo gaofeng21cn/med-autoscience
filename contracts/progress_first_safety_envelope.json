@@ -118,7 +118,8 @@
       "candidate_source_families": [
         {
           "source_id": "PaperSpine",
-          "source_status": "not_landed_gap_to_refs_only_candidate",
+          "source_status": "sidecar_or_worker_landed_refs_only_authoring_worker",
+          "worker_callable_ref": "med_autoscience.external_learning_authoring_advisory.build_paperspine_manuscript_advisory",
           "candidate_ref_families": [
             "motivation_spine_ref",
             "writing_rationale_ref",
@@ -132,7 +133,8 @@
         },
         {
           "source_id": "ARIS",
-          "source_status": "history_only_gap_to_refs_only_candidate",
+          "source_status": "sidecar_or_worker_landed_refs_only_review_import_worker",
+          "worker_callable_ref": "med_autoscience.external_learning_review_advisory.build_aris_review_import_advisory",
           "candidate_ref_families": [
             "cross_model_review_ref",
             "experiment_queue_ref",
@@ -146,7 +148,8 @@
         },
         {
           "source_id": "Academic Research Skills",
-          "source_status": "thin_projection_landed_worker_scaleout_gap",
+          "source_status": "sidecar_or_worker_landed_refs_only_claim_support_worker",
+          "worker_callable_ref": "med_autoscience.external_learning_review_advisory.build_ars_claim_support_advisory",
           "candidate_ref_families": [
             "claim_citation_support_ref",
             "material_passport_ref",
@@ -160,7 +163,8 @@
         },
         {
           "source_id": "ARK",
-          "source_status": "contract_only_gap_to_refs_only_candidate",
+          "source_status": "sidecar_or_worker_landed_refs_only_progress_worker",
+          "worker_callable_ref": "med_autoscience.external_learning_progress_workers.build_ark_progress_worker_advisory",
           "candidate_ref_families": [
             "micro_canary_ref",
             "real_run_closeout_ref",
@@ -174,7 +178,8 @@
         },
         {
           "source_id": "AutoSci/OmegaWiki",
-          "source_status": "contract_projection_landed_to_refs_only_candidate",
+          "source_status": "sidecar_or_worker_landed_refs_only_source_experiment_worker",
+          "worker_callable_ref": "med_autoscience.external_learning_progress_workers.build_autosci_source_experiment_advisory",
           "candidate_ref_families": [
             "source_discovery_ref",
             "experiment_lifecycle_ref",
@@ -189,7 +194,8 @@
         },
         {
           "source_id": "PaperOrchestra",
-          "source_status": "history_only_gap_or_contract_projection_to_refs_only_candidate",
+          "source_status": "sidecar_or_worker_landed_refs_only_authoring_worker",
+          "worker_callable_ref": "med_autoscience.external_learning_authoring_advisory.build_paperorchestra_authoring_advisory",
           "candidate_ref_families": [
             "authoring_dag_ref",
             "outline_plot_ref",

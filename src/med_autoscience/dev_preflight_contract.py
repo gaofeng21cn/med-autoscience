@@ -344,6 +344,30 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
+        category_id="external_learning_sidecar_surface",
+        exact_paths=(
+            "contracts/opl-framework/family-contract-adoption.json",
+            "contracts/progress_first_safety_envelope.json",
+            "src/med_autoscience/external_learning_adoption_closure.py",
+            "src/med_autoscience/external_learning_authoring_advisory.py",
+            "src/med_autoscience/external_learning_progress_workers.py",
+            "src/med_autoscience/external_learning_review_advisory.py",
+            "tests/test_external_learning_adoption_closure.py",
+            "tests/test_opl_family_contract_adoption.py",
+            "tests/test_progress_first_safety_envelope_contract.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            (
+                f"{PYTEST_CLEAN_RUNNER} "
+                "tests/test_external_learning_adoption_closure.py "
+                "tests/test_opl_family_contract_adoption.py "
+                "tests/test_progress_first_safety_envelope_contract.py -q"
+            ),
+            "make test-meta",
+        ),
+    ),
+    PreflightCategorySpec(
         category_id="evo_scientist_progress_accelerator_surface",
         exact_paths=(
             "contracts/evo_scientist_progress_accelerator.json",

@@ -606,9 +606,17 @@
       "ark_progress_first",
       "aris",
       "paperspine",
+      "paperorchestra",
       "open_auto_research"
     ],
+    "landed_worker_statuses": [
+      "owner_surface_landed",
+      "read_model_landed",
+      "sidecar_execution_slot_landed",
+      "sidecar_or_worker_landed"
+    ],
     "known_gap_statuses": [
+      "projection_only_gap",
       "thin_projection_landed_worker_scaleout_gap",
       "contract_only_gap",
       "history_only_gap",
@@ -632,6 +640,19 @@
         "current_package/**",
         "memory/**/body"
       ],
+      "required_outputs": [
+        "artifacts/advisory/external_learning_sidecar/latest.json",
+        "refs-only advisory candidates",
+        "refs-only advisory worker results"
+      ],
+      "advisory_worker_registry": {
+        "academic_research_skills": "med_autoscience.external_learning_review_advisory.build_ars_claim_support_advisory",
+        "aris": "med_autoscience.external_learning_review_advisory.build_aris_review_import_advisory",
+        "ark_progress_first": "med_autoscience.external_learning_progress_workers.build_ark_progress_worker_advisory",
+        "autosci_omegawiki": "med_autoscience.external_learning_progress_workers.build_autosci_source_experiment_advisory",
+        "paperorchestra": "med_autoscience.external_learning_authoring_advisory.build_paperorchestra_authoring_advisory",
+        "paperspine": "med_autoscience.external_learning_authoring_advisory.build_paperspine_manuscript_advisory"
+      },
       "mainline_waits_for_sidecar": false,
       "missing_sidecar_blocks_dispatch": false,
       "refs_only_advisory": true

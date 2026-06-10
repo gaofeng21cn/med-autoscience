@@ -609,13 +609,27 @@ def test_mas_external_learning_adoption_closure_declares_worker_landing_truth_ta
         "co_scientist",
         "nature_skills",
         "academic_research_skills",
+        "autosci_omegawiki",
         "evo_scientist_evoskills",
         "ark_progress_first",
         "aris",
         "paperspine",
+        "paperorchestra",
+        "open_auto_research",
     }
-    assert "contract_only_gap" in closure["known_gap_statuses"]
-    assert "not_landed_gap" in closure["known_gap_statuses"]
+    assert closure["landed_worker_statuses"] == [
+        "owner_surface_landed",
+        "read_model_landed",
+        "sidecar_execution_slot_landed",
+        "sidecar_or_worker_landed",
+    ]
+    assert set(closure["known_gap_statuses"]) >= {
+        "projection_only_gap",
+        "thin_projection_landed_worker_scaleout_gap",
+        "contract_only_gap",
+        "history_only_gap",
+        "not_landed_gap",
+    }
     sidecar = closure["sidecar_execution_contract"]
     assert sidecar["action_type"] == "run_external_learning_sidecar"
     assert sidecar["owner"] == "external_learning_sidecar"
@@ -625,6 +639,37 @@ def test_mas_external_learning_adoption_closure_declares_worker_landing_truth_ta
     ]
     assert "artifacts/publication_eval/latest.json" in sidecar["forbidden_writes"]
     assert "artifacts/controller_decisions/latest.json" in sidecar["forbidden_writes"]
+    assert sidecar["required_outputs"] == [
+        "artifacts/advisory/external_learning_sidecar/latest.json",
+        "refs-only advisory candidates",
+        "refs-only advisory worker results",
+    ]
+    assert sidecar["advisory_worker_registry"] == {
+        "academic_research_skills": (
+            "med_autoscience.external_learning_review_advisory."
+            "build_ars_claim_support_advisory"
+        ),
+        "aris": (
+            "med_autoscience.external_learning_review_advisory."
+            "build_aris_review_import_advisory"
+        ),
+        "ark_progress_first": (
+            "med_autoscience.external_learning_progress_workers."
+            "build_ark_progress_worker_advisory"
+        ),
+        "autosci_omegawiki": (
+            "med_autoscience.external_learning_progress_workers."
+            "build_autosci_source_experiment_advisory"
+        ),
+        "paperorchestra": (
+            "med_autoscience.external_learning_authoring_advisory."
+            "build_paperorchestra_authoring_advisory"
+        ),
+        "paperspine": (
+            "med_autoscience.external_learning_authoring_advisory."
+            "build_paperspine_manuscript_advisory"
+        ),
+    }
     assert sidecar["mainline_waits_for_sidecar"] is False
     assert sidecar["missing_sidecar_blocks_dispatch"] is False
     assert sidecar["refs_only_advisory"] is True
