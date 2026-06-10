@@ -53,12 +53,13 @@ The following supporting surfaces remain important, but they are not sufficient 
 - `paper/figure_spec.json`
 - `paper/figure_style_reference_bundle.json`
 - `paper/figure_visual_audit_receipt.json`
+- `paper/figure_polish_lifecycle.json`
 - `paper/ai_illustration_receipt.json`
 - template catalogs;
 - QC results;
 - gate status reports.
 
-The machine-readable boundary for these four paper-level Display Pack v2 surfaces is indexed in
+The machine-readable boundary for the core paper-level Display Pack v2 quality refs is indexed in
 `contracts/publication_figure_quality_contract.json` and enforced by
 `src/med_autoscience/publication_figure_quality_contract.py`. `paper/build/display_pack_lock.json`
 records their refs under `publication_figure_quality_refs`; submission packaging preserves that block.
@@ -69,6 +70,14 @@ records their refs under `publication_figure_quality_refs`; submission packaging
 Display Template, `figure_kind`, medical semantics, and optional panel roles. It is not a
 Vega-Lite runtime, renderer contract, data/statistics mutation surface, visual-audit finding, or
 publication-readiness verdict.
+
+`paper/figure_polish_lifecycle.json` is the separate machine lifecycle surface for the AI/VLM polish
+loop. Its contract is indexed in `contracts/figure_polish_lifecycle_contract.json` and enforced by
+`src/med_autoscience/figure_polish_lifecycle_contract.py`. The lifecycle references
+`paper/figure_visual_audit_receipt.json` for visual findings / audit-clear evidence and references
+`paper/build/display_pack_lock.json#/publication_figure_quality_refs` to bind the loop to locked
+figure-quality refs. It does not mutate data, statistics, evidence marks, artifacts, or publication
+authority.
 
 ## Entry Conditions
 
@@ -123,6 +132,11 @@ Visual audit should explicitly look for at least the following classes of proble
 Every visual-audit finding should be recorded in a concrete, reviewable format.
 
 The canonical machine file is `paper/figure_visual_audit_receipt.json`.
+
+When the paper also tracks the full polish loop, the lifecycle machine file is
+`paper/figure_polish_lifecycle.json`. Its event sequence must start at `draft_rendered` and can only
+advance as an ordered prefix through `deterministic_qc_clear`, `visual_audit_findings`, `revised`,
+`audit_clear`, and `publication_manifested`.
 
 Use the following fields:
 
@@ -185,6 +199,10 @@ Do not treat hidden post-processing as the normal response.
 AI-generated illustration candidates use `paper/ai_illustration_receipt.json`. That receipt is limited to
 `illustration_shell` work and every candidate must keep `scientific_claim_carried=false`; evidence figures
 continue to require the deterministic MAS renderer/template/data/QC path plus visual audit.
+
+AI/VLM events in `paper/figure_polish_lifecycle.json` must carry `model_ref` or `reviewer_ref`. They
+are audit-loop evidence only and must not declare `mutates_data=true` or
+`carries_publication_verdict=true`.
 
 ## Promotion Rules
 
