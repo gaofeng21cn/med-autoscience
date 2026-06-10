@@ -31,6 +31,91 @@
     "sidecar_observation_memory_written",
     "same_invocation_self_review"
   ],
+  "external_learning_adoption_closure_policy": {
+    "surface_kind": "mas_external_learning_adoption_closure_policy",
+    "role": "landing_status_contract_for_external_research_agent_intake",
+    "default_posture": "contract_intake_is_not_functional_landing",
+    "applies_to_source_families": [
+      "Co-Scientist",
+      "Nature-skills",
+      "Academic Research Skills",
+      "AutoSci/OmegaWiki",
+      "EvoScientist/EvoSkills",
+      "ARK",
+      "ARIS",
+      "PaperSpine",
+      "PaperOrchestra",
+      "Open Auto Research",
+      "Light0305/Light"
+    ],
+    "accepted_landing_statuses": [
+      "owner_surface_landed",
+      "read_model_landed",
+      "sidecar_or_worker_landed",
+      "contract_projection_landed"
+    ],
+    "gap_statuses": [
+      "contract_only_gap",
+      "projection_only_gap",
+      "history_only_gap",
+      "not_landed_gap"
+    ],
+    "non_landing_signals": [
+      "adopt_contract",
+      "reference_intake_recorded",
+      "design_doc_recorded",
+      "external_score_or_ranking_available",
+      "checklist_or_skill_inventory_available",
+      "generated_descriptor_without_consumer",
+      "read_model_projection_without_owner_or_worker_consumption"
+    ],
+    "functional_landing_requires_one_of": [
+      "mas_owner_surface_consumes_pattern",
+      "generated_or_read_model_projection_is_consumed_by_owner",
+      "worker_or_sidecar_execution_slot_declared",
+      "callable_or_action_catalog_entry_declared",
+      "quality_pack_consumer_declared",
+      "controller_authorized_soak_declared"
+    ],
+    "worker_or_sidecar_boundary_requires": [
+      "required_inputs",
+      "allowed_writes",
+      "forbidden_authority",
+      "output_refs",
+      "nonblocking_or_fail_open_policy",
+      "verification_gate"
+    ],
+    "forbidden_landing_claims": [
+      "learned",
+      "absorbed",
+      "landed",
+      "complete",
+      "done"
+    ],
+    "gap_reporting_requires": [
+      "landing_status",
+      "mas_or_opl_owner_surface",
+      "missing_landing_surface",
+      "next_safe_landing_path",
+      "verification_gate"
+    ],
+    "ordinary_progress_policy": {
+      "external_learning_is_admission_layer": false,
+      "missing_external_advisory_blocks_current_owner_action": false,
+      "missing_worker_or_projection_blocks_current_owner_action": false,
+      "hard_gate_escalation_requires_current_delta_route_required_ref": true,
+      "hard_gate_ref_families": [
+        "source_data_or_evidence",
+        "owner_route_identity",
+        "forbidden_write_boundary",
+        "irreversible_mutation_authorization",
+        "independent_reviewer_record",
+        "publication_gate",
+        "human_gate",
+        "mas_hard_gate"
+      ]
+    }
+  },
   "closeout_authority": {
     "accepted_progress_outputs": [
       "ProgressDeltaReceipt",

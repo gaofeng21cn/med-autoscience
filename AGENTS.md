@@ -11,6 +11,7 @@
 - MAS 的理想形态是标准 OPL Agent：`Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。当前仓内已存在的 scheduler、runner、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/product-entry/sidecar/status wrapper 只能作为迁移输入；不能因为已有 active caller 就写成长期合理私有平台。
 - 文档和开发计划先设理想态，再找差距；差距不是妥协清单。为了标准 OPL Agent 目标态，可以革命式重构 MAS 并完全抛弃旧模块、旧接口、旧测试、旧目录和旧文案，不以兼容为理由保留历史污染面。
 - `MDS / DeepScientist` 的当前角色是 MAS 显式声明的 source provenance、historical fixture、explicit archive import、backend audit、upstream learning 和 parity oracle reference。
+- 外部自动研究框架 intake 不能只落合同或 reference。`adopt_contract` 只表示接受 MAS-native shape；只有进入 owner surface、generated/read-model projection、worker/sidecar execution slot、callable/action catalog、quality pack consumer、controller-authorized soak 或等价 repo-native surface，并有 tests/verification 证明 allowed writes、forbidden authority 和 nonblocking/fail-open 边界，才可写成 landed。缺这些落点时必须标为 `contract_only_gap`、`projection_only_gap`、`history_only_gap` 或 `not_landed_gap`，不能写成已学完或已落地；具体读法见 `docs/runtime/control/external_learning_adoption_closure.md`。
 - 保持变更可审查、可回退，避免不必要的大范围改动。
 - 能删就别加；能复用现有模式就别新起抽象；没有明确必要不要新增依赖。
 - 不采用降级处理、兜底方案、临时补丁、启发式方法、局部稳定化手段，避免以非严谨通用算法的后处理补救作为主策略。

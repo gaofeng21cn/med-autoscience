@@ -11,6 +11,8 @@ Machine boundary: 本文是人读 external-pattern intake runbook。机器真相
 
 本 runbook 的 source-of-truth intake 是 Light upstream 默认分支 HEAD `731c786e9434e8f6f9cd5284293003115c5b66c7` 加本地缓存 `/tmp/light0305-light-current` / `/tmp/light0305-light-intake` 中的 clean-room evidence：`README.md`、`CONVENTIONS.md`、`MODE_REGISTRY.md`、`ROUTER.md`、`skills/light-orchestrator/**`、`skills/light-idea-generation/SKILL.md`、`skills/light-idea-critique/SKILL.md`、`skills/light-self-review/SKILL.md`、`skills/light-citation/references/locator_audit.md`、`skills/light-literature-search/scripts/prisma_flow.py`、`skills/light-figure-drawing/references/figure_integrity.md`、`skills/light-figure-drawing/scripts/figure_integrity_lint.py`、`skills/light-paper-polishing/references/argument_review.md`、`skills/light-paper-polishing/scripts/style_fingerprint.py`、`_verification_log/*.md`、`code_assets/` 和 `databases/`。这些材料只作为 external pattern evidence 读取；其中的技能名、知识库路径、评分模板、API 状态、库版本和项目记忆都不是 MAS current truth。
 
+Landing boundary: 本 runbook 的 functional landing 只限 MAS-owned `light-advisory-materialize` ref materializer 和它产生的 refs-only advisory bundle；这可按 `sidecar_or_worker_landed` 读取，但不能写成 Light runtime、Light skill runner、quality authority 或 publication readiness 已落地。缺 Light advisory 默认不阻断当前 owner action；跨框架状态口径见 [External Learning Adoption Closure Runbook](./external_learning_adoption_closure.md)。
+
 ## Skill-level 方法采纳表
 
 Light skill 本身可学习的是 skill-engineering 方法，不是 skill inventory、router、项目库或外部评分体系。MAS 采用以下四种 disposition：

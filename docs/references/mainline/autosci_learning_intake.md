@@ -7,6 +7,8 @@ Purpose: 记录 `skyllwt/AutoSci` / `OmegaWiki` 中可学习的研究 wiki、sou
 State: `patterns_adopted_into_mas_owner_surfaces; no_external_dependency; no_external_runtime_authority`
 Machine boundary: 本文是人读 clean-room intake。机器真相继续归 `src/med_autoscience/autosci_learning_projection.py`、`stage_quality_pack_contract`、product-entry manifest、domain-handler export、evidence/review ledgers、AI reviewer、controller decisions、owner receipts、typed blockers 和 artifact authority refs。
 
+Landing boundary: 本 reference 记录 AutoSci / OmegaWiki pattern 的 MAS-owned projection 与 quality-pack absorption；projection 或 contract 不单独证明 execution landing。是否可写成 landed，按 [External Learning Adoption Closure Runbook](../../runtime/control/external_learning_adoption_closure.md) 的 landing status 判断，并继续保留 no external runtime / no authority boundary。
+
 ## 来源
 
 本轮核对的是 `https://github.com/skyllwt/AutoSci`，本地浅克隆 observed head 为 `d89cc72a884a2d091b6fac5719f30b4c64d2c6bd`。README 当前以 `OmegaWiki` 为产品名，核心形态是 wiki-centric research lifecycle：paper/source ingestion、typed wiki graph、idea generation、experiment design/run/eval、paper writing/review 和 poster artifact。

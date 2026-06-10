@@ -5,7 +5,7 @@ Purpose: `current_truth_summary`
 State: `active_current_truth`
 Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `agent/` pack、`contracts/`、CLI/MCP/API 行为、product-entry manifest、domain-handler receipt、runtime/controller durable surfaces、真实 workspace artifact、owner receipt 和 generated artifact proof。具体 study 当前状态必须 fresh 读取 live `study_progress`、workspace artifacts、controller decisions、publication eval、OPL current-control 和 owner receipts。
 
-文档更新时间：`2026-06-09`
+文档更新时间：`2026-06-10`
 最近一次已记录 live runtime audit：`2026-06-05`
 最近一次已记录 DM002 / DM003 paper-line pause closeout：`2026-06-05`
 最近一次已记录 DM002 / DM003 stage-native live canary：`2026-06-06`
@@ -13,11 +13,14 @@ Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `
 最近一次已记录 MAS legacy `.ds` physical retirement contract：`2026-06-09`
 最近一次已记录 Light external-pattern intake materializer：`2026-06-10`
 最近一次已记录 Progress-first safety envelope：`2026-06-10`
+最近一次已记录 External-learning adoption closure：`2026-06-10`
 最近一次已记录 external-learning worker closure：`2026-06-10`
 
 Plugin native profile pointer: `contracts/opl-native-profile.json` 只声明 OPL Flow / OPL Doc 插件同步与 drift 检查所需的 repo-native profile；它不是 MAS medical truth、runtime truth、publication verdict、artifact authority、owner receipt 或 production-ready 证据。
 
 Progress-first / AI-first operator runbook: [Progress-First Stage Outcome Runbook](./runtime/control/progress_first_stage_outcome.md) 是当前 DM002/DM003 同类 receipt/currentness/read-model/preflight 空转的稳定人读入口；它固定非终局 stage outcome、paper/deliverable 与 platform repair 分账、AI-first admission、hard gates、live verification commands 和错误路径。该 runbook 不写 study truth，也不替代 live `study_progress`、OPL current-control、owner receipt、AI reviewer verdict 或 publication gate。
+
+External-learning adoption closure: [External Learning Adoption Closure Runbook](./runtime/control/external_learning_adoption_closure.md) 是当前所有外部自动研究框架 intake 的统一口径。Co-Scientist、Nature-skills、Academic Research Skills、AutoSci / OmegaWiki、EvoScientist / EvoSkills、ARK、ARIS、PaperSpine、Open Auto Research 等材料只有 contract、reference intake 或 design doc 时，不能写成 learned / absorbed / landed；必须标注 `contract_only_gap`、`projection_only_gap`、`history_only_gap` 或 `not_landed_gap`。只有进入 owner surface、generated/read-model projection、worker/sidecar execution slot、callable/action catalog、quality pack consumer、controller-authorized soak 或等价 repo-native surface，并有验证证明 allowed writes、forbidden authority 和 nonblocking / fail-open 边界，才算实际落地。缺 external advisory 默认不阻断完整 `current_executable_owner_action`，除非命中 source/data/evidence、owner-route identity、forbidden write、不可逆 mutation、independent reviewer、publication gate、human gate 或 MAS hard gate。
 
 Progress-first Co-Scientist 增益层：`next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`budgeted memory`、`triggered meta-review` 和 `opportunistic knowledge prefetch` 当前已落为 advisory / refs-only / budgeted 增强口径，并进入 `agent/` semantic pack、portfolio contract、StageRun profile、`current_owner_ticket.progress_enhancement_policy`、generated stage projection、focused tests 和 runtime docs。它们只帮助 route 更快选下一步、reviewer / auditor 更快发现缺口、memory 复用失败路径；它们不写 study truth，不阻断 agent admission，不关闭 quality / publication / artifact / memory authority，也不把 platform repair、prefetch 或 review score 计为 paper progress。
 

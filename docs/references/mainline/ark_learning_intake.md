@@ -5,6 +5,8 @@ Purpose: `clean_room_research_workflow_contract_intake`
 State: `contract_landing_in_progress`
 Machine boundary: 本文是人读 external intake 记录。机器真相继续归 `agent/` pack、`contracts/`、源码、focused tests、runtime/controller surfaces、study workspaces、owner receipts、AI reviewer / auditor records、publication gate、artifact authority 和 source authority。
 
+Landing boundary: 本 reference 记录 ARK workflow affordance 与 MAS-native contract target；`adopt_contract` 不等于 functional landing。是否可写成 landed，按 [External Learning Adoption Closure Runbook](../../runtime/control/external_learning_adoption_closure.md) 的 landing status 判断；缺 owner surface、read-model consumer、worker/sidecar slot、callable/action catalog 或验证时必须继续标为 `contract_only_gap` / `projection_only_gap`。
+
 本文把 `kaust-ark/ARK` 中值得学习的 idea-to-paper workflow pattern 转译为 MAS-native contract-first surface。ARK 只作为外部模式来源；MAS 不引入 ARK runtime、SQLite authority、conda project model、Telegram/webapp service、agent prompt、代码或依赖。当前外部依据是 `kaust-ark/ARK` `main` commit `01cab1048cc78fa4d33e8274e4f963a44d70dc48`、README、ARCHITECTURE、`ark/memory.py`、`ark/pipeline.py`、`ark/citation.py`、`ark/figure_manifest.py` 与 `skills/builtin/*`。
 
 ## Intake Conclusion
