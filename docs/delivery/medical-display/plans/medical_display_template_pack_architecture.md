@@ -74,6 +74,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 - `Display Pack v2` 的图质量机制已进入机器面：
   - `contracts/display-pack-contract.v2.json` 现在声明 pack descriptor、template descriptor、style/QC/AI/golden/exemplar/provenance 字段集合，以及 MAS/OPL Pack OS 边界；
   - `paper/figure_intent.json` 负责每张图的 `claim_ref`、`data_ref`、`template_id`、`figure_kind` 绑定；
+  - `paper/figure_spec.json` 负责轻量 MAS-native 医学 figure grammar，声明 `figure_intent`、Display Template、figure kind、医学语义与 panel role 的绑定；
   - `paper/figure_style_reference_bundle.json` 负责 AgentFigureGallery 式 link-only 喜欢/拒绝/采用参考；
   - `paper/figure_visual_audit_receipt.json` 负责 VLM/human/hybrid 对真实渲染图的结构化视觉审计回执；
   - `paper/ai_illustration_receipt.json` 只允许记录 `illustration_shell` AI 候选，且 `scientific_claim_carried=false` 是硬边界；
@@ -407,7 +408,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 
 - 不再只知道“启用了哪个 pack”；
 - 还知道“为什么启用、从哪里解析、版本是否一致、这次真正用到的是哪份 manifest”。
-- 还知道当前 paper 是否已经把图形意图、风格参考、真实渲染审计和 AI illustration 边界交接到 publication handoff 面。
+- 还知道当前 paper 是否已经把图形意图、声明式医学 figure grammar、风格参考、真实渲染审计和 AI illustration 边界交接到 publication handoff 面。
 
 ## 包目录结构
 
@@ -703,6 +704,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 - 统一 provenance 落盘
 - 包级 execution contract
 - `contracts/publication_figure_quality_contract.json`
+- `contracts/medical_figure_spec_contract.json`
 - `paper/build/display_pack_lock.json#/publication_figure_quality_refs`
 
 当前实际推进口径：

@@ -50,6 +50,7 @@ The following supporting surfaces remain important, but they are not sufficient 
 - `paper/publication_style_profile.json`
 - `paper/display_overrides.json`
 - `paper/figure_intent.json`
+- `paper/figure_spec.json`
 - `paper/figure_style_reference_bundle.json`
 - `paper/figure_visual_audit_receipt.json`
 - `paper/ai_illustration_receipt.json`
@@ -61,6 +62,13 @@ The machine-readable boundary for these four paper-level Display Pack v2 surface
 `contracts/publication_figure_quality_contract.json` and enforced by
 `src/med_autoscience/publication_figure_quality_contract.py`. `paper/build/display_pack_lock.json`
 records their refs under `publication_figure_quality_refs`; submission packaging preserves that block.
+
+`paper/figure_spec.json` is a separate declarative medical figure grammar surface indexed by
+`contracts/medical_figure_spec_contract.json` and enforced by
+`src/med_autoscience/medical_figure_spec_contract.py`. It binds a `figure_intent` entry to a
+Display Template, `figure_kind`, medical semantics, and optional panel roles. It is not a
+Vega-Lite runtime, renderer contract, data/statistics mutation surface, visual-audit finding, or
+publication-readiness verdict.
 
 ## Entry Conditions
 

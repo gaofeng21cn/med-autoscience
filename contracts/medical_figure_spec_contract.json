@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "contract_id": "medical_figure_spec_contract.v1",
+  "owner": "MedAutoScience",
+  "purpose": "Declarative MAS-native medical figure grammar that binds a paper figure intent to a Display Template and explicit medical semantics.",
+  "machine_boundary": "The enforceable validator lives in med_autoscience.medical_figure_spec_contract. This JSON file indexes the stable figure_spec surface, required fields, supported semantics, and authority boundary for agents and contract readers.",
+  "source_module": "src/med_autoscience/medical_figure_spec_contract.py",
+  "paper_surface": {
+    "name": "medical_figure_spec",
+    "path": "paper/figure_spec.json",
+    "loader": "med_autoscience.medical_figure_spec_contract:load_medical_figure_spec",
+    "required_top_level": [
+      "schema_version",
+      "figure_id",
+      "intent_ref",
+      "template_id",
+      "figure_kind",
+      "medical_semantics"
+    ],
+    "allowed_figure_kinds": [
+      "evidence_figure",
+      "illustration_shell",
+      "table_shell"
+    ],
+    "supported_medical_semantics": [
+      "cohort_ref",
+      "endpoint_ref",
+      "model_ref",
+      "risk_horizon",
+      "effect_estimate_ref",
+      "claim_role"
+    ],
+    "required_evidence_figure_semantics": [
+      "cohort_ref",
+      "endpoint_ref"
+    ],
+    "optional_panels": {
+      "field": "panels",
+      "required_panel_fields": [
+        "panel_id",
+        "data_role",
+        "mark_role"
+      ]
+    },
+    "authority_boundary": "Declarative medical figure grammar only; it binds figure intent, Display Template, and medical semantics without rendering figures, changing data/statistics, or issuing publication readiness verdicts."
+  },
+  "integration_points": {
+    "figure_intent": {
+      "path": "paper/figure_intent.json",
+      "binding_field": "intent_ref",
+      "relationship": "figure_spec references the paper figure intent entry; it does not replace figure_intent."
+    },
+    "display_template": {
+      "binding_field": "template_id",
+      "relationship": "figure_spec binds the selected Display Template to MAS medical semantics without becoming a Vega-Lite runtime or external renderer."
+    }
+  },
+  "verification": {
+    "focused_tests": [
+      "tests/test_medical_figure_spec_contract.py"
+    ],
+    "required_when_changed": [
+      "rtk ./scripts/run-pytest-clean.sh tests/test_medical_figure_spec_contract.py -q",
+      "rtk git diff --check"
+    ]
+  }
+}
