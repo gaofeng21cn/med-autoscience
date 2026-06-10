@@ -1,11 +1,46 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 import subprocess
 import time
 
 from tests.study_runtime_test_helpers import make_profile, write_study
+
+
+def _write_stage_attempt_closeout(
+    *,
+    profile,
+    study_id: str,
+    stage_attempt_id: str,
+    status: str = "blocked",
+) -> Path:
+    closeout_path = (
+        profile.studies_root
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / f"{stage_attempt_id}.closeout.json"
+    )
+    closeout_path.parent.mkdir(parents=True, exist_ok=True)
+    closeout_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "stage_attempt_closeout_packet",
+                "stage_attempt_id": stage_attempt_id,
+                "study_id": study_id,
+                "status": status,
+                "typed_blocker_ref": f"{closeout_path}#typed_blocker",
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return closeout_path
 
 
 def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, tmp_path: Path) -> None:
@@ -182,6 +217,157 @@ def test_live_provider_attempt_projection_reads_queue_list_linked_liveness(
     assert result["runtime_health"]["runtime_liveness_status"] == "live"
     assert result["runtime_health"]["provider_status"] == "running"
     assert commands == [("family-runtime", "queue", "list", "--json")]
+
+
+def test_live_provider_attempt_projection_skips_linked_liveness_with_terminal_mas_closeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
+    study_id = "001-risk"
+    _write_stage_attempt_closeout(
+        profile=profile,
+        study_id=study_id,
+        stage_attempt_id="sat-linked",
+        status="blocked",
+    )
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            return {
+                "family_runtime_queue": {
+                    "tasks": [
+                        {
+                            "task_id": "frt-live-linked",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "running",
+                            "updated_at": "2026-06-10T21:42:00.690Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "workspace_root": str(profile.workspace_root),
+                                "study_id": study_id,
+                                "quest_id": study_id,
+                                "action_type": "return_to_ai_reviewer_workflow",
+                                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                            },
+                            "linked_stage_attempt_liveness": {
+                                "status": "live",
+                                "stage_attempt_id": "sat-linked",
+                                "workflow_id": "wf-linked",
+                                "provider_kind": "temporal",
+                                "provider_status": "running",
+                                "stage_attempt_status": "running",
+                            },
+                        }
+                    ]
+                }
+            }
+        if args == ("family-runtime", "attempt", "list", "--json"):
+            return {"family_runtime_stage_attempts": {"attempts": []}}
+        raise AssertionError(f"terminal MAS closeout must suppress stale live projection: {args}")
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.live_provider_attempt_for_study(profile=profile, study_id=study_id)
+
+    assert result is None
+    assert commands == [
+        ("family-runtime", "queue", "list", "--json"),
+        ("family-runtime", "attempt", "list", "--json"),
+    ]
+
+
+def test_live_provider_attempt_projection_skips_queue_inspect_with_terminal_mas_closeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
+    study_id = "001-risk"
+    _write_stage_attempt_closeout(
+        profile=profile,
+        study_id=study_id,
+        stage_attempt_id="sat-live",
+        status="blocked",
+    )
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            return {
+                "family_runtime_queue": {
+                    "tasks": [
+                        {
+                            "task_id": "frt-live",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "running",
+                            "updated_at": "2026-05-26T13:35:24Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "study_id": study_id,
+                            },
+                        }
+                    ]
+                }
+            }
+        if args == ("family-runtime", "queue", "inspect", "frt-live", "--json"):
+            return {
+                "family_runtime_task": {
+                    "task": {
+                        "task_id": "frt-live",
+                        "task_kind": "domain_owner/default-executor-dispatch",
+                        "payload": {
+                            "study_id": study_id,
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": "dm002_methods_write_pass",
+                        },
+                        "current_control_state": {
+                            "active_run_id": "opl-stage-attempt://sat-live",
+                            "active_stage_attempt_id": "sat-live",
+                            "active_workflow_id": "wf-live",
+                            "running_provider_attempt": True,
+                            "provider_kind": "temporal",
+                            "current_attempt_state": "running",
+                            "reconciliation_status": "running",
+                            "provider_run": {"provider_status": "running"},
+                        },
+                    },
+                    "stage_attempts": [
+                        {
+                            "workspace_locator": {
+                                "workspace_root": str(profile.workspace_root),
+                                "action_type": "run_quality_repair_batch",
+                            }
+                        }
+                    ],
+                }
+            }
+        if args == ("family-runtime", "attempt", "list", "--json"):
+            return {"family_runtime_stage_attempts": {"attempts": []}}
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.live_provider_attempt_for_study(profile=profile, study_id=study_id)
+
+    assert result is None
+    assert commands == [
+        ("family-runtime", "queue", "list", "--json"),
+        ("family-runtime", "queue", "inspect", "frt-live", "--json"),
+        ("family-runtime", "attempt", "list", "--json"),
+    ]
 
 
 def test_live_provider_attempt_projection_prefers_current_owner_action(
@@ -558,6 +744,84 @@ def test_live_provider_attempt_projection_falls_back_to_stage_attempt_ledger(
     assert result["work_unit_id"] == "medical_prose_write_repair"
     assert result["runtime_health"]["runtime_liveness_status"] == "live"
     assert result["stage_progress_log"]["attempt_count"] == 1
+    assert commands == [
+        ("family-runtime", "queue", "list", "--json"),
+        ("family-runtime", "attempt", "list", "--json"),
+        ("family-runtime", "attempt", "inspect", "sat-live", "--json"),
+    ]
+
+
+def test_live_provider_attempt_projection_skips_attempt_ledger_entry_with_terminal_mas_closeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    _write_stage_attempt_closeout(
+        profile=profile,
+        study_id=study_id,
+        stage_attempt_id="sat-closed",
+        status="blocked",
+    )
+    commands: list[tuple[str, ...]] = []
+
+    def _attempt(stage_attempt_id: str, *, updated_at: str) -> dict:
+        return {
+            "stage_attempt_id": stage_attempt_id,
+            "domain_id": "medautoscience",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "status": "running",
+            "task_id": f"frt-{stage_attempt_id}",
+            "updated_at": updated_at,
+            "provider_run": {
+                "provider_status": "running",
+                "workflow_id": f"wf-{stage_attempt_id}",
+                "last_heartbeat_at": updated_at,
+            },
+            "workspace_locator": {
+                "workspace_root": str(profile.workspace_root),
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+            },
+        }
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            return {"family_runtime_queue": {"tasks": []}}
+        if args == ("family-runtime", "attempt", "list", "--json"):
+            return {
+                "family_runtime_stage_attempts": {
+                    "attempts": [
+                        _attempt("sat-closed", updated_at="2026-06-10T22:00:00Z"),
+                        _attempt("sat-live", updated_at="2026-06-10T21:59:00Z"),
+                    ]
+                }
+            }
+        if args == ("family-runtime", "attempt", "inspect", "sat-live", "--json"):
+            return {
+                "family_runtime_stage_attempt": {
+                    "attempt": _attempt("sat-live", updated_at="2026-06-10T21:59:00Z")
+                }
+            }
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.live_provider_attempt_for_study(
+        profile=profile,
+        study_id=study_id,
+        max_inspect_count=1,
+    )
+
+    assert result is not None
+    assert result["active_stage_attempt_id"] == "sat-live"
     assert commands == [
         ("family-runtime", "queue", "list", "--json"),
         ("family-runtime", "attempt", "list", "--json"),
