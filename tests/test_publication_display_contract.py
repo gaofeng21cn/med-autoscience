@@ -113,6 +113,71 @@ def test_load_publication_style_profile_rejects_bool_numeric_values(tmp_path: Pa
         raise AssertionError("expected bool numeric values to be rejected")
 
 
+def test_load_publication_style_profile_accepts_font_family_and_grid_tokens(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.publication_display_contract")
+    path = tmp_path / "publication_style_profile.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "style_profile_id": "paper_neutral_clinical_v1",
+                "journal_palette_ref": "large_journal_safe_lancet_like_v1",
+                "palette": {
+                    "primary": "#5F766B",
+                    "secondary": "#B9AD9C",
+                    "neutral": "#7B8794",
+                    "grid": "#E6EDF2",
+                },
+                "semantic_roles": {
+                    "model_curve": "primary",
+                    "comparator_curve": "secondary",
+                    "reference_line": "neutral",
+                    "grid_line": "grid",
+                },
+                "typography": {"font_family": "sans", "base_size": 10.5, "title_size": 12.0},
+                "stroke": {"grid_linewidth": 0.35, "primary_linewidth": 2.0},
+                "grid": {"major": True, "minor": False, "major_axis": "both", "color": "#E6EDF2"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    style_profile = module.load_publication_style_profile(path)
+
+    assert style_profile.journal_palette_ref == "large_journal_safe_lancet_like_v1"
+    assert style_profile.typography["font_family"] == "sans"
+    assert style_profile.typography["base_size"] == 10.5
+    assert style_profile.stroke["grid_linewidth"] == 0.35
+    assert style_profile.grid["major"] is True
+    assert style_profile.grid["minor"] is False
+    assert style_profile.grid["color"] == "#E6EDF2"
+    assert module.publication_style_profile_payload(style_profile)["grid"]["major_axis"] == "both"
+
+
+def test_load_publication_style_profile_rejects_non_boolean_grid_flags(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.publication_display_contract")
+    path = tmp_path / "publication_style_profile.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "style_profile_id": "paper_neutral_clinical_v1",
+                "palette": {"primary": "#5F766B", "secondary": "#B9AD9C", "neutral": "#7B8794"},
+                "semantic_roles": {"model_curve": "primary"},
+                "grid": {"major": "yes"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    try:
+        module.load_publication_style_profile(path)
+    except ValueError as exc:
+        assert "grid.major" in str(exc)
+    else:
+        raise AssertionError("expected non-boolean grid.major to be rejected")
+
+
 def test_load_publication_style_profile_rejects_invalid_schema_version(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.publication_display_contract")
     path = tmp_path / "publication_style_profile.json"

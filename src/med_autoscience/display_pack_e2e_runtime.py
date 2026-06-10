@@ -137,20 +137,44 @@ def _style_render_context(
     full_template_id: str,
     short_template_id: str,
 ) -> dict[str, Any]:
-    style_profile = load_publication_style_profile(paper_root / "publication_style_profile.json")
+    style_profile_path = paper_root / "publication_style_profile.json"
+    style_profile = load_publication_style_profile(style_profile_path)
     overrides = load_display_overrides(paper_root / "display_overrides.json")
     override = (
         overrides.get((figure_id, full_template_id))
         or overrides.get((figure_id, short_template_id))
     )
+    style_roles = resolve_style_roles(
+        style_profile=style_profile,
+        template_id=short_template_id,
+    )
     return {
         "style_profile_id": style_profile.style_profile_id,
-        "style_roles": resolve_style_roles(
-            style_profile=style_profile,
-            template_id=short_template_id,
-        ),
+        "style_profile_ref": _workspace_ref(style_profile_path, paper_root=paper_root),
+        "style_profile_sha256": _sha256_file(style_profile_path),
+        "journal_palette_ref": style_profile.journal_palette_ref,
+        "palette": dict(style_profile.palette),
+        "semantic_roles": dict(style_profile.semantic_roles),
+        "style_roles": style_roles,
+        "typography": dict(style_profile.typography),
+        "stroke": dict(style_profile.stroke),
+        "grid": dict(style_profile.grid),
         "layout_override": dict(override.layout_override) if override is not None else {},
         "readability_override": dict(override.readability_override) if override is not None else {},
+    }
+
+
+def _style_profile_entry_from_render_context(render_context: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "style_profile_id": render_context["style_profile_id"],
+        "ref": render_context["style_profile_ref"],
+        "sha256": render_context["style_profile_sha256"],
+        "journal_palette_ref": render_context.get("journal_palette_ref", ""),
+        "palette_keys": sorted(dict(render_context.get("palette") or {}).keys()),
+        "semantic_roles": dict(render_context.get("semantic_roles") or {}),
+        "typography": dict(render_context.get("typography") or {}),
+        "stroke": dict(render_context.get("stroke") or {}),
+        "grid": dict(render_context.get("grid") or {}),
     }
 
 
@@ -512,6 +536,7 @@ def _render_figure(
         "claim_ref": intent_figure["claim_ref"],
         "data_ref": intent_figure["data_ref"],
         "data_digest": data_digest,
+        "publication_style_profile": _style_profile_entry_from_render_context(render_context),
         "statistical_value_refs": list(intent_figure.get("statistical_value_refs") or []),
         "qc_profile": template_manifest.qc_profile_ref,
         "render_result": _json_compatible(render_result, field_name="display_pack_renderer.render_result"),
@@ -769,6 +794,8 @@ def materialize_display_pack_publication_manifest(
         paper_root=normalized_paper_root,
         repo_root=normalized_repo_root,
     )
+    display_pack_lock = _read_json_object(lock_path)
+    publication_style_profile_lock = dict(display_pack_lock.get("publication_style_profile") or {})
     quality_refs = collect_publication_figure_quality_refs(paper_root=normalized_paper_root)
     manifest_path = normalized_paper_root / "build" / PUBLICATION_MANIFEST_BASENAME
     manifest = {
@@ -781,6 +808,7 @@ def materialize_display_pack_publication_manifest(
         "display_pack_lock_path": str(lock_path),
         "display_pack_lock_ref": _workspace_ref(lock_path, paper_root=normalized_paper_root),
         "display_pack_lock_sha256": _sha256_file(lock_path),
+        "publication_style_profile": publication_style_profile_lock,
         "publication_readiness_verdict": False,
         "authority_boundary": {
             "mas_display_artifact_authority": True,

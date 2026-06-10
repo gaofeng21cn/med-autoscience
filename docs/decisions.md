@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-10：publication style profile 成为 Display Pack 论文级风格单一真相
+
+- 决策：`paper/publication_style_profile.json` 是 Display Pack E2E 的 paper-owned article-level style-token truth。它固定 `style_profile_id`、`journal_palette_ref`、`palette`、`semantic_roles`、`typography`、`stroke` 和 `grid`，用于整篇论文配色、语义颜色角色、字体族、字号、线宽、marker size、网格可见性、网格轴向、网格颜色和线型的一致性。
+- 决策：E2E runtime 必须把同一 profile hash 写入 render request、layout sidecar、每张 figure entry、`paper/build/display_pack_lock.json#/publication_style_profile` 和 `paper/build/display_pack_publication_manifest.json#/publication_style_profile`。多图 batch 中每张 figure 的 style profile sha256 必须一致，除非未来新增明确的 paper-level multi-style contract。
+- 决策：R/ggplot2 evidence renderer 和 P1 comparison renderer 必须消费 render context 中的 `palette` / `semantic_roles` / `style_roles` / `typography` / `stroke` / `grid`，不能用 template-local hard-coded theme、Lancet scale 或固定颜色覆盖 paper profile。Python renderer 可继续走自身实现，但 render request / sidecar / manifest 必须保留同一 style context 和 hash。
+- 边界：publication style profile 只约束视觉呈现；它不写 data/statistics truth，不授权 evidence mark mutation，不签 artifact authority、publication quality、submission readiness、owner receipt、typed blocker 或 publication gate。视觉审计发现 style drift 时，修复路径是 profile、display override、renderer contract、QC 或 golden regression 回流，而不是手工暗改图或数据。
+- 理由：医学论文的图面质量不仅取决于模板是否能画出来，还取决于同一篇文章内配色、字体、字号、网格和线宽是否统一。此前 MAS 已有 `publication_style_profile.json`，但只部分传入 renderer，未写入 lock/manifest/sidecar，也没有 R/ggplot2 真实消费验证，容易变成“有字段但不生效”。把 style profile hash 贯穿 request、render、sidecar、lock 和 manifest 后，风格统一可审计、可复现、可迁移。
+- 影响：修改 `src/med_autoscience/publication_display_contract.py`、`src/med_autoscience/display_pack_e2e_runtime.py`、`src/med_autoscience/display_pack_lock.py`、`src/med_autoscience/publication_figure_quality_contract.py`、core R helper、focused tests 和 Display Pack docs。不修改 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、source readiness、submission package、owner receipt、quality verdict、typed blocker、human gate、OPL queue 或 provider attempt。
+
 ## 2026-06-10：accepted typed closeout 必须压过同一 current-control handoff action
 
 - 决策：当 MAS 从 `default_executor_execution/*.closeout.json` 读到 accepted / blocked typed closeout，并且 closeout 与 OPL current-control handoff 的 action queue 在同一 stage attempt、work-unit fingerprint，或 `action_type + work_unit_id` 上匹配时，handoff projection 必须生成显式 `typed_blocker`，并把同一 handoff action 标记为 `consumed_by_typed_default_executor_closeout` 后移出 current action queue。

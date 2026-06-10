@@ -40,10 +40,12 @@ _REQUIRED_STYLE_ROLES_BY_TEMPLATE: dict[str, tuple[str, ...]] = {
 class PublicationStyleProfile:
     schema_version: int
     style_profile_id: str
+    journal_palette_ref: str
     palette: dict[str, str]
     semantic_roles: dict[str, str]
-    typography: dict[str, float]
+    typography: dict[str, Any]
     stroke: dict[str, float]
+    grid: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -57,6 +59,7 @@ class DisplayOverride:
 _DEFAULT_STYLE_PROFILE_PAYLOAD: dict[str, Any] = {
     "schema_version": 1,
     "style_profile_id": "paper_neutral_clinical_v1",
+    "journal_palette_ref": "large_journal_safe_lancet_like_v1",
     "palette": {
         "primary": "#5F766B",
         "secondary": "#B9AD9C",
@@ -68,12 +71,30 @@ _DEFAULT_STYLE_PROFILE_PAYLOAD: dict[str, Any] = {
         "contrast_soft": "#E6EDF5",
         "audit": "#B57F7F",
         "audit_soft": "#F5ECE8",
+        "text": "#13293D",
+        "grid": "#E6EDF2",
+        "background": "#FFFFFF",
+        "heatmap_low": "#2166AC",
+        "heatmap_mid": "#FFFFFF",
+        "heatmap_high": "#B2182B",
+        "volcano_up": "#B2182B",
+        "volcano_down": "#2166AC",
+        "volcano_background": "#9CA3AF",
     },
     "semantic_roles": {
         "model_curve": "primary",
         "comparator_curve": "secondary",
         "reference_line": "neutral",
         "highlight_band": "light",
+        "text": "text",
+        "grid_line": "grid",
+        "figure_background": "background",
+        "heatmap_low": "heatmap_low",
+        "heatmap_mid": "heatmap_mid",
+        "heatmap_high": "heatmap_high",
+        "volcano_up": "volcano_up",
+        "volcano_down": "volcano_down",
+        "volcano_background": "volcano_background",
         "flow_main_fill": "light",
         "flow_main_edge": "neutral",
         "flow_exclusion_fill": "audit_soft",
@@ -92,19 +113,32 @@ _DEFAULT_STYLE_PROFILE_PAYLOAD: dict[str, Any] = {
         "flow_connector": "neutral",
     },
     "typography": {
+        "font_family": "sans",
+        "base_size": 11.0,
         "title_size": 12.5,
         "axis_title_size": 11.0,
         "tick_size": 10.0,
+        "legend_size": 9.8,
         "panel_label_size": 11.0,
     },
     "stroke": {
         "primary_linewidth": 2.2,
         "secondary_linewidth": 1.8,
         "reference_linewidth": 1.0,
+        "grid_linewidth": 0.25,
         "marker_size": 4.5,
+    },
+    "grid": {
+        "major": True,
+        "minor": False,
+        "major_axis": "both",
+        "minor_axis": "none",
+        "color": "#E6EDF2",
+        "linetype": "solid",
     },
 }
 _DEFAULT_DISPLAY_OVERRIDES_PAYLOAD: dict[str, Any] = {"schema_version": 1, "displays": []}
+_DEFAULT_GRID_PAYLOAD: dict[str, Any] = dict(_DEFAULT_STYLE_PROFILE_PAYLOAD["grid"])
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:
@@ -175,6 +209,55 @@ def _normalize_numeric_map(value: Any, *, field_name: str) -> dict[str, float]:
     return normalized
 
 
+def _normalize_typography_map(value: Any, *, field_name: str) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"{field_name} must be a JSON object when provided")
+    normalized: dict[str, Any] = {}
+    for key, item in value.items():
+        if not isinstance(key, str):
+            raise ValueError(f"{field_name} keys must be non-empty strings")
+        normalized_key = key.strip()
+        if not normalized_key:
+            raise ValueError(f"{field_name} keys must be non-empty strings")
+        if normalized_key == "font_family":
+            if not isinstance(item, str) or not item.strip():
+                raise ValueError(f"{field_name}.font_family must be a non-empty string")
+            normalized[normalized_key] = item.strip()
+            continue
+        if isinstance(item, bool) or not isinstance(item, int | float):
+            raise ValueError(f"{field_name}.{normalized_key} must be numeric")
+        normalized[normalized_key] = float(item)
+    return normalized
+
+
+def _normalize_grid_map(value: Any, *, field_name: str) -> dict[str, Any]:
+    if value is None:
+        return dict(_DEFAULT_GRID_PAYLOAD)
+    if not isinstance(value, dict):
+        raise ValueError(f"{field_name} must be a JSON object when provided")
+    normalized: dict[str, Any] = {}
+    for key, item in value.items():
+        if not isinstance(key, str):
+            raise ValueError(f"{field_name} keys must be non-empty strings")
+        normalized_key = key.strip()
+        if not normalized_key:
+            raise ValueError(f"{field_name} keys must be non-empty strings")
+        if isinstance(item, bool):
+            normalized[normalized_key] = item
+        elif isinstance(item, int | float):
+            normalized[normalized_key] = float(item)
+        elif isinstance(item, str) and item.strip():
+            normalized[normalized_key] = item.strip()
+        else:
+            raise ValueError(f"{field_name}.{normalized_key} must be a string, number, or boolean")
+    for required_key in ("major", "minor"):
+        if required_key in normalized and not isinstance(normalized[required_key], bool):
+            raise ValueError(f"{field_name}.{required_key} must be boolean")
+    return {**_DEFAULT_GRID_PAYLOAD, **normalized}
+
+
 def load_publication_style_profile(path: Path) -> PublicationStyleProfile:
     payload = _read_json_object(path)
     schema_version = _require_schema_version(payload, contract_name="publication_style_profile")
@@ -183,6 +266,14 @@ def load_publication_style_profile(path: Path) -> PublicationStyleProfile:
     if not isinstance(style_profile_id_value, str) or not style_profile_id_value.strip():
         raise ValueError("publication_style_profile.style_profile_id must be a non-empty string")
     style_profile_id = style_profile_id_value.strip()
+
+    journal_palette_ref_value = payload.get("journal_palette_ref")
+    if journal_palette_ref_value is None:
+        journal_palette_ref = ""
+    elif isinstance(journal_palette_ref_value, str) and journal_palette_ref_value.strip():
+        journal_palette_ref = journal_palette_ref_value.strip()
+    else:
+        raise ValueError("publication_style_profile.journal_palette_ref must be a non-empty string when provided")
 
     palette = _normalize_string_map(payload.get("palette"), field_name="publication_style_profile.palette")
     semantic_roles = _normalize_string_map(
@@ -200,17 +291,33 @@ def load_publication_style_profile(path: Path) -> PublicationStyleProfile:
         unknown = ", ".join(sorted(unknown_palette_keys))
         raise ValueError(f"publication_style_profile.semantic_roles reference undefined palette keys: {unknown}")
 
-    typography = _normalize_numeric_map(payload.get("typography"), field_name="publication_style_profile.typography")
+    typography = _normalize_typography_map(payload.get("typography"), field_name="publication_style_profile.typography")
     stroke = _normalize_numeric_map(payload.get("stroke"), field_name="publication_style_profile.stroke")
+    grid = _normalize_grid_map(payload.get("grid"), field_name="publication_style_profile.grid")
 
     return PublicationStyleProfile(
         schema_version=schema_version,
         style_profile_id=style_profile_id,
+        journal_palette_ref=journal_palette_ref,
         palette=palette,
         semantic_roles=semantic_roles,
         typography=typography,
         stroke=stroke,
+        grid=grid,
     )
+
+
+def publication_style_profile_payload(style_profile: PublicationStyleProfile) -> dict[str, Any]:
+    return {
+        "schema_version": style_profile.schema_version,
+        "style_profile_id": style_profile.style_profile_id,
+        "journal_palette_ref": style_profile.journal_palette_ref,
+        "palette": dict(style_profile.palette),
+        "semantic_roles": dict(style_profile.semantic_roles),
+        "typography": dict(style_profile.typography),
+        "stroke": dict(style_profile.stroke),
+        "grid": dict(style_profile.grid),
+    }
 
 
 def load_display_overrides(path: Path) -> dict[tuple[str, str], DisplayOverride]:

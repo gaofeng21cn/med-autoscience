@@ -533,8 +533,9 @@ This means the plotting path is constrained before, during, and after rendering:
 
 Publication-facing figure appearance is no longer treated as a private template concern.
 
-- `paper/publication_style_profile.json` is the article-level visual/style source of truth; it is not source-readiness, artifact-authority, publication-quality, or submission-readiness authority.
+- `paper/publication_style_profile.json` is the article-level style-token source of truth for palette semantic roles, typography, stroke and grid tokens; it is not source-readiness, artifact-authority, publication-quality, or submission-readiness authority.
 - `paper/display_overrides.json` is the structured figure-level adjustment layer.
+- E2E render request, layout sidecar, display lock and publication manifest must preserve the same style profile hash so cross-figure style drift is auditable.
 - Templates remain the audited lower bound, but they do not cap manuscript-facing expression when the formal style and override contracts require a clearer presentation.
 
 This keeps visual consistency at the paper level while preserving a formal route for figure-specific correction.

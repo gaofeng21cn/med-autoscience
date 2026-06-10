@@ -79,6 +79,12 @@ loop. Its contract is indexed in `contracts/figure_polish_lifecycle_contract.jso
 figure-quality refs. It does not mutate data, statistics, evidence marks, artifacts, or publication
 authority.
 
+`paper/publication_style_profile.json` findings mean article-level style-token drift: palette role,
+font, font size, line width, marker size, grid visibility, grid axis, or grid color mismatch across
+figures. Repairs route through the profile, display override, renderer contract, QC, or golden
+regression. A style finding must not directly change data/statistics/evidence marks and must not carry
+publication verdict.
+
 ## Entry Conditions
 
 Visual audit should start when all of the following are true:

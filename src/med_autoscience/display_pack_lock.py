@@ -16,6 +16,10 @@ from med_autoscience.display_pack_loader import (
     load_enabled_local_display_pack_template_records,
     resolve_display_pack_selection,
 )
+from med_autoscience.publication_display_contract import (
+    load_publication_style_profile,
+    publication_style_profile_payload,
+)
 from med_autoscience.publication_figure_quality_contract import collect_publication_figure_quality_refs
 
 
@@ -43,6 +47,36 @@ def _git_stdout(repo_root: Path, *args: str) -> str:
     if result.returncode != 0:
         raise ValueError(result.stderr.strip() or f"git command failed: {' '.join(args)}")
     return result.stdout.strip()
+
+
+def collect_publication_style_profile_lock(
+    *,
+    paper_root: Path,
+    repo_root: Path,
+) -> dict[str, Any]:
+    normalized_paper_root = Path(paper_root).expanduser().resolve()
+    style_profile_path = normalized_paper_root / "publication_style_profile.json"
+    if not style_profile_path.exists():
+        return {
+            "status": "missing",
+            "path": "paper/publication_style_profile.json",
+        }
+    style_profile = load_publication_style_profile(style_profile_path)
+    style_payload = publication_style_profile_payload(style_profile)
+    return {
+        "status": "present",
+        "path": _relative_or_absolute(style_profile_path, repo_root=repo_root),
+        "ref": _relative_or_absolute(style_profile_path, repo_root=normalized_paper_root.parent),
+        "sha256": _sha256_file(style_profile_path),
+        "style_profile_id": style_profile.style_profile_id,
+        "journal_palette_ref": style_profile.journal_palette_ref,
+        "palette_keys": sorted(style_profile.palette),
+        "semantic_roles": dict(style_profile.semantic_roles),
+        "typography": dict(style_profile.typography),
+        "stroke": dict(style_profile.stroke),
+        "grid": dict(style_profile.grid),
+        "payload": style_payload,
+    }
 
 
 def _asset_directory_metadata(
@@ -267,8 +301,13 @@ def build_display_pack_lock_payload(
         ),
     }
     if paper_root is not None:
+        resolved_paper_root = Path(paper_root).expanduser().resolve()
+        payload["publication_style_profile"] = collect_publication_style_profile_lock(
+            paper_root=resolved_paper_root,
+            repo_root=normalized_repo_root,
+        )
         payload["publication_figure_quality_refs"] = collect_publication_figure_quality_refs(
-            paper_root=Path(paper_root).expanduser().resolve(),
+            paper_root=resolved_paper_root,
         )
     return payload
 

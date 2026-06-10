@@ -262,14 +262,53 @@ def _write_paper_inputs(paper_root: Path) -> None:
         {
             "schema_version": 1,
             "style_profile_id": "paper_neutral_clinical_v1",
-            "palette": {"primary": "#245A6B", "secondary": "#B89A6D", "neutral": "#6B7280"},
+            "journal_palette_ref": "large_journal_safe_lancet_like_v1",
+            "palette": {
+                "primary": "#245A6B",
+                "secondary": "#B89A6D",
+                "neutral": "#6B7280",
+                "text": "#102A43",
+                "grid": "#D9E2EC",
+                "background": "#FFFFFF",
+                "heatmap_low": "#2166AC",
+                "heatmap_mid": "#FFFFFF",
+                "heatmap_high": "#B2182B",
+            },
             "semantic_roles": {
                 "model_curve": "primary",
                 "comparator_curve": "secondary",
                 "reference_line": "neutral",
+                "text": "text",
+                "grid_line": "grid",
+                "figure_background": "background",
+                "heatmap_low": "heatmap_low",
+                "heatmap_mid": "heatmap_mid",
+                "heatmap_high": "heatmap_high",
             },
-            "typography": {"title_size": 12.0},
-            "stroke": {"primary_linewidth": 2.0},
+            "typography": {
+                "font_family": "sans",
+                "base_size": 10.5,
+                "title_size": 12.0,
+                "axis_title_size": 10.8,
+                "tick_size": 9.5,
+                "legend_size": 9.2,
+                "panel_label_size": 10.8,
+            },
+            "stroke": {
+                "primary_linewidth": 2.0,
+                "secondary_linewidth": 1.6,
+                "reference_linewidth": 1.1,
+                "grid_linewidth": 0.35,
+                "marker_size": 4.2,
+            },
+            "grid": {
+                "major": True,
+                "minor": False,
+                "major_axis": "both",
+                "minor_axis": "none",
+                "color": "#D9E2EC",
+                "linetype": "solid",
+            },
         },
     )
     _write_json(
@@ -390,6 +429,25 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     assert lock_path.exists()
     assert artifact_manifest_path.exists()
     assert qc_path.exists()
+    manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    lock_payload = json.loads(lock_path.read_text(encoding="utf-8"))
+    style_lock = lock_payload["publication_style_profile"]
+    assert style_lock["status"] == "present"
+    assert style_lock["style_profile_id"] == "paper_neutral_clinical_v1"
+    assert style_lock["sha256"] == result["publication_style_profile"]["sha256"]
+    assert manifest_payload["publication_style_profile"]["sha256"] == style_lock["sha256"]
+    assert figure["publication_style_profile"]["sha256"] == style_lock["sha256"]
+    assert figure["publication_style_profile"]["typography"]["font_family"] == "sans"
+    assert figure["publication_style_profile"]["grid"]["color"] == "#D9E2EC"
+    layout_sidecar = json.loads(Path(figure["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
+    render_context = layout_sidecar["render_context"]
+    assert render_context["style_profile_sha256"] == style_lock["sha256"]
+    assert render_context["palette"]["primary"] == "#245A6B"
+    assert render_context["style_roles"]["model_curve"] == "#245A6B"
+    assert render_context["style_roles"]["model_curve"] == render_context["palette"][render_context["semantic_roles"]["model_curve"]]
+    assert render_context["typography"]["font_family"] == "sans"
+    assert render_context["grid"]["major"] is True
+    assert render_context["stroke"]["grid_linewidth"] == 0.35
 
     visual_receipt = load_figure_visual_audit_receipt(paper_root / "figure_visual_audit_receipt.json")
     assert visual_receipt["inspected_artifacts"][0]["artifact_sha256"] == figure["rendered_artifacts"]["png_sha256"]
@@ -408,6 +466,8 @@ def test_materialize_display_pack_publication_manifest_runs_full_quality_loop(tm
     refs = collect_publication_figure_quality_refs(paper_root=paper_root)
     assert refs["figure_intent"]["status"] == "present"
     assert refs["medical_figure_spec"]["status"] == "present"
+    assert refs["publication_style_profile"]["status"] == "present"
+    assert refs["publication_style_profile"]["sha256"] == style_lock["sha256"]
     assert refs["figure_style_reference_bundle"]["status"] == "present"
     assert refs["figure_visual_audit_receipt"]["status"] == "present"
     assert refs["figure_polish_lifecycle"]["status"] == "present"
@@ -492,6 +552,14 @@ def test_materialize_display_pack_publication_manifest_runs_subprocess_renderer(
     assert Path(figure["render_result"]["request_path"]).exists()
     assert Path(figure["render_result"]["stdout_path"]).read_text(encoding="utf-8").strip()
     assert Path(figure["rendered_artifacts"]["png_path"]).read_text(encoding="utf-8").startswith("PNG:subprocess:")
+    request_payload = json.loads(Path(figure["render_result"]["request_path"]).read_text(encoding="utf-8"))
+    render_context = request_payload["display_payload"]["render_context"]
+    assert render_context["palette"]["secondary"] == "#B89A6D"
+    assert render_context["semantic_roles"]["comparator_curve"] == "secondary"
+    assert render_context["style_roles"]["comparator_curve"] == "#B89A6D"
+    assert render_context["typography"]["base_size"] == 10.5
+    assert render_context["stroke"]["reference_linewidth"] == 1.1
+    assert render_context["grid"]["major_axis"] == "both"
 
 
 def test_materialize_display_pack_publication_manifest_runs_real_core_r_subprocess_renderer(tmp_path: Path) -> None:
@@ -526,7 +594,20 @@ def test_materialize_display_pack_publication_manifest_runs_real_core_r_subproce
     assert Path(figure["rendered_artifacts"]["png_path"]).exists()
     assert Path(figure["rendered_artifacts"]["pdf_path"]).exists()
     assert Path(figure["rendered_artifacts"]["layout_sidecar_path"]).exists()
+    request_payload = json.loads(Path(render_result["request_path"]).read_text(encoding="utf-8"))
+    layout_sidecar = json.loads(Path(figure["rendered_artifacts"]["layout_sidecar_path"]).read_text(encoding="utf-8"))
+    request_context = request_payload["display_payload"]["render_context"]
+    assert request_context["style_profile_sha256"] == figure["publication_style_profile"]["sha256"]
+    assert request_context["palette"]["primary"] == "#245A6B"
+    assert request_context["style_roles"]["model_curve"] == "#245A6B"
+    assert request_context["typography"]["font_family"] == "sans"
+    assert request_context["grid"]["color"] == "#D9E2EC"
+    assert layout_sidecar["render_context"]["style_profile_sha256"] == request_context["style_profile_sha256"]
+    assert layout_sidecar["style_profile"]["style_profile_sha256"] == request_context["style_profile_sha256"]
+    assert layout_sidecar["style_profile"]["grid"]["color"] == "#D9E2EC"
+    assert layout_sidecar["style_profile"]["typography"]["font_family"] == "sans"
     lock_payload = json.loads((paper_root / "build" / "display_pack_lock.json").read_text(encoding="utf-8"))
+    assert lock_payload["publication_style_profile"]["sha256"] == request_context["style_profile_sha256"]
     locked_template = next(
         item
         for pack in lock_payload["enabled_packs"]
@@ -626,6 +707,8 @@ def test_materialize_display_pack_publication_manifest_runs_multi_figure_batch(t
     )
 
     assert [figure["figure_id"] for figure in result["figures"]] == ["F1", "F2"]
+    style_hashes = {figure["publication_style_profile"]["sha256"] for figure in result["figures"]}
+    assert style_hashes == {result["publication_style_profile"]["sha256"]}
     assert {figure["render_result"]["execution_mode"] for figure in result["figures"]} == {
         "python_plugin",
         "subprocess",

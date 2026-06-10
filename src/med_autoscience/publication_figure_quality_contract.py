@@ -5,10 +5,13 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.publication_display_contract import load_publication_style_profile
+
 
 FIGURE_INTENT_BASENAME = "figure_intent.json"
 MEDICAL_FIGURE_SPEC_BASENAME = "figure_spec.json"
 MEDICAL_FIGURE_SPECS_BASENAME = "figure_specs.json"
+PUBLICATION_STYLE_PROFILE_BASENAME = "publication_style_profile.json"
 FIGURE_STYLE_REFERENCE_BUNDLE_BASENAME = "figure_style_reference_bundle.json"
 FIGURE_VISUAL_AUDIT_RECEIPT_BASENAME = "figure_visual_audit_receipt.json"
 FIGURE_POLISH_LIFECYCLE_BASENAME = "figure_polish_lifecycle.json"
@@ -352,6 +355,11 @@ def collect_publication_figure_quality_refs(*, paper_root: Path) -> dict[str, di
             paper_root=resolved_paper_root,
             basename=MEDICAL_FIGURE_SPECS_BASENAME,
             loader=_load_medical_figure_specs,
+        ),
+        "publication_style_profile": _surface_ref(
+            paper_root=resolved_paper_root,
+            basename=PUBLICATION_STYLE_PROFILE_BASENAME,
+            loader=load_publication_style_profile,
         ),
         "figure_style_reference_bundle": _surface_ref(
             paper_root=resolved_paper_root,

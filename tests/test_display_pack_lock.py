@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import subprocess
 
 from med_autoscience.display_pack_lock import build_display_pack_lock_payload
@@ -113,6 +114,59 @@ def _write_template_manifest(template_root: Path) -> None:
     )
 
 
+def _write_publication_style_profile(paper_root: Path) -> None:
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "publication_style_profile.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "style_profile_id": "paper_neutral_clinical_v1",
+                "journal_palette_ref": "large_journal_safe_lancet_like_v1",
+                "palette": {
+                    "primary": "#245A6B",
+                    "secondary": "#B89A6D",
+                    "neutral": "#6B7280",
+                    "text": "#102A43",
+                    "grid": "#D9E2EC",
+                },
+                "semantic_roles": {
+                    "model_curve": "primary",
+                    "comparator_curve": "secondary",
+                    "reference_line": "neutral",
+                    "text": "text",
+                    "grid_line": "grid",
+                },
+                "typography": {
+                    "font_family": "sans",
+                    "base_size": 10.5,
+                    "title_size": 12.0,
+                    "axis_title_size": 10.8,
+                    "tick_size": 9.5,
+                    "legend_size": 9.2,
+                    "panel_label_size": 10.8,
+                },
+                "stroke": {
+                    "primary_linewidth": 2.0,
+                    "secondary_linewidth": 1.6,
+                    "reference_linewidth": 1.1,
+                    "grid_linewidth": 0.35,
+                    "marker_size": 4.2,
+                },
+                "grid": {
+                    "major": True,
+                    "minor": False,
+                    "major_axis": "both",
+                    "minor_axis": "none",
+                    "color": "#D9E2EC",
+                    "linetype": "solid",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_build_display_pack_lock_payload_captures_template_asset_inventory(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
@@ -156,6 +210,34 @@ def test_build_display_pack_lock_payload_captures_template_asset_inventory(tmp_p
     assert template_entry["exemplars_file_count"] == 1
     assert template_entry["audit_dir"].endswith("templates/roc_curve_binary/audit")
     assert template_entry["audit_file_count"] == 1
+
+
+def test_build_display_pack_lock_payload_locks_publication_style_profile(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    paper_root = tmp_path / "workspace" / "paper"
+    repo_root.mkdir()
+    _write_local_pack_config(repo_root)
+
+    pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+    _write_pack_manifest(pack_root, version="0.1.0")
+    _write_template_manifest(pack_root / "templates" / "roc_curve_binary")
+    _write_publication_style_profile(paper_root)
+
+    payload = build_display_pack_lock_payload(repo_root=repo_root, paper_root=paper_root)
+
+    style_lock = payload["publication_style_profile"]
+    assert style_lock["status"] == "present"
+    assert style_lock["ref"] == "paper/publication_style_profile.json"
+    assert len(style_lock["sha256"]) == 64
+    assert style_lock["style_profile_id"] == "paper_neutral_clinical_v1"
+    assert style_lock["journal_palette_ref"] == "large_journal_safe_lancet_like_v1"
+    assert "primary" in style_lock["palette_keys"]
+    assert style_lock["semantic_roles"]["model_curve"] == "primary"
+    assert style_lock["typography"]["font_family"] == "sans"
+    assert style_lock["stroke"]["grid_linewidth"] == 0.35
+    assert style_lock["grid"]["color"] == "#D9E2EC"
+    assert style_lock["payload"]["palette"]["primary"] == "#245A6B"
+    assert payload["publication_figure_quality_refs"]["publication_style_profile"]["sha256"] == style_lock["sha256"]
 
 
 def test_build_display_pack_lock_payload_captures_git_repo_source_provenance(tmp_path: Path) -> None:
