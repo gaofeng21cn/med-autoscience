@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-10：accepted typed closeout 必须压过同一 current-control handoff action
+
+- 决策：当 MAS 从 `default_executor_execution/*.closeout.json` 读到 accepted / blocked typed closeout，并且 closeout 与 OPL current-control handoff 的 action queue 在同一 stage attempt、work-unit fingerprint，或 `action_type + work_unit_id` 上匹配时，handoff projection 必须生成显式 `typed_blocker`，并把同一 handoff action 标记为 `consumed_by_typed_default_executor_closeout` 后移出 current action queue。
+- 决策：`current_work_unit` / `current_execution_envelope` 必须消费 handoff 的显式 typed blocker，而不能只靠 `blocked_reason` reason-only 白名单。handoff 已给出 typed blocker 且没有 strict running provider attempt 时，`current_execution_evidence.action_queue` 也不得混入旁路 current action 作为下一步证据。
+- 决策：身份匹配 fail closed。缺 stage attempt、work-unit fingerprint、或 `action_type + work_unit_id` 匹配时，旧 closeout 只能作为 observability / diagnostic evidence，不得压过新的 current work unit。
+- 理由：DM003 曾出现 OPL 已接受 `run_gate_clearing_batch` typed closeout，但 MAS `study_progress` 仍把同一 work unit 显示为 `finalize/run_gate_clearing_batch` executable owner action，导致目标会话重复 admission / heartbeat 监督而没有进入真实下一 Stage。根因是 MAS handoff 投影只把 closeout reason 挂到 `blocked_reason`，没有把 closeout typed blocker 和 work-unit identity 交给 canonical current-work-unit reducer。
+- 影响：这是 MAS currentness / read-model / owner-route 修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、quality verdict、human gate、OPL queue 或 provider attempt。它只防止已接受的同一 work-unit typed closeout 被旧 action queue 重新驱动。论文推进仍必须来自 MAS owner receipt、quality gate receipt、stable typed blocker、human gate、route-back evidence、paper/evidence/reviewer/gate/package semantic delta，或 strict provider running proof。
+
 ## 2026-06-10：Display Pack E2E runtime 固定为 R/ggplot2-first subprocess 协议加 Python plugin 兼容
 
 - 决策：Display Pack E2E runtime 支持两类 renderer adapter：`execution_mode = "subprocess"` 和 `execution_mode = "python_plugin"`。医学论文 evidence figure 的推荐路线是 R/ggplot2-first subprocess renderer；`python_plugin` 只作为 MAS host-native renderer、测试 fixture 和内部 materializer 的兼容路径。
