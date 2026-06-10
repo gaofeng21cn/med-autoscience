@@ -69,6 +69,7 @@ CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS = frozenset(
         "no_selected_dispatch_for_requested_action_types",
         "run_quality_repair_batch_not_visible_in_current_opl_control_state",
         "stage_packet_superseded_by_current_consumed_domain_transition",
+        "stale_stage_packet_current_owner_route_changed",
     }
 )
 PAPER_DELTA_PRIOR_BLOCKER_SUPERSEDING_ACTION_SOURCES = frozenset(

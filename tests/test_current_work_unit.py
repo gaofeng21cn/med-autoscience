@@ -770,6 +770,7 @@ def test_current_work_unit_projects_matching_current_control_repair_over_prior_a
         "domain_owner_action_dispatch_execution_count_zero",
         "no_selected_dispatch_for_requested_action_types",
         "stage_packet_superseded_by_current_consumed_domain_transition",
+        "stale_stage_packet_current_owner_route_changed",
     ):
         work_unit = module.build_current_work_unit(
             progress={
@@ -825,6 +826,64 @@ def test_current_work_unit_projects_matching_current_control_repair_over_prior_a
         assert work_unit["work_unit_id"] == "manuscript_story_repair"
         assert work_unit["state"]["source"] == "opl_current_control_state_action_queue"
         assert "typed_blocker" not in work_unit["state"]
+
+
+def test_current_work_unit_projects_gate_replay_when_stale_quality_repair_closeout_is_superseded() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "next_forced_delta": {
+                "required_delta_kind": "current_owner_action_or_typed_blocker",
+                "reason": "publication_gate_replay_after_current_ai_reviewer_record",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "owner_action": {
+                    "next_owner": "finalize",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+        },
+        actions=[
+            {
+                "source": "opl_current_control_state_action_queue",
+                "owner": "finalize",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "action_fingerprint": (
+                    "study-progress-current-owner-ticket::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "dpcc_publication_gate_replay_after_current_ai_reviewer_record::run_gate_clearing_batch"
+                ),
+                "work_unit_fingerprint": (
+                    "study-progress-current-owner-ticket::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "dpcc_publication_gate_replay_after_current_ai_reviewer_record::run_gate_clearing_batch"
+                ),
+                "authority": "observability_only",
+            }
+        ],
+        typed_blocker={
+            "blocker_type": "stale_stage_packet_current_owner_route_changed",
+            "owner": "one-person-lab",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        },
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "finalize"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert work_unit["state"]["source"] == "opl_current_control_state_action_queue"
+    assert "typed_blocker" not in work_unit["state"]
 
 
 def test_current_work_unit_preserves_prior_action_blocker_over_mismatched_current_control_repair() -> None:
