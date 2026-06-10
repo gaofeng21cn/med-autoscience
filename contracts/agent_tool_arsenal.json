@@ -96,7 +96,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -146,7 +146,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -196,7 +196,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -247,7 +247,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -297,7 +297,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -370,7 +370,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -422,7 +422,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -481,7 +481,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -548,7 +548,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -598,7 +598,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -668,7 +668,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -719,7 +719,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -771,7 +771,7 @@
       ],
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -1217,7 +1217,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -1299,7 +1299,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -2054,7 +2054,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -2168,7 +2168,12 @@
     {
       "action_id": "scientific_capability_registry",
       "action_surface_kind": "mas_scientific_capability_registry",
-      "allowed_writes": [],
+      "allowed_writes": [
+        "artifacts/advisory/external_learning_sidecar/latest.json",
+        "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json",
+        "artifacts/runtime/evo_scientist_sidecar/latest.json",
+        "display_pack_agent refs-only plan outputs"
+      ],
       "audit_trail_schema_ref": "contracts/agent_tool_arsenal.json#/tool_audit_trail_schema",
       "authority_boundary": {
         "authoritative_truth_refs": [
@@ -2213,7 +2218,7 @@
         "current_package"
       ],
       "human_gate_ids": [],
-      "idempotency_policy": "read_only_no_side_effects",
+      "idempotency_policy": "requires_current_owner_delta_or_human_gate_fingerprint",
       "input_refs": [
         "current_owner_delta",
         "study_root",
@@ -2232,9 +2237,9 @@
       "risk_annotations": {
         "destructiveHint": false,
         "domain_truth_write": false,
-        "idempotentHint": true,
+        "idempotentHint": false,
         "openWorldHint": false,
-        "readOnlyHint": true,
+        "readOnlyHint": false,
         "requires_human_gate": false,
         "requires_opl_stage_attempt_or_lease": false
       },
@@ -2539,7 +2544,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
       "risk_annotations": {
-        "destructiveHint": true,
+        "destructiveHint": false,
         "domain_truth_write": false,
         "idempotentHint": false,
         "openWorldHint": false,
@@ -2746,7 +2751,7 @@
       "callability": "mcp_runtime",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
-      "read_only": true,
+      "read_only": false,
       "tool_id": "scientific_capability_registry"
     },
     {

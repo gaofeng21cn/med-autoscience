@@ -277,7 +277,9 @@ def test_mas_action_catalog_exposes_scientific_capability_registry_as_public_mcp
     assert mcp_item["input_schema"]["required"] == ["mode"]
     assert mcp_item["input_schema"]["properties"]["mode"]["enum"] == ["index", "resolve", "invoke"]
     assert "scientific_capability_registry" in mcp_tools
-    assert mcp_tools["scientific_capability_registry"]["metadata"] == mcp_item
+    assert mcp_tools["scientific_capability_registry"]["metadata"][
+        "action_catalog_projection"
+    ] == mcp_item
 
     assert boundary["surface_authority"] == "current_delta_bound_capability_resolver"
     assert boundary["helper_write_policy"] == "refs_only_capability_invocation"
