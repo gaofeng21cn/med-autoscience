@@ -565,6 +565,11 @@ def create_submission_minimal_package(
         if pack_lock_path is not None:
             manifest["display_pack_lock_path"] = relpath_from_workspace(pack_lock_path, workspace_root)
             manifest["enabled_display_packs"] = list(pack_summary_by_id.values())
+            publication_figure_quality_refs = pack_lock_payload[1].get("publication_figure_quality_refs")
+            if publication_figure_quality_refs is not None:
+                if not isinstance(publication_figure_quality_refs, dict):
+                    raise ValueError("display_pack_lock.json publication_figure_quality_refs must be an object")
+                manifest["publication_figure_quality_refs"] = publication_figure_quality_refs
         if pruned_legacy_paths:
             manifest["pruned_legacy_paths"] = pruned_legacy_paths
         if requested_publication_profile != resolved_publication_profile:

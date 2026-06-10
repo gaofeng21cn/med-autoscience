@@ -70,6 +70,12 @@ Machine boundary: Human-readable implementation support only; active execution t
   - 宿主控制器主要保留调度、catalog、QC、publication surface 等平台职责；
 - `Phase 4` 的 provenance 也已继续往前推进：
   - submission-facing `submission_manifest.json` 现已可携带 pack version / source kind / manifest hash / lock path 摘要；
+- `Display Pack v2` 的图质量机制已进入机器面：
+  - `paper/figure_intent.json` 负责每张图的 `claim_ref`、`data_ref`、`template_id`、`figure_kind` 绑定；
+  - `paper/figure_style_reference_bundle.json` 负责 AgentFigureGallery 式 link-only 喜欢/拒绝/采用参考；
+  - `paper/figure_visual_audit_receipt.json` 负责 VLM/human/hybrid 对真实渲染图的结构化视觉审计回执；
+  - `paper/ai_illustration_receipt.json` 只允许记录 `illustration_shell` AI 候选，且 `scientific_claim_carried=false` 是硬边界；
+  - `paper/build/display_pack_lock.json` 会记录这些 surface 的 path / status / hash，submission manifest 会继续保留这些 refs。
 - 当前唯一活跃缺口，不再是“能不能包化”，而是：
   - 外部 source 的安装/获取机制仍未独立成完整分发链；
   - pack 内 `examples / goldens / exemplars / audit` 资产仍需继续真实充实，而不只是 contract 已落地；
@@ -378,11 +384,18 @@ Machine boundary: Human-readable implementation support only; active execution t
   - `resolved_pack_root`
   - `manifest_path`
   - `manifest_sha256`
+- `publication_figure_quality_refs`：
+  - `figure_intent`
+  - `figure_style_reference_bundle`
+  - `figure_visual_audit_receipt`
+  - `ai_illustration_receipt`
+  - 每项记录 path、`present|missing` 状态，以及 present 文件的 `sha256`
 
 这一步的意义在于：
 
 - 不再只知道“启用了哪个 pack”；
 - 还知道“为什么启用、从哪里解析、版本是否一致、这次真正用到的是哪份 manifest”。
+- 还知道当前 paper 是否已经把图形意图、风格参考、真实渲染审计和 AI illustration 边界交接到 publication handoff 面。
 
 ## 包目录结构
 
@@ -677,6 +690,8 @@ Machine boundary: Human-readable implementation support only; active execution t
 - 统一执行适配层
 - 统一 provenance 落盘
 - 包级 execution contract
+- `contracts/publication_figure_quality_contract.json`
+- `paper/build/display_pack_lock.json#/publication_figure_quality_refs`
 
 当前实际推进口径：
 

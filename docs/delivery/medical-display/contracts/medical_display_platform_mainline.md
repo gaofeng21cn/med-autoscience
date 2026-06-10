@@ -26,6 +26,9 @@ For the paper-facing visual review discipline above deterministic contracts, see
 
 For the package architecture that separates template-library evolution from host-platform development, see [medical_display_template_pack_architecture.md](../plans/medical_display_template_pack_architecture.md).
 
+For the machine-readable Display Pack v2 figure-quality surface index, see
+[`contracts/publication_figure_quality_contract.json`](../../../../contracts/publication_figure_quality_contract.json).
+
 For the tracked active execution surface that replaces retired project-local runtime state, see [medical_display_active_board.md](../board/medical_display_active_board.md).
 
 Historical OMX / Codex materials under [`docs/history/omx/`](../../../history/omx/README.md) remain audit provenance only. They must not be treated as the current execution surface.
@@ -123,6 +126,16 @@ AI-first visual review is responsible for the upper bound:
 - figure-specific paper-facing refinement.
 
 The AI-first layer is a formal review loop, not a hidden patching step.
+
+Current paper-level handoff surfaces are:
+
+- `paper/figure_intent.json` for claim/data/template/kind binding;
+- `paper/figure_style_reference_bundle.json` for link-only style references;
+- `paper/figure_visual_audit_receipt.json` for structured VLM/human visual audit;
+- `paper/ai_illustration_receipt.json` for non-claim-bearing AI illustration candidates.
+
+`display_pack_lock.json` and submission manifests carry refs to these surfaces; they do not convert visual audit
+into publication readiness or artifact authority.
 
 ### 4. Gate clear is necessary, not sufficient
 

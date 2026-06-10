@@ -16,6 +16,7 @@ from med_autoscience.display_pack_loader import (
     load_enabled_local_display_pack_template_records,
     resolve_display_pack_selection,
 )
+from med_autoscience.publication_figure_quality_contract import collect_publication_figure_quality_refs
 
 
 def _relative_or_absolute(path: Path | None, *, repo_root: Path) -> str | None:
@@ -201,7 +202,7 @@ def build_display_pack_lock_payload(
         normalized_repo_root,
         paper_root=paper_root,
     )
-    return {
+    payload = {
         "schema_version": 2,
         "repo_config_path": _relative_or_absolute(resolution.repo_config_path, repo_root=normalized_repo_root),
         "paper_config_path": _relative_or_absolute(resolution.paper_config_path, repo_root=normalized_repo_root),
@@ -213,6 +214,11 @@ def build_display_pack_lock_payload(
             paper_root=paper_root,
         ),
     }
+    if paper_root is not None:
+        payload["publication_figure_quality_refs"] = collect_publication_figure_quality_refs(
+            paper_root=Path(paper_root).expanduser().resolve(),
+        )
+    return payload
 
 
 def write_display_pack_lock(*, paper_root: Path, repo_root: Path) -> Path:
