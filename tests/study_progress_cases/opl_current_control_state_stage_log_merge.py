@@ -348,3 +348,147 @@ def test_study_progress_projects_live_opl_attempt_without_stage_progress_log(
     assert result["progress_first_monitoring_summary"]["active_stage_attempt_id"] == "sat-live"
     assert result["progress_first_monitoring_summary"]["running_provider_attempt"] is True
     assert result["progress_first_monitoring_summary"]["execution_state_kind"] == "running_provider_attempt"
+
+
+def test_study_progress_terminal_closeout_missing_owner_answer_blocks_stale_running(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    domain_status = importlib.import_module("med_autoscience.controllers.domain_status_projection")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        quest_id="quest-001",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="A reproducible diabetes mortality prediction manuscript.",
+        paper_urls=["https://example.org/diabetes-mortality"],
+        journal_shortlist=["Journal of Clinical Epidemiology"],
+        minimum_sci_ready_evidence_package=["main_result_table"],
+    )
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-10T12:00:00+00:00",
+            "authority": "observability_only",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "active",
+                    "active_run_id": "opl-stage-attempt://sat-no-answer",
+                    "active_stage_attempt_id": "sat-no-answer",
+                    "active_workflow_id": "wf-no-answer",
+                    "running_provider_attempt": True,
+                    "runtime_health": {
+                        "health_status": "running",
+                        "runtime_liveness_status": "live",
+                    },
+                    "action_queue": [
+                        {
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "status": "ready",
+                            "owner": "ai_reviewer",
+                            "work_unit_id": "ai-reviewer-record",
+                            "work_unit_fingerprint": "wu-fp-1",
+                            "stage_attempt_id": "sat-no-answer",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    latest_execution_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    _write_json(
+        latest_execution_path,
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "generated_at": "2026-06-10T12:01:00+00:00",
+            "study_id": "001-risk",
+            "executions": [
+                {
+                    "generated_at": "2026-06-10T12:01:00+00:00",
+                    "study_id": "001-risk",
+                    "stage_attempt_id": "sat-no-answer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "completed",
+                    "paper_stage_log": {
+                        "stage_name": "return_to_ai_reviewer_workflow",
+                        "problem_summary": "Provider returned terminal closeout without owner answer.",
+                        "stage_goal": "Produce an AI reviewer record or typed blocker.",
+                        "stage_work_done": ["Inspected current inputs."],
+                        "paper_work_done": ["No publication eval was written."],
+                        "changed_stage_surfaces": [],
+                        "changed_paper_surfaces": [],
+                        "progress_delta_classification": "platform_repair",
+                        "outcome": "completed_without_owner_answer",
+                        "remaining_blockers": [],
+                    },
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        domain_status,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+            "quest_root": str(profile.managed_runtime_home / "quests" / "quest-001"),
+            "quest_status": "active",
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "runtime_liveness_audit": {
+                "status": "live",
+                "source": "opl_current_control_state_provider_attempt",
+                "provider_attempt_source": "opl_family_runtime_attempt_inspect",
+                "authority": "observability_only",
+                "active_run_id": "opl-stage-attempt://sat-no-answer",
+                "active_stage_attempt_id": "sat-no-answer",
+                "active_workflow_id": "wf-no-answer",
+                "running_provider_attempt": True,
+                "handoff_path": str(handoff_path),
+                "handoff_generated_at": "2026-06-10T12:00:00+00:00",
+                "runtime_health": {
+                    "health_status": "running",
+                    "runtime_liveness_status": "live",
+                },
+            },
+            "runtime_health_snapshot": {
+                "health_status": "running",
+                "worker_liveness_state": {"state": "live", "worker_running": True},
+                "blocking_reasons": [],
+            },
+            "authority_snapshot": {},
+        },
+    )
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    dashboard = result["opl_current_control_state_handoff"]
+    assert dashboard["running_provider_attempt"] is False
+    assert dashboard["active_run_id"] is None
+    assert dashboard["action_queue"] == []
+    assert dashboard["typed_blocker"]["blocker_id"] == "terminal_closeout_owner_answer_required"
+    monitoring = result["progress_first_monitoring_summary"]
+    assert monitoring["running_provider_attempt"] is False
+    assert monitoring["execution_state_kind"] == "typed_blocker"
+    assert monitoring["typed_blocker"]["blocker_id"] == "terminal_closeout_owner_answer_required"
+    assert "terminal_closeout_owner_answer_required" in monitoring["current_blockers"]

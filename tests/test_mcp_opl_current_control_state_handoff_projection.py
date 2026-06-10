@@ -407,6 +407,92 @@ def test_handoff_projection_closes_running_flag_for_matching_terminal_attempt(tm
     assert projection["latest_terminal_stage_log"]["status"] == "blocked"
 
 
+def test_handoff_projection_fail_closed_when_terminal_closeout_lacks_owner_answer(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-10T12:00:00+00:00",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "active",
+                    "active_run_id": "opl-stage-attempt://sat-no-answer",
+                    "active_stage_attempt_id": "sat-no-answer",
+                    "running_provider_attempt": True,
+                    "runtime_health": {
+                        "health_status": "running",
+                        "runtime_liveness_status": "live",
+                    },
+                    "action_queue": [
+                        {
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "status": "ready",
+                            "owner": "ai_reviewer",
+                            "work_unit_id": "ai-reviewer-record",
+                            "work_unit_fingerprint": "wu-fp-1",
+                            "stage_attempt_id": "sat-no-answer",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    closeout_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "generated_at": "2026-06-10T12:01:00+00:00",
+            "study_id": "001-risk",
+            "executions": [
+                {
+                    "generated_at": "2026-06-10T12:01:00+00:00",
+                    "study_id": "001-risk",
+                    "stage_attempt_id": "sat-no-answer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "completed",
+                    "paper_stage_log": {
+                        "stage_name": "return_to_ai_reviewer_workflow",
+                        "problem_summary": "Provider returned terminal closeout without owner answer.",
+                        "stage_goal": "Produce an AI reviewer record or typed blocker.",
+                        "stage_work_done": ["Inspected current inputs."],
+                        "paper_work_done": ["No publication eval was written."],
+                        "changed_stage_surfaces": [],
+                        "changed_paper_surfaces": [],
+                        "progress_delta_classification": "platform_repair",
+                        "outcome": "completed_without_owner_answer",
+                        "remaining_blockers": [],
+                    },
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    assert projection["running_provider_attempt"] is False
+    assert projection["active_run_id"] is None
+    assert projection["action_queue"] == []
+    assert projection["typed_blocker"]["blocker_id"] == "terminal_closeout_owner_answer_required"
+    assert projection["typed_blocker"]["owner"] == "one-person-lab"
+    assert projection["typed_blocker"]["work_unit_id"] == "ai-reviewer-record"
+    assert projection["consumed_action_queue"][0]["consumption"]["state"] == "blocked_by_terminal_closeout_missing_owner_answer"
+    assert projection["blocked_reason"] == "terminal_closeout_owner_answer_required"
+    assert projection["next_owner"] == "one-person-lab"
+
+
 def test_live_attempt_merge_replaces_stale_handoff_stage_attempt_identity() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
 
