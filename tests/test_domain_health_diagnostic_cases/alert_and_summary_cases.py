@@ -262,10 +262,13 @@ def test_watch_runtime_refreshes_recovery_requested_status_to_live_within_same_t
     projection_states = [recovery_requested, live_status]
     call_index = {"value": 0}
 
-    def next_projection(*, profile, study_root):
+    def next_projection(*, profile, study_root, **kwargs):
+        call_kind = record_projection_call(calls, study_root=Path(study_root), kwargs=kwargs)
+        if call_kind == "currentness":
+            index = min(call_index["value"], len(projection_states) - 1)
+            return projection_states[index]
         index = min(call_index["value"], len(projection_states) - 1)
         call_index["value"] += 1
-        calls.append(("status", Path(study_root).name))
         return projection_states[index]
 
     monkeypatch.setattr(
@@ -288,7 +291,12 @@ def test_watch_runtime_refreshes_recovery_requested_status_to_live_within_same_t
         (study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json").read_text(encoding="utf-8")
     )
 
-    assert calls == [("status", "001-risk"), ("status", "001-risk")]
+    assert calls == [
+        ("status", "001-risk"),
+        ("currentness", "001-risk"),
+        ("status", "001-risk"),
+        ("currentness", "001-risk"),
+    ]
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
     assert result["managed_study_actions"][0]["decision"] == "blocked"
     assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"

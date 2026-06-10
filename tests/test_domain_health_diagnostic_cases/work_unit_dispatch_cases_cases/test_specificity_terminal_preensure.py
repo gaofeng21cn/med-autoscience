@@ -279,7 +279,7 @@ def test_watch_runtime_applies_specificity_action_override_by_study_root(
         },
     )
 
-    def fake_status(*, profile, study_root):
+    def fake_status(*, profile, study_root, **kwargs):
         if Path(study_root).name == "001-risk":
             return first_status_payload
         return second_status_payload

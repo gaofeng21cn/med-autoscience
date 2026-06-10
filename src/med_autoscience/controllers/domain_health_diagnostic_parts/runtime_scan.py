@@ -934,6 +934,7 @@ def run_domain_health_diagnostic_for_runtime(
                 profile=profile,
                 study_root=study_root,
                 status_payload=candidate_status_payload,
+                refresh_currentness=False,
             )
         )
         if apply:
@@ -1021,12 +1022,14 @@ def _provider_admission_candidates_for_status(
     profile: WorkspaceProfile | None,
     study_root: Path,
     status_payload: Mapping[str, Any],
+    refresh_currentness: bool = True,
 ) -> list[dict[str, Any]]:
-    status_payload = _with_fresh_progress_currentness(
-        profile=profile,
-        study_root=study_root,
-        status_payload=status_payload,
-    )
+    if refresh_currentness:
+        status_payload = _with_fresh_progress_currentness(
+            profile=profile,
+            study_root=study_root,
+            status_payload=status_payload,
+        )
     candidates = provider_admission.persisted_provider_admission_candidates(
         study_root=study_root,
         status_payload=status_payload,

@@ -60,7 +60,10 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_auto_recover_submissi
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root, **kwargs: calls.append(("status", Path(study_root).name)) or parked_status,
+        lambda *, profile, study_root, **kwargs: (
+            record_projection_call(calls, study_root=Path(study_root), kwargs=kwargs),
+            parked_status,
+        )[1],
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -72,7 +75,7 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_auto_recover_submissi
         request_opl_stage_attempts=True,
     )
 
-    assert calls == [("status", "001-risk")]
+    assert calls == [("status", "001-risk"), ("currentness", "001-risk")]
     assert result["managed_study_actions"] == [
         {
             "study_id": "001-risk",

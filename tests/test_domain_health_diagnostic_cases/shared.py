@@ -12,6 +12,12 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def record_projection_call(calls: list[tuple[str, str]], *, study_root: Path, kwargs: dict) -> str:
+    call_kind = "currentness" if kwargs.get("include_progress_projection") is False else "status"
+    calls.append((call_kind, Path(study_root).name))
+    return call_kind
+
+
 def make_quest(tmp_path: Path, name: str, status: str = "running") -> Path:
     quest_root = tmp_path / "runtime" / "quests" / name
     runtime_state = {
@@ -255,7 +261,6 @@ def _write_publication_eval(
         "eval_id": payload["eval_id"],
         "artifact_path": str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
     }
-
 
 
 

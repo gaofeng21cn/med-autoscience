@@ -81,7 +81,7 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root: make_progress_projection_payload(
+        lambda *, profile, study_root, **kwargs: make_progress_projection_payload(
             study_id=Path(study_root).name,
             decision="create_and_start",
             reason="quest_missing",
@@ -299,7 +299,7 @@ def test_domain_health_diagnostic_uses_typed_surface_attributes_for_managed_stud
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root: AttributeOnlyProgressProjectionStatus.from_payload(
+        lambda *, profile, study_root, **kwargs: AttributeOnlyProgressProjectionStatus.from_payload(
             make_progress_projection_payload()
         ),
     )
@@ -357,7 +357,7 @@ def test_domain_health_diagnostic_uses_typed_surface_attributes_for_read_only_ma
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root: AttributeOnlyProgressProjectionStatus.from_payload(
+        lambda *, profile, study_root, **kwargs: AttributeOnlyProgressProjectionStatus.from_payload(
             make_progress_projection_payload(decision="noop")
         ),
     )

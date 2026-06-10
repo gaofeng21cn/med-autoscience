@@ -42,7 +42,10 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_reports_stopped_contro
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root, **kwargs: calls.append(("status", Path(study_root).name)) or stopped_guard_status,
+        lambda *, profile, study_root, **kwargs: (
+            record_projection_call(calls, study_root=Path(study_root), kwargs=kwargs),
+            stopped_guard_status,
+        )[1],
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -54,7 +57,7 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_reports_stopped_contro
         request_opl_stage_attempts=True,
     )
 
-    assert calls == [("status", "001-risk")]
+    assert calls == [("status", "001-risk"), ("currentness", "001-risk")]
     assert result["managed_study_auto_recoveries"] == []
     assert result["managed_study_actions"] == [
         {
@@ -229,7 +232,10 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_tracks_stopped_auto_co
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root, **kwargs: calls.append(("status", Path(study_root).name)) or resumed_stopped_status,
+        lambda *, profile, study_root, **kwargs: (
+            record_projection_call(calls, study_root=Path(study_root), kwargs=kwargs),
+            resumed_stopped_status,
+        )[1],
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -241,7 +247,7 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_tracks_stopped_auto_co
         request_opl_stage_attempts=True,
     )
 
-    assert calls == [("status", "001-risk")]
+    assert calls == [("status", "001-risk"), ("currentness", "001-risk")]
     assert result["managed_study_auto_recoveries"] == []
     assert result["managed_study_actions"] == [
         {

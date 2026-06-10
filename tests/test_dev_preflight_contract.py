@@ -480,6 +480,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/control_plane_gate.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_wakeup.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan.py",
             "src/med_autoscience/controllers/study_progress_parts/projection.py",
             "src/med_autoscience/controllers/study_progress_parts/projection_quality_surfaces.py",
             "src/med_autoscience/controllers/study_progress_parts/projection_runtime_surfaces.py",
@@ -490,6 +491,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "tests/test_artifact_lifecycle_operations_report.py",
             "tests/test_workspace_authority_migration_audit.py",
             "tests/test_cli_cases/owner_route_handoff_command.py",
+            "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
         ]
     )
 
@@ -684,6 +686,24 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "tests/test_test_lane_governance.py -q"
         ),
         "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
+    ]
+
+
+def test_classify_changed_files_matches_evo_scientist_progress_accelerator_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "contracts/evo_scientist_progress_accelerator.json",
+            "src/med_autoscience/evo_scientist_learning_projection.py",
+            "tests/test_evo_scientist_learning_projection.py",
+        ]
+    )
+
+    assert result.matched_categories == ("evo_scientist_progress_accelerator_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "scripts/run-pytest-clean.sh tests/test_evo_scientist_learning_projection.py -q",
     ]
 
 

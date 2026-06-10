@@ -282,6 +282,18 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
+        category_id="evo_scientist_progress_accelerator_surface",
+        exact_paths=(
+            "contracts/evo_scientist_progress_accelerator.json",
+            "src/med_autoscience/evo_scientist_learning_projection.py",
+            "tests/test_evo_scientist_learning_projection.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_evo_scientist_learning_projection.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
         category_id="domain_action_materializer_surface",
         exact_paths=(
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
@@ -370,6 +382,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/control_plane_gate.py",
             "src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_wakeup.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/runtime_scan.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_orchestration.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_cli.py",
@@ -392,6 +405,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
         prefix_paths=(
             "src/med_autoscience/controllers/control_plane_",
+            "tests/test_domain_health_diagnostic_cases/",
         ),
         commands=(
             "make test-control-plane",
