@@ -14,6 +14,7 @@ from med_autoscience.evo_scientist_learning_projection import (
 from med_autoscience.external_learning_adoption_closure import (
     build_external_learning_adoption_closure,
 )
+from med_autoscience.display_pack_agent import display_pack_capability_discover
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter
@@ -42,6 +43,10 @@ from .task_kinds import ALLOWED_TASK_KINDS
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[4]
 
 
 def export_family_domain_handler(
@@ -144,6 +149,7 @@ def export_family_domain_handler(
         "autosci_learning_projection": build_autosci_learning_projection(),
         "evo_scientist_learning_projection": build_evo_scientist_learning_projection(),
         "external_learning_adoption_closure": build_external_learning_adoption_closure(),
+        "display_pack_agent_capability": display_pack_capability_discover(repo_root=_repo_root()),
         "family_transition_spec_descriptor": (
             family_transition_spec.build_family_transition_spec_descriptor()
         ),

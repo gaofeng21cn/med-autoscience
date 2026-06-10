@@ -32,6 +32,44 @@ MCP_INPUT_SCHEMA_BY_ACTION_ID = {
     "launch_study": {"type": "string", "enum": ["owner_route_handoff", "stage_attempt", "request_opl_stage_attempt"]},
     "study_progress": {"type": "object"},
     "authority_operations": "authority_operation_mode_schema",
+    "display_pack_capability_discover": {
+        "type": "object",
+        "properties": {
+            "repo_root": {"type": "string"},
+            "paper_root": {"type": "string"},
+            "include_templates": {"type": "boolean"},
+        },
+    },
+    "display_pack_figure_plan": {
+        "type": "object",
+        "required": ["figure_request"],
+        "properties": {
+            "repo_root": {"type": "string"},
+            "paper_root": {"type": "string"},
+            "figure_request": {"type": "object"},
+            "max_recommendations": {"type": "integer"},
+        },
+    },
+    "display_pack_preflight": {
+        "type": "object",
+        "properties": {
+            "repo_root": {"type": "string"},
+            "paper_root": {"type": "string"},
+            "template_id": {"type": "string"},
+            "figure_request": {"type": "object"},
+            "check_runtime_dependencies": {"type": "boolean"},
+        },
+    },
+    "display_pack_render": {
+        "type": "object",
+        "required": ["paper_root"],
+        "properties": {
+            "repo_root": {"type": "string"},
+            "paper_root": {"type": "string"},
+            "figure_request": {"type": "object"},
+            "visual_audit_review": {"type": "object"},
+        },
+    },
 }
 AUTHORITATIVE_TRUTH_REFS = [
     "/progress_projection",
@@ -227,6 +265,127 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "can_authorize_publication_quality": False,
                 "can_authorize_submission_readiness": False,
                 "can_block_current_owner_action": False,
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
+            },
+        },
+        {
+            "action_id": "display_pack_capability_discover",
+            "title": "Discover MAS Display Pack capability",
+            "summary": (
+                "Return the agent-facing Display Pack inventory, callable actions, expected receipt refs, "
+                "and forbidden authority boundary. This is the low-friction discovery entry for MAS agents; "
+                "humans manage assets, agents consume this structured capability surface."
+            ),
+            "effect": "read_only",
+            "command": "{prefix} publication display-pack-agent-discover --repo-root <mas_repo>",
+            "surface_kind": "display_pack_agent_capability",
+            "workspace_locator_fields": ["repo_root", "paper_root"],
+            "mcp_tool_name": "display_pack_capability_discover",
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": MAS_TRUTH_OWNER,
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "display_pack_agent_capability_discovery",
+                "can_mutate_data_or_statistics": False,
+                "can_authorize_publication_readiness": False,
+                "can_replace_visual_audit": False,
+                "can_replace_owner_receipt": False,
+                "can_emit_display_refs_and_receipts": True,
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
+            },
+        },
+        {
+            "action_id": "display_pack_figure_plan",
+            "title": "Plan a Display Pack figure",
+            "summary": (
+                "Given a structured figure_request, rank Display Pack templates and choose the next "
+                "preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits "
+                "typed blockers instead of asking an agent to manually browse templates."
+            ),
+            "effect": "read_only",
+            "command": (
+                "{prefix} publication display-pack-agent-plan --repo-root <mas_repo> "
+                "--figure-request-json '<figure_request_json>'"
+            ),
+            "surface_kind": "display_pack_agent_figure_plan",
+            "workspace_locator_fields": ["repo_root", "paper_root", "figure_request"],
+            "mcp_tool_name": "display_pack_figure_plan",
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": MAS_TRUTH_OWNER,
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "display_pack_template_selection_advisory",
+                "can_mutate_data_or_statistics": False,
+                "can_authorize_publication_readiness": False,
+                "can_replace_visual_audit": False,
+                "can_replace_owner_receipt": False,
+                "can_emit_display_refs_and_receipts": True,
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
+            },
+        },
+        {
+            "action_id": "display_pack_preflight",
+            "title": "Preflight a Display Pack figure",
+            "summary": (
+                "Check selected template assets, QC profile, R runtime dependencies, style profile lock, "
+                "and golden coverage before render. Findings route to style/profile/runtime/template repair "
+                "without mutating data, statistics, evidence marks, or publication verdicts."
+            ),
+            "effect": "read_only",
+            "command": (
+                "{prefix} publication display-pack-agent-preflight --repo-root <mas_repo> "
+                "--paper-root <paper_root> --figure-request-json '<figure_request_json>'"
+            ),
+            "surface_kind": "display_pack_agent_preflight",
+            "workspace_locator_fields": ["repo_root", "paper_root", "template_id", "figure_request"],
+            "mcp_tool_name": "display_pack_preflight",
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": MAS_TRUTH_OWNER,
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "display_pack_pre_render_readiness_check",
+                "can_mutate_data_or_statistics": False,
+                "can_authorize_publication_readiness": False,
+                "can_replace_visual_audit": False,
+                "can_replace_owner_receipt": False,
+                "can_emit_display_refs_and_receipts": True,
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
+            },
+        },
+        {
+            "action_id": "display_pack_render",
+            "title": "Render a Display Pack figure receipt",
+            "summary": (
+                "Materialize Display Pack figure artifacts and paper-level display refs from a prepared "
+                "paper_root or frozen data payload. This writes display artifacts, visual-audit receipt, "
+                "polish lifecycle, display_pack_lock, and publication manifest refs only; it cannot sign "
+                "publication readiness or owner receipt."
+            ),
+            "effect": "mutating",
+            "command": (
+                "{prefix} publication display-pack-agent-render --repo-root <mas_repo> "
+                "--paper-root <paper_root> --figure-request-json '<figure_request_json>'"
+            ),
+            "surface_kind": "display_pack_agent_render_receipt",
+            "workspace_locator_fields": ["repo_root", "paper_root", "figure_request", "visual_audit_review"],
+            "mcp_tool_name": "display_pack_render",
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": MAS_TRUTH_OWNER,
+                "helper_write_policy": "display_artifacts_and_refs_only",
+                "surface_authority": "display_pack_render_receipt",
+                "can_mutate_data_or_statistics": False,
+                "can_authorize_publication_readiness": False,
+                "can_replace_visual_audit": False,
+                "can_replace_owner_receipt": False,
+                "can_write_publication_eval": False,
+                "can_write_controller_decisions": False,
+                "can_write_current_package": False,
+                "can_emit_display_refs_and_receipts": True,
                 "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
             },
         },

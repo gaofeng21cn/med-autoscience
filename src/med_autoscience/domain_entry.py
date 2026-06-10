@@ -16,6 +16,16 @@ from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
+DISPLAY_PACK_DOMAIN_COMMANDS = frozenset(
+    {
+        "display-pack-capability-discover",
+        "display-pack-figure-plan",
+        "display-pack-preflight",
+        "display-pack-render",
+    }
+)
+
+
 class MedAutoScienceDomainEntry:
     """给 OPL framework、direct MAS skill 和 CLI 复用的 service-safe structured entry。"""
 
@@ -36,6 +46,10 @@ class MedAutoScienceDomainEntry:
 
         if command in AUTHORITY_OPERATION_COMMANDS_BY_COMMAND:
             payload = _dispatch_authority_operation(command, request)
+            return _with_command(command, payload)
+
+        if command in DISPLAY_PACK_DOMAIN_COMMANDS:
+            payload = _dispatch_display_pack_command(command, request)
             return _with_command(command, payload)
 
         profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
@@ -180,6 +194,63 @@ def _optional_float_value(value: Any) -> float | None:
 
 def _optional_mapping_value(value: Any) -> Mapping[str, Any] | None:
     return value if isinstance(value, Mapping) else None
+
+
+def _mapping_value(value: Any, *, field_name: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"display pack domain entry `{field_name}` 必须是 mapping。")
+    return value
+
+
+def _dispatch_display_pack_command(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
+    from med_autoscience import display_pack_agent
+
+    repo_root = request.get("repo_root")
+    paper_root = request.get("paper_root")
+    if command == "display-pack-capability-discover":
+        return display_pack_agent.display_pack_capability_discover(
+            repo_root=repo_root if repo_root is not None else None,
+            paper_root=paper_root if paper_root is not None else None,
+            include_templates=_bool_value(request.get("include_templates")),
+        )
+    if command == "display-pack-figure-plan":
+        return display_pack_agent.display_pack_figure_plan(
+            repo_root=repo_root if repo_root is not None else None,
+            paper_root=paper_root if paper_root is not None else None,
+            figure_request=_mapping_value(request.get("figure_request"), field_name="figure_request"),
+            max_recommendations=_optional_int_value(request.get("max_recommendations")) or 5,
+        )
+    if command == "display-pack-preflight":
+        figure_request = request.get("figure_request")
+        return display_pack_agent.display_pack_preflight(
+            repo_root=repo_root if repo_root is not None else None,
+            paper_root=paper_root if paper_root is not None else None,
+            template_id=_optional_text(request.get("template_id")),
+            figure_request=(
+                _mapping_value(figure_request, field_name="figure_request")
+                if figure_request is not None
+                else None
+            ),
+            check_runtime_dependencies=_bool_value(request.get("check_runtime_dependencies"), default=True),
+        )
+    if command == "display-pack-render":
+        figure_request = request.get("figure_request")
+        visual_audit_review = request.get("visual_audit_review")
+        return display_pack_agent.display_pack_render(
+            repo_root=repo_root if repo_root is not None else None,
+            paper_root=Path(str(paper_root)).expanduser(),
+            figure_request=(
+                _mapping_value(figure_request, field_name="figure_request")
+                if figure_request is not None
+                else None
+            ),
+            visual_audit_review=(
+                _mapping_value(visual_audit_review, field_name="visual_audit_review")
+                if visual_audit_review is not None
+                else None
+            ),
+        )
+    raise ValueError(f"不支持的 display pack domain entry command: {command}")
 
 
 def _dispatch_authority_operation(command: str, request: Mapping[str, Any]) -> dict[str, Any]:

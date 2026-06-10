@@ -13,6 +13,27 @@ def _load_json_object_file(path: str | Path) -> dict[str, object]:
     return payload
 
 
+def _load_optional_json_object_from_args(
+    args: argparse.Namespace,
+    *,
+    json_attr: str,
+    file_attr: str,
+    label: str,
+) -> dict[str, object] | None:
+    payload_json = getattr(args, json_attr, None)
+    payload_file = getattr(args, file_attr, None)
+    if payload_file and payload_json:
+        raise SystemExit(f"Specify at most one of --{json_attr.replace('_', '-')} or --{file_attr.replace('_', '-')}")
+    if payload_file:
+        return _load_json_object_file(payload_file)
+    if not payload_json:
+        return None
+    payload = json.loads(str(payload_json))
+    if not isinstance(payload, dict):
+        raise SystemExit(f"{label} JSON must contain an object")
+    return payload
+
+
 def _load_visual_audit_review_from_args(args: argparse.Namespace) -> dict[str, object]:
     payload_json = getattr(args, "visual_audit_review_json", None)
     payload_file = getattr(args, "visual_audit_review_file", None)
@@ -25,6 +46,66 @@ def _load_visual_audit_review_from_args(args: argparse.Namespace) -> dict[str, o
 
 
 def handle_display_pack_command(args: argparse.Namespace) -> dict[str, Any] | None:
+    if args.command == "display-pack-agent-discover":
+        from med_autoscience.display_pack_agent import display_pack_capability_discover
+
+        return display_pack_capability_discover(
+            repo_root=Path(args.repo_root) if args.repo_root else None,
+            paper_root=Path(args.paper_root) if args.paper_root else None,
+            include_templates=bool(args.include_templates),
+        )
+
+    if args.command == "display-pack-agent-plan":
+        from med_autoscience.display_pack_agent import display_pack_figure_plan
+
+        return display_pack_figure_plan(
+            repo_root=Path(args.repo_root) if args.repo_root else None,
+            paper_root=Path(args.paper_root) if args.paper_root else None,
+            figure_request=_load_optional_json_object_from_args(
+                args,
+                json_attr="figure_request_json",
+                file_attr="figure_request_file",
+                label="figure request",
+            ),
+            max_recommendations=int(args.max_recommendations),
+        )
+
+    if args.command == "display-pack-agent-preflight":
+        from med_autoscience.display_pack_agent import display_pack_preflight
+
+        return display_pack_preflight(
+            repo_root=Path(args.repo_root) if args.repo_root else None,
+            paper_root=Path(args.paper_root) if args.paper_root else None,
+            template_id=str(args.template_id or ""),
+            figure_request=_load_optional_json_object_from_args(
+                args,
+                json_attr="figure_request_json",
+                file_attr="figure_request_file",
+                label="figure request",
+            ),
+            check_runtime_dependencies=not bool(args.skip_runtime_dependency_check),
+        )
+
+    if args.command == "display-pack-agent-render":
+        from med_autoscience.display_pack_agent import display_pack_render
+
+        return display_pack_render(
+            repo_root=Path(args.repo_root) if args.repo_root else None,
+            paper_root=Path(args.paper_root),
+            figure_request=_load_optional_json_object_from_args(
+                args,
+                json_attr="figure_request_json",
+                file_attr="figure_request_file",
+                label="figure request",
+            ),
+            visual_audit_review=_load_optional_json_object_from_args(
+                args,
+                json_attr="visual_audit_review_json",
+                file_attr="visual_audit_review_file",
+                label="visual audit review",
+            ),
+        )
+
     if args.command == "display-pack-list-templates":
         from med_autoscience.display_pack_usability import list_display_pack_templates
 

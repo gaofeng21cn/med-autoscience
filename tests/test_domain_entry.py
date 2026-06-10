@@ -193,6 +193,47 @@ def test_domain_entry_dispatches_lifecycle_report_scan_options(monkeypatch, tmp_
     }
 
 
+def test_domain_entry_dispatches_display_pack_agent_plan_without_profile() -> None:
+    module = importlib.import_module("med_autoscience.domain_entry")
+    repo_root = Path(__file__).resolve().parents[1]
+
+    payload = module.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "display-pack-figure-plan",
+            "repo_root": str(repo_root),
+            "figure_request": {
+                "figure_kind": "evidence_figure",
+                "audit_family": "Prediction Performance",
+                "preferred_renderer_family": "r_ggplot2",
+                "query": "roc",
+            },
+        }
+    )
+
+    assert payload["command"] == "display-pack-figure-plan"
+    assert payload["surface_kind"] == "display_pack_agent_figure_plan"
+    assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert payload["authority_boundary"]["can_authorize_publication_readiness"] is False
+
+
+def test_domain_entry_contract_exports_display_pack_agent_commands() -> None:
+    contract_module = importlib.import_module("med_autoscience.domain_entry_contract")
+
+    contracts = {
+        item["command"]: item
+        for item in contract_module.build_domain_entry_contract()["command_contracts"]
+    }
+
+    assert contracts["display-pack-capability-discover"]["optional_fields"] == [
+        "repo_root",
+        "paper_root",
+        "include_templates",
+    ]
+    assert contracts["display-pack-figure-plan"]["required_fields"] == ["figure_request"]
+    assert contracts["display-pack-render"]["required_fields"] == ["paper_root"]
+    assert "visual_audit_review" in contracts["display-pack-render"]["optional_fields"]
+
+
 def test_domain_entry_rejects_control_plane_cleanup_apply(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.domain_entry")
     workspace_root = tmp_path / "workspace"
