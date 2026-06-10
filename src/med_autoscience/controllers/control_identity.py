@@ -24,6 +24,17 @@ def _digest(payload: Mapping[str, Any]) -> str:
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
 
 
+def stable_current_owner_ticket_fingerprint(
+    *,
+    study_id: str | None,
+    work_unit_id: str | None,
+    action_type: str | None,
+) -> str | None:
+    if study_id is None or work_unit_id is None or action_type is None:
+        return None
+    return f"study-progress-current-owner-ticket::{study_id}::{work_unit_id}::{action_type}"
+
+
 @dataclass(frozen=True)
 class ControlWorkUnitIdentity:
     domain: str

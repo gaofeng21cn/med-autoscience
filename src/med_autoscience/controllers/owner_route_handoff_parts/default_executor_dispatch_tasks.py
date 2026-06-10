@@ -15,6 +15,7 @@ from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers import default_executor_dispatch_packets
 from med_autoscience.controllers.default_executor_action_policy import REQUEST_OWNER_BY_ACTION_TYPE
 from med_autoscience.controllers.domain_health_diagnostic_parts import provider_admission
+from med_autoscience.controllers.owner_route_handoff_parts import current_dispatch_identity
 from med_autoscience.controllers.study_transition_receipt_consumption_parts import (
     nonconsumable_redrive_budget,
 )
@@ -43,7 +44,8 @@ def default_executor_dispatch_tasks(
     dispatch_root = profile.studies_root / study_id / DISPATCH_RELATIVE_ROOT
     if not dispatch_root.is_dir():
         return []
-    canonical_identity = _canonical_current_dispatch_identity(
+    canonical_identity = current_dispatch_identity.canonical_current_dispatch_identity(
+        study_id=study_id,
         current_owner_action=_mapping(current_owner_action),
         current_work_unit=_mapping(current_work_unit),
         current_execution_envelope=_mapping(current_execution_envelope),
@@ -251,109 +253,6 @@ def _provider_admission_status_payload(
     return payload
 
 
-def _canonical_current_dispatch_identity(
-    *,
-    current_owner_action: Mapping[str, Any],
-    current_work_unit: Mapping[str, Any],
-    current_execution_envelope: Mapping[str, Any],
-) -> dict[str, Any]:
-    work_unit_status = _text(current_work_unit.get("status"))
-    envelope_state = _text(current_execution_envelope.get("state_kind")) or _text(
-        current_execution_envelope.get("execution_state_kind")
-    )
-    if work_unit_status in {
-        "typed_blocker",
-        "running_provider_attempt",
-        "blocked_current_work_unit",
-        "blocked_typed_owner",
-        "parked",
-    }:
-        return {"blocked": True, "source": "current_work_unit", "state_kind": work_unit_status}
-    if envelope_state in {
-        "typed_blocker",
-        "running_provider_attempt",
-        "blocked_current_work_unit",
-        "blocked_typed_owner",
-        "parked",
-    }:
-        return {"blocked": True, "source": "current_execution_envelope", "state_kind": envelope_state}
-    if work_unit_status == "executable_owner_action":
-        identity = _current_work_unit_dispatch_identity(current_work_unit)
-        if identity:
-            return identity
-        return {"blocked": True, "source": "current_work_unit", "state_kind": work_unit_status}
-    if envelope_state == "executable_owner_action" and current_owner_action:
-        identity = _current_owner_action_dispatch_identity(current_owner_action)
-        if identity:
-            identity["source"] = "current_execution_envelope"
-            return identity
-        return {"blocked": True, "source": "current_execution_envelope", "state_kind": envelope_state}
-    if current_owner_action:
-        identity = _current_owner_action_dispatch_identity(current_owner_action)
-        if identity:
-            return identity
-    return {}
-
-
-def _current_work_unit_dispatch_identity(current_work_unit: Mapping[str, Any]) -> dict[str, Any]:
-    action_type = _text(current_work_unit.get("action_type"))
-    work_unit_id = _text(current_work_unit.get("work_unit_id"))
-    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
-    fingerprint = (
-        _text(current_work_unit.get("work_unit_fingerprint"))
-        or _text(current_work_unit.get("action_fingerprint"))
-        or _text(currentness_basis.get("work_unit_fingerprint"))
-        or _text(currentness_basis.get("source_fingerprint"))
-    )
-    action_ids = [item for item in (action_type, work_unit_id) if item is not None]
-    if action_type is None or work_unit_id is None:
-        return {}
-    return {
-        "source": "current_work_unit",
-        "action_type": action_type,
-        "action_ids": action_ids,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-    }
-
-
-def _current_owner_action_dispatch_identity(current_owner_action: Mapping[str, Any]) -> dict[str, Any]:
-    action_type = _text(current_owner_action.get("action_type"))
-    next_action = _mapping(current_owner_action.get("next_action"))
-    work_unit_id = _text(current_owner_action.get("work_unit_id")) or _text(next_action.get("action_id"))
-    basis = _mapping(current_owner_action.get("owner_route_currentness_basis"))
-    fingerprint = (
-        _text(current_owner_action.get("work_unit_fingerprint"))
-        or _text(current_owner_action.get("action_fingerprint"))
-        or _text(current_owner_action.get("source_fingerprint"))
-        or _text(basis.get("work_unit_fingerprint"))
-        or _text(basis.get("source_fingerprint"))
-    )
-    action_ids = list(
-        dict.fromkeys(
-            [
-                item
-                for item in (
-                    *_string_list(current_owner_action.get("allowed_actions")),
-                    action_type,
-                    work_unit_id,
-                    _text(next_action.get("action_id")),
-                )
-                if item is not None
-            ]
-        )
-    )
-    if action_type is None or work_unit_id is None:
-        return {}
-    return {
-        "source": _text(current_owner_action.get("source")) or "current_executable_owner_action",
-        "action_type": action_type,
-        "action_ids": action_ids,
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": fingerprint,
-    }
-
-
 def _matching_provider_admission_identity(
     *,
     candidates: list[Mapping[str, Any]],
@@ -367,7 +266,11 @@ def _matching_provider_admission_identity(
         if _text(candidate.get("action_type")) != action_type:
             continue
         candidate_work_unit = _text(candidate.get("work_unit_id"))
-        if work_unit_id is not None and candidate_work_unit != work_unit_id:
+        if work_unit_id is not None and not current_dispatch_identity.work_unit_ids_equivalent_for_action(
+            action_type=action_type,
+            left=candidate_work_unit,
+            right=work_unit_id,
+        ):
             continue
         if not _candidate_dispatch_path_matches(
             candidate_dispatch_path=_text(candidate.get("dispatch_path")),
@@ -453,21 +356,28 @@ def _current_dispatch_candidates(
     canonical = _mapping(canonical_identity)
     for dispatch_path in sorted(dispatch_root.glob("*.json")):
         dispatch = _read_json_object(dispatch_path)
-        if not _dispatch_ready_for_opl_attempt(dispatch):
+        if dispatch is None:
             continue
         action_type = _text(dispatch.get("action_type"))
         if action_type is None:
             continue
         persist_current_identity = False
         if current_action:
-            dispatch_for_current_action = _dispatch_with_current_owner_action_identity(
+            dispatch_for_current_action = current_dispatch_identity.dispatch_with_current_owner_action_identity(
                 dispatch=dispatch,
                 current_owner_action=current_action,
+                canonical_identity=canonical,
             )
             persist_current_identity = dispatch_for_current_action is not dispatch
             dispatch = dispatch_for_current_action
-            if not _dispatch_matches_current_owner_action(dispatch, current_action):
+            if not current_dispatch_identity.dispatch_matches_current_owner_action(
+                dispatch,
+                current_action,
+                canonical_identity=canonical,
+            ):
                 continue
+        if not _dispatch_ready_for_opl_attempt(dispatch):
+            continue
         if canonical and not _dispatch_matches_canonical_current_identity(
             dispatch,
             canonical,
@@ -523,9 +433,13 @@ def _dispatch_matches_canonical_current_identity(
     expected_work_unit_id = _text(canonical_identity.get("work_unit_id"))
     if expected_work_unit_id is None:
         return False
-    owner_route = _dispatch_owner_route(dispatch)
-    dispatch_work_unit_id = _owner_route_work_unit_id(owner_route)
-    if dispatch_work_unit_id != expected_work_unit_id:
+    owner_route = current_dispatch_identity.dispatch_owner_route(dispatch)
+    dispatch_work_unit_id = current_dispatch_identity.owner_route_work_unit_id(owner_route)
+    if not current_dispatch_identity.work_unit_ids_equivalent_for_action(
+        action_type=dispatch_action_type,
+        left=dispatch_work_unit_id,
+        right=expected_work_unit_id,
+    ):
         return False
     allowed_actions = set(_string_list(owner_route.get("allowed_actions")))
     if allowed_actions and dispatch_action_type not in allowed_actions:
@@ -533,7 +447,7 @@ def _dispatch_matches_canonical_current_identity(
     expected_fingerprint = _text(canonical_identity.get("work_unit_fingerprint"))
     if expected_fingerprint is None:
         return True
-    if _dispatch_work_unit_fingerprint(dispatch) == expected_fingerprint:
+    if current_dispatch_identity.dispatch_work_unit_fingerprint(dispatch) == expected_fingerprint:
         return True
     stage_packet_path = default_executor_dispatch_packets.dispatch_stage_packet_path(
         dispatch,
@@ -559,76 +473,6 @@ def _dispatch_matches_canonical_current_identity(
         if (text := _text(value)) is not None
     }
     return expected_fingerprint in provider_fingerprints
-
-
-def _dispatch_matches_current_owner_action(
-    dispatch: Mapping[str, Any],
-    current_owner_action: Mapping[str, Any],
-) -> bool:
-    action_type = _text(dispatch.get("action_type"))
-    current_action_type = _text(current_owner_action.get("action_type"))
-    if action_type is None or current_action_type is None or action_type != current_action_type:
-        return False
-    current_work_unit_id = _text(current_owner_action.get("work_unit_id"))
-    if current_work_unit_id is None:
-        current_basis = _mapping(current_owner_action.get("owner_route_currentness_basis"))
-        current_work_unit_id = _text(current_basis.get("work_unit_id"))
-    if current_work_unit_id is None:
-        return False
-    dispatch_work_unit_id = _owner_route_work_unit_id(_dispatch_owner_route(dispatch))
-    if dispatch_work_unit_id != current_work_unit_id:
-        return False
-    owner_route = _dispatch_owner_route(dispatch)
-    allowed_actions = set(_string_list(owner_route.get("allowed_actions")))
-    if allowed_actions and action_type not in allowed_actions:
-        return False
-    current_owner_route = _mapping(current_owner_action.get("owner_route"))
-    current_allowed_actions = set(_string_list(current_owner_route.get("allowed_actions")))
-    if current_allowed_actions and action_type not in current_allowed_actions:
-        return False
-    return True
-
-
-def _dispatch_with_current_owner_action_identity(
-    *,
-    dispatch: Mapping[str, Any],
-    current_owner_action: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    action_type = _text(dispatch.get("action_type"))
-    current_action_type = _text(current_owner_action.get("action_type"))
-    if action_type is None or current_action_type is None or action_type != current_action_type:
-        return dispatch
-    if _dispatch_matches_current_owner_action(dispatch, current_owner_action):
-        return dispatch
-    current_owner_route = _mapping(current_owner_action.get("owner_route"))
-    if not current_owner_route:
-        return dispatch
-    allowed_actions = set(_string_list(current_owner_route.get("allowed_actions")))
-    if allowed_actions and action_type not in allowed_actions:
-        return dispatch
-
-    updated = dict(dispatch)
-    updated["owner_route"] = dict(current_owner_route)
-    if next_owner := (_text(current_owner_action.get("next_owner")) or _text(current_owner_route.get("next_owner"))):
-        updated["next_executable_owner"] = next_owner
-    if source := _text(current_owner_action.get("source")):
-        updated["dispatch_authority"] = source
-    source_fingerprint = _text(current_owner_route.get("source_fingerprint")) or _text(
-        current_owner_route.get("work_unit_fingerprint")
-    )
-    if source_fingerprint is not None:
-        updated["source_fingerprint"] = source_fingerprint
-        updated["action_fingerprint"] = source_fingerprint
-
-    prompt_contract = dict(_mapping(updated.get("prompt_contract")))
-    prompt_contract["owner_route"] = dict(current_owner_route)
-    prompt_contract["action_type"] = action_type
-    if next_owner := _text(updated.get("next_executable_owner")):
-        prompt_contract["next_executable_owner"] = next_owner
-    if source_fingerprint is not None:
-        prompt_contract["source_fingerprint"] = source_fingerprint
-    updated["prompt_contract"] = prompt_contract
-    return updated if updated != dict(dispatch) else dispatch
 
 
 def _readiness_surface_identity(
@@ -764,12 +608,12 @@ def _dispatch_blocked_by_newer_candidate(
     action_type = _text(dispatch.get("action_type"))
     if action_type is None:
         return False
-    owner_route = _dispatch_owner_route(dispatch)
+    owner_route = current_dispatch_identity.dispatch_owner_route(dispatch)
     for other_candidate in candidates:
         if other_candidate is candidate:
             continue
         other = _mapping(other_candidate.get("dispatch"))
-        other_route = _dispatch_owner_route(other)
+        other_route = current_dispatch_identity.dispatch_owner_route(other)
         if action_type not in set(_string_list(other_route.get("blocked_actions"))):
             continue
         if not _candidate_newer_than(other_candidate, candidate):
@@ -877,40 +721,8 @@ def _next_executable_owner(dispatch: Mapping[str, Any]) -> str | None:
     )
 
 
-def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> Mapping[str, Any]:
-    prompt_contract = _mapping(dispatch.get("prompt_contract"))
-    return _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
-
-
-def _owner_route_work_unit_id(owner_route: Mapping[str, Any]) -> str | None:
-    source_refs = _mapping(owner_route.get("source_refs"))
-    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    return (
-        _text(source_refs.get("work_unit_id"))
-        or _text(owner_route.get("work_unit_id"))
-        or _text(basis.get("work_unit_id"))
-    )
-
-
-def _dispatch_work_unit_fingerprint(dispatch: Mapping[str, Any]) -> str | None:
-    owner_route = _dispatch_owner_route(dispatch)
-    source_refs = _mapping(owner_route.get("source_refs"))
-    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    return (
-        _text(dispatch.get("work_unit_fingerprint"))
-        or _text(dispatch.get("action_fingerprint"))
-        or _text(dispatch.get("source_fingerprint"))
-        or _text(owner_route.get("work_unit_fingerprint"))
-        or _text(owner_route.get("source_fingerprint"))
-        or _text(source_refs.get("work_unit_fingerprint"))
-        or _text(source_refs.get("source_fingerprint"))
-        or _text(basis.get("work_unit_fingerprint"))
-        or _text(basis.get("source_fingerprint"))
-    )
-
-
 def _dispatch_currentness_key(dispatch: Mapping[str, Any], *, time_key: str) -> tuple[str, str, str]:
-    owner_route = _dispatch_owner_route(dispatch)
+    owner_route = current_dispatch_identity.dispatch_owner_route(dispatch)
     source_refs = _mapping(owner_route.get("source_refs"))
     basis = _mapping(source_refs.get("owner_route_currentness_basis"))
     return (
@@ -927,7 +739,7 @@ def _dispatch_currentness_key(dispatch: Mapping[str, Any], *, time_key: str) -> 
 
 
 def _dispatch_route_currentness_key(dispatch: Mapping[str, Any], *, mtime_key: str) -> tuple[str, str, str]:
-    owner_route = _dispatch_owner_route(dispatch)
+    owner_route = current_dispatch_identity.dispatch_owner_route(dispatch)
     source_refs = _mapping(owner_route.get("source_refs"))
     basis = _mapping(source_refs.get("owner_route_currentness_basis"))
     return (

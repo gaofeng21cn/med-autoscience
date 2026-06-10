@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers import control_identity
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 
@@ -15,7 +16,7 @@ DEFAULT_EXECUTOR_DISPATCHES = Path("artifacts/supervision/consumer/default_execu
 CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS = {
     "return_to_ai_reviewer_workflow": {"ai_reviewer"},
     "run_quality_repair_batch": {"write"},
-    "run_gate_clearing_batch": {"gate_clearing_batch", "write"},
+    "run_gate_clearing_batch": {"finalize", "gate_clearing_batch", "write"},
 }
 CURRENT_CONTROL_PROVIDER_ADMISSION_DISPATCH_AUTHORITIES = {
     "return_to_ai_reviewer_workflow": {"ai_reviewer_record_production_handoff"},
@@ -536,7 +537,11 @@ def _provider_admission_action_key(action: Mapping[str, Any]) -> tuple[str | Non
     return (
         _non_empty_text(action.get("study_id")),
         _current_action_action_type(action),
-        _non_empty_text(action.get("work_unit_id")) or _non_empty_text(action.get("next_work_unit")),
+        _canonical_provider_admission_work_unit_id(
+            action_type=_current_action_action_type(action),
+            work_unit_id=_non_empty_text(action.get("work_unit_id"))
+            or _non_empty_text(action.get("next_work_unit")),
+        ),
     )
 
 
@@ -556,9 +561,11 @@ def _stable_provider_admission_ticket(
     action_type: str | None,
     work_unit_id: str | None,
 ) -> str | None:
-    if study_id is None or action_type is None or work_unit_id is None:
-        return None
-    return f"study-progress-current-owner-ticket::{study_id}::{work_unit_id}::{action_type}"
+    return control_identity.stable_current_owner_ticket_fingerprint(
+        study_id=study_id,
+        work_unit_id=work_unit_id,
+        action_type=action_type,
+    )
 
 
 def _study_currentness_basis(
@@ -1119,7 +1126,11 @@ def _matches_current_action(
         if action_ids and action_type not in action_ids:
             return False
         return True
-    if expected_work_unit_id is not None and work_unit_id != expected_work_unit_id:
+    if expected_work_unit_id is not None and not _work_unit_ids_equivalent_for_action(
+        action_type=action_type,
+        left=work_unit_id,
+        right=expected_work_unit_id,
+    ):
         return False
     if action_ids and action_type not in action_ids:
         return False
@@ -1147,6 +1158,31 @@ def _provider_admission_ticket_matches_action(
         ticket_work_unit_id == work_unit_id
         and (ticket_action_type == action_type or ticket_action_type == work_unit_id)
     )
+
+
+def _work_unit_ids_equivalent_for_action(
+    *,
+    action_type: str | None,
+    left: str | None,
+    right: str | None,
+) -> bool:
+    if left == right:
+        return True
+    return (
+        action_type == "run_gate_clearing_batch"
+        and left in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+        and right in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+    )
+
+
+def _canonical_provider_admission_work_unit_id(
+    *,
+    action_type: str | None,
+    work_unit_id: str | None,
+) -> str | None:
+    if action_type == "run_gate_clearing_batch" and work_unit_id in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS:
+        return "publication_gate_replay"
+    return work_unit_id
 
 
 def _execution_requests_provider_admission(execution: Mapping[str, Any]) -> bool:
