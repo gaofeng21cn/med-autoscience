@@ -20,11 +20,11 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 - 个别字段的补全或纠错
 - 多中心追加
 
-第一期默认扫描面是 `datasets/<family>/<version>/`，并把版本登记写入：
+当前默认扫描面是 `data/datasets/<family>/<version>/`，并把版本登记写入：
 
-- `portfolio/data_assets/private/registry.json`
+- `memory/portfolio/data_assets/private/registry.json`
 
-如果 `datasets/<family>/<version>/dataset_manifest.yaml` 存在，系统会把它视为该版本的 release contract 来源，并登记：
+如果 `data/datasets/<family>/<version>/dataset_manifest.yaml` 存在，系统会把它视为该版本的 release contract 来源，并登记：
 
 - `dataset_id`
 - `raw_snapshot`
@@ -47,7 +47,7 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 - `owner`
 - `source_centers`
 
-当 Agent 已经把新数据放到 `datasets/<family>/<version>/` 下时，推荐通过结构化 update payload 调用：
+当 Agent 已经把新数据放到 `data/datasets/<family>/<version>/` 下时，推荐通过结构化 update payload 调用：
 
 - `action = "upsert_private_release_manifest"`
 
@@ -55,9 +55,11 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 
 这里采用严格 mutation 语义：
 
-- `datasets/<family>/<version>/` 必须已经存在
+- `data/datasets/<family>/<version>/` 必须已经存在
 - `manifest.main_outputs` 指向的文件必须真实存在
 - 不允许把“空目录 + YAML”登记成可用 release
+
+旧 workspace 的根层 `datasets/<family>/<version>/` 只作为兼容扫描输入保留。新建、修复或迁移 workspace 时必须写入 `data/datasets/<family>/<version>/`；长期文档、study YAML、manifest 和 runbook 不应再生成根层 `datasets/` 路径。
 
 ## 2. 公开数据扩展模块
 
@@ -70,7 +72,7 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 
 默认登记位置：
 
-- `portfolio/data_assets/public/registry.json`
+- `memory/portfolio/data_assets/public/registry.json`
 
 这部分强调的是“有明确用途再引入”，而不是为了堆工作量而装饰性加入。
 
@@ -121,15 +123,15 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 
 默认输出位置：
 
-- `portfolio/data_assets/impact/latest_impact_report.json`
+- `memory/portfolio/data_assets/impact/latest_impact_report.json`
 
 私有版本差异报告默认写入：
 
-- `portfolio/data_assets/private/diffs/<family>/<from_version>__<to_version>.json`
+- `memory/portfolio/data_assets/private/diffs/<family>/<from_version>__<to_version>.json`
 
 数据 mutation 的审计日志默认写入：
 
-- `portfolio/data_assets/mutations/<timestamp>_<action>.json`
+- `memory/portfolio/data_assets/mutations/<timestamp>_<action>.json`
 
 这组日志属于正式审计链路，而不是“成功后顺手写一下”的附属文件：
 

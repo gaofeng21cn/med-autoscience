@@ -1,0 +1,337 @@
+{
+  "surface_kind": "mas_progress_first_safety_envelope",
+  "version": "progress-first-safety-envelope.v1",
+  "owner": "MedAutoScience",
+  "state": "active_contract",
+  "purpose": "Machine-readable safety envelope for Progress-first MAS/OPL operation and Light/Co-Scientist/Evo-style advisory acceleration.",
+  "machine_boundary": "This contract defines false-completion prevention, currentness, receipt identity, artifact authority, and advisory sidecar boundaries. It cannot declare study truth, paper closure, publication readiness, submission readiness, quality verdicts, artifact mutation authority, memory accept/reject decisions, domain readiness, production readiness, or provider liveness.",
+  "ordinary_progress_spine": [
+    "current_owner_delta",
+    "current_medical_stage_goal",
+    "concrete_paper_evidence_reviewer_gate_delta",
+    "ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker",
+    "next_current_owner_delta"
+  ],
+  "global_non_authority_signals": [
+    "script_success",
+    "test_pass",
+    "file_presence",
+    "queue_completion",
+    "provider_completion",
+    "provider_running_proof_without_matching_owner_answer",
+    "generated_surface_ready",
+    "descriptor_ready",
+    "zero_open_worklist",
+    "read_model_currentness",
+    "portal_or_workbench_projection",
+    "score_or_weighted_verdict",
+    "ranking_or_tournament_win",
+    "opportunistic_prefetch_complete",
+    "external_skill_checklist_complete",
+    "sidecar_observation_memory_written",
+    "same_invocation_self_review"
+  ],
+  "closeout_authority": {
+    "accepted_progress_outputs": [
+      "ProgressDeltaReceipt",
+      "OwnerReceipt",
+      "TypedBlocker",
+      "human_gate_ref",
+      "route_back_ref",
+      "independent_reviewer_or_auditor_record_ref",
+      "publication_gate_receipt_ref",
+      "canonical_paper_or_artifact_delta_ref",
+      "artifact_rebuild_or_lineage_receipt_ref"
+    ],
+    "domain_closeout_requires": [
+      "mas_owner_receipt_or_stable_typed_blocker",
+      "same_work_unit_identity",
+      "currentness_basis",
+      "required_output_surface",
+      "forbidden_write_boundary"
+    ],
+    "quality_gate_closeout_requires": [
+      "independent_reviewer_or_auditor_invocation",
+      "separate_task_or_context_record",
+      "quality_receipt_or_route_back_or_typed_blocker"
+    ],
+    "cannot_authorize": [
+      "domain_ready",
+      "publication_ready",
+      "submission_ready",
+      "quality_or_export_ready",
+      "artifact_mutation",
+      "memory_accept_reject",
+      "current_package_update",
+      "production_ready",
+      "physical_delete"
+    ]
+  },
+  "risk_classes": [
+    {
+      "risk_id": "false_completion",
+      "failure_shape": "Transport, generated interface, score, file presence, queue completion, or test success is misread as research completion.",
+      "primary_guard": "closeout_authority",
+      "allowed_closure_shapes": [
+        "OwnerReceipt",
+        "TypedBlocker",
+        "human_gate_ref",
+        "route_back_ref",
+        "independent_reviewer_or_auditor_record_ref",
+        "publication_gate_receipt_ref"
+      ],
+      "forbidden_completion_signals": [
+        "script_success",
+        "test_pass",
+        "file_presence",
+        "queue_completion",
+        "provider_completion",
+        "generated_surface_ready",
+        "descriptor_ready",
+        "score_or_weighted_verdict",
+        "ranking_or_tournament_win",
+        "same_invocation_self_review"
+      ],
+      "prevention_layers": [
+        "owner_receipt_contract",
+        "stage_run_kernel_profile",
+        "progress_first_stage_outcome_runbook",
+        "independent_reviewer_boundary"
+      ],
+      "fail_policy": "fail_closed_to_typed_blocker_or_route_back_without_claiming_ready",
+      "ordinary_progress_policy": "continue_current_owner_action_when_safe_or_emit_named_typed_blocker"
+    },
+    {
+      "risk_id": "pseudo_evidence",
+      "failure_shape": "Refs-only ledgers, old logs, sidecar notes, external scores, or copied summaries are treated as source, evidence, reviewer, or publication truth.",
+      "primary_guard": "body_free_ref_authority_boundary",
+      "allowed_evidence_shapes": [
+        "source_provenance_ref",
+        "evidence_ledger_ref",
+        "review_ledger_ref",
+        "decision_trace_ref",
+        "failed_path_ref",
+        "fresh_evidence_gate_ref",
+        "owner_receipt_ref",
+        "typed_blocker_ref"
+      ],
+      "forbidden_evidence_substitutes": [
+        "sidecar_observation_memory_written",
+        "external_skill_checklist_complete",
+        "review_score",
+        "read_model_summary",
+        "old_closeout_log",
+        "unverified_copied_body",
+        "metadata_only_claim_support"
+      ],
+      "prevention_layers": [
+        "refs_only_domain_authority_refs",
+        "light_external_pattern_intake",
+        "evo_scientist_progress_accelerator",
+        "owner_receipt_and_route_control"
+      ],
+      "fail_policy": "missing_route_required_evidence_returns_named_ref_family_typed_blocker",
+      "ordinary_progress_policy": "missing_non_required_advisory_is_observability_not_blocker"
+    },
+    {
+      "risk_id": "stale_read_model",
+      "failure_shape": "Old projections, stage artifact residue, stale action queues, stale current-control, or legacy next_action reenter the default path.",
+      "primary_guard": "canonical_current_work_unit",
+      "canonical_current_source": "current_work_unit",
+      "valid_current_statuses": [
+        "executable_owner_action",
+        "running_provider_attempt",
+        "typed_blocker",
+        "blocked_current_work_unit"
+      ],
+      "stale_sources_must_be_diagnostic_only": [
+        "legacy_control_next_action_without_binding",
+        "old_owner_route_handoff",
+        "stale_action_queue",
+        "stale_stage_artifact_projection",
+        "consumed_default_executor_dispatch",
+        "receipt_consumed_without_next_owner"
+      ],
+      "prevention_layers": [
+        "current_work_unit_reducer",
+        "current_execution_envelope",
+        "stage_native_next_action_admission",
+        "progress_first_operator_surface"
+      ],
+      "fail_policy": "fail_closed_to_currentness_or_owner_route_typed_blocker",
+      "ordinary_progress_policy": "read_models_rebuild_from_canonical_current_work_unit_and_do_not_create_next_action"
+    },
+    {
+      "risk_id": "duplicate_receipt",
+      "failure_shape": "A consumed receipt, stale dispatch, repeated readiness surface, or previous work unit is re-driven as if it were current.",
+      "primary_guard": "work_unit_receipt_identity",
+      "required_identity_fields": [
+        "study_id",
+        "quest_id",
+        "stage_id",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "action_type",
+        "source_fingerprint",
+        "idempotency_key"
+      ],
+      "duplicate_receipt_must_become": [
+        "ignored_evidence",
+        "consumed_receipt_projection",
+        "superseded_by_current_work_unit",
+        "stable_typed_blocker_when_identity_cannot_be_reconciled"
+      ],
+      "prevention_layers": [
+        "owner_route_currentness_basis",
+        "default_executor_receipt_consumption",
+        "stage_run_closeout_binding",
+        "progress_first_tick_accounting"
+      ],
+      "fail_policy": "do_not_redrive_same_work_unit_without_new_target_surface_or_typed_blocker",
+      "ordinary_progress_policy": "receipt_consumed_must_project_next_owner_typed_blocker_human_gate_running_proof_or_stop_loss"
+    },
+    {
+      "risk_id": "artifact_authority_drift",
+      "failure_shape": "Artifact files, package manifests, lifecycle reports, locator indexes, or workbench views are treated as permission to mutate or publish artifacts.",
+      "primary_guard": "mas_artifact_authority",
+      "allowed_artifact_authority_shapes": [
+        "artifact_package_authority_receipt",
+        "artifact_rebuild_proof_ref",
+        "artifact_lineage_receipt_ref",
+        "owner_authorized_artifact_mutation_receipt",
+        "stable_artifact_mutation_typed_blocker"
+      ],
+      "forbidden_artifact_authority_substitutes": [
+        "file_presence",
+        "stage_folder_manifest_only",
+        "locator_index_entry",
+        "lifecycle_report",
+        "restore_plan",
+        "workbench_display",
+        "provider_completion",
+        "current_package_path_exists"
+      ],
+      "prevention_layers": [
+        "artifact_locator_contract",
+        "stage_artifact_kernel_adoption",
+        "stage_run_kernel_profile",
+        "artifact_lifecycle_receipt_policy"
+      ],
+      "fail_policy": "missing_artifact_authority_returns_artifact_mutation_blocker",
+      "ordinary_progress_policy": "artifact_locator_updates_are_platform_repair_unless_owner_authorized_delta_ref_exists"
+    }
+  ],
+  "hybrid_progress_accelerator_policy": {
+    "surface_kind": "mas_light_coscientist_progress_first_hybrid_policy",
+    "role": "current_owner_following_advisory_sidecar",
+    "default_posture": "advisory_refs_only_fail_open_budgeted",
+    "ordinary_path_root": "current_owner_delta",
+    "can_generate_default_next_action": false,
+    "can_block_current_owner_action": false,
+    "missing_sidecar_blocks_dispatch": false,
+    "full_research_lifecycle_preflight_each_delta": false,
+    "full_readiness_inventory_each_delta": false,
+    "mainline_waits_for_sidecar": false,
+    "platform_repair_or_prefetch_counts_as_paper_progress": false,
+    "source_patterns": [
+      {
+        "source_id": "Light0305/Light",
+        "source_role": "external_pattern_source_only",
+        "allowed_ref_families": [
+          "verified_asset_ref",
+          "collision_check_ref",
+          "refusal_rehearsal_ref",
+          "fresh_evidence_gate_ref"
+        ],
+        "forbidden_roles": [
+          "runtime_owner",
+          "skill_router_owner",
+          "knowledge_truth_owner",
+          "quality_gate_owner",
+          "publication_gate_owner",
+          "artifact_authority_owner"
+        ],
+        "missing_advisory_default": "observability_or_platform_repair"
+      },
+      {
+        "source_id": "Co-Scientist",
+        "source_role": "within_stage_exploration_strategy",
+        "allowed_ref_families": [
+          "candidate_generation_ref",
+          "debate_or_tournament_ref",
+          "ranking_ref",
+          "evolution_ref",
+          "meta_review_ref",
+          "research_overview_ref"
+        ],
+        "forbidden_roles": [
+          "route_authority_by_ranking",
+          "quality_gate_owner",
+          "publication_ready_authority",
+          "stage_promotion_authority"
+        ],
+        "missing_advisory_default": "continue_current_owner_delta"
+      },
+      {
+        "source_id": "EvoScientist/EvoSkills",
+        "source_role": "learning_sidecar_and_tool_affordance_pattern",
+        "allowed_ref_families": [
+          "tool_affordance_ref",
+          "failed_path_memory_ref",
+          "observation_memory_ref",
+          "attempt_budget_hint_ref"
+        ],
+        "forbidden_roles": [
+          "default_runtime_owner",
+          "tool_authority",
+          "memory_body_authority",
+          "admission_gate",
+          "quality_owner"
+        ],
+        "missing_advisory_default": "fail_open"
+      }
+    ],
+    "friction_budget": {
+      "max_micro_candidates_per_attempt": 3,
+      "max_next_delta_tournaments_per_attempt": 1,
+      "max_reviewer_repair_hints_per_attempt": 3,
+      "max_reusable_lesson_refs_per_attempt": 1,
+      "meta_review_runs_every_attempt": false,
+      "meta_review_triggered_only_by": [
+        "stop_loss_candidate",
+        "repeated_failure",
+        "human_gate_pressure",
+        "claim_boundary_drift",
+        "no_loop_budget_exhausted"
+      ],
+      "opportunistic_prefetch_mainline_waits": false,
+      "missing_advisory_scan_blocks_owner_action": false
+    },
+    "hard_gate_escalation_only_when": [
+      "route_required_ref_missing_for_current_delta",
+      "source_data_or_evidence_missing_for_current_delta",
+      "owner_route_identity_missing_or_invalid",
+      "forbidden_write_boundary_unclear",
+      "irreversible_mutation_requires_authorization",
+      "independent_reviewer_or_publication_gate_required_for_claimed_quality"
+    ],
+    "hard_gate_output_requires": [
+      "named_missing_ref_family",
+      "route_back_owner",
+      "current_work_unit_identity",
+      "repair_condition",
+      "forbidden_shortcut_avoided"
+    ]
+  },
+  "audit_policy": {
+    "audit_mode": "meta_or_explicit_lane_not_live_preflight",
+    "live_path_runs_full_audit_each_delta": false,
+    "ordinary_delta_runs_jit_checks_only": true,
+    "focused_contract_tests": [
+      "tests/test_progress_first_safety_envelope_contract.py",
+      "tests/test_stage_run_kernel_profile_contract.py",
+      "tests/test_evo_scientist_learning_projection.py"
+    ],
+    "audit_findings_do_not_block_current_owner_action_unless_hard_gate_escalation_applies": true
+  }
+}

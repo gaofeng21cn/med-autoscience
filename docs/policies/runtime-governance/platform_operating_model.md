@@ -130,9 +130,9 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 
 平台默认把以下内容视为人类审核优先面：
 
-- `portfolio/data_assets/startup/latest_startup_data_readiness.json`
-- `portfolio/data_assets/impact/latest_impact_report.json`
-- `portfolio/data_assets/mutations/*.json`
+- `memory/portfolio/data_assets/startup/latest_startup_data_readiness.json`
+- `memory/portfolio/data_assets/impact/latest_impact_report.json`
+- `memory/portfolio/data_assets/mutations/*.json`
 - `runtime/quests/<quest>/reports/`、`summary.md`、`draft.md`
 - `studies/<study-id>/.../final/` 下的正式交付物
 

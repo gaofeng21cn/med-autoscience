@@ -136,9 +136,9 @@ def print_public_help() -> None:
         [
             "",
             "Examples:",
-            "  mas foundry status --json",
+            "  medautosci foundry status --json",
             "  medautosci foundry interfaces --json",
-            "  mas status --json",
+            "  medautosci status --json",
             "  medautosci doctor report --profile <profile>",
             "  medautosci study progress --profile <profile> --study-id <study_id>",
             "  medautosci product governance-report --workspace-root <workspace>",

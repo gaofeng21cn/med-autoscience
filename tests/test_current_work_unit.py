@@ -535,6 +535,69 @@ def test_current_work_unit_projects_next_forced_story_repair_over_stage_readines
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_projects_matching_current_control_repair_over_stage_readiness_blocker_after_paper_delta() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "publication_supervision",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "next_forced_delta": {
+                "required_delta_kind": "review_current_paper_delta",
+                "reason": "paper_progress_delta_observed",
+                "work_unit_id": "manuscript_story_repair",
+                "target_surface": {
+                    "ref_kind": "route_obligation",
+                    "route_target": "write",
+                    "surface_ref": (
+                        "canonical manuscript story-surface delta or "
+                        "typed blocker:manuscript_story_surface_delta_missing"
+                    ),
+                },
+                "owner_action": {
+                    "next_owner": "write",
+                    "work_unit_id": "manuscript_story_repair",
+                    "allowed_actions": ["run_quality_repair_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "owner": "MedAutoScience",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "reason": "medical_paper_readiness_missing",
+                    "source_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+                    "source_kind": "typed_blocker",
+                    "latest_owner_answer_kind": "typed_blocker",
+                    "hard_gate": {"state": "domain_owner_answer_recorded"},
+                }
+            },
+        },
+        actions=[
+            {
+                "source": "opl_current_control_state_action_queue",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "manuscript_story_repair",
+                "next_work_unit": "manuscript_story_repair",
+                "action_fingerprint": "gate-replay-route-back::write::publication-blockers::497d1260db522f01",
+                "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::497d1260db522f01",
+                "authority": "observability_only",
+            }
+        ],
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "manuscript_story_repair"
+    assert work_unit["state"]["source"] == "opl_current_control_state_action_queue"
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_treats_accepted_repair_progress_followup_reason_as_current_action() -> None:
     module = _module()
 

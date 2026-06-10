@@ -332,13 +332,13 @@ wrapper 不应继续硬编码：
 - profile 已提供上面列出的全部关键字段
 - workspace 内存在这些约定目录：
   - `studies/`
-  - `portfolio/`
-  - `datasets/` 或等价数据入口
+  - `memory/portfolio/`
+  - `data/datasets/`
   - `ops/medautoscience/`
   - 旧 workspace 可存在 `ops/med-deepscientist/` 作为 legacy diagnostic / behavior-equivalence reference
 - 当前 controller 仍识别若干固定拓扑：
   - `studies/<study-id>/...`
-  - `portfolio/data_assets/...`
+  - `memory/portfolio/data_assets/...`
   - `runtime/...`
   - legacy diagnostic: `ops/med-deepscientist/runtime/...`
 

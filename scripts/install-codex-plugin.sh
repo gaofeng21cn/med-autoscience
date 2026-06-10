@@ -86,9 +86,9 @@ resolve_python() {
 
 install_python_tools() {
   mkdir -p "${INSTALL_HOME}/.local/bin"
-  write_clean_runner_entrypoint mas med_autoscience.cli
   write_clean_runner_entrypoint medautosci med_autoscience.cli
   write_clean_runner_entrypoint medautosci-mcp med_autoscience.mcp_server
+  remove_stale_mas_cli_wrapper
 }
 
 write_clean_runner_entrypoint() {
@@ -106,6 +106,20 @@ export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1
 exec "${REPO_ROOT}/scripts/run-python-clean.sh" -m "${module}" "\$@"
 EOF
   chmod +x "${script_path}"
+}
+
+remove_stale_mas_cli_wrapper() {
+  local script_path="${INSTALL_HOME}/.local/bin/mas"
+  if [[ ! -e "${script_path}" && ! -L "${script_path}" ]]; then
+    return 0
+  fi
+  if [[ -L "${script_path}" ]]; then
+    rm -f "${script_path}"
+    return 0
+  fi
+  if grep -q "med_autoscience.cli" "${script_path}" 2>/dev/null; then
+    rm -f "${script_path}"
+  fi
 }
 
 install_codex_paths() {

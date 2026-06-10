@@ -87,6 +87,36 @@ Progress-first 的 Co-Scientist 增益层只优化“下一步更快、更准、
 
 Light-derived external-pattern advisory 遵循同一 Progress-first 规则，详见 [Light External Pattern Intake Runbook](./light_external_pattern_intake.md)。`verified_asset_ref`、`collision_check_ref`、`refusal_rehearsal_ref` 和 `fresh_evidence_gate_ref` 可以进入 stage-quality、knowledge packet、reviewer briefing、repair hints、route-back briefing 或 next owner delta；它们不创造 progress 类别，不关闭 AI reviewer verdict、publication gate、quality gate、artifact authority 或 owner receipt。缺 Light-derived advisory 默认只算 observability / platform repair；只有当前 delta 明确 route-required ref 缺失，并且缺失影响 source/data/evidence、owner-route identity、forbidden write boundary、irreversible mutation 或 reviewer/publication hard gate 时，才能生成 typed blocker。该 blocker 必须命名缺失 ref family，并指明解除 owner。
 
+## Progress-first safety envelope
+
+`contracts/progress_first_safety_envelope.json` 是当前 MAS / OPL 普通推进的安全信封。它的目标不是增加一轮 preflight，而是把高代价漂移提前固定成可测试不变量：什么能关闭、什么只能提示、什么必须 fail closed。普通 live path 仍只走 `current_owner_delta -> current medical stage goal -> concrete paper / evidence / reviewer / gate delta -> ProgressDeltaReceipt / OwnerReceipt / TypedBlocker -> next current_owner_delta`。
+
+五类风险按以下方式排查和预防：
+
+| risk | 典型失败形态 | 预防口径 |
+| --- | --- | --- |
+| `false_completion` | script success、queue completion、provider completion、generated surface ready、score / ranking 或 executor 自审被写成完成。 | 只有 MAS owner receipt、stable typed blocker、human gate、route-back、independent reviewer/auditor record、publication gate receipt 或 canonical paper/artifact delta 能改变推进状态；其他信号只能做 evidence / diagnostic。 |
+| `pseudo_evidence` | refs-only ledger、旧日志、sidecar memory、外部分数或 copied summary 被当成 source/evidence/reviewer/publication truth。 | evidence 必须以 source / evidence / review / decision-trace / failed-path / fresh-evidence / receipt / blocker ref 进入；缺 route-required ref 时生成命名 ref family typed blocker，非必需 advisory 缺失不阻塞。 |
+| `stale_read_model` | 旧 projection、旧 action queue、Stage Native `next_action`、stale current-control 或 consumed dispatch 重新进入默认路径。 | default path 只从 canonical `current_work_unit` 派生；旧读面只能进入 ignored diagnostic / provenance，不能创建第二下一步。 |
+| `duplicate_receipt` | 已消费 receipt、重复 readiness surface 或旧 work unit 被再次 dispatch。 | receipt 必须绑定 study / quest / stage / work-unit id / fingerprint / action / source fingerprint / idempotency key；消费后必须让位给 next owner、typed blocker、human gate、running proof 或 stop-loss。 |
+| `artifact_authority_drift` | file presence、manifest、locator index、lifecycle report、restore plan、Workbench view 或 current package path 被当成 artifact mutation / publication 权限。 | artifact authority 只能来自 artifact package authority receipt、rebuild / lineage proof、owner-authorized mutation receipt 或 stable artifact blocker；locator / lifecycle 更新默认只算 platform repair。 |
+
+这五类检查属于 contract / meta / explicit audit lane，不是每个 owner delta 的 live preflight。普通 executor 只做 JIT 检查：当前 delta 需要的 source/data/evidence、owner-route identity、forbidden write boundary、不可逆 mutation 授权和 reviewer/publication hard gate。未命中这些 hard gate 时，继续推进 current owner action。
+
+## 无摩擦混合模式
+
+Light、Co-Scientist 和 EvoScientist / EvoSkills 的吸收方式统一为 `current_owner_following_advisory_sidecar`：
+
+- Light 提供 `verified_asset_ref`、`collision_check_ref`、`refusal_rehearsal_ref`、`fresh_evidence_gate_ref`，用于 stage-quality、knowledge packet、reviewer briefing 和 repair hint。
+- Co-Scientist 提供 stage 内探索策略：候选生成、辩论 / tournament、ranking、evolution、meta-review、research overview，只服务 next owner selection 和 reviewer gap finding。
+- EvoScientist / EvoSkills 提供 async learning sidecar、fail-open tool selector、observation memory 和 failed-path taxonomy，只服务工具可见性、失败路径复用和 no-loop hint。
+
+三者都不得生成默认下一步、阻塞 current owner action、替代 owner receipt / typed blocker、替代 independent reviewer / auditor、写 study truth / memory body / artifact body，或授权 publication / submission / artifact readiness。
+
+摩擦预算固定如下：每次 attempt 最多 3 个 micro-candidate、1 次 next-delta tournament、3 条 reviewer repair hint、1 条 reusable lesson ref；meta-review 只在 stop-loss、repeated failure、human gate pressure、claim-boundary drift 或 no-loop budget exhausted 时触发；opportunistic prefetch 不让 mainline 等待。sidecar 缺失、失败、超时、低置信或没命中 memory，默认 fail open。
+
+只有一种情况可以从 advisory 升级为 hard gate：当前 delta 明确需要的 ref family 缺失，并且缺失会影响 source/data/evidence、owner-route identity、forbidden write boundary、不可逆 mutation，或独立 reviewer / publication gate。升级后的 typed blocker 必须命名缺失 ref family、route-back owner、current work-unit identity、repair condition 和 avoided forbidden shortcut。
+
 ## AI-first admission
 
 AI-first 的 admission 锚点是 `current_executable_owner_action`，不是 `next_system_action` 文案。

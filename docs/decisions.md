@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-10：Progress-first safety envelope 固定五类误完成风险与无摩擦混合模式
+
+- 决策：新增 `contracts/progress_first_safety_envelope.json` 作为 MAS / OPL 普通推进安全信封，覆盖 `false_completion`、`pseudo_evidence`、`stale_read_model`、`duplicate_receipt` 和 `artifact_authority_drift` 五类高代价风险。该 contract 只定义可关闭 shape、非 authority signal、currentness / receipt / artifact authority 边界和 fail-closed 条件；不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、quality verdict、typed blocker、human gate、OPL queue 或 provider attempt。
+- 决策：Light、Co-Scientist、EvoScientist / EvoSkills 的混合模式统一为 `current_owner_following_advisory_sidecar`。Light 只产生 `verified_asset_ref` / `collision_check_ref` / `refusal_rehearsal_ref` / `fresh_evidence_gate_ref`；Co-Scientist 只产生 stage 内 candidate / debate / tournament / ranking / evolution / meta-review / overview refs；Evo 类学习点只产生 tool-affordance、failed-path、observation-memory、attempt-budget hint refs。这些 refs 只能服务 next owner selection、reviewer briefing、repair hints、no-loop suppression 和 context hydration。
+- 决策：混合 sidecar 必须 fail open、refs-only、budgeted、current-owner-following。它不能生成默认下一步、不能阻断 current owner action、不能要求每个 delta 做 full research lifecycle preflight 或 full readiness inventory、不能替代 owner receipt / typed blocker / independent reviewer / publication gate，也不能把 platform repair、prefetch、ranking、score、外部 checklist 或 observation memory 写成 paper progress。
+- 决策：sidecar advisory 只有在当前 delta 明确缺 route-required ref，且影响 source/data/evidence、owner-route identity、forbidden write boundary、不可逆 mutation 或 independent reviewer / publication gate 时，才能升级为 hard gate。升级后的 typed blocker 必须命名缺失 ref family、route-back owner、current work-unit identity、repair condition 和 avoided forbidden shortcut。
+- 理由：MAS/OPL 的最大收益是把“智能体能做事”和“系统能声明完成”分开；Light / Co-Scientist 的最大收益是提高探索和执行效率。如果把外部 skill、ranking、score、sidecar memory 或 read-model completeness 放成默认 gate，会重新制造摩擦和第二 truth source；如果完全不固化风险边界，又会出现错误完成、伪证据、旧 read-model、重复 receipt 或 artifact authority 漂移。
+- 影响：这是 contract / focused test / runbook 级 hardening。live ordinary path 仍锚定 `current_owner_delta -> current medical stage goal -> concrete paper / evidence / reviewer / gate delta -> ProgressDeltaReceipt / OwnerReceipt / TypedBlocker -> next current_owner_delta`；五类风险的全面排查默认走 meta / explicit audit lane，不进入每个 owner action 的 live preflight。
+
 ## 2026-06-09：ordinary pending family task 必须共用 current work-unit hard gate
 
 - 决策：`domain-handler export.pending_family_tasks` 的所有 ordinary OPL 可调度任务必须先 fresh 读取 `study_progress.current_work_unit` 与 `current_execution_envelope`。当 canonical status/state 是 `typed_blocker`、`running_provider_attempt`、`blocked_current_work_unit`、`blocked_typed_owner` 或 `parked` 时，`paper_autonomy/repair-recheck`、`publication_aftercare/*`、`domain_route/reconcile-apply`、progress-pressure continuation、controller route-back 和 `domain_owner/default-executor-dispatch` 都不得继续导出为 OPL pending task。

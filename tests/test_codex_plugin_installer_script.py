@@ -37,6 +37,7 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
     )
 
     assert result.returncode == 0, result.stderr
+    assert not (home_dir / ".local" / "bin" / "mas").exists()
     assert (home_dir / ".local" / "bin" / "medautosci").exists()
     assert (home_dir / ".local" / "bin" / "medautosci-mcp").exists()
     assert not (home_dir / ".local" / "bin" / "medautosci.uv-entrypoint").exists()
@@ -54,6 +55,34 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
     assert not (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
     assert not (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
     assert "OPL-owned Codex marketplace wrapper" in result.stderr
+
+
+def test_codex_plugin_installer_removes_stale_mas_cli_wrapper(tmp_path: Path) -> None:
+    home_dir = tmp_path / "home"
+    local_bin = home_dir / ".local" / "bin"
+    local_bin.mkdir(parents=True)
+    stale_wrapper = local_bin / "mas"
+    stale_wrapper.write_text(
+        "#!/usr/bin/env bash\n"
+        "exec /repo/scripts/run-python-clean.sh -m med_autoscience.cli \"$@\"\n",
+        encoding="utf-8",
+    )
+    stale_wrapper.chmod(0o755)
+
+    env = os.environ.copy()
+    env["HOME"] = str(home_dir)
+
+    result = subprocess.run(
+        ["bash", str(INSTALLER_PATH), "--home", str(home_dir), "--repo-root", str(REPO_ROOT)],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not stale_wrapper.exists()
+    assert (local_bin / "medautosci").exists()
 
 
 def test_codex_plugin_installer_script_replaces_stale_uv_tool_symlink(tmp_path: Path) -> None:
@@ -115,13 +144,16 @@ def test_plugin_local_mcp_launcher_execs_clean_runner(tmp_path: Path) -> None:
     temp_repo = tmp_path / "repo"
     temp_launcher = temp_repo / "plugins" / "mas" / "bin" / "medautosci-mcp"
     temp_runner = temp_repo / "scripts" / "run-python-clean.sh"
+    temp_mcp_server = temp_repo / "src" / "med_autoscience" / "mcp_server.py"
     temp_launcher.parent.mkdir(parents=True)
     temp_runner.parent.mkdir(parents=True)
+    temp_mcp_server.parent.mkdir(parents=True)
     temp_launcher.write_text(
         (REPO_ROOT / "plugins" / "mas" / "bin" / "medautosci-mcp").read_text(encoding="utf-8"),
         encoding="utf-8",
     )
     temp_launcher.chmod(0o755)
+    temp_mcp_server.write_text("# test fixture\n", encoding="utf-8")
     capture_path = tmp_path / "runner-argv.txt"
     temp_runner.write_text(
         "#!/usr/bin/env bash\n"
@@ -136,6 +168,63 @@ def test_plugin_local_mcp_launcher_execs_clean_runner(tmp_path: Path) -> None:
 
     result = subprocess.run(
         [str(temp_launcher)],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert capture_path.read_text(encoding="utf-8").splitlines() == [
+        "-m",
+        "med_autoscience.mcp_server",
+    ]
+
+
+def test_plugin_cache_mcp_launcher_resolves_repo_from_opl_marketplace(tmp_path: Path) -> None:
+    temp_repo = tmp_path / "repo"
+    cache_launcher = tmp_path / "codex-cache" / "mas-local" / "mas" / "0.1.0a4" / "bin" / "medautosci-mcp"
+    marketplace_plugin = (
+        tmp_path
+        / "home"
+        / "Library"
+        / "Application Support"
+        / "OPL"
+        / "state"
+        / "codex-plugin-marketplaces"
+        / "mas-local"
+        / "plugins"
+        / "mas"
+    )
+    temp_runner = temp_repo / "scripts" / "run-python-clean.sh"
+    temp_mcp_server = temp_repo / "src" / "med_autoscience" / "mcp_server.py"
+    cache_launcher.parent.mkdir(parents=True)
+    marketplace_plugin.parent.mkdir(parents=True)
+    temp_runner.parent.mkdir(parents=True)
+    temp_mcp_server.parent.mkdir(parents=True)
+    marketplace_plugin.symlink_to(temp_repo / "plugins" / "mas")
+    (temp_repo / "plugins" / "mas").mkdir(parents=True)
+    cache_launcher.write_text(
+        (REPO_ROOT / "plugins" / "mas" / "bin" / "medautosci-mcp").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    cache_launcher.chmod(0o755)
+    temp_mcp_server.write_text("# test fixture\n", encoding="utf-8")
+    capture_path = tmp_path / "runner-argv.txt"
+    temp_runner.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$@\" > \"$RUNNER_ARGV_CAPTURE\"\n",
+        encoding="utf-8",
+    )
+    temp_runner.chmod(0o755)
+
+    env = os.environ.copy()
+    env["HOME"] = str(tmp_path / "home")
+    env["RUNNER_ARGV_CAPTURE"] = str(capture_path)
+
+    result = subprocess.run(
+        [str(cache_launcher)],
         cwd=tmp_path,
         env=env,
         capture_output=True,

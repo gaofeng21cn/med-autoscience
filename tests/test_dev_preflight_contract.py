@@ -683,6 +683,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
         (
             "scripts/run-pytest-clean.sh "
             "tests/test_opl_family_contract_adoption.py "
+            "tests/test_progress_first_safety_envelope_contract.py "
             "tests/test_test_lane_governance.py -q"
         ),
         "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",

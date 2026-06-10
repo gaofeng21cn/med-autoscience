@@ -91,11 +91,13 @@ uv run python -m med_autoscience.cli init-workspace \
 
 ```text
 <workspace>/
-├── datasets/
-├── contracts/
+├── data/
+│   └── datasets/
 ├── studies/
-├── portfolio/
-│   └── data_assets/
+├── memory/
+│   └── portfolio/
+│       ├── data_assets/
+│       └── research_memory/
 ├── refs/
 ├── artifacts/
 │   └── runtime/
@@ -104,7 +106,6 @@ uv run python -m med_autoscience.cli init-workspace \
 │   ├── archives/
 │   └── restore_index/
 └── ops/
-    ├── mas/
     └── medautoscience/
         ├── bin/
         ├── profiles/

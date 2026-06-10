@@ -7,13 +7,13 @@
         "series": "OPL Foundry Agent",
         "series_id": "opl_foundry_agent_series.v1",
         "agent_id": "mas",
-        "series_frontdoor": "mas foundry interfaces",
-        "compatibility_frontdoor": "medautosci foundry interfaces",
+        "series_command_surface": "medautosci foundry interfaces",
+        "compatibility_command_surface": "medautosci foundry interfaces",
         "ordinary_path": "study -> stage -> domain owner receipt or typed blocker -> handoff",
         "descriptor_owner": "one-person-lab",
         "mcp_role": "domain_handler_target_or_direct_protocol_adapter_only",
-        "ordinary_public_frontdoor_allowed": false,
-        "replacement_frontdoor": "mas foundry"
+        "ordinary_public_command_surface_allowed": false,
+        "replacement_command_surface": "medautosci foundry"
       }
     }
   }

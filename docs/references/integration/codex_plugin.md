@@ -57,8 +57,11 @@ Compatibility note:
 - CLI: `medautosci doctor profile --profile <profile>`
 - CLI: `medautosci workspace bootstrap --profile <profile>`
 - CLI: `medautosci runtime domain-health-diagnostic --runtime-root <runtime-root>`
+- CLI: `medautosci runtime domain-health-diagnostic --profile <profile> --studies <study_id>... --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply`
 - CLI: `medautosci runtime overlay-status --profile <profile>`
 - CLI: `medautosci doctor backend-upgrade --profile <profile> --refresh`
+
+`runtime domain-health-diagnostic` 没有 `--format` 参数，输出固定为 JSON。它是 developer-supervisor exact lane 消费 OPL terminal attempt closeout、刷新 current-control 并推导 next work unit 的 controller 入口；`study progress --format json` 是读面，不消费 closeout。普通监督先用 `--request-opl-stage-attempts --dry-run` 做只读探针；只有当前 study scope、fingerprint 和写边界已明确时，才加 `--request-opl-owner-route-reconcile --apply`。
 
 ## Live Runtime Guard
 
@@ -76,8 +79,8 @@ Compatibility note:
 
 - 仓库内状态：plugin source 由 `plugins/mas/.codex-plugin/plugin.json`、`plugins/mas/skills/mas/SKILL.md` 和 `plugins/mas/.mcp.json` 维护。
 - 退役状态：repo-local `.agents/plugins/marketplace.json` 是 retired local-state surface；MAS 仓库不再跟踪、生成或写回它。
-- 全局状态：`scripts/install-codex-plugin.sh` 不写入 `~/.agents/skills`、`~/.codex/skills`、`~/.agents/plugins/marketplace.json` 或 repo-local `.agents/plugins/marketplace.json`。
-- Codex marketplace source：由 OPL-owned wrapper / startup maintenance 维护，不由 MAS domain repo 维护。
+- 全局状态：`scripts/install-codex-plugin.sh` 只安装 `~/.local/bin/medautosci` 和 `~/.local/bin/medautosci-mcp` clean-runner wrappers；不安装 `mas` shell wrapper，不写入 `~/.agents/skills`、`~/.codex/skills`、`~/.agents/plugins/marketplace.json` 或 repo-local `.agents/plugins/marketplace.json`。`mas` 是 plugin / series agent id，不是本机 PATH readiness 证据；macOS 上 `mas` 常是 Mac App Store CLI。
+- Codex marketplace source：由 OPL-owned wrapper / startup maintenance 维护，不由 MAS domain repo 维护。修改 `plugins/mas/**` 后，在 OPL 仓运行 `opl connect sync-skills --domain mas --json` 重新物化 `OPL_STATE_DIR/codex-plugin-marketplaces/mas-local`；Codex plugin cache 仍旧时需要刷新/重启 Codex App。
 - 发布状态：Codex plugin 是薄入口，不是新的运行核心，也不是 MAS standalone GitHub Release / installer 通道。
 
 因此，仓库内置 plugin 和整机可用 plugin 不是一回事。

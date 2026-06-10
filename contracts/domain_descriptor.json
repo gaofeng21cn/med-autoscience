@@ -30,6 +30,7 @@
     "functional_privatization_audit": "contracts/functional_privatization_audit.json",
     "generated_surface_handoff": "contracts/generated_surface_handoff.json",
     "pack_compiler_input": "contracts/pack_compiler_input.json",
+    "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
     "stage_control_plane": "contracts/stage_control_plane.json"
   },
   "surface_kind": "domain_agent_descriptor"

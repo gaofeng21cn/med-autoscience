@@ -21,6 +21,11 @@ def test_codex_plugin_scaffold_exists_as_tracked_plugin_source() -> None:
     assert manifest["interface"]["displayName"] == "Med Auto Science"
     mcp_server = json.loads(PLUGIN_MCP_PATH.read_text(encoding="utf-8"))["mcpServers"]["med-autoscience"]
     assert mcp_server["command"] == "./bin/medautosci-mcp"
+    metadata = mcp_server["metadata"]
+    assert metadata["series_command_surface"] == "medautosci foundry interfaces"
+    assert metadata["replacement_command_surface"] == "medautosci foundry"
+    assert "series_frontdoor" not in metadata
+    assert "replacement_frontdoor" not in metadata
     launcher = PLUGIN_ROOT / "bin" / "medautosci-mcp"
     assert launcher.is_file()
     launcher_text = launcher.read_text(encoding="utf-8")
@@ -41,5 +46,7 @@ def test_codex_plugin_is_additive_and_keeps_python_cli_entrypoint() -> None:
     assert pyproject_data["project"]["scripts"]["medautosci"] == "med_autoscience.cli:entrypoint"
     assert pyproject_data["project"]["scripts"]["medautosci-mcp"] == "med_autoscience.mcp_server:entrypoint"
     assert "def entrypoint() -> None:" in cli_text
-    assert "write_clean_runner_entrypoint mas med_autoscience.cli" in install_script
-    assert "write_launcher mas med_autoscience.cli" in clean_runner_script
+    assert "write_clean_runner_entrypoint medautosci med_autoscience.cli" in install_script
+    assert "write_clean_runner_entrypoint mas med_autoscience.cli" not in install_script
+    assert "write_launcher medautosci med_autoscience.cli" in clean_runner_script
+    assert "write_launcher mas med_autoscience.cli" not in clean_runner_script
