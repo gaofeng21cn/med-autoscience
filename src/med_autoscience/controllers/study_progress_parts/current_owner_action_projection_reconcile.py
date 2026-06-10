@@ -139,6 +139,8 @@ def current_execution_envelope_actions(
     current_executable_owner_action: Mapping[str, Any],
     paper_progress_delta_counted: bool = False,
 ) -> list[dict[str, Any]]:
+    if _mapping_copy(handoff.get("typed_blocker")) and handoff.get("running_provider_attempt") is not True:
+        return []
     handoff_actions = [
         dict(item)
         for item in handoff.get("action_queue") or []

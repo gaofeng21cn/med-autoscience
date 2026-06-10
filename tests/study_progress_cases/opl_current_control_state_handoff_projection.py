@@ -257,6 +257,201 @@ def test_stage_progress_log_alone_does_not_trigger_platform_repair_delta(
     assert result["platform_repair_delta"]["token_usage_total"] == 0
 
 
+def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    work_unit = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    fingerprint = "domain-transition::route_back_same_line::dpcc"
+    handoff_path = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-10T07:27:46+00:00",
+            "authority": "observability_only",
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_status": "active",
+                    "active_stage_attempt_id": "sat-dm003-gate",
+                    "active_run_id": "opl-stage-attempt://sat-dm003-gate",
+                    "active_workflow_id": "wf-dm003-gate",
+                    "running_provider_attempt": False,
+                    "runtime_health": {
+                        "health_status": "terminal",
+                        "runtime_liveness_status": "terminal",
+                    },
+                    "action_queue": [
+                        {
+                            "action_type": "run_gate_clearing_batch",
+                            "owner": "finalize",
+                            "next_owner": "finalize",
+                            "next_work_unit": work_unit,
+                            "work_unit_id": work_unit,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                            "authority": "mas_provider_admission_identity",
+                            "action_id": "provider-admission::dm003::run_gate_clearing_batch",
+                        }
+                    ],
+                    "next_owner": "finalize",
+                    "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat-dm003-gate.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": "sat-dm003-gate",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_packet_ref": (
+                f"studies/{study_id}/artifacts/supervision/consumer/"
+                "default_executor_dispatches/run_gate_clearing_batch.json"
+            ),
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": "run_gate_clearing_batch",
+            "generated_at": "2026-06-10T07:20:00+00:00",
+            "status": "blocked",
+            "outcome": "typed_blocker",
+            "blocked_reason": "publication_gate_replay_blocked",
+            "domain_ready": False,
+            "work_unit_id": work_unit,
+            "work_unit_fingerprint": fingerprint,
+            "owner_route_basis": {
+                "truth_epoch": "truth::dm003::2026-06-10T07:20:00Z",
+                "source_eval_id": "publication-eval::dm003::ai-reviewer-record::current",
+                "work_unit_id": work_unit,
+                "work_unit_fingerprint": fingerprint,
+                "owner_reason": "publication_gate_replay_blocked",
+            },
+            "domain_execution": {
+                "action_type": "run_gate_clearing_batch",
+                "execution_status": "blocked",
+                "blocked_reason": "publication_gate_replay_blocked",
+                "domain_owner": "publication_gate",
+                "execution_id": "execution::dm003::run_gate_clearing_batch::2026-06-10T07:20:00Z",
+            },
+            "typed_blocker": {
+                "surface_kind": "mas_typed_blocker",
+                "reason": "publication_gate_replay_blocked",
+                "status": "blocked",
+                "blockers": [
+                    "medical_publication_surface_blocked",
+                    "reviewer_first_concerns_unresolved",
+                    "submission_hardening_incomplete",
+                ],
+                "current_required_action": "return_to_publishability_gate",
+                "recommended_route_back": "return_to_write",
+                "phase_owner": "publication_gate",
+                "evidence_refs": [
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_clearing_batch/latest.json",
+                    "runtime/quests/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/reports/publishability_gate/2026-06-10T072000Z.json",
+                ],
+            },
+            "closeout_refs": [
+                f"studies/{study_id}/artifacts/supervision/consumer/default_executor_execution/sat-dm003-gate.closeout.json",
+                f"studies/{study_id}/artifacts/controller/gate_clearing_batch/latest.json",
+            ],
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "schema_version": 1,
+                "status": "available",
+                "stage_name": "publication_gate_replay",
+                "current_owner": "publication_gate",
+                "problem_summary": "Gate replay remains blocked after default executor closeout.",
+                "stage_goal": "Return a typed blocker instead of re-running the consumed gate replay work unit.",
+                "stage_work_done": ["Recorded gate replay typed blocker."],
+                "paper_work_done": [
+                    "No manuscript-body quality verdict or publication readiness claim was made."
+                ],
+                "changed_stage_surfaces": [
+                    f"studies/{study_id}/artifacts/controller/gate_clearing_batch/latest.json"
+                ],
+                "changed_paper_surfaces": [],
+                "outcome": "typed_blocker",
+                "remaining_blockers": [
+                    "medical_publication_surface_blocked",
+                    "reviewer_first_concerns_unresolved",
+                    "submission_hardening_incomplete",
+                ],
+                "progress_delta_classification": "typed_blocker",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": quest_id,
+            "quest_root": str(profile.runtime_root / quest_id),
+            "quest_status": "active",
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "active_run_id": None,
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-event-after-gate-closeout",
+                "runtime_liveness_status": "none",
+                "attempt_state": "blocked",
+            },
+        },
+    )
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+
+    handoff = result["opl_current_control_state_handoff"]
+    current_work_unit = result["current_work_unit"]
+    envelope = result["current_execution_envelope"]
+    assert handoff["blocked_reason"] == "publication_gate_replay_blocked"
+    assert handoff["typed_blocker"]["blocker_type"] == "publication_gate_replay_blocked"
+    assert handoff["typed_blocker"]["work_unit_id"] == work_unit
+    assert handoff["typed_blocker"]["work_unit_fingerprint"] == fingerprint
+    assert handoff["latest_typed_default_executor_closeout"]["receipt_ref"].endswith(
+        "sat-dm003-gate.closeout.json"
+    )
+    assert handoff["consumed_action_queue"][0]["work_unit_id"] == work_unit
+    assert handoff["action_queue"] == []
+    assert current_work_unit["status"] == "typed_blocker"
+    assert current_work_unit["owner"] == "publication_gate"
+    assert current_work_unit["work_unit_id"] == work_unit
+    assert current_work_unit["work_unit_fingerprint"] == fingerprint
+    assert current_work_unit["state"]["typed_blocker"]["blocker_type"] == (
+        "publication_gate_replay_blocked"
+    )
+    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["owner"] == "publication_gate"
+    assert envelope["typed_blocker"]["blocker_type"] == "publication_gate_replay_blocked"
+    assert result["current_executable_owner_action"] is None
+    assert result["current_execution_evidence"]["action_queue"] == []
+
+
 def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(
     monkeypatch,
     tmp_path: Path,

@@ -318,6 +318,26 @@ def _latest_typed_default_executor_closeout_projection(
                 "action_type": _non_empty_text(execution.get("action_type")),
                 "status": "typed_blocker",
                 "blocked_reason": blocked_reason,
+                "work_unit_id": _non_empty_text(
+                    _observability_mapping(execution.get("owner_route")).get("work_unit_id")
+                )
+                or _non_empty_text(
+                    _observability_mapping(
+                        _observability_mapping(execution.get("owner_route")).get("source_refs")
+                    ).get("work_unit_id")
+                ),
+                "work_unit_fingerprint": _non_empty_text(
+                    _observability_mapping(execution.get("owner_route")).get("work_unit_fingerprint")
+                )
+                or _non_empty_text(
+                    _observability_mapping(
+                        _observability_mapping(execution.get("owner_route")).get("source_refs")
+                    ).get("work_unit_fingerprint")
+                ),
+                "typed_blocker": _observability_mapping(execution.get("typed_blocker"))
+                or _observability_mapping(
+                    _observability_mapping(execution.get("stage_closeout")).get("typed_blocker")
+                ),
                 "next_owner": _non_empty_text(
                     _observability_mapping(execution.get("current_owner_route")).get("next_owner")
                 ),

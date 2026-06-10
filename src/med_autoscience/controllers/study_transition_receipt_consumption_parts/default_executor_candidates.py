@@ -99,6 +99,8 @@ def _execution_from_stage_closeout(
             _mapping(closeout.get("required_closeout_packet")).get("required_ref_field")
         )
         or "closeout_refs",
+        "stage_attempt_id": _text(closeout.get("stage_attempt_id")),
+        "typed_blocker": _mapping(closeout.get("typed_blocker")),
         "owner_result": {
             "status": _text(owner_receipt.get("status")) or _text(closeout.get("route_outcome")) or _text(closeout.get("status")),
             "ok": _stage_closeout_has_story_surface_delta(closeout),
