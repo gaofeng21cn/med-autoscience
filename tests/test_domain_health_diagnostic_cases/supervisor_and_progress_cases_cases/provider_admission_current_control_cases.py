@@ -278,6 +278,100 @@ def test_same_tick_materialized_gate_dispatch_is_suppressed_by_fresh_ai_reviewer
     }
 
 
+def test_materialized_current_control_clears_candidate_after_accepted_typed_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    fingerprint = "sha256:current-ai-reviewer"
+    dispatch_path = (
+        profile.workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "source": "mas_opl_runtime_owner_handoff.provider_admission_identity",
+        "execution_ref": str(
+            profile.workspace_root
+            / "runtime"
+            / "artifacts"
+            / "supervision"
+            / "opl_current_control_state"
+            / "latest.json"
+        ),
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "dispatch_path": str(dispatch_path),
+        "dispatch_authority": "ai_reviewer_record_production_handoff",
+        "next_executable_owner": "ai_reviewer",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-10T21:45:15+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "active",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "default_executor_execution_receipt_consumption": {
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "accepted_typed_closeout",
+                    "closeout_receipt_status": "accepted_typed_closeout",
+                    "current_attempt_state": "accepted_typed_closeout",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "dispatch_path": str(dispatch_path),
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "next_work_unit": work_unit_id,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                    "source": "progress_currentness.current_executable_owner_action",
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
+    assert result["studies"][0]["study_id"] == study_id
+    assert result["studies"][0]["provider_admission_pending_count"] == 0
+    assert result["current_execution_envelopes"][study_id]["source"] == (
+        "progress_currentness.current_executable_owner_action"
+    )
+
+
 def test_materialized_current_control_clears_previous_gate_queue_when_ai_reviewer_is_current(
     tmp_path: Path,
 ) -> None:

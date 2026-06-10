@@ -78,6 +78,10 @@ def live_provider_attempt_for_study(
             study_id=study_id,
             preferred_actions=preferred_actions,
         )
+        for task in candidate_tasks:
+            projection = _live_projection_from_queue_task(task, profile=profile, study_id=study_id)
+            if projection is not None:
+                return projection
         for task in candidate_tasks[: max(0, max_inspect_count)]:
             remaining_seconds = _remaining_seconds(deadline)
             if remaining_seconds <= 0:
@@ -660,6 +664,87 @@ def _live_projection_from_inspect(
     if stage_progress_log:
         projection["stage_progress_log"] = stage_progress_log
     return projection
+
+
+def _live_projection_from_queue_task(
+    task: Mapping[str, Any],
+    *,
+    profile: Any,
+    study_id: str,
+) -> dict[str, Any] | None:
+    if not _task_matches_study(task, profile=profile, study_id=study_id):
+        return None
+    liveness = _mapping(task.get("linked_stage_attempt_liveness"))
+    if _text(liveness.get("status")) != "live":
+        return None
+    provider_status = _text(liveness.get("provider_status"))
+    attempt_state = _text(liveness.get("stage_attempt_status"))
+    if provider_status not in LIVE_ATTEMPT_STATES and attempt_state not in LIVE_ATTEMPT_STATES:
+        return None
+    stage_attempt_id = _text(liveness.get("stage_attempt_id"))
+    if stage_attempt_id is None:
+        return None
+    payload = _mapping(task.get("payload"))
+    workspace_root = _text(payload.get("workspace_root"))
+    if workspace_root is not None and Path(workspace_root).expanduser().resolve() != profile.workspace_root.resolve():
+        return None
+    workflow_id = _text(liveness.get("workflow_id"))
+    task_id = _text(task.get("task_id"))
+    provider_run = {
+        key: value
+        for key, value in {
+            "provider_kind": _text(liveness.get("provider_kind")),
+            "workflow_id": workflow_id,
+            "provider_status": provider_status,
+            "last_heartbeat_at": _text(liveness.get("last_heartbeat_at")),
+            "ledger_last_heartbeat_at": _text(liveness.get("ledger_last_heartbeat_at")),
+            "liveness_source": _text(liveness.get("liveness_source")),
+            "last_activity_heartbeat_kind": _text(liveness.get("last_activity_heartbeat_kind")),
+            "last_runner_event_kind": _text(liveness.get("last_runner_event_kind")),
+        }.items()
+        if value is not None
+    }
+    return {
+        "surface_kind": "opl_current_control_state_provider_attempt",
+        "source": "opl_family_runtime_queue_list_linked_liveness",
+        "active_run_id": f"opl-stage-attempt://{stage_attempt_id}",
+        "active_stage_attempt_id": stage_attempt_id,
+        "active_workflow_id": workflow_id,
+        "running_provider_attempt": True,
+        "runtime_owner": "one-person-lab",
+        "provider_attempt_owner": "one-person-lab",
+        "queue_owner": "one-person-lab",
+        "task_id": task_id,
+        "task_kind": _text(task.get("task_kind")),
+        "provider_kind": _text(liveness.get("provider_kind")),
+        "action_type": _text(payload.get("action_type")),
+        "work_unit_id": _text(payload.get("work_unit_id")),
+        "work_unit_fingerprint": _text(payload.get("work_unit_fingerprint"))
+        or _text(payload.get("action_fingerprint"))
+        or _text(payload.get("source_fingerprint")),
+        "dispatch_ref": _text(payload.get("dispatch_ref")),
+        "dispatch_path": _text(payload.get("dispatch_path")),
+        "current_attempt_state": attempt_state,
+        "reconciliation_status": attempt_state,
+        "provider_run": provider_run,
+        "runtime_health": {
+            "health_status": "running",
+            "runtime_liveness_status": "live",
+            "summary": "OPL family-runtime has a live provider-backed stage attempt for this study.",
+            "provider_status": provider_status,
+        },
+        "refs": {
+            "opl_queue_task": f"opl://family-runtime/tasks/{task_id}" if task_id is not None else None,
+            "opl_stage_attempt": f"opl://stage_attempts/{stage_attempt_id}",
+        },
+        "authority_boundary": {
+            "opl": "provider_attempt_liveness_projection_only",
+            "domain": "truth_quality_artifact_gate_owner",
+            "provider_completion_is_domain_ready": False,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_ready": False,
+        },
+    }
 
 
 def _live_projection_from_attempt_inspect(

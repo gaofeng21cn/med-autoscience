@@ -29,6 +29,11 @@ def materialize_provider_admission_current_control_state(
     pending_candidates = _candidates_not_covered_by_live_attempt(
         candidates,
         live_studies_by_id=live_studies_by_id,
+        scanned_studies_by_id={
+            study_id: dict(study)
+            for study in scanned_studies or []
+            if (study_id := _non_empty_text(study.get("study_id"))) is not None
+        },
     )
     studies = [
         provider_admission_current_control_study(candidate) for candidate in pending_candidates
@@ -127,7 +132,12 @@ def _live_scanned_studies_by_id(
 def _normalized_scanned_studies(
     scanned_studies: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
-    return [_scanned_study_with_live_attempt_projection(study) for study in scanned_studies or []]
+    return [
+        _scanned_study_with_accepted_closeout_projection(
+            _scanned_study_with_live_attempt_projection(study)
+        )
+        for study in scanned_studies or []
+    ]
 
 
 def _scanned_study_with_live_attempt_projection(study: Mapping[str, Any]) -> dict[str, Any]:
@@ -171,6 +181,40 @@ def _scanned_study_with_live_attempt_projection(study: Mapping[str, Any]) -> dic
     return payload
 
 
+def _scanned_study_with_accepted_closeout_projection(study: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(study)
+    if payload.get("running_provider_attempt") is True:
+        return payload
+    if not _accepted_closeout_matches_identity(payload, identity=_closeout_identity(payload)):
+        return payload
+    payload.update(
+        {
+            "action_queue": [],
+            "provider_admission_candidates": [],
+            "provider_admission_pending_count": 0,
+        }
+    )
+    return payload
+
+
+def _closeout_identity(study: Mapping[str, Any]) -> dict[str, Any]:
+    receipt = _mapping(study.get("default_executor_execution_receipt_consumption")) or _mapping(
+        study.get("opl_provider_attempt")
+    )
+    return {
+        key: value
+        for key, value in {
+            "action_type": _non_empty_text(receipt.get("action_type")),
+            "work_unit_id": _non_empty_text(receipt.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(receipt.get("work_unit_fingerprint")),
+            "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint")),
+            "dispatch_path": _non_empty_text(receipt.get("dispatch_path")),
+            "dispatch_ref": _non_empty_text(receipt.get("dispatch_ref")),
+        }.items()
+        if value is not None
+    }
+
+
 def _running_attempt_from_study(study: Mapping[str, Any]) -> dict[str, Any]:
     if study_has_running_provider_attempt(study):
         return _mapping(study.get("opl_provider_attempt")) or dict(study)
@@ -184,6 +228,7 @@ def _candidates_not_covered_by_live_attempt(
     candidates: list[dict[str, Any]],
     *,
     live_studies_by_id: Mapping[str, Mapping[str, Any]],
+    scanned_studies_by_id: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     pending: list[dict[str, Any]] = []
     for candidate in candidates:
@@ -192,8 +237,58 @@ def _candidates_not_covered_by_live_attempt(
         live_attempt = _running_attempt_from_study(live_study)
         if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
             continue
+        scanned_study = (
+            _mapping((scanned_studies_by_id or {}).get(study_id)) if study_id is not None else {}
+        )
+        if _accepted_closeout_matches_identity(scanned_study, identity=candidate):
+            continue
         pending.append(dict(candidate))
     return pending
+
+
+def _accepted_closeout_matches_identity(
+    study: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    if not _identity_has_match_key(identity):
+        return False
+    for receipt in (
+        _mapping(study.get("default_executor_execution_receipt_consumption")),
+        _mapping(study.get("opl_provider_attempt")),
+    ):
+        if not receipt:
+            continue
+        if _receipt_is_accepted_closeout(receipt) and provider_attempt_matches_identity(
+            receipt,
+            identity=identity,
+        ):
+            return True
+    return False
+
+
+def _identity_has_match_key(identity: Mapping[str, Any]) -> bool:
+    return any(
+        _non_empty_text(identity.get(key)) is not None
+        for key in (
+            "action_type",
+            "work_unit_id",
+            "work_unit_fingerprint",
+            "action_fingerprint",
+            "dispatch_path",
+            "dispatch_ref",
+        )
+    )
+
+
+def _receipt_is_accepted_closeout(receipt: Mapping[str, Any]) -> bool:
+    statuses = {
+        _non_empty_text(receipt.get("execution_status")),
+        _non_empty_text(receipt.get("closeout_receipt_status")),
+        _non_empty_text(receipt.get("current_attempt_state")),
+        _non_empty_text(receipt.get("reconciliation_status")),
+    }
+    return "accepted_typed_closeout" in statuses
 
 
 def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> dict[str, Any]:

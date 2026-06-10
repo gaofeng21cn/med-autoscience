@@ -19,6 +19,7 @@ Date: `2026-06-10`
 - `contracts/foundry-agent-os-domain-kernel-manifest.json` 是 W4 `domain-kernel-manifest` 的机器合同入口，固定 retained authority kernel、OPL upcollect surfaces、`current_owner_delta` 默认读根和 false-authority flags。
 - 外部 Co-Scientist / Light / EvoScientist / PaperSpine / ARIS / ARK 等只进入 Scientific Capability Registry 或 refs-only advisory worker；它们不是 MAS runtime owner，也不是 publication / artifact / memory authority。
 - OPL family 计划已经把 Scientific Capability Registry 抽象为 `Atlas + Pack + Stagecraft` 的 family-level ABI / use-policy；MAS 不再新增独立 external-learning selector、第二 active backlog 或 always-on advisory pipeline。MAS 后续只声明 domain refs consumption、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级门。
+- `Agent Tool Arsenal` 是 OPL generated surfaces 与 MAS authority kernel 之间的 agent-facing invocation ABI；工具给 autonomous agent 用，不给人类用户学习和手动拼装。
 - 默认 operator / executor 读面固定为 `current_owner_delta`；audit、lineage、sidecar、observability、raw worklist 只做 drilldown。
 
 ## 目标结论
@@ -31,12 +32,16 @@ Date: `2026-06-10`
 
 - OPL 持有 durable execution、stage attempt、queue、retry/dead-letter、resume、human gate transport、state index、locator、generic memory/artifact lifecycle、observability、generated CLI/MCP/Skill/product-entry/workbench。
 - MAS 持有医学研究 truth、stage semantics、source readiness、data/study binding、AI reviewer / auditor quality verdict、publication gate、artifact mutation authorization、publication-route memory accept/reject/blocker、owner receipt、typed blocker。
+- Agent Tool Arsenal 把 action catalog、owner callable、MCP tool、stage skill、external capability 和 OPL hosted action 统一成 model-discoverable tool cards、invocation plans、risk annotations、structured result envelopes 和 receipt/blocker closeout。
 - Scientific capability 只帮助当前 owner delta 更快产生 evidence、repair hint、reviewer briefing、candidate refs 或 no-loop signal；它不能新增默认前置流程，不能关闭 quality / publication / artifact / memory authority。
 
 ## 外部成熟经验的转译
 
 | 外部经验 | 可取之处 | MAS / OPL 目标转译 | 禁止误用 |
 | --- | --- | --- | --- |
+| MCP tool protocol | tool 由模型调用，descriptor 带 name、description、input schema、metadata / annotations / output schema | OPL Pack Compiler 生成 agent-facing tool cards；MAS action catalog 只提供 domain intent、authority boundary 和 handler target | 不把 MCP tool list 当用户手册；不把 annotation 当安全保证；不缺 output schema / authority envelope |
+| OpenAI Agents / tool orchestration | tools、handoffs、guardrails、sessions、deferred tool loading 和 approval interrupt | Tool Arsenal 支持按 current delta 延迟加载候选工具、嵌套 agent/tool handoff、approval-required action 和 resumable invocation state | 不把所有工具一次性塞进上下文；不让 handoff agent 越过 MAS owner receipt / typed blocker |
+| Claude tool-use guidance | tool description 和 input examples 直接影响模型选择工具的能力 | 每张 MAS tool card 必须写清何时用、何时不用、输入 ref、输出 ref、常见失败和最小 examples | 不用短命令名或人类经验假设替代 agent-facing tool affordance |
 | Co-Scientist scientific loop | generate、debate / tournament、evolve、meta-review、research overview | 放入 Scientific Capability Registry，作为 stage 内 hypothesis / review / arbitration affordance，输出 refs-only candidate、briefing、repair hint | 不复制 Co-Scientist runtime；不默认每轮 tournament；不把 ranking / Elo / proximity 写成 quality verdict |
 | Temporal durable execution | workflow history、activity retry、signal/query、deterministic resume | OPL provider 承担 stage attempt lifecycle、retry/dead-letter、resume、long-running execution；MAS 只声明 stage pack、owner ticket、idempotency、receipt/blocker | MAS 不再拥有 generic attempt loop、queue、worker residency 或 private scheduler |
 | Kubernetes reconciliation | desired/current 分离，controller 只把 current 推近 desired | OPL Reconciler 消费 MAS desired route / current owner delta，投影 next safe action；MAS reducer 给出唯一 owner truth | read-model、worklist 或 sidecar 不能成为第二 current truth |
@@ -49,6 +54,9 @@ Date: `2026-06-10`
 - Co-Scientist Nature paper: <https://www.nature.com/articles/s41586-026-10644-y>
 - Google Research AI co-scientist overview: <https://research.google/blog/accelerating-scientific-breakthroughs-with-an-ai-co-scientist/>
 - Light skill-pack repository: <https://github.com/Light0305/Light>
+- MCP tools specification: <https://modelcontextprotocol.io/specification/2025-11-25/server/tools>
+- OpenAI Agents SDK tools: <https://openai.github.io/openai-agents-python/tools/>
+- Anthropic tool-use documentation: <https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use>
 - Temporal durable execution docs: <https://docs.temporal.io/evaluate/understanding-temporal>
 - Kubernetes controller pattern: <https://kubernetes.io/docs/concepts/architecture/controller/>
 - W3C PROV overview: <https://www.w3.org/TR/prov-overview/>
@@ -133,6 +141,48 @@ MAS 只长期保留无法声明化的最小 authority functions：
 - current work-unit identity binding
 - no-new-default-next-action 约束
 
+### 5. Agent Tool Arsenal / Capability Invocation OS
+
+MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、native helper 和 OPL hosted action，长期都应被 agent 当作一组按当前任务动态发现的工具，而不是被人类用户阅读、记忆和手动组合。
+
+当前实现状态：
+
+- `src/med_autoscience/action_catalog.py` 当前生成 12 个 MAS action，已经表达 action id、effect、command、surface kind、MCP tool name、workspace locator fields 和 authority boundary。
+- `src/med_autoscience/mcp_server_parts/tool_registry.py` 当前暴露 7 个 MCP task tools，只有 `inputSchema` 和少量 action catalog metadata；尚未统一提供 `outputSchema`、tool annotations、task execution hint、risk class、idempotency policy 或 structured result envelope。
+- `src/med_autoscience/runtime_control/owner_callable_registry.py` 当前表达 owner action 到 callable surface 的 required inputs / outputs / idempotency / fingerprint scope，但它还不是由 `current_owner_delta` 自动解析的 agent tool-use plan。
+- `plugins/mas/skills/mas/SKILL.md` 仍是 direct path skill 约束和人读护栏；OPL generated descriptor 还需要把这些护栏编译为 agent-facing tool cards，而不是让 executor 读长 runbook 后自行判断。
+- `contracts/pack_compiler_input.json` 已请求 CLI / MCP / Skill / product-entry / domain-handler / status / workbench / harness generated surfaces；下一层缺口是把这些 generated surface 对齐到统一 Tool Arsenal ABI。
+
+目标接口：
+
+| Surface | Owner | 目标职责 |
+| --- | --- | --- |
+| `ToolArsenalIndex` | OPL generated, MAS declares domain intent | 只给 agent 一个 compact index：capability family、stage/action applicability、risk class、effect、required refs、load detail pointer。 |
+| `ToolUseCard` | OPL generated, MAS authority bounded | 单个工具的完整 card：when to use、when not to use、input refs、allowed writes、forbidden authority、output schema、receipt/blocker shape、examples、timeout/budget、verification hint。 |
+| `CapabilityInvocationPlan` | OPL resolves, MAS bounds | 从 `current_owner_delta` 生成本次可调用工具集合、调用顺序、预算、hard gate 条件、human approval requirement 和 no-new-default-next-action 约束。 |
+| `ToolResultEnvelope` | Tool returns, OPL stores refs, MAS consumes authority refs | 所有工具结果统一返回 status、output refs、diagnostic refs、receipt refs、typed blocker candidate、error class、retryability、idempotency key 和 no-forbidden-write proof。 |
+| `ToolAuditTrail` | OPL observability / lineage | 记录 agent 为什么选择该工具、输入 refs、输出 refs、model/tool/handoff id、duration、failure class 和 follow-up owner delta；不能签 MAS authority。 |
+
+设计原则：
+
+1. `current_owner_delta` 是唯一 ordinary planning root。Agent 先读当前 owner / action / desired delta / hard gate，再解析工具；不能从全局工具清单或历史 worklist 反推下一步。
+2. 工具发现分两层。默认上下文只放 compact `ToolArsenalIndex`；只有当前 delta 命中 stage、owner action、ref family 或 failure class 时，才延迟加载对应 `ToolUseCard`。
+3. 工具描述必须面向模型。每个 card 写清任务语义、适用条件、反例、输入 ref contract、输出 ref family、常见失败、最小 examples 和验证方式；短命令名、CLI 习惯或人类 runbook 不算 agent affordance。
+4. 风险注解必须机器可读。至少包括 `read_only`、`mutating`、`destructive_candidate`、`idempotent`、`open_world`、`requires_human_gate`、`requires_opl_stage_attempt_or_lease`、`can_write_domain_truth=false/true`、`can_sign_owner_receipt=false/true`。
+5. 结构化输出是硬门。tool 没有 `outputSchema` / `ToolResultEnvelope` 时只能作为 diagnostic 或 legacy target；进入 ordinary path 的工具必须能返回 owner receipt、typed blocker、quality gate receipt、human gate、route-back evidence、refs-only advisory 或 explicit no-op。
+6. 人类用户只管理目标、授权和异常。用户不需要知道哪个 CLI / MCP / helper 应该怎么拼；human gate 只出现在不可逆 mutation、外部提交、敏感凭据、publication/submission/export、artifact mutation 或 route-required authority 缺口上。
+7. 工具失败默认变成可接力结果。失败必须产出 typed blocker candidate、route-back evidence、retryable failure class、missing ref family 或 platform repair delta；不能只给 stderr 或长文本。
+8. OPL 负责调用丝滑度，MAS 负责医学边界。OPL 处理 discovery、deferred loading、task execution、session state、approval interrupt、observability、retry/dead-letter；MAS 只声明工具能否写 domain truth、签 receipt、产生 blocker、消费 refs 或触发 reviewer / human gate。
+
+理想调用链：
+
+1. Agent 读取 `current_owner_delta`。
+2. OPL `ToolArsenalIndex` 根据 stage、owner action、required refs、failure class 和 available context 返回 3-7 个候选 tool cards。
+3. Agent 或 OPL resolver 选择最小工具集，形成 `CapabilityInvocationPlan`。
+4. Tool 执行并返回 `ToolResultEnvelope`。
+5. MAS owner surface 只消费符合 authority boundary 的 refs、receipt、blocker、quality gate 或 human gate；sidecar/advisory refs 只进入 reviewer briefing 或 next owner input。
+6. OPL State Index / Workbench 投影 next `current_owner_delta`，audit trail 进入 drilldown。
+
 ## 核心合同形状
 
 目标态应把以下合同固定为 OPL / MAS 的共同语言。
@@ -146,7 +196,10 @@ MAS 只长期保留无法声明化的最小 authority functions：
 | `OwnerReceipt` | MAS authority | 关闭 owner action 或 stage transition 的 domain receipt |
 | `TypedBlocker` | MAS / gate owner | 命名 blocker、route-back owner、repair condition、avoided forbidden shortcut |
 | `HumanGate` | MAS declares, OPL transports | 明确人类决策项、可选动作、resume token、超时处理 |
+| `ToolArsenalIndex` | OPL generated, MAS domain intent | 按 current delta 暴露 compact tool candidates，避免全量工具上下文噪声 |
+| `ToolUseCard` | OPL generated, MAS bounded | 描述单个工具何时用、何时不用、输入输出、风险注解、examples 和验收 |
 | `CapabilityInvocation` | OPL schedules, MAS bounds | 当前 delta 触发 capability 的 inputs、question、budget、output refs |
+| `ToolResultEnvelope` | Tool / OPL / MAS owner surface | 统一 status、output refs、receipt/blocker refs、error class、retryability 和 no-forbidden-write proof |
 | `ProvenanceEnvelope` | MAS / OPL refs-only | entity / activity / agent / dataset / run / artifact lineage refs |
 | `ObservabilityEvent` | OPL | trace / metric / log / failure class；永不直接授权 domain verdict |
 
@@ -174,7 +227,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 
 ### Lane 1：Pack Compiler 与 generated surface 收敛
 
-目标：让 `agent/` 成为 MAS semantic pack 单一来源，OPL 从 pack 生成 CLI / MCP / Skill / product-entry / workbench / action descriptors。
+目标：让 `agent/` 成为 MAS semantic pack 单一来源，OPL 从 pack 生成 CLI / MCP / Skill / product-entry / workbench / action descriptors，并生成 Agent Tool Arsenal 的 compact index 与 tool cards。
 
 实施步骤：
 
@@ -182,12 +235,14 @@ MAS 只长期保留无法声明化的最小 authority functions：
 2. 把现有 action catalog、stage route、quality contracts、generated surface handoff 对齐到该 contract。
 3. 给 direct MAS skill path 和 OPL-hosted path 加 parity fixture：同一 action 必须落到同一 MAS owner surface。
 4. 把 repo-local wrapper 标记为 generated target / authority function / diagnostic ref / tombstone 四类。
+5. 从 action catalog、owner callable registry、stage route、MCP registry 和 plugin skill 生成 `ToolArsenalIndex` / `ToolUseCard`，并补齐 output schema、risk annotations、examples、result envelope 和 authority flags。
 
 验收：
 
 - OPL conformance 能从 pack 发现 MAS stage/action/quality/handoff。
 - hand-written generic wrapper 不再作为长期 owner。
 - 新 stage 只改 pack / contract，不改 runtime scheduler。
+- Agent 能从 `current_owner_delta` 解析 3-7 个候选 tool cards；不需要读取长 skill 文档或人类 runbook 才能决定下一工具。
 
 ### Lane 2：OPL StageRun / durable execution 上收
 
@@ -275,7 +330,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 
 ### Lane 7：Scientific Capability Registry
 
-目标：吸收外部系统能力，但不增加 ordinary path 摩擦。
+目标：吸收外部系统能力，并让 agent 按当前 delta 丝滑调用工具，但不增加 ordinary path 摩擦。
 
 实施步骤：
 
@@ -283,13 +338,15 @@ MAS 只长期保留无法声明化的最小 authority functions：
 2. MAS 只在 pack / authority kernel 中声明每个 external-learning ref family 的 target stage、owner action、input refs、output ref family、allowed writes、forbidden authority 和 owner-consumption boundary。
 3. 将 Co-Scientist、Light、EvoScientist、PaperSpine、ARIS、ARK、AutoSci 等统一纳入 capability / advisory worker family；不能在 MAS 内再建私有 selector、always-on sidecar、第二 route table 或第二 active backlog。
 4. capability invocation 必须绑定 current work-unit identity、target surface、requested ref family / question 和 `no_new_default_next_action`。
-5. missing capability 默认 fail open；只有 route-required ref 命中 hard gate 才升级 typed blocker candidate，正式 typed blocker 仍由 MAS owner / reviewer / human gate 物化。
+5. capability resolver 必须返回 `CapabilityInvocationPlan` 和 `ToolUseCard`，包含预算、risk annotations、human gate 条件、output schema、receipt/blocker shape 和 failure class。
+6. missing capability 默认 fail open；只有 route-required ref 命中 hard gate 才升级 typed blocker candidate，正式 typed blocker 仍由 MAS owner / reviewer / human gate 物化。
 
 验收：
 
 - 新 capability 不新增默认 preflight。
 - sidecar / advisory worker 不生成 current owner，不写 owner receipt，不写 paper progress。
 - owner-consumed refs 才能计入当前 delta。
+- Agent 工具调用不要求用户理解具体 CLI/MCP/helper；用户只看到目标、授权、人类决策和异常。
 - Capability selector / resolver 的结构 landing 由 OPL `W3` 证明；ARS claim-support、AutoSci source discovery、ARK micro-canary 等真实进度晋级由 MAS owner receipt / typed blocker / reviewer receipt 证明。
 
 ### Lane 8：OPL Workbench / Operator UX
@@ -332,7 +389,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 2. **Pack / generated surface 先收敛**：完成 Lane 1，让新增能力都进入同一个 semantic source。
 3. **默认读面先变薄**：推进 Lane 3，减少 operator / executor 摩擦。
 4. **OPL substrate 与 MAS authority 同步拆分**：Lane 2 和 Lane 4 并行，但写集要分离。
-5. **Evidence / Quality / Capability 三条线接入**：Lane 5、6、7 按 stage owner 需要逐步补齐。
+5. **Evidence / Quality / Tool Arsenal / Capability 四条线接入**：Lane 5、6、7 按 stage owner 需要逐步补齐。
 6. **Workbench 与 production soak 最后验收**：Lane 8、9 证明用户体验和真实长跑证据。
 
 这不是阶段式停顿，而是并行 lane 的优先级。每条 lane 都必须有 disjoint write set、source of truth、验证命令、stop condition 和 forbidden scope。
@@ -345,6 +402,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 | StageRun Kernel | `start/query/signal/closeout_stage_run` | MAS 只消费 attempt refs、lease refs、closeout binding |
 | State Index Kernel | `rebuild/read/checkpoint refs index` | MAS 提供 file truth / receipt refs；OPL 生成 read model |
 | Route Reconciler | `reconcile_current_owner_delta` | 只对齐 desired/current，不生成医学 verdict |
+| Tool Arsenal | `list_tool_cards_for_current_delta` / `load_tool_card` / `invoke_tool_with_envelope` | 给 autonomous agent 低摩擦工具发现、延迟加载、结构化调用和结果 envelope |
 | Capability Registry | `resolve_capability_for_current_delta` / `invoke_capability_for_current_delta` | OPL 选择 current-delta-bound capability；MAS 只消费 refs-only advisory / candidate / briefing |
 | Human Gate Transport | `open/answer/resume human_gate` | MAS 声明 gate，OPL 承运，MAS 消费 answer refs |
 | Lifecycle Plane | `locate/retain/restore/gc refs` | MAS 授权 artifact mutation，OPL 执行 generic lifecycle |
@@ -356,6 +414,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 | MAS surface | 目标接口 | OPL 消费方式 |
 | --- | --- | --- |
 | Stage pack | `agent/stages/*.yaml|md` | OPL compile / discovery |
+| Agent tool affordance | action catalog + owner callable + stage refs + MCP registry | OPL 生成 ToolArsenalIndex / ToolUseCard；MAS 声明 authority boundary 和 result shape |
 | Authority functions | `runtime/authority_functions/*` / `src/...` | OPL dispatch 回 MAS owner surface |
 | Owner route | `current_owner_delta` | OPL 默认读面和 stage admission |
 | Receipt / blocker | `OwnerReceipt` / `TypedBlocker` | OPL closeout / workbench / retry decision |
@@ -369,6 +428,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 ### Functional / structural gate
 
 - 新 runtime-like 功能必须归 OPL primitive；MAS 只留 authority function 或 refs-only projection。
+- 新 agent-facing 工具必须有 ToolUseCard、risk annotations、output schema、ToolResultEnvelope 和 current-delta applicability。
 - 新 external-learning 功能必须进入 OPL Capability Registry；MAS 不能新增私有 selector、第二 active backlog、always-on sidecar 或默认 preflight。
 - 新 workbench / status surface 默认显示 `current_owner_delta`；audit detail 不能抢默认入口。
 - 新 lifecycle / artifact / memory 功能必须证明 body / refs / index / authority 分离。
@@ -393,6 +453,7 @@ MAS 只长期保留无法声明化的最小 authority functions：
 - 不把 sidecar / advisory / score / ranking / checklist 写成 authority。
 - 不把 external-learning 后续优化写成 MAS standalone selector / backlog；selector / resolver 归 OPL Capability Registry，MAS 只声明 domain consumption 与 authority 晋级。
 - 不把 full readiness inventory 变成每个 delta 的默认前置门。
+- 不把工具说明写成人类操作手册后要求 agent 自己推理；agent-facing 工具必须由 pack/compiler 生成可机器消费的 card、schema 和 result envelope。
 - 不让 OPL State Index / SQLite / read-model 保存 artifact body、memory body、study truth 或 publication verdict。
 - 不让同一个 executor agent 自审后关闭 AI-first quality gate。
 - 不用 provider completion、queue completion、zero worklist、workbench 可见性或 docs 描述声明真实 paper-line 完成。
@@ -403,9 +464,10 @@ MAS 只长期保留无法声明化的最小 authority functions：
 
 1. **Lane 0 docs landing**：本文和核心入口落地，作为目标态 source of truth。
 2. **Lane 1 contract inventory**：列出 `DomainAgentPack` 所需 machine contract 和现有来源差距。
-3. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否只以 `current_owner_delta` 为首屏。
-4. **Lane 4 authority function inventory**：给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类。
-5. **Lane 7 capability registry contract**：把 existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 折回 OPL `W3` capability registry schema；MAS 只补 domain consumption / owner receipt 晋级边界。
-6. **Lane 9 real canary selection**：选择真实 paper-line evidence target，不用 repo tests 代替 production evidence。
+3. **Lane 1 tool arsenal inventory**：把现有 12 个 action、7 个 MCP tool、owner callable registry、plugin skill 和 stage route 映射成 ToolArsenalIndex / ToolUseCard 差距清单。
+4. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否只以 `current_owner_delta` 为首屏。
+5. **Lane 4 authority function inventory**：给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类。
+6. **Lane 7 capability registry contract**：把 existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 折回 OPL `W3` capability registry schema；MAS 只补 domain consumption / owner receipt 晋级边界。
+7. **Lane 9 real canary selection**：选择真实 paper-line evidence target，不用 repo tests 代替 production evidence。
 
 每个 lane 的完成声明必须写清：功能/结构是否关闭，测试/证据是否关闭，是否仍需真实 paper-line / provider / reviewer / human gate 证据。

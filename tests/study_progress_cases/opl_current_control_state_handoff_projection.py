@@ -452,6 +452,152 @@ def test_accepted_typed_closeout_consumes_matching_handoff_action_queue(
     assert result["current_execution_evidence"]["action_queue"] == []
 
 
+def test_terminal_closeout_without_owner_answer_fail_closes_stale_running_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    work_unit = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    fingerprint = "domain-transition::route_back_same_line::dm003"
+    handoff_path = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    _write_json(
+        handoff_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-10T08:00:00+00:00",
+            "authority": "observability_only",
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_status": "running",
+                    "active_stage_attempt_id": "sat-dm003-terminal",
+                    "active_run_id": "opl-stage-attempt://sat-dm003-terminal",
+                    "active_workflow_id": "wf-dm003-terminal",
+                    "running_provider_attempt": True,
+                    "runtime_health": {
+                        "health_status": "running",
+                        "runtime_liveness_status": "live",
+                    },
+                    "action_queue": [
+                        {
+                            "action_type": "run_gate_clearing_batch",
+                            "owner": "publication_gate",
+                            "next_owner": "publication_gate",
+                            "next_work_unit": work_unit,
+                            "work_unit_id": work_unit,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                            "authority": "mas_provider_admission_identity",
+                            "stage_attempt_id": "sat-dm003-terminal",
+                        }
+                    ],
+                    "next_owner": "supervisor_only/live_provider_attempt",
+                    "blocked_reason": None,
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat-dm003-terminal.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "stage_attempt_id": "sat-dm003-terminal",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "action_type": "run_gate_clearing_batch",
+            "generated_at": "2026-06-10T08:05:00+00:00",
+            "status": "completed",
+            "work_unit_id": work_unit,
+            "work_unit_fingerprint": fingerprint,
+            "closeout_refs": [
+                f"studies/{study_id}/artifacts/supervision/consumer/"
+                "stage_attempt_closeouts/sat-dm003-terminal.json"
+            ],
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "schema_version": 1,
+                "status": "available",
+                "stage_name": "publication_gate_replay",
+                "current_owner": "publication_gate",
+                "problem_summary": "Terminal provider attempt did not return a MAS owner answer.",
+                "stage_goal": "Consume terminal attempt into owner answer or stable typed blocker.",
+                "stage_work_done": ["Observed provider attempt terminal closeout."],
+                "paper_work_done": [],
+                "outcome": "completed_without_owner_answer",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": quest_id,
+            "quest_root": str(profile.runtime_root / quest_id),
+            "quest_status": "running",
+            "decision": "continue",
+            "reason": "live_managed_runtime",
+            "active_run_id": "opl-stage-attempt://sat-dm003-terminal",
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-before-terminal-closeout-consumption",
+                "runtime_liveness_status": "live",
+                "health_status": "running",
+            },
+        },
+    )
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+
+    handoff = result["opl_current_control_state_handoff"]
+    current_work_unit = result["current_work_unit"]
+    envelope = result["current_execution_envelope"]
+    assert handoff["running_provider_attempt"] is False
+    assert handoff["active_run_id"] is None
+    assert handoff["runtime_health"]["health_status"] == "terminal"
+    assert handoff["blocked_reason"] == "typed_closeout_packet_required"
+    assert handoff["typed_blocker"]["blocker_type"] == "typed_closeout_packet_required"
+    assert handoff["typed_blocker"]["owner"] == "MedAutoScience"
+    assert handoff["typed_blocker"]["work_unit_id"] == work_unit
+    assert handoff["typed_blocker"]["work_unit_fingerprint"] == fingerprint
+    assert handoff["terminal_closeout_consumed"] is True
+    assert handoff["consumed_action_queue"][0]["consumption"]["state"] == (
+        "consumed_by_terminal_stage_closeout"
+    )
+    assert handoff["action_queue"] == []
+    assert current_work_unit["status"] == "typed_blocker"
+    assert current_work_unit["owner"] == "MedAutoScience"
+    assert current_work_unit["state"]["typed_blocker"]["source"] == (
+        "terminal_stage_closeout_missing_owner_answer"
+    )
+    assert envelope["state_kind"] == "typed_blocker"
+    assert envelope["owner"] == "MedAutoScience"
+    assert result["current_executable_owner_action"] is None
+    assert result["current_execution_evidence"]["action_queue"] == []
+
+
 def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(
     monkeypatch,
     tmp_path: Path,

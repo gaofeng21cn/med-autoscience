@@ -116,6 +116,74 @@ def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, t
     ]
 
 
+def test_live_provider_attempt_projection_reads_queue_list_linked_liveness(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            return {
+                "family_runtime_queue": {
+                    "tasks": [
+                        {
+                            "task_id": "frt-live-linked",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "running",
+                            "updated_at": "2026-06-10T21:42:00.690Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "workspace_root": str(profile.workspace_root),
+                                "study_id": "001-risk",
+                                "quest_id": "001-risk",
+                                "action_type": "return_to_ai_reviewer_workflow",
+                                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                                "work_unit_fingerprint": "sha256:current-ai-reviewer",
+                                "dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/return_to_ai_reviewer_workflow.json",
+                            },
+                            "linked_stage_attempt_liveness": {
+                                "status": "live",
+                                "stage_attempt_id": "sat-linked",
+                                "workflow_id": "wf-linked",
+                                "provider_kind": "temporal",
+                                "provider_status": "running",
+                                "stage_attempt_status": "running",
+                                "last_heartbeat_at": "2026-06-10T21:42:00.690Z",
+                                "ledger_last_heartbeat_at": "2026-06-10T21:42:00.690Z",
+                            },
+                        }
+                    ]
+                }
+            }
+        raise AssertionError(f"queue list linked liveness should avoid inspect fallback: {args}")
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.live_provider_attempt_for_study(profile=profile, study_id="001-risk")
+
+    assert result is not None
+    assert result["source"] == "opl_family_runtime_queue_list_linked_liveness"
+    assert result["active_run_id"] == "opl-stage-attempt://sat-linked"
+    assert result["active_stage_attempt_id"] == "sat-linked"
+    assert result["active_workflow_id"] == "wf-linked"
+    assert result["running_provider_attempt"] is True
+    assert result["task_id"] == "frt-live-linked"
+    assert result["action_type"] == "return_to_ai_reviewer_workflow"
+    assert result["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert result["work_unit_fingerprint"] == "sha256:current-ai-reviewer"
+    assert result["runtime_health"]["runtime_liveness_status"] == "live"
+    assert result["runtime_health"]["provider_status"] == "running"
+    assert commands == [("family-runtime", "queue", "list", "--json")]
+
+
 def test_live_provider_attempt_projection_prefers_current_owner_action(
     monkeypatch,
     tmp_path: Path,
