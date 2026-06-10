@@ -212,7 +212,7 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "declares the nonblocking external-learning sidecar execution slot."
             ),
             "effect": "read_only",
-            "command": "{prefix} product-entry-manifest --profile {profile} --format json",
+            "command": "medautosci domain-handler export --profile {profile} --format json",
             "surface_kind": "mas_external_learning_adoption_closure",
             "workspace_locator_fields": ["profile_ref"],
             "mcp_public_runtime": False,

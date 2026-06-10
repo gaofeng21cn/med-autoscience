@@ -501,7 +501,7 @@ def build_skill_catalog(
     if recommended_command is not None:
         skill_catalog["recommended_command"] = recommended_command
     skill_catalog["manifest_command"] = (
-        f"{_command(profile_ref, 'product-entry-manifest', '--profile', _profile_arg(profile_ref))} --format json"
+        f"opl app product-entry-status --agent med-autoscience --profile {_profile_arg(profile_ref)} --format json"
     )
     return skill_catalog
 

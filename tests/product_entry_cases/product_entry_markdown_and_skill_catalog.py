@@ -41,7 +41,9 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
         "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["manifest_command"].endswith(
-        "product-entry-manifest --profile " + str(profile_ref.resolve()) + " --format json"
+        "opl app product-entry-status --agent med-autoscience --profile "
+        + str(profile_ref.resolve())
+        + " --format json"
     )
     assert [skill["skill_id"] for skill in payload["skills"]] == ["mas"]
     assert payload["skills"][0]["domain_projection"]["skill_entry"] == "mas"
