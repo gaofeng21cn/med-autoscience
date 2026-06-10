@@ -184,12 +184,13 @@ def mcp_tool_annotations(
     tool_id: str,
     *,
     read_only: bool | None = None,
-    destructive: bool = False,
+    destructive: bool | None = None,
 ) -> dict[str, Any]:
     is_read_only = bool(read_only)
+    is_destructive = (not is_read_only) if destructive is None else bool(destructive)
     return {
         "readOnlyHint": is_read_only,
-        "destructiveHint": False if is_read_only else bool(destructive),
+        "destructiveHint": False if is_read_only else is_destructive,
         "idempotentHint": is_read_only,
         "openWorldHint": False,
     }
@@ -241,7 +242,7 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
             **mcp_tool_annotations(
                 mcp_tool_name,
                 read_only=read_only and not refs_only_runtime_write,
-                destructive=False,
+                destructive=False if refs_only_runtime_write else None,
             ),
             "requires_human_gate": bool(human_gate_ids),
             "requires_opl_stage_attempt_or_lease": requires_stage_attempt,
