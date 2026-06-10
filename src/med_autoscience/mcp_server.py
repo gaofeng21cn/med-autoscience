@@ -14,6 +14,7 @@ from med_autoscience.action_catalog import (
     build_mas_action_catalog,
 )
 from med_autoscience.agent_tool_arsenal import (
+    FORBIDDEN_DOMAIN_AUTHORITY,
     build_agent_tool_arsenal_index,
     build_capability_invocation_plan,
     build_tool_result_envelope_schema,
@@ -102,6 +103,112 @@ def _tool_text_result(text: str, *, structured: dict[str, Any] | None = None, is
 
 def _json_text(payload: dict[str, Any]) -> str:
     return json_text(payload)
+
+
+def _tool_manifest_by_name() -> dict[str, dict[str, Any]]:
+    return {str(tool["name"]): tool for tool in list_tools()}
+
+
+def _matching_tool_card(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any] | None:
+    mode = arguments.get("mode") if isinstance(arguments.get("mode"), str) else ""
+    arsenal = build_agent_tool_arsenal_index(ACTION_CATALOG)
+    for card in list(arsenal.get("tool_cards") or []):
+        if not isinstance(card, dict) or card.get("tool_id") != tool_name:
+            continue
+        if mode and card.get("tool_mode") and card.get("tool_mode") != mode:
+            continue
+        return dict(card)
+    return None
+
+
+def _tool_result_envelope(
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    raw_result: dict[str, Any],
+) -> dict[str, Any]:
+    structured = raw_result.get("structuredContent")
+    payload = dict(structured) if isinstance(structured, dict) else {}
+    manifest = _tool_manifest_by_name().get(tool_name, {})
+    annotations = manifest.get("annotations") if isinstance(manifest.get("annotations"), dict) else {}
+    card = _matching_tool_card(tool_name, arguments)
+    tool_mode = arguments.get("mode") if isinstance(arguments.get("mode"), str) else ""
+    is_error = bool(raw_result.get("isError"))
+    text = ""
+    content = raw_result.get("content")
+    if isinstance(content, list) and content:
+        first = content[0]
+        if isinstance(first, dict):
+            text = str(first.get("text") or "")
+    envelope: dict[str, Any] = {
+        **payload,
+        "surface_kind": "mas_tool_result_envelope",
+        "tool_id": tool_name,
+        **({"tool_mode": tool_mode} if tool_mode else {}),
+        "status": "failed" if is_error else "succeeded",
+        "structured_payload": payload,
+        "structured_content_ref": f"mcp://{SERVER_NAME}/tools/{tool_name}/structuredContent",
+        "result_summary": text[:500],
+        "audit_trail": {
+            "surface_kind": "mas_tool_audit_trail",
+            "source_refs": [
+                "src/med_autoscience/mcp_server.py",
+                "src/med_autoscience/mcp_server_parts/tool_registry.py",
+                "contracts/agent_tool_arsenal.json",
+            ],
+            "authority_flags": {
+                "readOnlyHint": bool(annotations.get("readOnlyHint")),
+                "destructiveHint": bool(annotations.get("destructiveHint")),
+                "idempotentHint": bool(annotations.get("idempotentHint")),
+                "openWorldHint": bool(annotations.get("openWorldHint")),
+                "isError": is_error,
+            },
+            "allowed_write_refs": list(card.get("allowed_writes") or []) if card else [],
+            "forbidden_authority": (
+                list(card.get("forbidden_authority") or [])
+                if card
+                else list(FORBIDDEN_DOMAIN_AUTHORITY)
+            ),
+        },
+        "authority_boundary": {
+            "tool_result_envelope_is_authority_outcome": False,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+            "source_tool_card_ref": (
+                f"contracts/agent_tool_arsenal.json#/tool_cards/{card.get('action_id')}"
+                if card
+                else ""
+            ),
+            **(
+                dict(card.get("authority_effects") or {})
+                if card
+                else {}
+            ),
+        },
+    }
+    if is_error:
+        envelope["error_class"] = "tool_execution_error"
+    return envelope
+
+
+def _wrap_tool_result(
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    raw_result: dict[str, Any],
+) -> dict[str, Any]:
+    structured = raw_result.get("structuredContent")
+    if isinstance(structured, dict) and structured.get("surface_kind") == "mas_tool_result_envelope":
+        return raw_result
+    return {
+        **raw_result,
+        "structuredContent": _tool_result_envelope(
+            tool_name=tool_name,
+            arguments=arguments,
+            raw_result=raw_result,
+        ),
+    }
 
 
 def _serialize_study_runtime_result(result: dict[str, Any]) -> dict[str, Any]:
@@ -614,10 +721,12 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, A
     handler = TOOL_HANDLERS.get(name)
     if handler is None:
         return _tool_text_result(f"Unknown tool: {name}", is_error=True)
+    resolved_arguments = arguments or {}
     try:
-        return handler(arguments or {})
+        result = handler(resolved_arguments)
     except Exception as exc:
-        return _tool_text_result(f"{type(exc).__name__}: {exc}", is_error=True)
+        result = _tool_text_result(f"{type(exc).__name__}: {exc}", is_error=True)
+    return _wrap_tool_result(tool_name=name, arguments=resolved_arguments, raw_result=result)
 
 
 def _success_response(request_id: Any, result: dict[str, Any]) -> dict[str, Any]:

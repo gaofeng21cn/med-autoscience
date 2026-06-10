@@ -24,6 +24,19 @@ EXPECTED_MCP_TOOLS = [
 ]
 
 
+def _structured_payload(result: dict[str, object]) -> dict[str, object]:
+    envelope = result["structuredContent"]
+    assert isinstance(envelope, dict)
+    assert envelope["surface_kind"] == "mas_tool_result_envelope"
+    assert envelope["authority_boundary"]["tool_result_envelope_is_authority_outcome"] is False
+    assert envelope["authority_boundary"]["can_write_domain_truth"] is False
+    assert envelope["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert envelope["authority_boundary"]["can_authorize_submission_readiness"] is False
+    payload = envelope["structured_payload"]
+    assert isinstance(payload, dict)
+    return payload
+
+
 def test_mcp_server_tool_registry_import_is_lightweight(monkeypatch: pytest.MonkeyPatch) -> None:
     original_import = builtins.__import__
     blocked_roots = {"pypdf", "matplotlib"}
@@ -129,6 +142,32 @@ def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> No
 
     assert tools["workspace_readiness"]["annotations"]["readOnlyHint"] is False
     assert tools["authority_operations"]["annotations"]["readOnlyHint"] is False
+
+
+def test_mcp_tools_call_jsonrpc_returns_single_result_envelope() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+
+    response = module.handle_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": "agent_tool_arsenal",
+                "arguments": {"mode": "result_envelope_schema"},
+            },
+        }
+    )
+
+    assert response is not None
+    result = response["result"]
+    envelope = result["structuredContent"]
+    assert envelope["surface_kind"] == "mas_tool_result_envelope"
+    assert envelope["tool_id"] == "agent_tool_arsenal"
+    assert envelope["tool_mode"] == "result_envelope_schema"
+    assert envelope["status"] == "succeeded"
+    assert envelope["structured_payload"]["title"] == "MAS ToolResultEnvelope"
+    assert "structured_payload" not in envelope["structured_payload"]
 
 
 @pytest.mark.parametrize(
@@ -310,8 +349,9 @@ def test_mcp_default_status_progress_does_not_require_external_mds_repo(tmp_path
     )
 
     assert progress_result["isError"] is False
-    assert progress_result["structuredContent"]["quest_root"] == str(workspace_root / "runtime" / "quests" / "quest-001")
-    assert progress_result["structuredContent"]["authority_snapshot"]["canonical_runtime_action"]
+    progress_payload = _structured_payload(progress_result)
+    assert progress_payload["quest_root"] == str(workspace_root / "runtime" / "quests" / "quest-001")
+    assert progress_payload["authority_snapshot"]["canonical_runtime_action"]
 
 
 def test_mcp_workspace_readiness_rejects_removed_cockpit_mode(tmp_path: Path) -> None:
@@ -329,6 +369,13 @@ def test_mcp_workspace_readiness_rejects_removed_cockpit_mode(tmp_path: Path) ->
 
     assert result["isError"] is True
     assert "Unsupported workspace_readiness mode: cockpit" in result["content"][0]["text"]
+    envelope = result["structuredContent"]
+    assert envelope["surface_kind"] == "mas_tool_result_envelope"
+    assert envelope["tool_id"] == "workspace_readiness"
+    assert envelope["status"] == "failed"
+    assert envelope["error_class"] == "tool_execution_error"
+    assert envelope["authority_boundary"]["tool_result_envelope_is_authority_outcome"] is False
+    assert envelope["authority_boundary"]["can_write_domain_truth"] is False
 
 
 def test_mcp_server_rejects_study_runtime_tool_calls(tmp_path: Path) -> None:
@@ -358,7 +405,7 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
     index_result = module.call_tool("agent_tool_arsenal", {"mode": "index"})
 
     assert index_result["isError"] is False
-    index_payload = index_result["structuredContent"]
+    index_payload = _structured_payload(index_result)
     assert index_payload["surface_kind"] == "mas_agent_tool_arsenal_index"
     assert index_payload["ordinary_planning_root"] == "current_owner_delta"
     assert any(item["tool_id"] == "study_progress" for item in index_payload["tool_cards"])
@@ -369,8 +416,9 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
     )
 
     assert card_result["isError"] is False
-    assert card_result["structuredContent"]["tool_id"] == "study_progress"
-    assert card_result["structuredContent"]["risk_annotations"]["readOnlyHint"] is True
+    card_payload = _structured_payload(card_result)
+    assert card_payload["tool_id"] == "study_progress"
+    assert card_payload["risk_annotations"]["readOnlyHint"] is True
 
     plan_result = module.call_tool(
         "agent_tool_arsenal",
@@ -384,15 +432,15 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
     )
 
     assert plan_result["isError"] is False
-    assert plan_result["structuredContent"]["selected_tool_id"] == (
-        "owner_callable:run_quality_repair_batch"
-    )
-    assert plan_result["structuredContent"]["requires"]["owner_receipt_or_typed_blocker"] is True
+    plan_payload = _structured_payload(plan_result)
+    assert plan_payload["selected_tool_id"] == "owner_callable:run_quality_repair_batch"
+    assert plan_payload["requires"]["owner_receipt_or_typed_blocker"] is True
 
     schema_result = module.call_tool("agent_tool_arsenal", {"mode": "result_envelope_schema"})
 
     assert schema_result["isError"] is False
-    assert schema_result["structuredContent"]["title"] == "MAS ToolResultEnvelope"
+    schema_payload = _structured_payload(schema_result)
+    assert schema_payload["title"] == "MAS ToolResultEnvelope"
 
 
 def test_mcp_display_pack_agent_plans_from_structured_figure_request() -> None:
@@ -414,7 +462,7 @@ def test_mcp_display_pack_agent_plans_from_structured_figure_request() -> None:
     )
 
     assert result["isError"] is False
-    payload = result["structuredContent"]
+    payload = _structured_payload(result)
     assert payload["surface_kind"] == "display_pack_agent_figure_plan"
     assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
     assert payload["next_callable"] == "display-pack-preflight"
@@ -426,7 +474,7 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() 
 
     index_result = module.call_tool("scientific_capability_registry", {"mode": "index"})
     assert index_result["isError"] is False
-    index_payload = index_result["structuredContent"]
+    index_payload = _structured_payload(index_result)
     assert index_payload["surface_kind"] == "mas_scientific_capability_registry"
     assert index_payload["default_policy"]["fail_open"] is True
     assert any(
@@ -445,7 +493,7 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() 
         },
     )
     assert resolve_result["isError"] is False
-    resolve_payload = resolve_result["structuredContent"]
+    resolve_payload = _structured_payload(resolve_result)
     assert resolve_payload["surface_kind"] == "mas_scientific_capability_resolution"
     assert resolve_payload["status"] == "resolved"
     assert any(
@@ -471,7 +519,7 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() 
         },
     )
     assert invoke_result["isError"] is False
-    invoke_payload = invoke_result["structuredContent"]
+    invoke_payload = _structured_payload(invoke_result)
     assert invoke_payload["surface_kind"] == "mas_scientific_capability_invocation"
     assert invoke_payload["capability_id"] == "display_pack_visual_capability"
     assert invoke_payload["can_block_current_owner_action"] is False
@@ -584,7 +632,7 @@ def test_mcp_server_progress_projection_prefers_progress_projection_markdown_whe
     )
 
     assert result["isError"] is False
-    projection = result["structuredContent"]
+    projection = _structured_payload(result)
     assert projection["study_id"] == "001-risk"
     assert projection["mcp_projection"]["compacted"] is True
     assert projection["task_intake"]["task_intent"] == "reviewer revision"
@@ -711,15 +759,16 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
 
     assert result["isError"] is False
     assert captured["sync_runtime_summary"] is False
-    assert result["structuredContent"]["study_id"] == "001-risk"
-    assert result["structuredContent"]["current_stage"] == "live"
-    assert result["structuredContent"]["state_label"] == "自动运行中"
-    assert result["structuredContent"]["mcp_projection"]["compacted"] is True
-    assert result["structuredContent"]["current_blockers"][-1] == "blocker-11"
-    assert len(result["structuredContent"]["task_intake"]["constraints"]) == 8
-    assert "submission_revision_operating_contract" not in result["structuredContent"]["task_intake"]
-    assert "latest_evidence_packets" not in result["structuredContent"]["runtime_efficiency"]
-    monitoring = result["structuredContent"]["progress_first_monitoring_summary"]
+    payload = _structured_payload(result)
+    assert payload["study_id"] == "001-risk"
+    assert payload["current_stage"] == "live"
+    assert payload["state_label"] == "自动运行中"
+    assert payload["mcp_projection"]["compacted"] is True
+    assert payload["current_blockers"][-1] == "blocker-11"
+    assert len(payload["task_intake"]["constraints"]) == 8
+    assert "submission_revision_operating_contract" not in payload["task_intake"]
+    assert "latest_evidence_packets" not in payload["runtime_efficiency"]
+    monitoring = payload["progress_first_monitoring_summary"]
     assert monitoring["active_run_id"] == "run-001"
     assert monitoring["active_stage_attempt_id"] == "stage-attempt-001"
     assert monitoring["worker_liveness"]["health_status"] == "live"
@@ -790,12 +839,13 @@ def test_mcp_authority_operations_can_call_workspace_authority_migration_audit(m
         ],
         "dry_run": True,
     }
-    assert result["structuredContent"]["dry_run"] is True
-    assert result["structuredContent"]["report_id"] == "workspace-authority-migration-audit::mock"
-    assert result["structuredContent"]["workspace_fingerprint"] == "workspace-migration-audit::mock"
-    assert result["structuredContent"]["study_fingerprint"] == "study-migration-audit::mock"
-    assert result["structuredContent"]["delivery_projection_completion_plan_count"] == 1
-    assert result["structuredContent"]["action_counts"]["mutating"] == 0
+    payload = _structured_payload(result)
+    assert payload["dry_run"] is True
+    assert payload["report_id"] == "workspace-authority-migration-audit::mock"
+    assert payload["workspace_fingerprint"] == "workspace-migration-audit::mock"
+    assert payload["study_fingerprint"] == "study-migration-audit::mock"
+    assert payload["delivery_projection_completion_plan_count"] == 1
+    assert payload["action_counts"]["mutating"] == 0
     assert "workspace_authority_migration_audit" in result["content"][0]["text"]
 
 
@@ -867,8 +917,9 @@ def test_mcp_authority_operations_can_call_delivery_authority_backfill_apply(mon
         "apply": False,
         "authority_snapshot": {"surface": "authority_snapshot"},
     }
-    assert result["structuredContent"]["surface"] == "delivery_authority_backfill_apply"
-    assert result["structuredContent"]["action_counts"]["mutating"] == 0
+    payload = _structured_payload(result)
+    assert payload["surface"] == "delivery_authority_backfill_apply"
+    assert payload["action_counts"]["mutating"] == 0
     assert "delivery_authority_backfill_apply" in result["content"][0]["text"]
 
 
@@ -920,9 +971,10 @@ def test_mcp_authority_operations_can_call_lifecycle_report_with_scan_options(mo
         "max_files": 9,
         "max_seconds": 2.5,
     }
-    assert result["structuredContent"]["surface"] == "artifact_lifecycle_report"
-    assert result["structuredContent"]["scan_policy"]["max_files"] == 9
-    assert result["structuredContent"]["mutation_policy"]["physical_cleanup_performed"] is False
+    payload = _structured_payload(result)
+    assert payload["surface"] == "artifact_lifecycle_report"
+    assert payload["scan_policy"]["max_files"] == 9
+    assert payload["mutation_policy"]["physical_cleanup_performed"] is False
     assert "artifact_lifecycle_report" in result["content"][0]["text"]
 
 
@@ -949,7 +1001,8 @@ def test_mcp_authority_operations_lifecycle_report_bounds_receipt_ref_families(t
     )
 
     assert result["isError"] is False
-    plan = result["structuredContent"]["retention_plan"]
+    payload = _structured_payload(result)
+    plan = payload["retention_plan"]
     assert plan["summary"]["operation_count"] == 120
     assert len(plan["artifact_lifecycle_receipt_refs"]) == retention_module.RECEIPT_REF_SAMPLE_LIMIT
     assert plan["artifact_lifecycle_receipt_ref_count"] == 120
@@ -962,7 +1015,7 @@ def test_mcp_authority_operations_lifecycle_report_bounds_receipt_ref_families(t
     assert plan["retention_receipt_refs_truncated"] is True
     assert plan["cleanup_receipt_ref_count"] == 0
     assert plan["restore_proof_ref_count"] == 0
-    assert result["structuredContent"]["mutation_policy"]["physical_cleanup_performed"] is False
+    assert payload["mutation_policy"]["physical_cleanup_performed"] is False
 
 
 def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
@@ -985,7 +1038,7 @@ def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
 
     assert result["isError"] is False
     assert captured["workspace_root"] == Path("/tmp/medautosci-demo")
-    assert result["structuredContent"]["asset_count"] == 3
+    assert _structured_payload(result)["asset_count"] == 3
 
 
 def test_mcp_server_can_call_workspace_literature_status_tool(monkeypatch) -> None:
@@ -1008,7 +1061,7 @@ def test_mcp_server_can_call_workspace_literature_status_tool(monkeypatch) -> No
 
     assert result["isError"] is False
     assert captured["workspace_root"] == Path("/tmp/medautosci-demo")
-    assert result["structuredContent"]["record_count"] == 7
+    assert _structured_payload(result)["record_count"] == 7
 
 
 def test_mcp_server_can_call_prepare_external_research_tool(monkeypatch) -> None:
@@ -1034,7 +1087,7 @@ def test_mcp_server_can_call_prepare_external_research_tool(monkeypatch) -> None
     assert result["isError"] is False
     assert captured["workspace_root"] == Path("/tmp/medautosci-demo")
     assert captured["as_of_date"] == "2026-03-30"
-    assert result["structuredContent"]["status"] == "ready"
+    assert _structured_payload(result)["status"] == "ready"
 
 
 def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
@@ -1094,5 +1147,5 @@ def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
         "force": True,
         "initialize_git": False,
     }
-    assert result["structuredContent"]["workspace_name"] == "NF-PitNET Demo"
+    assert _structured_payload(result)["workspace_name"] == "NF-PitNET Demo"
     assert '"workspace_name": "NF-PitNET Demo"' in result["content"][0]["text"]

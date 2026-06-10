@@ -225,7 +225,13 @@ def test_mcp_server_can_call_open_auto_research_soak_compact_surface(
 
     assert result["isError"] is False
     assert captured["allow_controller_writes"] is True
-    assert result["structuredContent"] == {
+    envelope = result["structuredContent"]
+    assert envelope["surface_kind"] == "mas_tool_result_envelope"
+    assert envelope["tool_id"] == "open_auto_research_soak"
+    assert envelope["status"] == "succeeded"
+    assert envelope["authority_boundary"]["tool_result_envelope_is_authority_outcome"] is False
+    assert envelope["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert envelope["structured_payload"] == {
         "status": "needs_review",
         "counts": {"ready": 3, "needs_review": 1, "blocked": 0, "total": 4},
         "actions": [

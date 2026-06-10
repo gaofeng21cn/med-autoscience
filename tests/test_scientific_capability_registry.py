@@ -155,12 +155,20 @@ def test_scientific_capability_registry_mcp_modes_and_tool_arsenal_card(
         },
     )
     assert resolve_result["isError"] is False
-    assert resolve_result["structuredContent"]["surface_kind"] == (
-        "mas_scientific_capability_resolution"
-    )
+    resolve_envelope = resolve_result["structuredContent"]
+    assert resolve_envelope["surface_kind"] == "mas_tool_result_envelope"
+    assert resolve_envelope["tool_id"] == "scientific_capability_registry"
+    assert resolve_envelope["tool_mode"] == "resolve"
+    assert resolve_envelope["status"] == "succeeded"
+    assert resolve_envelope["authority_boundary"]["tool_result_envelope_is_authority_outcome"] is False
+    assert resolve_envelope["authority_boundary"]["can_write_domain_truth"] is False
+    assert resolve_envelope["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert "publication_quality" in resolve_envelope["audit_trail"]["forbidden_authority"]
+    resolve_payload = resolve_envelope["structured_payload"]
+    assert resolve_payload["surface_kind"] == "mas_scientific_capability_resolution"
     selected = {
         item["capability_id"]
-        for item in resolve_result["structuredContent"]["selected_capabilities"]
+        for item in resolve_payload["selected_capabilities"]
     }
     assert "external_learning_review_and_progress_advisory" in selected
 
@@ -182,7 +190,19 @@ def test_scientific_capability_registry_mcp_modes_and_tool_arsenal_card(
         },
     )
     assert invoke_result["isError"] is False
-    assert invoke_result["structuredContent"]["surface_kind"] == (
+    invoke_envelope = invoke_result["structuredContent"]
+    assert invoke_envelope["surface_kind"] == "mas_tool_result_envelope"
+    assert invoke_envelope["tool_id"] == "scientific_capability_registry"
+    assert invoke_envelope["tool_mode"] == "invoke"
+    assert invoke_envelope["audit_trail"]["authority_flags"]["readOnlyHint"] is False
+    assert invoke_envelope["audit_trail"]["authority_flags"]["destructiveHint"] is False
+    assert (
+        "artifacts/advisory/external_learning_sidecar/latest.json"
+        in invoke_envelope["audit_trail"]["allowed_write_refs"]
+    )
+    assert invoke_envelope["authority_boundary"]["can_write_domain_truth"] is False
+    assert invoke_envelope["authority_boundary"]["can_authorize_submission_readiness"] is False
+    assert invoke_envelope["structured_payload"]["surface_kind"] == (
         "mas_scientific_capability_invocation"
     )
 

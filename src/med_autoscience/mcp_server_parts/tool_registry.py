@@ -219,7 +219,7 @@ def build_tool_registry(
             ),
             metadata=_tool_metadata(metadata_by_tool, "scientific_capability_registry"),
             output_schema=_result_envelope_schema(),
-            annotations=_annotations(read_only=False),
+            annotations=_annotations(read_only=False, destructive=False),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -314,7 +314,7 @@ def _result_envelope_schema() -> dict[str, Any]:
     return build_tool_result_envelope_schema()
 
 
-def _annotations(*, read_only: bool) -> dict[str, Any]:
+def _annotations(*, read_only: bool, destructive: bool | None = None) -> dict[str, Any]:
     from med_autoscience.agent_tool_arsenal import mcp_tool_annotations
 
-    return mcp_tool_annotations("", read_only=read_only)
+    return mcp_tool_annotations("", read_only=read_only, destructive=destructive)
