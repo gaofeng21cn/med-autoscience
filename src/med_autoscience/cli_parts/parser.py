@@ -3,6 +3,9 @@ from __future__ import annotations
 import argparse
 
 from med_autoscience.cli_public_surface import GROUPED_COMMAND_PROGS
+from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
+    register_evo_scientist_sidecar_parsers,
+)
 from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
 from med_autoscience.cli_parts.study_action_commands import register_study_action_parsers
 from med_autoscience.figure_routes import supported_required_route_help
@@ -50,6 +53,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
 
     sync_agent_entry_assets_parser = subparsers.add_parser("sync-agent-entry-assets")
     sync_agent_entry_assets_parser.add_argument("--repo-root", default=".")
+
+    register_evo_scientist_sidecar_parsers(subparsers)
 
     preflight_parser = subparsers.add_parser("preflight-changes")
     preflight_sources = preflight_parser.add_mutually_exclusive_group(required=True)

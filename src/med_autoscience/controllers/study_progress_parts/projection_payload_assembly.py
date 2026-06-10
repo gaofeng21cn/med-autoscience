@@ -12,6 +12,7 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
 import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
 from med_autoscience.controllers import current_execution_envelope, current_work_unit
+from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 
 from .ai_first_runtime_projection import attach_ai_first_runtime_projection
 from .current_owner_handoff_projection import (
@@ -646,6 +647,7 @@ def assemble_study_progress_payload(
     runtime_facts: Any,
     supervision_health_status: str | None,
     refs: dict[str, Any],
+    materialize_sidecar_observation: bool = False,
 ) -> dict[str, Any]:
     handoff = _mapping_copy(opl_current_control_state_handoff)
     repair_progress_projection = build_repair_progress_projection(study_root=study_root)
@@ -875,6 +877,20 @@ def assemble_study_progress_payload(
         )
         payload["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(
             {**payload, "execution_owner_guard": execution_owner_guard}
+        )
+    if materialize_sidecar_observation:
+        payload["evo_scientist_sidecar_observation"] = (
+            evo_scientist_sidecar_refs.observe_current_owner_payload(
+                study_root=study_root,
+                progress_payload=payload,
+                apply=True,
+            )
+        )
+    else:
+        payload["evo_scientist_sidecar_observation"] = (
+            evo_scientist_sidecar_refs.read_latest_evo_scientist_sidecar_projection(
+                study_root=study_root,
+            )
         )
     return attach_ai_first_runtime_projection(
         payload,

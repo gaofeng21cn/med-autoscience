@@ -503,7 +503,7 @@
     "maps_to_opl_shared_primitive": "progress-first-learning-sidecar.v1",
     "mas_role": "domain_projection_progress_accelerator_and_refs_only_contract_owner",
     "target_sidecar_execution_architecture": {
-      "architecture_state": "complete_target_design_landed",
+      "architecture_state": "repo_callable_worker_landed",
       "remaining_learning_plan": false,
       "future_work_role": "implementation_scaleout_under_this_contract_only",
       "execution_model": "nonblocking_current_owner_following_sidecar",
@@ -516,6 +516,23 @@
       "sidecar_completion_required_for_artifact_mutation": false,
       "hard_gate_candidate_requires_owner_or_reviewer_materialization": true
     },
+    "runtime_sidecar_execution_surface": {
+      "surface_kind": "mas_evo_scientist_runtime_sidecar_execution_surface",
+      "implementation_status": "repo_callable_worker_landed",
+      "writer_ref": "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation",
+      "runtime_ref_root": "artifacts/runtime/evo_scientist_sidecar",
+      "latest_ref": "artifacts/runtime/evo_scientist_sidecar/latest.json",
+      "observation_ref_glob": "artifacts/runtime/evo_scientist_sidecar/observations/*.json",
+      "refs_only_state_index_family": "evo_scientist_sidecar_ref",
+      "mainline_waits_for_sidecar": false,
+      "failure_blocks_current_owner_action": false,
+      "sidecar_completion_required_for_dispatch": false,
+      "sidecar_completion_required_for_quality_gate": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_write_owner_receipt": false,
+      "can_write_typed_blocker": false
+    },
     "allowed_export": [
       "refs",
       "metadata",
@@ -523,7 +540,8 @@
       "typed_blockers",
       "owner_boundary",
       "tool_visibility_policy_refs",
-      "failed_path_taxonomy_refs"
+      "failed_path_taxonomy_refs",
+      "evo_scientist_sidecar_ref"
     ],
     "forbidden_export": [
       "external_runtime",

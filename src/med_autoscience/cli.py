@@ -30,6 +30,9 @@ from med_autoscience.cli_parts.study_action_commands import handle_study_action_
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
 from med_autoscience.cli_parts.domain_health_diagnostic_commands import handle_domain_health_diagnostic_command
 from med_autoscience.cli_parts.domain_handler_commands import handle_domain_handler_command
+from med_autoscience.cli_parts.evo_scientist_sidecar_commands import (
+    handle_evo_scientist_sidecar_command,
+)
 from med_autoscience.cli_parts.workspace_data_commands import handle_workspace_data_command
 from med_autoscience.foundry_command_surface import (
     build_foundry_command_surface_projection,
@@ -332,6 +335,10 @@ def main(argv: list[str] | None = None) -> int:
         result = sync_agent_entry_assets(repo_root=Path(args.repo_root))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+
+    evo_scientist_sidecar_result = handle_evo_scientist_sidecar_command(args)
+    if evo_scientist_sidecar_result is not None:
+        return evo_scientist_sidecar_result
 
     domain_handler_result = handle_domain_handler_command(
         args,

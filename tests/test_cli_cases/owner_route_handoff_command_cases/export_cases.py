@@ -256,6 +256,17 @@ def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Pat
     assert evo_projection["ordinary_progress_boundary"]["can_block_current_owner_action"] is False
     assert evo_projection["tool_selector_contract"]["fail_open_to_all_tools"] is True
     assert evo_projection["observation_memory_contract"]["can_write_domain_truth"] is False
+    runtime_surface = evo_projection["runtime_sidecar_execution_surface"]
+    assert runtime_surface["implementation_status"] == "repo_callable_worker_landed"
+    assert runtime_surface["writer_ref"] == (
+        "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs."
+        "write_evo_scientist_sidecar_observation"
+    )
+    assert runtime_surface["runtime_ref_root"] == "artifacts/runtime/evo_scientist_sidecar"
+    assert runtime_surface["refs_only_state_index_family"] == "evo_scientist_sidecar_ref"
+    assert runtime_surface["nonblocking_contract"]["failure_blocks_current_owner_action"] is False
+    assert runtime_surface["authority_boundary"]["can_write_controller_decisions"] is False
+    assert runtime_surface["authority_boundary"]["can_write_typed_blocker"] is False
     assert evo_projection["authority_boundary"]["source_project_role"] == (
         "external_pattern_source_only"
     )

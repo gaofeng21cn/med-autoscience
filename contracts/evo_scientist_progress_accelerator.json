@@ -52,7 +52,7 @@
   },
   "target_sidecar_execution_architecture": {
     "surface_kind": "mas_evo_scientist_target_sidecar_execution_architecture",
-    "architecture_state": "complete_target_design_landed",
+    "architecture_state": "repo_callable_worker_landed",
     "remaining_learning_plan": false,
     "future_work_role": "implementation_scaleout_under_this_contract_only",
     "execution_model": "nonblocking_current_owner_following_sidecar",
@@ -98,7 +98,116 @@
       "sidecar_completion_required_for_artifact_mutation": false,
       "sidecar_may_submit_hard_gate_candidate_ref": true,
       "hard_gate_candidate_requires_owner_or_reviewer_materialization": true
-    }
+    },
+    "implementation_slots": [
+      {
+        "slot": "tool_selector_helper",
+        "status": "repo_callable_sidecar_output_ref_landed",
+        "trigger": "tool_surface_noise_exceeds_threshold",
+        "output_ref": "tool_affordance_ref",
+        "failure_policy": "fail_open_to_owner_required_tools"
+      },
+      {
+        "slot": "observation_memory_sidecar",
+        "status": "repo_callable_sidecar_output_ref_landed",
+        "trigger": "turn_or_subagent_completion",
+        "output_ref": "observation_memory_ref",
+        "failure_policy": "fire_and_forget_no_mainline_wait"
+      },
+      {
+        "slot": "failed_path_taxonomy",
+        "status": "repo_callable_sidecar_output_ref_landed",
+        "trigger": "receipt_typed_blocker_or_failed_attempt_recorded",
+        "output_ref": "failed_path_memory_ref",
+        "failure_policy": "no_loop_hint_only"
+      },
+      {
+        "slot": "routing_eval",
+        "status": "repo_callable_sidecar_output_ref_landed",
+        "trigger": "release_or_meta_regression_gate",
+        "output_ref": "route_regression_ref",
+        "failure_policy": "meta_gate_only_not_live_delta_gate"
+      },
+      {
+        "slot": "attempt_budget_stop_loss",
+        "status": "repo_callable_sidecar_output_ref_landed",
+        "trigger": "repeated_failed_attempt_signature",
+        "output_ref": "stop_loss_candidate_ref",
+        "failure_policy": "candidate_ref_only_until_owner_decision"
+      }
+    ]
+  },
+  "runtime_sidecar_execution_surface": {
+    "surface_kind": "mas_evo_scientist_runtime_sidecar_execution_surface",
+    "schema_version": 1,
+    "implementation_status": "repo_callable_worker_landed",
+    "execution_model": "nonblocking_refs_only_sidecar_writer",
+    "contract_ref": "contracts/evo_scientist_progress_accelerator.json",
+    "projection_ref": "med_autoscience.evo_scientist_learning_projection.build_evo_scientist_learning_projection",
+    "writer_ref": "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation",
+    "automatic_hook": "study_progress materialize_read_model_artifacts after current owner action and current execution envelope are projected",
+    "cli_entrypoints": [
+      "medautosci evo-scientist-sidecar observe --study-root <study> --apply",
+      "medautosci evo-scientist-sidecar read-latest --study-root <study>"
+    ],
+    "runtime_ref_root": "artifacts/runtime/evo_scientist_sidecar",
+    "latest_ref": "artifacts/runtime/evo_scientist_sidecar/latest.json",
+    "observation_ref_glob": "artifacts/runtime/evo_scientist_sidecar/observations/*.json",
+    "refs_only_state_index_family": "evo_scientist_sidecar_ref",
+    "implemented_launch_points": [
+      "after_current_owner_delta_materialized",
+      "after_executor_turn_or_subagent_completion_via_cli",
+      "after_receipt_or_typed_blocker_recorded_via_cli"
+    ],
+    "implemented_outputs": [
+      "tool_affordance_ref",
+      "observation_memory_ref",
+      "failed_path_memory_ref",
+      "reviewer_briefing_ref",
+      "route_hint_ref",
+      "stop_loss_candidate_ref"
+    ],
+    "nonblocking_contract": {
+      "mainline_waits_for_sidecar": false,
+      "failure_blocks_current_owner_action": false,
+      "timeout_blocks_current_owner_action": false,
+      "budget_exhaustion_blocks_current_owner_action": false,
+      "sidecar_completion_required_for_dispatch": false,
+      "sidecar_completion_required_for_quality_gate": false,
+      "sidecar_completion_required_for_artifact_mutation": false
+    },
+    "authority_boundary": {
+      "can_write_domain_truth": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_write_evidence_ledger": false,
+      "can_write_review_ledger": false,
+      "can_write_memory_body": false,
+      "can_write_artifact_body": false,
+      "can_write_owner_receipt": false,
+      "can_write_typed_blocker": false,
+      "can_authorize_current_owner_action": false,
+      "can_authorize_source_readiness": false,
+      "can_authorize_publication_quality": false,
+      "can_authorize_artifact_authority": false,
+      "can_close_quality_gate": false,
+      "can_close_stage": false
+    },
+    "forbidden_write_surfaces": [
+      "artifacts/publication_eval/latest.json",
+      "artifacts/controller_decisions/latest.json",
+      "paper/evidence/evidence_ledger.json",
+      "paper/review/review_ledger.json",
+      "paper/",
+      "manuscript/",
+      "paper/manuscript/current_package",
+      "manuscript/current_package",
+      "current_package.zip",
+      "owner_receipt",
+      "typed_blocker",
+      "stage/current.json",
+      "control/current_owner_delta.json"
+    ]
   },
   "auxiliary_helper_policy": {
     "helper_role": "background_advisory_helper",

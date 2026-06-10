@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from med_autoscience.runtime_protocol.evo_scientist_sidecar_refs import (
+    build_evo_scientist_sidecar_execution_surface,
+)
+
 
 SURFACE_KIND = "mas_evo_scientist_progress_accelerator_projection"
 SOURCE_REPOSITORY = "https://github.com/EvoScientist/EvoScientist"
@@ -21,7 +25,7 @@ def build_evo_scientist_learning_projection() -> dict[str, Any]:
     return {
         "surface_kind": SURFACE_KIND,
         "version": "mas-evo-scientist-progress-accelerator.v1",
-        "status": "complete_target_sidecar_architecture_projected",
+        "status": "repo_callable_sidecar_execution_surface_projected",
         "contract_ref": CONTRACT_REF,
         "progress_accelerator_contract_ref": CONTRACT_REF,
         "projection_builder_ref": PROJECTION_BUILDER_REF,
@@ -161,7 +165,7 @@ def build_evo_scientist_learning_projection() -> dict[str, Any]:
         },
         "target_sidecar_execution_architecture": {
             "surface_kind": "mas_evo_scientist_target_sidecar_execution_architecture",
-            "architecture_state": "complete_target_design_landed",
+            "architecture_state": "repo_callable_worker_landed",
             "remaining_learning_plan": False,
             "future_work_role": "implementation_scaleout_under_this_contract_only",
             "execution_model": "nonblocking_current_owner_following_sidecar",
@@ -220,41 +224,42 @@ def build_evo_scientist_learning_projection() -> dict[str, Any]:
             "implementation_slots": [
                 {
                     "slot": "tool_selector_helper",
-                    "status": "target_architecture_landed",
+                    "status": "repo_callable_sidecar_output_ref_landed",
                     "trigger": "tool_surface_noise_exceeds_threshold",
                     "output_ref": "tool_affordance_ref",
                     "failure_policy": "fail_open_to_owner_required_tools",
                 },
                 {
                     "slot": "observation_memory_sidecar",
-                    "status": "target_architecture_landed",
+                    "status": "repo_callable_sidecar_output_ref_landed",
                     "trigger": "turn_or_subagent_completion",
                     "output_ref": "observation_memory_ref",
                     "failure_policy": "fire_and_forget_no_mainline_wait",
                 },
                 {
                     "slot": "failed_path_taxonomy",
-                    "status": "target_architecture_landed",
+                    "status": "repo_callable_sidecar_output_ref_landed",
                     "trigger": "receipt_typed_blocker_or_failed_attempt_recorded",
                     "output_ref": "failed_path_memory_ref",
                     "failure_policy": "no_loop_hint_only",
                 },
                 {
                     "slot": "routing_eval",
-                    "status": "target_architecture_landed",
+                    "status": "repo_callable_sidecar_output_ref_landed",
                     "trigger": "release_or_meta_regression_gate",
                     "output_ref": "route_regression_ref",
                     "failure_policy": "meta_gate_only_not_live_delta_gate",
                 },
                 {
                     "slot": "attempt_budget_stop_loss",
-                    "status": "target_architecture_landed",
+                    "status": "repo_callable_sidecar_output_ref_landed",
                     "trigger": "repeated_failed_attempt_signature",
                     "output_ref": "stop_loss_candidate_ref",
                     "failure_policy": "candidate_ref_only_until_owner_decision",
                 },
             ],
         },
+        "runtime_sidecar_execution_surface": build_evo_scientist_sidecar_execution_surface(),
         "auxiliary_helper_contract": {
             "surface_kind": "mas_auxiliary_helper_contract",
             "allowed_roles": [

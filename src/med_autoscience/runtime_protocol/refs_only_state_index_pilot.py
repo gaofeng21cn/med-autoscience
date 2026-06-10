@@ -203,6 +203,13 @@ def _candidate_refs(
         )
         candidates.extend(_glob_candidates(study_root / "artifacts" / "runtime" / "cursors", "*.json", "cursor"))
         candidates.extend(_glob_candidates(study_root / "artifacts" / "runtime" / "indexes", "*.json", "index"))
+        candidates.extend(
+            _glob_candidates(
+                study_root / "artifacts" / "runtime" / "evo_scientist_sidecar",
+                "*.json",
+                "evo_scientist_sidecar_ref",
+            )
+        )
     return tuple(
         candidate
         for candidate in candidates

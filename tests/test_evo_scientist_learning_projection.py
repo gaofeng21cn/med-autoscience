@@ -15,7 +15,7 @@ def test_evo_scientist_learning_projection_absorbs_progress_accelerators_only() 
 
     assert projection["surface_kind"] == "mas_evo_scientist_progress_accelerator_projection"
     assert projection["version"] == "mas-evo-scientist-progress-accelerator.v1"
-    assert projection["status"] == "complete_target_sidecar_architecture_projected"
+    assert projection["status"] == "repo_callable_sidecar_execution_surface_projected"
     assert projection["contract_ref"] == "contracts/evo_scientist_progress_accelerator.json"
     assert projection["progress_accelerator_contract_ref"] == (
         "contracts/evo_scientist_progress_accelerator.json"
@@ -76,7 +76,7 @@ def test_evo_scientist_learning_projection_lands_complete_target_sidecar_archite
     assert architecture["surface_kind"] == (
         "mas_evo_scientist_target_sidecar_execution_architecture"
     )
-    assert architecture["architecture_state"] == "complete_target_design_landed"
+    assert architecture["architecture_state"] == "repo_callable_worker_landed"
     assert architecture["remaining_learning_plan"] is False
     assert architecture["future_work_role"] == "implementation_scaleout_under_this_contract_only"
     assert architecture["execution_model"] == "nonblocking_current_owner_following_sidecar"
@@ -135,12 +135,41 @@ def test_evo_scientist_learning_projection_lands_complete_target_sidecar_archite
         "routing_eval",
         "attempt_budget_stop_loss",
     }
-    assert all(slot["status"] == "target_architecture_landed" for slot in slots.values())
+    assert all(
+        slot["status"] == "repo_callable_sidecar_output_ref_landed"
+        for slot in slots.values()
+    )
     assert slots["tool_selector_helper"]["failure_policy"] == "fail_open_to_owner_required_tools"
     assert slots["observation_memory_sidecar"]["failure_policy"] == (
         "fire_and_forget_no_mainline_wait"
     )
     assert slots["routing_eval"]["failure_policy"] == "meta_gate_only_not_live_delta_gate"
+
+    runtime_surface = projection["runtime_sidecar_execution_surface"]
+    assert runtime_surface["surface_kind"] == "mas_evo_scientist_runtime_sidecar_execution_surface"
+    assert runtime_surface["implementation_status"] == "repo_callable_worker_landed"
+    assert runtime_surface["execution_model"] == "nonblocking_refs_only_sidecar_writer"
+    assert runtime_surface["writer_ref"] == (
+        "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs."
+        "write_evo_scientist_sidecar_observation"
+    )
+    assert runtime_surface["runtime_ref_root"] == "artifacts/runtime/evo_scientist_sidecar"
+    assert runtime_surface["latest_ref"] == "artifacts/runtime/evo_scientist_sidecar/latest.json"
+    assert runtime_surface["refs_only_state_index_family"] == "evo_scientist_sidecar_ref"
+    assert set(runtime_surface["implemented_outputs"]) == {
+        "tool_affordance_ref",
+        "observation_memory_ref",
+        "failed_path_memory_ref",
+        "reviewer_briefing_ref",
+        "route_hint_ref",
+        "stop_loss_candidate_ref",
+    }
+    assert runtime_surface["nonblocking_contract"]["mainline_waits_for_sidecar"] is False
+    assert runtime_surface["nonblocking_contract"]["failure_blocks_current_owner_action"] is False
+    assert runtime_surface["authority_boundary"]["can_write_publication_eval"] is False
+    assert runtime_surface["authority_boundary"]["can_write_controller_decisions"] is False
+    assert runtime_surface["authority_boundary"]["can_write_owner_receipt"] is False
+    assert runtime_surface["authority_boundary"]["can_write_typed_blocker"] is False
 
 
 def test_evo_scientist_learning_projection_fails_open_and_preserves_authority() -> None:
@@ -234,6 +263,9 @@ def test_evo_scientist_progress_accelerator_contract_matches_projection_boundary
     assert contract["target_sidecar_execution_architecture"]["admission_contract"][
         "sidecar_completion_required_for_quality_gate"
     ] is False
+    assert contract["runtime_sidecar_execution_surface"] == projection[
+        "runtime_sidecar_execution_surface"
+    ]
     assert contract["tool_selector_policy"]["fail_open_to_all_tools"] is True
     assert contract["tool_selector_policy"]["owner_required_tools_always_include"] is True
     assert contract["observation_memory_policy"]["mainline_waits_for_memory_worker"] is False

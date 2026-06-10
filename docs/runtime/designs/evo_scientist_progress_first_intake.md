@@ -2,7 +2,7 @@
 
 Owner: `MedAutoScience`
 Purpose: `progress_first_learning_sidecar_intake`
-State: `active_target_architecture`
+State: `active_repo_callable_sidecar_execution_surface`
 Machine boundary: 本文是人读 upstream learning foldback。机器真相继续归 `agent/` pack、`contracts/`、runtime/controller durable surfaces、真实 workspace artifact、owner receipt、typed blocker、AI reviewer/auditor record 和 repo-native verification。
 Date: `2026-06-09`
 
@@ -12,7 +12,7 @@ EvoScientist / EvoSkills 的可吸收点进入 MAS 时只作为 `ordinary progre
 
 本轮采用的 upstream facts 是：EvoScientist v0.1.4 release 提到 auxiliary model for background memory workers / tool selector，以及 fire-and-forget observation memory；EvoSkills v1.0.0 提到 research lifecycle skills with IDE / IVE / ESE memory。这些能力只折回 MAS 的 sidecar 设计，不引入 EvoScientist runtime、executor backend、代码、依赖或默认执行 owner。
 
-本设计不保留“后续学习计划”。EvoScientist / EvoSkills 的可取点已经一次性折成 MAS 目标态 sidecar execution architecture：后续工作只能是在同一合同下扩面实现或增加真实 evidence，不再重新决定是否学习、如何学习，也不能新增会阻断 ordinary progress spine 的阶段门。
+本设计不保留“后续学习计划”。EvoScientist / EvoSkills 的可取点已经一次性折成 MAS 目标态 sidecar execution architecture，并已落到 repo 可调用执行面：`med_autoscience.runtime_protocol.evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation` 可写 `artifacts/runtime/evo_scientist_sidecar/` 下的 refs-only observation，`medautosci evo-scientist-sidecar observe/read-latest` 可手工或由 OPL 调用，`study_progress` 在 materialize read-model 时会在 current owner/action 投影后 best-effort 写入 sidecar ref。后续工作只能是在同一合同下扩面生产接入或增加真实 evidence，不再重新决定是否学习、如何学习，也不能新增会阻断 ordinary progress spine 的阶段门。
 
 MAS 普通推进主干保持不变：
 
@@ -32,11 +32,11 @@ Sidecar 的目标态从设计层面完整固定：
 
 | Execution slot | Trigger | Output | Failure policy |
 | --- | --- | --- | --- |
-| `tool_selector_helper` | tool surface 噪声超过阈值。 | `tool_affordance_ref`。 | fail open，owner-required tools 永远保留。 |
-| `observation_memory_sidecar` | executor turn 或 subagent completion 后。 | `observation_memory_ref`。 | fire-and-forget，mainline 不等待。 |
-| `failed_path_taxonomy` | receipt、typed blocker 或 failed attempt 记录后。 | `failed_path_memory_ref`。 | 只给 no-loop hint，不关闭 Stage。 |
-| `routing_eval` | release / meta regression gate。 | `route_regression_ref`。 | meta gate only，不作为 live delta gate。 |
-| `attempt_budget_stop_loss` | 重复失败签名出现后。 | `stop_loss_candidate_ref`。 | candidate ref only，必须等 owner decision。 |
+| `tool_selector_helper` | tool surface 噪声超过阈值；repo 侧 writer 当前输出 ref slot。 | `tool_affordance_ref`。 | fail open，owner-required tools 永远保留。 |
+| `observation_memory_sidecar` | executor turn、subagent completion 或 `study_progress` current owner/action materialization 后。 | `observation_memory_ref`。 | fire-and-forget，mainline 不等待；event fingerprint 幂等写入。 |
+| `failed_path_taxonomy` | receipt、typed blocker 或 failed attempt 记录后；CLI 可提交对应 ref。 | `failed_path_memory_ref`。 | 只给 no-loop hint，不关闭 Stage。 |
+| `routing_eval` | release / meta regression gate；repo 侧 writer 当前输出 ref slot。 | `route_regression_ref`。 | meta gate only，不作为 live delta gate。 |
+| `attempt_budget_stop_loss` | 重复失败签名出现后；repo 侧 writer 当前输出 ref slot。 | `stop_loss_candidate_ref`。 | candidate ref only，必须等 owner decision。 |
 
 统一调度语义：
 
@@ -44,7 +44,8 @@ Sidecar 的目标态从设计层面完整固定：
 - sidecar 与 ordinary progress parallel run；critical path 不等待 sidecar。
 - sidecar 缺失、失败、超时、预算耗尽或与 owner policy 冲突时，停止 sidecar，不停止 owner action。
 - sidecar 可以提交 hard-gate candidate ref；真正 gate 仍必须由 MAS owner surface、OPL Stage Transition Authority、independent reviewer/auditor、human gate 或 typed blocker materializer 产出。
-- 后续实现扩面只能证明这些槽位按合同运行；不能把“接入 sidecar worker”重新写成学习阶段、admission gate 或当前 owner action 的前置条件。
+- 已落地执行入口：`med_autoscience.runtime_protocol.evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation`、`read_latest_evo_scientist_sidecar_projection`、`medautosci evo-scientist-sidecar observe/read-latest`、`study_progress` materialize hook、`refs_only_state_index_pilot` 的 `evo_scientist_sidecar_ref` family。
+- 后续生产扩面只能证明这些槽位按合同运行；不能把 resident daemon 缺失、sidecar completion、tool selector score、observation memory 或 lifecycle skill match 重新写成学习阶段、admission gate 或当前 owner action 的前置条件。
 
 ## 可吸收映射
 

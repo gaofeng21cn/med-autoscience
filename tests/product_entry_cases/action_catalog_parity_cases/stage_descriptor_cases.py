@@ -311,6 +311,17 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert evo_projection["observation_memory_contract"]["can_write_domain_truth"] is False
     assert evo_projection["observation_memory_contract"]["mainline_waits_for_memory_worker"] is False
     assert evo_projection["failed_path_memory_contract"]["fundamental_failure_requires_reviewer_or_owner_evidence"] is True
+    runtime_surface = evo_projection["runtime_sidecar_execution_surface"]
+    assert runtime_surface["implementation_status"] == "repo_callable_worker_landed"
+    assert runtime_surface["writer_ref"] == (
+        "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs."
+        "write_evo_scientist_sidecar_observation"
+    )
+    assert runtime_surface["latest_ref"] == "artifacts/runtime/evo_scientist_sidecar/latest.json"
+    assert runtime_surface["refs_only_state_index_family"] == "evo_scientist_sidecar_ref"
+    assert runtime_surface["nonblocking_contract"]["mainline_waits_for_sidecar"] is False
+    assert runtime_surface["authority_boundary"]["can_write_publication_eval"] is False
+    assert runtime_surface["authority_boundary"]["can_write_owner_receipt"] is False
     assert evo_projection["watch_only_patterns"] == [
         {
             "pattern_id": "idea_tournament_as_default_gate",

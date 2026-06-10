@@ -519,7 +519,7 @@ def test_mas_evo_scientist_learning_projection_declares_progress_first_absorptio
         "domain_projection_progress_accelerator_and_refs_only_contract_owner"
     )
     sidecar_architecture = projection["target_sidecar_execution_architecture"]
-    assert sidecar_architecture["architecture_state"] == "complete_target_design_landed"
+    assert sidecar_architecture["architecture_state"] == "repo_callable_worker_landed"
     assert sidecar_architecture["remaining_learning_plan"] is False
     assert sidecar_architecture["future_work_role"] == (
         "implementation_scaleout_under_this_contract_only"
@@ -537,6 +537,25 @@ def test_mas_evo_scientist_learning_projection_declares_progress_first_absorptio
     assert sidecar_architecture[
         "hard_gate_candidate_requires_owner_or_reviewer_materialization"
     ] is True
+    runtime_surface = projection["runtime_sidecar_execution_surface"]
+    assert runtime_surface["surface_kind"] == "mas_evo_scientist_runtime_sidecar_execution_surface"
+    assert runtime_surface["implementation_status"] == "repo_callable_worker_landed"
+    assert runtime_surface["writer_ref"] == (
+        "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs."
+        "write_evo_scientist_sidecar_observation"
+    )
+    assert runtime_surface["runtime_ref_root"] == "artifacts/runtime/evo_scientist_sidecar"
+    assert runtime_surface["latest_ref"] == "artifacts/runtime/evo_scientist_sidecar/latest.json"
+    assert runtime_surface["refs_only_state_index_family"] == "evo_scientist_sidecar_ref"
+    assert runtime_surface["mainline_waits_for_sidecar"] is False
+    assert runtime_surface["failure_blocks_current_owner_action"] is False
+    assert runtime_surface["sidecar_completion_required_for_dispatch"] is False
+    assert runtime_surface["sidecar_completion_required_for_quality_gate"] is False
+    assert runtime_surface["can_write_publication_eval"] is False
+    assert runtime_surface["can_write_controller_decisions"] is False
+    assert runtime_surface["can_write_owner_receipt"] is False
+    assert runtime_surface["can_write_typed_blocker"] is False
+    assert "evo_scientist_sidecar_ref" in projection["allowed_export"]
     assert projection["absorbed_pattern_ids"] == [
         "auxiliary_background_model",
         "fire_and_forget_observation_memory",
