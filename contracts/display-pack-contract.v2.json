@@ -1,0 +1,133 @@
+{
+  "schema_version": 2,
+  "contract_id": "display-pack-contract.v2",
+  "owner": "MedAutoScience",
+  "purpose": "Machine-readable Display Pack v2 descriptor boundary for MAS medical display packs, paper-facing quality refs, and the OPL Pack OS handoff tail.",
+  "machine_boundary": "This contract declares the required descriptor fields and authority boundaries for MAS Display Pack v2. The validator lives in med_autoscience.display_pack_v2_contract. It does not claim that MAS owns a generic OPL Pack OS.",
+  "source_module": "src/med_autoscience/display_pack_v2_contract.py",
+  "pack_descriptor": {
+    "surface_kind": "display_pack_v2_pack_descriptor",
+    "native_manifest": "display_pack.toml",
+    "required_fields": [
+      "pack_id",
+      "version",
+      "display_api_version",
+      "source",
+      "owner",
+      "license",
+      "templates",
+      "style_profiles",
+      "qc_profiles",
+      "ai_policy",
+      "goldens",
+      "exemplars",
+      "provenance",
+      "opl_handoff"
+    ],
+    "field_roles": {
+      "pack_id": "Namespaced pack identifier.",
+      "version": "Exact semantic version for reproducible paper locks.",
+      "display_api_version": "Host display API compatibility declaration.",
+      "source": "Where the pack descriptor and assets resolve from.",
+      "owner": "Pack maintainer or responsible domain owner.",
+      "license": "License or internal-use boundary.",
+      "templates": "Template descriptors exposed by this pack.",
+      "style_profiles": "Pack-local style profile refs for publication displays.",
+      "qc_profiles": "Pack-local deterministic QC profile refs.",
+      "ai_policy": "AI illustration and AI visual-review policy refs.",
+      "goldens": "Golden regression refs and status.",
+      "exemplars": "Link-only exemplar refs and intake provenance.",
+      "provenance": "Source, lock, hash, release, and audit provenance refs.",
+      "opl_handoff": "Refs-only handoff to the future generic OPL Pack OS."
+    }
+  },
+  "template_descriptor": {
+    "surface_kind": "display_pack_v2_template_descriptor",
+    "native_manifest": "templates/<template_id>/template.toml",
+    "required_fields": [
+      "template_id",
+      "full_template_id",
+      "kind",
+      "display_name",
+      "paper_family_ids",
+      "audit_family",
+      "renderer_family",
+      "input_schema_ref",
+      "qc_profile_ref",
+      "style_profile_ref",
+      "required_exports",
+      "execution_mode",
+      "entrypoint",
+      "paper_proven",
+      "golden_case_paths",
+      "exemplar_refs"
+    ],
+    "allowed_kinds": [
+      "evidence_figure",
+      "illustration_shell",
+      "table_shell"
+    ],
+    "allowed_execution_modes": [
+      "python_plugin",
+      "subprocess"
+    ],
+    "authority_boundary": "Template descriptors bind renderer, input schema, QC, style, golden, and exemplar refs. They do not authorize publication readiness or replace paper-level quality receipts."
+  },
+  "quality_surfaces": {
+    "publication_figure_quality_contract_ref": "contracts/publication_figure_quality_contract.json",
+    "display_pack_lock_surface": "paper/build/display_pack_lock.json",
+    "paper_quality_refs": [
+      "paper/figure_intent.json",
+      "paper/figure_style_reference_bundle.json",
+      "paper/figure_visual_audit_receipt.json",
+      "paper/ai_illustration_receipt.json"
+    ],
+    "boundary": "display_pack_lock.json and submission manifests preserve refs, status, and hashes. They do not become publication verdicts or artifact authority."
+  },
+  "authority_boundaries": {
+    "mas_pack_descriptor_authority": true,
+    "mas_publication_quality_authority": true,
+    "mas_owns_opl_generic_pack_os": false,
+    "opl_can_write_mas_publication_truth": false,
+    "display_pack_lock_can_authorize_publication_readiness": false,
+    "pack_descriptor_can_mutate_study_truth": false,
+    "ai_illustration_can_carry_scientific_claim": false
+  },
+  "opl_handoff": {
+    "surface_kind": "display_pack_v2_opl_pack_os_handoff",
+    "status": "handoff_tail",
+    "tail_status": "not_landed_gap",
+    "target_owner": "OPL Pack OS",
+    "target_capabilities": [
+      "generic_pack_install",
+      "generic_pack_registry",
+      "generic_pack_version_resolution",
+      "generic_pack_lock_projection",
+      "generic_pack_submission_handoff",
+      "generic_pack_asset_inventory"
+    ],
+    "mas_current_capabilities": [
+      "display_pack_toml_loader",
+      "template_toml_loader",
+      "local_dir_git_repo_python_package_sources",
+      "display_pack_lock_refs",
+      "publication_figure_quality_refs",
+      "submission_manifest_ref_preservation"
+    ],
+    "handoff_rule": "MAS exposes refs and boundaries for OPL to consume later. OPL Pack OS remains a handoff tail until an OPL-owned generic pack surface lands outside MAS with its own tests and adoption evidence.",
+    "forbidden_claims": [
+      "MAS owns generic OPL Pack OS",
+      "Display Pack v2 contract closes the OPL generic pack substrate",
+      "OPL tail is landed inside this repository"
+    ]
+  },
+  "verification": {
+    "focused_tests": [
+      "tests/test_display_pack_v2_contract.py"
+    ],
+    "required_commands_when_changed": [
+      "scripts/run-pytest-clean.sh tests/test_display_pack_v2_contract.py -q",
+      "git diff --check"
+    ]
+  }
+}

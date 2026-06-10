@@ -30,6 +30,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 - 军火库扩充历史：[medical_display_arsenal_history.md](../../../history/capabilities/medical-display/medical_display_arsenal_history.md)
 - 当前模板目录：[medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md)
 - 当前工程审计面：[medical_display_audit_guide.md](../contracts/medical_display_audit_guide.md)
+- Display Pack v2 总合同：[`contracts/display-pack-contract.v2.json`](../../../../contracts/display-pack-contract.v2.json)
 - Phase 1-2 实施 provenance：[medical_display_template_pack_implementation_plan_2026_04.md](../../../history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md)
 
 ## 一句话结论
@@ -71,6 +72,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 - `Phase 4` 的 provenance 也已继续往前推进：
   - submission-facing `submission_manifest.json` 现已可携带 pack version / source kind / manifest hash / lock path 摘要；
 - `Display Pack v2` 的图质量机制已进入机器面：
+  - `contracts/display-pack-contract.v2.json` 现在声明 pack descriptor、template descriptor、style/QC/AI/golden/exemplar/provenance 字段集合，以及 MAS/OPL Pack OS 边界；
   - `paper/figure_intent.json` 负责每张图的 `claim_ref`、`data_ref`、`template_id`、`figure_kind` 绑定；
   - `paper/figure_style_reference_bundle.json` 负责 AgentFigureGallery 式 link-only 喜欢/拒绝/采用参考；
   - `paper/figure_visual_audit_receipt.json` 负责 VLM/human/hybrid 对真实渲染图的结构化视觉审计回执；
@@ -80,6 +82,7 @@ Machine boundary: Human-readable implementation support only; active execution t
   - 外部 source 的安装/获取机制仍未独立成完整分发链；
   - pack 内 `examples / goldens / exemplars / audit` 资产仍需继续真实充实，而不只是 contract 已落地；
   - 更广的 submission/manuscript-facing pack provenance 对账还可以继续扩展。
+  - OPL 通用 Pack OS 仍是 handoff tail；MAS 当前只落地域内 pack/lock/quality refs 与边界声明，不把本仓写成已完成通用 pack 基座。
 - PaperPlotHub 这类公开绘图库已进入 link-only exemplar intake 口径：
   - 它可以作为模板包 `exemplar_refs` 和军火库学习证据；
   - 它不是 `display_pack` source kind；
@@ -225,6 +228,15 @@ Machine boundary: Human-readable implementation support only; active execution t
 - 它们来自哪些论文；
 - 它们提升了哪个 paper family；
 - 它们当前是否已被真实论文证明。
+
+### 四、OPL Pack OS handoff tail
+
+`contracts/display-pack-contract.v2.json` 把 MAS 当前已落地的 Display Pack v2 域内能力和 OPL 通用 Pack OS 拆开：
+
+- MAS 已落地并验证的是 pack descriptor、template descriptor、`display_pack_lock.json`、paper-level quality refs、submission manifest ref preservation，以及这些 surface 的 authority boundary；
+- OPL Pack OS 的长期目标是通用 pack install、registry、version resolution、lock projection、submission handoff 和 asset inventory；
+- 这些通用能力现在只作为 refs-only handoff/tail 记录，不写成 MAS 已经拥有的通用基座；
+- 后续只有在 OPL-owned generic pack surface 带着自己的 tests、adoption evidence 和 consumer projection 落地后，才能把 tail 状态从缺口改成已落地。
 
 ## 命名与标识
 
