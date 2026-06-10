@@ -53,6 +53,161 @@ def test_runtime_lifecycle_payload_retention_externalizes_large_payload_columns(
     assert categories_ref["column"] == "categories_json"
 
 
+def test_runtime_lifecycle_payload_retention_retires_externalized_cold_payloads(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_lifecycle_payload_retention")
+    db_path = tmp_path / "runtime_lifecycle.sqlite"
+    payload = {"categories": {"runtime": [{"path": f"file-{index}", "payload": "x" * 1024} for index in range(128)]}}
+    payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    payload_sha = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+    cold_store = tmp_path / "cold-store"
+    _create_runtime_lifecycle_fixture(db_path=db_path, payload_json=payload_json, payload_sha=payload_sha)
+
+    externalized = module.run_runtime_lifecycle_payload_retention(
+        db_path=db_path,
+        apply=True,
+        cold_store_root=cold_store,
+        min_mb=0,
+        compact=False,
+    )
+    assert externalized["moved_count"] + externalized["deduped_count"] == 4
+
+    retired = module.run_runtime_lifecycle_payload_retention(
+        db_path=db_path,
+        apply=True,
+        cold_store_root=cold_store,
+        min_mb=0,
+        compact=True,
+        retire_cold_payloads=True,
+    )
+
+    assert retired["status"] == "applied"
+    assert retired["retired_cold_payload_count"] == 4
+    assert retired["compact"]["status"] == "compacted"
+    assert retired["mutation_policy"]["retires_externalized_runtime_lifecycle_payload_body"] is True
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        report_payload = conn.execute("SELECT payload_json FROM report_index").fetchone()[0]
+    report_ref = json.loads(report_payload)
+    cold_ref = json.loads(Path(report_ref["cold_ref_path"]).read_text(encoding="utf-8"))
+    retired_object = json.loads(Path(report_ref["cold_object_path"]).read_text(encoding="utf-8"))
+    assert report_ref["semantic_restore_policy"]["status"] == "runtime_lifecycle_payload_raw_body_retired"
+    assert report_ref["restore_command"] is None
+    assert cold_ref["semantic_restore_policy"]["status"] == "runtime_lifecycle_payload_raw_body_retired"
+    assert cold_ref["restore_command"] is None
+    assert retired_object["surface_kind"] == "runtime_lifecycle_payload_semantic_retention_ref"
+    assert retired_object["original_sha256"] == payload_sha
+    assert retired_object["original_bytes"] == len(payload_json.encode("utf-8"))
+    assert Path(retired_object["semantic_capsule_path"]).is_file()
+
+
+def test_runtime_lifecycle_payload_retention_compacts_without_new_payload_candidates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_lifecycle_payload_retention")
+    db_path = tmp_path / "runtime_lifecycle.sqlite"
+    payload_json = json.dumps({"payload": "small"}, sort_keys=True)
+    payload_sha = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+    _create_runtime_lifecycle_fixture(db_path=db_path, payload_json=payload_json, payload_sha=payload_sha)
+
+    compacted = module.run_runtime_lifecycle_payload_retention(
+        db_path=db_path,
+        apply=True,
+        cold_store_root=tmp_path / "cold-store",
+        min_mb=16,
+        compact=True,
+    )
+
+    assert compacted["status"] == "compacted"
+    assert compacted["candidate_count"] == 0
+    assert compacted["compact"]["status"] == "compacted"
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+
+
+def test_runtime_lifecycle_payload_retention_reports_only_below_threshold_refs_as_nothing_to_retain(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_lifecycle_payload_retention")
+    db_path = tmp_path / "runtime_lifecycle.sqlite"
+    payload_json = json.dumps({"payload": "x" * 4096}, sort_keys=True)
+    payload_sha = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+    cold_store = tmp_path / "cold-store"
+    _create_runtime_lifecycle_fixture(db_path=db_path, payload_json=payload_json, payload_sha=payload_sha)
+    module.run_runtime_lifecycle_payload_retention(
+        db_path=db_path,
+        apply=True,
+        cold_store_root=cold_store,
+        min_mb=0,
+        compact=False,
+        max_rows=1,
+    )
+
+    result = module.run_runtime_lifecycle_payload_retention(
+        db_path=db_path,
+        apply=False,
+        cold_store_root=cold_store,
+        min_mb=16,
+        compact=False,
+        retire_cold_payloads=True,
+    )
+
+    assert result["status"] == "nothing_to_retain"
+    assert result["cold_payload_candidate_count"] == 1
+    assert result["cold_payload_candidate_samples"][0]["status"] == "skipped_below_threshold"
+    assert result["actionable_cold_payload_candidate_count"] == 0
+
+
+def test_runtime_lifecycle_payload_retention_missing_db_receipt_keeps_payload_fields(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_lifecycle_payload_retention")
+
+    result = module.run_runtime_lifecycle_payload_retention(
+        db_path=tmp_path / "missing.sqlite",
+        apply=True,
+        cold_store_root=tmp_path / "cold-store",
+        min_mb=16,
+        compact=True,
+        retire_cold_payloads=True,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["cold_payload_candidate_count"] == 0
+    assert result["retired_cold_payload_count"] == 0
+    assert result["retired_cold_payload_release_bytes"] == 0
+    assert result["retire_cold_payloads"] is True
+
+
+def test_runtime_lifecycle_payload_retention_blocks_cold_payload_outside_cold_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_lifecycle_payload_retention")
+    db_path = tmp_path / "runtime_lifecycle.sqlite"
+    payload = {"categories": {"runtime": [{"path": f"file-{index}", "payload": "x" * 1024} for index in range(128)]}}
+    payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    payload_sha = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+    trusted_cold_store = tmp_path / "trusted-cold-store"
+    untrusted_cold_store = tmp_path / "untrusted-cold-store"
+    _create_runtime_lifecycle_fixture(db_path=db_path, payload_json=payload_json, payload_sha=payload_sha)
+    externalized = module.run_runtime_lifecycle_payload_retention(
+        db_path=db_path,
+        apply=True,
+        cold_store_root=trusted_cold_store,
+        min_mb=0,
+        compact=False,
+        max_rows=1,
+    )
+    object_path = Path(externalized["candidate_samples"][0]["cold_object_path"])
+    before_sha = hashlib.sha256(object_path.read_bytes()).hexdigest()
+
+    blocked = module.run_runtime_lifecycle_payload_retention(
+        db_path=db_path,
+        apply=True,
+        cold_store_root=untrusted_cold_store,
+        min_mb=0,
+        compact=False,
+        retire_cold_payloads=True,
+    )
+
+    assert blocked["status"] == "blocked"
+    assert blocked["blocker_samples"][0]["status"] == "blocked_cold_object_outside_cold_root"
+    assert hashlib.sha256(object_path.read_bytes()).hexdigest() == before_sha
+
+
 def test_runtime_lifecycle_payload_retention_compact_removes_stale_sqlite_sidecars(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_lifecycle_payload_retention")
     db_path = tmp_path / "runtime_lifecycle.sqlite"
@@ -144,6 +299,7 @@ def test_runtime_lifecycle_payload_retention_cli_dispatches_controller(monkeypat
         min_mb: int,
         max_rows: int | None,
         compact: bool,
+        retire_cold_payloads: bool,
     ) -> dict[str, object]:
         called["db_path"] = db_path
         called["apply"] = apply
@@ -151,6 +307,7 @@ def test_runtime_lifecycle_payload_retention_cli_dispatches_controller(monkeypat
         called["min_mb"] = min_mb
         called["max_rows"] = max_rows
         called["compact"] = compact
+        called["retire_cold_payloads"] = retire_cold_payloads
         return {"surface_kind": "runtime_lifecycle_payload_retention", "status": "applied"}
 
     monkeypatch.setattr(
@@ -172,6 +329,7 @@ def test_runtime_lifecycle_payload_retention_cli_dispatches_controller(monkeypat
             "--max-rows",
             "5",
             "--compact",
+            "--retire-cold-payloads",
         ]
     )
 
@@ -183,6 +341,7 @@ def test_runtime_lifecycle_payload_retention_cli_dispatches_controller(monkeypat
         "min_mb": 2,
         "max_rows": 5,
         "compact": True,
+        "retire_cold_payloads": True,
     }
     assert json.loads(capsys.readouterr().out)["status"] == "applied"
 

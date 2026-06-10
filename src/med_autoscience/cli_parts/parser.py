@@ -293,6 +293,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_lifecycle_payload_retention_parser.add_argument("--min-mb", type=int, default=16)
     runtime_lifecycle_payload_retention_parser.add_argument("--max-rows", type=int)
     runtime_lifecycle_payload_retention_parser.add_argument("--compact", action="store_true")
+    runtime_lifecycle_payload_retention_parser.add_argument("--retire-cold-payloads", action="store_true")
     runtime_lifecycle_payload_retention_parser.add_argument("--repair-stale-sidecars", action="store_true")
     runtime_lifecycle_payload_retention_mode = runtime_lifecycle_payload_retention_parser.add_mutually_exclusive_group(
         required=True
@@ -308,6 +309,36 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     )
     retention_surface_housekeeping_mode.add_argument("--dry-run", action="store_true")
     retention_surface_housekeeping_mode.add_argument("--apply", action="store_true")
+
+    cold_store_dedupe_parser = subparsers.add_parser("cold-store-dedupe")
+    cold_store_dedupe_parser.add_argument("--root", required=True)
+    cold_store_dedupe_parser.add_argument("--min-mb", type=int, default=16)
+    cold_store_dedupe_parser.add_argument("--max-groups", type=int)
+    cold_store_dedupe_mode = cold_store_dedupe_parser.add_mutually_exclusive_group(required=True)
+    cold_store_dedupe_mode.add_argument("--dry-run", action="store_true")
+    cold_store_dedupe_mode.add_argument("--apply", action="store_true")
+
+    cold_store_reference_audit_parser = subparsers.add_parser("cold-store-reference-audit")
+    cold_store_reference_audit_parser.add_argument("--root", required=True)
+    cold_store_reference_audit_parser.add_argument("--reference-root", action="append", default=[])
+    cold_store_reference_audit_parser.add_argument("--min-mb", type=int, default=16)
+    cold_store_reference_audit_parser.add_argument("--max-objects", type=int)
+    cold_store_reference_audit_mode = cold_store_reference_audit_parser.add_mutually_exclusive_group(required=True)
+    cold_store_reference_audit_mode.add_argument("--dry-run", action="store_true")
+    cold_store_reference_audit_mode.add_argument("--apply", action="store_true")
+
+    semantic_cold_store_retention_parser = subparsers.add_parser("semantic-cold-store-retention")
+    semantic_cold_store_retention_parser.add_argument("--root", required=True)
+    semantic_cold_store_retention_parser.add_argument("--reference-root", action="append", default=[])
+    semantic_cold_store_retention_parser.add_argument("--reference-file-list", action="append", default=[])
+    semantic_cold_store_retention_parser.add_argument("--min-mb", type=int, default=16)
+    semantic_cold_store_retention_parser.add_argument("--max-objects", type=int)
+    semantic_cold_store_retention_parser.add_argument("--retire-exact-raw-restore", action="store_true")
+    semantic_cold_store_retention_mode = semantic_cold_store_retention_parser.add_mutually_exclusive_group(
+        required=True
+    )
+    semantic_cold_store_retention_mode.add_argument("--dry-run", action="store_true")
+    semantic_cold_store_retention_mode.add_argument("--apply", action="store_true")
 
     paper_authority_clean_migration_parser = subparsers.add_parser("paper-authority-clean-migration")
     paper_authority_clean_migration_parser.add_argument("--profile", required=True)

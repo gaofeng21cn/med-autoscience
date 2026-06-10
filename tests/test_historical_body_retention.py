@@ -202,6 +202,83 @@ def test_historical_body_retention_replaces_legacy_physical_cleanup_history_with
     assert Path(ref["cold_object_path"]).is_file()
 
 
+def test_historical_body_retention_replaces_legacy_latest_aliases_when_they_are_archived_body(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.historical_body_retention")
+    workspace = tmp_path / "Study"
+    storage_latest = workspace / "archive" / "legacy_root_surfaces" / "20260607T064130Z" / "storage_audit" / "latest.json"
+    cleanup_latest = workspace / "runtime" / "artifacts" / "legacy_physical_cleanup" / "latest.json"
+    storage_latest.parent.mkdir(parents=True, exist_ok=True)
+    cleanup_latest.parent.mkdir(parents=True, exist_ok=True)
+    storage_latest.write_text(
+        json.dumps(
+            {"surface_kind": "workspace_storage_audit", "events": ["x" * 1024] * 64},
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    cleanup_latest.write_text(
+        json.dumps(
+            {"surface_kind": "workspace_legacy_physical_cleanup_apply", "refs": ["y" * 1024] * 64},
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    applied = module.run_historical_body_retention(
+        root=workspace,
+        apply=True,
+        cold_store_root=tmp_path / "cold-store",
+        min_mb=0,
+    )
+
+    assert applied["status"] == "applied"
+    assert applied["candidate_count"] == 2
+    assert {
+        item["historical_surface_kind"] for item in applied["candidate_samples"]
+    } == {
+        "legacy_root_storage_audit_latest_json",
+        "legacy_physical_cleanup_latest_body",
+    }
+    storage_ref = json.loads(storage_latest.read_text(encoding="utf-8"))
+    cleanup_ref = json.loads(cleanup_latest.read_text(encoding="utf-8"))
+    assert storage_ref["surface_kind"] == "historical_body_retention_ref"
+    assert cleanup_ref["surface_kind"] == "historical_body_retention_ref"
+
+
+def test_historical_body_retention_replaces_runtime_storage_maintenance_report_body(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.historical_body_retention")
+    workspace = tmp_path / "Study"
+    report_path = (
+        workspace
+        / "studies"
+        / "002-study"
+        / "artifacts"
+        / "runtime"
+        / "runtime_storage_maintenance"
+        / "20260501T081152Z.json"
+    )
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps({"surface_kind": "runtime_storage_maintenance", "files": ["z" * 1024] * 64}, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    applied = module.run_historical_body_retention(
+        root=workspace,
+        apply=True,
+        cold_store_root=tmp_path / "cold-store",
+        min_mb=0,
+    )
+
+    assert applied["status"] == "applied"
+    assert applied["candidate_count"] == 1
+    assert applied["candidate_samples"][0]["historical_surface_kind"] == "runtime_storage_maintenance_report_body"
+    slim = json.loads(report_path.read_text(encoding="utf-8"))
+    assert slim["surface_kind"] == "historical_body_retention_ref"
+
+
 def test_historical_body_retention_scoped_root_still_uses_workspace_receipt_and_cold_namespace(
     tmp_path: Path,
 ) -> None:

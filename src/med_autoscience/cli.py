@@ -89,6 +89,9 @@ historical_body_retention = _LazyModuleProxy(lambda: _load_controller("historica
 historical_directory_retention = _LazyModuleProxy(lambda: _load_controller("historical_directory_retention"))
 runtime_lifecycle_payload_retention = _LazyModuleProxy(lambda: _load_controller("runtime_lifecycle_payload_retention"))
 retention_surface_housekeeping = _LazyModuleProxy(lambda: _load_controller("retention_surface_housekeeping"))
+cold_store_dedupe = _LazyModuleProxy(lambda: _load_controller("cold_store_dedupe"))
+cold_store_reference_audit = _LazyModuleProxy(lambda: _load_controller("cold_store_reference_audit"))
+semantic_cold_store_retention = _LazyModuleProxy(lambda: _load_controller("semantic_cold_store_retention"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
 paper_clean_room_rebuild = _LazyModuleProxy(lambda: _load_controller("paper_clean_room_rebuild"))
 study_workspace_status = _LazyModuleProxy(lambda: _load_controller("study_workspace_status"))
@@ -704,6 +707,9 @@ def main(argv: list[str] | None = None) -> int:
         historical_directory_retention=historical_directory_retention,
         runtime_lifecycle_payload_retention=runtime_lifecycle_payload_retention,
         retention_surface_housekeeping=retention_surface_housekeeping,
+        cold_store_dedupe=cold_store_dedupe,
+        cold_store_reference_audit=cold_store_reference_audit,
+        semantic_cold_store_retention=semantic_cold_store_retention,
     )
     if retention_result is not None:
         return retention_result
