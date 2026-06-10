@@ -172,7 +172,17 @@ def test_compiled_visual_region_qa_routes_layout_gaps_to_work_units() -> None:
         "figure_overflow",
         "table_overflow",
         "template_width_compliance",
+        "effective_font_size_after_scaling",
+        "physical_export_size_roundtrip",
+        "multi_panel_non_redundancy",
     ]
+    assert visual["advisory_source_patterns"] == {
+        "Light0305/Light@d71033733bc4b357f3a2f0b6460ad7d8da070954": [
+            "check_scaled_fonts_effective_font_size",
+            "exported_figure_physical_size_validation",
+            "panel_unique_scientific_question_review",
+        ]
+    }
     assert visual["missing_or_failed_check_behavior"] == "layout_work_unit"
     assert visual["hard_gate_only_when"] == [
         "publication_gate_requires_compiled_artifact",
