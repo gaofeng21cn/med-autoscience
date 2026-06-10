@@ -887,6 +887,74 @@ def test_current_work_unit_projects_gate_replay_when_stale_quality_repair_closeo
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_rejects_running_attempt_for_superseded_work_unit() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "next_forced_delta": {
+                "required_delta_kind": "current_owner_action_or_typed_blocker",
+                "reason": "publication_gate_replay_after_current_ai_reviewer_record",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "owner_action": {
+                    "next_owner": "gate_clearing_batch",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+        },
+        actions=[
+            {
+                "source": "opl_current_control_state_action_queue",
+                "owner": "gate_clearing_batch",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "action_fingerprint": (
+                    "current-ai-reviewer-gate-replay::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+                ),
+                "work_unit_fingerprint": (
+                    "current-ai-reviewer-gate-replay::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+                ),
+                "authority": "observability_only",
+            }
+        ],
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat_ea47efca5f0e95fad738d584",
+            "active_stage_attempt_id": "sat_ea47efca5f0e95fad738d584",
+            "active_workflow_id": "wf_983dbdfb4062990f3f74d6a7",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::0915410f804b3697",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::0915410f804b3697",
+            },
+        },
+        next_owner="gate_clearing_batch",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "gate_clearing_batch"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    assert work_unit["state"]["state_kind"] == "executable_owner_action"
+    assert work_unit["state"]["source"] == "opl_current_control_state_action_queue"
+
+
 def test_current_work_unit_preserves_prior_action_blocker_over_mismatched_current_control_repair() -> None:
     module = _module()
 
