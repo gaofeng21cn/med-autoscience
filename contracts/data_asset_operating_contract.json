@@ -1,0 +1,218 @@
+{
+  "surface_kind": "mas_data_asset_operating_contract",
+  "version": "mas-data-asset-operating-contract.v3",
+  "schema_ref": "contracts/schemas/v1/data-asset-operating-contract.schema.json",
+  "owner": "MedAutoScience",
+  "state": "active_contract",
+  "purpose": "Machine-readable operating contract for MAS data assets across body, contract, registry-lineage, and study-binding planes.",
+  "machine_boundary": "This contract defines MAS data asset ownership, refs-only lineage, rebuildable projections, study binding, OPL substrate boundary, retention exclusion, and SQLite compact accounting. It cannot move, delete, compact, or rewrite dataset body files, study truth, publication verdicts, artifact authority, owner receipts, typed blockers, runtime current-control, or workspace data body.",
+  "source_decision_ref": "docs/decisions.md#2026-06-10-data-asset-v2-four-plane-runtime-retention-boundary",
+  "planes": {
+    "body": {
+      "plane_id": "body",
+      "root_ref": "data/datasets",
+      "layout": "data/datasets/<layer>/<version>/",
+      "role": "dataset_release_body_authority",
+      "owner": "MedAutoScience",
+      "allowed_layers": [
+        "restricted_raw",
+        "deidentified_linkage",
+        "master",
+        "deidentified_longitudinal",
+        "standardized_longitudinal",
+        "external"
+      ],
+      "contains_dataset_body": true,
+      "runtime_residue": false,
+      "retention": {
+        "excluded_from_runtime_residue_cleanup": true,
+        "excluded_from_payload_externalization": true,
+        "excluded_from_restore_proof_compaction": true,
+        "excluded_from_sqlite_generic_compact": true,
+        "reason": "dataset_body_plane_is_domain_data_asset_authority"
+      },
+      "forbidden_consumers": [
+        "runtime_residue_cleanup",
+        "payload_externalization",
+        "restore_proof_compaction",
+        "sqlite_generic_compact",
+        "opl_substrate_body_surface"
+      ]
+    },
+    "contract": {
+      "plane_id": "contract",
+      "root_ref": "data/datasets/<layer>/<version>/dataset_manifest.yaml",
+      "role": "release_contract_and_manifest_authority",
+      "owner": "MedAutoScience",
+      "accepted_contract_surfaces": [
+        "dataset_manifest.yaml",
+        "release_contract"
+      ],
+      "contains_dataset_body": false,
+      "required_ref_fields": [
+        "dataset_id",
+        "version",
+        "family_id",
+        "layer_id",
+        "main_outputs",
+        "lineage_refs",
+        "manifest_refs"
+      ],
+      "body_storage_allowed": false
+    },
+    "registry_lineage": {
+      "plane_id": "registry_lineage",
+      "root_ref": "memory/portfolio/data_assets",
+      "role": "controller_derived_registry_lineage_impact_readiness_projection",
+      "owner": "MedAutoScience",
+      "refs_only": true,
+      "contains_dataset_body": false,
+      "surfaces": {
+        "private_registry_ref": "memory/portfolio/data_assets/private/registry.json",
+        "public_registry_ref": "memory/portfolio/data_assets/public/registry.json",
+        "impact_ref": "memory/portfolio/data_assets/impact/latest_impact_report.json",
+        "startup_ref": "memory/portfolio/data_assets/startup/latest_startup_data_readiness.json",
+        "mutations_ref": "memory/portfolio/data_assets/mutations/",
+        "lineage_ref": "memory/portfolio/data_assets/lineage/",
+        "manifest_refs_ref": "memory/portfolio/data_assets/lineage/manifest_refs.json"
+      },
+      "manifest_refs_projection": {
+        "surface_kind": "mas_data_asset_manifest_refs",
+        "role": "rebuildable_refs_only_projection",
+        "source_of_truth": [
+          "data/datasets/<layer>/<version>/dataset_manifest.yaml",
+          "release_contract"
+        ],
+        "refs_only": true,
+        "contains_dataset_body": false,
+        "derived_projection_rebuildable": true,
+        "projection_can_authorize_cleanup": false,
+        "projection_can_authorize_study_binding": false,
+        "projection_can_authorize_release_body_mutation": false
+      }
+    },
+    "study_binding": {
+      "plane_id": "study_binding",
+      "root_ref": "studies/<study-id>/study.yaml",
+      "role": "study_contract_binding_to_consumable_release_refs",
+      "owner": "MedAutoScience",
+      "binding_policy": "asset_refs_only",
+      "accepted_ref_fields": [
+        "dataset_id",
+        "version",
+        "family_id",
+        "source",
+        "asset_ref"
+      ],
+      "binds_consumable_release_refs_only": true,
+      "study_local_derived_artifacts_stay_in_study_analysis_tree": true,
+      "body_storage_allowed": false,
+      "forbidden_binding_shapes": [
+        "embedded_dataset_body",
+        "runtime_payload_body",
+        "sqlite_blob_body",
+        "opl_substrate_body_ref_as_authority",
+        "lineage_projection_as_release_body_authority"
+      ]
+    }
+  },
+  "opl_substrate_boundary": {
+    "opl_allowed_roles": [
+      "generic_locator",
+      "cold_store",
+      "restore",
+      "lineage_event",
+      "quality_result_index",
+      "workbench_projection"
+    ],
+    "opl_forbidden_roles": [
+      "dataset_body_authority",
+      "access_tier_authority",
+      "direct_study_consumption_authority",
+      "clinical_semantic_mapping_authority",
+      "source_readiness_authority",
+      "study_binding_authority",
+      "owner_receipt_authority",
+      "typed_blocker_authority",
+      "data_datasets_body_surface"
+    ],
+    "mas_retained_authority": [
+      "access_tier",
+      "direct_study_consumption",
+      "clinical_semantic_mapping",
+      "source_readiness",
+      "study_binding",
+      "owner_receipt",
+      "typed_blocker",
+      "release_contract",
+      "dataset_body_plane"
+    ],
+    "substrate_can_transport_refs": true,
+    "substrate_can_index_refs": true,
+    "substrate_can_display_refs": true,
+    "substrate_can_store_dataset_body": false,
+    "substrate_can_redefine_data_asset_authority": false
+  },
+  "runtime_retention_boundary": {
+    "dataset_body_plane_ref": "data/datasets",
+    "dataset_body_is_runtime_residue": false,
+    "runtime_storage_retention_may_cleanup_dataset_body": false,
+    "payload_externalization_may_move_dataset_body": false,
+    "restore_proof_compaction_may_compact_dataset_body": false,
+    "legacy_path_provenance_may_redefine_authority": false,
+    "cleanup_authority_requires": [
+      "explicit_mas_data_asset_owner_receipt",
+      "target_ref_not_under_data/datasets",
+      "target_ref_not_release_body",
+      "target_ref_not_study_binding_source"
+    ]
+  },
+  "sqlite_compact_accounting": {
+    "role": "refs_only_rebuildable_read_model_accounting",
+    "generic_sqlite_compact_can_index_refs": true,
+    "generic_sqlite_compact_can_compact_dataset_body": false,
+    "generic_sqlite_compact_can_store_dataset_body": false,
+    "domain_authority_refs_sqlite_role": "refs_only_domain_authority_index_adapter",
+    "manifest_refs_rebuildable_projection": true,
+    "allowed_sqlite_payload_roles": [
+      "ref",
+      "locator",
+      "cursor",
+      "checksum",
+      "content_hash",
+      "source_fingerprint",
+      "idempotency_key",
+      "manifest_ref",
+      "lineage_ref",
+      "asset_ref"
+    ],
+    "forbidden_sqlite_payloads": [
+      "dataset_body",
+      "study_truth_body",
+      "publication_eval_body",
+      "controller_decision_body",
+      "manuscript_body",
+      "paper_package_body",
+      "evidence_ledger_body",
+      "review_ledger_body",
+      "memory_body",
+      "artifact_body",
+      "owner_receipt_authority",
+      "typed_blocker_authority"
+    ],
+    "accounting_ledgers": {
+      "runtime_process_body_compaction": "runtime_lifecycle_or_attempt_evidence_ledger",
+      "data_asset_body_retention": "mas_data_asset_owner_surface",
+      "refs_only_projection_rebuild": "data_asset_manifest_refs_projection",
+      "sqlite_index_compact": "opl_or_runtime_refs_only_index_accounting"
+    }
+  },
+  "forbidden_global_claims": [
+    "data_datasets_is_runtime_residue",
+    "manifest_refs_contains_dataset_body",
+    "sqlite_compact_can_store_dataset_body",
+    "opl_substrate_owns_dataset_body",
+    "study_binding_can_embed_dataset_body",
+    "registry_lineage_projection_authorizes_body_cleanup"
+  ]
+}
