@@ -70,13 +70,23 @@ def _collect_template_entry(
     repo_root: Path,
 ) -> dict[str, Any]:
     template_root = record.template_path.parent
+    render_script_path = template_root / "render.R"
     payload = {
         "template_id": record.template_manifest.template_id,
         "full_template_id": record.template_manifest.full_template_id,
         "kind": record.template_manifest.kind,
+        "renderer_family": record.template_manifest.renderer_family,
+        "execution_mode": record.template_manifest.execution_mode,
+        "entrypoint": record.template_manifest.entrypoint,
         "paper_proven": record.template_manifest.paper_proven,
         "template_manifest_path": _relative_or_absolute(record.template_path, repo_root=repo_root),
         "template_manifest_sha256": _sha256_file(record.template_path),
+        "render_script_path": _relative_or_absolute(render_script_path, repo_root=repo_root)
+        if render_script_path.is_file()
+        else None,
+        "render_script_sha256": _sha256_file(render_script_path)
+        if render_script_path.is_file()
+        else None,
         "golden_case_paths": list(record.template_manifest.golden_case_paths),
         "exemplar_refs": list(record.template_manifest.exemplar_refs),
     }
@@ -128,6 +138,9 @@ def _collect_pack_entry(
     template_records: list[LoadedDisplayTemplate],
 ) -> dict[str, Any]:
     manifest_path = record.pack_root / "display_pack.toml"
+    renderer_migration_ledger_path = record.pack_root / "renderer_migration_ledger.json"
+    renderer_dependency_profile_path = record.pack_root / "renderer_dependency_profile.json"
+    r_evidence_helper_path = record.pack_root / "rlib" / "medicaldisplaycore" / "evidence_renderer.R"
     payload = {
         "pack_id": record.pack_manifest.pack_id,
         "version": record.pack_manifest.version,
@@ -141,6 +154,27 @@ def _collect_pack_entry(
         "recommended_templates": list(record.pack_manifest.recommended_templates),
         "manifest_path": _relative_or_absolute(manifest_path, repo_root=repo_root),
         "manifest_sha256": _sha256_file(manifest_path),
+        "renderer_migration_ledger_path": _relative_or_absolute(renderer_migration_ledger_path, repo_root=repo_root)
+        if renderer_migration_ledger_path.is_file()
+        else None,
+        "renderer_migration_ledger_sha256": _sha256_file(renderer_migration_ledger_path)
+        if renderer_migration_ledger_path.is_file()
+        else None,
+        "renderer_dependency_profile_path": _relative_or_absolute(
+            renderer_dependency_profile_path,
+            repo_root=repo_root,
+        )
+        if renderer_dependency_profile_path.is_file()
+        else None,
+        "renderer_dependency_profile_sha256": _sha256_file(renderer_dependency_profile_path)
+        if renderer_dependency_profile_path.is_file()
+        else None,
+        "r_evidence_helper_path": _relative_or_absolute(r_evidence_helper_path, repo_root=repo_root)
+        if r_evidence_helper_path.is_file()
+        else None,
+        "r_evidence_helper_sha256": _sha256_file(r_evidence_helper_path)
+        if r_evidence_helper_path.is_file()
+        else None,
         "template_count": len(template_records),
         "templates": [
             _collect_template_entry(template_record, repo_root=repo_root)

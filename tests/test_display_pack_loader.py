@@ -171,6 +171,36 @@ def test_source_tree_does_not_keep_packaged_display_pack_projection() -> None:
     assert not packaged_root.exists()
 
 
+def test_core_pack_r_ggplot2_templates_are_subprocess_assets() -> None:
+    records = load_enabled_local_display_pack_template_records(REPO_ROOT)
+    evidence_records = [
+        record
+        for record in records
+        if record.pack_manifest.pack_id == CORE_PACK_ID and record.template_manifest.kind == "evidence_figure"
+    ]
+    r_records = [
+        record
+        for record in evidence_records
+        if record.template_manifest.renderer_family == "r_ggplot2"
+    ]
+    python_records = [
+        record
+        for record in evidence_records
+        if record.template_manifest.renderer_family == "python"
+    ]
+
+    assert len(evidence_records) == 84
+    assert len(r_records) == 22
+    assert len(python_records) == 62
+    for record in r_records:
+        assert record.template_manifest.execution_mode == "subprocess"
+        assert record.template_manifest.entrypoint == "Rscript render.R --request {request_json}"
+        assert (record.template_path.parent / "render.R").is_file()
+    for record in python_records:
+        assert record.template_manifest.execution_mode == "python_plugin"
+        assert record.template_manifest.entrypoint.startswith("fenggaolab_org_medical_display_core.")
+
+
 def test_load_enabled_local_display_pack_templates_reads_enabled_pack_templates(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()

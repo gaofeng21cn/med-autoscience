@@ -55,6 +55,7 @@ version = "0.2.0"
 
 def _write_pack_manifest(pack_root: Path, *, version: str) -> None:
     (pack_root / "templates" / "roc_curve_binary").mkdir(parents=True, exist_ok=True)
+    (pack_root / "rlib" / "medicaldisplaycore").mkdir(parents=True, exist_ok=True)
     (pack_root / "display_pack.toml").write_text(
         "\n".join(
             (
@@ -68,6 +69,12 @@ def _write_pack_manifest(pack_root: Path, *, version: str) -> None:
         + "\n",
         encoding="utf-8",
     )
+    (pack_root / "renderer_migration_ledger.json").write_text('{"schema_version":1}\n', encoding="utf-8")
+    (pack_root / "renderer_dependency_profile.json").write_text('{"schema_version":1}\n', encoding="utf-8")
+    (pack_root / "rlib" / "medicaldisplaycore" / "evidence_renderer.R").write_text(
+        "render_evidence_request <- function(request_path) {}\n",
+        encoding="utf-8",
+    )
 
 
 def _write_template_manifest(template_root: Path) -> None:
@@ -75,6 +82,7 @@ def _write_template_manifest(template_root: Path) -> None:
     (template_root / "goldens").mkdir(parents=True, exist_ok=True)
     (template_root / "exemplars").mkdir(parents=True, exist_ok=True)
     (template_root / "audit").mkdir(parents=True, exist_ok=True)
+    (template_root / "render.R").write_text("message('render')\n", encoding="utf-8")
     (template_root / "examples" / "input.json").write_text("{}", encoding="utf-8")
     (template_root / "goldens" / "main.png").write_text("png", encoding="utf-8")
     (template_root / "exemplars" / "source.md").write_text("# exemplar", encoding="utf-8")
@@ -94,8 +102,8 @@ def _write_template_manifest(template_root: Path) -> None:
                 'required_exports = ["png", "pdf"]',
                 'golden_case_paths = ["goldens/main.png"]',
                 'exemplar_refs = ["Nature Medicine 2025 Figure 2"]',
-                'execution_mode = "python_plugin"',
-                'entrypoint = "pkg.module:render"',
+                'execution_mode = "subprocess"',
+                'entrypoint = "Rscript render.R --request {request_json}"',
                 "paper_proven = false",
             )
         )
@@ -119,9 +127,20 @@ def test_build_display_pack_lock_payload_captures_template_asset_inventory(tmp_p
     template_entry = pack_entry["templates"][0]
 
     assert pack_entry["template_count"] == 1
+    assert pack_entry["renderer_migration_ledger_path"].endswith("renderer_migration_ledger.json")
+    assert len(pack_entry["renderer_migration_ledger_sha256"]) == 64
+    assert pack_entry["renderer_dependency_profile_path"].endswith("renderer_dependency_profile.json")
+    assert len(pack_entry["renderer_dependency_profile_sha256"]) == 64
+    assert pack_entry["r_evidence_helper_path"].endswith("rlib/medicaldisplaycore/evidence_renderer.R")
+    assert len(pack_entry["r_evidence_helper_sha256"]) == 64
     assert template_entry["template_id"] == "roc_curve_binary"
     assert template_entry["template_manifest_path"].endswith("templates/roc_curve_binary/template.toml")
     assert len(template_entry["template_manifest_sha256"]) == 64
+    assert template_entry["renderer_family"] == "r_ggplot2"
+    assert template_entry["execution_mode"] == "subprocess"
+    assert template_entry["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert template_entry["render_script_path"].endswith("templates/roc_curve_binary/render.R")
+    assert len(template_entry["render_script_sha256"]) == 64
     assert template_entry["golden_case_paths"] == ["goldens/main.png"]
     assert template_entry["exemplar_refs"] == ["Nature Medicine 2025 Figure 2"]
     assert template_entry["examples_dir"].endswith("templates/roc_curve_binary/examples")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 import sys
 
 
@@ -303,6 +304,33 @@ def _write_paper_inputs(paper_root: Path) -> None:
     )
 
 
+def _write_real_core_r_paper_inputs(paper_root: Path) -> None:
+    _write_paper_inputs(paper_root)
+    _write_json(
+        paper_root / "data" / "frozen" / "primary_curve.json",
+        {
+            "schema_version": 1,
+            "source_data_digest": "data-digest-primary",
+            "title": "Primary ROC",
+            "x_label": "1 - Specificity",
+            "y_label": "Sensitivity",
+            "series": [
+                {
+                    "label": "Primary model",
+                    "x": [0.0, 0.2, 0.6, 1.0],
+                    "y": [0.0, 0.72, 0.9, 1.0],
+                },
+                {
+                    "label": "Comparator",
+                    "x": [0.0, 0.3, 0.7, 1.0],
+                    "y": [0.0, 0.58, 0.82, 1.0],
+                },
+            ],
+            "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
+        },
+    )
+
+
 def _visual_audit_review() -> dict[str, object]:
     return {
         "audit_mode": "human_visual_review",
@@ -464,6 +492,51 @@ def test_materialize_display_pack_publication_manifest_runs_subprocess_renderer(
     assert Path(figure["render_result"]["request_path"]).exists()
     assert Path(figure["render_result"]["stdout_path"]).read_text(encoding="utf-8").strip()
     assert Path(figure["rendered_artifacts"]["png_path"]).read_text(encoding="utf-8").startswith("PNG:subprocess:")
+
+
+def test_materialize_display_pack_publication_manifest_runs_real_core_r_subprocess_renderer(tmp_path: Path) -> None:
+    from med_autoscience.display_pack_e2e_runtime import materialize_display_pack_publication_manifest
+
+    assert shutil.which("Rscript") is not None
+    repo_root = Path(__file__).resolve().parents[1]
+    paper_root = tmp_path / "workspace" / "paper"
+    _write_real_core_r_paper_inputs(paper_root)
+
+    result = materialize_display_pack_publication_manifest(
+        repo_root=repo_root,
+        paper_root=paper_root,
+        visual_audit_review=_visual_audit_review(),
+        figure_ids=["F1"],
+    )
+
+    figure = result["figures"][0]
+    render_result = figure["render_result"]
+    assert figure["template_id"] == "fenggaolab.org.medical-display-core::roc_curve_binary"
+    assert figure["renderer_family"] == "r_ggplot2"
+    assert figure["execution_mode"] == "subprocess"
+    assert render_result["execution_mode"] == "subprocess"
+    assert render_result["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert render_result["argv"][0] == "Rscript"
+    assert render_result["argv"][1] == "render.R"
+    assert render_result["argv"][2] == "--request"
+    assert Path(render_result["cwd"]).name == "roc_curve_binary"
+    assert Path(render_result["request_path"]).exists()
+    assert Path(render_result["stdout_path"]).exists()
+    assert Path(render_result["stderr_path"]).exists()
+    assert Path(figure["rendered_artifacts"]["png_path"]).exists()
+    assert Path(figure["rendered_artifacts"]["pdf_path"]).exists()
+    assert Path(figure["rendered_artifacts"]["layout_sidecar_path"]).exists()
+    lock_payload = json.loads((paper_root / "build" / "display_pack_lock.json").read_text(encoding="utf-8"))
+    locked_template = next(
+        item
+        for pack in lock_payload["enabled_packs"]
+        for item in pack["templates"]
+        if item["full_template_id"] == "fenggaolab.org.medical-display-core::roc_curve_binary"
+    )
+    assert locked_template["execution_mode"] == "subprocess"
+    assert locked_template["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert locked_template["render_script_path"].endswith("templates/roc_curve_binary/render.R")
+    assert len(locked_template["render_script_sha256"]) == 64
 
 
 def test_materialize_display_pack_publication_manifest_runs_multi_figure_batch(tmp_path: Path) -> None:

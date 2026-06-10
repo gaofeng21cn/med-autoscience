@@ -145,7 +145,7 @@ def _core_pack_src_on_sys_path():
 def test_exported_entrypoint_is_real_importable_callable(tmp_path: Path) -> None:
     export_core_pack_template_manifests(tmp_path)
     representative_entrypoints = {
-        "roc_curve_binary": "fenggaolab_org_medical_display_core.evidence_figures:render_r_evidence_figure",
+        "roc_curve_binary": "Rscript render.R --request {request_json}",
         "time_to_event_risk_group_summary": (
             "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
         ),
@@ -159,9 +159,12 @@ def test_exported_entrypoint_is_real_importable_callable(tmp_path: Path) -> None
                 (tmp_path / "templates" / template_short_id / "template.toml").read_text(encoding="utf-8")
             )
             entrypoint = payload["entrypoint"]
-            target = _load_entrypoint(entrypoint)
             assert entrypoint == expected_entrypoint
-            assert callable(target)
+            if payload["execution_mode"] == "python_plugin":
+                target = _load_entrypoint(entrypoint)
+                assert callable(target)
+            else:
+                assert payload["execution_mode"] == "subprocess"
 
 
 def test_exported_manifests_do_not_reference_host_materialization_entrypoint(tmp_path: Path) -> None:
@@ -186,7 +189,31 @@ def test_exported_manifests_move_all_figure_execution_into_pack_local_modules(tm
     ):
         short_id = _short_id(spec.template_id if hasattr(spec, "template_id") else spec.shell_id)
         payload = tomllib.loads((tmp_path / "templates" / short_id / "template.toml").read_text(encoding="utf-8"))
-        assert payload["entrypoint"].startswith("fenggaolab_org_medical_display_core.")
+        if payload["kind"] == "evidence_figure" and payload["renderer_family"] == "r_ggplot2":
+            assert payload["execution_mode"] == "subprocess"
+            assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
+        else:
+            assert payload["execution_mode"] == "python_plugin"
+            assert payload["entrypoint"].startswith("fenggaolab_org_medical_display_core.")
+
+
+def test_exported_r_ggplot2_templates_are_first_class_subprocess_assets(tmp_path: Path) -> None:
+    export_core_pack_template_manifests(tmp_path)
+
+    r_template_ids = {
+        _short_id(spec.template_id)
+        for spec in display_registry.list_evidence_figure_specs()
+        if spec.renderer_family == "r_ggplot2"
+    }
+
+    assert len(r_template_ids) == 22
+    for short_id in sorted(r_template_ids):
+        payload = tomllib.loads((tmp_path / "templates" / short_id / "template.toml").read_text(encoding="utf-8"))
+        assert payload["kind"] == "evidence_figure"
+        assert payload["renderer_family"] == "r_ggplot2"
+        assert payload["execution_mode"] == "subprocess"
+        assert payload["entrypoint"] == "Rscript render.R --request {request_json}"
+        assert "render_r_evidence_figure" not in payload["entrypoint"]
 
 
 def test_export_does_not_delete_unrelated_template_directories(tmp_path: Path) -> None:

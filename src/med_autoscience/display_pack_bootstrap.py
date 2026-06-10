@@ -9,7 +9,8 @@ from med_autoscience.display_pack_resolver import split_full_template_id
 
 CORE_PACK_ID = "fenggaolab.org.medical-display-core"
 _DEFAULT_EXECUTION_MODE = "python_plugin"
-_R_EVIDENCE_ENTRYPOINT = "fenggaolab_org_medical_display_core.evidence_figures:render_r_evidence_figure"
+_R_EVIDENCE_EXECUTION_MODE = "subprocess"
+_R_EVIDENCE_ENTRYPOINT = "Rscript render.R --request {request_json}"
 _PYTHON_EVIDENCE_ENTRYPOINT = "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
 _ILLUSTRATION_SHELL_ENTRYPOINT = "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell"
 _TABLE_SHELL_ENTRYPOINT = "fenggaolab_org_medical_display_core.table_shells:render_table_shell"
@@ -105,7 +106,11 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 qc_profile_ref=spec.layout_qc_profile,
                 required_exports=spec.required_exports,
                 allowed_paper_roles=spec.allowed_paper_roles,
-                execution_mode=_DEFAULT_EXECUTION_MODE,
+                execution_mode=(
+                    _R_EVIDENCE_EXECUTION_MODE
+                    if spec.renderer_family == "r_ggplot2"
+                    else _DEFAULT_EXECUTION_MODE
+                ),
                 entrypoint=(
                     _R_EVIDENCE_ENTRYPOINT
                     if spec.renderer_family == "r_ggplot2"

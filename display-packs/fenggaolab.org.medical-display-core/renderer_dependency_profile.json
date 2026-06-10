@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "pack_id": "fenggaolab.org.medical-display-core",
+  "profiles": [
+    {
+      "profile_id": "r_ggplot2_evidence_subprocess_v1",
+      "execution_mode": "subprocess",
+      "renderer_family": "r_ggplot2",
+      "entrypoint_pattern": "Rscript render.R --request {request_json}",
+      "runtime_binaries": [
+        {
+          "name": "Rscript",
+          "required": true
+        }
+      ],
+      "r_packages": [
+        {
+          "name": "jsonlite",
+          "required": true,
+          "role": "render request and layout sidecar JSON IO"
+        },
+        {
+          "name": "ggplot2",
+          "required": true,
+          "role": "core grammar-of-graphics rendering"
+        },
+        {
+          "name": "ggsci",
+          "required": true,
+          "role": "medical journal inspired palettes"
+        },
+        {
+          "name": "grid",
+          "required": true,
+          "role": "grob layout inspection for sidecars"
+        }
+      ],
+      "shared_helper_ref": "rlib/medicaldisplaycore/evidence_renderer.R",
+      "template_wrapper_ref": "templates/<template_id>/render.R"
+    }
+  ]
+}
