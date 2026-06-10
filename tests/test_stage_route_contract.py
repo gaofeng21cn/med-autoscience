@@ -61,6 +61,65 @@ def test_stage_native_semantic_pack_covers_all_stage_obligation_fields() -> None
     assert pack["advisory_signal_policy"]["forbidden_authority_uses"]
     assert "ranking" in pack["advisory_signal_policy"]["advisory_only"]
     assert "proximity" in pack["advisory_signal_policy"]["advisory_only"]
+    light_source = pack["advisory_signal_policy"]["clean_room_pattern_sources"][
+        "light_external_pattern_intake"
+    ]
+    assert light_source["source_project"] == "Light0305/Light"
+    assert light_source["absorbed_as"] == (
+        "mas_native_progress_first_advisory_and_skill_engineering_contract_pattern"
+    )
+    assert {
+        "MODE_REGISTRY.md",
+        "skills/light-orchestrator/references/passport.md",
+        "skills/light-orchestrator/references/checkpoints.md",
+        "skills/light-citation/references/locator_audit.md",
+        "skills/light-literature-search/scripts/prisma_flow.py",
+        "skills/light-figure-drawing/references/figure_integrity.md",
+        "skills/light-figure-drawing/scripts/figure_integrity_lint.py",
+        "skills/light-paper-polishing/references/argument_review.md",
+        "skills/light-paper-polishing/scripts/style_fingerprint.py",
+    } <= set(light_source["source_paths"])
+    assert {
+        "progress_passport_ref_ledger",
+        "checkpoint_gate_budget",
+        "progressive_disclosure_skill_bundle",
+        "bounded_mode_registry",
+        "citation_locator_audit",
+        "prisma_flow_count_reconciliation",
+        "style_fingerprint_author_voice_hint",
+        "argument_review_claim_evidence_boundary",
+        "figure_integrity_lint_warning_ref",
+    } <= set(light_source["useful_patterns"])
+    assert light_source["orchestrator_dependency"] is False
+    assert light_source["copy_external_skill_inventory"] is False
+    assert light_source["may_create_or_replace_stage_router"] is False
+    assert pack["progress_enhancement"]["advisory_strategy"]["non_blocking_budget"][
+        "skill_engineering_intake_limit"
+    ] == "skill_engineering_advisory_gaps_do_not_preflight_block_dispatch"
+    light_mechanism = pack["progress_enhancement"]["advisory_strategy"]["mechanisms"][
+        "light_external_pattern_intake"
+    ]
+    assert {
+        "skill_engineering_advisory_ref",
+        "progress_passport_ref",
+        "citation_locator_audit_ref",
+        "prisma_flow_reconciliation_ref",
+        "argument_review_hint_ref",
+        "figure_integrity_warning_ref",
+    } <= set(light_mechanism["output_refs"])
+    assert light_mechanism["skill_engineering_policy"] == {
+        "passport_maps_to": "mas_stage_attempt_ledger_and_owner_receipt_refs",
+        "checkpoint_maps_to": "route_back_typed_blocker_human_gate_or_known_limitation_refs",
+        "mode_registry_maps_to": "bounded_skill_entrypoint_modes_not_stage_router",
+        "progressive_disclosure_maps_to": "thin_mas_skill_entrypoint_plus_referenced_contract_refs",
+        "argument_review_maps_to": "claim_evidence_boundary_and_hedging_hint_only",
+        "figure_integrity_lint_maps_to": "display_reviewer_warning_or_route_required_ref_only",
+        "missing_behavior": "skip_or_repair_hint",
+    }
+    assert {
+        "mas_stage_owner_route",
+        "mas_app_skill_entrypoint",
+    } <= set(light_mechanism["cannot_replace"])
     assert pack["execution_review_independence"]["policy"] == "fail_closed"
 
     main_stages = pack["main_stages"]

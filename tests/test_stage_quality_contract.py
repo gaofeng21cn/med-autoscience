@@ -435,23 +435,37 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
     assert pack["clean_room_absorption"] == {
         "source_project": "Light0305/Light",
         "source_repository": "https://github.com/Light0305/Light",
+        "observed_head": "731c786e9434e8f6f9cd5284293003115c5b66c7",
         "source_paths": [
             "README.md",
             "CONVENTIONS.md",
+            "MODE_REGISTRY.md",
             "ROUTER.md",
+            "skills/light-orchestrator/SKILL.md",
+            "skills/light-orchestrator/references/passport.md",
+            "skills/light-orchestrator/references/checkpoints.md",
+            "skills/light-orchestrator/references/pipelines.md",
             "skills/light-idea-generation/SKILL.md",
             "skills/light-idea-critique/SKILL.md",
             "skills/light-self-review/SKILL.md",
+            "skills/light-citation/references/locator_audit.md",
+            "skills/light-literature-search/scripts/prisma_flow.py",
+            "skills/light-figure-drawing/references/figure_integrity.md",
+            "skills/light-figure-drawing/scripts/figure_integrity_lint.py",
+            "skills/light-paper-polishing/references/argument_review.md",
+            "skills/light-paper-polishing/scripts/style_fingerprint.py",
             "_verification_log/*.md",
         ],
-        "absorbed_as": "mas_native_progress_first_advisory_contract_pattern",
+        "absorbed_as": "mas_native_progress_first_advisory_and_skill_engineering_contract_pattern",
         "vendor_dependency": False,
         "runtime_dependency": False,
         "install_script_dependency": False,
         "skill_router_dependency": False,
+        "orchestrator_dependency": False,
         "knowledge_base_dependency": False,
         "default_skill_source": False,
         "copy_external_runtime_or_install_scripts": False,
+        "copy_external_skill_inventory": False,
     }
 
     forbidden = pack["forbidden_authority"]
@@ -463,6 +477,9 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
         "may_mutate_artifacts": False,
         "may_admit_route": False,
         "may_write_domain_truth": False,
+        "may_create_or_replace_stage_router": False,
+        "may_create_default_skill_inventory": False,
+        "may_block_dispatch_for_missing_skill_engineering_advisory": False,
     }
     assert all(value is False for value in forbidden.values())
 
@@ -473,16 +490,72 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
         "reviewer_refusal_rehearsal",
         "bounded_template_or_skill_card",
         "self_review_evidence_gate",
+        "progress_passport_ref_ledger",
+        "checkpoint_gate_budget",
+        "progressive_disclosure_skill_bundle",
+        "bounded_mode_registry",
+        "citation_locator_audit",
+        "prisma_flow_count_reconciliation",
+        "style_fingerprint_author_voice_hint",
+        "argument_review_claim_evidence_boundary",
+        "figure_integrity_lint_warning_ref",
     }
     assert patterns["verification_log_three_state_fresh_evidence"]["learned_from"] == "_verification_log/*.md"
     assert patterns["core_collision_check"]["learned_from"] == "skills/light-idea-generation/SKILL.md"
     assert patterns["reviewer_refusal_rehearsal"]["learned_from"] == "skills/light-idea-critique/SKILL.md"
     assert patterns["self_review_evidence_gate"]["learned_from"] == "skills/light-self-review/SKILL.md"
-    assert all(pattern["adoption_class"] == "adopt_contract" for pattern in patterns.values())
+    assert patterns["progress_passport_ref_ledger"]["adoption_class"] == "adopt_contract"
+    assert patterns["checkpoint_gate_budget"]["adoption_class"] == "adopt_template"
+    assert patterns["progressive_disclosure_skill_bundle"]["adoption_class"] == "adopt_template"
+    assert patterns["bounded_mode_registry"]["adoption_class"] == "adopt_template"
+    assert patterns["citation_locator_audit"]["adoption_class"] == "adopt_contract"
+    assert patterns["prisma_flow_count_reconciliation"]["adoption_class"] == "adopt_template"
+    assert patterns["style_fingerprint_author_voice_hint"]["adoption_class"] == "watch_only"
+    assert patterns["argument_review_claim_evidence_boundary"]["adoption_class"] == "adopt_template"
+    assert patterns["figure_integrity_lint_warning_ref"]["adoption_class"] == "adopt_template"
+    assert all(pattern["may_block_unrelated_owner_dispatch"] is False for pattern in patterns.values())
+    assert {
+        "current_work_unit_ref",
+        "stage_output_refs",
+        "gate_result_refs",
+        "known_limitations_refs",
+    } <= set(patterns["progress_passport_ref_ledger"]["required_contract_fields"])
+    assert {
+        "claim_segment_id",
+        "citation_ref",
+        "locator_ref",
+        "support_verdict",
+    } <= set(patterns["citation_locator_audit"]["required_contract_fields"])
+    assert {
+        "claim_ref",
+        "evidence_ref",
+        "boundary_ref",
+        "hedging_calibration_ref",
+    } <= set(patterns["argument_review_claim_evidence_boundary"]["required_contract_fields"])
+    assert {
+        "figure_ref",
+        "integrity_warning_ref",
+        "caption_disclosure_ref",
+        "display_owner_action_ref",
+    } <= set(patterns["figure_integrity_lint_warning_ref"]["required_contract_fields"])
 
     missing_ref_policy = {item["missing_ref_class"]: item for item in pack["missing_ref_policy"]}
     assert missing_ref_policy["advisory_signal_ref"]["blocks_unrelated_owner_dispatch"] is False
     assert missing_ref_policy["evidence_log_ref"]["blocks_unrelated_owner_dispatch"] is False
+    assert missing_ref_policy["skill_engineering_advisory_ref"] == {
+        "missing_ref_class": "skill_engineering_advisory_ref",
+        "blocks_current_delta": False,
+        "blocks_unrelated_owner_dispatch": False,
+        "response": "skip_or_emit_repair_hint",
+        "typed_blocker_id": None,
+    }
+    assert missing_ref_policy["progress_passport_ref"] == {
+        "missing_ref_class": "progress_passport_ref",
+        "blocks_current_delta": False,
+        "blocks_unrelated_owner_dispatch": False,
+        "response": "use_mas_stage_attempt_ledger_or_owner_receipt_refs",
+        "typed_blocker_id": None,
+    }
     assert missing_ref_policy["route_required_ref_for_current_delta"] == {
         "missing_ref_class": "route_required_ref_for_current_delta",
         "blocks_current_delta": True,
@@ -492,9 +565,52 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
     }
     assert pack["progress_first_policy"] == {
         "advisory_or_evidence_log_missing_behavior": "skip_or_repair_hint",
+        "skill_engineering_missing_behavior": "skip_or_repair_hint",
         "may_block_unrelated_owner_dispatch": False,
         "typed_blocker_only_when": "current_delta_route_required_ref_missing",
         "non_blocking_budget": "active_owner_attempt_only",
+        "pipeline_orchestrator_policy": "use_mas_stage_owner_route_not_light_orchestrator",
+        "passport_policy": "map_to_mas_stage_attempt_ledger_and_owner_receipt_refs",
+        "mode_registry_policy": "bounded_entrypoint_hint_not_mas_route_table",
+    }
+    assert pack["skill_engineering_policy"] == {
+        "source_project_role": "pattern_source_only",
+        "accepted_methods": [
+            "progress_passport_ref_ledger",
+            "checkpoint_gate_budget",
+            "progressive_disclosure_skill_bundle",
+            "bounded_mode_registry",
+            "citation_locator_audit",
+            "prisma_flow_count_reconciliation",
+            "style_fingerprint_author_voice_hint",
+            "argument_review_claim_evidence_boundary",
+            "figure_integrity_lint_warning_ref",
+        ],
+        "accepted_ref_classes": [
+            "skill_engineering_advisory_ref",
+            "progress_passport_ref",
+            "citation_locator_audit_ref",
+            "prisma_flow_reconciliation_ref",
+            "style_fingerprint_hint_ref",
+            "argument_review_hint_ref",
+            "figure_integrity_warning_ref",
+        ],
+        "passport_maps_to": "mas_stage_attempt_ledger_and_owner_receipt_refs",
+        "checkpoint_maps_to": "route_back_typed_blocker_human_gate_or_known_limitation_refs",
+        "mode_registry_maps_to": "bounded_skill_entrypoint_modes_not_stage_router",
+        "progressive_disclosure_maps_to": "thin_mas_skill_entrypoint_plus_referenced_contract_refs",
+        "style_fingerprint_maps_to": "reviewer_or_writing_hint_only",
+        "argument_review_maps_to": "claim_evidence_boundary_and_hedging_hint_only",
+        "figure_integrity_lint_maps_to": "display_reviewer_warning_or_route_required_ref_only",
+        "missing_behavior": "skip_or_repair_hint",
+        "progress_first_non_blocking": True,
+        "forbidden_imports": [
+            "light_runtime",
+            "light_orchestrator_as_mas_route_owner",
+            "light_27_skill_router",
+            "light_db09_or_project_memory_as_mas_truth",
+            "light_scores_or_checklists_as_quality_gate",
+        ],
     }
 
     scout_projection = build_stage_quality_pack_ref_projection(["scout"])

@@ -85,7 +85,18 @@ Progress-first 的 Co-Scientist 增益层只优化“下一步更快、更准、
 
 缺少、陈旧或失败的 prefetch / tournament / meta-review / memory recall 只算 observability 或 platform repair，不能压住已经可执行的 `current_executable_owner_action`。只有这些 signal 暴露了真实 hard gate，例如 missing source/data、forbidden write、human gate、missing owner callable 或 irreversible mutation，才按 Hard gates 归类；否则下一步仍应推进 owner action、reviewer request、memory writeback receipt、typed blocker、route-back 或 stop-loss。
 
-Light-derived external-pattern advisory 遵循同一 Progress-first 规则，详见 [Light External Pattern Intake Runbook](./light_external_pattern_intake.md)。`verified_asset_ref`、`collision_check_ref`、`refusal_rehearsal_ref` 和 `fresh_evidence_gate_ref` 可以进入 stage-quality、knowledge packet、reviewer briefing、repair hints、route-back briefing 或 next owner delta；它们不创造 progress 类别，不关闭 AI reviewer verdict、publication gate、quality gate、artifact authority 或 owner receipt。缺 Light-derived advisory 默认只算 observability / platform repair；只有当前 delta 明确 route-required ref 缺失，并且缺失影响 source/data/evidence、owner-route identity、forbidden write boundary、irreversible mutation 或 reviewer/publication hard gate 时，才能生成 typed blocker。该 blocker 必须命名缺失 ref family，并指明解除 owner。
+Light-derived external-pattern advisory 遵循同一 Progress-first 规则，详见 [Light External Pattern Intake Runbook](./light_external_pattern_intake.md)。Light 的 progress passport、checkpoint、references/scripts/assets 分层、PRISMA flow、style fingerprint、locator audit 和 mode registry 只能被 MAS 吸收为 skill-engineering 方法：它们帮助下一 owner 更快拿到 ref ledger、source-readiness hint、reviewer/writing hint、citation integrity hint 和 bounded mode discipline。它们不创造 progress 类别，不关闭 AI reviewer verdict、publication gate、quality gate、artifact authority 或 owner receipt，不安装 Light，不复制 27-skill router，也不把 Light `db09`、score、checklist 或 API 表写成 MAS truth。
+
+| Light skill-level signal | Progress-first 记账 | 非阻塞条件 |
+| --- | --- | --- |
+| progress passport / advisory ref ledger | `verified_asset_ref`、`collision_check_ref`、`refusal_rehearsal_ref`、`fresh_evidence_gate_ref` 或 next owner briefing。 | 缺失时默认是 observability / platform repair；不得压住已完整的 `current_executable_owner_action`。 |
+| checkpoint decision / confirm gates | human gate、AI reviewer request、route-back、typed blocker 或 closeout evidence 的表达模板。 | 只有命中 MAS hard gate 时阻断；普通 checklist / self-check 失败只生成 repair hint 或 reviewer briefing。 |
+| PRISMA flow | systematic review / meta-analysis 的 source-readiness hint 和计数自洽 ref。 | 非系统综述 work unit 不要求 PRISMA；缺 PRISMA 不阻塞 narrative review、idea scout 或快速 source prefetch。 |
+| style fingerprint | author voice / polishing / reviewer-writing hint。 | 不授权写 paper body；缺失不阻塞写作、修订、reviewer request 或 gate replay。 |
+| citation locator audit | claim-source integrity hint；在 citation-backed claim 或 publication gate 场景可成为 route-required ref。 | DOI / metadata / locator 缺口只有影响当前 owner output 或 hard gate 时升级；开放索引缺失不能单独写成 citation failure。 |
+| bounded mode registry | skill / app entrypoint 的小任务档位约束。 | mode registry 不是 MAS route table；stage/action/dispatch 仍以 MAS pack、controller 和 OPL current-control 为准。 |
+
+缺 Light-derived advisory 默认只算 observability / platform repair；只有当前 delta 明确 route-required ref 缺失，并且缺失影响 source/data/evidence、owner-route identity、forbidden write boundary、irreversible mutation 或 reviewer/publication hard gate 时，才能生成 typed blocker。该 blocker 必须命名缺失 ref family，并指明解除 owner。
 
 ## Progress-first safety envelope
 
