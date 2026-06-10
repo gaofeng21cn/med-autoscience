@@ -142,6 +142,7 @@ def compact_opl_current_control_state_handoff(value: object) -> dict[str, Any] |
                     "status",
                     "owner",
                     "surface",
+                    "source",
                     "action_id",
                     "fingerprint",
                     "queue_age_hours",

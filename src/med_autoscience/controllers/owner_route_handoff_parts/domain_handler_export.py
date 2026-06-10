@@ -241,30 +241,41 @@ def _pending_family_tasks(
         ordinary_task_blocker = _ordinary_pending_tasks_blocker(current_progress=current_progress)
         if ordinary_task_blocker:
             continue
-        tasks.extend(
-            _paper_autonomy_tasks(
-                study=study,
-                profile=profile,
-                profile_ref=profile_ref,
-                study_id=study_id,
-            )
+        current_owner_action = _export_current_owner_action(
+            study=study,
+            current_progress=current_progress,
         )
+        current_work_unit = mapping(current_progress.get("current_work_unit"))
+        current_execution_envelope = _export_current_execution_envelope(
+            study=study,
+            current_progress=current_progress,
+        )
+        legacy_route_tasks_blocked = _legacy_route_tasks_blocked_by_current_owner_action(
+            current_owner_action=current_owner_action,
+            current_work_unit=current_work_unit,
+            current_execution_envelope=current_execution_envelope,
+        )
+        if not legacy_route_tasks_blocked:
+            tasks.extend(
+                _paper_autonomy_tasks(
+                    study=study,
+                    profile=profile,
+                    profile_ref=profile_ref,
+                    study_id=study_id,
+                )
+            )
         tasks.extend(
             default_executor_dispatch_tasks(
                 profile=profile,
                 profile_ref=profile_ref,
                 study_id=study_id,
-                current_owner_action=_export_current_owner_action(
-                    study=study,
-                    current_progress=current_progress,
-                ),
-                current_work_unit=mapping(current_progress.get("current_work_unit")),
-                current_execution_envelope=_export_current_execution_envelope(
-                    study=study,
-                    current_progress=current_progress,
-                ),
+                current_owner_action=current_owner_action,
+                current_work_unit=current_work_unit,
+                current_execution_envelope=current_execution_envelope,
             )
         )
+        if legacy_route_tasks_blocked:
+            continue
         tasks.extend(
             publication_aftercare.build_publication_aftercare_pending_tasks(
                 profile_name=profile.name,
@@ -320,6 +331,21 @@ def _ordinary_pending_tasks_blocker(*, current_progress: Mapping[str, Any]) -> M
             "state_kind": envelope_state,
         }
     return {}
+
+
+def _legacy_route_tasks_blocked_by_current_owner_action(
+    *,
+    current_owner_action: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    current_execution_envelope: Mapping[str, Any],
+) -> bool:
+    work_unit_status = text(current_work_unit.get("status"))
+    if work_unit_status == "executable_owner_action":
+        return True
+    envelope_state = text(current_execution_envelope.get("state_kind")) or text(
+        current_execution_envelope.get("execution_state_kind")
+    )
+    return envelope_state == "executable_owner_action" and bool(current_owner_action or current_work_unit)
 
 
 def _ordinary_pending_tasks_blocked_status(status: str | None) -> bool:

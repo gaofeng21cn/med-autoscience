@@ -167,6 +167,7 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
     assert dashboard["action_queue"][0]["fingerprint"] == (
         "publication_gate_specificity_required::publication_gate_specificity_required"
     )
+    assert dashboard["action_queue"][0]["source"] == "opl_current_control_state_action_queue"
     assert dashboard["action_queue"][0]["owner_pickup"]["state"] == "overdue"
     assert dashboard["action_queue"][0]["consumption"]["developer_supervisor_attention_required"] is True
     assert dashboard["why_not_applied"] == [
@@ -186,6 +187,9 @@ def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markd
     assert compact["opl_current_control_state_handoff"]["action_queue"][0]["queue_age_hours"] == 6.0
     assert compact["opl_current_control_state_handoff"]["action_queue"][0]["action_type"] == (
         "publication_gate_specificity_required"
+    )
+    assert compact["opl_current_control_state_handoff"]["action_queue"][0]["source"] == (
+        "opl_current_control_state_action_queue"
     )
     assert "OPL Current Control State Handoff" in markdown
     assert "publication_gate_specificity_required" in markdown

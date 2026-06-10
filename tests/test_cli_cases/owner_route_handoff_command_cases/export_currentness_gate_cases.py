@@ -133,3 +133,129 @@ def test_domain_handler_export_suppresses_ordinary_tasks_when_fresh_current_work
             "domain_owner/default-executor-dispatch",
         }
     )
+
+
+def test_domain_handler_export_suppresses_legacy_route_tasks_under_current_owner_action(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = workspace_root / "studies" / study_id
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        _ai_reviewer_blocking_eval(study_root),
+    )
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"review_refs": ["review-ref:ledger"]})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claim_refs": ["claim-ref:main"]})
+    _write_json(
+        study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json",
+        {
+            "surface_kind": "mas_runtime_owner_route_handoff_record",
+            "source": "runtime_controller_redrive_required",
+            "recorded_at": "2026-06-09T12:00:00Z",
+            "handoff": {
+                "surface_kind": "mas_runtime_owner_route_handoff",
+                "recommended_task_kind": "domain_route/reconcile-apply",
+                "reason": "runtime_controller_redrive_required",
+                "recorded_at": "2026-06-09T12:00:00Z",
+                "owner_route_currentness_basis": {
+                    "truth_epoch": "stale-truth",
+                    "runtime_health_epoch": "stale-runtime",
+                    "work_unit_id": "stale_redrive",
+                    "work_unit_fingerprint": "stale-redrive-fingerprint",
+                },
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "decision_id": "decision-route-back-stale",
+            "emitted_at": "2026-06-09T12:05:00Z",
+            "decision_type": "route_back_same_line",
+            "requires_human_confirmation": False,
+            "route_target": "write",
+            "work_unit_fingerprint": "stale-route-back-fingerprint",
+            "next_work_unit": {
+                "unit_id": "stale_writer_repair",
+                "lane": "write",
+                "summary": "Historical writer repair residue.",
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        {
+            "surface": "autonomy_progress_slo_status",
+            "study_id": study_id,
+            "state": "breach",
+            "progress_pressure": {
+                "status": "advance_now",
+                "continuation_required": True,
+                "next_action_type": "domain_route/reconcile-apply",
+                "next_work_unit_id": "stale_progress_pressure",
+                "stop_allowed": False,
+            },
+        },
+    )
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "manuscript_story_repair",
+                "work_unit_fingerprint": "current-write-repair-fingerprint",
+                "action_fingerprint": "current-write-repair-fingerprint",
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "source": "opl_current_control_state_action_queue",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": "manuscript_story_repair",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "study_progress.next_forced_delta.owner_action",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "manuscript_story_repair",
+                "work_unit_fingerprint": "current-write-repair-fingerprint",
+                "allowed_actions": ["run_quality_repair_batch"],
+            },
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study_tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task.get("study_id") == study_id or task.get("payload", {}).get("study_id") == study_id
+    ]
+    assert [
+        task
+        for task in study_tasks
+        if task["task_kind"] == "domain_route/reconcile-apply"
+        or task["task_kind"].startswith("publication_aftercare/")
+        or task["task_kind"] == "paper_autonomy/repair-recheck"
+    ] == []

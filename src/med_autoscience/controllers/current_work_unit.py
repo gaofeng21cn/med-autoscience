@@ -58,13 +58,22 @@ MEDICAL_READINESS_BLOCKERS = frozenset(
         "medical_paper_readiness_not_ready",
     }
 )
-PAPER_DELTA_READINESS_SUPERSEDING_ACTION_SOURCES = frozenset(
+CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS = frozenset(
+    {
+        "domain_owner_action_dispatch_execution_count_zero",
+        "no_selected_dispatch_for_requested_action_types",
+        "run_quality_repair_batch_not_visible_in_current_opl_control_state",
+        "stage_packet_superseded_by_current_consumed_domain_transition",
+    }
+)
+PAPER_DELTA_PRIOR_BLOCKER_SUPERSEDING_ACTION_SOURCES = frozenset(
     {
         "domain_transition",
         "repair_progress_projection.mas_owner_repair_execution_evidence",
         "study_progress.next_forced_delta.owner_action",
     }
 )
+OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE = "opl_current_control_state_action_queue"
 PROVIDER_ADMISSION_REPAIR_ACTIONS = frozenset(
     {
         "return_to_ai_reviewer_workflow",
@@ -808,12 +817,7 @@ def _action_supersedes_stage_owner_answer(
         return True
     if _gate_consumption_action_supersedes_readiness_blocker(payload):
         return True
-    if _next_forced_delta_owner_action_supersedes_readiness_blocker(
-        action=payload,
-        progress=progress,
-    ):
-        return True
-    return _paper_delta_domain_transition_supersedes_readiness_blocker(
+    return _paper_delta_current_action_supersedes_prior_blocker(
         action=payload,
         progress=progress,
     )
@@ -833,14 +837,15 @@ def _action_supersedes_typed_blocker(
         return (
             _action_is_stage_current_owner_delta(action)
             or _provider_admission_repair_action_supersedes_readiness_blocker(action)
-            or _next_forced_delta_owner_action_supersedes_readiness_blocker(
+            or _paper_delta_current_action_supersedes_prior_blocker(
                 action=action,
                 progress=_mapping(progress),
             )
-            or _paper_delta_domain_transition_supersedes_readiness_blocker(
-                action=action,
-                progress=_mapping(progress),
-            )
+        )
+    if blocker_type in CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS:
+        return _paper_delta_current_action_supersedes_prior_blocker(
+            action=action,
+            progress=_mapping(progress),
         )
     if blocker_type not in MEDICAL_READINESS_BLOCKERS:
         return False
@@ -852,12 +857,7 @@ def _action_supersedes_typed_blocker(
         return True
     if _gate_consumption_action_supersedes_readiness_blocker(action):
         return True
-    if _next_forced_delta_owner_action_supersedes_readiness_blocker(
-        action=action,
-        progress=_mapping(progress),
-    ):
-        return True
-    return _paper_delta_domain_transition_supersedes_readiness_blocker(
+    return _paper_delta_current_action_supersedes_prior_blocker(
         action=action,
         progress=_mapping(progress),
     )
@@ -870,7 +870,7 @@ def _action_is_stage_current_owner_delta(action: Mapping[str, Any]) -> bool:
     ) == "stage_kernel_projection.current_owner_delta"
 
 
-def _paper_delta_domain_transition_supersedes_readiness_blocker(
+def _paper_delta_current_action_supersedes_prior_blocker(
     *,
     action: Mapping[str, Any],
     progress: Mapping[str, Any],
@@ -880,8 +880,6 @@ def _paper_delta_domain_transition_supersedes_readiness_blocker(
     if progress_first.get("paper_progress_delta_counted") is not True and _delta_count(paper_delta) <= 0:
         return False
     action_source = _text(action.get("source_surface")) or _text(action.get("source"))
-    if action_source not in PAPER_DELTA_READINESS_SUPERSEDING_ACTION_SOURCES:
-        return False
     if _text(action.get("action_type")) not in {
         "request_opl_stage_attempt",
         "return_to_ai_reviewer_workflow",
@@ -889,43 +887,55 @@ def _paper_delta_domain_transition_supersedes_readiness_blocker(
         "run_quality_repair_batch",
     }:
         return False
-    return _text(action.get("work_unit_id")) != "complete_medical_paper_readiness_surface"
+    if _text(action.get("work_unit_id")) == "complete_medical_paper_readiness_surface":
+        return False
+    if action_source == "study_progress.next_forced_delta.owner_action":
+        if _mapping(_mapping(progress.get("next_forced_delta")).get("owner_action")):
+            return _action_matches_next_forced_delta(action=action, progress=progress)
+        return True
+    if action_source in PAPER_DELTA_PRIOR_BLOCKER_SUPERSEDING_ACTION_SOURCES:
+        return True
+    if action_source == OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE:
+        return _action_matches_next_forced_delta(action=action, progress=progress)
+    return False
 
 
-def _next_forced_delta_owner_action_supersedes_readiness_blocker(
+def _action_matches_next_forced_delta(
     *,
     action: Mapping[str, Any],
     progress: Mapping[str, Any],
 ) -> bool:
-    progress_first = _mapping(progress.get("progress_first_sprint_state"))
-    paper_delta = _mapping(progress.get("paper_progress_delta"))
-    if progress_first.get("paper_progress_delta_counted") is not True and _delta_count(paper_delta) <= 0:
-        return False
     next_forced_delta = _mapping(progress.get("next_forced_delta"))
     owner_action = _mapping(next_forced_delta.get("owner_action"))
     if not owner_action:
         return False
-    forced_owner = _text(owner_action.get("next_owner")) or _text(owner_action.get("owner"))
+    expected_owner = _text(owner_action.get("next_owner")) or _text(owner_action.get("owner"))
     action_owner = _text(action.get("owner")) or _text(action.get("next_owner"))
-    if forced_owner is None or action_owner != forced_owner:
+    if expected_owner is None or action_owner != expected_owner:
         return False
-    forced_work_unit = (
+    expected_work_unit = (
         _work_unit_id(owner_action.get("next_work_unit"))
         or _work_unit_id(owner_action.get("work_unit_id"))
         or _work_unit_id(next_forced_delta.get("work_unit_id"))
     )
-    action_work_unit = _work_unit_id(action.get("next_work_unit")) or _work_unit_id(
-        action.get("work_unit_id")
+    action_work_unit = (
+        _work_unit_id(action.get("work_unit_id"))
+        or _work_unit_id(action.get("next_work_unit"))
+        or _work_unit_id(action.get("controller_next_work_unit"))
     )
-    if forced_work_unit is None or action_work_unit != forced_work_unit:
+    if expected_work_unit is None or action_work_unit != expected_work_unit:
         return False
-    if forced_work_unit == "complete_medical_paper_readiness_surface":
+    if expected_work_unit == "complete_medical_paper_readiness_surface":
         return False
-    forced_action_types = {
-        _text(owner_action.get("action_type")),
-        *_text_items(owner_action.get("allowed_actions")),
-    }
-    return _text(action.get("action_type")) in forced_action_types
+    expected_actions = _text_items(owner_action.get("allowed_actions")) or _text_items(
+        next_forced_delta.get("allowed_actions")
+    )
+    owner_action_type = _text(owner_action.get("action_type"))
+    if owner_action_type is not None and owner_action_type not in expected_actions:
+        expected_actions = [owner_action_type, *expected_actions]
+    if not expected_actions:
+        return False
+    return _action_type(action) in set(expected_actions)
 
 
 def _provider_admission_repair_action_supersedes_readiness_blocker(action: Mapping[str, Any]) -> bool:

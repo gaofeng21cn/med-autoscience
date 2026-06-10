@@ -255,31 +255,34 @@ def opl_current_control_state_study_handoff_projection(
             payload=payload,
         )
     action_queue = [
-        _copy_mapping_keys(
-            item,
-            (
-                "action_type",
-                "summary",
-                "status",
-                "owner",
-                "surface",
-                "action_id",
-                "fingerprint",
-                "action_fingerprint",
-                "work_unit_fingerprint",
-                "authority",
-                "queue_age_hours",
-                "queued_first_seen_at",
-                "repeat_fingerprint",
-                "next_work_unit",
-                "controller_work_unit_id",
-                "work_unit_id",
-                "source_eval_id",
-                "source_fingerprint",
-                "owner_pickup",
-                "consumption",
+        {
+            **_copy_mapping_keys(
+                item,
+                (
+                    "action_type",
+                    "summary",
+                    "status",
+                    "owner",
+                    "surface",
+                    "action_id",
+                    "fingerprint",
+                    "action_fingerprint",
+                    "work_unit_fingerprint",
+                    "authority",
+                    "queue_age_hours",
+                    "queued_first_seen_at",
+                    "repeat_fingerprint",
+                    "next_work_unit",
+                    "controller_work_unit_id",
+                    "work_unit_id",
+                    "source_eval_id",
+                    "source_fingerprint",
+                    "owner_pickup",
+                    "consumption",
+                ),
             ),
-        )
+            "source": "opl_current_control_state_action_queue",
+        }
         for item in matching.get("action_queue") or []
         if isinstance(item, Mapping)
     ]
