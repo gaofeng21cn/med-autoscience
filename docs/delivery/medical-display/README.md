@@ -43,15 +43,17 @@ Display Pack v2 当前完成度按 [Display Pack v2 landing status](./contracts/
 
 Display Pack 是 MAS agent 使用的能力包，不要求用户理解每个模板。主路径是：
 
-1. agent 从 action catalog、domain entry contract 或 `domain-handler export.display_pack_agent_capability` 发现能力；
-2. agent 传结构化 `figure_request` 调 `display-pack-figure-plan`，得到推荐 template、候选列表、typed blocker 或下一步；
-3. agent 调 `display-pack-preflight` 检查 template assets、QC profile、R runtime、paper style profile 和 golden coverage；
-4. agent 调 `display-pack-render` 物化 display artifacts、visual-audit receipt、polish lifecycle、display_pack_lock 和 publication manifest refs；
+1. agent 从 `contracts/agent_tool_arsenal.json` 或 MCP `agent_tool_arsenal` 发现 `display_pack_*` cards；
+2. agent 调 MCP `display_pack_agent`，用 `mode=plan` 和结构化 `figure_request` 得到推荐 template、候选列表、typed blocker 或下一步；
+3. agent 调 MCP `display_pack_agent` 的 `mode=preflight` 检查 template assets、QC profile、R runtime、paper style profile 和 golden coverage；
+4. agent 调 MCP `display_pack_agent` 的 `mode=render` 物化 display artifacts、visual-audit receipt、polish lifecycle、display_pack_lock 和 publication manifest refs；
 5. visual audit finding、owner receipt、publication gate 继续由 MAS authority 决定，不由 Display Pack 自签。
 
 稳定机器入口：
 
 ```bash
+MCP tool: agent_tool_arsenal mode=index|card|plan|result_envelope_schema
+MCP tool: display_pack_agent mode=discover|plan|preflight|render
 medautosci domain-handler export --profile <profile> --format json
 medautosci domain-handler dispatch --task <task.json> --format json
 ```

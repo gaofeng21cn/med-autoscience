@@ -280,8 +280,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "command": "{prefix} publication display-pack-agent-discover --repo-root <mas_repo>",
             "surface_kind": "display_pack_agent_capability",
             "workspace_locator_fields": ["repo_root", "paper_root"],
-            "mcp_tool_name": "display_pack_capability_discover",
-            "mcp_public_runtime": False,
+            "mcp_tool_name": "display_pack_agent",
+            "mcp_tool_mode": "discover",
+            "mcp_public_runtime": True,
             "authority_boundary": {
                 "domain_truth_owner": MAS_TRUTH_OWNER,
                 "helper_owner": MAS_TRUTH_OWNER,
@@ -310,8 +311,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             ),
             "surface_kind": "display_pack_agent_figure_plan",
             "workspace_locator_fields": ["repo_root", "paper_root", "figure_request"],
-            "mcp_tool_name": "display_pack_figure_plan",
-            "mcp_public_runtime": False,
+            "mcp_tool_name": "display_pack_agent",
+            "mcp_tool_mode": "plan",
+            "mcp_public_runtime": True,
             "authority_boundary": {
                 "domain_truth_owner": MAS_TRUTH_OWNER,
                 "helper_owner": MAS_TRUTH_OWNER,
@@ -340,8 +342,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             ),
             "surface_kind": "display_pack_agent_preflight",
             "workspace_locator_fields": ["repo_root", "paper_root", "template_id", "figure_request"],
-            "mcp_tool_name": "display_pack_preflight",
-            "mcp_public_runtime": False,
+            "mcp_tool_name": "display_pack_agent",
+            "mcp_tool_mode": "preflight",
+            "mcp_public_runtime": True,
             "authority_boundary": {
                 "domain_truth_owner": MAS_TRUTH_OWNER,
                 "helper_owner": MAS_TRUTH_OWNER,
@@ -371,8 +374,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             ),
             "surface_kind": "display_pack_agent_render_receipt",
             "workspace_locator_fields": ["repo_root", "paper_root", "figure_request", "visual_audit_review"],
-            "mcp_tool_name": "display_pack_render",
-            "mcp_public_runtime": False,
+            "mcp_tool_name": "display_pack_agent",
+            "mcp_tool_mode": "render",
+            "mcp_public_runtime": True,
             "authority_boundary": {
                 "domain_truth_owner": MAS_TRUTH_OWNER,
                 "helper_owner": MAS_TRUTH_OWNER,
@@ -505,6 +509,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
         mcp_tool_name = str(spec.get("mcp_tool_name") or "").strip()
         if mcp_tool_name:
             action["supported_surfaces"]["mcp"]["tool_name"] = mcp_tool_name
+        mcp_tool_mode = str(spec.get("mcp_tool_mode") or "").strip()
+        if mcp_tool_mode:
+            action["supported_surfaces"]["mcp"]["mode"] = mcp_tool_mode
         built.append(action)
     return tuple(built)
 
@@ -629,10 +636,28 @@ def action_catalog_command_map(catalog: Mapping[str, Any]) -> dict[str, str]:
 
 
 def action_catalog_metadata_by_mcp_tool(catalog: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    return {
-        str(item["name"]): item
-        for item in project_mas_action_catalog("mcp", catalog)
-    }
+    grouped: dict[str, dict[str, Any]] = {}
+    for item in project_mas_action_catalog("mcp", catalog):
+        name = str(item["name"])
+        if name not in grouped:
+            grouped[name] = item
+            continue
+        existing = grouped[name]
+        if existing.get("surface_kind") != "mas_mcp_tool_group_projection":
+            grouped[name] = {
+                "name": name,
+                "description": (
+                    "Grouped MAS MCP tool projection. Use the mode field to select the "
+                    "underlying action catalog surface."
+                ),
+                "surface_kind": "mas_mcp_tool_group_projection",
+                "descriptor_only": False,
+                "public_runtime": True,
+                "actions": [existing],
+            }
+            existing = grouped[name]
+        existing.setdefault("actions", []).append(item)
+    return grouped
 
 
 def validate_mas_action_catalog_parity(catalog: Mapping[str, Any] | None = None) -> dict[str, Any]:

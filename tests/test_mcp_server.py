@@ -17,6 +17,7 @@ EXPECTED_MCP_TOOLS = [
     "study_progress",
     "open_auto_research_soak",
     "publication_status",
+    "display_pack_agent",
     "authority_operations",
     "agent_tool_arsenal",
 ]
@@ -106,6 +107,16 @@ def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> No
     ]
     assert arsenal["metadata"]["surface_kind"] == "mas_agent_tool_arsenal_mcp_surface"
     assert arsenal["outputSchema"]["title"] == "MAS ToolResultEnvelope"
+
+    display_agent = tools["display_pack_agent"]
+    assert display_agent["annotations"]["readOnlyHint"] is False
+    assert display_agent["inputSchema"]["properties"]["mode"]["enum"] == [
+        "discover",
+        "plan",
+        "preflight",
+        "render",
+    ]
+    assert display_agent["outputSchema"]["title"] == "MAS ToolResultEnvelope"
 
     assert tools["workspace_readiness"]["annotations"]["readOnlyHint"] is False
     assert tools["authority_operations"]["annotations"]["readOnlyHint"] is False
@@ -373,6 +384,31 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
 
     assert schema_result["isError"] is False
     assert schema_result["structuredContent"]["title"] == "MAS ToolResultEnvelope"
+
+
+def test_mcp_display_pack_agent_plans_from_structured_figure_request() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+
+    result = module.call_tool(
+        "display_pack_agent",
+        {
+            "mode": "plan",
+            "repo_root": str(Path(__file__).resolve().parents[1]),
+            "figure_request": {
+                "figure_kind": "evidence_figure",
+                "audit_family": "Prediction Performance",
+                "preferred_renderer_family": "r_ggplot2",
+                "query": "roc",
+            },
+            "max_recommendations": 2,
+        },
+    )
+
+    assert result["isError"] is False
+    payload = result["structuredContent"]
+    assert payload["surface_kind"] == "display_pack_agent_figure_plan"
+    assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert payload["next_callable"] == "display-pack-preflight"
 
 
 def test_mcp_server_rejects_ensure_study_runtime_mode_on_retired_mcp_tool(tmp_path: Path) -> None:

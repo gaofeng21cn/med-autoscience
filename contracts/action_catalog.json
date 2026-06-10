@@ -484,10 +484,11 @@
         },
         "mcp": {
           "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
-          "descriptor_only": true,
-          "public_runtime": false,
+          "descriptor_only": false,
+          "mode": "discover",
+          "public_runtime": true,
           "surface_kind": "display_pack_agent_capability",
-          "tool_name": "display_pack_capability_discover"
+          "tool_name": "display_pack_agent"
         },
         "openai": {
           "tool_name": "display_pack_capability_discover"
@@ -548,10 +549,11 @@
         },
         "mcp": {
           "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
-          "descriptor_only": true,
-          "public_runtime": false,
+          "descriptor_only": false,
+          "mode": "plan",
+          "public_runtime": true,
           "surface_kind": "display_pack_agent_figure_plan",
-          "tool_name": "display_pack_figure_plan"
+          "tool_name": "display_pack_agent"
         },
         "openai": {
           "tool_name": "display_pack_figure_plan"
@@ -613,10 +615,11 @@
         },
         "mcp": {
           "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
-          "descriptor_only": true,
-          "public_runtime": false,
+          "descriptor_only": false,
+          "mode": "preflight",
+          "public_runtime": true,
           "surface_kind": "display_pack_agent_preflight",
-          "tool_name": "display_pack_preflight"
+          "tool_name": "display_pack_agent"
         },
         "openai": {
           "tool_name": "display_pack_preflight"
@@ -682,10 +685,11 @@
         },
         "mcp": {
           "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
-          "descriptor_only": true,
-          "public_runtime": false,
+          "descriptor_only": false,
+          "mode": "render",
+          "public_runtime": true,
           "surface_kind": "display_pack_agent_render_receipt",
-          "tool_name": "display_pack_render"
+          "tool_name": "display_pack_agent"
         },
         "openai": {
           "tool_name": "display_pack_render"

@@ -178,6 +178,37 @@ def build_tool_registry(
             },
         ),
         McpToolSpec(
+            name="display_pack_agent",
+            description=(
+                "Use the MAS Display Pack agent-facing capability surface through one tool: "
+                "discover, plan, preflight, or render. This lets autonomous agents consume "
+                "Display Pack inventory, template planning, pre-render checks, and display "
+                "artifact receipts without manually browsing template directories or composing CLI commands."
+            ),
+            metadata=_tool_metadata(metadata_by_tool, "display_pack_agent"),
+            output_schema=_result_envelope_schema(),
+            annotations=_annotations(read_only=False),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "mode": {
+                        "type": "string",
+                        "enum": ["discover", "plan", "preflight", "render"],
+                    },
+                    "repo_root": {"type": "string"},
+                    "paper_root": {"type": "string"},
+                    "include_templates": {"type": "boolean"},
+                    "figure_request": {"type": "object"},
+                    "max_recommendations": {"type": "integer", "minimum": 1},
+                    "template_id": {"type": "string"},
+                    "check_runtime_dependencies": {"type": "boolean"},
+                    "visual_audit_review": {"type": "object"},
+                },
+                "required": ["mode"],
+                "additionalProperties": False,
+            },
+        ),
+        McpToolSpec(
             name="authority_operations",
             description=authority_description,
             metadata=_tool_metadata(metadata_by_tool, "authority_operations"),

@@ -933,6 +933,10 @@
         "task_intent"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "submit_study_task"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1011,6 +1015,10 @@
         "study_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "launch_study"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1085,6 +1093,10 @@
         "study_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": true,
+        "tool_name": "study_progress"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1165,6 +1177,10 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "study_state_matrix"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1242,6 +1258,10 @@
         "study_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "export_inspection_package"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1323,6 +1343,10 @@
         "quest_root"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "publication_aftercare_plan"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1401,6 +1425,10 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "external_learning_adoption_closure"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1459,7 +1487,7 @@
         "can_return_typed_blocker": false,
         "can_write_domain_truth": false
       },
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "card_kind": "action_catalog",
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
@@ -1479,6 +1507,11 @@
         "paper_root"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "mode": "discover",
+        "public_runtime": true,
+        "tool_name": "display_pack_agent"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1504,7 +1537,8 @@
       ],
       "surface_kind": "mas_tool_use_card",
       "title": "Discover MAS Display Pack capability",
-      "tool_id": "display_pack_capability_discover",
+      "tool_id": "display_pack_agent",
+      "tool_mode": "discover",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use display_pack_capability_discover when an autonomous agent needs this capability from the current_owner_delta path: Return the agent-facing Display Pack inventory, callable actions, expected receipt refs, and forbidden authority boundary. This is the low-friction discovery entry for MAS agents; humans manage assets, agents consume this structured capability surface."
     },
@@ -1537,7 +1571,7 @@
         "can_return_typed_blocker": false,
         "can_write_domain_truth": false
       },
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "card_kind": "action_catalog",
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
@@ -1558,6 +1592,11 @@
         "figure_request"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "mode": "plan",
+        "public_runtime": true,
+        "tool_name": "display_pack_agent"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1583,7 +1622,8 @@
       ],
       "surface_kind": "mas_tool_use_card",
       "title": "Plan a Display Pack figure",
-      "tool_id": "display_pack_figure_plan",
+      "tool_id": "display_pack_agent",
+      "tool_mode": "plan",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use display_pack_figure_plan when an autonomous agent needs this capability from the current_owner_delta path: Given a structured figure_request, rank Display Pack templates and choose the next preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates."
     },
@@ -1616,7 +1656,7 @@
         "can_return_typed_blocker": false,
         "can_write_domain_truth": false
       },
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "card_kind": "action_catalog",
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
@@ -1638,6 +1678,11 @@
         "figure_request"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "mode": "preflight",
+        "public_runtime": true,
+        "tool_name": "display_pack_agent"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1663,7 +1708,8 @@
       ],
       "surface_kind": "mas_tool_use_card",
       "title": "Preflight a Display Pack figure",
-      "tool_id": "display_pack_preflight",
+      "tool_id": "display_pack_agent",
+      "tool_mode": "preflight",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use display_pack_preflight when an autonomous agent needs this capability from the current_owner_delta path: Check selected template assets, QC profile, R runtime dependencies, style profile lock, and golden coverage before render. Findings route to style/profile/runtime/template repair without mutating data, statistics, evidence marks, or publication verdicts."
     },
@@ -1701,7 +1747,7 @@
         "can_return_typed_blocker": false,
         "can_write_domain_truth": false
       },
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "card_kind": "action_catalog",
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
       "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
@@ -1723,6 +1769,11 @@
         "visual_audit_review"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "mode": "render",
+        "public_runtime": true,
+        "tool_name": "display_pack_agent"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1748,7 +1799,8 @@
       ],
       "surface_kind": "mas_tool_use_card",
       "title": "Render a Display Pack figure receipt",
-      "tool_id": "display_pack_render",
+      "tool_id": "display_pack_agent",
+      "tool_mode": "render",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use display_pack_render when an autonomous agent needs this capability from the current_owner_delta path: Materialize Display Pack figure artifacts and paper-level display refs from a prepared paper_root or frozen data payload. This writes display artifacts, visual-audit receipt, polish lifecycle, display_pack_lock, and publication manifest refs only; it cannot sign publication readiness or owner receipt."
     },
@@ -1806,6 +1858,10 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "lightweight_executor_receipt"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1877,6 +1933,10 @@
       "idempotency_policy": "read_only_no_side_effects",
       "input_refs": [],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "mainline_status"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -1948,6 +2008,10 @@
       "idempotency_policy": "read_only_no_side_effects",
       "input_refs": [],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "mainline_phase"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -2021,6 +2085,10 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "domain_handler_export"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -2099,6 +2167,10 @@
         "task_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": false,
+        "tool_name": "domain_handler_dispatch"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -2172,6 +2244,10 @@
         "workspace_roots"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "public_runtime": true,
+        "tool_name": "authority_operations"
+      },
       "output_schema": {
         "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
       },
@@ -2261,35 +2337,39 @@
     },
     {
       "action_id": "display_pack_capability_discover",
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
       "read_only": true,
-      "tool_id": "display_pack_capability_discover"
+      "tool_id": "display_pack_agent",
+      "tool_mode": "discover"
     },
     {
       "action_id": "display_pack_figure_plan",
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
       "read_only": true,
-      "tool_id": "display_pack_figure_plan"
+      "tool_id": "display_pack_agent",
+      "tool_mode": "plan"
     },
     {
       "action_id": "display_pack_preflight",
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
       "read_only": true,
-      "tool_id": "display_pack_preflight"
+      "tool_id": "display_pack_agent",
+      "tool_mode": "preflight"
     },
     {
       "action_id": "display_pack_render",
-      "callability": "descriptor_only",
+      "callability": "mcp_runtime",
       "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
       "effect": "mutating",
       "read_only": false,
-      "tool_id": "display_pack_render"
+      "tool_id": "display_pack_agent",
+      "tool_mode": "render"
     },
     {
       "action_id": "lightweight_executor_receipt",

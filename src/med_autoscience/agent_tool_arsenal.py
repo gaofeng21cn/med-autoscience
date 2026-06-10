@@ -189,6 +189,7 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
     source_command = action.get("source_command") if isinstance(action.get("source_command"), Mapping) else {}
     mcp_descriptor = _surface_descriptor(action, "mcp")
     mcp_tool_name = _text(mcp_descriptor.get("tool_name")) or action_id
+    mcp_tool_mode = _text(mcp_descriptor.get("mode"))
     descriptor_only = bool(mcp_descriptor.get("descriptor_only", True))
     public_runtime = bool(mcp_descriptor.get("public_runtime", False))
     callability = "mcp_runtime" if public_runtime and not descriptor_only else "descriptor_only"
@@ -204,6 +205,7 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         "surface_kind": "mas_tool_use_card",
         "card_kind": "action_catalog",
         "tool_id": mcp_tool_name,
+        **({"tool_mode": mcp_tool_mode} if mcp_tool_mode else {}),
         "action_id": action_id,
         "title": _required_text(action.get("title"), "title"),
         "summary": _required_text(action.get("summary"), "summary"),
@@ -211,6 +213,11 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         "callability": callability,
         "action_surface_kind": _text(source_command.get("surface_kind")),
         "command": _text(source_command.get("command")),
+        "mcp_invocation": {
+            "tool_name": mcp_tool_name,
+            **({"mode": mcp_tool_mode} if mcp_tool_mode else {}),
+            "public_runtime": public_runtime,
+        },
         "supported_surfaces": sorted(str(item) for item in _surfaces(action)),
         "when_to_use": _when_to_use(action_id=action_id, summary=_text(action.get("summary"))),
         "when_not_to_use": (
@@ -369,6 +376,7 @@ def _action_invocation_plan(
         "selected_card_kind": "action_catalog",
         "selected_action_id": action_card["action_id"],
         "selected_tool_id": action_card["tool_id"],
+        **({"selected_tool_mode": action_card["tool_mode"]} if action_card.get("tool_mode") else {}),
         "source_ref": _text(current_owner_delta.get("source_ref")),
         "work_unit_fingerprint": _text(current_owner_delta.get("work_unit_fingerprint")),
         "requires": {
@@ -421,6 +429,7 @@ def _capability_invocation_plan_contract() -> dict[str, Any]:
 def _index_entry(card: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "tool_id": card["tool_id"],
+        **({"tool_mode": card["tool_mode"]} if card.get("tool_mode") else {}),
         "action_id": card["action_id"],
         "effect": card["effect"],
         "callability": card["callability"],
