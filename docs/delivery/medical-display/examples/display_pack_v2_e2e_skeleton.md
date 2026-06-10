@@ -29,8 +29,20 @@ provenance = ["contract:display-pack-contract.v2"]
 
 [opl_handoff]
 status = "handoff_tail"
-tail_status = "not_landed_gap"
+tail_status = "opl_consumer_smoke_landed"
 target_owner = "OPL Pack OS"
+
+[opl_handoff.external_opl_consumer]
+status = "landed_in_opl_repo"
+owner_repo = "one-person-lab"
+surface = "opl pack os mas-display-smoke"
+command = "opl pack os mas-display-smoke --contract <mas_repo>/contracts/display-pack-contract.v2.json --json"
+verification_refs = [
+  "one-person-lab:src/pack-os.ts",
+  "one-person-lab:tests/src/pack-os.test.ts",
+  "one-person-lab:tests/src/cli/cases/pack-os-command-surface.test.ts",
+]
+boundary = "OPL consumer smoke does not land generic install, registry, distribution, cache, or publication authority inside MAS."
 ```
 
 ## 2. Template Descriptor

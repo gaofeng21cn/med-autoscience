@@ -58,6 +58,10 @@ REQUIRED_AUTHORITY_BOUNDARIES = {
     "display_pack_lock_can_authorize_publication_readiness": False,
 }
 
+OPL_HANDOFF_TAIL_STATUS = "opl_consumer_smoke_landed"
+OPL_EXTERNAL_CONSUMER_STATUS = "landed_in_opl_repo"
+OPL_EXTERNAL_CONSUMER_SURFACE = "opl pack os mas-display-smoke"
+
 
 def default_contract_path() -> Path:
     return Path(__file__).resolve().parents[2] / "contracts" / CONTRACT_FILENAME
@@ -162,11 +166,40 @@ def _require_opl_handoff_tail(contract: Mapping[str, Any]) -> None:
     if status != "handoff_tail":
         raise ValueError("opl_handoff.status must equal 'handoff_tail'")
     tail_status = _require_non_empty_string(handoff, "tail_status", context="opl_handoff")
-    if tail_status == "landed":
-        raise ValueError("opl_handoff.tail_status must not be landed")
+    if tail_status != OPL_HANDOFF_TAIL_STATUS:
+        raise ValueError(f"opl_handoff.tail_status must equal {OPL_HANDOFF_TAIL_STATUS!r}")
     target_owner = _require_non_empty_string(handoff, "target_owner", context="opl_handoff")
     if target_owner != "OPL Pack OS":
         raise ValueError("opl_handoff.target_owner must equal 'OPL Pack OS'")
+    external_consumer = _require_object(
+        handoff.get("external_opl_consumer"),
+        "opl_handoff.external_opl_consumer",
+    )
+    external_status = _require_non_empty_string(
+        external_consumer,
+        "status",
+        context="opl_handoff.external_opl_consumer",
+    )
+    if external_status != OPL_EXTERNAL_CONSUMER_STATUS:
+        raise ValueError(
+            "opl_handoff.external_opl_consumer.status must equal "
+            f"{OPL_EXTERNAL_CONSUMER_STATUS!r}"
+        )
+    surface = _require_non_empty_string(
+        external_consumer,
+        "surface",
+        context="opl_handoff.external_opl_consumer",
+    )
+    if surface != OPL_EXTERNAL_CONSUMER_SURFACE:
+        raise ValueError(
+            "opl_handoff.external_opl_consumer.surface must equal "
+            f"{OPL_EXTERNAL_CONSUMER_SURFACE!r}"
+        )
+    _require_string_list(
+        external_consumer,
+        "verification_refs",
+        context="opl_handoff.external_opl_consumer",
+    )
 
 
 def _require_non_empty_string(item: Mapping[str, Any], field_name: str, *, context: str) -> str:
@@ -179,6 +212,9 @@ def _require_non_empty_string(item: Mapping[str, Any], field_name: str, *, conte
 __all__ = [
     "CONTRACT_ID",
     "CONTRACT_FILENAME",
+    "OPL_EXTERNAL_CONSUMER_STATUS",
+    "OPL_EXTERNAL_CONSUMER_SURFACE",
+    "OPL_HANDOFF_TAIL_STATUS",
     "REQUIRED_PACK_DESCRIPTOR_FIELDS",
     "REQUIRED_TEMPLATE_DESCRIPTOR_FIELDS",
     "SCHEMA_VERSION",

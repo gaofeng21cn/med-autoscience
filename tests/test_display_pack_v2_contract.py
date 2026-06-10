@@ -51,7 +51,12 @@ def _load_contract_payload() -> dict:
 
 
 def test_display_pack_v2_root_contract_declares_descriptor_boundaries() -> None:
-    from med_autoscience.display_pack_v2_contract import validate_display_pack_v2_contract
+    from med_autoscience.display_pack_v2_contract import (
+        OPL_EXTERNAL_CONSUMER_STATUS,
+        OPL_EXTERNAL_CONSUMER_SURFACE,
+        OPL_HANDOFF_TAIL_STATUS,
+        validate_display_pack_v2_contract,
+    )
 
     payload = validate_display_pack_v2_contract(_load_contract_payload())
 
@@ -69,8 +74,11 @@ def test_display_pack_v2_root_contract_declares_descriptor_boundaries() -> None:
 
     handoff = payload["opl_handoff"]
     assert handoff["status"] == "handoff_tail"
-    assert handoff["tail_status"] != "landed"
+    assert handoff["tail_status"] == OPL_HANDOFF_TAIL_STATUS
     assert handoff["target_owner"] == "OPL Pack OS"
+    assert handoff["external_opl_consumer"]["status"] == OPL_EXTERNAL_CONSUMER_STATUS
+    assert handoff["external_opl_consumer"]["surface"] == OPL_EXTERNAL_CONSUMER_SURFACE
+    assert handoff["external_opl_consumer"]["verification_refs"]
     assert "paper/figure_spec.json" in payload["quality_surfaces"]["paper_quality_refs"]
     assert "paper/figure_polish_lifecycle.json" in payload["quality_surfaces"]["paper_quality_refs"]
 
@@ -99,4 +107,24 @@ def test_display_pack_v2_validator_rejects_landed_opl_tail_status() -> None:
     payload["opl_handoff"]["tail_status"] = "landed"
 
     with pytest.raises(ValueError, match="opl_handoff.tail_status"):
+        validate_display_pack_v2_contract(payload)
+
+
+def test_display_pack_v2_validator_rejects_missing_external_opl_consumer() -> None:
+    from med_autoscience.display_pack_v2_contract import validate_display_pack_v2_contract
+
+    payload = copy.deepcopy(_load_contract_payload())
+    del payload["opl_handoff"]["external_opl_consumer"]
+
+    with pytest.raises(ValueError, match="opl_handoff.external_opl_consumer"):
+        validate_display_pack_v2_contract(payload)
+
+
+def test_display_pack_v2_validator_rejects_wrong_external_opl_consumer_surface() -> None:
+    from med_autoscience.display_pack_v2_contract import validate_display_pack_v2_contract
+
+    payload = copy.deepcopy(_load_contract_payload())
+    payload["opl_handoff"]["external_opl_consumer"]["surface"] = "opl pack os other"
+
+    with pytest.raises(ValueError, match="opl_handoff.external_opl_consumer.surface"):
         validate_display_pack_v2_contract(payload)

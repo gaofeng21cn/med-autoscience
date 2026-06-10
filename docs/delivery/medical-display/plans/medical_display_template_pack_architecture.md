@@ -79,12 +79,13 @@ Machine boundary: Human-readable implementation support only; active execution t
   - `paper/figure_visual_audit_receipt.json` 负责 VLM/human/hybrid 对真实渲染图的结构化视觉审计回执；
   - `paper/figure_polish_lifecycle.json` 负责从 `draft_rendered` 到 `publication_manifested` 的 AI/VLM polish 状态前缀，绑定 visual-audit evidence 与 lock refs；
   - `paper/ai_illustration_receipt.json` 只允许记录 `illustration_shell` AI 候选，且 `scientific_claim_carried=false` 是硬边界；
-  - `paper/build/display_pack_lock.json` 会记录这些 surface 的 path / status / hash，submission manifest 会继续保留这些 refs。
+  - `paper/build/display_pack_lock.json` 会记录这些 surface 的 path / status / hash，submission manifest 会继续保留这些 refs；
+  - `medautosci publication display-pack-e2e` 已把 intent/spec、style/overrides、Display Pack renderer、layout QC、visual audit receipt、polish lifecycle、artifact manifest、display pack lock 和 publication manifest 串成可运行路径。
 - 当前唯一活跃缺口，不再是“能不能包化”，而是：
   - 外部 source 的安装/获取机制仍未独立成完整分发链；
   - pack 内 `examples / goldens / exemplars / audit` 资产仍需继续真实充实，而不只是 contract 已落地；
   - 更广的 submission/manuscript-facing pack provenance 对账还可以继续扩展。
-  - OPL 通用 Pack OS 仍是 handoff tail；MAS 当前只落地域内 pack/lock/quality refs 与边界声明，不把本仓写成已完成通用 pack 基座。
+  - OPL repo 已有 `opl pack os mas-display-smoke` consumer 可消费 MAS contract；generic install/registry/version/cache/distribution substrate 仍不归 MAS 关闭。
 - PaperPlotHub 这类公开绘图库已进入 link-only exemplar intake 口径：
   - 它可以作为模板包 `exemplar_refs` 和军火库学习证据；
   - 它不是 `display_pack` source kind；
@@ -231,14 +232,14 @@ Machine boundary: Human-readable implementation support only; active execution t
 - 它们提升了哪个 paper family；
 - 它们当前是否已被真实论文证明。
 
-### 四、OPL Pack OS handoff tail
+### 四、OPL Pack OS handoff
 
 `contracts/display-pack-contract.v2.json` 把 MAS 当前已落地的 Display Pack v2 域内能力和 OPL 通用 Pack OS 拆开：
 
-- MAS 已落地并验证的是 pack descriptor、template descriptor、`display_pack_lock.json`、paper-level quality refs、submission manifest ref preservation，以及这些 surface 的 authority boundary；
-- OPL Pack OS 的长期目标是通用 pack install、registry、version resolution、lock projection、submission handoff 和 asset inventory；
-- 这些通用能力现在只作为 refs-only handoff/tail 记录，不写成 MAS 已经拥有的通用基座；
-- 后续只有在 OPL-owned generic pack surface 带着自己的 tests、adoption evidence 和 consumer projection 落地后，才能把 tail 状态从缺口改成已落地。
+- MAS 已落地并验证的是 pack descriptor、template descriptor、deterministic E2E render/QC、`display_pack_lock.json`、publication manifest、paper-level quality refs、submission manifest ref preservation，以及这些 surface 的 authority boundary；
+- OPL repo 已落地 `opl pack os mas-display-smoke` consumer，可读取 MAS Display Pack v2 contract 并输出 generic pack lock/audit smoke receipt；
+- OPL Pack OS 的长期目标仍包括通用 pack install、registry、version resolution、cache、distribution、lock projection、submission handoff 和 asset inventory；
+- 这些通用 substrate 能力仍不写成 MAS 已经拥有的通用基座。
 
 ## 命名与标识
 
