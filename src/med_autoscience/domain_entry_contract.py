@@ -61,8 +61,33 @@ SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
         ),
     ),
 }
+SERVICE_SAFE_DISPLAY_PACK_COMMANDS: dict[str, DomainEntryCommandSpec] = {
+    "display-pack-capability-discover": DomainEntryCommandSpec(
+        (),
+        ("repo_root", "paper_root", "include_templates"),
+    ),
+    "display-pack-figure-plan": DomainEntryCommandSpec(
+        ("figure_request",),
+        ("repo_root", "paper_root", "max_recommendations"),
+    ),
+    "display-pack-preflight": DomainEntryCommandSpec(
+        (),
+        (
+            "repo_root",
+            "paper_root",
+            "template_id",
+            "figure_request",
+            "check_runtime_dependencies",
+        ),
+    ),
+    "display-pack-render": DomainEntryCommandSpec(
+        ("paper_root",),
+        ("repo_root", "figure_request", "visual_audit_review"),
+    ),
+}
 SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec | AuthorityOperationCommand] = {
     **SERVICE_SAFE_OPERATOR_COMMANDS,
+    **SERVICE_SAFE_DISPLAY_PACK_COMMANDS,
     **{item.command: item for item in AUTHORITY_OPERATION_COMMANDS},
 }
 

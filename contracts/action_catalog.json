@@ -446,6 +446,270 @@
       ]
     },
     {
+      "action_id": "display_pack_capability_discover",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_readiness": false,
+        "can_emit_display_refs_and_receipts": true,
+        "can_mutate_data_or_statistics": false,
+        "can_replace_owner_receipt": false,
+        "can_replace_visual_audit": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "surface_authority": "display_pack_agent_capability_discovery"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+        "surface_kind": "display_pack_agent_capability"
+      },
+      "summary": "Return the agent-facing Display Pack inventory, callable actions, expected receipt refs, and forbidden authority boundary. This is the low-friction discovery entry for MAS agents; humans manage assets, agents consume this structured capability surface.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "display_pack_capability_discover"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+          "surface_kind": "display_pack_agent_capability"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "display_pack_agent_capability",
+          "tool_name": "display_pack_capability_discover"
+        },
+        "openai": {
+          "tool_name": "display_pack_capability_discover"
+        },
+        "product_entry": {
+          "action_key": "display_pack_capability_discover",
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+          "surface_kind": "display_pack_agent_capability"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
+          "command_contract_id": "display_pack_capability_discover",
+          "surface_kind": "display_pack_agent_capability"
+        }
+      },
+      "title": "Discover MAS Display Pack capability",
+      "workspace_locator_fields": [
+        "repo_root",
+        "paper_root"
+      ]
+    },
+    {
+      "action_id": "display_pack_figure_plan",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_readiness": false,
+        "can_emit_display_refs_and_receipts": true,
+        "can_mutate_data_or_statistics": false,
+        "can_replace_owner_receipt": false,
+        "can_replace_visual_audit": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "surface_authority": "display_pack_template_selection_advisory"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+        "surface_kind": "display_pack_agent_figure_plan"
+      },
+      "summary": "Given a structured figure_request, rank Display Pack templates and choose the next preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "display_pack_figure_plan"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+          "surface_kind": "display_pack_agent_figure_plan"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "display_pack_agent_figure_plan",
+          "tool_name": "display_pack_figure_plan"
+        },
+        "openai": {
+          "tool_name": "display_pack_figure_plan"
+        },
+        "product_entry": {
+          "action_key": "display_pack_figure_plan",
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+          "surface_kind": "display_pack_agent_figure_plan"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
+          "command_contract_id": "display_pack_figure_plan",
+          "surface_kind": "display_pack_agent_figure_plan"
+        }
+      },
+      "title": "Plan a Display Pack figure",
+      "workspace_locator_fields": [
+        "repo_root",
+        "paper_root",
+        "figure_request"
+      ]
+    },
+    {
+      "action_id": "display_pack_preflight",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_readiness": false,
+        "can_emit_display_refs_and_receipts": true,
+        "can_mutate_data_or_statistics": false,
+        "can_replace_owner_receipt": false,
+        "can_replace_visual_audit": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "surface_authority": "display_pack_pre_render_readiness_check"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+        "surface_kind": "display_pack_agent_preflight"
+      },
+      "summary": "Check selected template assets, QC profile, R runtime dependencies, style profile lock, and golden coverage before render. Findings route to style/profile/runtime/template repair without mutating data, statistics, evidence marks, or publication verdicts.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "display_pack_preflight"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "surface_kind": "display_pack_agent_preflight"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "display_pack_agent_preflight",
+          "tool_name": "display_pack_preflight"
+        },
+        "openai": {
+          "tool_name": "display_pack_preflight"
+        },
+        "product_entry": {
+          "action_key": "display_pack_preflight",
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "surface_kind": "display_pack_agent_preflight"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command_contract_id": "display_pack_preflight",
+          "surface_kind": "display_pack_agent_preflight"
+        }
+      },
+      "title": "Preflight a Display Pack figure",
+      "workspace_locator_fields": [
+        "repo_root",
+        "paper_root",
+        "template_id",
+        "figure_request"
+      ]
+    },
+    {
+      "action_id": "display_pack_render",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_readiness": false,
+        "can_emit_display_refs_and_receipts": true,
+        "can_mutate_data_or_statistics": false,
+        "can_replace_owner_receipt": false,
+        "can_replace_visual_audit": false,
+        "can_write_controller_decisions": false,
+        "can_write_current_package": false,
+        "can_write_publication_eval": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "display_artifacts_and_refs_only",
+        "surface_authority": "display_pack_render_receipt"
+      },
+      "effect": "mutating",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+        "surface_kind": "display_pack_agent_render_receipt"
+      },
+      "summary": "Materialize Display Pack figure artifacts and paper-level display refs from a prepared paper_root or frozen data payload. This writes display artifacts, visual-audit receipt, polish lifecycle, display_pack_lock, and publication manifest refs only; it cannot sign publication readiness or owner receipt.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "display_pack_render"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "surface_kind": "display_pack_agent_render_receipt"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "display_pack_agent_render_receipt",
+          "tool_name": "display_pack_render"
+        },
+        "openai": {
+          "tool_name": "display_pack_render"
+        },
+        "product_entry": {
+          "action_key": "display_pack_render",
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "surface_kind": "display_pack_agent_render_receipt"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
+          "command_contract_id": "display_pack_render",
+          "surface_kind": "display_pack_agent_render_receipt"
+        }
+      },
+      "title": "Render a Display Pack figure receipt",
+      "workspace_locator_fields": [
+        "repo_root",
+        "paper_root",
+        "figure_request",
+        "visual_audit_review"
+      ]
+    },
+    {
       "action_id": "mainline_status",
       "authority_boundary": {
         "authoritative_truth_refs": [

@@ -12,6 +12,29 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def test_domain_handler_export_exposes_display_pack_agent_capability(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
+    profile = make_profile(tmp_path)
+
+    export = module.export_family_domain_handler(
+        profile=profile,
+        profile_ref=tmp_path / "profile.toml",
+    )
+
+    capability = export["display_pack_agent_capability"]
+    assert capability["surface_kind"] == "display_pack_agent_capability"
+    assert capability["status"] == "available"
+    assert capability["inventory"]["template_count"] >= 90
+    assert capability["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 50
+    assert {item["command"] for item in capability["callable_actions"]} == {
+        "display-pack-capability-discover",
+        "display-pack-figure-plan",
+        "display-pack-preflight",
+        "display-pack-render",
+    }
+    assert capability["authority_boundary"]["can_authorize_publication_readiness"] is False
+
+
 def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_runtime_state_mutation(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
     profile = make_profile(tmp_path)
