@@ -23,6 +23,7 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 - [Portfolio consolidation](./portfolio/medical_display_portfolio_consolidation.md)
 - [Active board](./board/medical_display_active_board.md)
 - [Display Pack v2 landing status](./contracts/display_pack_v2_landing_status.md)
+- [Display Pack renderer migration assessment](./plans/display_pack_renderer_migration_assessment.md)
 - [Platform mainline](./contracts/medical_display_platform_mainline.md)
 - [Audit guide](./contracts/medical_display_audit_guide.md)
 - [Template catalog](./catalogs/medical_display_template_catalog.md)
@@ -36,7 +37,7 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 
 Medical Display 文档和 template pack 可以定义 renderer family、input schema、layout QC、template catalog、route cookbook、display-to-claim 审计输入和生成型 display artifacts。它们不授权 source readiness、publication quality、submission readiness、artifact mutation、`current_package` freshness proof、delivery sync、paper closure、domain ready 或 production ready。
 
-Display Pack v2 当前完成度按 [Display Pack v2 landing status](./contracts/display_pack_v2_landing_status.md) 读取：MAS 域内 pack/template descriptor、paper-level figure quality refs、single/batch medical figure grammar、R/ggplot2-first subprocess renderer、Python plugin adapter、AI/VLM polish lifecycle、deterministic E2E render/QC/publication manifest、display lock 和 submission refs preservation 已有 contract / validator / test 面；OPL repo 已落地 `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke` surfaces。OPL surfaces 只消费和运输 refs，不表示 MAS 已拥有 generic Pack OS substrate。`display_pack_lock.json`、visual-audit clear、polish lifecycle 或 OPL smoke receipt 都不能代签 publication readiness、artifact authority 或 owner receipt。
+Display Pack v2 当前完成度按 [Display Pack v2 landing status](./contracts/display_pack_v2_landing_status.md) 读取：MAS 域内 pack/template descriptor、paper-level figure quality refs、single/batch medical figure grammar、R/ggplot2-first subprocess runtime protocol、Python plugin adapter、AI/VLM polish lifecycle、deterministic E2E render/QC/publication manifest、display lock 和 submission refs preservation 已有 contract / validator / test 面；OPL repo 已落地 `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke` surfaces。OPL surfaces 只消费和运输 refs，不表示 MAS 已拥有 generic Pack OS substrate。当前 core pack 的 22 个 `r_ggplot2` evidence templates 仍是 Python plugin bridge，需要按 [Display Pack renderer migration assessment](./plans/display_pack_renderer_migration_assessment.md) 升级为一等 subprocess 模板。`display_pack_lock.json`、visual-audit clear、polish lifecycle 或 OPL smoke receipt 都不能代签 publication readiness、artifact authority 或 owner receipt。
 
 证据型图修复必须保留 frozen data / script / statistics refs 与 MAS artifact authority refs 的直接关系。说明性图可以走程序化 illustration route，但不能承载结果证据、修改 claim、替换 source truth 或绕过 MAS owner receipt / typed blocker。OPL generated / hosted surfaces 只能展示或运输 display locator refs、owner receipt refs、typed blocker refs、pack/version refs 和 audit refs。
 
