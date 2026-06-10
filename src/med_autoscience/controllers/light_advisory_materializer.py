@@ -7,22 +7,35 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.stage_quality_contract_parts.light_external import (
+    LIGHT_BASE_OUTPUT_REF_KINDS,
+    LIGHT_MATERIALIZER_OUTPUT_REF_KINDS,
+)
+
 
 SCHEMA_VERSION = 1
 SURFACE_KIND = "light_external_advisory_materializer"
 BUNDLE_SURFACE_KIND = "light_external_advisory_ref_bundle"
 _STAGE_OUTPUTS_ROOT = Path("artifacts") / "stage_outputs"
-_REF_KINDS: tuple[str, ...] = (
-    "verified_asset_ref",
-    "collision_check_ref",
-    "refusal_rehearsal_ref",
-    "fresh_evidence_gate_ref",
-)
+_REF_KINDS: tuple[str, ...] = LIGHT_MATERIALIZER_OUTPUT_REF_KINDS
+_DEFAULT_EXPECTED_REF_KINDS: tuple[str, ...] = LIGHT_BASE_OUTPUT_REF_KINDS
 _PAYLOAD_SECTION_BY_REF_KIND = {
     "verified_asset_ref": "verified_asset",
     "collision_check_ref": "collision_check",
     "refusal_rehearsal_ref": "refusal_rehearsal",
     "fresh_evidence_gate_ref": "fresh_evidence_gate",
+    "source_search_discipline_ref": "source_search_discipline",
+    "data_access_sink_ref": "data_access_sink",
+    "citation_edge_retraction_ref": "citation_edge_retraction",
+    "citation_locator_audit_ref": "citation_locator_audit",
+    "prisma_flow_reconciliation_ref": "prisma_flow_reconciliation",
+    "figure_manifest_check_ref": "figure_manifest_check",
+    "experiment_matrix_backlink_ref": "experiment_matrix_backlink",
+    "statistical_analysis_triage_ref": "statistical_analysis_triage",
+    "overclaim_lint_warning_ref": "overclaim_lint_warning",
+    "argument_review_hint_ref": "argument_review_hint",
+    "figure_integrity_warning_ref": "figure_integrity_warning",
+    "style_fingerprint_hint_ref": "style_fingerprint_hint",
 }
 
 
@@ -73,7 +86,8 @@ def materialize_light_advisory_refs(
     present_ref_kinds = {str(item["ref_kind"]) for item in advisory_refs}
     route_required = tuple(_dedupe_texts(route_required_ref_kinds))
     missing_route_required = [ref_kind for ref_kind in route_required if ref_kind not in present_ref_kinds]
-    missing_advisory = [ref_kind for ref_kind in _REF_KINDS if ref_kind not in present_ref_kinds]
+    expected_ref_kinds = _dedupe_texts([*_DEFAULT_EXPECTED_REF_KINDS, *route_required])
+    missing_advisory = [ref_kind for ref_kind in expected_ref_kinds if ref_kind not in present_ref_kinds]
     missing_advisory_ref_kinds = _dedupe_texts([*missing_advisory, *missing_route_required])
     authority_boundary = _authority_boundary()
     typed_blocker_candidate = (
@@ -198,6 +212,44 @@ def _advisory_ref_payload(
         result["unresolved_critical_ref_count"] = len(unresolved) if isinstance(unresolved, list) else 1
     elif ref_kind == "fresh_evidence_gate_ref":
         result["claim_supported"] = _claim_supported(section)
+    elif ref_kind == "source_search_discipline_ref":
+        result["source_discipline_state"] = _text(section.get("source_discipline_state")) or "owner_review_required"
+        result["ordinary_scout_prisma_blocker"] = False
+    elif ref_kind == "data_access_sink_ref":
+        result["sink_authorized"] = _explicit_bool(section, "sink_authorized", default=False)
+        result["artifact_or_publication_authority"] = False
+    elif ref_kind == "citation_edge_retraction_ref":
+        result["citation_edge_state"] = _text(section.get("citation_edge_state")) or "unknown"
+        result["retraction_check_state"] = _text(section.get("retraction_check_state")) or "not_checked"
+    elif ref_kind == "citation_locator_audit_ref":
+        result["support_state"] = _support_state(section)
+    elif ref_kind == "prisma_flow_reconciliation_ref":
+        result["count_reconciled"] = _count_reconciled(section)
+        result["systematic_review_only"] = True
+    elif ref_kind == "figure_manifest_check_ref":
+        result["effective_font_checked"] = _explicit_bool(section, "effective_font_checked", default=False)
+        result["publication_package_authority"] = False
+    elif ref_kind == "experiment_matrix_backlink_ref":
+        result["derived_dataset_backlink_required"] = _explicit_bool(
+            section,
+            "derived_dataset_backlink_required",
+            default=True,
+        )
+        result["runtime_truth_authority"] = False
+    elif ref_kind == "statistical_analysis_triage_ref":
+        result["analysis_triage_state"] = _text(section.get("analysis_triage_state")) or "reviewer_hint"
+        result["quality_verdict_authority"] = False
+    elif ref_kind == "overclaim_lint_warning_ref":
+        result["warning_count"] = _warning_count(section)
+        result["reviewer_verdict_authority"] = False
+    elif ref_kind == "argument_review_hint_ref":
+        result["claim_boundary_state"] = _text(section.get("claim_boundary_state")) or "owner_review_required"
+    elif ref_kind == "figure_integrity_warning_ref":
+        result["warning_count"] = _warning_count(section)
+        result["artifact_mutation_authority"] = False
+    elif ref_kind == "style_fingerprint_hint_ref":
+        result["watch_only"] = True
+        result["may_override_evidence_or_reviewer_concerns"] = False
     return result
 
 
@@ -313,6 +365,32 @@ def _claim_supported(payload: Mapping[str, Any]) -> bool:
     if isinstance(explicit, bool):
         return explicit
     return _text(payload.get("verification_exit_state")) in {"passed", "pass", "supported"}
+
+
+def _support_state(payload: Mapping[str, Any]) -> str:
+    explicit = _text(payload.get("support_state") or payload.get("support_verdict"))
+    return explicit or "needs_locator_review"
+
+
+def _count_reconciled(payload: Mapping[str, Any]) -> bool:
+    explicit = payload.get("count_reconciled")
+    if isinstance(explicit, bool):
+        return explicit
+    return _text(payload.get("reconciliation_state")) in {"passed", "pass", "reconciled"}
+
+
+def _warning_count(payload: Mapping[str, Any]) -> int:
+    warnings = payload.get("warnings") or payload.get("integrity_warnings") or []
+    if isinstance(warnings, list):
+        return len(warnings)
+    return 1 if warnings else 0
+
+
+def _explicit_bool(payload: Mapping[str, Any], key: str, *, default: bool) -> bool:
+    explicit = payload.get(key)
+    if isinstance(explicit, bool):
+        return explicit
+    return default
 
 
 def _bundle_ref(stage: str) -> Path:

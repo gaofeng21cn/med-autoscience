@@ -171,3 +171,95 @@ def test_light_advisory_materializer_keeps_missing_advisory_non_blocking_without
         "advisory_gap_only"
     )
     assert not (study_root / result["bundle_ref"]).exists()
+
+
+def test_light_advisory_materializer_writes_optional_skill_content_refs_only_when_payload_present(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "001-risk"
+    _write(study_root / "study.yaml", "study_id: 001-risk\n")
+    _write(study_root / "paper" / "evidence_ledger.json", '{"claims": []}\n')
+
+    result = materialize_light_advisory_refs(
+        study_root=study_root,
+        study_id="001-risk",
+        work_unit_id="wu-write-review-001",
+        owner_action="repair_claim_evidence_and_display_refs",
+        stage="write",
+        source_refs=("study.yaml", "paper/evidence_ledger.json"),
+        payload={
+            "citation_locator_audit": {
+                "claim_segment_id": "claim-1",
+                "citation_ref": "pmid:123",
+                "locator_ref": "pmid:123#table-2",
+                "support_state": "partial",
+                "rewrite_or_replace_ref": "paper/evidence_ledger.json#/claims/0/repair",
+            },
+            "prisma_flow_reconciliation": {
+                "search_source_count_refs": ["pubmed:query-1"],
+                "dedup_count_ref": "screening:dedup",
+                "included_study_count_ref": "screening:included",
+                "count_reconciled": True,
+            },
+            "argument_review_hint": {
+                "claim_ref": "paper/evidence_ledger.json#/claims/0",
+                "evidence_ref": "paper/evidence_ledger.json#/evidence/0",
+                "boundary_ref": "paper/evidence_ledger.json#/claims/0/boundary",
+                "claim_boundary_state": "downgrade_required",
+            },
+            "figure_integrity_warning": {
+                "figure_ref": "figures/fig1.pdf",
+                "warnings": [
+                    {"warning_ref": "axis:truncated", "caption_disclosure_ref": "caption:fig1"}
+                ],
+            },
+            "style_fingerprint_hint": {
+                "reference_style_profile_ref": "memory:approved-style",
+                "draft_style_profile_ref": "manuscript:current-draft",
+                "deviation_hint_ref": "style:terminology-drift",
+            },
+        },
+        apply=True,
+    )
+
+    assert result["status"] == "materialized"
+    assert result["typed_blocker"] is None
+    ref_kinds = {ref["ref_kind"] for ref in result["advisory_refs"]}
+    assert {
+        "verified_asset_ref",
+        "citation_locator_audit_ref",
+        "prisma_flow_reconciliation_ref",
+        "argument_review_hint_ref",
+        "figure_integrity_warning_ref",
+        "style_fingerprint_hint_ref",
+    } <= ref_kinds
+    assert "citation_locator_audit_ref" not in result["missing_advisory_ref_kinds"]
+    assert result["missing_advisory_ref_kinds"] == [
+        "collision_check_ref",
+        "refusal_rehearsal_ref",
+        "fresh_evidence_gate_ref",
+    ]
+
+    refs_by_kind = {ref["ref_kind"]: ref for ref in result["advisory_refs"]}
+    assert refs_by_kind["citation_locator_audit_ref"]["support_state"] == "partial"
+    assert refs_by_kind["prisma_flow_reconciliation_ref"]["count_reconciled"] is True
+    assert refs_by_kind["prisma_flow_reconciliation_ref"]["systematic_review_only"] is True
+    assert refs_by_kind["argument_review_hint_ref"]["claim_boundary_state"] == "downgrade_required"
+    assert refs_by_kind["figure_integrity_warning_ref"]["warning_count"] == 1
+    assert refs_by_kind["figure_integrity_warning_ref"]["artifact_mutation_authority"] is False
+    assert refs_by_kind["style_fingerprint_hint_ref"]["watch_only"] is True
+    assert (
+        refs_by_kind["style_fingerprint_hint_ref"]["may_override_evidence_or_reviewer_concerns"]
+        is False
+    )
+
+    bundle_path = study_root / result["bundle_ref"]
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    assert {
+        "citation_locator_audit_ref",
+        "prisma_flow_reconciliation_ref",
+        "argument_review_hint_ref",
+        "figure_integrity_warning_ref",
+        "style_fingerprint_hint_ref",
+    } <= set(bundle["advisory_ref_paths"])
+    assert not (bundle_path.parent.parent / "receipts" / "owner_receipt.json").exists()

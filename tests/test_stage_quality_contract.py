@@ -6,6 +6,10 @@ from med_autoscience.stage_quality_contract import (
     build_stage_quality_pack_contract,
     build_stage_quality_pack_ref_projection,
 )
+from med_autoscience.stage_quality_contract_parts.light_external import (
+    LIGHT_OBSERVED_HEAD,
+    build_light_materializer_contract,
+)
 
 
 def test_stage_quality_contract_defines_required_pack_boundaries_and_refs() -> None:
@@ -436,7 +440,7 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
     assert pack["clean_room_absorption"] == {
         "source_project": "Light0305/Light",
         "source_repository": "https://github.com/Light0305/Light",
-        "observed_head": "d71033733bc4b357f3a2f0b6460ad7d8da070954",
+        "observed_head": LIGHT_OBSERVED_HEAD,
         "previous_intake_head": "731c786e9434e8f6f9cd5284293003115c5b66c7",
         "source_paths": [
             "README.md",
@@ -447,10 +451,16 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
             "skills/light-orchestrator/references/passport.md",
             "skills/light-orchestrator/references/checkpoints.md",
             "skills/light-orchestrator/references/pipelines.md",
+            "skills/light-literature-search/SKILL.md",
+            "skills/light-data-engineering/SKILL.md",
+            "skills/light-research-plan/SKILL.md",
+            "skills/light-result-analysis/SKILL.md",
             "skills/light-idea-generation/SKILL.md",
             "skills/light-idea-critique/SKILL.md",
             "skills/light-self-review/SKILL.md",
+            "skills/light-citation/SKILL.md",
             "skills/light-citation/references/locator_audit.md",
+            "skills/light-research-ethics/SKILL.md",
             "skills/light-literature-search/scripts/prisma_flow.py",
             "skills/light-figure-drawing/SKILL.md",
             "skills/light-figure-drawing/scripts/figure_export.py",
@@ -462,7 +472,7 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
             "_verification_log/*.md",
         ],
         "latest_upstream_delta": {
-            "commit": "d71033733bc4b357f3a2f0b6460ad7d8da070954",
+            "commit": LIGHT_OBSERVED_HEAD,
             "adopted_as": "figure_integrity_export_qa_advisory_pattern",
             "patterns": [
                 "effective_font_size_after_scaling",
@@ -510,8 +520,15 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
         "checkpoint_gate_budget",
         "progressive_disclosure_skill_bundle",
         "bounded_mode_registry",
+        "source_search_discipline",
+        "data_access_level_to_sink_contract",
+        "citation_edge_and_retraction_check",
         "citation_locator_audit",
         "prisma_flow_count_reconciliation",
+        "figure_manifest_and_effective_font_check",
+        "experiment_matrix_data_asset_backlink",
+        "statistical_analysis_triage",
+        "overclaim_lint_structured_findings",
         "style_fingerprint_author_voice_hint",
         "argument_review_claim_evidence_boundary",
         "figure_integrity_lint_warning_ref",
@@ -524,8 +541,15 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
     assert patterns["checkpoint_gate_budget"]["adoption_class"] == "adopt_template"
     assert patterns["progressive_disclosure_skill_bundle"]["adoption_class"] == "adopt_template"
     assert patterns["bounded_mode_registry"]["adoption_class"] == "adopt_template"
+    assert patterns["source_search_discipline"]["adoption_class"] == "adopt_contract"
+    assert patterns["data_access_level_to_sink_contract"]["adoption_class"] == "adopt_contract"
+    assert patterns["citation_edge_and_retraction_check"]["adoption_class"] == "adopt_contract"
     assert patterns["citation_locator_audit"]["adoption_class"] == "adopt_contract"
     assert patterns["prisma_flow_count_reconciliation"]["adoption_class"] == "adopt_template"
+    assert patterns["figure_manifest_and_effective_font_check"]["adoption_class"] == "adopt_template"
+    assert patterns["experiment_matrix_data_asset_backlink"]["adoption_class"] == "adopt_template"
+    assert patterns["statistical_analysis_triage"]["adoption_class"] == "adopt_template"
+    assert patterns["overclaim_lint_structured_findings"]["adoption_class"] == "adopt_template"
     assert patterns["style_fingerprint_author_voice_hint"]["adoption_class"] == "watch_only"
     assert patterns["argument_review_claim_evidence_boundary"]["adoption_class"] == "adopt_template"
     assert patterns["figure_integrity_lint_warning_ref"]["adoption_class"] == "adopt_template"
@@ -543,6 +567,41 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
         "support_verdict",
     } <= set(patterns["citation_locator_audit"]["required_contract_fields"])
     assert {
+        "mesh_or_controlled_vocab_ref_if_biomedical",
+        "chinese_source_probe_ref_if_relevant",
+    } <= set(patterns["source_search_discipline"]["required_contract_fields"])
+    assert {
+        "data_access_level_ref",
+        "target_sink_ref",
+        "sink_authorization_ref_or_typed_blocker",
+    } <= set(patterns["data_access_level_to_sink_contract"]["required_contract_fields"])
+    assert {
+        "citation_edge_ref",
+        "edge_state_confirmed_not_in_open_index_or_unknown",
+        "retraction_or_expression_of_concern_ref",
+    } <= set(patterns["citation_edge_and_retraction_check"]["required_contract_fields"])
+    assert {
+        "figure_manifest_ref",
+        "effective_font_size_check_ref",
+        "caption_binding_ref",
+    } <= set(patterns["figure_manifest_and_effective_font_check"]["required_contract_fields"])
+    assert {
+        "experiment_matrix_ref",
+        "derived_dataset_ref",
+        "data_asset_backlink_ref",
+    } <= set(patterns["experiment_matrix_data_asset_backlink"]["required_contract_fields"])
+    assert {
+        "effect_size_ref",
+        "confidence_interval_ref",
+        "multiplicity_or_fdr_ref",
+        "leakage_or_overfit_check_ref",
+    } <= set(patterns["statistical_analysis_triage"]["required_contract_fields"])
+    assert {
+        "claim_strength_warning_ref",
+        "medical_term_false_positive_note",
+        "reviewer_repair_hint_ref",
+    } <= set(patterns["overclaim_lint_structured_findings"]["required_contract_fields"])
+    assert {
         "claim_ref",
         "evidence_ref",
         "boundary_ref",
@@ -556,47 +615,12 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
     } <= set(patterns["figure_integrity_lint_warning_ref"]["required_contract_fields"])
 
     materializer = pack["materializer_contract"]
-    assert materializer == {
-        "surface_kind": "light_external_advisory_materializer_contract",
-        "schema_version": 1,
-        "owner": "MedAutoScience",
-        "controller_ref": (
-            "med_autoscience.controllers.light_advisory_materializer.materialize_light_advisory_refs"
-        ),
-        "cli_entry": "medautosci study light-advisory-materialize",
-        "flat_cli_entry": "medautosci light-advisory-materialize",
-        "writes": [
-            "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json",
-            "artifacts/stage_outputs/<stage>/advisory/refs/verified_asset_ref.json",
-            "artifacts/stage_outputs/<stage>/advisory/refs/collision_check_ref.json",
-            "artifacts/stage_outputs/<stage>/advisory/refs/refusal_rehearsal_ref.json",
-            "artifacts/stage_outputs/<stage>/advisory/refs/fresh_evidence_gate_ref.json",
-            "artifacts/stage_outputs/<stage>/advisory/typed_blocker_candidate.json",
-        ],
-        "does_not_write": [
-            "study truth",
-            "paper body",
-            "artifact body",
-            "memory body",
-            "owner receipt",
-            "publication_eval/latest.json",
-            "controller_decisions/latest.json",
-            "submission package",
-            "current_package",
-        ],
-        "output_ref_kinds": [
-            "verified_asset_ref",
-            "collision_check_ref",
-            "refusal_rehearsal_ref",
-            "fresh_evidence_gate_ref",
-        ],
-        "typed_blocker_materialization": "candidate_only_current_delta_hard_gate_required",
-        "missing_advisory_behavior": "do_not_block_dispatch",
-        "blocks_unrelated_owner_dispatch": False,
-        "external_light_runtime_dependency": False,
-        "external_light_router_dependency": False,
-        "external_light_db09_dependency": False,
-    }
+    assert materializer == build_light_materializer_contract()
+    assert materializer["optional_ref_kind_policy"] == (
+        "materialize_when_payload_present_or_route_required_only"
+    )
+    assert "citation_locator_audit_ref" in materializer["output_ref_kinds"]
+    assert "figure_integrity_warning_ref" in materializer["output_ref_kinds"]
 
     promotion = pack["promotion_evidence"]
     assert promotion["stable_strong_evidence_satisfied"] is True
@@ -647,8 +671,15 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
             "checkpoint_gate_budget",
             "progressive_disclosure_skill_bundle",
             "bounded_mode_registry",
+            "source_search_discipline",
+            "data_access_level_to_sink_contract",
+            "citation_edge_and_retraction_check",
             "citation_locator_audit",
             "prisma_flow_count_reconciliation",
+            "figure_manifest_and_effective_font_check",
+            "experiment_matrix_data_asset_backlink",
+            "statistical_analysis_triage",
+            "overclaim_lint_structured_findings",
             "style_fingerprint_author_voice_hint",
             "argument_review_claim_evidence_boundary",
             "figure_integrity_lint_warning_ref",
@@ -656,8 +687,15 @@ def test_light_external_pattern_intake_pack_is_clean_room_progress_first_advisor
         "accepted_ref_classes": [
             "skill_engineering_advisory_ref",
             "progress_passport_ref",
+            "source_search_discipline_ref",
+            "data_access_sink_ref",
+            "citation_edge_retraction_ref",
             "citation_locator_audit_ref",
             "prisma_flow_reconciliation_ref",
+            "figure_manifest_check_ref",
+            "experiment_matrix_backlink_ref",
+            "statistical_analysis_triage_ref",
+            "overclaim_lint_warning_ref",
             "style_fingerprint_hint_ref",
             "argument_review_hint_ref",
             "figure_integrity_warning_ref",
