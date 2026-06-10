@@ -15,6 +15,7 @@ def scan_active_quest_reports(
     runtime_root: Path,
     controller_runners: dict[str, Callable[..., dict[str, Any]]],
     apply: bool,
+    persist_diagnostic_reports: bool,
     run_domain_health_diagnostic_for_quest_fn: Callable[..., dict[str, Any]],
     study_ids: tuple[str, ...] = (),
 ) -> tuple[list[str], list[dict[str, Any]], dict[str, dict[str, Any]]]:
@@ -30,6 +31,7 @@ def scan_active_quest_reports(
                 quest_root=quest_root,
                 controller_runners=controller_runners,
                 apply=apply,
+                persist_diagnostic_reports=persist_diagnostic_reports,
             )
         )
     report_by_quest_root = {

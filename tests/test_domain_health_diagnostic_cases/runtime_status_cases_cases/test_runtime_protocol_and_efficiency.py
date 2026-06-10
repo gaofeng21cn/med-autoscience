@@ -147,6 +147,23 @@ def test_domain_health_diagnostic_surfaces_runtime_efficiency_packet_and_gate_ca
     assert runtime_efficiency["full_detail_tool_call_count"] == 1
     assert runtime_efficiency["latest_evidence_packets"][0]["summary"].startswith("bash_exec:")
     assert runtime_efficiency["gate_cache_surfaces"][0]["surface_id"] == "publication_gate"
+    assert result["diagnostic_report_persistence"]["persisted"] is False
+    assert not (quest_root / "artifacts" / "reports" / "domain_health_diagnostic").exists()
+
+    refreshed = module.run_domain_health_diagnostic_for_quest(
+        quest_root=quest_root,
+        controller_runners={
+            "publication_gate": lambda *, quest_root, apply: {
+                "status": "clear",
+                "blockers": [],
+                "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+                "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+            }
+        },
+        apply=False,
+        persist_diagnostic_reports=True,
+    )
+    assert refreshed["diagnostic_report_persistence"]["persisted"] is True
     latest_markdown = (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.md").read_text(
         encoding="utf-8"
     )

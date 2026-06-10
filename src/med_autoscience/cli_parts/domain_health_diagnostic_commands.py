@@ -35,10 +35,12 @@ def handle_domain_health_diagnostic_command(
             parser.error("--request-opl-owner-route-reconcile requires --request-opl-stage-attempts")
         if args.request_opl_owner_route_reconcile and not args.apply:
             parser.error("--request-opl-owner-route-reconcile requires --apply")
+        persist_diagnostic_reports = bool(args.apply or args.refresh_diagnostic_reports)
         if args.quest_root:
             result = domain_health_diagnostic.run_domain_health_diagnostic_for_quest(
                 quest_root=Path(args.quest_root),
                 apply=args.apply,
+                persist_diagnostic_reports=persist_diagnostic_reports,
             )
         else:
             runtime_root = Path(args.runtime_root) if args.runtime_root else Path(profile.runtime_root)
@@ -49,6 +51,7 @@ def handle_domain_health_diagnostic_command(
                 study_ids=tuple(args.studies or ()),
                 request_opl_stage_attempts=bool(args.request_opl_stage_attempts),
                 request_opl_owner_route_reconcile=bool(args.request_opl_owner_route_reconcile),
+                persist_diagnostic_reports=persist_diagnostic_reports,
             )
         _print_json(result)
         return 0

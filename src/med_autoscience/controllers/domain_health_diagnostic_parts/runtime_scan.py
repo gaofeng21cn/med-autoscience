@@ -234,6 +234,7 @@ def _attach_no_op_suppression_to_quest_report(
     *,
     quest_report: dict[str, Any] | None,
     suppression: Mapping[str, Any] | None,
+    persist_diagnostic_reports: bool = True,
 ) -> None:
     if quest_report is None or suppression is None:
         return
@@ -244,6 +245,8 @@ def _attach_no_op_suppression_to_quest_report(
     ]
     existing.append(dict(suppression))
     quest_report["managed_study_no_op_suppressions"] = existing
+    if not persist_diagnostic_reports:
+        return
     quest_root = _candidate_path(quest_report.get("quest_root"))
     if quest_root is not None:
         json_path, md_path, latest_json, latest_markdown = write_domain_health_diagnostic_report(quest_root, quest_report)
@@ -253,7 +256,11 @@ def _attach_no_op_suppression_to_quest_report(
         quest_report["latest_report_markdown"] = str(latest_markdown)
 
 
-def _materialize_placeholder_quest_diagnostic_report(status_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+def _materialize_placeholder_quest_diagnostic_report(
+    status_payload: Mapping[str, Any],
+    *,
+    persist_diagnostic_reports: bool = True,
+) -> dict[str, Any] | None:
     quest_root = _candidate_path(status_payload.get("quest_root"))
     if quest_root is None:
         return None
@@ -271,11 +278,16 @@ def _materialize_placeholder_quest_diagnostic_report(status_payload: Mapping[str
     if runtime_efficiency is not None:
         report["runtime_efficiency"] = runtime_efficiency
     _attach_family_companion_to_quest_report(report, quest_root=quest_root)
-    json_path, md_path, latest_json, latest_markdown = write_domain_health_diagnostic_report(quest_root, report)
-    report["report_json"] = str(json_path)
-    report["report_markdown"] = str(md_path)
-    report["latest_report_json"] = str(latest_json)
-    report["latest_report_markdown"] = str(latest_markdown)
+    report["diagnostic_report_persistence"] = {
+        "persisted": persist_diagnostic_reports,
+        "policy": "apply_or_explicit_refresh",
+    }
+    if persist_diagnostic_reports:
+        json_path, md_path, latest_json, latest_markdown = write_domain_health_diagnostic_report(quest_root, report)
+        report["report_json"] = str(json_path)
+        report["report_markdown"] = str(md_path)
+        report["latest_report_json"] = str(latest_json)
+        report["latest_report_markdown"] = str(latest_markdown)
     return report
 
 
@@ -329,6 +341,7 @@ def run_domain_health_diagnostic_for_runtime(
     runtime_root: Path,
     controller_runners: dict[str, ControllerRunner],
     apply: bool,
+    persist_diagnostic_reports: bool | None = None,
     run_domain_health_diagnostic_for_quest_fn: RunDomainHealthDiagnosticForQuest,
     runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile | None = None,
@@ -347,6 +360,7 @@ def run_domain_health_diagnostic_for_runtime(
     managed_study_autonomy_repair_actions: list[dict[str, Any]] = []
     managed_study_progress_currentness: dict[str, dict[str, Any]] = {}
     managed_study_runtime_recovery_payloads: dict[str, dict[str, Any]] = {}
+    persist_reports = apply if persist_diagnostic_reports is None else bool(persist_diagnostic_reports)
     managed_study_statuses = managed_recovery.managed_study_initial_statuses(
         runtime_control_ports=runtime_control_ports,
         profile=profile,
@@ -361,6 +375,7 @@ def run_domain_health_diagnostic_for_runtime(
         runtime_root=runtime_root,
         controller_runners=controller_runners,
         apply=apply,
+        persist_diagnostic_reports=persist_reports,
         run_domain_health_diagnostic_for_quest_fn=run_domain_health_diagnostic_for_quest_fn,
         study_ids=study_ids,
     )
@@ -458,7 +473,11 @@ def run_domain_health_diagnostic_for_runtime(
                 )
                 if suppression is not None:
                     managed_study_no_op_suppressions.append(suppression)
-                    _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                    _attach_no_op_suppression_to_quest_report(
+                        quest_report=quest_report,
+                        suppression=suppression,
+                        persist_diagnostic_reports=persist_reports,
+                    )
             elif domain_health_diagnostic_work_units.outer_loop_wakeup_inputs_unchanged(wakeup_audit):
                 wakeup_audit = {
                     **wakeup_audit,
@@ -475,7 +494,11 @@ def run_domain_health_diagnostic_for_runtime(
                 )
                 if suppression is not None:
                     managed_study_no_op_suppressions.append(suppression)
-                    _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                    _attach_no_op_suppression_to_quest_report(
+                        quest_report=quest_report,
+                        suppression=suppression,
+                        persist_diagnostic_reports=persist_reports,
+                    )
             else:
                 tick_request = build_outer_loop_request(
                     ports=runtime_control_ports,
@@ -530,7 +553,11 @@ def run_domain_health_diagnostic_for_runtime(
                     )
                     if suppression is not None:
                         managed_study_no_op_suppressions.append(suppression)
-                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                        _attach_no_op_suppression_to_quest_report(
+                            quest_report=quest_report,
+                            suppression=suppression,
+                            persist_diagnostic_reports=persist_reports,
+                        )
                     domain_health_diagnostic_work_units.append_ledger_event(
                         study_root=study_root,
                         status_payload=status_payload,
@@ -658,7 +685,10 @@ def run_domain_health_diagnostic_for_runtime(
                             managed_study_outer_loop_dispatches.append(dispatch_payload)
                             current_study_outer_loop_dispatched = True
                             if quest_report is None:
-                                quest_report = _materialize_placeholder_quest_diagnostic_report(status_payload)
+                                quest_report = _materialize_placeholder_quest_diagnostic_report(
+                                    status_payload,
+                                    persist_diagnostic_reports=persist_reports,
+                                )
                                 if isinstance(quest_report, dict):
                                     reports.append(quest_report)
                                     quest_root = _candidate_path(status_payload.get("quest_root"))
@@ -668,7 +698,11 @@ def run_domain_health_diagnostic_for_runtime(
                                 domain_health_diagnostic_outer_loop_dispatch.attach_to_quest_report(
                                     quest_report=quest_report,
                                     dispatch_payload=dispatch_payload,
-                                    write_latest_watch_alias=_write_latest_domain_health_diagnostic_alias,
+                                    write_latest_watch_alias=(
+                                        _write_latest_domain_health_diagnostic_alias
+                                        if persist_reports
+                                        else lambda **_: (Path(), Path())
+                                    ),
                                     render_domain_health_diagnostic_markdown=render_domain_health_diagnostic_markdown,
                                 )
                             wakeup_audit = {
@@ -721,7 +755,11 @@ def run_domain_health_diagnostic_for_runtime(
                     )
                     if suppression is not None:
                         managed_study_no_op_suppressions.append(suppression)
-                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                        _attach_no_op_suppression_to_quest_report(
+                            quest_report=quest_report,
+                            suppression=suppression,
+                            persist_diagnostic_reports=persist_reports,
+                        )
                     domain_health_diagnostic_work_units.append_ledger_event(
                         study_root=study_root,
                         status_payload=status_payload,
@@ -759,7 +797,11 @@ def run_domain_health_diagnostic_for_runtime(
                     )
                     if suppression is not None:
                         managed_study_no_op_suppressions.append(suppression)
-                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                        _attach_no_op_suppression_to_quest_report(
+                            quest_report=quest_report,
+                            suppression=suppression,
+                            persist_diagnostic_reports=persist_reports,
+                        )
                     domain_health_diagnostic_work_units.append_ledger_event(
                         study_root=study_root,
                         status_payload=status_payload,
@@ -787,7 +829,11 @@ def run_domain_health_diagnostic_for_runtime(
                     )
                     if suppression is not None:
                         managed_study_no_op_suppressions.append(suppression)
-                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                        _attach_no_op_suppression_to_quest_report(
+                            quest_report=quest_report,
+                            suppression=suppression,
+                            persist_diagnostic_reports=persist_reports,
+                        )
                 elif _outer_loop_request_is_stop_runtime(tick_request):
                     decision_wakeup_audit = {
                         key: value
@@ -819,7 +865,11 @@ def run_domain_health_diagnostic_for_runtime(
                     )
                     if suppression is not None:
                         managed_study_no_op_suppressions.append(suppression)
-                        _attach_no_op_suppression_to_quest_report(quest_report=quest_report, suppression=suppression)
+                        _attach_no_op_suppression_to_quest_report(
+                            quest_report=quest_report,
+                            suppression=suppression,
+                            persist_diagnostic_reports=persist_reports,
+                        )
                 else:
                     work_unit_dispatch_key = domain_health_diagnostic_work_units.dispatch_key(tick_request)
                     blocked_wakeup_audit = apply_control_plane_dispatch_block(
@@ -876,7 +926,10 @@ def run_domain_health_diagnostic_for_runtime(
                             managed_study_outer_loop_dispatches.append(dispatch_payload)
                             current_study_outer_loop_dispatched = True
                             if quest_report is None:
-                                quest_report = _materialize_placeholder_quest_diagnostic_report(status_payload)
+                                quest_report = _materialize_placeholder_quest_diagnostic_report(
+                                    status_payload,
+                                    persist_diagnostic_reports=persist_reports,
+                                )
                                 if isinstance(quest_report, dict):
                                     reports.append(quest_report)
                                     quest_root = _candidate_path(status_payload.get("quest_root"))
@@ -886,7 +939,11 @@ def run_domain_health_diagnostic_for_runtime(
                                 domain_health_diagnostic_outer_loop_dispatch.attach_to_quest_report(
                                     quest_report=quest_report,
                                     dispatch_payload=dispatch_payload,
-                                    write_latest_watch_alias=_write_latest_domain_health_diagnostic_alias,
+                                    write_latest_watch_alias=(
+                                        _write_latest_domain_health_diagnostic_alias
+                                        if persist_reports
+                                        else lambda **_: (Path(), Path())
+                                    ),
                                     render_domain_health_diagnostic_markdown=render_domain_health_diagnostic_markdown,
                                 )
                             wakeup_audit = {

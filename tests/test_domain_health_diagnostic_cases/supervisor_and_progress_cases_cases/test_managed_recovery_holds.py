@@ -576,7 +576,7 @@ def test_domain_health_diagnostic_focused_scope_limits_runtime_scan_and_managed_
     monkeypatch.setattr(
         module,
         "run_domain_health_diagnostic_for_quest",
-        lambda *, quest_root, controller_runners, apply: quest_scans.append(Path(quest_root).name)
+        lambda *, quest_root, controller_runners, apply, **_: quest_scans.append(Path(quest_root).name)
         or {
             "schema_version": 1,
             "scanned_at": "2026-06-02T00:00:00+00:00",

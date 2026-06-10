@@ -139,6 +139,26 @@ def test_domain_health_diagnostic_cli_accepts_explicit_dry_run() -> None:
     assert args.command == "domain-health-diagnostic"
     assert args.apply is False
     assert args.dry_run is True
+    assert args.refresh_diagnostic_reports is False
+
+
+def test_domain_health_diagnostic_cli_requires_explicit_report_refresh_opt_in() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    args = cli.build_parser().parse_args(
+        [
+            "domain-health-diagnostic",
+            "--runtime-root",
+            "/tmp/runtime/quests",
+            "--dry-run",
+            "--refresh-diagnostic-reports",
+        ]
+    )
+
+    assert args.command == "domain-health-diagnostic"
+    assert args.apply is False
+    assert args.dry_run is True
+    assert args.refresh_diagnostic_reports is True
 
 
 def test_domain_health_diagnostic_cli_accepts_focused_owner_route_studies() -> None:
