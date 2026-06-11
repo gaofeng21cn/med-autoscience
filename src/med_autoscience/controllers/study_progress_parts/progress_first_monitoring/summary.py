@@ -96,6 +96,12 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _mapping(handoff.get("typed_blocker"))
         or terminal_closeout_blocker
     )
+    terminal_domain_blocker = _terminal_closeout_domain_typed_blocker(
+        latest_terminal_stage_log=latest_terminal_stage_log,
+        paper_stage_log=paper_stage_log,
+    )
+    if terminal_domain_blocker and not raw_typed_blocker:
+        raw_typed_blocker = terminal_domain_blocker
     payload_current_action = _mapping(payload.get("current_executable_owner_action"))
     non_artifact_current_action = _mapping(
         build_current_executable_owner_action({**payload, "stage_artifact_index": {}})
@@ -118,7 +124,14 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             else {}
         )
     )
-    artifact_first_supersedes_blocker = bool(stage_artifact_action) and not _terminal_publication_gate_action(stage_artifact_action) and (
+    terminal_blocks_owner_actions = bool(terminal_domain_blocker) or _canonical_current_work_unit_terminal_blocker(
+        canonical_current_work_unit
+    )
+    artifact_first_supersedes_blocker = (
+        bool(stage_artifact_action)
+        and not terminal_blocks_owner_actions
+        and not _terminal_publication_gate_action(stage_artifact_action)
+        and (
         not stage_kernel_current_action
         and not repair_progress_current_action
         and (
@@ -127,6 +140,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
                 payload.get("stage_artifact_index"),
                 typed_blocker=raw_typed_blocker,
             )
+        )
         )
     )
     if _artifact_first_owner_action(payload_current_action) and not artifact_first_supersedes_blocker:
@@ -234,6 +248,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         )
         else raw_typed_blocker
     )
+    if terminal_domain_blocker:
+        typed_blocker = terminal_domain_blocker
     progress_delta_classification = (
         _text(payload.get("progress_delta_classification"))
         or _text(progress_state.get("classification"))
@@ -455,6 +471,64 @@ def _current_action_supersedes_canonical_typed_blocker(
         blocker=blocker,
         progress=progress,
     )
+
+
+def _canonical_current_work_unit_terminal_blocker(current_work_unit: Mapping[str, Any]) -> bool:
+    state = _mapping(current_work_unit.get("state"))
+    blocker = _mapping(state.get("typed_blocker"))
+    values = {
+        _text(blocker.get("terminal_closeout_status")),
+        _text(blocker.get("terminal_closeout_outcome")),
+        _text(blocker.get("progress_delta_classification")),
+        _text(state.get("source")),
+    }
+    return bool(values.intersection({"blocked", "typed_blocker", "blocked_with_domain_typed_blocker"}))
+
+
+def _terminal_closeout_domain_typed_blocker(
+    *,
+    latest_terminal_stage_log: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not latest_terminal_stage_log:
+        return {}
+    classification = _terminal_progress_delta_classification(paper_stage_log)
+    outcome = _text(paper_stage_log.get("outcome"))
+    status = _text(latest_terminal_stage_log.get("status"))
+    if classification != "typed_blocker" and outcome not in {
+        "blocked_with_domain_typed_blocker",
+        "typed_blocker",
+    }:
+        return {}
+    remaining = _dedupe_text(paper_stage_log.get("remaining_blockers") or [])
+    blocker_type = remaining[0] if remaining else _text(latest_terminal_stage_log.get("typed_blocker_reason"))
+    if blocker_type is None:
+        return {}
+    next_forced_delta = _mapping(paper_stage_log.get("next_forced_delta"))
+    owner_action = _mapping(next_forced_delta.get("owner_action"))
+    owner = (
+        _text(owner_action.get("next_owner"))
+        or _text(owner_action.get("owner"))
+        or _text(latest_terminal_stage_log.get("owner"))
+        or "med-autoscience"
+    )
+    return {
+        "blocker_type": blocker_type,
+        "blocker_id": blocker_type,
+        "blocked_reason": blocker_type,
+        "owner": owner,
+        "action_type": _text(latest_terminal_stage_log.get("action_type")),
+        "work_unit_id": _text(next_forced_delta.get("work_unit_id")) or _text(paper_stage_log.get("stage_name")),
+        "source_ref": _text(latest_terminal_stage_log.get("source_path")),
+        "acceptance_refs": _source_refs(
+            None,
+            handoff={},
+            latest_terminal_stage_log=latest_terminal_stage_log,
+        ),
+        "terminal_closeout_status": status,
+        "terminal_closeout_outcome": outcome,
+        "progress_delta_classification": classification,
+    }
 
 
 def _canonical_typed_blocker_blocks_liveness(

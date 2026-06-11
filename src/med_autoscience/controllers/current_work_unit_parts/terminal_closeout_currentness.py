@@ -53,6 +53,7 @@ def terminal_closeout_blocker_for_action(
         action_payload.get("next_work_unit")
     )
     currentness_basis = mapping(action_payload.get("owner_route_currentness_basis"))
+    paper_stage_log = mapping(terminal.get("paper_stage_log"))
     resolved_work_unit_fingerprint = work_unit_fingerprint(action_payload, currentness_basis=currentness_basis)
     source_ref = text(terminal.get("source_path")) or text(terminal.get("record_path"))
     return {
@@ -76,8 +77,9 @@ def terminal_closeout_blocker_for_action(
             + text_items(terminal.get("evidence_refs"))
             + ([source_ref] if source_ref is not None else []),
             "terminal_closeout_status": text(terminal.get("status")),
-            "terminal_closeout_outcome": text(terminal.get("outcome")),
-            "progress_delta_classification": text(terminal.get("progress_delta_classification")),
+            "terminal_closeout_outcome": text(terminal.get("outcome")) or text(paper_stage_log.get("outcome")),
+            "progress_delta_classification": text(terminal.get("progress_delta_classification"))
+            or text(paper_stage_log.get("progress_delta_classification")),
         }.items()
         if value not in (None, "", [], {})
     }
@@ -105,9 +107,11 @@ def _latest_terminal_stage(
     mapping: MappingReader,
 ) -> dict[str, Any]:
     progress_first = mapping(progress.get("progress_first_monitoring_summary"))
+    handoff = mapping(progress.get("opl_current_control_state_handoff"))
     for value in (
         progress_first.get("latest_terminal_stage"),
         progress_first.get("latest_terminal_stage_log"),
+        handoff.get("latest_terminal_stage_log"),
         progress.get("latest_terminal_stage"),
         progress.get("latest_terminal_stage_log"),
     ):
@@ -151,6 +155,10 @@ def _terminal_stage_blocks_action(
             terminal.get("stage_name"),
             mapping(terminal.get("next_forced_delta")).get("work_unit_id"),
             mapping(mapping(terminal.get("next_forced_delta")).get("owner_action")).get("work_unit_id"),
+            mapping(mapping(terminal.get("paper_stage_log")).get("next_forced_delta")).get("work_unit_id"),
+            mapping(
+                mapping(mapping(terminal.get("paper_stage_log")).get("next_forced_delta")).get("owner_action")
+            ).get("work_unit_id"),
             mapping(mapping(terminal.get("terminal_closeout_semantic_completeness")).get("next_forced_delta")).get(
                 "work_unit_id"
             ),
@@ -174,6 +182,7 @@ def _terminal_stage_blocker_reason(
     text: TextReader,
 ) -> str:
     typed_blocker = mapping(terminal.get("typed_blocker"))
+    paper_stage_log = mapping(terminal.get("paper_stage_log"))
     semantic = mapping(terminal.get("terminal_closeout_semantic_completeness"))
     for value in (
         terminal.get("blocked_reason"),
@@ -185,6 +194,7 @@ def _terminal_stage_blocker_reason(
         typed_blocker.get("reason"),
         semantic.get("typed_blocker"),
         *_terminal_remaining_blockers(terminal, text=text),
+        *_terminal_remaining_blockers(paper_stage_log, text=text),
     ):
         resolved = text(value)
         if resolved is not None:
@@ -202,8 +212,14 @@ def _terminal_stage_blocker_owner(
     text: TextReader,
 ) -> str:
     typed_blocker = mapping(terminal.get("typed_blocker"))
+    paper_stage_log = mapping(terminal.get("paper_stage_log"))
+    paper_next_forced_delta = mapping(paper_stage_log.get("next_forced_delta"))
+    paper_owner_action = mapping(paper_next_forced_delta.get("owner_action"))
     explicit_owner = (
         text(typed_blocker.get("owner"))
+        or text(typed_blocker.get("next_owner"))
+        or text(paper_owner_action.get("next_owner"))
+        or text(paper_owner_action.get("owner"))
         or text(terminal.get("owner"))
         or text(terminal.get("current_owner"))
     )
