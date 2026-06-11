@@ -204,6 +204,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | `ToolResultEnvelope` | Tool / OPL / MAS owner surface | 统一 status、output refs、receipt/blocker refs、error class、retryability 和 no-forbidden-write proof |
 | `ProvenanceEnvelope` | MAS / OPL refs-only | entity / activity / agent / dataset / run / artifact lineage refs |
 | `ObservabilityEvent` | OPL | trace / metric / log / failure class；永不直接授权 domain verdict |
+| `AuthorityKernelInventory` | MAS authority kernel | 用机器可读 inventory 固定 retained authority function 的 category、owner、active caller、allowed writes、forbidden authority、output refs、不能上收原因和 retirement / upcollect target；它不声明 authority 已退役或 production-ready。 |
 
 ## 重构 Lane
 
@@ -284,9 +285,11 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 目标：把 MAS 程序面压到最小医学 authority function 和 refs-only helper。
 
+当前机器落点：`contracts/authority_kernel_inventory.json` 与 `src/med_autoscience/authority_kernel_inventory.py::build_authority_kernel_inventory` 已把 retained authority kernel inventory 落为 repo-native read model。inventory 覆盖 owner receipt signer、typed blocker materializer、source readiness、publication quality gate、artifact mutation authorization、publication-route memory accept/reject、no-forbidden-write proof、refs-only helper 和 diagnostic probe 的 representative surfaces，并固定 owner、active caller refs、allowed writes、forbidden authority、output refs、cannot-lift-to-OPL reason 与 retirement / upcollect target。该 landing 只关闭分类和读面合同缺口；后续仍要按 inventory 做物理收薄、删除旧 wrapper / residue、OPL upcollect 消费和真实 paper-line evidence 验证。
+
 实施步骤：
 
-1. 为每个 retained function 写 owner、active caller、cannot-lift-to-OPL reason、allowed writes、forbidden authority、output refs。
+1. 以 `contracts/authority_kernel_inventory.json` 为分类入口，持续维护每个 retained function 的 owner、active caller、cannot-lift-to-OPL reason、allowed writes、forbidden authority、output refs。
 2. 把开放式医学判断移到 AI reviewer / auditor / stage executor；函数只做校验、签收、物化、索引、阻断。
 3. 对 source/data/artifact/memory/publication authority 分别建 boundary fixture。
 4. 删除只为旧 wrapper /旧 alias /旧 compatibility test 服务的代码。
@@ -295,6 +298,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 - 每个 retained MAS function 都可归类为 authority function、domain handler target、refs-only projection、native helper、diagnostic probe 或 fixture。
 - 程序不能直接生成 publication quality verdict，必须消费 independent reviewer/auditor record。
+- inventory 通过 focused contract tests 后，只能声明 `inventory_landed_physical_thinning_pending`；不能声明 authority fully retired、production-ready、paper-line progress、publication-ready 或 artifact mutation authorized。
 
 ### Lane 5：Evidence / lineage plane
 
@@ -469,7 +473,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 2. **Lane 1 contract inventory**：列出 `DomainAgentPack` 所需 machine contract 和现有来源差距。
 3. **Lane 1 tool arsenal consumption tail**：`contracts/agent_tool_arsenal.json` 已把 action catalog、MCP tool、owner callable registry、plugin skill、stage route 和 `scientific_capability_registry` 映射成 ToolArsenalIndex / ToolUseCard / CapabilityInvocationPlan；`display_pack_agent` 已从 CLI/domain-handler descriptor 升级为聚合 MCP runtime，`scientific_capability_registry` 已把 external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 和 Display Pack 折成 public MCP/CLI/product-entry capability runtime，并提供 repo-side refs-only owner-consumption / live-soak evidence packet。下一步是 hosted OPL ordinary-path consumption、direct/hosted parity 和真实 paper-line owner-consumed refs。
 4. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否只以 `current_owner_delta` 为首屏。
-5. **Lane 4 authority function inventory**：给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类。
+5. **Lane 4 authority function inventory**：`contracts/authority_kernel_inventory.json` 已给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类；下一步按该 inventory 做物理收薄、旧 residue 删除门、OPL upcollect consumption 和真实 evidence 验证。
 6. **Lane 7 capability registry runtime ABI**：existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 和 Display Pack capability 已折回 `scientific_capability_registry`，MAS 提供 current-delta-bound `index / resolve / invoke` ABI、allowed writes、forbidden authority、owner receipt / typed blocker 晋级边界和 owner-consumption / live-soak evidence shape；剩余是 hosted OPL consumption 和真实 owner evidence。
 7. **Lane 9 real canary selection**：选择真实 paper-line evidence target，不用 repo tests 代替 production evidence。
 

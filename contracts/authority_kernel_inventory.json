@@ -1,0 +1,376 @@
+{
+  "contract_id": "mas_authority_kernel_inventory.v1",
+  "contract_ref": "contracts/authority_kernel_inventory.json",
+  "counts": {
+    "category_count": 9,
+    "gap_count": 0,
+    "item_count": 9,
+    "owner_callable_backed_count": 4,
+    "retirement_gate_count": 1,
+    "upcollect_target_count": 9
+  },
+  "forbidden_domain_authority": [
+    "study_truth",
+    "publication_quality",
+    "submission_readiness",
+    "artifact_authority",
+    "memory_accept_reject",
+    "current_package"
+  ],
+  "gaps": [],
+  "generic_runtime_owner_names": [
+    "OPL",
+    "Temporal",
+    "generic_runtime",
+    "lifecycle_plane",
+    "one-person-lab",
+    "queue_and_attempt_ledger",
+    "stage_run_kernel",
+    "state_index_kernel",
+    "workbench_shell"
+  ],
+  "items": [
+    {
+      "active_caller_refs": [
+        "owner_callable:publication_handoff_owner_gate",
+        "publication_handoff_owner_gate.evaluate_terminal_handoff"
+      ],
+      "allowed_writes": [
+        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/current.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json"
+      ],
+      "cannot_lift_to_opl_reason": "The terminal publication handoff receipt signs MAS publication-route owner judgment; OPL may transport StageRun refs but cannot sign the domain owner answer.",
+      "category": "owner_receipt_signer",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "forbidden_writes": [
+        "artifacts/publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "paper/**",
+        "paper/submission_minimal/**",
+        "manuscript/current_package/**"
+      ],
+      "item_id": "owner_receipt_signer.publication_handoff_owner_gate",
+      "notes": [
+        "Does not claim publication-ready or submission-ready by inventory presence."
+      ],
+      "output_refs": [
+        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+      ],
+      "owner": "publication_gate_owner",
+      "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::publication_handoff_owner_gate",
+      "upcollect_target": "OPL StageRun transports receipt refs only"
+    },
+    {
+      "active_caller_refs": [
+        "owner_callable:complete_medical_paper_readiness_surface",
+        "medical_paper_readiness.complete_medical_paper_readiness_surface"
+      ],
+      "allowed_writes": [
+        "artifacts/medical_paper/readiness.json",
+        "artifacts/medical_paper/*.json",
+        "artifacts/medical_paper/actions/**",
+        "artifacts/controller_decisions/latest.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/current.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json"
+      ],
+      "cannot_lift_to_opl_reason": "The blocker names missing medical-paper readiness refs and route-back conditions; OPL can carry the blocker ref but cannot decide the MAS domain shortcut being avoided.",
+      "category": "typed_blocker_materializer",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "forbidden_writes": [
+        "artifacts/publication_eval/latest.json",
+        "paper/**",
+        "paper/submission_minimal/**",
+        "manuscript/current_package/**",
+        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json"
+      ],
+      "item_id": "typed_blocker_materializer.medical_paper_readiness_surface",
+      "output_refs": [
+        "artifacts/medical_paper/readiness.json",
+        "typed blocker:medical_paper_readiness_surface_input_required"
+      ],
+      "owner": "MedAutoScience",
+      "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::complete_medical_paper_readiness_surface",
+      "upcollect_target": "OPL StageRun carries typed blocker refs only"
+    },
+    {
+      "active_caller_refs": [
+        "agent/knowledge/source_readiness_and_artifact_authority.md",
+        "agent/quality_gates/artifact_source_authority_gate.md",
+        "src/med_autoscience/controllers/mas_stage_semantic_receipts.py::validate_mas_stage_semantic_receipt"
+      ],
+      "allowed_writes": [
+        "artifacts/stage_outputs/03-data_asset_and_cohort_build/source_readiness_receipt.json",
+        "typed blocker:source_readiness_blocker"
+      ],
+      "cannot_lift_to_opl_reason": "Source readiness depends on current study claim, cohort, provenance, source limitations, and medical route impact; generic runtime may only index the receipt refs.",
+      "category": "source_readiness",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "item_id": "source_readiness.stage_pack_source_readiness_receipt",
+      "output_refs": [
+        "source_readiness_receipt_refs",
+        "source_boundary_refs",
+        "typed_blocker_refs"
+      ],
+      "owner": "MedAutoScience",
+      "surface_ref": "contracts/mas-paper-study-stage-pack.json#/stages/2/stable_artifact_roles/2",
+      "upcollect_target": "OPL State Index stores source readiness refs only"
+    },
+    {
+      "active_caller_refs": [
+        "owner_callable:return_to_ai_reviewer_workflow",
+        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+      ],
+      "allowed_writes": [
+        "artifacts/publication_eval/latest.json"
+      ],
+      "cannot_lift_to_opl_reason": "Publication quality requires an independent AI reviewer/auditor record against current manuscript and evidence refs; provider completion or generated projection cannot become the verdict.",
+      "category": "publication_quality_gate",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "forbidden_writes": [
+        "paper/**",
+        "manuscript/current_package/**",
+        "controller_decisions/latest.json"
+      ],
+      "item_id": "publication_quality_gate.ai_reviewer_publication_eval",
+      "output_refs": [
+        "artifacts/publication_eval/latest.json"
+      ],
+      "owner": "ai_reviewer",
+      "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::return_to_ai_reviewer_workflow",
+      "upcollect_target": "OPL transports reviewer invocation and eval refs only"
+    },
+    {
+      "active_caller_refs": [
+        "agent/knowledge/source_readiness_and_artifact_authority.md",
+        "agent/quality_gates/artifact_source_authority_gate.md",
+        "src/med_autoscience/controllers/artifact_lifecycle_inventory.py"
+      ],
+      "allowed_writes": [
+        "artifacts/stage_outputs/06-manuscript_authoring/artifact_package_authority_receipt.json",
+        "typed blocker:artifact_mutation_blocker"
+      ],
+      "cannot_lift_to_opl_reason": "Artifact mutation authorization is tied to canonical manuscript/source refs, rebuild proof, package freshness, and MAS owner receipt; lifecycle or cleanup plans cannot authorize mutation.",
+      "category": "artifact_mutation_authorization",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "item_id": "artifact_mutation_authorization.artifact_package_authority_receipt",
+      "output_refs": [
+        "artifact_package_authority_receipt_refs",
+        "artifact_package_refs",
+        "typed_blocker_refs"
+      ],
+      "owner": "MedAutoScience",
+      "surface_ref": "contracts/mas-paper-study-stage-pack.json#/stages/5/stable_artifact_roles/2",
+      "upcollect_target": "OPL Lifecycle Plane handles locator, restore, retention, and cleanup transport"
+    },
+    {
+      "active_caller_refs": [
+        "agent/knowledge/publication_route_memory.md",
+        "src/med_autoscience/controllers/stage_knowledge_plane_parts/publication_route_memory_writeback.py",
+        "src/med_autoscience/controllers/study_transition_receipt_consumption_parts/owner_receipts.py::publication_route_memory_writeback_receipt_consumption"
+      ],
+      "allowed_writes": [
+        "artifacts/stage_outputs/05-evidence_synthesis/memory_accept_reject_receipts.json",
+        "publication_route_memory/writeback_receipts/*.json",
+        "typed blocker:publication_route_memory_writeback_blocker"
+      ],
+      "cannot_lift_to_opl_reason": "Memory accept/reject is a MAS reviewer or route-authority decision over publication-route memory body and router receipts; OPL can expose locators and receipt metadata only.",
+      "category": "memory_accept_reject",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "item_id": "memory_accept_reject.publication_route_memory_writeback",
+      "output_refs": [
+        "memory_accept_reject_receipt_refs",
+        "publication_route_memory_writeback_receipt_refs",
+        "typed_blocker_refs"
+      ],
+      "owner": "MedAutoScience",
+      "surface_ref": "contracts/mas-paper-study-stage-pack.json#/stages/4/stable_artifact_roles/2",
+      "upcollect_target": "OPL memory locator/index reads receipt metadata only"
+    },
+    {
+      "active_caller_refs": [
+        "owner_callable:run_external_learning_sidecar",
+        "external_learning_sidecar.run_external_learning_sidecar"
+      ],
+      "allowed_writes": [
+        "artifacts/supervision/requests/external_learning_sidecar/latest.json",
+        "artifacts/advisory/external_learning_sidecar/latest.json"
+      ],
+      "cannot_lift_to_opl_reason": "The sidecar is refs-only and nonblocking, but MAS owns the forbidden authority envelope proving advisory output did not become study truth, quality verdict, artifact authority, or memory authority.",
+      "category": "no_forbidden_write_proof",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "forbidden_writes": [
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+        "paper/**",
+        "paper/submission_minimal/**",
+        "manuscript/current_package/**",
+        "submission_package/**",
+        "current_package/**",
+        "memory/**/body"
+      ],
+      "item_id": "no_forbidden_write_proof.external_learning_sidecar",
+      "output_refs": [
+        "artifacts/advisory/external_learning_sidecar/latest.json",
+        "refs-only advisory candidates"
+      ],
+      "owner": "external_learning_sidecar",
+      "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::run_external_learning_sidecar",
+      "upcollect_target": "OPL Capability Registry invokes advisory workers fail-open"
+    },
+    {
+      "active_caller_refs": [
+        "contracts/agent_tool_arsenal.json#/tool_cards/scientific_capability_registry",
+        "src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index",
+        "src/med_autoscience/mcp_server.py::agent_tool_arsenal"
+      ],
+      "allowed_writes": [
+        "artifacts/advisory/external_learning_sidecar/latest.json",
+        "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json",
+        "artifacts/runtime/evo_scientist_sidecar/latest.json",
+        "display_pack_agent refs-only plan outputs"
+      ],
+      "cannot_lift_to_opl_reason": "The helper itself is refs-only and can be hosted by OPL, but MAS must keep the domain boundary that prevents capability output from becoming quality, publication, artifact, memory, or study truth authority.",
+      "category": "refs_only_helper",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "item_id": "refs_only_helper.scientific_capability_registry",
+      "output_refs": [
+        "refs-only advisory candidates",
+        "reviewer briefing refs",
+        "repair hint refs",
+        "display_pack_agent_figure_plan"
+      ],
+      "owner": "MedAutoScience",
+      "surface_ref": "src/med_autoscience/scientific_capability_registry.py::build_scientific_capability_registry",
+      "upcollect_target": "OPL Capability Registry / Tool Arsenal runtime consumption"
+    },
+    {
+      "active_caller_refs": [
+        "medautosci runtime domain-health-diagnostic --dry-run",
+        "src/med_autoscience/mcp_server.py::domain_health_diagnostic",
+        "docs/status.md#Accepted typed closeout currentness hardening"
+      ],
+      "allowed_writes": [
+        "artifacts/runtime/domain_health_diagnostic/*.json",
+        "diagnostic projection refs",
+        "typed blocker candidates"
+      ],
+      "cannot_lift_to_opl_reason": "The probe can diagnose currentness and owner-route gaps but cannot be a generic runtime owner; MAS keeps the diagnostic boundary so probe output does not become owner answer, publication verdict, or paper progress.",
+      "category": "diagnostic_probe",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "item_id": "diagnostic_probe.domain_health_diagnostic",
+      "output_refs": [
+        "domain_health_diagnostic_ref",
+        "currentness_probe_ref",
+        "route_back_evidence_ref",
+        "typed_blocker_candidate_ref"
+      ],
+      "owner": "MedAutoScience",
+      "retirement_gate": "Retire MAS-private diagnostic implementation only after OPL Route Reconciler consumes the same MAS owner receipt / typed blocker refs and focused parity tests prove no authority drift.",
+      "surface_ref": "src/med_autoscience/controllers/domain_health_diagnostic.py",
+      "upcollect_target": "OPL Route Reconciler and Observability Plane"
+    }
+  ],
+  "non_claims": {
+    "artifact_mutation_authorized": false,
+    "authority_fully_retired": false,
+    "paper_line_progress": false,
+    "physical_thinning_complete": false,
+    "production_ready": false,
+    "publication_ready": false
+  },
+  "ordinary_planning_root": "current_owner_delta",
+  "owner": "MedAutoScience",
+  "required_item_fields": [
+    "item_id",
+    "category",
+    "owner",
+    "surface_ref",
+    "active_caller_refs",
+    "allowed_writes",
+    "forbidden_authority",
+    "output_refs",
+    "cannot_lift_to_opl_reason"
+  ],
+  "schema_version": 1,
+  "source_of_truth_refs": [
+    "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md",
+    "docs/active/mas-ideal-state-gap-plan.md",
+    "src/med_autoscience/runtime_control/owner_callable_registry.py",
+    "src/med_autoscience/agent_tool_arsenal.py",
+    "contracts/foundry-agent-os-domain-kernel-manifest.json",
+    "contracts/mas-paper-study-stage-pack.json"
+  ],
+  "state": "inventory_landed_physical_thinning_pending",
+  "surface_kind": "mas_authority_kernel_inventory"
+}
