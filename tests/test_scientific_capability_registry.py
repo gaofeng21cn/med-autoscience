@@ -90,6 +90,124 @@ def test_scientific_capability_registry_invokes_external_learning_sidecar_refs_o
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
 
 
+def test_scientific_capability_registry_builds_nonblocking_consumption_evidence_without_owner_refs(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    invocation = module.invoke_scientific_capability(
+        capability_id="external_learning_authoring_advisory",
+        study_root=study_root,
+        current_owner_delta={
+            "action_type": "run_quality_repair_batch",
+            "action_id": "dispatch-001",
+            "work_unit_id": "repair-story",
+            "work_unit_fingerprint": "sha256:repair",
+            "source_ref": "artifacts/controller_decisions/latest.json",
+        },
+        apply=True,
+    )
+
+    evidence = module.build_capability_owner_consumption_evidence(
+        invocation_result=invocation,
+        current_owner_delta={
+            "action_type": "run_quality_repair_batch",
+            "action_id": "dispatch-001",
+            "work_unit_id": "repair-story",
+            "work_unit_fingerprint": "sha256:repair",
+            "source_ref": "artifacts/controller_decisions/latest.json",
+        },
+    )
+
+    assert evidence["surface_kind"] == "mas_scientific_capability_owner_consumption_evidence"
+    assert evidence["schema_version"] == 1
+    assert evidence["refs_only"] is True
+    assert evidence["capability_id"] == "external_learning_authoring_advisory"
+    assert evidence["output_refs"] == ["artifacts/advisory/external_learning_sidecar/latest.json"]
+    assert evidence["current_owner_delta_identity"] == {
+        "action_type": "run_quality_repair_batch",
+        "action_id": "dispatch-001",
+        "owner": "",
+        "work_unit_id": "repair-story",
+        "work_unit_fingerprint": "sha256:repair",
+        "source_ref": "artifacts/controller_decisions/latest.json",
+    }
+    assert evidence["owner_consumption_status"] == "no_owner_response_refs"
+    assert evidence["owner_receipt_ref"] is None
+    assert evidence["typed_blocker_ref"] is None
+    assert evidence["reviewer_receipt_ref"] is None
+    assert evidence["route_back_evidence_ref"] is None
+    assert evidence["counts_as_progress"] is False
+    assert evidence["can_authorize_owner_action"] is False
+    assert evidence["mainline_waits_for_owner_consumption"] is False
+    assert evidence["fail_open"] is True
+    assert evidence["missing_owner_response_refs_blocks"] is False
+    assert evidence["no_forbidden_write_proof"]["forbidden_refs_absent"] is True
+    assert evidence["no_forbidden_write_proof"]["checked_relative_refs"] == [
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+        "paper",
+        "package",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+    ]
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+
+
+def test_scientific_capability_registry_consumption_evidence_with_owner_refs_stays_non_authorizing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.scientific_capability_registry")
+    study_root = tmp_path / "studies" / "001-risk"
+    invocation = module.invoke_scientific_capability(
+        capability_id="external_learning_review_and_progress_advisory",
+        study_root=study_root,
+        current_owner_delta={
+            "action_type": "unit_harmonized_external_validation_rerun",
+            "action_id": "dispatch-002",
+            "owner": "MedAutoScience",
+            "work_unit_id": "external-validation",
+            "work_unit_fingerprint": "sha256:external-validation",
+            "source_ref": "projection/current_owner_delta.json",
+        },
+        apply=True,
+    )
+
+    evidence = module.build_capability_owner_consumption_evidence(
+        invocation_result=invocation,
+        current_owner_delta={
+            "action_type": "unit_harmonized_external_validation_rerun",
+            "action_id": "dispatch-002",
+            "owner": "MedAutoScience",
+            "work_unit_id": "external-validation",
+            "work_unit_fingerprint": "sha256:external-validation",
+            "source_ref": "projection/current_owner_delta.json",
+        },
+        owner_response_refs={
+            "owner_receipt_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+            "reviewer_receipt_ref": "artifacts/reviewer/receipt.json",
+            "route_back_evidence_ref": "artifacts/routes/route-back.json",
+        },
+    )
+
+    assert evidence["owner_consumption_status"] == "owner_response_refs_observed"
+    assert evidence["owner_receipt_ref"] == (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json"
+    )
+    assert evidence["typed_blocker_ref"] is None
+    assert evidence["reviewer_receipt_ref"] == "artifacts/reviewer/receipt.json"
+    assert evidence["route_back_evidence_ref"] == "artifacts/routes/route-back.json"
+    assert evidence["counts_as_progress"] is False
+    assert evidence["consumption_evidence_only"] is True
+    assert evidence["authority_boundary"]["can_write_owner_receipt"] is False
+    assert evidence["authority_boundary"]["can_write_typed_blocker"] is False
+    assert evidence["authority_boundary"]["can_authorize_publication_readiness"] is False
+    assert evidence["no_forbidden_write_proof"]["forbidden_refs_absent"] is True
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()
+    assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
+
+
 def test_scientific_capability_registry_invokes_light_and_evo_without_authority_writes(
     tmp_path: Path,
 ) -> None:

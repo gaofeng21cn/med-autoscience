@@ -15,8 +15,31 @@ from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 SURFACE_KIND = "mas_scientific_capability_registry"
 RESOLUTION_SURFACE_KIND = "mas_scientific_capability_resolution"
 INVOCATION_SURFACE_KIND = "mas_scientific_capability_invocation"
+OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND = (
+    "mas_scientific_capability_owner_consumption_evidence"
+)
 SCHEMA_VERSION = 1
 DEFAULT_CURRENT_DELTA_TRIGGER = "current_delta_declares_or_implies_affordance_need"
+_OWNER_RESPONSE_REF_KEYS = (
+    "owner_receipt_ref",
+    "typed_blocker_ref",
+    "reviewer_receipt_ref",
+    "route_back_evidence_ref",
+)
+_FORBIDDEN_WRITE_CHECK_REFS = (
+    "artifacts/publication_eval/latest.json",
+    "artifacts/controller_decisions/latest.json",
+    "paper",
+    "package",
+    "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+    "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+)
+_FORBIDDEN_PATH_ABSENCE_REFS = (
+    "artifacts/publication_eval/latest.json",
+    "artifacts/controller_decisions/latest.json",
+    "paper",
+    "package",
+)
 
 
 def build_scientific_capability_registry() -> dict[str, Any]:
@@ -146,6 +169,52 @@ def invoke_scientific_capability(
             "next_step": capability["invocation_kind"],
         }
     return invocation
+
+
+def build_capability_owner_consumption_evidence(
+    *,
+    invocation_result: Mapping[str, Any],
+    current_owner_delta: Mapping[str, Any] | None = None,
+    owner_response_refs: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    invocation = _mapping(invocation_result)
+    owner_refs = _owner_response_refs(owner_response_refs)
+    observed_owner_refs = [ref for ref in owner_refs.values() if ref is not None]
+    return {
+        "surface_kind": OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "status": "recorded",
+        "refs_only": True,
+        "capability_id": _text(invocation.get("capability_id")),
+        "capability_family": _text(invocation.get("capability_family")),
+        "current_owner_delta_identity": _current_owner_summary(
+            _mapping(current_owner_delta)
+        ),
+        "output_refs": _capability_output_refs(invocation),
+        "owner_consumption_status": (
+            "owner_response_refs_observed"
+            if observed_owner_refs
+            else "no_owner_response_refs"
+        ),
+        "owner_receipt_ref": owner_refs["owner_receipt_ref"],
+        "typed_blocker_ref": owner_refs["typed_blocker_ref"],
+        "reviewer_receipt_ref": owner_refs["reviewer_receipt_ref"],
+        "route_back_evidence_ref": owner_refs["route_back_evidence_ref"],
+        "counts_as_progress": False,
+        "consumption_evidence_only": True,
+        "can_authorize_owner_action": False,
+        "mainline_waits_for_owner_consumption": False,
+        "fail_open": True,
+        "missing_owner_response_refs_blocks": False,
+        "no_forbidden_write_proof": _no_forbidden_write_proof(invocation),
+        "fail_open_policy": {
+            "missing_owner_response_refs_blocks": False,
+            "missing_capability_output_blocks": False,
+            "mainline_waits_for_live_soak": False,
+            "external_runtime_dependency": False,
+        },
+        "authority_boundary": _authority_boundary(),
+    }
 
 
 def _capabilities() -> list[dict[str, Any]]:
@@ -323,6 +392,63 @@ def _capability_by_id(capability_id: str) -> dict[str, Any]:
     raise ValueError(f"Unknown scientific capability: {capability_id}")
 
 
+def _capability_output_refs(invocation: Mapping[str, Any]) -> list[str]:
+    result = _mapping(invocation.get("result"))
+    refs: list[str] = []
+    for key in ("allowed_writes", "written_refs", "output_refs"):
+        refs.extend(_text_list(result.get(key)))
+    refs.extend(_text_list(invocation.get("output_refs")))
+    bundle_ref = _text(result.get("bundle_ref"))
+    if bundle_ref:
+        refs.append(bundle_ref)
+    latest_ref = _text(result.get("latest_ref"))
+    if latest_ref:
+        refs.append(latest_ref)
+    advisory_ref_paths = result.get("advisory_ref_paths")
+    if isinstance(advisory_ref_paths, Mapping):
+        refs.extend(_text_list(advisory_ref_paths.values()))
+    if not refs:
+        refs = _text_list(_capability_by_id(_text(invocation.get("capability_id"))).get("output_refs"))
+    return _dedupe_texts(refs)
+
+
+def _owner_response_refs(value: Mapping[str, Any] | None) -> dict[str, str | None]:
+    refs = _mapping(value)
+    return {
+        key: (_text(refs.get(key)) or None)
+        for key in _OWNER_RESPONSE_REF_KEYS
+    }
+
+
+def _no_forbidden_write_proof(invocation: Mapping[str, Any]) -> dict[str, Any]:
+    result = _mapping(invocation.get("result"))
+    study_root_text = _text(result.get("study_root_ref")) or _text(result.get("study_root"))
+    existing_forbidden_refs: list[str] = []
+    if study_root_text:
+        study_root = Path(study_root_text).expanduser()
+        for ref in _FORBIDDEN_PATH_ABSENCE_REFS:
+            if (study_root / ref).exists():
+                existing_forbidden_refs.append(ref)
+    output_ref_set = set(_capability_output_refs(invocation))
+    forbidden_ref_collisions = [
+        ref for ref in _FORBIDDEN_WRITE_CHECK_REFS if ref in output_ref_set
+    ]
+    return {
+        "checked_relative_refs": list(_FORBIDDEN_WRITE_CHECK_REFS),
+        "study_root_ref": study_root_text or None,
+        "existing_forbidden_refs": existing_forbidden_refs,
+        "forbidden_ref_collisions": forbidden_ref_collisions,
+        "forbidden_refs_absent": (
+            not existing_forbidden_refs and not forbidden_ref_collisions
+        ),
+        "proof_scope": (
+            "path_absence_and_output_ref_collision"
+            if study_root_text
+            else "output_ref_collision_only"
+        ),
+    }
+
+
 def _current_owner_summary(delta: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "action_type": _text(delta.get("action_type")),
@@ -419,12 +545,25 @@ def _text_set(value: object) -> set[str]:
     return set(_text_list(value))
 
 
+def _dedupe_texts(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
+
+
 __all__ = [
     "INVOCATION_SURFACE_KIND",
+    "OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND",
     "RESOLUTION_SURFACE_KIND",
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "build_scientific_capability_registry",
+    "build_capability_owner_consumption_evidence",
     "invoke_scientific_capability",
     "resolve_scientific_capabilities",
 ]
