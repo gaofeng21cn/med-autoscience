@@ -48,10 +48,13 @@ flowchart TD
 `stage_route_arbiter` 是 DHD current-control refresh 同步输出的机器 surface。它不新增 authority，也不替代 `current_owner_delta`；它只解释每个 provider admission identity 为什么被保留或被抑制：
 
 - `running_identity_observed`：同一 identity 已有 strict live provider attempt，pending 被压制。
+- `terminal_closeout_precedes_live_projection`：同一 stage attempt / run 已有 accepted typed closeout 或 executed typed blocker，即使 OPL live 读面仍残留 running，也必须先压制 pending 和 stale live 投影。
 - `accepted_closeout_consumed_pending`：同一 identity 已有 accepted typed closeout 或 executed typed blocker，pending 被压制。
 - `pending_provider_admission`：没有匹配 live attempt，也没有匹配 accepted closeout，pending 保留，下一步可由 OPL scoped tick / hydrate 接手。
 
 这个 surface 的价值是把原先散落在 live attempt、accepted closeout、pending candidate 过滤里的判断变成单一审计读面。监督线程、operator 和后续 OPL 基座可以直接读 `stage_route_arbiter_decisions[]`，不用再从 action_queue 是否为空倒推原因。它的 authority boundary 固定为 currentness projection only：不能写 study truth、publication verdict、owner receipt、typed blocker、paper body、current package 或 OPL runtime artifact。
+
+Provider admission carrier 不能自证 currentness。只要 status 已经声明了 `current_owner_delta` / `current_work_unit` / `current_executable_owner_action` / `current_execution_envelope` 语境，但 canonical identity 不完整，DHD 必须抑制 current-control action 自带的 `owner_route_currentness_basis` fallback。queue / dispatch / action carrier 只能运输 refs，不能在 canonical identity 缺失时反向授权自己成为 current route。
 
 ## 目标状态机
 
@@ -161,6 +164,8 @@ MAS 侧对应收薄：
 - OpenLineage / OpenTelemetry：借鉴 lineage、span links 和 observability 分层；lineage/trace 不能关闭 quality gate 或 publication verdict。
 
 这些映射的 machine-readable source refs 归 `contracts/stage_route_reconcile_contract.json`；当前采用的官方来源包括 [Kubernetes Controllers](https://kubernetes.io/docs/concepts/architecture/controller/)、[Temporal Activity return values](https://docs.temporal.io/develop/typescript/activities/basics)、[Temporal limits](https://docs.temporal.io/cloud/limits)、[Argo retry/exit handlers](https://argo-workflows.readthedocs.io/en/latest/walk-through/retrying-failed-or-errored-steps/)、[Airflow XComs](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/xcoms.html)、[AWS Step Functions StartExecution](https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html)、[OpenTelemetry traces](https://opentelemetry.io/docs/concepts/signals/traces/) 和 [OpenLineage specification](https://openlineage.io/docs/spec/object-model/)。
+
+2026-06-11 的补充经验映射：Temporal / Conductor 一类 durable workflow 强调 history、retry、timeout 和 idempotent execution；Step Functions 的 redrive / StartExecution 也要求 execution identity 与 idempotency 边界；Dagster 的 declarative automation 把触发条件收成可审计条件，而不是让长 heartbeat 自行完成业务修复。MAS / OPL 对应规则是：`current_owner_delta` 是 desired state，stage-route arbiter 是统一 reconcile decision，自动化只触发短 tick / observe / supervisor handoff，不能替代 closeout consumption 或 domain owner receipt。
 
 ## 运行态监督链
 

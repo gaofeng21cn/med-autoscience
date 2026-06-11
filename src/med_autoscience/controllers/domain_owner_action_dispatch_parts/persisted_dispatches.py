@@ -489,7 +489,7 @@ def _fresh_progress_envelope_blocks_dispatch_selection(
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
     if state_kind == "typed_blocker" and _fresh_progress_typed_blocker_reason(envelope) == "medical_paper_readiness_missing":
         return False
-    return state_kind in {"typed_blocker", "parked", "running_provider_attempt"}
+    return state_kind in {"typed_blocker", "parked"}
 
 
 def _fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | None:

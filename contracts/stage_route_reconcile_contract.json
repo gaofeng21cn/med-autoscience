@@ -271,6 +271,16 @@
     "purpose": "Explain, in one machine-readable place, why each provider-admission identity is retained as pending or suppressed by strict live/terminal evidence.",
     "decision_kinds": [
       {
+        "decision": "terminal_closeout_precedes_live_projection",
+        "effect": "suppress_provider_admission_pending",
+        "required_match": [
+          "study_id",
+          "stage_attempt_id_or_run_id",
+          "accepted_typed_closeout_or_executed_typed_blocker",
+          "same_provider_identity"
+        ]
+      },
+      {
         "decision": "running_identity_observed",
         "effect": "suppress_provider_admission_pending",
         "required_match": [
@@ -306,6 +316,17 @@
       "work_unit_fingerprint",
       "dispatch_path_or_ref"
     ],
+    "carrier_self_identity_policy": {
+      "current_control_action_can_self_authorize": false,
+      "fallback_allowed_only_when_canonical_status_has_no_current_identity_requirement": true,
+      "canonical_identity_sources": [
+        "current_owner_delta",
+        "current_work_unit",
+        "current_executable_owner_action",
+        "current_execution_envelope"
+      ],
+      "missing_canonical_identity_effect": "suppress_provider_admission_candidate"
+    },
     "authority_boundary": {
       "arbiter_surface": "currentness_projection_only",
       "can_write_domain_truth": false,

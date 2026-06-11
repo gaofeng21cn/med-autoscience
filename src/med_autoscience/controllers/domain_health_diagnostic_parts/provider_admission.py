@@ -346,6 +346,10 @@ def _status_typed_blocker_envelope(status_payload: Mapping[str, Any]) -> bool:
 
 
 def _status_blocks_action_queue_self_identity(status_payload: Mapping[str, Any]) -> bool:
+    if _status_requires_current_identity(status_payload) and not _current_action_identity(
+        status_payload
+    ):
+        return True
     current_work_unit = _mapping(status_payload.get("current_work_unit"))
     current_work_unit_status = _non_empty_text(current_work_unit.get("status"))
     if current_work_unit_status in {

@@ -151,6 +151,23 @@ def _stage_route_arbiter_decisions(
     decisions: list[dict[str, Any]] = []
     for candidate in candidates:
         study_id = _non_empty_text(candidate.get("study_id"))
+        scanned_study = (
+            _mapping(scanned_studies_by_id.get(study_id)) if study_id is not None else {}
+        )
+        terminal_precedence = _terminal_closeout_precedence_evidence(
+            scanned_study,
+            identity=candidate,
+        )
+        if terminal_precedence:
+            decisions.append(
+                _arbiter_decision(
+                    candidate,
+                    decision="terminal_closeout_precedes_live_projection",
+                    effect="suppress_provider_admission_pending",
+                    evidence=terminal_precedence,
+                )
+            )
+            continue
         live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
         live_attempt = _running_attempt_from_study(live_study)
         if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
@@ -163,9 +180,6 @@ def _stage_route_arbiter_decisions(
                 )
             )
             continue
-        scanned_study = (
-            _mapping(scanned_studies_by_id.get(study_id)) if study_id is not None else {}
-        )
         if _accepted_closeout_matches_identity(scanned_study, identity=candidate):
             decisions.append(
                 _arbiter_decision(
@@ -260,6 +274,29 @@ def _matching_accepted_closeout(
     return {}
 
 
+def _terminal_closeout_precedence_evidence(
+    study: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    precedence_evidence = _mapping(study.get("terminal_closeout_precedence_evidence"))
+    if (
+        precedence_evidence
+        and _receipt_is_accepted_closeout(precedence_evidence)
+        and provider_attempt_matches_identity(precedence_evidence, identity=identity)
+    ):
+        return precedence_evidence
+    live_attempt = _running_attempt_from_study(study)
+    if not live_attempt or not provider_attempt_matches_identity(live_attempt, identity=identity):
+        return {}
+    closeout = _matching_accepted_closeout(study, identity=identity)
+    if not closeout:
+        return {}
+    if _receipt_matches_live_attempt(closeout, live_attempt):
+        return closeout
+    return {}
+
+
 def _evidence_status(evidence: Mapping[str, Any]) -> str | None:
     return (
         _non_empty_text(evidence.get("execution_status"))
@@ -335,6 +372,36 @@ def _scanned_study_with_live_attempt_projection(study: Mapping[str, Any]) -> dic
 
 def _scanned_study_with_accepted_closeout_projection(study: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(study)
+    terminal_closeout = _accepted_closeout_for_live_attempt(payload)
+    if terminal_closeout:
+        payload.update(
+            {
+                "quest_status": _non_empty_text(payload.get("quest_status")) or "active",
+                "active_run_id": None,
+                "active_stage_attempt_id": None,
+                "active_workflow_id": None,
+                "running_provider_attempt": False,
+                "runtime_health": {
+                    "health_status": "terminal_closeout_observed",
+                    "runtime_liveness_status": "not_running",
+                    "summary": "Terminal closeout for the same stage attempt suppresses stale running projection.",
+                },
+                "action_queue": [],
+                "provider_admission_candidates": [],
+                "provider_admission_pending_count": 0,
+                "terminal_closeout_precedence_evidence": terminal_closeout,
+                "opl_provider_attempt": terminal_closeout,
+                "current_execution_envelope": {
+                    "state_kind": "terminal_closeout_observed",
+                    "owner": "med-autoscience",
+                    "next_work_unit": _non_empty_text(terminal_closeout.get("work_unit_id")),
+                    "typed_blocker": None,
+                    "parked_state": None,
+                    "source": "terminal_closeout_precedes_live_projection",
+                },
+            }
+        )
+        return payload
     if payload.get("running_provider_attempt") is True:
         return payload
     if not _accepted_closeout_matches_identity(payload, identity=_closeout_identity(payload)):
@@ -367,6 +434,51 @@ def _closeout_identity(study: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _accepted_closeout_for_live_attempt(study: Mapping[str, Any]) -> dict[str, Any]:
+    live_attempt = _running_attempt_from_study(study)
+    if not live_attempt:
+        return {}
+    for receipt in (
+        _mapping(study.get("default_executor_execution_receipt_consumption")),
+        _mapping(study.get("opl_provider_attempt")),
+    ):
+        if not receipt:
+            continue
+        if _receipt_is_accepted_closeout(receipt) and _receipt_matches_live_attempt(
+            receipt,
+            live_attempt,
+        ):
+            return receipt
+    return {}
+
+
+def _receipt_matches_live_attempt(
+    receipt: Mapping[str, Any],
+    live_attempt: Mapping[str, Any],
+) -> bool:
+    receipt_stage_attempt_id = _stage_attempt_id(receipt)
+    live_stage_attempt_id = _stage_attempt_id(live_attempt)
+    if receipt_stage_attempt_id is not None and live_stage_attempt_id is not None:
+        return receipt_stage_attempt_id == live_stage_attempt_id
+    receipt_run_id = _active_run_id(receipt)
+    live_run_id = _active_run_id(live_attempt)
+    if receipt_run_id is not None and live_run_id is not None:
+        return receipt_run_id == live_run_id
+    if not _identity_has_match_key(live_attempt):
+        return False
+    return provider_attempt_matches_identity(receipt, identity=live_attempt)
+
+
+def _stage_attempt_id(payload: Mapping[str, Any]) -> str | None:
+    return _non_empty_text(payload.get("active_stage_attempt_id")) or _non_empty_text(
+        payload.get("stage_attempt_id")
+    )
+
+
+def _active_run_id(payload: Mapping[str, Any]) -> str | None:
+    return _non_empty_text(payload.get("active_run_id")) or _non_empty_text(payload.get("run_id"))
+
+
 def _running_attempt_from_study(study: Mapping[str, Any]) -> dict[str, Any]:
     if study_has_running_provider_attempt(study):
         return _mapping(study.get("opl_provider_attempt")) or dict(study)
@@ -387,11 +499,13 @@ def _candidates_not_covered_by_live_attempt(
         study_id = _non_empty_text(candidate.get("study_id"))
         live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
         live_attempt = _running_attempt_from_study(live_study)
-        if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
-            continue
         scanned_study = (
             _mapping((scanned_studies_by_id or {}).get(study_id)) if study_id is not None else {}
         )
+        if _terminal_closeout_precedence_evidence(scanned_study, identity=candidate):
+            continue
+        if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
+            continue
         if _accepted_closeout_matches_identity(scanned_study, identity=candidate):
             continue
         pending.append(dict(candidate))

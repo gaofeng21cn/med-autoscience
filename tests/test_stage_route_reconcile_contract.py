@@ -146,11 +146,15 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     assert arbiter["producer"] == "domain-health-diagnostic.provider_admission_current_control"
     assert arbiter["ordinary_planning_root"] == "current_owner_delta"
     assert [item["decision"] for item in arbiter["decision_kinds"]] == [
+        "terminal_closeout_precedes_live_projection",
         "running_identity_observed",
         "accepted_closeout_consumed_pending",
         "pending_provider_admission",
     ]
     effects = {item["decision"]: item["effect"] for item in arbiter["decision_kinds"]}
+    assert effects["terminal_closeout_precedes_live_projection"] == (
+        "suppress_provider_admission_pending"
+    )
     assert effects["running_identity_observed"] == "suppress_provider_admission_pending"
     assert effects["accepted_closeout_consumed_pending"] == (
         "suppress_provider_admission_pending"
@@ -163,6 +167,12 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "work_unit_fingerprint",
         "dispatch_path_or_ref",
     } <= set(arbiter["required_identity_fields"])
+    self_identity = arbiter["carrier_self_identity_policy"]
+    assert self_identity["current_control_action_can_self_authorize"] is False
+    assert self_identity["missing_canonical_identity_effect"] == (
+        "suppress_provider_admission_candidate"
+    )
+    assert "current_owner_delta" in self_identity["canonical_identity_sources"]
     assert arbiter["authority_boundary"] == {
         "arbiter_surface": "currentness_projection_only",
         "can_write_domain_truth": False,
