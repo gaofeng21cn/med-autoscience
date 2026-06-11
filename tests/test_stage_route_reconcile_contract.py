@@ -141,6 +141,36 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     )
     assert anti_loop["automatic_redrive_after_budget_exhaustion_allowed"] is False
 
+    arbiter = contract["stage_route_arbiter_surface"]
+    assert arbiter["surface_kind"] == "mas_opl_stage_route_arbiter"
+    assert arbiter["producer"] == "domain-health-diagnostic.provider_admission_current_control"
+    assert arbiter["ordinary_planning_root"] == "current_owner_delta"
+    assert [item["decision"] for item in arbiter["decision_kinds"]] == [
+        "running_identity_observed",
+        "accepted_closeout_consumed_pending",
+        "pending_provider_admission",
+    ]
+    effects = {item["decision"]: item["effect"] for item in arbiter["decision_kinds"]}
+    assert effects["running_identity_observed"] == "suppress_provider_admission_pending"
+    assert effects["accepted_closeout_consumed_pending"] == (
+        "suppress_provider_admission_pending"
+    )
+    assert effects["pending_provider_admission"] == "retain_provider_admission_pending"
+    assert {
+        "study_id",
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "dispatch_path_or_ref",
+    } <= set(arbiter["required_identity_fields"])
+    assert arbiter["authority_boundary"] == {
+        "arbiter_surface": "currentness_projection_only",
+        "can_write_domain_truth": False,
+        "can_authorize_publication_ready": False,
+        "provider_completion_is_domain_ready": False,
+    }
+    assert arbiter["must_be_written_with_current_control"] is True
+
     stage_log = contract["stage_log_minimum_viability"]
     assert stage_log["surface_kind"] == "mas_opl_stage_log_minimum_viability_policy"
     assert stage_log["canonical_domain_log_field"] == "paper_stage_log"

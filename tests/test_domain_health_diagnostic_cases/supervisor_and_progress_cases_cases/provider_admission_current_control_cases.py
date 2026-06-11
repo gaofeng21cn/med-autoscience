@@ -367,6 +367,15 @@ def test_materialized_current_control_clears_candidate_after_accepted_typed_clos
     assert result["action_queue"] == []
     assert result["studies"][0]["study_id"] == study_id
     assert result["studies"][0]["provider_admission_pending_count"] == 0
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "accepted_closeout_consumed_pending": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "accepted_closeout_consumed_pending"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["action_type"] == "return_to_ai_reviewer_workflow"
+    assert decision["work_unit_id"] == work_unit_id
+    assert decision["work_unit_fingerprint"] == fingerprint
     assert result["current_execution_envelopes"][study_id]["source"] == (
         "progress_currentness.current_executable_owner_action"
     )
@@ -480,6 +489,15 @@ def test_materialized_current_control_clears_candidate_after_executed_typed_bloc
     assert result["provider_admission_candidates"] == []
     assert result["action_queue"] == []
     assert result["studies"][0]["provider_admission_pending_count"] == 0
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "accepted_closeout_consumed_pending": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "accepted_closeout_consumed_pending"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["action_type"] == "run_gate_clearing_batch"
+    assert decision["work_unit_id"] == work_unit_id
+    assert decision["work_unit_fingerprint"] == fingerprint
 
 
 def test_materialized_current_control_clears_previous_gate_queue_when_ai_reviewer_is_current(

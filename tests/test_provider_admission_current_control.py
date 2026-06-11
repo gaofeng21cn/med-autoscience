@@ -353,6 +353,24 @@ def test_provider_admission_current_control_prefers_live_attempt_over_pending_ca
     assert study["provider_admission_pending_count"] == 0
     assert study["current_execution_envelope"]["state_kind"] == "running_provider_attempt"
     assert result["current_execution_envelopes"][study_id]["state_kind"] == "running_provider_attempt"
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "running_identity_observed": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "running_identity_observed"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["study_id"] == study_id
+    assert decision["action_type"] == "run_gate_clearing_batch"
+    assert decision["work_unit_id"] == work_unit_id
+    assert decision["work_unit_fingerprint"] == action_fingerprint
+    assert decision["active_stage_attempt_id"] == "sat-live"
+    assert decision["active_workflow_id"] == "wf-live"
+    assert decision["authority_boundary"] == {
+        "arbiter_surface": "currentness_projection_only",
+        "can_write_domain_truth": False,
+        "can_authorize_publication_ready": False,
+        "provider_completion_is_domain_ready": False,
+    }
 
 
 def test_provider_admission_prefers_canonical_current_work_unit_over_stale_current_action(

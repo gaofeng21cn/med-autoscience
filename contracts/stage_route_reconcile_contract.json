@@ -263,6 +263,57 @@
     "budget_exhaustion_action": "stop_redrive_and_emit_mas_typed_blocker_candidate_or_route_back_evidence",
     "automatic_redrive_after_budget_exhaustion_allowed": false
   },
+  "stage_route_arbiter_surface": {
+    "surface_kind": "mas_opl_stage_route_arbiter",
+    "schema_version": 1,
+    "producer": "domain-health-diagnostic.provider_admission_current_control",
+    "ordinary_planning_root": "current_owner_delta",
+    "purpose": "Explain, in one machine-readable place, why each provider-admission identity is retained as pending or suppressed by strict live/terminal evidence.",
+    "decision_kinds": [
+      {
+        "decision": "running_identity_observed",
+        "effect": "suppress_provider_admission_pending",
+        "required_match": [
+          "study_id",
+          "action_type",
+          "work_unit_id_or_fingerprint",
+          "dispatch_ref_or_stage_attempt_id"
+        ]
+      },
+      {
+        "decision": "accepted_closeout_consumed_pending",
+        "effect": "suppress_provider_admission_pending",
+        "required_match": [
+          "study_id",
+          "stage_attempt_id_or_work_unit_identity",
+          "accepted_typed_closeout_or_executed_typed_blocker"
+        ]
+      },
+      {
+        "decision": "pending_provider_admission",
+        "effect": "retain_provider_admission_pending",
+        "required_match": [
+          "current_owner_delta_identity",
+          "no_matching_live_attempt",
+          "no_matching_accepted_closeout"
+        ]
+      }
+    ],
+    "required_identity_fields": [
+      "study_id",
+      "action_type",
+      "work_unit_id",
+      "work_unit_fingerprint",
+      "dispatch_path_or_ref"
+    ],
+    "authority_boundary": {
+      "arbiter_surface": "currentness_projection_only",
+      "can_write_domain_truth": false,
+      "can_authorize_publication_ready": false,
+      "provider_completion_is_domain_ready": false
+    },
+    "must_be_written_with_current_control": true
+  },
   "stage_log_minimum_viability": {
     "surface_kind": "mas_opl_stage_log_minimum_viability_policy",
     "canonical_domain_log_field": "paper_stage_log",

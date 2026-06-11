@@ -10,6 +10,15 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
 from med_autoscience.controllers.owner_route_reconcile_parts import scan_output, supervision_surfaces
 from med_autoscience.profiles import WorkspaceProfile
 
+ARBITER_SURFACE_KIND = "mas_opl_stage_route_arbiter"
+ARBITER_SCHEMA_VERSION = 1
+ARBITER_AUTHORITY_BOUNDARY = {
+    "arbiter_surface": "currentness_projection_only",
+    "can_write_domain_truth": False,
+    "can_authorize_publication_ready": False,
+    "provider_completion_is_domain_ready": False,
+}
+
 
 def materialize_provider_admission_current_control_state(
     *,
@@ -26,14 +35,20 @@ def materialize_provider_admission_current_control_state(
     previous_payload = supervision_surfaces.read_json_object(latest_path)
     scanned_studies = _normalized_scanned_studies(scanned_studies)
     live_studies_by_id = _live_scanned_studies_by_id(scanned_studies)
+    scanned_studies_by_id = {
+        study_id: dict(study)
+        for study in scanned_studies or []
+        if (study_id := _non_empty_text(study.get("study_id"))) is not None
+    }
+    arbiter_decisions = _stage_route_arbiter_decisions(
+        candidates,
+        live_studies_by_id=live_studies_by_id,
+        scanned_studies_by_id=scanned_studies_by_id,
+    )
     pending_candidates = _candidates_not_covered_by_live_attempt(
         candidates,
         live_studies_by_id=live_studies_by_id,
-        scanned_studies_by_id={
-            study_id: dict(study)
-            for study in scanned_studies or []
-            if (study_id := _non_empty_text(study.get("study_id"))) is not None
-        },
+        scanned_studies_by_id=scanned_studies_by_id,
     )
     studies = [
         provider_admission_current_control_study(candidate) for candidate in pending_candidates
@@ -96,6 +111,12 @@ def materialize_provider_admission_current_control_state(
     )
     payload["provider_admission_pending_count"] = len(pending_candidates)
     payload["provider_admission_candidates"] = [dict(candidate) for candidate in pending_candidates]
+    payload["stage_route_arbiter"] = _stage_route_arbiter_summary(
+        decisions=arbiter_decisions,
+        candidate_count=len(candidates),
+        pending_count=len(pending_candidates),
+    )
+    payload["stage_route_arbiter_decisions"] = arbiter_decisions
     payload["current_control_refresh_source"] = "domain_health_diagnostic.provider_admission_candidates"
     if apply:
         supervision_surfaces.write_json(latest_path, payload)
@@ -110,12 +131,143 @@ def materialize_provider_admission_current_control_state(
                 ],
                 "action_ids": [action.get("action_id") for action in output_actions],
                 "provider_admission_pending_count": len(pending_candidates),
+                "stage_route_arbiter_decision_counts": payload["stage_route_arbiter"][
+                    "decision_counts"
+                ],
                 "latest_action_count": len(output_actions),
                 "source": "domain_health_diagnostic.provider_admission_candidates",
             },
         )
     payload["written"] = bool(apply)
     return payload
+
+
+def _stage_route_arbiter_decisions(
+    candidates: list[dict[str, Any]],
+    *,
+    live_studies_by_id: Mapping[str, Mapping[str, Any]],
+    scanned_studies_by_id: Mapping[str, Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    decisions: list[dict[str, Any]] = []
+    for candidate in candidates:
+        study_id = _non_empty_text(candidate.get("study_id"))
+        live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
+        live_attempt = _running_attempt_from_study(live_study)
+        if live_attempt and provider_attempt_matches_identity(live_attempt, identity=candidate):
+            decisions.append(
+                _arbiter_decision(
+                    candidate,
+                    decision="running_identity_observed",
+                    effect="suppress_provider_admission_pending",
+                    evidence=live_attempt,
+                )
+            )
+            continue
+        scanned_study = (
+            _mapping(scanned_studies_by_id.get(study_id)) if study_id is not None else {}
+        )
+        if _accepted_closeout_matches_identity(scanned_study, identity=candidate):
+            decisions.append(
+                _arbiter_decision(
+                    candidate,
+                    decision="accepted_closeout_consumed_pending",
+                    effect="suppress_provider_admission_pending",
+                    evidence=_matching_accepted_closeout(scanned_study, identity=candidate),
+                )
+            )
+            continue
+        decisions.append(
+            _arbiter_decision(
+                candidate,
+                decision="pending_provider_admission",
+                effect="retain_provider_admission_pending",
+                evidence={},
+            )
+        )
+    return decisions
+
+
+def _arbiter_decision(
+    candidate: Mapping[str, Any],
+    *,
+    decision: str,
+    effect: str,
+    evidence: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "surface_kind": "mas_opl_stage_route_arbiter_decision",
+        "schema_version": ARBITER_SCHEMA_VERSION,
+        "decision": decision,
+        "effect": effect,
+        "study_id": _non_empty_text(candidate.get("study_id")),
+        "quest_id": _non_empty_text(candidate.get("quest_id")),
+        "action_type": _non_empty_text(candidate.get("action_type")),
+        "work_unit_id": _non_empty_text(candidate.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(candidate.get("work_unit_fingerprint"))
+        or _non_empty_text(candidate.get("action_fingerprint")),
+        "action_fingerprint": _non_empty_text(candidate.get("action_fingerprint")),
+        "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
+        "dispatch_ref": _non_empty_text(candidate.get("dispatch_ref")),
+        "active_stage_attempt_id": _non_empty_text(evidence.get("active_stage_attempt_id"))
+        or _non_empty_text(evidence.get("stage_attempt_id")),
+        "active_run_id": _non_empty_text(evidence.get("active_run_id")),
+        "active_workflow_id": _non_empty_text(evidence.get("active_workflow_id")),
+        "evidence_status": _evidence_status(evidence),
+        "authority_boundary": dict(ARBITER_AUTHORITY_BOUNDARY),
+    }
+    return {key: value for key, value in payload.items() if value is not None}
+
+
+def _stage_route_arbiter_summary(
+    *,
+    decisions: list[dict[str, Any]],
+    candidate_count: int,
+    pending_count: int,
+) -> dict[str, Any]:
+    decision_counts: dict[str, int] = {}
+    for decision in decisions:
+        key = _non_empty_text(decision.get("decision"))
+        if key is None:
+            continue
+        decision_counts[key] = decision_counts.get(key, 0) + 1
+    return {
+        "surface_kind": ARBITER_SURFACE_KIND,
+        "schema_version": ARBITER_SCHEMA_VERSION,
+        "candidate_count": candidate_count,
+        "pending_count": pending_count,
+        "decision_counts": decision_counts,
+        "ordinary_planning_root": "current_owner_delta",
+        "authority_boundary": dict(ARBITER_AUTHORITY_BOUNDARY),
+    }
+
+
+def _matching_accepted_closeout(
+    study: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    for receipt in (
+        _mapping(study.get("default_executor_execution_receipt_consumption")),
+        _mapping(study.get("opl_provider_attempt")),
+    ):
+        if not receipt:
+            continue
+        if _receipt_is_accepted_closeout(receipt) and provider_attempt_matches_identity(
+            receipt,
+            identity=identity,
+        ):
+            return receipt
+    return {}
+
+
+def _evidence_status(evidence: Mapping[str, Any]) -> str | None:
+    return (
+        _non_empty_text(evidence.get("execution_status"))
+        or _non_empty_text(evidence.get("closeout_receipt_status"))
+        or _non_empty_text(evidence.get("current_attempt_state"))
+        or _non_empty_text(evidence.get("reconciliation_status"))
+        or _non_empty_text(_mapping(evidence.get("runtime_health")).get("runtime_liveness_status"))
+    )
 
 
 def _live_scanned_studies_by_id(

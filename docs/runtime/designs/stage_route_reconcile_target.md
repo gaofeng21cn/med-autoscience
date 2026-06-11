@@ -29,6 +29,7 @@ flowchart TD
   F --> G["domain_owner_action_dispatch"]
   G --> H["provider admission pending or owner output"]
   H --> I["provider_admission_current_control"]
+  I --> I2["stage_route_arbiter decisions"]
   I --> J["OPL scoped tick / hydrate"]
   J --> K["OPL StageRun provider attempt"]
   K --> L["terminal closeout packet"]
@@ -41,6 +42,16 @@ flowchart TD
 - OPL queue / attempt 仍显示 live，但同一 stage attempt 已有 MAS terminal closeout，导致假 running。
 - OPL accepted typed closeout 已经覆盖同一 identity，但 provider admission pending 继续回显，导致重复 tick。
 - 同一 work unit 多次 terminal / no-op / owner-output-current，没有产生 owner receipt、stable typed blocker、route-back 或 paper/gate/package semantic delta，导致原地打转。
+
+## Stage Route Arbiter
+
+`stage_route_arbiter` 是 DHD current-control refresh 同步输出的机器 surface。它不新增 authority，也不替代 `current_owner_delta`；它只解释每个 provider admission identity 为什么被保留或被抑制：
+
+- `running_identity_observed`：同一 identity 已有 strict live provider attempt，pending 被压制。
+- `accepted_closeout_consumed_pending`：同一 identity 已有 accepted typed closeout 或 executed typed blocker，pending 被压制。
+- `pending_provider_admission`：没有匹配 live attempt，也没有匹配 accepted closeout，pending 保留，下一步可由 OPL scoped tick / hydrate 接手。
+
+这个 surface 的价值是把原先散落在 live attempt、accepted closeout、pending candidate 过滤里的判断变成单一审计读面。监督线程、operator 和后续 OPL 基座可以直接读 `stage_route_arbiter_decisions[]`，不用再从 action_queue 是否为空倒推原因。它的 authority boundary 固定为 currentness projection only：不能写 study truth、publication verdict、owner receipt、typed blocker、paper body、current package 或 OPL runtime artifact。
 
 ## 目标状态机
 
