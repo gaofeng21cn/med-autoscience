@@ -327,9 +327,12 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "action_id": "display_pack_figure_plan",
             "title": "Plan a Display Pack figure",
             "summary": (
-                "Given a structured figure_request, rank Display Pack templates and choose the next "
-                "preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits "
-                "typed blockers instead of asking an agent to manually browse templates."
+                "Given a structured figure_request, rank Display Pack templates as quality-floor "
+                "baselines and choose the next preflight target. Exact matches use the template "
+                "contract directly; close matches stay usable through adaptation hints and explicit "
+                "forbidden-authority boundaries. It prefers R/ggplot2 where the pack declares that "
+                "renderer, and emits typed blockers instead of asking an agent to manually browse "
+                "templates."
             ),
             "effect": "read_only",
             "command": (
@@ -360,9 +363,9 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "summary": (
                 "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, "
                 "or a partial figure_request into a figure_intent; then rank templates, run preflight, "
-                "emit quality-floor status, typed repair routes, and the next callable. This is the "
-                "ordinary low-friction path for autonomous MAS agents and does not require manual "
-                "template selection."
+                "emit quality-floor status, adaptable-template hints, typed repair routes, and the next "
+                "callable. This is the ordinary low-friction path for autonomous MAS agents and does "
+                "not require manual template selection."
             ),
             "effect": "read_only",
             "command": (

@@ -14,6 +14,16 @@ from med_autoscience.display_pack_loader import (
     LoadedDisplayTemplate,
     load_enabled_local_display_template_records,
 )
+from med_autoscience.display_pack_agent_parts.template_fit import (
+    DEFAULT_KIND as _DEFAULT_KIND,
+    DEFAULT_RENDERER_PREFERENCE as _DEFAULT_RENDERER_PREFERENCE,
+    hard_compatible,
+    has_semantic_fit_anchor,
+    minimum_fit_floor,
+    score_template,
+    template_fit_entry,
+    template_sort_key,
+)
 from med_autoscience.display_pack_usability import scaffold_display_pack_render
 from med_autoscience.publication_display_contract import load_publication_style_profile
 
@@ -35,8 +45,6 @@ DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY = {
 }
 
 _DEFAULT_REVIEWER_HASH = "0" * 64
-_DEFAULT_KIND = "evidence_figure"
-_DEFAULT_RENDERER_PREFERENCE = "r_ggplot2"
 _DEFAULT_AUDIT_FAMILY = "Prediction Performance"
 
 
@@ -280,70 +288,6 @@ def display_pack_capability_discover(
     return payload
 
 
-def _matches_request(record: LoadedDisplayTemplate, request: Mapping[str, Any]) -> bool:
-    manifest = record.template_manifest
-    kind = _text(request.get("figure_kind") or request.get("kind") or _DEFAULT_KIND)
-    if kind and manifest.kind != kind:
-        return False
-    audit_family = _text(request.get("audit_family"))
-    if audit_family and manifest.audit_family != audit_family:
-        return False
-    paper_family = _text(request.get("paper_family"))
-    if paper_family and paper_family not in manifest.paper_family_ids:
-        return False
-    renderer_family = _text(request.get("renderer_family"))
-    if renderer_family and manifest.renderer_family != renderer_family:
-        return False
-    return True
-
-
-def _score_template(record: LoadedDisplayTemplate, request: Mapping[str, Any]) -> tuple[int, list[str]]:
-    manifest = record.template_manifest
-    score = 0
-    reasons: list[str] = []
-
-    preferred_renderer = _text(request.get("preferred_renderer_family") or _DEFAULT_RENDERER_PREFERENCE)
-    if preferred_renderer and manifest.renderer_family == preferred_renderer:
-        score += 25
-        reasons.append(f"preferred_renderer:{preferred_renderer}")
-    if manifest.paper_proven:
-        score += 20
-        reasons.append("paper_proven")
-    audit_family = _text(request.get("audit_family"))
-    if audit_family and manifest.audit_family == audit_family:
-        score += 18
-        reasons.append(f"audit_family:{audit_family}")
-    paper_family = _text(request.get("paper_family"))
-    if paper_family and paper_family in manifest.paper_family_ids:
-        score += 12
-        reasons.append(f"paper_family:{paper_family}")
-    input_schema_ref = _text(request.get("input_schema_ref"))
-    if input_schema_ref and manifest.input_schema_ref == input_schema_ref:
-        score += 10
-        reasons.append(f"input_schema_ref:{input_schema_ref}")
-    query = _text(request.get("query") or request.get("figure_goal") or request.get("claim_role")).lower()
-    if query:
-        haystack = " ".join(
-            (
-                manifest.template_id,
-                manifest.full_template_id,
-                manifest.display_name,
-                manifest.audit_family,
-                manifest.input_schema_ref,
-            )
-        ).lower()
-        if query in haystack:
-            score += 8
-            reasons.append("query_match")
-    if manifest.golden_case_paths:
-        score += 6
-        reasons.append("golden_available")
-    if manifest.exemplar_refs:
-        score += 3
-        reasons.append("exemplar_refs")
-    return score, reasons
-
-
 def display_pack_figure_plan(
     *,
     repo_root: Path | str | None = None,
@@ -361,22 +305,17 @@ def display_pack_figure_plan(
     )
     candidates: list[dict[str, Any]] = []
     for record in records:
-        if not _matches_request(record, request):
+        if not hard_compatible(record, request):
             continue
-        score, reasons = _score_template(record, request)
+        if not has_semantic_fit_anchor(record, request):
+            continue
+        score, reasons = score_template(record, request)
         entry = _template_summary(record)
         entry["recommendation_score"] = score
         entry["recommendation_reasons"] = reasons
+        entry.update(template_fit_entry(record, request))
         candidates.append(entry)
-    candidates.sort(
-        key=lambda item: (
-            int(item["recommendation_score"]),
-            bool(item["paper_proven"]),
-            item["renderer_family"] == _DEFAULT_RENDERER_PREFERENCE,
-            item["template_id"],
-        ),
-        reverse=True,
-    )
+    candidates.sort(key=template_sort_key, reverse=True)
     recommendations = candidates[: max(1, max_recommendations)]
     recommended = recommendations[0] if recommendations else None
     status = "display_plan_ready" if recommended else "blocked"
@@ -386,6 +325,8 @@ def display_pack_figure_plan(
             "blocked_reason": "display_template_not_found",
             "owner": "MedAutoScience",
             "route_hint": "display_pack_template_gap_or_request_shape_repair",
+            "requested_template_id": _text(request.get("template_id")),
+            "minimum_fit_floor": minimum_fit_floor(),
         }
     return {
         "schema_version": 1,
@@ -398,8 +339,12 @@ def display_pack_figure_plan(
         "recommended_template": recommended,
         "recommendations": recommendations,
         "candidate_count": len(candidates),
+        "minimum_fit_floor": minimum_fit_floor(),
         "next_callable": "display-pack-preflight" if recommended else "",
         "typed_blocker": blocker,
+        "agent_manual_template_selection_required": False,
+        "template_fit_policy": _text(recommended.get("template_fit_policy")) if isinstance(recommended, Mapping) else "",
+        "publication_readiness_verdict": False,
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
     }
 
@@ -578,6 +523,7 @@ def display_pack_preflight(
         manifest = record.template_manifest
         template_root = record.template_path.parent
         entry = _template_summary(record)
+        entry.update(template_fit_entry(record, compiled_request))
         template_entries.append(entry)
         if manifest.qc_profile_ref not in QC_PROFILE_RUNNERS:
             blocking_findings.append(

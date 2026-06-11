@@ -11,6 +11,8 @@ Machine boundary: 本文是人读目标架构与 MAS/OPL handoff 文案。机器
 
 Display Pack Agent OS 的目标是让 autonomous research agent 从当前论文 owner delta 和证据 refs 出发，直接走到可审计的图表产物、质量反馈、修复路由和 publication manifest，而不是让人类或 agent 手工遍历模板目录、猜 renderer、拼 CLI 参数或把视觉审计结果写成散落评论。
 
+模板在这条链路中的角色是 `quality-floor baseline`，不是要求论文需求逐字段精确命中的死合同。Agent resolver 应先保住硬边界，再在接近匹配时把现有模板作为可改造基线输出：`figure_kind` 和显式 `template_id` 是硬选择边界；audit family、paper family、renderer preference、input schema 和 query 是 fit score 与 adaptation hints。这样 Agent 可以在布局、panel 组合、标签、caption、axis/scale presentation、legend、style tokens、facet/split 和 evidence-ref-tied annotation 层做 paper-local customization；但数据值、统计估计、模型估计、claim 内容、evidence mark、source refs、owner receipt、visual audit 替代和 publication readiness 仍然禁止由 Display Pack resolver 改写或授权。
+
 目标运行链路固定为：
 
 ```text
@@ -35,7 +37,7 @@ current_owner_delta / claim refs / data refs
 | Owner delta intake | `current_owner_delta`、claim refs、data refs、paper context refs | display work intent seed | MAS | `landed_orchestrate_surface` |
 | Figure intent authoring | claim/data refs、publication role、target figure family | compiled `figure_intent` / future `paper/figure_intent.json` entry | MAS | `landed_orchestrate_surface_persistent_authoring_planned` |
 | Medical figure spec | figure intent、template constraints、medical semantics、panel roles | `paper/figure_spec.json` / `paper/figure_specs.json` | MAS | `landed_surface_target_integration_planned` |
-| Template resolver | figure spec、style profile、paper family、audit family、pack registry refs | template candidate + resolver receipt | MAS intent, OPL registry substrate | `landed_plan_candidate_surface_full_resolver_planned` |
+| Template resolver | figure spec、style profile、paper family、audit family、pack registry refs | exact template candidate 或 adaptable baseline candidate + adaptation hints + forbidden-authority boundary | MAS intent, OPL registry substrate | `landed_adaptable_baseline_plan_surface_full_resolver_planned` |
 | OPL pack lock | pack id/version/source、template refs、asset refs、provenance refs | OPL-owned generic pack lock + MAS refs-only display lock projection | OPL substrate, MAS publication refs | `planned_integration`; OPL generic substrate is `landed_in_opl_repo` |
 | Render | locked template, renderer entrypoint, payload refs, style profile | PNG/PDF/layout sidecar/render receipt refs | MAS display runtime, OPL transport | `partly_landed`; agent-native lock integration is `planned` |
 | QC | render refs、layout sidecar、QC profile | deterministic QC receipt | MAS display quality | `landed_surface_target_integration_planned` |
@@ -124,13 +126,26 @@ typed repair router 是 Display Agent OS 的关键未完整落地目标。当前
 
 router 输出必须包含 finding refs、repair class、owner、allowed writes、forbidden authority、expected receipt shape、idempotency key 和 stop condition。缺这些字段时，只能输出 diagnostic finding，不能进入 ordinary repair execution。
 
+## Adaptable Template Resolver
+
+当前 MAS 已落地的 resolver surface 输出 `template_fit_policy`、`adaptation_required`、`adaptation_hints`、`adaptation_boundary` 和 `minimum_fit_floor`。这些字段的读法是：
+
+- `exact_descriptor_match`：请求的主要 descriptor hint 与模板一致，Agent 可直接进入 preflight/render；
+- `adaptable_baseline_not_exact_contract`：模板不是逐字段精确匹配，但满足 hard fit floor，可作为 paper-local customization 的质量下限；
+- `adaptation_hints`：指出 audit family、paper family、input schema、renderer preference 或 composition/query 的差异应在哪个层修；
+- `adaptation_boundary.allowed_layers`：只允许 presentation / display-payload mapping 层的改造；
+- `adaptation_boundary.forbidden_layers`：数据值、统计估计、claim、evidence mark、source refs、owner receipt、visual audit 替代和 publication verdict 均禁止；
+- `minimum_fit_floor`：仍要求 figure kind 兼容、显式 template id 命中、确定性 renderer contract 存在、descriptor 有效、forbidden authority boundary 保留。
+
+这让模板成为 Agent 的 low-friction starting point：匹配不完全时仍能推进到 preflight、QC、visual audit 和 typed repair，而不是要求人类理解模板目录后手工选型。重复出现的 paper-local customization 应通过 promotion 进入 pack-level contract、style token、QC 或 golden regression，而不是长期散落在单篇论文 override。
+
 ## Landing Gates
 
 本文目标架构要从 `planned` 晋级，至少需要以下 repo-native 证据：
 
 - 机器合同或 source-defined builder 能表达 Display Agent OS handoff packet、resolver receipt、typed repair route 和 publication manifest refs；
 - `current_owner_delta` ordinary path 能调用 display capability，并保留 claim/data refs 与 owner identity；
-- template resolver 能消费 MAS figure spec 和 OPL pack registry/lock refs，且 fail closed 保留 forbidden authority；
+- template resolver 能消费 MAS figure spec 和 OPL pack registry/lock refs，能区分 exact match 与 adaptable baseline，且 fail closed 保留 forbidden authority；
 - OPL pack lock refs 能被 MAS display lock / publication manifest 以 refs-only 方式保存；
 - render/QC/visual-audit findings 能进入 typed repair router，并产出 owner receipt、typed blocker、human gate、route-back evidence 或 OPL substrate issue；
 - focused tests 覆盖 allowed writes、forbidden authority、no publication verdict、no claim/data mutation 和 stale ref rejection；

@@ -144,7 +144,7 @@
       "effect": "read_only",
       "callability": "mcp_runtime",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
-      "when_to_use": "Use display_pack_figure_plan when an autonomous agent needs this capability from the current_owner_delta path: Given a structured figure_request, rank Display Pack templates and choose the next preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
+      "when_to_use": "Use display_pack_figure_plan when an autonomous agent needs this capability from the current_owner_delta path: Given a structured figure_request, rank Display Pack templates as quality-floor baselines and choose the next preflight target. Exact matches use the template contract directly; close matches stay usable through adaptation hints and explicit forbidden-authority boundaries. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
       "required_refs": [
         "repo_root",
         "paper_root",
@@ -160,7 +160,7 @@
       "effect": "read_only",
       "callability": "mcp_runtime",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
-      "when_to_use": "Use display_pack_orchestrate when an autonomous agent needs this capability from the current_owner_delta path: Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
+      "when_to_use": "Use display_pack_orchestrate when an autonomous agent needs this capability from the current_owner_delta path: Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, adaptable-template hints, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
       "required_refs": [
         "repo_root",
         "paper_root",
@@ -437,7 +437,7 @@
         "tool_mode": "plan",
         "action_id": "display_pack_figure_plan",
         "callability": "mcp_runtime",
-        "when_to_use": "Use display_pack_figure_plan when an autonomous agent needs this capability from the current_owner_delta path: Given a structured figure_request, rank Display Pack templates and choose the next preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
+        "when_to_use": "Use display_pack_figure_plan when an autonomous agent needs this capability from the current_owner_delta path: Given a structured figure_request, rank Display Pack templates as quality-floor baselines and choose the next preflight target. Exact matches use the template contract directly; close matches stay usable through adaptation hints and explicit forbidden-authority boundaries. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
         "required_refs": [
           "repo_root",
           "paper_root",
@@ -455,7 +455,7 @@
         "tool_mode": "orchestrate",
         "action_id": "display_pack_orchestrate",
         "callability": "mcp_runtime",
-        "when_to_use": "Use display_pack_orchestrate when an autonomous agent needs this capability from the current_owner_delta path: Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
+        "when_to_use": "Use display_pack_orchestrate when an autonomous agent needs this capability from the current_owner_delta path: Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, adaptable-template hints, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
         "required_refs": [
           "repo_root",
           "paper_root",
@@ -2324,7 +2324,7 @@
       "tool_mode": "plan",
       "action_id": "display_pack_figure_plan",
       "title": "Plan a Display Pack figure",
-      "summary": "Given a structured figure_request, rank Display Pack templates and choose the next preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
+      "summary": "Given a structured figure_request, rank Display Pack templates as quality-floor baselines and choose the next preflight target. Exact matches use the template contract directly; close matches stay usable through adaptation hints and explicit forbidden-authority boundaries. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
       "effect": "read_only",
       "callability": "mcp_runtime",
       "action_surface_kind": "display_pack_agent_figure_plan",
@@ -2342,7 +2342,7 @@
         "product_entry",
         "skill"
       ],
-      "when_to_use": "Use display_pack_figure_plan when an autonomous agent needs this capability from the current_owner_delta path: Given a structured figure_request, rank Display Pack templates and choose the next preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
+      "when_to_use": "Use display_pack_figure_plan when an autonomous agent needs this capability from the current_owner_delta path: Given a structured figure_request, rank Display Pack templates as quality-floor baselines and choose the next preflight target. Exact matches use the template contract directly; close matches stay usable through adaptation hints and explicit forbidden-authority boundaries. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "default_invocation": {
         "surface": "mcp",
@@ -2551,7 +2551,7 @@
       "tool_mode": "orchestrate",
       "action_id": "display_pack_orchestrate",
       "title": "Orchestrate a Display Pack figure",
-      "summary": "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
+      "summary": "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, adaptable-template hints, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
       "effect": "read_only",
       "callability": "mcp_runtime",
       "action_surface_kind": "display_pack_agent_orchestration",
@@ -2569,7 +2569,7 @@
         "product_entry",
         "skill"
       ],
-      "when_to_use": "Use display_pack_orchestrate when an autonomous agent needs this capability from the current_owner_delta path: Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
+      "when_to_use": "Use display_pack_orchestrate when an autonomous agent needs this capability from the current_owner_delta path: Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, adaptable-template hints, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "default_invocation": {
         "surface": "mcp",

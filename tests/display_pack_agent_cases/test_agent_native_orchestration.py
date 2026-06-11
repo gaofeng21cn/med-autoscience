@@ -93,10 +93,52 @@ def test_display_pack_agent_orchestrates_figure_intent_from_current_owner_delta(
     assert figure_request["data_ref"] == DATA_REF
     assert "template_id" not in _current_owner_delta()
     assert result["plan"]["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert result["plan"]["recommended_template"]["template_fit_policy"] == "exact_descriptor_match"
 
     quality_floor = result["quality_floor"]
     assert quality_floor["surface_kind"] == "display_pack_quality_floor"
     assert quality_floor["publication_readiness_verdict"] is False
+
+
+def test_display_pack_agent_orchestrates_adaptable_template_baseline() -> None:
+    module = importlib.import_module("med_autoscience.display_pack_agent")
+
+    result = module.display_pack_orchestrate(
+        repo_root=REPO_ROOT,
+        current_owner_delta={
+            **_current_owner_delta(),
+            "display_intent": "Customize a ROC-style discrimination figure for a new mortality subgroup panel.",
+        },
+        claim_ref=CLAIM_REF,
+        data_ref=DATA_REF,
+        intent="ROC-style subgroup discrimination figure",
+        figure_request={
+            "figure_kind": "evidence_figure",
+            "audit_family": "Custom Mortality Discrimination",
+            "paper_family": "custom_journal_family",
+            "preferred_renderer_family": "r_ggplot2",
+            "input_schema_ref": "schemas/custom_roc_payload.schema.json",
+            "query": "roc",
+        },
+        max_recommendations=2,
+        check_runtime_dependencies=False,
+    )
+
+    assert result["surface_kind"] == "display_pack_agent_orchestration"
+    assert result["publication_readiness_verdict"] is False
+    assert result["agent_manual_template_selection_required"] is False
+    recommended = result["plan"]["recommended_template"]
+    assert recommended["template_id"] == "roc_curve_binary"
+    assert recommended["template_fit_policy"] == "adaptable_baseline_not_exact_contract"
+    assert recommended["adaptation_required"] is True
+    assert {hint["code"] for hint in recommended["adaptation_hints"]} >= {
+        "audit_family_adaptation_required",
+        "paper_family_adaptation_required",
+        "input_schema_adaptation_required",
+    }
+    preflight_template = result["preflight"]["templates"][0]
+    assert preflight_template["adaptation_required"] is True
+    assert "data_values" in preflight_template["adaptation_boundary"]["forbidden_layers"]
 
 
 def test_display_pack_preflight_returns_typed_repair_routes_without_readiness_authority(

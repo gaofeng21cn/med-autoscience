@@ -81,7 +81,70 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["status"] == "display_plan_ready"
     assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
     assert payload["recommended_template"]["renderer_family"] == "r_ggplot2"
+    assert payload["recommended_template"]["adaptation_required"] is False
     assert payload["next_callable"] == "display-pack-preflight"
+
+
+def test_display_pack_figure_plan_uses_close_template_as_adaptable_baseline() -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={
+            "figure_kind": "evidence_figure",
+            "audit_family": "Custom Mortality Discrimination",
+            "paper_family": "custom_journal_family",
+            "preferred_renderer_family": "r_ggplot2",
+            "input_schema_ref": "schemas/custom_roc_payload.schema.json",
+            "query": "roc",
+        },
+        max_recommendations=3,
+    )
+
+    assert payload["surface_kind"] == "display_pack_agent_figure_plan"
+    assert payload["status"] == "display_plan_ready"
+    assert payload["agent_manual_template_selection_required"] is False
+    assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert payload["recommended_template"]["renderer_family"] == "r_ggplot2"
+    assert payload["recommended_template"]["template_fit_policy"] == (
+        "adaptable_baseline_not_exact_contract"
+    )
+    assert payload["recommended_template"]["adaptation_required"] is True
+    assert {
+        hint["code"]
+        for hint in payload["recommended_template"]["adaptation_hints"]
+    } >= {
+        "audit_family_adaptation_required",
+        "paper_family_adaptation_required",
+        "input_schema_adaptation_required",
+    }
+    assert set(payload["recommended_template"]["adaptation_boundary"]["allowed_layers"]) >= {
+        "layout",
+        "labels_and_caption",
+        "style_tokens",
+    }
+    assert "data_values" in payload["recommended_template"]["adaptation_boundary"]["forbidden_layers"]
+    assert "statistical_estimates" in payload["recommended_template"]["adaptation_boundary"]["forbidden_layers"]
+    assert set(payload["minimum_fit_floor"]["hard_constraints"]) >= {
+        "figure_kind_compatible",
+        "explicit_template_id_match_when_requested",
+    }
+    assert payload["publication_readiness_verdict"] is False
+
+
+def test_display_pack_figure_plan_explicit_template_id_remains_hard_selection() -> None:
+    payload = display_pack_figure_plan(
+        repo_root=REPO_ROOT,
+        figure_request={
+            "figure_kind": "evidence_figure",
+            "template_id": "not-a-real-template",
+            "query": "roc",
+        },
+    )
+
+    assert payload["status"] == "blocked"
+    assert payload["recommended_template"] is None
+    assert payload["typed_blocker"]["blocked_reason"] == "display_template_not_found"
+    assert payload["typed_blocker"]["requested_template_id"] == "not-a-real-template"
+    assert payload["agent_manual_template_selection_required"] is False
 
 
 def test_display_pack_orchestrate_compiles_current_owner_delta_into_render_next_step(tmp_path: Path) -> None:

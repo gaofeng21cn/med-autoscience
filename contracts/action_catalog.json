@@ -538,7 +538,7 @@
         "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
         "surface_kind": "display_pack_agent_figure_plan"
       },
-      "summary": "Given a structured figure_request, rank Display Pack templates and choose the next preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
+      "summary": "Given a structured figure_request, rank Display Pack templates as quality-floor baselines and choose the next preflight target. Exact matches use the template contract directly; close matches stay usable through adaptation hints and explicit forbidden-authority boundaries. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "display_pack_figure_plan"
@@ -605,7 +605,7 @@
         "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
         "surface_kind": "display_pack_agent_orchestration"
       },
-      "summary": "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
+      "summary": "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, adaptable-template hints, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "display_pack_orchestrate"
