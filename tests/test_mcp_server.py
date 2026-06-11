@@ -189,11 +189,17 @@ def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> No
     assert arsenal["inputSchema"]["properties"]["mode"]["enum"] == [
         "index",
         "card",
+        "resolve",
         "plan",
         "result_envelope_schema",
         "completeness_diagnostic",
         "hosted_consumption",
     ]
+    assert arsenal["inputSchema"]["properties"]["task_intent"] == {"type": "string"}
+    assert arsenal["inputSchema"]["properties"]["available_refs"] == {
+        "type": "array",
+        "items": {"type": "string"},
+    }
     assert arsenal["metadata"]["surface_kind"] == "mas_agent_tool_arsenal_mcp_surface"
     assert arsenal["outputSchema"]["title"] == "MAS ToolResultEnvelope"
 
@@ -507,6 +513,33 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
     assert card_payload["tool_id"] == "study_progress"
     assert card_payload["risk_annotations"]["readOnlyHint"] is True
     assert card_payload["operational"]["required_refs"] == card_payload["required_refs"]
+
+    resolve_result = module.call_tool(
+        "agent_tool_arsenal",
+        {
+            "mode": "resolve",
+            "task_intent": "need display pack baseline for ROC figure",
+            "available_refs": ["current_owner_delta"],
+            "current_owner_delta": {
+                "action_type": "display_pack_orchestrate",
+                "display_intent": "Create a ROC curve for model performance.",
+            },
+        },
+    )
+
+    _assert_tool_result_envelope(resolve_result, tool_id="agent_tool_arsenal", tool_mode="resolve")
+    assert resolve_result["isError"] is False
+    resolve_payload = _structured_payload(resolve_result)
+    assert resolve_payload["surface_kind"] == "mas_capability_resolution"
+    assert resolve_payload["discovery_fail_closed"] is False
+    display_candidate = next(
+        item
+        for item in resolve_payload["candidate_tools"]
+        if item["action_id"] == "display_pack_orchestrate"
+    )
+    assert display_candidate["fit_policy"] == "adaptable_baseline_not_exact_contract"
+    assert display_candidate["hard_gate_status"] == "blocked_until_refs"
+    assert "paper_root" in display_candidate["missing_refs"]
 
     plan_result = module.call_tool(
         "agent_tool_arsenal",

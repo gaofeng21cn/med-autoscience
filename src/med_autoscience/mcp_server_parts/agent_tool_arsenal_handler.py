@@ -9,6 +9,7 @@ from med_autoscience.agent_tool_arsenal import (
     build_capability_invocation_plan,
     build_tool_result_envelope_schema,
     get_tool_use_card,
+    resolve_capability_candidates,
 )
 from med_autoscience.hosted_ordinary_path_consumption import (
     build_hosted_ordinary_path_consumption_evidence,
@@ -33,6 +34,7 @@ def call_agent_tool_arsenal(
         handlers={
             "index": lambda value: _index(value, action_catalog=action_catalog),
             "card": _card,
+            "resolve": lambda value: _resolve(value, action_catalog=action_catalog),
             "plan": _plan,
             "result_envelope_schema": _result_envelope_schema,
             "completeness_diagnostic": lambda value: _completeness_diagnostic(
@@ -59,6 +61,26 @@ def _index(
 
 def _card(arguments: dict[str, Any]) -> dict[str, Any]:
     result = get_tool_use_card(require_string(arguments, "tool_id"))
+    return tool_text_result(json_text(result), structured=result)
+
+
+def _resolve(
+    arguments: dict[str, Any],
+    *,
+    action_catalog: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_owner_delta = optional_mapping(
+        arguments.get("current_owner_delta"),
+        field_name="current_owner_delta",
+    )
+    if current_owner_delta is None:
+        raise ValueError("current_owner_delta is required for agent_tool_arsenal resolve mode")
+    result = resolve_capability_candidates(
+        current_owner_delta=current_owner_delta,
+        task_intent=_optional_text(arguments, "task_intent"),
+        available_refs=_optional_string_list(arguments, "available_refs"),
+        arsenal=build_agent_tool_arsenal_index(action_catalog),
+    )
     return tool_text_result(json_text(result), structured=result)
 
 
@@ -107,6 +129,24 @@ def _hosted_consumption(
         arsenal=build_agent_tool_arsenal_index(action_catalog),
     )
     return tool_text_result(json_text(result), structured=result)
+
+
+def _optional_text(arguments: dict[str, Any], key: str) -> str:
+    value = arguments.get(key)
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ValueError(f"{key} must be a string when provided")
+    return value.strip()
+
+
+def _optional_string_list(arguments: dict[str, Any], key: str) -> list[str]:
+    value = arguments.get(key)
+    if value is None:
+        return []
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ValueError(f"{key} must be an array of strings when provided")
+    return list(value)
 
 
 __all__ = ["call_agent_tool_arsenal"]

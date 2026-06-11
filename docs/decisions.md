@@ -58,6 +58,16 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：此前合同已有 `ToolResultEnvelope` schema 和 MCP `outputSchema`，但实际 `structuredContent` 仍直接返回各工具 payload，Agent 无法把不同工具结果当成同一 ABI 消费；同时 support/diagnostic MCP tools 与 action card runtime tools 没有机器分账，容易把“工具可调用”误读成“当前 owner action 已授权”。统一实际 call result envelope 和 completeness diagnostic 后，工具调用对 Agent 稳定，对 MAS authority 边界可审计。
 - 影响：这是 Agent invocation ABI / MCP result shape / documentation hardening，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、artifact authority、owner receipt、typed blocker、quality verdict、human gate、OPL queue、OPL brand module taxonomy 或 provider attempt。后续 production 完成仍取决于 hosted OPL ordinary-path consumption、direct/hosted parity、current-owner-delta live soak 和真实 production evidence。
 
+## 2026-06-11：Capability Resolver 三层语义固定为 soft discovery、scored fit、hard invocation gate
+
+- 决策：`agent_tool_arsenal` MCP mode 增加 `resolve`，返回 `surface_kind=mas_capability_resolution`。Resolver 的唯一 planning root 是 `current_owner_delta`，输出 `candidate_tools`、`fit_score`、`fit_policy`、`fit_reasons`、`missing_refs`、`next_safe_actions`、`hard_gate_status`、`invocation_gate`、`authority_boundary` 和 `adaptation_policy`。
+- 决策：工具发现阶段必须 soft match / high recall。Agent 可以根据 `current_owner_delta`、task intent、capability tags、aliases、examples 和 `when_to_use` 找候选；缺 `required_refs` 不能把候选过滤掉，只能写入 `missing_refs` 和 `blocked_until_refs`。
+- 决策：工具选择阶段必须 scored / explainable。候选按 fit score 排序，并说明推荐理由、缺什么 ref、下一步如何补齐；Display Pack 的 `adaptable_baseline_not_exact_contract` 是可适配 baseline 的先例，表示可作为 quality-floor baseline 推进，不表示 exact descriptor match、publication readiness、artifact authority、owner receipt 或 visual-audit replacement。
+- 决策：真正调用阶段必须 hard contract / fail closed。`invocation_gate.required_refs`、OPL stage attempt / lease、allowed writes、forbidden authority、human gate、owner receipt / typed blocker requirement 和 result envelope 是调用边界；缺失时返回 blocker candidate / next safe action，不越权执行。
+- 决策：新增合同字段只服务 agent 使用：`discovery_hint` 降低找工具摩擦，`fit_signal` 降低选工具摩擦，`invocation_gate` 降低误用，`adaptation_policy` 表达可适配但非 authority。它们不得要求人类用户学习或手工组合工具，也不得让 Console / Connect / Runway 读取 MAS raw contract prose。
+- 理由：完全精确匹配会降低 Agent 找工具召回率；完全软匹配会提高误调用和越权风险。三层分离后，前两层给 Agent 足够宽的候选和解释，第三层才把 authority boundary、refs 和 receipt/blocker 合同 fail closed，从而既减少运行摩擦，又保护 MAS study truth / publication quality / artifact authority。
+- 影响：这是 Agent Tool Arsenal / Capability Invocation OS 的机器读面和 MCP read-only surface hardening，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、artifact authority、owner receipt、typed blocker、quality verdict、human gate、OPL queue、OPL brand module taxonomy 或 provider attempt。OPL family 侧最小折返应进入 Pack / Atlas / Stagecraft / Console / Connect / Runway 既有模块，不新增第 11 品牌模块。
+
 ## 2026-06-10：publication style profile 成为 Display Pack 论文级风格单一真相
 
 - 决策：`paper/publication_style_profile.json` 是 Display Pack E2E 的 paper-owned article-level style-token truth。它固定 `style_profile_id`、`journal_palette_ref`、`palette`、`semantic_roles`、`typography`、`stroke` 和 `grid`，用于整篇论文配色、语义颜色角色、字体族、字号、线宽、marker size、网格可见性、网格轴向、网格颜色和线型的一致性。

@@ -61,6 +61,12 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
         "arguments": {},
     }
     assert progress["required_refs"] == ["profile_ref", "study_id"]
+    assert progress["discovery_hint"]["planning_root"] == "current_owner_delta"
+    assert "study_progress" in progress["discovery_hint"]["aliases"]
+    assert progress["fit_signal"]["required_refs_are_selection_blockers"] is False
+    assert progress["invocation_gate"]["fail_closed"] is True
+    assert progress["invocation_gate"]["required_refs"] == ["profile_ref", "study_id"]
+    assert progress["adaptation_policy"]["policy"] == "exact_contract_match"
     assert progress["optional_refs"] == []
     assert progress["preflight_checks"] == [
         "confirm_current_owner_delta_matches_card_applicability",
@@ -100,6 +106,12 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
         "mode": "orchestrate",
         "public_runtime": True,
     }
+    assert "display_pack" in display_orchestrate["discovery_hint"]["capability_tags"]
+    assert display_orchestrate["fit_signal"]["required_refs_are_selection_blockers"] is False
+    assert display_orchestrate["adaptation_policy"]["policy"] == (
+        "adaptable_baseline_not_exact_contract"
+    )
+    assert display_orchestrate["invocation_gate"]["fail_closed"] is True
     assert display_orchestrate["risk_annotations"]["readOnlyHint"] is True
     assert display_orchestrate["allowed_writes"] == []
 
@@ -122,6 +134,70 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert dispatch["authority_effects"]["can_return_owner_receipt"] is True
     assert "publication_quality" in dispatch["forbidden_authority"]
     assert "current_package" in dispatch["forbidden_authority"]
+
+
+def test_agent_tool_arsenal_resolver_keeps_candidates_when_refs_are_missing() -> None:
+    module = importlib.import_module("med_autoscience.agent_tool_arsenal")
+
+    resolution = module.resolve_capability_candidates(
+        current_owner_delta={
+            "action_type": "display_pack_orchestrate",
+            "display_intent": "Create a ROC curve for model performance.",
+        },
+        task_intent="need display pack visual baseline for ROC figure",
+        available_refs=["current_owner_delta"],
+    )
+
+    assert resolution["surface_kind"] == "mas_capability_resolution"
+    assert resolution["planning_root"] == "current_owner_delta"
+    assert resolution["discovery_fail_closed"] is False
+    assert resolution["hard_gate_fail_closed"] is True
+    assert resolution["selection_policy"]["discovery"] == "soft_match_high_recall"
+    assert resolution["selection_policy"]["invocation"] == "hard_contract_fail_closed"
+
+    candidates = {item["action_id"]: item for item in resolution["candidate_tools"]}
+    display = candidates["display_pack_orchestrate"]
+    assert display["tool_id"] == "display_pack_agent"
+    assert display["tool_mode"] == "orchestrate"
+    assert display["fit_policy"] == "adaptable_baseline_not_exact_contract"
+    assert display["fit_score"] > 0
+    assert "paper_root" in display["missing_refs"]
+    assert "repo_root" in display["missing_refs"]
+    assert display["hard_gate_status"] == "blocked_until_refs"
+    assert display["candidate_retained_despite_missing_refs"] is True
+    assert display["next_safe_actions"][0]["action"] == "collect_missing_refs"
+    assert display["invocation_gate"]["fail_closed"] is True
+    assert display["authority_boundary"]["can_authorize_publication_readiness"] is False
+
+
+def test_agent_tool_arsenal_resolver_scores_exact_owner_callable_but_keeps_hard_gate() -> None:
+    module = importlib.import_module("med_autoscience.agent_tool_arsenal")
+
+    resolution = module.resolve_capability_candidates(
+        current_owner_delta={
+            "action_type": "run_quality_repair_batch",
+            "source_ref": "artifacts/controller_decisions/latest.json",
+        },
+        available_refs=[
+            "current_owner_delta",
+            "opl_stage_attempt_or_lease",
+            "controller_decisions/latest.json",
+            "publication_eval/latest.json",
+            "paper_root",
+        ],
+    )
+
+    repair = next(
+        item
+        for item in resolution["candidate_tools"]
+        if item["tool_id"] == "owner_callable:run_quality_repair_batch"
+    )
+    assert repair["fit_policy"] == "exact_contract_match"
+    assert repair["hard_gate_status"] == "ready"
+    assert repair["missing_refs"] == []
+    assert repair["requires"]["owner_receipt_or_typed_blocker"] is True
+    assert repair["invocation_gate"]["fail_closed"] is True
+    assert repair["authority_boundary"]["owner_receipt_or_typed_blocker_required"] is True
 
 
 def test_agent_tool_arsenal_indexes_owner_callable_cards_with_lifecycle_contract() -> None:
@@ -254,6 +330,10 @@ def test_agent_tool_arsenal_completeness_diagnostic_maps_runtime_and_support_too
     assert diagnostic["required_tool_card_fields"] == [
         "mcp_invocation",
         "risk_annotations",
+        "discovery_hint",
+        "fit_signal",
+        "invocation_gate",
+        "adaptation_policy",
         "authority_boundary",
         "result_envelope_schema_ref",
         "forbidden_authority",

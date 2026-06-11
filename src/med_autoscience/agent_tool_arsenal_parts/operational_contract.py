@@ -15,7 +15,12 @@ def agent_execution_index(
             "action_id": card["action_id"],
             "callability": card["callability"],
             "when_to_use": card.get("when_to_use", ""),
+            "discovery_hint": dict(_mapping(card.get("discovery_hint"))),
+            "fit_signal": dict(_mapping(card.get("fit_signal"))),
+            "invocation_gate": dict(_mapping(card.get("invocation_gate"))),
+            "adaptation_policy": dict(_mapping(card.get("adaptation_policy"))),
             "required_refs": list(card.get("required_refs") or []),
+            "missing_refs_do_not_remove_candidate": True,
             "risk": {
                 "read_only": bool(_mapping(card.get("risk_annotations")).get("readOnlyHint")),
                 "requires_human_gate": bool(

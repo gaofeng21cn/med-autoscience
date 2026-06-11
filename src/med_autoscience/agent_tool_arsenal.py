@@ -3,6 +3,11 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_catalog
+from med_autoscience.agent_tool_arsenal_parts.capability_resolver import (
+    attach_capability_invocation_os_fields,
+    capability_resolver_contract,
+    resolve_capability_candidates_from_arsenal,
+)
 from med_autoscience.agent_tool_arsenal_parts.operational_contract import (
     agent_execution_index,
     default_invocation_for_action,
@@ -16,6 +21,7 @@ from med_autoscience.agent_tool_arsenal_parts.operational_contract import (
     preflight_checks_for_card,
     success_signals_for_action,
 )
+from med_autoscience.agent_tool_arsenal_parts import schemas as arsenal_schemas
 from med_autoscience.runtime_control.owner_callable_registry import (
     owner_callable_registry,
     paper_work_unit_lifecycle_for_action,
@@ -43,6 +49,10 @@ FORBIDDEN_DOMAIN_AUTHORITY = [
 REQUIRED_TOOL_CARD_FIELDS = [
     "mcp_invocation",
     "risk_annotations",
+    "discovery_hint",
+    "fit_signal",
+    "invocation_gate",
+    "adaptation_policy",
     "authority_boundary",
     "result_envelope_schema_ref",
     "forbidden_authority",
@@ -60,118 +70,9 @@ EMPTY_LIST_ALLOWED_TOOL_CARD_FIELDS = {"required_refs", "optional_refs"}
 
 
 def build_tool_result_envelope_schema() -> dict[str, Any]:
-    return {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "title": "MAS ToolResultEnvelope",
-        "type": "object",
-        "additionalProperties": True,
-        "required": [
-            "surface_kind",
-            "tool_id",
-            "status",
-            "recovery",
-            "audit_trail",
-            "authority_boundary",
-        ],
-        "properties": {
-            "surface_kind": {"const": "mas_tool_result_envelope"},
-            "tool_id": {"type": "string"},
-            "tool_mode": {"type": "string"},
-            "status": {
-                "type": "string",
-                "enum": ["succeeded", "blocked", "no_op_current", "failed"],
-            },
-            "content_ref": {"type": "string"},
-            "structured_content_ref": {"type": "string"},
-            "structured_payload": {"type": "object"},
-            "raw_surface_kind": {"type": "string"},
-            "executor_receipt_ref": {"type": "string"},
-            "lightweight_executor_receipt_contract_ref": {
-                "const": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
-            },
-            "owner_receipt_ref": {"type": "string"},
-            "typed_blocker_ref": {"type": "string"},
-            "receipt_refs": {
-                "type": "array",
-                "items": {"type": "string"},
-            },
-            "typed_blocker_refs": {
-                "type": "array",
-                "items": {"type": "string"},
-            },
-            "diagnostic_refs": {
-                "type": "array",
-                "items": {"type": "string"},
-            },
-            "missing_refs": {
-                "type": "array",
-                "items": {"type": "string"},
-            },
-            "retryability": {
-                "type": "string",
-                "enum": ["retry_safe", "retry_after_refs", "no_retry", "owner_needed"],
-            },
-            "staleness": {"type": "object"},
-            "next_safe_actions": {
-                "type": "array",
-                "items": {"type": "object"},
-            },
-            "owner_needed": {"type": "boolean"},
-            "no_forbidden_authority_claim": {"type": "boolean"},
-            "recovery": {
-                "type": "object",
-                "additionalProperties": True,
-                "required": [
-                    "retryability",
-                    "staleness",
-                    "missing_refs",
-                    "next_safe_actions",
-                    "owner_needed",
-                    "receipt_refs",
-                    "typed_blocker_refs",
-                    "diagnostic_refs",
-                    "no_forbidden_authority_claim",
-                ],
-                "properties": {
-                    "retryability": {
-                        "type": "string",
-                        "enum": [
-                            "retry_safe",
-                            "retry_after_refs",
-                            "no_retry",
-                            "owner_needed",
-                        ],
-                    },
-                    "staleness": {"type": "object"},
-                    "missing_refs": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                    },
-                    "next_safe_actions": {
-                        "type": "array",
-                        "items": {"type": "object"},
-                    },
-                    "owner_needed": {"type": "boolean"},
-                    "receipt_refs": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                    },
-                    "typed_blocker_refs": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                    },
-                    "diagnostic_refs": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                    },
-                    "no_forbidden_authority_claim": {"const": True},
-                },
-            },
-            "result_summary": {"type": "string"},
-            "audit_trail": {"$ref": "#/tool_audit_trail_schema"},
-            "authority_boundary": {"type": "object"},
-        },
-    }
+    return arsenal_schemas.build_tool_result_envelope_schema(
+        lightweight_executor_receipt_contract_ref=LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
+    )
 
 
 def build_agent_tool_arsenal_completeness_diagnostic(
@@ -329,33 +230,7 @@ def build_agent_tool_arsenal_completeness_diagnostic(
 
 
 def build_tool_audit_trail_schema() -> dict[str, Any]:
-    return {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "title": "MAS ToolAuditTrail",
-        "type": "object",
-        "additionalProperties": True,
-        "required": ["surface_kind", "source_refs", "authority_flags"],
-        "properties": {
-            "surface_kind": {"const": "mas_tool_audit_trail"},
-            "source_refs": {
-                "type": "array",
-                "items": {"type": "string"},
-            },
-            "authority_flags": {"type": "object"},
-            "allowed_write_refs": {
-                "type": "array",
-                "items": {"type": "string"},
-            },
-            "forbidden_authority": {
-                "type": "array",
-                "items": {"type": "string"},
-            },
-            "receipt_refs": {
-                "type": "array",
-                "items": {"type": "string"},
-            },
-        },
-    }
+    return arsenal_schemas.build_tool_audit_trail_schema()
 
 
 def build_agent_tool_arsenal_index(
@@ -390,6 +265,7 @@ def build_agent_tool_arsenal_index(
             "ToolUseCard",
             "OperationalToolCard",
             "AgentExecutionIndex",
+            "CapabilityResolverReceipt",
             "CapabilityInvocationPlan",
             "ToolResultEnvelope",
             "ToolAuditTrail",
@@ -402,6 +278,7 @@ def build_agent_tool_arsenal_index(
         "tool_cards": tool_cards,
         "owner_callable_cards": owner_cards,
         "scientific_capability_registry": build_scientific_capability_registry(),
+        "capability_resolver_contract": capability_resolver_contract(),
         "capability_invocation_plan_contract": _capability_invocation_plan_contract(),
         "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
         "result_envelope_schema": build_tool_result_envelope_schema(),
@@ -433,6 +310,10 @@ def build_capability_invocation_plan(
         return _owner_callable_invocation_plan(
             owner_card=owner_card,
             current_owner_delta=current_owner_delta,
+            capability_resolver_receipt=resolve_capability_candidates(
+                current_owner_delta=current_owner_delta,
+                arsenal=payload,
+            ),
         )
     action_card = _tool_card_by_action_or_tool_id(payload).get(requested)
     if action_card is None:
@@ -440,6 +321,26 @@ def build_capability_invocation_plan(
     return _action_invocation_plan(
         action_card=action_card,
         current_owner_delta=current_owner_delta,
+        capability_resolver_receipt=resolve_capability_candidates(
+            current_owner_delta=current_owner_delta,
+            arsenal=payload,
+        ),
+    )
+
+
+def resolve_capability_candidates(
+    *,
+    current_owner_delta: Mapping[str, Any],
+    task_intent: str = "",
+    available_refs: list[str] | tuple[str, ...] | set[str] | None = None,
+    arsenal: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = arsenal if arsenal is not None else build_agent_tool_arsenal_index()
+    return resolve_capability_candidates_from_arsenal(
+        current_owner_delta=current_owner_delta,
+        task_intent=task_intent,
+        available_refs=list(available_refs or []),
+        arsenal=payload,
     )
 
 
@@ -584,6 +485,10 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         },
         "audit_trail_schema_ref": AUDIT_TRAIL_SCHEMA_REF,
     }
+    attach_capability_invocation_os_fields(
+        card,
+        planning_root=ORDINARY_PLANNING_ROOT,
+    )
     card["operational"] = operational_fields(card)
     return card
 
@@ -685,6 +590,10 @@ def _build_owner_callable_cards() -> list[dict[str, Any]]:
                 ),
             },
         }
+        attach_capability_invocation_os_fields(
+            card,
+            planning_root=ORDINARY_PLANNING_ROOT,
+        )
         card["operational"] = operational_fields(card)
         cards.append(card)
     return sorted(cards, key=lambda item: str(item["action_type"]))
@@ -694,6 +603,7 @@ def _owner_callable_invocation_plan(
     *,
     owner_card: Mapping[str, Any],
     current_owner_delta: Mapping[str, Any],
+    capability_resolver_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "surface_kind": "mas_capability_invocation_plan",
@@ -728,6 +638,7 @@ def _owner_callable_invocation_plan(
             "support_or_diagnostic_tools_auto_selected": False,
             "missing_capability_default": "fail_open_unless_hard_gate",
         },
+        "capability_resolver_receipt": dict(capability_resolver_receipt or {}),
         "primary_operational_card": operational_card_view(owner_card),
         "fallback_cards": [],
         "next_safe_actions": list(owner_card.get("next_safe_actions") or []),
@@ -757,6 +668,7 @@ def _action_invocation_plan(
     *,
     action_card: Mapping[str, Any],
     current_owner_delta: Mapping[str, Any],
+    capability_resolver_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "surface_kind": "mas_capability_invocation_plan",
@@ -792,6 +704,7 @@ def _action_invocation_plan(
             "support_or_diagnostic_tools_auto_selected": False,
             "missing_capability_default": "fail_open_unless_hard_gate",
         },
+        "capability_resolver_receipt": dict(capability_resolver_receipt or {}),
         "primary_operational_card": operational_card_view(action_card),
         "fallback_cards": fallback_cards_for_action(action_card),
         "next_safe_actions": list(action_card.get("next_safe_actions") or []),
@@ -862,10 +775,13 @@ def _index_entry(card: Mapping[str, Any]) -> dict[str, Any]:
         "current_delta_applicability": card["current_delta_applicability"],
         "when_to_use": card.get("when_to_use", ""),
         "required_refs": list(card.get("required_refs") or card.get("input_refs") or []),
+        "discovery_hint": dict(_mapping(card.get("discovery_hint"))),
+        "fit_signal": dict(_mapping(card.get("fit_signal"))),
+        "invocation_gate": dict(_mapping(card.get("invocation_gate"))),
+        "adaptation_policy": dict(_mapping(card.get("adaptation_policy"))),
         "next_step_hint": next_step_hint_for_card(card),
         "read_only": bool(_mapping(card.get("risk_annotations")).get("readOnlyHint")),
     }
-
 
 def _output_schema_for_action(action: Mapping[str, Any]) -> dict[str, Any]:
     output_schema_ref = _text(action.get("output_schema_ref"))
@@ -996,4 +912,5 @@ __all__ = [
     "build_tool_result_envelope_schema",
     "get_tool_use_card",
     "mcp_tool_annotations",
+    "resolve_capability_candidates",
 ]

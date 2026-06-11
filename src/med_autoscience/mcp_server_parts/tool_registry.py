@@ -273,7 +273,8 @@ def build_tool_registry(
             name="agent_tool_arsenal",
             description=(
                 "Read the MAS Agent Tool Arsenal / Capability Invocation OS index, cards, "
-                "current_owner_delta invocation plan, or result envelope schema for autonomous agents."
+                "soft capability resolution, current_owner_delta invocation plan, or result "
+                "envelope schema for autonomous agents."
             ),
             metadata={
                 "surface_kind": "mas_agent_tool_arsenal_mcp_surface",
@@ -289,6 +290,7 @@ def build_tool_registry(
                         "enum": [
                             "index",
                             "card",
+                            "resolve",
                             "plan",
                             "result_envelope_schema",
                             "completeness_diagnostic",
@@ -297,6 +299,11 @@ def build_tool_registry(
                     },
                     "tool_id": {"type": "string"},
                     "current_owner_delta": {"type": "object"},
+                    "task_intent": {"type": "string"},
+                    "available_refs": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
                 },
                 "required": ["mode"],
                 "additionalProperties": False,

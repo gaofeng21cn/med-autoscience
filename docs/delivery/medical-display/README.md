@@ -43,16 +43,16 @@ Display Pack v2 当前完成度按 [Display Pack v2 landing status](./contracts/
 
 Display Pack 是 MAS agent 使用的能力包，不要求用户理解每个模板。主路径是：
 
-1. agent 从 `contracts/agent_tool_arsenal.json` 或 MCP `agent_tool_arsenal` 发现 `display_pack_*` cards；
+1. agent 从 `contracts/agent_tool_arsenal.json` 或 MCP `agent_tool_arsenal mode=resolve` 发现 `display_pack_*` candidates；缺 `paper_root` / `claim_ref` / `data_ref` 只进入 `missing_refs` 和 `next_safe_actions`，不把 Display Pack 候选过滤掉；
 2. agent 调 MCP `display_pack_agent`，用 `mode=orchestrate` 和 `current_owner_delta` / claim refs / data refs / intent 编译 `figure_intent`、结构化 `figure_request`、推荐 plan、preflight、quality floor、typed repair routes 和下一步 callable；
-3. agent 只在需要诊断或分步执行时调 `mode=plan` / `mode=preflight`；
+3. agent 只在需要诊断或分步执行时调 `mode=plan` / `mode=preflight`；`adaptable_baseline_not_exact_contract` 只表示可作为 quality-floor baseline，不表示 publication readiness、artifact authority、owner receipt 或 visual-audit replacement；
 4. agent 调 MCP `display_pack_agent` 的 `mode=render` 物化 display artifacts、visual-audit receipt、polish lifecycle、display_pack_lock 和 publication manifest refs；
 5. visual audit finding、owner receipt、publication gate 继续由 MAS authority 决定，不由 Display Pack 自签。
 
 稳定机器入口：
 
 ```bash
-MCP tool: agent_tool_arsenal mode=index|card|plan|result_envelope_schema
+MCP tool: agent_tool_arsenal mode=index|card|resolve|plan|result_envelope_schema
 MCP tool: display_pack_agent mode=discover|orchestrate|plan|preflight|render
 medautosci domain-handler export --profile <profile> --format json
 medautosci domain-handler dispatch --task <task.json> --format json
