@@ -17,6 +17,13 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     read_json_object as _read_json_object,
     text_items as _text_items,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_identity import (
+    current_identity_is_opl_authorization_typed_blocker as _current_identity_is_opl_authorization_typed_blocker,
+    current_work_unit_opl_authorization_required as _current_work_unit_opl_authorization_required,
+    matches_current_action as _matches_current_action,
+    matches_current_action_without_fingerprint as _matches_current_action_without_fingerprint,
+    work_unit_ids_equivalent_for_action as _work_unit_ids_equivalent_for_action,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
     current_ai_reviewer_gate_replay_fingerprint,
     current_ai_reviewer_gate_replay_source_eval_id,
@@ -742,14 +749,22 @@ def provider_admission_candidate_from_execution(
         or dispatch_path is None
     ):
         return None
-    if not _matches_current_action(
-        action_type=action_type,
-        work_unit_id=work_unit_id,
-        work_unit_fingerprint=work_unit_fingerprint,
-        current_action_identity=_mapping(current_action_identity),
-    ) and not _gate_replay_authorization_consumes_current_ai_reviewer_record(
-        execution,
-        current_action_identity=_mapping(current_action_identity),
+    current_identity = _mapping(current_action_identity)
+    if (
+        not _matches_current_action(
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+            work_unit_fingerprint=work_unit_fingerprint,
+            current_action_identity=current_identity,
+        )
+        and not _authorization_required_execution_matches_current_action(
+            execution,
+            current_action_identity=current_identity,
+        )
+        and not _gate_replay_authorization_consumes_current_ai_reviewer_record(
+            execution,
+            current_action_identity=current_identity,
+        )
     ):
         return None
     owner_route = _mapping(execution.get("owner_route"))
@@ -947,7 +962,14 @@ def _status_requires_current_identity(status_payload: Mapping[str, Any]) -> bool
 
 
 def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[str, Any]:
-    if _non_empty_text(current_work_unit.get("status")) != "executable_owner_action":
+    status = _non_empty_text(current_work_unit.get("status"))
+    if status not in {"executable_owner_action", "typed_blocker"}:
+        return {}
+    opl_authorization_typed_blocker = (
+        status == "typed_blocker"
+        and _current_work_unit_opl_authorization_required(current_work_unit)
+    )
+    if status == "typed_blocker" and not opl_authorization_typed_blocker:
         return {}
     state = _mapping(current_work_unit.get("state"))
     currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
@@ -965,17 +987,22 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
         work_unit_id=work_unit_id,
         source_eval_id=source_eval_id,
     )
+    synthetic_ticket = (
+        _stable_provider_admission_ticket(
+            study_id=_non_empty_text(current_work_unit.get("study_id")),
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        )
+        if status == "executable_owner_action"
+        else None
+    )
     fingerprint = (
         eval_bound_fingerprint
         or _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
         or _non_empty_text(current_work_unit.get("action_fingerprint"))
         or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
         or _non_empty_text(currentness_basis.get("source_fingerprint"))
-        or _stable_provider_admission_ticket(
-            study_id=_non_empty_text(current_work_unit.get("study_id")),
-            action_type=action_type,
-            work_unit_id=work_unit_id,
-        )
+        or synthetic_ticket
     )
     fingerprints = [
         item
@@ -996,6 +1023,7 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
         "source_ref": _first_text(current_work_unit.get("input_refs")) or _non_empty_text(state.get("source_ref")),
         "source": _non_empty_text(state.get("source")) or "canonical_current_work_unit",
         "next_owner": _non_empty_text(current_work_unit.get("owner")),
+        "opl_execution_authorization_required": opl_authorization_typed_blocker,
     }
 
 
@@ -1175,92 +1203,6 @@ def _repair_progress_execution_matches_current_action(
     )
 
 
-def _matches_current_action(
-    *,
-    action_type: str,
-    work_unit_id: str,
-    work_unit_fingerprint: str,
-    current_action_identity: Mapping[str, Any],
-) -> bool:
-    if not current_action_identity:
-        return False
-    expected_work_unit_id = _non_empty_text(current_action_identity.get("work_unit_id"))
-    action_ids = set(_text_items(current_action_identity.get("action_ids")))
-    expected_fingerprints = set(_text_items(current_action_identity.get("work_unit_fingerprints")))
-    if expected_fingerprints:
-        if work_unit_fingerprint not in expected_fingerprints:
-            return False
-        if not _provider_admission_ticket_matches_action(
-            work_unit_fingerprint=work_unit_fingerprint,
-            action_type=action_type,
-            work_unit_id=work_unit_id,
-        ):
-            return False
-        if action_ids and action_type not in action_ids:
-            return False
-        return True
-    expected_fingerprint = _non_empty_text(current_action_identity.get("work_unit_fingerprint"))
-    if expected_fingerprint is not None:
-        if work_unit_fingerprint != expected_fingerprint:
-            return False
-        if not _provider_admission_ticket_matches_action(
-            work_unit_fingerprint=work_unit_fingerprint,
-            action_type=action_type,
-            work_unit_id=work_unit_id,
-        ):
-            return False
-        if action_ids and action_type not in action_ids:
-            return False
-        return True
-    if expected_work_unit_id is not None and not _work_unit_ids_equivalent_for_action(
-        action_type=action_type,
-        left=work_unit_id,
-        right=expected_work_unit_id,
-    ):
-        return False
-    if action_ids and action_type not in action_ids:
-        return False
-    expected_source_ref = _non_empty_text(current_action_identity.get("source_ref"))
-    if expected_source_ref is not None:
-        return expected_source_ref in work_unit_fingerprint
-    return True
-
-
-def _provider_admission_ticket_matches_action(
-    *,
-    work_unit_fingerprint: str,
-    action_type: str,
-    work_unit_id: str,
-) -> bool:
-    prefix = "study-progress-current-owner-ticket::"
-    if not work_unit_fingerprint.startswith(prefix):
-        return True
-    parts = work_unit_fingerprint.split("::")
-    if len(parts) < 4:
-        return False
-    ticket_work_unit_id = _non_empty_text(parts[2])
-    ticket_action_type = _non_empty_text(parts[3])
-    return (
-        ticket_work_unit_id == work_unit_id
-        and (ticket_action_type == action_type or ticket_action_type == work_unit_id)
-    )
-
-
-def _work_unit_ids_equivalent_for_action(
-    *,
-    action_type: str | None,
-    left: str | None,
-    right: str | None,
-) -> bool:
-    if left == right:
-        return True
-    return (
-        action_type == "run_gate_clearing_batch"
-        and left in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
-        and right in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
-    )
-
-
 def _canonical_provider_admission_work_unit_id(
     *,
     action_type: str | None,
@@ -1296,6 +1238,12 @@ def _authorization_required_execution_matches_current_action(
     work_unit_fingerprint = _work_unit_fingerprint(execution)
     if action_type is None or work_unit_id is None or work_unit_fingerprint is None:
         return False
+    if _current_identity_is_opl_authorization_typed_blocker(current_action_identity):
+        return _matches_current_action_without_fingerprint(
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+            current_action_identity=current_action_identity,
+        )
     return _matches_current_action(
         action_type=action_type,
         work_unit_id=work_unit_id,

@@ -162,8 +162,10 @@ def selected_dispatches(
     scan_payload: Mapping[str, Any] | None, supported_action_types: frozenset[str],
     dispatch_relative_root: Path,
 ) -> list[dict[str, Any]]:
-    if _fresh_progress_envelope_blocks_dispatch_selection(profile=profile, study_id=study_id):
+    fresh_progress = _read_fresh_study_progress(profile=profile, study_id=study_id)
+    if _fresh_progress_envelope_blocks_dispatch_selection(fresh_progress):
         return []
+    terminal_closeout_owner_answer = _terminal_closeout_owner_answer_required(fresh_progress)
     current_study = _scan_study(scan_payload, study_id)
     current_study = _with_consumed_transition_owner_route(current_study)
     stage_native_next_action = None if action_types else _stage_native_next_action(profile=profile, study_id=study_id)
@@ -185,6 +187,10 @@ def selected_dispatches(
     consumer_dispatches = consumed_default_executor_dispatch_filter.without_consumed_default_executor_dispatches(
         profile=profile,
         study_id=study_id,
+        dispatches=consumer_dispatches,
+    )
+    consumer_dispatches = _terminal_closeout_owner_answer_dispatches_only(
+        progress=fresh_progress,
         dispatches=consumer_dispatches,
     )
     if stage_native_next_action is not None and _stage_native_next_action_superseded_by_current_control(
@@ -233,13 +239,25 @@ def selected_dispatches(
                     action_types=tuple(sorted(supported_action_types)),
                     supported_action_types=supported_action_types,
                     dispatch_relative_root=dispatch_relative_root,
-                    require_current_authority=True,
+                    require_current_authority=not terminal_closeout_owner_answer,
                 ),
             ),
         ):
+            if terminal_closeout_owner_answer and not _dispatch_matches_terminal_closeout_owner_answer(
+                progress=fresh_progress,
+                dispatch=payload,
+            ):
+                continue
             action_type = _text(payload.get("action_type")) or ""
             if (
                 _dispatch_currentness_score(payload, current_study) <= (0, 0)
+                and not (
+                    terminal_closeout_owner_answer
+                    and _dispatch_matches_terminal_closeout_owner_answer(
+                        progress=fresh_progress,
+                        dispatch=payload,
+                    )
+                )
                 and not owner_request_matches_dispatch(
                     profile=profile,
                     study_id=study_id,
@@ -272,6 +290,7 @@ def selected_dispatches(
             study_id=study_id,
             dispatches=selected,
             current_study=current_study,
+            fresh_progress=fresh_progress,
         )
         runtime_current_selected = _runtime_current_dispatches_only(
             study_id=study_id,
@@ -332,10 +351,15 @@ def selected_dispatches(
                 action_types=effective_action_types,
                 supported_action_types=supported_action_types,
                 dispatch_relative_root=dispatch_relative_root,
-                require_current_authority=True,
+                require_current_authority=not terminal_closeout_owner_answer,
             ),
         ),
     ):
+        if terminal_closeout_owner_answer and not _dispatch_matches_terminal_closeout_owner_answer(
+            progress=fresh_progress,
+            dispatch=payload,
+        ):
+            continue
         key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         if key in selected_by_key:
             index = selected_by_key[key]
@@ -370,6 +394,7 @@ def selected_dispatches(
         study_id=study_id,
         dispatches=selected,
         current_study=current_study,
+        fresh_progress=fresh_progress,
     )
     if current_selected:
         return current_selected
@@ -383,11 +408,20 @@ def _selected_dispatches_only(
     study_id: str,
     dispatches: list[dict[str, Any]],
     current_study: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     selected: list[dict[str, Any]] = []
     for dispatch in dispatches:
         action_type = _text(dispatch.get("action_type")) or ""
         if _dispatch_currentness_score(dispatch, current_study) > (0, 0):
+            selected.append(dispatch)
+            continue
+        if _terminal_closeout_owner_answer_required(
+            fresh_progress
+        ) and _dispatch_matches_terminal_closeout_owner_answer(
+            progress=fresh_progress,
+            dispatch=dispatch,
+        ):
             selected.append(dispatch)
             continue
         if owner_request_matches_dispatch(
@@ -479,17 +513,127 @@ def _current_control_authority_present(current_study: Mapping[str, Any]) -> bool
     )
 
 
-def _fresh_progress_envelope_blocks_dispatch_selection(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-) -> bool:
-    progress = _read_fresh_study_progress(profile=profile, study_id=study_id)
+def _fresh_progress_envelope_blocks_dispatch_selection(progress: Mapping[str, Any]) -> bool:
     envelope = _mapping(progress.get("current_execution_envelope"))
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    if state_kind == "typed_blocker" and _fresh_progress_typed_blocker_reason(envelope) == "medical_paper_readiness_missing":
+    if state_kind == "typed_blocker" and _fresh_progress_typed_blocker_reason(envelope) in {
+        "medical_paper_readiness_missing",
+        "terminal_closeout_owner_answer_required",
+    }:
         return False
     return state_kind in {"typed_blocker", "parked"}
+
+
+def _terminal_closeout_owner_answer_dispatches_only(
+    *,
+    progress: Mapping[str, Any],
+    dispatches: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if not _terminal_closeout_owner_answer_required(progress):
+        return dispatches
+    return [
+        dispatch
+        for dispatch in dispatches
+        if _dispatch_matches_terminal_closeout_owner_answer(progress=progress, dispatch=dispatch)
+    ]
+
+
+def _terminal_closeout_owner_answer_required(progress: Mapping[str, Any]) -> bool:
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    return (
+        state_kind == "typed_blocker"
+        and _fresh_progress_typed_blocker_reason(envelope) == "terminal_closeout_owner_answer_required"
+    )
+
+
+def _dispatch_matches_terminal_closeout_owner_answer(
+    *,
+    progress: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if not _terminal_closeout_owner_answer_required(progress):
+        return False
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    blocker = _mapping(envelope.get("typed_blocker"))
+    action_type = _text(blocker.get("action_type"))
+    if action_type is not None and _text(dispatch.get("action_type")) != action_type:
+        return False
+    expected_work_unit = _terminal_closeout_owner_answer_work_unit_id(progress)
+    dispatch_work_unit = _dispatch_work_unit_id(dispatch)
+    if expected_work_unit is not None and dispatch_work_unit == expected_work_unit:
+        return True
+    return _terminal_closeout_owner_answer_ref_matches_dispatch(
+        progress=progress,
+        dispatch=dispatch,
+    )
+
+
+def _terminal_closeout_owner_answer_work_unit_id(progress: Mapping[str, Any]) -> str | None:
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    blocker = _mapping(envelope.get("typed_blocker"))
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    current_work_unit_state = _mapping(current_work_unit.get("state"))
+    current_work_unit_blocker = _mapping(current_work_unit_state.get("typed_blocker"))
+    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
+    return (
+        _work_unit_id(blocker.get("work_unit_id"))
+        or _work_unit_id(current_work_unit_blocker.get("work_unit_id"))
+        or _work_unit_id(current_work_unit.get("work_unit_id"))
+        or _work_unit_id(currentness_basis.get("work_unit_id"))
+    )
+
+
+def _terminal_closeout_owner_answer_ref_matches_dispatch(
+    *,
+    progress: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    blocker = _mapping(envelope.get("typed_blocker"))
+    closeout_refs = [
+        ref
+        for ref in (
+            *list(blocker.get("closeout_refs") or []),
+            blocker.get("source_ref"),
+            blocker.get("typed_blocker_ref"),
+        )
+        if _text(ref) is not None
+    ]
+    if not closeout_refs:
+        return False
+    dispatch_refs = _mapping(dispatch.get("refs"))
+    dispatch_ref_values = [
+        dispatch_refs.get("dispatch_path"),
+        dispatch_refs.get("immutable_dispatch_path"),
+        dispatch_refs.get("stage_packet_path"),
+    ]
+    return any(
+        _refs_match(closeout_ref, dispatch_ref)
+        for closeout_ref in closeout_refs
+        for dispatch_ref in dispatch_ref_values
+    )
+
+
+def _refs_match(left: object, right: object) -> bool:
+    left_text = _normalized_ref(left)
+    right_text = _normalized_ref(right)
+    return bool(
+        left_text
+        and right_text
+        and (
+            left_text == right_text
+            or left_text.endswith(f"/{right_text}")
+            or right_text.endswith(f"/{left_text}")
+        )
+    )
+
+
+def _normalized_ref(value: object) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    return text.replace("\\", "/").lstrip("./")
 
 
 def _fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | None:
@@ -499,6 +643,18 @@ def _fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | N
         or _text(blocker.get("blocker_type"))
         or _text(blocker.get("reason"))
     )
+
+
+def read_fresh_study_progress(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
+    return _read_fresh_study_progress(profile=profile, study_id=study_id)
+
+
+def dispatch_matches_terminal_closeout_owner_answer(
+    *,
+    progress: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    return _dispatch_matches_terminal_closeout_owner_answer(progress=progress, dispatch=dispatch)
 
 
 def _stage_native_next_action_superseded_by_current_control(

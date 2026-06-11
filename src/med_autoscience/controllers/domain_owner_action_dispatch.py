@@ -298,7 +298,14 @@ def _execution_owner_route(
     study_id: str,
     action_type: str,
     dispatch: Mapping[str, Any],
-) -> tuple[dict[str, Any] | None, str | None]:
+    ) -> tuple[dict[str, Any] | None, str | None]:
+    terminal_closeout_owner_answer_route = _terminal_closeout_owner_answer_dispatch_route(
+        profile=profile,
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+    if terminal_closeout_owner_answer_route is not None:
+        return terminal_closeout_owner_answer_route, "terminal_closeout_owner_answer_dispatch"
     stage_native_route = _stage_native_dispatch_owner_route(dispatch)
     if (
         stage_native_route is not None
@@ -383,6 +390,26 @@ def _execution_owner_route(
         return live_attempt_route, "live_provider_attempt_dispatch"
     diagnostic_route, diagnostic_basis = _diagnostic_owner_route(profile, study_id, dispatch=dispatch)
     return diagnostic_route, diagnostic_basis or scan_route_basis or "scan_latest"
+
+
+def _terminal_closeout_owner_answer_dispatch_route(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    progress = persisted_dispatches.read_fresh_study_progress(profile=profile, study_id=study_id)
+    if not persisted_dispatches.dispatch_matches_terminal_closeout_owner_answer(
+        progress=progress,
+        dispatch=dispatch,
+    ):
+        return None
+    dispatch_route = _dispatch_owner_route(dispatch)
+    if not dispatch_route:
+        return None
+    if _owner_route_block_reason(dispatch=dispatch, current_route=dispatch_route) is not None:
+        return None
+    return dispatch_route
 
 
 def _dispatch_uses_bridge_authority(dispatch: Mapping[str, Any]) -> bool:
