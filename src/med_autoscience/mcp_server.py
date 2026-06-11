@@ -15,11 +15,7 @@ from med_autoscience.action_catalog import (
 )
 from med_autoscience.agent_tool_arsenal import (
     FORBIDDEN_DOMAIN_AUTHORITY,
-    build_agent_tool_arsenal_completeness_diagnostic,
     build_agent_tool_arsenal_index,
-    build_capability_invocation_plan,
-    build_tool_result_envelope_schema,
-    get_tool_use_card,
 )
 from med_autoscience.authority_operation_command_catalog import (
     AUTHORITY_OPERATION_COMMANDS_BY_MCP_MODE,
@@ -27,7 +23,6 @@ from med_autoscience.authority_operation_command_catalog import (
     product_entry_description_modes_text,
 )
 from med_autoscience.mcp_server_parts.handler_adapter import (
-    ToolHandler,
     call_mode_handler,
     optional_bool as _optional_bool,
     optional_float as _optional_float,
@@ -37,6 +32,9 @@ from med_autoscience.mcp_server_parts.handler_adapter import (
     optional_string as _optional_string,
     require_path_list as _require_path_list,
     require_string as _require_string,
+)
+from med_autoscience.mcp_server_parts.agent_tool_arsenal_handler import (
+    call_agent_tool_arsenal,
 )
 from med_autoscience.mcp_server_parts.tool_result_rendering import json_text, tool_text_result
 from med_autoscience.scientific_capability_registry import (
@@ -847,51 +845,11 @@ def _call_authority_operations(arguments: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def _call_agent_tool_arsenal_index(arguments: dict[str, Any]) -> dict[str, Any]:
-    result = build_agent_tool_arsenal_index(ACTION_CATALOG)
-    return _tool_text_result(_json_text(result), structured=result)
-
-
-def _call_agent_tool_arsenal_card(arguments: dict[str, Any]) -> dict[str, Any]:
-    result = get_tool_use_card(_require_string(arguments, "tool_id"))
-    return _tool_text_result(_json_text(result), structured=result)
-
-
-def _call_agent_tool_arsenal_plan(arguments: dict[str, Any]) -> dict[str, Any]:
-    current_owner_delta = _optional_mapping(
-        arguments.get("current_owner_delta"),
-        field_name="current_owner_delta",
-    )
-    if current_owner_delta is None:
-        raise ValueError("current_owner_delta is required for agent_tool_arsenal plan mode")
-    result = build_capability_invocation_plan(current_owner_delta=current_owner_delta)
-    return _tool_text_result(_json_text(result), structured=result)
-
-
-def _call_agent_tool_arsenal_result_envelope_schema(arguments: dict[str, Any]) -> dict[str, Any]:
-    result = build_tool_result_envelope_schema()
-    return _tool_text_result(_json_text(result), structured=result)
-
-
-def _call_agent_tool_arsenal_completeness_diagnostic(arguments: dict[str, Any]) -> dict[str, Any]:
-    result = build_agent_tool_arsenal_completeness_diagnostic(
-        arsenal=build_agent_tool_arsenal_index(ACTION_CATALOG),
-        mcp_tool_manifest=list_tools(),
-    )
-    return _tool_text_result(_json_text(result), structured=result)
-
-
 def _call_agent_tool_arsenal(arguments: dict[str, Any]) -> dict[str, Any]:
-    return call_mode_handler(
-        tool_name="agent_tool_arsenal",
-        arguments=arguments,
-        handlers={
-            "index": _call_agent_tool_arsenal_index,
-            "card": _call_agent_tool_arsenal_card,
-            "plan": _call_agent_tool_arsenal_plan,
-            "result_envelope_schema": _call_agent_tool_arsenal_result_envelope_schema,
-            "completeness_diagnostic": _call_agent_tool_arsenal_completeness_diagnostic,
-        },
+    return call_agent_tool_arsenal(
+        arguments,
+        action_catalog=ACTION_CATALOG,
+        mcp_tool_manifest=list_tools(),
     )
 
 

@@ -10,6 +10,9 @@ from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_ca
 from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration import (
     build_functional_consumer_boundary,
 )
+from med_autoscience.hosted_ordinary_path_consumption import (
+    build_hosted_ordinary_path_consumption_contract,
+)
 from med_autoscience.opl_domain_pack.agent_pack_refs import (
     AGENT_KNOWLEDGE_REFS,
     AGENT_PROMPT_REFS,
@@ -71,6 +74,9 @@ def build_standard_pack() -> dict[str, Any]:
         "stage_control_plane": stage_control_plane,
         "foundry_agent_series": _foundry_agent_series_contract(stage_control_plane),
         "agent_tool_arsenal": build_agent_tool_arsenal_index(action_catalog),
+        "hosted_ordinary_path_consumption": (
+            build_hosted_ordinary_path_consumption_contract()
+        ),
         "memory_descriptor": _memory_descriptor(),
         "artifact_locator_contract": _artifact_locator_contract(),
         "owner_receipt_contract": _owner_receipt_contract(),
@@ -113,6 +119,9 @@ def _domain_descriptor() -> dict[str, Any]:
         "standard_contract_refs": {
             "action_catalog": "contracts/action_catalog.json",
             "agent_tool_arsenal": "contracts/agent_tool_arsenal.json",
+            "hosted_ordinary_path_consumption": (
+                "contracts/hosted_ordinary_path_consumption.json"
+            ),
             "foundry_agent_series": "contracts/foundry_agent_series.json",
             "foundry_agent_series_policy_release": (
                 "contracts/opl-framework/foundry-agent-series-policy-release.json"

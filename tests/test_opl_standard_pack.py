@@ -64,6 +64,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     _assert_root_contract_matches_generated(generated, "generated_surface_handoff")
     _assert_root_contract_matches_generated(generated, "functional_privatization_audit")
     _assert_root_contract_matches_generated(generated, "agent_tool_arsenal")
+    _assert_root_contract_matches_generated(generated, "hosted_ordinary_path_consumption")
 
     assert generated["action_catalog"]["actions"] == action_catalog["actions"]
     assert generated["agent_tool_arsenal"]["tool_index_refs"]["action_catalog"] == (
@@ -120,6 +121,29 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["domain_descriptor"]["standard_contract_refs"][
         "foundry_agent_series_policy_release"
     ] == "contracts/opl-framework/foundry-agent-series-policy-release.json"
+    assert generated["domain_descriptor"]["standard_contract_refs"][
+        "hosted_ordinary_path_consumption"
+    ] == "contracts/hosted_ordinary_path_consumption.json"
+    hosted_consumption = generated["hosted_ordinary_path_consumption"]
+    assert hosted_consumption["surface_kind"] == (
+        "mas_hosted_ordinary_path_consumption_contract"
+    )
+    assert hosted_consumption["planning_root"] == "current_owner_delta"
+    assert hosted_consumption["required_consumed_surfaces"] == [
+        "agent_execution_index",
+        "operational_tool_card",
+        "capability_invocation_plan",
+        "tool_result_envelope_recovery",
+        "scientific_capability_resolution",
+        "owner_consumption_evidence_packet",
+    ]
+    assert hosted_consumption["friction_policy"][
+        "human_operator_manual_tool_selection_required"
+    ] is False
+    assert hosted_consumption["friction_policy"]["docker_or_dind_required"] is False
+    assert hosted_consumption["authority_boundary"][
+        "evidence_packet_can_claim_paper_progress"
+    ] is False
     series_profile = foundry_series["series_design_profile"]
     assert series_profile["surface_kind"] == "opl_foundry_agent_series_design_profile"
     assert series_profile["profile_id"] == "opl_foundry_agent_series_design_profile.v1"

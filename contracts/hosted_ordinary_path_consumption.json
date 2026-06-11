@@ -1,0 +1,216 @@
+{
+  "authority_boundary": {
+    "evidence_packet_can_claim_paper_progress": false,
+    "opl_can_authorize_publication_quality": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_owner_receipt": false,
+    "opl_can_write_typed_blocker": false
+  },
+  "contract_ref": "contracts/hosted_ordinary_path_consumption.json",
+  "friction_policy": {
+    "docker_or_dind_required": false,
+    "human_operator_manual_tool_selection_required": false,
+    "missing_capability_blocks_owner_action": false,
+    "missing_owner_response_refs_blocks": false,
+    "new_default_preflight": false,
+    "raw_contract_direct_read_required": false,
+    "sidecar_blocks_owner_action": false
+  },
+  "hosted_runtime_owner": "one-person-lab",
+  "owner": "MedAutoScience",
+  "planning_root": "current_owner_delta",
+  "purpose": "Prove that the OPL hosted ordinary path can consume MAS AgentExecutionIndex, OperationalToolCard, CapabilityInvocationPlan, ToolResultEnvelope recovery, Scientific Capability Registry resolution, and owner-consumption evidence without introducing a MAS private runtime or blocking advisory gate.",
+  "required_consumed_surfaces": [
+    "agent_execution_index",
+    "operational_tool_card",
+    "capability_invocation_plan",
+    "tool_result_envelope_recovery",
+    "scientific_capability_resolution",
+    "owner_consumption_evidence_packet"
+  ],
+  "sample_evidence": {
+    "agent_execution_index_ref": "contracts/agent_tool_arsenal.json#/agent_execution_index",
+    "authority_boundary": {
+      "can_authorize_artifact_authority": false,
+      "can_authorize_publication_quality": false,
+      "can_block_current_owner_action": false,
+      "can_write_controller_decisions": false,
+      "can_write_domain_truth": false,
+      "can_write_owner_receipt": false,
+      "can_write_paper_or_package": false,
+      "can_write_publication_eval": false,
+      "can_write_typed_blocker": false,
+      "evidence_packet_is_authority_outcome": false
+    },
+    "capability_invocation_plan": {
+      "executor_receipt_ref_required": false,
+      "invocation_steps": [
+        "verify_required_input_refs",
+        "verify_current_owner_delta_fingerprint",
+        "check_allowed_writes_and_forbidden_authority",
+        "invoke_owner_callable_surface",
+        "emit_tool_result_envelope",
+        "attach_optional_lightweight_executor_receipt_ref"
+      ],
+      "missing_capability_default": "fail_open_unless_hard_gate",
+      "planning_root": "current_owner_delta",
+      "primary_selection": "owner_callable",
+      "requires_owner_receipt_or_typed_blocker": true,
+      "selected_action_id": "",
+      "selected_action_type": "run_quality_repair_batch",
+      "selected_card_kind": "owner_callable",
+      "selected_tool_id": "owner_callable:run_quality_repair_batch",
+      "support_or_diagnostic_tools_auto_selected": false,
+      "surface_kind": "mas_capability_invocation_plan"
+    },
+    "contract_ref": "contracts/hosted_ordinary_path_consumption.json",
+    "current_owner_delta_identity": {
+      "action_id": "hosted-ordinary-path-sample",
+      "action_type": "run_quality_repair_batch",
+      "owner": "MedAutoScience",
+      "source_ref": "projection/current_owner_delta.json",
+      "work_unit_fingerprint": "sha256:hosted-consumption-sample",
+      "work_unit_id": "hosted-consumption-sample"
+    },
+    "domain_owner": "MedAutoScience",
+    "friction_policy": {
+      "default_preflight_added": false,
+      "docker_or_dind_required": false,
+      "human_operator_manual_tool_selection_required": false,
+      "mainline_waits_for_live_soak": false,
+      "missing_capability_blocks_owner_action": false,
+      "missing_owner_response_refs_blocks": false,
+      "raw_contract_direct_read_required": false,
+      "sidecar_blocks_owner_action": false
+    },
+    "hosted_runtime_owner": "one-person-lab",
+    "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
+    "ordinary_path_consumes": {
+      "agent_execution_index": true,
+      "capability_invocation_plan": true,
+      "operational_tool_card": true,
+      "owner_consumption_evidence_packet": false,
+      "scientific_capability_resolution": true,
+      "tool_result_envelope_recovery": true
+    },
+    "ordinary_planning_root": "current_owner_delta",
+    "owner_consumption_evidence": null,
+    "primary_operational_card": {
+      "action_id": "",
+      "action_type": "run_quality_repair_batch",
+      "allowed_writes": [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "artifacts/controller/quality_repair_batch/latest.json",
+        "artifacts/controller/repair_execution_evidence/latest.json",
+        "artifacts/supervision/requests/ai_reviewer/latest.json",
+        "artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "card_kind": "owner_callable",
+      "default_invocation": {
+        "arguments": {
+          "current_owner_delta": "<current_owner_delta>"
+        },
+        "callable_surface": "quality_repair_batch.run_quality_repair_batch",
+        "surface": "owner_callable"
+      },
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "next_safe_actions": [
+        {
+          "action": "invoke_owner_callable_surface",
+          "requires": [
+            "current_owner_delta",
+            "required_refs"
+          ]
+        },
+        {
+          "action": "collect_missing_refs",
+          "when": "required_refs_missing"
+        },
+        {
+          "action": "surface_owner_needed",
+          "when": "owner_receipt_or_typed_blocker_missing"
+        }
+      ],
+      "preflight_checks": [
+        "confirm_current_owner_delta_matches_card_applicability",
+        "verify_required_refs_available",
+        "verify_opl_stage_attempt_or_lease",
+        "check_allowed_writes_and_forbidden_authority"
+      ],
+      "required_refs": [
+        "controller_decisions/latest.json",
+        "publication_eval/latest.json",
+        "paper_root"
+      ],
+      "tool_id": "owner_callable:run_quality_repair_batch",
+      "tool_mode": ""
+    },
+    "primary_operational_card_ref": "contracts/agent_tool_arsenal.json#/tool_cards/run_quality_repair_batch",
+    "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
+    "schema_version": 1,
+    "scientific_capability_resolution": {
+      "fail_open": true,
+      "mainline_waits_for_capability": false,
+      "missing_capability_blocks_owner_action": false,
+      "selected_capabilities": [
+        {
+          "can_block_current_owner_action": false,
+          "candidate_ref": "scientific-capability:external_learning_authoring_advisory:run_quality_repair_batch",
+          "capability_family": "external_learning_sidecar",
+          "capability_id": "external_learning_authoring_advisory",
+          "invocation_kind": "external_learning_sidecar",
+          "refs_only": true,
+          "requires_explicit_invoke": true
+        },
+        {
+          "can_block_current_owner_action": false,
+          "candidate_ref": "scientific-capability:evo_scientist_progress_sidecar:run_quality_repair_batch",
+          "capability_family": "progress_accelerator",
+          "capability_id": "evo_scientist_progress_sidecar",
+          "invocation_kind": "evo_scientist_sidecar",
+          "refs_only": true,
+          "requires_explicit_invoke": true
+        },
+        {
+          "can_block_current_owner_action": false,
+          "candidate_ref": "scientific-capability:light_external_skill_content_advisory:run_quality_repair_batch",
+          "capability_family": "light_advisory",
+          "capability_id": "light_external_skill_content_advisory",
+          "invocation_kind": "light_advisory_materializer",
+          "refs_only": true,
+          "requires_explicit_invoke": true
+        },
+        {
+          "can_block_current_owner_action": false,
+          "candidate_ref": "scientific-capability:co_scientist_current_owner_affordance:run_quality_repair_batch",
+          "capability_family": "hypothesis_review_affordance",
+          "capability_id": "co_scientist_current_owner_affordance",
+          "invocation_kind": "descriptor_only_current_owner_input_refs",
+          "refs_only": true,
+          "requires_explicit_invoke": true
+        }
+      ],
+      "selected_count": 4,
+      "status": "resolved"
+    },
+    "status": "ready_for_hosted_consumption",
+    "surface_kind": "mas_hosted_ordinary_path_consumption_evidence"
+  },
+  "schema_version": 1,
+  "source_refs": {
+    "agent_tool_arsenal": "contracts/agent_tool_arsenal.json",
+    "builder": "src/med_autoscience/hosted_ordinary_path_consumption.py::build_hosted_ordinary_path_consumption_evidence",
+    "scientific_capability_registry": "src/med_autoscience/scientific_capability_registry.py"
+  },
+  "surface_kind": "mas_hosted_ordinary_path_consumption_contract"
+}

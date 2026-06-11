@@ -292,6 +292,7 @@ def build_tool_registry(
                             "plan",
                             "result_envelope_schema",
                             "completeness_diagnostic",
+                            "hosted_consumption",
                         ],
                     },
                     "tool_id": {"type": "string"},

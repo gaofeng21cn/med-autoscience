@@ -192,6 +192,7 @@ def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> No
         "plan",
         "result_envelope_schema",
         "completeness_diagnostic",
+        "hosted_consumption",
     ]
     assert arsenal["metadata"]["surface_kind"] == "mas_agent_tool_arsenal_mcp_surface"
     assert arsenal["outputSchema"]["title"] == "MAS ToolResultEnvelope"
