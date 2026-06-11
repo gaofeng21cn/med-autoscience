@@ -66,6 +66,21 @@ SERVICE_SAFE_DISPLAY_PACK_COMMANDS: dict[str, DomainEntryCommandSpec] = {
         (),
         ("repo_root", "paper_root", "include_templates"),
     ),
+    "display-pack-orchestrate": DomainEntryCommandSpec(
+        (),
+        (
+            "repo_root",
+            "paper_root",
+            "current_owner_delta",
+            "claim_ref",
+            "data_ref",
+            "paper_target",
+            "intent",
+            "figure_request",
+            "max_recommendations",
+            "check_runtime_dependencies",
+        ),
+    ),
     "display-pack-figure-plan": DomainEntryCommandSpec(
         ("figure_request",),
         ("repo_root", "paper_root", "max_recommendations"),

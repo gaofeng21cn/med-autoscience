@@ -486,6 +486,25 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     display_pack_agent_discover_parser.add_argument("--paper-root")
     display_pack_agent_discover_parser.add_argument("--include-templates", action="store_true")
 
+    display_pack_agent_orchestrate_parser = subparsers.add_parser("display-pack-agent-orchestrate")
+    display_pack_agent_orchestrate_parser.add_argument("--repo-root")
+    display_pack_agent_orchestrate_parser.add_argument("--paper-root")
+    display_pack_agent_orchestrate_parser.add_argument("--claim-ref", default="")
+    display_pack_agent_orchestrate_parser.add_argument("--data-ref", default="")
+    display_pack_agent_orchestrate_parser.add_argument("--paper-target", default="")
+    display_pack_agent_orchestrate_parser.add_argument("--intent", default="")
+    display_pack_agent_orchestrate_parser.add_argument("--max-recommendations", type=int, default=5)
+    display_pack_agent_orchestrate_parser.add_argument(
+        "--skip-runtime-dependency-check",
+        action="store_true",
+    )
+    display_pack_agent_orchestrate_delta = display_pack_agent_orchestrate_parser.add_mutually_exclusive_group()
+    display_pack_agent_orchestrate_delta.add_argument("--current-owner-delta-json")
+    display_pack_agent_orchestrate_delta.add_argument("--current-owner-delta-file")
+    display_pack_agent_orchestrate_request = display_pack_agent_orchestrate_parser.add_mutually_exclusive_group()
+    display_pack_agent_orchestrate_request.add_argument("--figure-request-json")
+    display_pack_agent_orchestrate_request.add_argument("--figure-request-file")
+
     display_pack_agent_plan_parser = subparsers.add_parser("display-pack-agent-plan")
     display_pack_agent_plan_parser.add_argument("--repo-root")
     display_pack_agent_plan_parser.add_argument("--paper-root")

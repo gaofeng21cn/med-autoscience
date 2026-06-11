@@ -34,7 +34,6 @@ from med_autoscience.mcp_server_parts.handler_adapter import (
     optional_int as _optional_int,
     optional_mapping as _optional_mapping,
     optional_path as _optional_path,
-    optional_string as _optional_string,
     require_path_list as _require_path_list,
     require_string as _require_string,
 )
@@ -104,6 +103,15 @@ def _tool_text_result(text: str, *, structured: dict[str, Any] | None = None, is
 
 def _json_text(payload: dict[str, Any]) -> str:
     return json_text(payload)
+
+
+def _optional_text_argument(arguments: dict[str, Any], key: str) -> str:
+    value = arguments.get(key)
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ValueError(f"{key} must be a string when provided")
+    return value.strip()
 
 
 def _tool_manifest_by_name() -> dict[str, dict[str, Any]]:
@@ -606,12 +614,36 @@ def _call_display_pack_agent_render(arguments: dict[str, Any]) -> dict[str, Any]
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_display_pack_agent_orchestrate(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = display_pack_agent.display_pack_orchestrate(
+        repo_root=_optional_path(arguments, "repo_root"),
+        paper_root=_optional_path(arguments, "paper_root"),
+        current_owner_delta=_optional_mapping(
+            arguments.get("current_owner_delta"),
+            field_name="current_owner_delta",
+        ),
+        claim_ref=_optional_text_argument(arguments, "claim_ref"),
+        data_ref=_optional_text_argument(arguments, "data_ref"),
+        paper_target=_optional_text_argument(arguments, "paper_target"),
+        intent=_optional_text_argument(arguments, "intent"),
+        figure_request=_optional_mapping(arguments.get("figure_request"), field_name="figure_request"),
+        max_recommendations=_optional_int(arguments, "max_recommendations") or 5,
+        check_runtime_dependencies=_optional_bool(
+            arguments,
+            "check_runtime_dependencies",
+            default=True,
+        ),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_display_pack_agent(arguments: dict[str, Any]) -> dict[str, Any]:
     return call_mode_handler(
         tool_name="display_pack_agent",
         arguments=arguments,
         handlers={
             "discover": _call_display_pack_agent_discover,
+            "orchestrate": _call_display_pack_agent_orchestrate,
             "plan": _call_display_pack_agent_plan,
             "preflight": _call_display_pack_agent_preflight,
             "render": _call_display_pack_agent_render,

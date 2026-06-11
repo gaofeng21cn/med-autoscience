@@ -1064,6 +1064,7 @@
       },
       {
         "action_triggers": [
+          "display_pack_orchestrate",
           "display_pack_figure_plan",
           "display_pack_preflight",
           "display_pack_render",
@@ -1085,7 +1086,7 @@
           "surface_role": "current_delta_bound_capability_resolver"
         },
         "body_included": false,
-        "callable_surface": "display_pack_agent.plan",
+        "callable_surface": "display_pack_agent.orchestrate",
         "capability_family": "display_pack",
         "capability_id": "display_pack_visual_capability",
         "capability_ref": "scientific-capability:display_pack_visual_capability",
@@ -1094,10 +1095,10 @@
         "invocation_kind": "display_pack_agent",
         "mainline_waits_for_capability": false,
         "output_refs": [
-          "display_pack_agent_figure_plan"
+          "display_pack_agent_orchestration"
         ],
         "refs_only": true,
-        "role": "figure_template_planning_preflight_and_render_receipts",
+        "role": "figure_intent_compilation_template_preflight_quality_floor_and_render_next_step",
         "source_frameworks": [
           "MAS Display Pack"
         ],
@@ -1909,6 +1910,97 @@
       "tool_mode": "plan",
       "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
       "when_to_use": "Use display_pack_figure_plan when an autonomous agent needs this capability from the current_owner_delta path: Given a structured figure_request, rank Display Pack templates and choose the next preflight target. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates."
+    },
+    {
+      "action_id": "display_pack_orchestrate",
+      "action_surface_kind": "display_pack_agent_orchestration",
+      "allowed_writes": [],
+      "audit_trail_schema_ref": "contracts/agent_tool_arsenal.json#/tool_audit_trail_schema",
+      "authority_boundary": {
+        "agent_manual_template_selection_required": false,
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_readiness": false,
+        "can_emit_display_refs_and_receipts": true,
+        "can_mutate_data_or_statistics": false,
+        "can_replace_owner_receipt": false,
+        "can_replace_visual_audit": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "surface_authority": "display_pack_agent_orchestration"
+      },
+      "authority_effects": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_return_owner_receipt": false,
+        "can_return_typed_blocker": false,
+        "can_write_domain_truth": false
+      },
+      "callability": "mcp_runtime",
+      "card_kind": "action_catalog",
+      "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
+      "effect": "read_only",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "human_gate_ids": [],
+      "idempotency_policy": "read_only_no_side_effects",
+      "input_refs": [
+        "repo_root",
+        "paper_root",
+        "current_owner_delta",
+        "claim_ref",
+        "data_ref",
+        "paper_target",
+        "intent",
+        "figure_request"
+      ],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "mcp_invocation": {
+        "mode": "orchestrate",
+        "public_runtime": true,
+        "tool_name": "display_pack_agent"
+      },
+      "output_schema": {
+        "$ref": "contracts/schemas/v1/mas-action.output.schema.json"
+      },
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "result_envelope_schema_ref": "contracts/agent_tool_arsenal.json#/result_envelope_schema",
+      "risk_annotations": {
+        "destructiveHint": false,
+        "domain_truth_write": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "requires_human_gate": false,
+        "requires_opl_stage_attempt_or_lease": false
+      },
+      "summary": "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
+      "supported_surfaces": [
+        "ai_sdk",
+        "cli",
+        "mcp",
+        "openai",
+        "product_entry",
+        "skill"
+      ],
+      "surface_kind": "mas_tool_use_card",
+      "title": "Orchestrate a Display Pack figure",
+      "tool_id": "display_pack_agent",
+      "tool_mode": "orchestrate",
+      "when_not_to_use": "Do not use this card to bypass MAS authority surfaces, manual-compose a human tool recipe, or infer publication readiness from tool availability.",
+      "when_to_use": "Use display_pack_orchestrate when an autonomous agent needs this capability from the current_owner_delta path: Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection."
     },
     {
       "action_id": "display_pack_preflight",
@@ -2728,6 +2820,15 @@
       "read_only": true,
       "tool_id": "display_pack_agent",
       "tool_mode": "plan"
+    },
+    {
+      "action_id": "display_pack_orchestrate",
+      "callability": "mcp_runtime",
+      "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
+      "effect": "read_only",
+      "read_only": true,
+      "tool_id": "display_pack_agent",
+      "tool_mode": "orchestrate"
     },
     {
       "action_id": "display_pack_preflight",

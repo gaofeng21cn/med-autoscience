@@ -148,12 +148,16 @@ def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> No
 
     display_agent = tools["display_pack_agent"]
     assert display_agent["annotations"]["readOnlyHint"] is False
-    assert display_agent["inputSchema"]["properties"]["mode"]["enum"] == [
+    assert set(display_agent["inputSchema"]["properties"]["mode"]["enum"]) == {
         "discover",
+        "orchestrate",
         "plan",
         "preflight",
         "render",
-    ]
+    }
+    assert display_agent["inputSchema"]["properties"]["current_owner_delta"] == {
+        "type": "object"
+    }
     assert display_agent["outputSchema"]["title"] == "MAS ToolResultEnvelope"
     capability_registry = tools["scientific_capability_registry"]
     assert capability_registry["annotations"]["readOnlyHint"] is False
@@ -521,9 +525,51 @@ def test_mcp_display_pack_agent_plans_from_structured_figure_request() -> None:
     assert envelope["raw_surface_kind"] == "display_pack_agent_figure_plan"
 
 
-def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() -> None:
+def test_mcp_display_pack_agent_orchestrates_from_current_owner_delta(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
+    from med_autoscience.publication_display_contract import seed_publication_display_contracts_if_missing
+
+    paper_root = tmp_path / "paper"
+    seed_publication_display_contracts_if_missing(paper_root=paper_root)
+
+    result = module.call_tool(
+        "display_pack_agent",
+        {
+            "mode": "orchestrate",
+            "repo_root": str(Path(__file__).resolve().parents[1]),
+            "paper_root": str(paper_root),
+            "current_owner_delta": {
+                "action_type": "display_pack_orchestrate",
+                "display_intent": "Create a ROC curve for prediction model performance.",
+            },
+            "claim_ref": "claim:roc",
+            "data_ref": "data:roc",
+            "check_runtime_dependencies": False,
+        },
+    )
+
+    assert result["isError"] is False
+    envelope = _assert_tool_result_envelope(
+        result,
+        tool_id="display_pack_agent",
+        tool_mode="orchestrate",
+    )
+    payload = _structured_payload(result)
+    assert payload["surface_kind"] == "display_pack_agent_orchestration"
+    assert payload["status"] == "ready_to_render"
+    assert payload["plan"]["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert payload["agent_manual_template_selection_required"] is False
+    assert payload["publication_readiness_verdict"] is False
+    assert envelope["raw_surface_kind"] == "display_pack_agent_orchestration"
+
+
+def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    from med_autoscience.publication_display_contract import seed_publication_display_contracts_if_missing
+
     repo_root = Path(__file__).resolve().parents[1]
+    paper_root = tmp_path / "paper"
+    seed_publication_display_contracts_if_missing(paper_root=paper_root)
 
     index_result = module.call_tool("scientific_capability_registry", {"mode": "index"})
     _assert_tool_result_envelope(
@@ -545,7 +591,7 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() 
         {
             "mode": "resolve",
             "current_owner_delta": {
-                "action_type": "display_pack_preflight",
+                "action_type": "display_pack_orchestrate",
                 "capability_families": ["display_pack"],
             },
         },
@@ -572,6 +618,10 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() 
             "capability_id": "display_pack_visual_capability",
             "payload": {
                 "repo_root": str(repo_root),
+                "paper_root": str(paper_root),
+                "claim_ref": "claim:roc",
+                "data_ref": "data:roc",
+                "check_runtime_dependencies": False,
                 "figure_request": {
                     "figure_kind": "evidence_figure",
                     "audit_family": "Prediction Performance",
@@ -591,7 +641,9 @@ def test_mcp_scientific_capability_registry_resolves_and_invokes_display_pack() 
     assert invoke_payload["surface_kind"] == "mas_scientific_capability_invocation"
     assert invoke_payload["capability_id"] == "display_pack_visual_capability"
     assert invoke_payload["can_block_current_owner_action"] is False
-    assert invoke_payload["result"]["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert invoke_payload["result"]["surface_kind"] == "display_pack_agent_orchestration"
+    assert invoke_payload["result"]["plan"]["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert invoke_payload["result"]["next_callable"] == "display-pack-render"
 
 
 def test_mcp_server_rejects_ensure_study_runtime_mode_on_retired_mcp_tool(tmp_path: Path) -> None:

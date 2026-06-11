@@ -10,6 +10,7 @@ Machine boundary: 人读落地状态与 E2E 使用路径。机器真相继续归
 - Display Pack v2 当前哪些能力已经在 MAS 内落地；
 - 一篇真实 MAS paper 应如何从 display intent 走到 locked refs、visual audit、submission manifest；
 - 哪些目标已由 OPL repo 的 Pack OS 承接，以及 MAS 如何保持 refs-only 边界。
+- 下一层 `next ideal operating model / display agent OS` 当前处于什么 target 状态。
 
 ## 当前完成度
 
@@ -22,7 +23,7 @@ Machine boundary: 人读落地状态与 E2E 使用路径。机器真相继续归
 | Pack descriptor contract | `landed` | `contracts/display-pack-contract.v2.json` 要求 `display_pack.toml` 的 pack identity、version、source、owner、license、templates、style/QC/AI/golden/exemplar/provenance 和 `opl_handoff` 字段。 |
 | Template descriptor contract | `landed` | `templates/<template_id>/template.toml` 要求 full template id、kind、paper/audit family、renderer、input schema、QC/style refs、exports、execution mode、entrypoint、goldens 和 exemplar refs。 |
 | Template discovery / describe | `landed` | `medautosci publication display-pack-templates` 可按 kind、renderer family、audit family、paper family 和 query 列出当前启用模板；`medautosci publication display-pack-template` 返回 descriptor、runtime、source config、renderer assets、golden refs 和 forbidden-authority boundary。list/describe 只读，不执行 renderer、不写 artifact、不签 publication readiness。 |
-| Agent-facing capability surface | `landed` | `src/med_autoscience/display_pack_agent.py` 暴露 `display-pack-capability-discover`、`display-pack-figure-plan`、`display-pack-preflight`、`display-pack-render`；同一能力进入 CLI grouped commands、`MedAutoScienceDomainEntry` command contract、`contracts/action_catalog.json` 和 `domain-handler export.display_pack_agent_capability`。这些入口服务 MAS agent 的低摩擦发现、选择、预检和 render receipt，不要求用户手工理解模板。 |
+| Agent-facing capability surface | `landed_orchestrate_first` | `src/med_autoscience/display_pack_agent.py` 暴露 `display-pack-capability-discover`、`display-pack-orchestrate`、`display-pack-figure-plan`、`display-pack-preflight`、`display-pack-render`；同一能力进入 CLI grouped commands、`MedAutoScienceDomainEntry` command contract、`contracts/action_catalog.json`、`contracts/agent_tool_arsenal.json` 和 `domain-handler export.display_pack_agent_capability`。`orchestrate` 从 `current_owner_delta`、claim/data refs、paper target 和 intent 编译 `figure_intent` / `figure_request`，再返回推荐 plan、preflight、quality floor、typed repair routes 和下一步 callable。Agent 默认走 orchestrate，不要求用户或 Agent 手工理解模板目录。 |
 | Paper-level figure quality refs | `landed` | `contracts/publication_figure_quality_contract.json` 索引 `figure_intent`、单图 `figure_spec`、批量 `figure_specs`、style refs、visual audit receipt、figure polish lifecycle 和 AI illustration receipt。 |
 | Publication style profile | `landed` | `paper/publication_style_profile.json` 是 paper-owned article-level style-token truth，字段覆盖 `style_profile_id`、`journal_palette_ref`、`palette`、`semantic_roles`、`typography`、`stroke` 和 `grid`。E2E runtime 把同一 profile hash 写入 render request、layout sidecar、每张 figure entry、`display_pack_lock.json` 和 publication manifest，以约束整篇论文的配色、字体、字号、线宽和网格。 |
 | Medical figure grammar | `landed` | `contracts/medical_figure_spec_contract.json` / `paper/figure_spec.json` / `paper/figure_specs.json` 绑定 intent、Display Template、figure kind、medical semantics 和 panel roles。 |
@@ -37,8 +38,9 @@ Machine boundary: 人读落地状态与 E2E 使用路径。机器真相继续归
 | Lock and submission handoff | `landed` | `paper/build/display_pack_lock.json#/publication_figure_quality_refs` 记录 surface path、present/missing 状态和 hash；submission manifest 保留同一 refs block。 |
 | OPL Pack OS MAS consumer | `landed_in_opl_repo` | OPL repo 的 `opl pack os mas-display-smoke --contract <mas_repo>/contracts/display-pack-contract.v2.json --json` 可消费 MAS Display Pack v2 contract 并输出 generic pack lock/audit smoke receipt。 |
 | OPL generic Pack OS substrate | `landed_in_opl_repo_outside_mas` | OPL repo 已落地 `opl pack os install/registry/cache/distribute/lock/validate/mas-display-smoke`；MAS 只记录外部 refs，不拥有 generic Pack OS，不签 publication authority。 |
+| Next ideal operating model / Display Agent OS | `orchestrate_surface_landed_full_os_target_planned` | [Display Pack Agent OS 目标架构](./display_pack_agent_os_target.md) 描述 `current_owner_delta / claim refs / data refs -> figure_intent -> medical figure spec -> template resolver -> OPL pack lock -> render -> QC -> visual audit -> typed repair router -> publication manifest` 的目标链路。当前 MAS main code surface 已落地 agent-native orchestrate 编译、推荐、预检、quality floor 和 typed repair route hints；OPL-hosted pack lock integration、完整 typed repair router、ordinary-path resolver receipt 和 publication manifest handoff 仍是 planned/target。 |
 
-当前 Display Pack v2 不是“模板市场已完成”，也不是“所有 98 个 catalog 模板都有正式 checked-in golden”。它表示 MAS 已有 paper-facing display pack descriptor、paper-level quality refs、article-level style profile lock、R/ggplot2-first subprocess runtime 协议、55 个 core evidence templates 的一等默认 R/ggplot2 subprocess renderer、P1 Python baseline / legacy comparison provenance、P2 Python plugin 兼容 renderer、可发现/可描述/可 scaffold 试跑的 CLI surface、agent-facing discovery/plan/preflight/render receipt surface、可 refresh/check 的 deterministic lower-bound golden surface、multi-figure deterministic E2E render/QC/publication-manifest path、visual audit / polish lifecycle 和 submission refs preservation 的可验证下界；OPL 侧已有通用 Pack OS install、registry、cache、distribution、lock、validation 和 MAS consumer smoke，MAS 合同只保留外部 substrate refs 和 forbidden-authority 边界。P1 renderer promotion 已落地，但 style profile lock、renderer promotion、display lock、golden match、visual-audit clear、agent render receipt 或 comparison receipt 仍不能代签 publication readiness、artifact authority、owner receipt 或 publication gate。
+当前 Display Pack v2 不是“模板市场已完成”，也不是“所有 98 个 catalog 模板都有正式 checked-in golden”。它表示 MAS 已有 paper-facing display pack descriptor、paper-level quality refs、article-level style profile lock、R/ggplot2-first subprocess runtime 协议、55 个 core evidence templates 的一等默认 R/ggplot2 subprocess renderer、P1 Python baseline / legacy comparison provenance、P2 Python plugin 兼容 renderer、可发现/可描述/可 scaffold 试跑的 CLI surface、agent-facing orchestrate/discovery/plan/preflight/render receipt surface、可 refresh/check 的 deterministic lower-bound golden surface、multi-figure deterministic E2E render/QC/publication-manifest path、visual audit / polish lifecycle 和 submission refs preservation 的可验证下界；OPL 侧已有通用 Pack OS install、registry、cache、distribution、lock、validation 和 MAS consumer smoke，MAS 合同只保留外部 substrate refs 和 forbidden-authority 边界。P1 renderer promotion 已落地，但 style profile lock、renderer promotion、display lock、golden match、visual-audit clear、agent orchestration/render receipt 或 comparison receipt 仍不能代签 publication readiness、artifact authority、owner receipt 或 publication gate。
 
 ## 目标态
 
@@ -49,18 +51,46 @@ Machine boundary: 人读落地状态与 E2E 使用路径。机器真相继续归
 
 MAS 只把 `opl_handoff` 暴露成 refs-only handoff boundary。OPL repo 已经有带测试的 `mas-display-smoke` consumer projection，可以读取 MAS contract 并生成 generic pack lock/audit smoke receipt；OPL repo 同时已落地通用 install / registry / cache / distribution / lock / validation surfaces。MAS 不能把这些外部基座写成 MAS-owned substrate。
 
+## Next ideal operating model / Display Agent OS
+
+下一层目标运行模型是 Agent-native Scientific Display System。目标链路是：
+
+```text
+current_owner_delta / claim refs / data refs
+  -> figure_intent
+  -> medical figure spec
+  -> template resolver
+  -> OPL pack lock
+  -> render
+  -> QC
+  -> visual audit
+  -> typed repair router
+  -> publication manifest
+```
+
+当前状态是 `orchestrate_surface_landed_full_os_target_planned`。它继承已落地的 Display Pack v2 descriptor、paper-level figure-quality refs、medical figure spec、style profile lock、E2E render/QC/manifest path、visual-audit receipt、polish lifecycle 和 OPL repo 外部 Pack OS substrate；MAS main code surface 已提供 `display_pack_agent.orchestrate`，能从 current owner delta 与 claim/data refs 编译 figure intent、推荐模板、预检 paper/style/runtime/QC/golden 下界、返回 typed repair route hints 与下一步 callable。但 OS-level OPL-hosted pack lock integration、完整 resolver receipt、完整 typed repair router 和 publication manifest handoff 还没有完整落地。
+
+MAS / OPL 边界固定为：
+
+- MAS 管医学语义、claim/data refs、figure intent、medical figure grammar、QC/audit policy、typed repair classification、publication gate、quality verdict、owner receipt、typed blocker、human gate 和 publication manifest authority。
+- OPL 管 pack registry、install、version resolution、cache、distribution、generic pack lock、provenance、runtime adapter、Workbench display shell、trace transport、StageRun / attempt ledger 和 refs transport。
+- OPL 可以返回 pack lock、render attempt、trace 和 workbench projection refs；这些 refs 不能写 MAS publication truth，不能修改 claim/data/statistics truth，不能签 owner receipt，不能授权 artifact mutation、publication-ready 或 submission-ready。
+
+目标文案和晋级门见 [Display Pack Agent OS 目标架构](./display_pack_agent_os_target.md)。后续只有当 source-defined builder、合同、resolver、typed repair router、OPL refs-only lock projection、focused tests 和真实 paper/scaffold evidence 同时覆盖 allowed writes 与 forbidden authority 时，才可以把完整 OS 对应条目从 `target_planned` 晋级为 `landed`。
+
 ## E2E 使用路径
 
-一篇 MAS paper 的 Display Pack v2 路径按下面顺序读取。Agent 不需要遍历模板目录；它先消费 `display_pack_agent_capability`，再用结构化 `figure_request` 走 plan、preflight 和 render receipt：
+一篇 MAS paper 的 Display Pack v2 路径按下面顺序读取。Agent 不需要遍历模板目录；它先消费 `display_pack_agent_capability`，再把 `current_owner_delta`、claim/data refs、paper target 和 intent 交给 orchestrate，获得结构化 `figure_intent`、`figure_request`、推荐 plan、preflight、quality floor、typed repair routes 和下一步 callable。render 仍由同一 capability 的 render mode 执行：
 
 ```bash
 medautosci publication display-pack-agent-discover --repo-root <mas_repo>
+medautosci publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>' --claim-ref <claim_ref> --data-ref <data_ref> --paper-target <journal_or_profile> --intent '<display_intent>'
 medautosci publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'
 medautosci publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'
 medautosci publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'
 ```
 
-同一能力也通过 `MedAutoScienceDomainEntry` 暴露给 OPL generated/hosted surfaces。`domain-handler export` 会给出 `display_pack_agent_capability`，`contracts/action_catalog.json` 会把 `display_pack_capability_discover`、`display_pack_figure_plan`、`display_pack_preflight`、`display_pack_render` 映射到同一个 MCP runtime tool `display_pack_agent`，由 `mode=discover|plan|preflight|render` 选择底层 action surface。CLI 仍是 debug/资产管理入口；MCP `display_pack_agent`、domain entry 和 action catalog 是 agent consumption 的稳定合同面。
+同一能力也通过 `MedAutoScienceDomainEntry` 暴露给 OPL generated/hosted surfaces。`domain-handler export` 会给出 `display_pack_agent_capability`，`contracts/action_catalog.json` 会把 `display_pack_capability_discover`、`display_pack_orchestrate`、`display_pack_figure_plan`、`display_pack_preflight`、`display_pack_render` 映射到同一个 MCP runtime tool `display_pack_agent`，由 `mode=discover|orchestrate|plan|preflight|render` 选择底层 action surface。CLI 仍是 debug/资产管理入口；MCP `display_pack_agent`、domain entry 和 action catalog 是 agent consumption 的稳定合同面。
 
 | 步骤 | Surface | 完成信号 | 不授权内容 |
 | --- | --- | --- | --- |
@@ -186,6 +216,7 @@ AI-generated illustration 只允许 `illustration_shell` 候选，并且 `scient
 - 不得声明 `figure_spec.json` 是 renderer、Vega-Lite runtime、data/statistics mutation surface 或 publication verdict。
 - 不得声明 AI/VLM audit、style reference 或 illustration receipt 能携带科学 claim、修改 evidence mark 或替代 independent reviewer/auditor。
 - 不得声明 OPL Pack OS substrate 已由 MAS repo 落地；当前是 OPL repo 外部落地，MAS 只保留 refs-only handoff 和 forbidden-authority 边界。
+- 不得声明完整 Display Agent OS、完整 typed repair router、OPL-hosted pack lock integration 或 publication manifest handoff 已在 MAS main code surface 落地；当前已落地的是 agent-native orchestrate 编译/推荐/预检/typed route hint surface 和底层可复用能力。
 - 不得把 link-only external exemplar 写成 MAS template、golden、runtime dependency 或 copied asset。
 
 ## 验证口径

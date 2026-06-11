@@ -61,6 +61,18 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert "artifacts/advisory/external_learning_sidecar/latest.json" in capability_card["allowed_writes"]
     assert "artifacts/runtime/evo_scientist_sidecar/latest.json" in capability_card["allowed_writes"]
 
+    display_orchestrate = cards["display_pack_orchestrate"]
+    assert display_orchestrate["tool_id"] == "display_pack_agent"
+    assert display_orchestrate["tool_mode"] == "orchestrate"
+    assert display_orchestrate["callability"] == "mcp_runtime"
+    assert display_orchestrate["mcp_invocation"] == {
+        "tool_name": "display_pack_agent",
+        "mode": "orchestrate",
+        "public_runtime": True,
+    }
+    assert display_orchestrate["risk_annotations"]["readOnlyHint"] is True
+    assert display_orchestrate["allowed_writes"] == []
+
     display_preflight = cards["display_pack_preflight"]
     assert display_preflight["tool_id"] == "display_pack_agent"
     assert display_preflight["tool_mode"] == "preflight"
@@ -147,16 +159,16 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
 
     display_plan = module.build_capability_invocation_plan(
         current_owner_delta={
-            "action_type": "display_pack_preflight",
+            "action_type": "display_pack_orchestrate",
             "source_ref": "paper/figure_intent.json",
             "work_unit_fingerprint": "sha256:display",
         }
     )
 
     assert display_plan["selected_card_kind"] == "action_catalog"
-    assert display_plan["selected_action_id"] == "display_pack_preflight"
+    assert display_plan["selected_action_id"] == "display_pack_orchestrate"
     assert display_plan["selected_tool_id"] == "display_pack_agent"
-    assert display_plan["selected_tool_mode"] == "preflight"
+    assert display_plan["selected_tool_mode"] == "orchestrate"
     assert display_plan["requires"]["owner_receipt_or_typed_blocker"] is False
     assert display_plan["requires"]["executor_receipt_ref_required"] is False
 

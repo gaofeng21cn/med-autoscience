@@ -209,6 +209,7 @@ def test_mas_action_catalog_exposes_display_pack_agent_capability_as_grouped_mcp
     expected_actions = {
         "display_pack_capability_discover": ("display_pack_agent_capability", "discover"),
         "display_pack_figure_plan": ("display_pack_agent_figure_plan", "plan"),
+        "display_pack_orchestrate": ("display_pack_agent_orchestration", "orchestrate"),
         "display_pack_preflight": ("display_pack_agent_preflight", "preflight"),
         "display_pack_render": ("display_pack_agent_render_receipt", "render"),
     }
@@ -230,6 +231,10 @@ def test_mas_action_catalog_exposes_display_pack_agent_capability_as_grouped_mcp
         item["surface_kind"]: item["input_schema"]
         for item in mcp_metadata_by_tool["display_pack_agent"]["actions"]
     }["display_pack_agent_figure_plan"]["required"] == ["figure_request"]
+    assert {
+        item["surface_kind"]: item["input_schema"]
+        for item in mcp_metadata_by_tool["display_pack_agent"]["actions"]
+    }["display_pack_agent_orchestration"]["properties"]["current_owner_delta"] == {"type": "object"}
     for action_id, (surface_kind, mode) in expected_actions.items():
         action = actions[action_id]
         cli_item = cli_projection[action_id]
@@ -246,6 +251,13 @@ def test_mas_action_catalog_exposes_display_pack_agent_capability_as_grouped_mcp
         assert action["authority_boundary"]["can_replace_owner_receipt"] is False
 
     assert actions["display_pack_render"]["effect"] == "mutating"
+    assert actions["display_pack_orchestrate"]["effect"] == "read_only"
+    assert (
+        actions["display_pack_orchestrate"]["authority_boundary"][
+            "agent_manual_template_selection_required"
+        ]
+        is False
+    )
     assert actions["display_pack_render"]["authority_boundary"]["helper_write_policy"] == (
         "display_artifacts_and_refs_only"
     )

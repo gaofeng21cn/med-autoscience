@@ -8,7 +8,7 @@ from med_autoscience import external_learning_adoption_closure
 from med_autoscience.controllers.light_advisory_materializer import (
     materialize_light_advisory_refs,
 )
-from med_autoscience.display_pack_agent import display_pack_figure_plan
+from med_autoscience.display_pack_agent import display_pack_orchestrate
 from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 
 
@@ -156,11 +156,21 @@ def invoke_scientific_capability(
         )
     elif capability["invocation_kind"] == "display_pack_agent":
         figure_request = _mapping(payload.get("figure_request") if isinstance(payload, Mapping) else None)
-        invocation["result"] = display_pack_figure_plan(
+        invocation["result"] = display_pack_orchestrate(
             repo_root=_path_or_none(payload, "repo_root"),
             paper_root=_path_or_none(payload, "paper_root"),
+            current_owner_delta=delta,
+            claim_ref=_text(payload.get("claim_ref")) if isinstance(payload, Mapping) else "",
+            data_ref=_text(payload.get("data_ref")) if isinstance(payload, Mapping) else "",
+            paper_target=_text(payload.get("paper_target")) if isinstance(payload, Mapping) else "",
+            intent=_text(payload.get("intent")) if isinstance(payload, Mapping) else "",
             figure_request=figure_request,
             max_recommendations=_int_or_default(payload, "max_recommendations", 5),
+            check_runtime_dependencies=(
+                bool(payload.get("check_runtime_dependencies"))
+                if isinstance(payload, Mapping) and "check_runtime_dependencies" in payload
+                else True
+            ),
         )
     else:
         invocation["status"] = "descriptor_only"
@@ -285,15 +295,16 @@ def _capabilities() -> list[dict[str, Any]]:
             capability_family="display_pack",
             source_frameworks=["MAS Display Pack"],
             action_triggers=[
+                "display_pack_orchestrate",
                 "display_pack_figure_plan",
                 "display_pack_preflight",
                 "display_pack_render",
                 "artifact_display_surface_materialization_required",
             ],
             invocation_kind="display_pack_agent",
-            callable_surface="display_pack_agent.plan",
-            output_refs=["display_pack_agent_figure_plan"],
-            role="figure_template_planning_preflight_and_render_receipts",
+            callable_surface="display_pack_agent.orchestrate",
+            output_refs=["display_pack_agent_orchestration"],
+            role="figure_intent_compilation_template_preflight_quality_floor_and_render_next_step",
         ),
     ]
 

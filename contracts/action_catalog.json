@@ -577,6 +577,78 @@
       ]
     },
     {
+      "action_id": "display_pack_orchestrate",
+      "authority_boundary": {
+        "agent_manual_template_selection_required": false,
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_readiness": false,
+        "can_emit_display_refs_and_receipts": true,
+        "can_mutate_data_or_statistics": false,
+        "can_replace_owner_receipt": false,
+        "can_replace_visual_audit": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "surface_authority": "display_pack_agent_orchestration"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+        "surface_kind": "display_pack_agent_orchestration"
+      },
+      "summary": "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "display_pack_orchestrate"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+          "surface_kind": "display_pack_agent_orchestration"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+          "descriptor_only": false,
+          "mode": "orchestrate",
+          "public_runtime": true,
+          "surface_kind": "display_pack_agent_orchestration",
+          "tool_name": "display_pack_agent"
+        },
+        "openai": {
+          "tool_name": "display_pack_orchestrate"
+        },
+        "product_entry": {
+          "action_key": "display_pack_orchestrate",
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+          "surface_kind": "display_pack_agent_orchestration"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
+          "command_contract_id": "display_pack_orchestrate",
+          "surface_kind": "display_pack_agent_orchestration"
+        }
+      },
+      "title": "Orchestrate a Display Pack figure",
+      "workspace_locator_fields": [
+        "repo_root",
+        "paper_root",
+        "current_owner_delta",
+        "claim_ref",
+        "data_ref",
+        "paper_target",
+        "intent",
+        "figure_request"
+      ]
+    },
+    {
       "action_id": "display_pack_preflight",
       "authority_boundary": {
         "authoritative_truth_refs": [

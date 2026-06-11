@@ -181,9 +181,10 @@ def build_tool_registry(
             name="display_pack_agent",
             description=(
                 "Use the MAS Display Pack agent-facing capability surface through one tool: "
-                "discover, plan, preflight, or render. This lets autonomous agents consume "
-                "Display Pack inventory, template planning, pre-render checks, and display "
-                "artifact receipts without manually browsing template directories or composing CLI commands."
+                "discover, orchestrate, plan, preflight, or render. Orchestrate is the ordinary "
+                "agent path: it compiles current_owner_delta or natural-language intent into "
+                "figure_intent, selects a template, runs preflight, and returns typed repair routes "
+                "or the next render callable without manual template browsing."
             ),
             metadata=_tool_metadata(metadata_by_tool, "display_pack_agent"),
             output_schema=_result_envelope_schema(),
@@ -193,11 +194,16 @@ def build_tool_registry(
                 "properties": {
                     "mode": {
                         "type": "string",
-                        "enum": ["discover", "plan", "preflight", "render"],
+                        "enum": ["discover", "orchestrate", "plan", "preflight", "render"],
                     },
                     "repo_root": {"type": "string"},
                     "paper_root": {"type": "string"},
                     "include_templates": {"type": "boolean"},
+                    "current_owner_delta": {"type": "object"},
+                    "claim_ref": {"type": "string"},
+                    "data_ref": {"type": "string"},
+                    "paper_target": {"type": "string"},
+                    "intent": {"type": "string"},
                     "figure_request": {"type": "object"},
                     "max_recommendations": {"type": "integer", "minimum": 1},
                     "template_id": {"type": "string"},

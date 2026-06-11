@@ -55,6 +55,32 @@ def handle_display_pack_command(args: argparse.Namespace) -> dict[str, Any] | No
             include_templates=bool(args.include_templates),
         )
 
+    if args.command == "display-pack-agent-orchestrate":
+        from med_autoscience.display_pack_agent import display_pack_orchestrate
+
+        return display_pack_orchestrate(
+            repo_root=Path(args.repo_root) if args.repo_root else None,
+            paper_root=Path(args.paper_root) if args.paper_root else None,
+            current_owner_delta=_load_optional_json_object_from_args(
+                args,
+                json_attr="current_owner_delta_json",
+                file_attr="current_owner_delta_file",
+                label="current owner delta",
+            ),
+            claim_ref=str(args.claim_ref or ""),
+            data_ref=str(args.data_ref or ""),
+            paper_target=str(args.paper_target or ""),
+            intent=str(args.intent or ""),
+            figure_request=_load_optional_json_object_from_args(
+                args,
+                json_attr="figure_request_json",
+                file_attr="figure_request_file",
+                label="figure request",
+            ),
+            max_recommendations=int(args.max_recommendations),
+            check_runtime_dependencies=not bool(args.skip_runtime_dependency_check),
+        )
+
     if args.command == "display-pack-agent-plan":
         from med_autoscience.display_pack_agent import display_pack_figure_plan
 

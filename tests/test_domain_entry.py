@@ -216,6 +216,36 @@ def test_domain_entry_dispatches_display_pack_agent_plan_without_profile() -> No
     assert payload["authority_boundary"]["can_authorize_publication_readiness"] is False
 
 
+def test_domain_entry_dispatches_display_pack_agent_orchestrate_without_profile(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.domain_entry")
+    from med_autoscience.publication_display_contract import seed_publication_display_contracts_if_missing
+
+    repo_root = Path(__file__).resolve().parents[1]
+    paper_root = tmp_path / "paper"
+    seed_publication_display_contracts_if_missing(paper_root=paper_root)
+
+    payload = module.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "display-pack-orchestrate",
+            "repo_root": str(repo_root),
+            "paper_root": str(paper_root),
+            "current_owner_delta": {
+                "action_type": "display_pack_orchestrate",
+                "display_intent": "Create a ROC curve for prediction performance.",
+            },
+            "claim_ref": "claim:roc",
+            "data_ref": "data:roc",
+            "check_runtime_dependencies": False,
+        }
+    )
+
+    assert payload["command"] == "display-pack-orchestrate"
+    assert payload["surface_kind"] == "display_pack_agent_orchestration"
+    assert payload["status"] == "ready_to_render"
+    assert payload["plan"]["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert payload["authority_boundary"]["can_authorize_publication_readiness"] is False
+
+
 def test_domain_entry_contract_exports_display_pack_agent_commands() -> None:
     contract_module = importlib.import_module("med_autoscience.domain_entry_contract")
 
@@ -229,6 +259,8 @@ def test_domain_entry_contract_exports_display_pack_agent_commands() -> None:
         "paper_root",
         "include_templates",
     ]
+    assert "current_owner_delta" in contracts["display-pack-orchestrate"]["optional_fields"]
+    assert "figure_request" in contracts["display-pack-orchestrate"]["optional_fields"]
     assert contracts["display-pack-figure-plan"]["required_fields"] == ["figure_request"]
     assert contracts["display-pack-render"]["required_fields"] == ["paper_root"]
     assert "visual_audit_review" in contracts["display-pack-render"]["optional_fields"]

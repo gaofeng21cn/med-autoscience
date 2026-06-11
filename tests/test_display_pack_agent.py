@@ -7,9 +7,11 @@ from med_autoscience import cli
 from med_autoscience.display_pack_agent import (
     display_pack_capability_discover,
     display_pack_figure_plan,
+    display_pack_orchestrate,
     display_pack_preflight,
     display_pack_render,
 )
+from med_autoscience.publication_display_contract import seed_publication_display_contracts_if_missing
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +40,12 @@ def _write_roc_payload(path: Path) -> None:
     )
 
 
+def _styled_paper_root(tmp_path: Path) -> Path:
+    paper_root = tmp_path / "paper"
+    seed_publication_display_contracts_if_missing(paper_root=paper_root)
+    return paper_root
+
+
 def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() -> None:
     payload = display_pack_capability_discover(repo_root=REPO_ROOT)
 
@@ -48,6 +56,7 @@ def test_display_pack_capability_discover_exposes_agent_actions_and_inventory() 
     assert payload["inventory"]["renderer_family_counts"]["r_ggplot2"] >= 50
     assert {item["command"] for item in payload["callable_actions"]} == {
         "display-pack-capability-discover",
+        "display-pack-orchestrate",
         "display-pack-figure-plan",
         "display-pack-preflight",
         "display-pack-render",
@@ -73,6 +82,55 @@ def test_display_pack_figure_plan_prefers_r_ggplot2_template_for_agent_request()
     assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
     assert payload["recommended_template"]["renderer_family"] == "r_ggplot2"
     assert payload["next_callable"] == "display-pack-preflight"
+
+
+def test_display_pack_orchestrate_compiles_current_owner_delta_into_render_next_step(tmp_path: Path) -> None:
+    paper_root = _styled_paper_root(tmp_path)
+    payload = display_pack_orchestrate(
+        repo_root=REPO_ROOT,
+        paper_root=paper_root,
+        current_owner_delta={
+            "action_type": "artifact_display_surface_materialization_required",
+            "owner": "publication_display",
+            "work_unit_id": "figure-roc",
+            "work_unit_fingerprint": "sha256:display",
+            "display_intent": "Generate a primary ROC figure for prediction performance.",
+        },
+        claim_ref="claim:primary-model-discrimination",
+        data_ref="data:analysis/roc_payload.json",
+        paper_target="jama",
+        check_runtime_dependencies=False,
+    )
+
+    assert payload["surface_kind"] == "display_pack_agent_orchestration"
+    assert payload["status"] == "ready_to_render"
+    assert payload["figure_intent"]["planning_root"] == "current_owner_delta"
+    assert payload["figure_request"]["claim_ref"] == "claim:primary-model-discrimination"
+    assert payload["figure_request"]["data_ref"] == "data:analysis/roc_payload.json"
+    assert payload["figure_request"]["audit_family"] == "Prediction Performance"
+    assert payload["figure_request"]["preferred_renderer_family"] == "r_ggplot2"
+    assert payload["plan"]["recommended_template"]["template_id"] == "roc_curve_binary"
+    assert payload["preflight"]["status"] == "ready"
+    assert payload["quality_floor"]["checks"]["template_selected"] is True
+    assert payload["agent_manual_template_selection_required"] is False
+    assert payload["publication_readiness_verdict"] is False
+    assert payload["next_callable"] == "display-pack-render"
+
+
+def test_display_pack_orchestrate_routes_missing_claim_and_data_refs() -> None:
+    payload = display_pack_orchestrate(
+        repo_root=REPO_ROOT,
+        intent="Need a ROC figure for prediction performance.",
+        check_runtime_dependencies=False,
+    )
+
+    assert payload["surface_kind"] == "display_pack_agent_orchestration"
+    assert payload["status"] == "needs_repair"
+    assert payload["next_callable"] == "display-pack-repair"
+    assert {item["code"] for item in payload["typed_repair_routes"]} >= {
+        "claim_ref_missing",
+        "data_ref_missing",
+    }
 
 
 def test_display_pack_preflight_reports_missing_paper_style_profile(tmp_path: Path) -> None:
@@ -150,3 +208,35 @@ def test_cli_display_pack_agent_plan_loads_figure_request_json(capsys) -> None:
     assert exit_code == 0
     assert payload["surface_kind"] == "display_pack_agent_figure_plan"
     assert payload["recommended_template"]["template_id"] == "roc_curve_binary"
+
+
+def test_cli_display_pack_agent_orchestrate_accepts_current_owner_delta_json(capsys, tmp_path: Path) -> None:
+    paper_root = _styled_paper_root(tmp_path)
+    exit_code = cli.main(
+        [
+            "publication",
+            "display-pack-agent-orchestrate",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--paper-root",
+            str(paper_root),
+            "--current-owner-delta-json",
+            json.dumps(
+                {
+                    "action_type": "display_pack_orchestrate",
+                    "display_intent": "Create ROC figure for model discrimination.",
+                }
+            ),
+            "--claim-ref",
+            "claim:roc",
+            "--data-ref",
+            "data:roc",
+            "--skip-runtime-dependency-check",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["surface_kind"] == "display_pack_agent_orchestration"
+    assert payload["status"] == "ready_to_render"
+    assert payload["plan"]["recommended_template"]["template_id"] == "roc_curve_binary"

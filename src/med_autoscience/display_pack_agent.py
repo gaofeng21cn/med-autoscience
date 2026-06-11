@@ -23,6 +23,7 @@ AGENT_CAPABILITY_ACTIONS = (
     "display-pack-figure-plan",
     "display-pack-preflight",
     "display-pack-render",
+    "display-pack-orchestrate",
 )
 
 DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY = {
@@ -36,6 +37,7 @@ DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY = {
 _DEFAULT_REVIEWER_HASH = "0" * 64
 _DEFAULT_KIND = "evidence_figure"
 _DEFAULT_RENDERER_PREFERENCE = "r_ggplot2"
+_DEFAULT_AUDIT_FAMILY = "Prediction Performance"
 
 
 def _normal_repo_root(repo_root: Path | str | None) -> Path:
@@ -59,6 +61,133 @@ def _list(value: object) -> list[Any]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def _current_delta_text(delta: Mapping[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = _text(delta.get(key))
+        if value:
+            return value
+    owner_route = _mapping(delta.get("owner_route"))
+    for key in keys:
+        value = _text(owner_route.get(key))
+        if value:
+            return value
+    return ""
+
+
+def _infer_audit_family(intent_text: str, delta: Mapping[str, Any], request: Mapping[str, Any]) -> str:
+    explicit = _text(request.get("audit_family"))
+    if explicit:
+        return explicit
+    lowered = " ".join(
+        [
+            intent_text,
+            _current_delta_text(delta, "action_type", "action_id", "work_unit_id"),
+            " ".join(_text_list(delta.get("route_required_ref_families"))),
+            " ".join(_text_list(delta.get("capability_families"))),
+        ]
+    ).lower()
+    if any(token in lowered for token in ("roc", "auc", "calibration", "decision curve", "dca", "prediction")):
+        return "Prediction Performance"
+    if any(token in lowered for token in ("survival", "kaplan", "hazard", "time-to-event")):
+        return "Time-to-event"
+    if any(token in lowered for token in ("forest", "subgroup", "effect", "odds ratio", "hazard ratio")):
+        return "Effects"
+    if any(token in lowered for token in ("baseline table", "table one", "characteristics")):
+        return "Table"
+    return _DEFAULT_AUDIT_FAMILY
+
+
+def _infer_query(intent_text: str, audit_family: str, delta: Mapping[str, Any], request: Mapping[str, Any]) -> str:
+    explicit = _text(request.get("query"))
+    if explicit:
+        return explicit
+    lowered = " ".join(
+        [
+            intent_text,
+            audit_family,
+            _current_delta_text(delta, "action_type", "work_unit_id", "desired_delta"),
+        ]
+    ).lower()
+    for token in ("roc", "calibration", "dca", "decision", "km", "kaplan", "forest", "nomogram", "baseline"):
+        if token in lowered:
+            return "decision curve" if token == "decision" else token
+    if audit_family == "Prediction Performance":
+        return "roc"
+    return audit_family.lower()
+
+
+def compile_display_figure_intent(
+    *,
+    current_owner_delta: Mapping[str, Any] | None = None,
+    claim_ref: str = "",
+    data_ref: str = "",
+    paper_target: str = "",
+    intent: str = "",
+    figure_request: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    delta = _mapping(current_owner_delta)
+    request = dict(figure_request or {})
+    intent_text = _text(
+        intent
+        or request.get("intent")
+        or request.get("figure_goal")
+        or request.get("claim_role")
+        or _current_delta_text(delta, "display_intent", "desired_delta", "summary", "action_type")
+    )
+    resolved_claim_ref = _text(claim_ref or request.get("claim_ref") or delta.get("claim_ref"))
+    resolved_data_ref = _text(data_ref or request.get("data_ref") or delta.get("data_ref"))
+    audit_family = _infer_audit_family(intent_text, delta, request)
+    figure_kind = _text(request.get("figure_kind") or request.get("kind") or _DEFAULT_KIND)
+    compiled_request = {
+        **request,
+        "figure_kind": figure_kind,
+        "audit_family": audit_family,
+        "preferred_renderer_family": _text(
+            request.get("preferred_renderer_family") or _DEFAULT_RENDERER_PREFERENCE
+        ),
+        "query": _infer_query(intent_text, audit_family, delta, request),
+        "claim_ref": resolved_claim_ref,
+        "data_ref": resolved_data_ref,
+        "paper_target": _text(paper_target or request.get("paper_target") or delta.get("paper_target")),
+        "claim_role": _text(request.get("claim_role") or intent_text or "display_current_owner_delta"),
+    }
+    if _text(request.get("template_id")):
+        compiled_request["template_id"] = _text(request.get("template_id"))
+    return {
+        "schema_version": 1,
+        "surface_kind": "display_pack_agent_figure_intent",
+        "status": "compiled",
+        "planning_root": "current_owner_delta",
+        "current_owner_delta": {
+            "action_type": _current_delta_text(delta, "action_type", "action_id"),
+            "owner": _current_delta_text(delta, "owner"),
+            "work_unit_id": _current_delta_text(delta, "work_unit_id"),
+            "work_unit_fingerprint": _current_delta_text(delta, "work_unit_fingerprint"),
+            "source_ref": _current_delta_text(delta, "source_ref"),
+        },
+        "claim_ref": resolved_claim_ref,
+        "data_ref": resolved_data_ref,
+        "paper_target": compiled_request["paper_target"],
+        "intent_text": intent_text,
+        "compiled_figure_request": compiled_request,
+        "missing_inputs": [
+            field
+            for field, value in {
+                "claim_ref": resolved_claim_ref,
+                "data_ref": resolved_data_ref,
+            }.items()
+            if not value
+        ],
+        "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+    }
 
 
 def _full_template_id(record: LoadedDisplayTemplate) -> str:
@@ -224,7 +353,8 @@ def display_pack_figure_plan(
 ) -> dict[str, Any]:
     normalized_repo_root = _normal_repo_root(repo_root)
     normalized_paper_root = _normal_optional_path(paper_root)
-    request = dict(figure_request or {})
+    intent_payload = compile_display_figure_intent(figure_request=figure_request)
+    request = dict(intent_payload["compiled_figure_request"])
     records = load_enabled_local_display_template_records(
         normalized_repo_root,
         paper_root=normalized_paper_root,
@@ -264,12 +394,76 @@ def display_pack_figure_plan(
         "repo_root": str(normalized_repo_root),
         "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
         "figure_request": request,
+        "figure_intent": intent_payload,
         "recommended_template": recommended,
         "recommendations": recommendations,
         "candidate_count": len(candidates),
         "next_callable": "display-pack-preflight" if recommended else "",
         "typed_blocker": blocker,
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+    }
+
+
+def _route_for_finding(finding: Mapping[str, Any]) -> dict[str, Any]:
+    code = _text(finding.get("code"))
+    route_hint = _text(finding.get("route_hint"))
+    route_by_code = {
+        "template_selection_empty": ("template_catalog", "display-pack-agent-plan"),
+        "qc_profile_missing": ("qc_profile", "display_pack_qc_profile_repair"),
+        "render_r_missing": ("renderer", "display_pack_renderer_asset_repair"),
+        "r_runtime_not_ready": ("runtime_dependency", "install_r_runtime_or_package"),
+        "paper_root_missing": ("paper_context", "provide_paper_root_or_scaffold_paper"),
+        "publication_style_profile_missing": ("style_profile", "seed_publication_style_profile"),
+        "golden_case_not_declared": ("golden_regression", "display_pack_golden_refresh"),
+    }
+    layer, next_callable = route_by_code.get(code, ("display_pack_contract", route_hint or "display_pack_repair"))
+    return {
+        "surface_kind": "display_pack_typed_repair_route",
+        "code": code,
+        "layer": layer,
+        "repair_owner": "MedAutoScience" if layer != "runtime_dependency" else "operator_or_opl_pack_os",
+        "next_callable": next_callable,
+        "route_hint": route_hint,
+        "blocks_render": code != "golden_case_not_declared",
+        "authority_boundary": {
+            "repair_route_can_mutate_data_or_statistics": False,
+            "repair_route_can_authorize_publication_readiness": False,
+        },
+    }
+
+
+def _quality_floor(
+    *,
+    plan: Mapping[str, Any] | None = None,
+    preflight: Mapping[str, Any] | None = None,
+    render_receipt: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    plan_payload = _mapping(plan)
+    preflight_payload = _mapping(preflight)
+    render_payload = _mapping(render_receipt)
+    checks = {
+        "intent_compiled": bool(_mapping(plan_payload.get("figure_intent"))),
+        "template_selected": bool(plan_payload.get("recommended_template")),
+        "preflight_ready": preflight_payload.get("status") == "ready",
+        "style_profile_present": _mapping(preflight_payload.get("style_profile")).get("status") == "present",
+        "golden_declared": not any(
+            _text(item.get("code")) == "golden_case_not_declared"
+            for item in list(preflight_payload.get("advisory_findings") or [])
+            if isinstance(item, Mapping)
+        ),
+        "render_manifested": render_payload.get("status") == "publication_manifested",
+    }
+    score = sum(1 for value in checks.values() if value)
+    status = "strong_floor" if score >= 5 else "minimum_floor" if score >= 3 else "needs_repair"
+    return {
+        "surface_kind": "display_pack_quality_floor",
+        "score": score,
+        "max_score": len(checks),
+        "status": status,
+        "checks": checks,
+        "quality_floor_only": True,
+        "ai_vlm_expected_for_quality_ceiling": True,
+        "publication_readiness_verdict": False,
     }
 
 
@@ -351,6 +545,8 @@ def display_pack_preflight(
         normalized_repo_root,
         paper_root=normalized_paper_root,
     )
+    intent_payload = compile_display_figure_intent(figure_request=figure_request)
+    compiled_request = dict(intent_payload["compiled_figure_request"])
     if template_id:
         selected_records = [
             record
@@ -362,7 +558,7 @@ def display_pack_preflight(
         plan = display_pack_figure_plan(
             repo_root=normalized_repo_root,
             paper_root=normalized_paper_root,
-            figure_request=figure_request,
+            figure_request=compiled_request,
             max_recommendations=1,
         )
         recommended = _mapping(plan.get("recommended_template"))
@@ -428,8 +624,15 @@ def display_pack_preflight(
             }
         )
 
-    style_profile_status = {"required": normalized_paper_root is not None, "status": "not_checked"}
-    if normalized_paper_root is not None:
+    style_profile_status = {"required": True, "status": "missing_paper_root"}
+    if normalized_paper_root is None:
+        blocking_findings.append(
+            {
+                "code": "paper_root_missing",
+                "route_hint": "provide_paper_root_or_scaffold_paper",
+            }
+        )
+    else:
         style_path = normalized_paper_root / "publication_style_profile.json"
         if not style_path.is_file():
             style_profile_status = {"required": True, "status": "missing", "path": str(style_path)}
@@ -445,18 +648,110 @@ def display_pack_preflight(
             style_profile_status = {"required": True, "status": "present", "path": str(style_path)}
 
     status = "ready" if not blocking_findings else "blocked"
+    typed_repair_routes = [_route_for_finding(item) for item in blocking_findings + advisory_findings]
     return {
         "schema_version": 1,
         "surface_kind": "display_pack_agent_preflight",
         "status": status,
         "repo_root": str(normalized_repo_root),
         "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
+        "figure_intent": intent_payload,
+        "figure_request": compiled_request,
         "templates": template_entries,
         "r_runtime": r_runtime,
         "style_profile": style_profile_status,
         "blocking_findings": blocking_findings,
         "advisory_findings": advisory_findings,
-        "next_callable": "display-pack-render" if status == "ready" else "",
+        "typed_repair_routes": typed_repair_routes,
+        "repair_owner": "MedAutoScience" if blocking_findings else "",
+        "quality_floor": _quality_floor(
+            plan={"figure_intent": intent_payload, "recommended_template": template_entries[0] if template_entries else None},
+            preflight={
+                "status": status,
+                "style_profile": style_profile_status,
+                "advisory_findings": advisory_findings,
+            },
+        ),
+        "next_callable": "display-pack-render" if status == "ready" else "display-pack-preflight",
+        "publication_readiness_verdict": False,
+        "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
+    }
+
+
+def display_pack_orchestrate(
+    *,
+    repo_root: Path | str | None = None,
+    paper_root: Path | str | None = None,
+    current_owner_delta: Mapping[str, Any] | None = None,
+    claim_ref: str = "",
+    data_ref: str = "",
+    paper_target: str = "",
+    intent: str = "",
+    figure_request: Mapping[str, Any] | None = None,
+    max_recommendations: int = 5,
+    check_runtime_dependencies: bool = True,
+) -> dict[str, Any]:
+    normalized_repo_root = _normal_repo_root(repo_root)
+    normalized_paper_root = _normal_optional_path(paper_root)
+    figure_intent = compile_display_figure_intent(
+        current_owner_delta=current_owner_delta,
+        claim_ref=claim_ref,
+        data_ref=data_ref,
+        paper_target=paper_target,
+        intent=intent,
+        figure_request=figure_request,
+    )
+    compiled_request = dict(figure_intent["compiled_figure_request"])
+    plan = display_pack_figure_plan(
+        repo_root=normalized_repo_root,
+        paper_root=normalized_paper_root,
+        figure_request=compiled_request,
+        max_recommendations=max_recommendations,
+    )
+    recommended = _mapping(plan.get("recommended_template"))
+    template_id = _text(recommended.get("full_template_id") or recommended.get("template_id"))
+    preflight = display_pack_preflight(
+        repo_root=normalized_repo_root,
+        paper_root=normalized_paper_root,
+        template_id=template_id,
+        figure_request=compiled_request,
+        check_runtime_dependencies=check_runtime_dependencies,
+    )
+    quality_floor = _quality_floor(plan=plan, preflight=preflight)
+    missing_inputs = list(figure_intent.get("missing_inputs") or [])
+    typed_routes = list(preflight.get("typed_repair_routes") or [])
+    if missing_inputs:
+        typed_routes.extend(
+            {
+                "surface_kind": "display_pack_typed_repair_route",
+                "code": f"{field}_missing",
+                "layer": "figure_intent",
+                "repair_owner": "MedAutoScience",
+                "next_callable": "provide_claim_and_data_refs",
+                "blocks_render": True,
+                "authority_boundary": {
+                    "repair_route_can_mutate_data_or_statistics": False,
+                    "repair_route_can_authorize_publication_readiness": False,
+                },
+            }
+            for field in missing_inputs
+        )
+    status = "ready_to_render" if preflight.get("status") == "ready" and not missing_inputs else "needs_repair"
+    return {
+        "schema_version": 1,
+        "surface_kind": "display_pack_agent_orchestration",
+        "status": status,
+        "repo_root": str(normalized_repo_root),
+        "paper_root": str(normalized_paper_root) if normalized_paper_root is not None else "",
+        "figure_intent": figure_intent,
+        "figure_request": compiled_request,
+        "plan": plan,
+        "preflight": preflight,
+        "quality_floor": quality_floor,
+        "typed_repair_routes": typed_routes,
+        "next_callable": "display-pack-render" if status == "ready_to_render" else "display-pack-repair",
+        "agent_manual_template_selection_required": False,
+        "publication_readiness_verdict": False,
         "authority_boundary": dict(DISPLAY_PACK_AGENT_AUTHORITY_BOUNDARY),
     }
 

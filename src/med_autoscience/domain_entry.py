@@ -19,6 +19,7 @@ from med_autoscience.profiles import WorkspaceProfile, load_profile
 DISPLAY_PACK_DOMAIN_COMMANDS = frozenset(
     {
         "display-pack-capability-discover",
+        "display-pack-orchestrate",
         "display-pack-figure-plan",
         "display-pack-preflight",
         "display-pack-render",
@@ -212,6 +213,29 @@ def _dispatch_display_pack_command(command: str, request: Mapping[str, Any]) -> 
             repo_root=repo_root if repo_root is not None else None,
             paper_root=paper_root if paper_root is not None else None,
             include_templates=_bool_value(request.get("include_templates")),
+        )
+    if command == "display-pack-orchestrate":
+        figure_request = request.get("figure_request")
+        current_owner_delta = request.get("current_owner_delta")
+        return display_pack_agent.display_pack_orchestrate(
+            repo_root=repo_root if repo_root is not None else None,
+            paper_root=paper_root if paper_root is not None else None,
+            current_owner_delta=(
+                _mapping_value(current_owner_delta, field_name="current_owner_delta")
+                if current_owner_delta is not None
+                else None
+            ),
+            claim_ref=str(request.get("claim_ref") or ""),
+            data_ref=str(request.get("data_ref") or ""),
+            paper_target=str(request.get("paper_target") or ""),
+            intent=str(request.get("intent") or ""),
+            figure_request=(
+                _mapping_value(figure_request, field_name="figure_request")
+                if figure_request is not None
+                else None
+            ),
+            max_recommendations=_optional_int_value(request.get("max_recommendations")) or 5,
+            check_runtime_dependencies=_bool_value(request.get("check_runtime_dependencies"), default=True),
         )
     if command == "display-pack-figure-plan":
         return display_pack_agent.display_pack_figure_plan(

@@ -50,6 +50,21 @@ MCP_INPUT_SCHEMA_BY_ACTION_ID = {
             "max_recommendations": {"type": "integer"},
         },
     },
+    "display_pack_orchestrate": {
+        "type": "object",
+        "properties": {
+            "repo_root": {"type": "string"},
+            "paper_root": {"type": "string"},
+            "current_owner_delta": {"type": "object"},
+            "claim_ref": {"type": "string"},
+            "data_ref": {"type": "string"},
+            "paper_target": {"type": "string"},
+            "intent": {"type": "string"},
+            "figure_request": {"type": "object"},
+            "max_recommendations": {"type": "integer"},
+            "check_runtime_dependencies": {"type": "boolean"},
+        },
+    },
     "display_pack_preflight": {
         "type": "object",
         "properties": {
@@ -336,6 +351,49 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "can_replace_visual_audit": False,
                 "can_replace_owner_receipt": False,
                 "can_emit_display_refs_and_receipts": True,
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
+            },
+        },
+        {
+            "action_id": "display_pack_orchestrate",
+            "title": "Orchestrate a Display Pack figure",
+            "summary": (
+                "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, "
+                "or a partial figure_request into a figure_intent; then rank templates, run preflight, "
+                "emit quality-floor status, typed repair routes, and the next callable. This is the "
+                "ordinary low-friction path for autonomous MAS agents and does not require manual "
+                "template selection."
+            ),
+            "effect": "read_only",
+            "command": (
+                "{prefix} publication display-pack-agent-orchestrate --repo-root <mas_repo> "
+                "--paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'"
+            ),
+            "surface_kind": "display_pack_agent_orchestration",
+            "workspace_locator_fields": [
+                "repo_root",
+                "paper_root",
+                "current_owner_delta",
+                "claim_ref",
+                "data_ref",
+                "paper_target",
+                "intent",
+                "figure_request",
+            ],
+            "mcp_tool_name": "display_pack_agent",
+            "mcp_tool_mode": "orchestrate",
+            "mcp_public_runtime": True,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": MAS_TRUTH_OWNER,
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "display_pack_agent_orchestration",
+                "can_mutate_data_or_statistics": False,
+                "can_authorize_publication_readiness": False,
+                "can_replace_visual_audit": False,
+                "can_replace_owner_receipt": False,
+                "can_emit_display_refs_and_receipts": True,
+                "agent_manual_template_selection_required": False,
                 "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
             },
         },
