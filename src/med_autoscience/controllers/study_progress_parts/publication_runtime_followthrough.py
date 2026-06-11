@@ -107,14 +107,19 @@ def _gate_clearing_batch_followthrough(
     *,
     study_root: Path,
     publication_eval_payload: Mapping[str, Any] | None,
+    current_eval_ids: object = None,
 ) -> dict[str, Any] | None:
     record_path = gate_clearing_batch.stable_gate_clearing_batch_path(study_root=study_root)
     record = _read_json_object(record_path)
     if record is None:
         return None
     current_eval_id = _non_empty_text((publication_eval_payload or {}).get("eval_id"))
+    accepted_eval_ids = _gate_clearing_current_eval_ids(
+        current_eval_id,
+        current_eval_ids,
+    )
     source_eval_id = _non_empty_text(record.get("source_eval_id"))
-    if current_eval_id is None or source_eval_id is None or current_eval_id != source_eval_id:
+    if source_eval_id is None or source_eval_id not in accepted_eval_ids:
         return None
     unit_results = [
         dict(item)
@@ -148,6 +153,11 @@ def _gate_clearing_batch_followthrough(
         "summary": summary,
         "gate_replay_status": gate_replay_status,
         "blocking_issue_count": len(gate_replay.get("blockers") or []),
+        "gate_replay_blockers": [
+            blocker
+            for item in (gate_replay.get("blockers") or [])
+            if (blocker := _non_empty_text(item)) is not None
+        ],
         "failed_unit_count": len(failed_units),
         "next_confirmation_signal": next_confirmation_signal,
         "user_intervention_required_now": user_intervention_required_now,
@@ -172,6 +182,32 @@ def _gate_clearing_batch_followthrough(
             if value:
                 result[key] = value
     return result
+
+
+def _gate_clearing_current_eval_ids(
+    publication_eval_id: str | None,
+    current_eval_ids: object,
+) -> set[str]:
+    accepted: set[str] = set()
+    if publication_eval_id is not None:
+        accepted.add(publication_eval_id)
+    if isinstance(current_eval_ids, str):
+        text = _non_empty_text(current_eval_ids)
+        if text is not None:
+            accepted.add(text)
+        return accepted
+    if isinstance(current_eval_ids, Mapping):
+        for key in ("eval_id", "source_eval_id"):
+            text = _non_empty_text(current_eval_ids.get(key))
+            if text is not None:
+                accepted.add(text)
+        return accepted
+    if isinstance(current_eval_ids, (list, tuple, set, frozenset)):
+        for item in current_eval_ids:
+            text = _non_empty_text(item)
+            if text is not None:
+                accepted.add(text)
+    return accepted
 
 
 def _quality_repair_batch_followthrough(

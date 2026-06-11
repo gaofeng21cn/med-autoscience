@@ -95,7 +95,7 @@ def test_opl_runtime_refs_do_not_treat_stale_continuation_run_as_strict_live() -
     assert facts.recovery_pending is True
 
 
-def test_opl_runtime_refs_preserve_current_opl_stage_attempt_without_strict_live() -> None:
+def test_opl_runtime_refs_suppress_non_running_opl_stage_attempt() -> None:
     module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")
 
     facts = module.resolve_opl_runtime_refs(
@@ -103,6 +103,11 @@ def test_opl_runtime_refs_preserve_current_opl_stage_attempt_without_strict_live
             "quest_status": "active",
             "runtime_liveness_status": "live",
             "reason": "quest_waiting_opl_runtime_owner_route",
+            "opl_current_control_state": {
+                "status": "blocked",
+                "running_provider_attempt": False,
+                "active_run_id": None,
+            },
             "runtime_liveness_audit": {
                 "status": "live",
                 "active_run_id": None,
@@ -119,12 +124,10 @@ def test_opl_runtime_refs_preserve_current_opl_stage_attempt_without_strict_live
         supervisor_tick_audit={"status": "stale"},
     )
 
-    assert facts.active_run_id == "opl-stage-attempt://sat-current-write"
-    assert facts.active_run_id_source == "continuation_state.active_run_id"
+    assert facts.active_run_id is None
+    assert facts.active_run_id_source == "invalidated_no_running_provider_attempt"
     assert facts.strict_live is False
-    assert facts.missing_live_session is True
-    assert facts.recovery_pending is True
-    assert facts.to_domain_activity_ref()["active_run_id"] == "opl-stage-attempt://sat-current-write"
+    assert facts.to_domain_activity_ref()["active_run_id"] is None
 
 def test_opl_runtime_refs_do_not_treat_completed_parked_run_as_strict_live(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")

@@ -3,6 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from med_autoscience.controllers.current_work_unit_parts.action_projection_fields import (
+    acceptance_refs,
+    action_fingerprint,
+    action_type,
+    work_unit_fingerprint,
+    work_unit_id,
+)
 from med_autoscience.runtime_control.owner_route_attempt_protocol import owner_reason_contract
 
 
@@ -21,6 +28,16 @@ TERMINAL_ACTION_BLOCKING_STATUSES = frozenset(
         "typed_blocked",
     }
 )
+GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES = frozenset(
+    {
+        "closed",
+        "completed",
+        "executed",
+        "fresh",
+        "skipped_duplicate_eval",
+        "skipped_stale_gate_replay_closed",
+    }
+)
 
 
 def terminal_closeout_blocker_for_action(
@@ -37,6 +54,15 @@ def terminal_closeout_blocker_for_action(
 ) -> dict[str, Any] | None:
     action_payload = mapping(action)
     if not action_payload:
+        return None
+    if _gate_replay_terminal_superseded_by_followthrough(
+        progress,
+        action=action_payload,
+        mapping=mapping,
+        text=text,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    ):
         return None
     terminal = None
     for candidate in _terminal_stage_candidates(progress, mapping=mapping):
@@ -89,6 +115,35 @@ def terminal_closeout_blocker_for_action(
     }
 
 
+def _gate_replay_terminal_superseded_by_followthrough(
+    progress: Mapping[str, Any],
+    *,
+    action: Mapping[str, Any],
+    mapping: MappingReader,
+    text: TextReader,
+    action_type: ActionTypeReader,
+    work_unit_id: WorkUnitIdReader,
+) -> bool:
+    if action_type(action) != "run_gate_clearing_batch":
+        return False
+    followthrough = mapping(progress.get("gate_clearing_batch_followthrough"))
+    if not followthrough:
+        return False
+    if text(followthrough.get("status")) not in GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES:
+        return False
+    action_source_eval = _action_source_eval_id(action, mapping=mapping, text=text)
+    followthrough_source_eval = text(followthrough.get("source_eval_id"))
+    if action_source_eval is None or followthrough_source_eval != action_source_eval:
+        return False
+    action_work_unit = work_unit_id(action.get("work_unit_id")) or work_unit_id(action.get("next_work_unit"))
+    followthrough_work_unit = (
+        work_unit_id(followthrough.get("work_unit_id"))
+        or work_unit_id(mapping(followthrough.get("work_unit_currentness")).get("explicit_publication_work_unit_id"))
+        or work_unit_id(mapping(followthrough.get("explicit_publication_work_unit")).get("unit_id"))
+    )
+    return action_work_unit is not None and followthrough_work_unit == action_work_unit
+
+
 def gate_replay_consumed_by_source_eval(
     *,
     action: Mapping[str, Any],
@@ -103,6 +158,65 @@ def gate_replay_consumed_by_source_eval(
     action_source_eval = _action_source_eval_id(action, mapping=mapping, text=text)
     consumed_source_eval = _consumption_source_eval_id(consumption, mapping=mapping, text=text)
     return bool(action_source_eval and action_source_eval == consumed_source_eval)
+
+
+def consumed_gate_replay_blocker_for_action(
+    *,
+    progress: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+    currentness_basis: Mapping[str, Any],
+    mapping: MappingReader,
+    text: TextReader,
+    text_items: TextItemsReader,
+) -> dict[str, Any] | None:
+    action_payload = mapping(action)
+    if action_type(action_payload) != "run_gate_clearing_batch":
+        return None
+    followthrough = mapping(progress.get("gate_clearing_batch_followthrough"))
+    if not followthrough:
+        return None
+    if text(followthrough.get("status")) not in GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES:
+        return None
+    if text(followthrough.get("gate_replay_status")) != "blocked":
+        return None
+    action_source_eval = _action_source_eval_id(
+        action_payload,
+        mapping=mapping,
+        text=text,
+        currentness_basis=currentness_basis,
+    )
+    followthrough_source_eval = text(followthrough.get("source_eval_id"))
+    if action_source_eval is None or followthrough_source_eval != action_source_eval:
+        return None
+    action_work_unit = work_unit_id(action_payload.get("work_unit_id")) or work_unit_id(
+        action_payload.get("next_work_unit")
+    )
+    followthrough_work_unit = (
+        work_unit_id(followthrough.get("work_unit_id"))
+        or work_unit_id(mapping(followthrough.get("work_unit_currentness")).get("explicit_publication_work_unit_id"))
+        or work_unit_id(mapping(followthrough.get("explicit_publication_work_unit")).get("unit_id"))
+    )
+    if action_work_unit is None or followthrough_work_unit != action_work_unit:
+        return None
+    source_ref = text(followthrough.get("latest_record_path"))
+    return {
+        "blocker_type": "publication_gate_replay_blocked",
+        "blocker_id": "publication_gate_replay_blocked",
+        "blocked_reason": "publication_gate_replay_blocked",
+        "owner": "publication_gate",
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": action_work_unit,
+        "work_unit_fingerprint": work_unit_fingerprint(action_payload, currentness_basis=currentness_basis),
+        "action_fingerprint": action_fingerprint(action_payload, currentness_basis=currentness_basis),
+        "source_eval_id": followthrough_source_eval,
+        "source_ref": source_ref,
+        "acceptance_refs": [ref for ref in [source_ref, *acceptance_refs(action_payload)] if ref],
+        "gate_replay_status": "blocked",
+        "gate_replay_blockers": text_items(followthrough.get("gate_replay_blockers")),
+        "blocking_issue_count": followthrough.get("blocking_issue_count"),
+        "failed_unit_count": followthrough.get("failed_unit_count"),
+        "next_confirmation_signal": text(followthrough.get("next_confirmation_signal")),
+    }
 
 
 def _latest_terminal_stage(
@@ -270,10 +384,13 @@ def _action_source_eval_id(
     *,
     mapping: MappingReader,
     text: TextReader,
+    currentness_basis: Mapping[str, Any] | None = None,
 ) -> str | None:
     source_refs = mapping(action.get("source_refs"))
-    basis = mapping(action.get("owner_route_currentness_basis")) or mapping(
-        source_refs.get("owner_route_currentness_basis")
+    basis = (
+        mapping(currentness_basis)
+        or mapping(action.get("owner_route_currentness_basis"))
+        or mapping(source_refs.get("owner_route_currentness_basis"))
     )
     return (
         text(action.get("source_eval_id"))

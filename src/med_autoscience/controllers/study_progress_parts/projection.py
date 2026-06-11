@@ -118,6 +118,38 @@ def _current_redrive_top_level_next_action(payload: dict[str, Any]) -> str | Non
     )
 
 
+def _current_gate_clearing_eval_ids(
+    *,
+    status: Mapping[str, Any],
+    next_forced_delta: Mapping[str, Any] | None = None,
+) -> list[str]:
+    eval_ids: list[str] = []
+
+    def add(value: object) -> None:
+        text = _non_empty_text(value)
+        if text is not None and text not in eval_ids:
+            eval_ids.append(text)
+
+    transition = _mapping_copy(status.get("domain_transition"))
+    completion = _mapping_copy(transition.get("completion_receipt_consumption"))
+    add(completion.get("eval_id"))
+    add(completion.get("source_eval_id"))
+    completion_basis = _mapping_copy(completion.get("owner_route_currentness_basis"))
+    add(completion_basis.get("source_eval_id"))
+    transition_refs = _mapping_copy(transition.get("source_refs"))
+    add(transition_refs.get("source_eval_id"))
+    if next_forced_delta is not None:
+        delta = _mapping_copy(next_forced_delta)
+        add(delta.get("eval_id"))
+        add(delta.get("source_eval_id"))
+        owner_action = _mapping_copy(delta.get("owner_action"))
+        add(owner_action.get("eval_id"))
+        add(owner_action.get("source_eval_id"))
+        ticket_refs = _mapping_copy(_mapping_copy(delta.get("current_owner_ticket")).get("source_refs"))
+        add(ticket_refs.get("source_eval_id"))
+    return eval_ids
+
+
 def _stage_artifact_index_projection(
     *,
     profile: WorkspaceProfile,
@@ -710,6 +742,7 @@ def build_study_progress_projection(
     gate_clearing_batch_followthrough = _gate_clearing_batch_followthrough(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
+        current_eval_ids=_current_gate_clearing_eval_ids(status=status),
     )
     quality_repair_batch_followthrough = _quality_repair_batch_followthrough(
         study_root=resolved_study_root,

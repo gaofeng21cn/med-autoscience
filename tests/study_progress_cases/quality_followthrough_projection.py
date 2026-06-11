@@ -153,11 +153,80 @@ def test_study_progress_projects_gate_clearing_batch_followthrough(tmp_path: Pat
         "summary": "最近一轮 gate-clearing batch 已执行；当前仍剩 2 个 gate blocker。",
         "gate_replay_status": "blocked",
         "blocking_issue_count": 2,
+        "gate_replay_blockers": [
+            "claim_evidence_consistency_failed",
+            "registry_contract_mismatch",
+        ],
         "failed_unit_count": 0,
         "next_confirmation_signal": "看 publication_eval/latest.json 或最新 gate replay 是否继续收窄 blocker。",
         "user_intervention_required_now": False,
         "latest_record_path": str(gate_batch_path),
     }
+
+
+def test_gate_clearing_batch_followthrough_accepts_domain_transition_eval_basis(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    stale_eval_id = "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00"
+    current_eval_id = "publication-eval::001-risk::quest-001::stage-attempt-sat_current::2026-04-06T05:58:00+00:00"
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": stale_eval_id,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-05T05:58:00+00:00",
+            "verdict": {"overall_verdict": "blocked"},
+            "gaps": [],
+            "recommended_actions": [],
+        },
+    )
+    gate_batch_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    _write_json(
+        gate_batch_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": current_eval_id,
+            "status": "executed",
+            "work_unit_currentness": {
+                "explicit_publication_work_unit_id": "ai_reviewer_record_gate_consumption",
+            },
+            "explicit_publication_work_unit": {
+                "unit_id": "ai_reviewer_record_gate_consumption",
+                "lane": "review",
+            },
+            "unit_results": [
+                {"unit_id": "materialize_display_surface", "status": "updated"},
+            ],
+            "gate_replay": {
+                "status": "blocked",
+                "blockers": ["claim_evidence_consistency_failed"],
+            },
+        },
+    )
+
+    result = module._gate_clearing_batch_followthrough(
+        study_root=study_root,
+        publication_eval_payload=json.loads(publication_eval_path.read_text(encoding="utf-8")),
+        current_eval_ids=[current_eval_id],
+    )
+
+    assert result is not None
+    assert result["source_eval_id"] == current_eval_id
+    assert result["work_unit_id"] == "ai_reviewer_record_gate_consumption"
+    assert result["gate_replay_status"] == "blocked"
+    assert result["latest_record_path"] == str(gate_batch_path)
 
 
 def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Path) -> None:
@@ -301,4 +370,3 @@ def test_render_study_progress_markdown_surfaces_quality_repair_batch_followthro
     )
 
     assert markdown.strip()
-

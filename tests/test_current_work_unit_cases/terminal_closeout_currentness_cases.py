@@ -482,6 +482,93 @@ def test_current_work_unit_uses_latest_terminal_handoff_domain_blocker_over_repe
     )
 
 
+def test_current_work_unit_reports_consumed_gate_replay_blocker_after_fresh_gate_receipt() -> None:
+    module = _module()
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "002-dm-china-us-mortality-attribution::stage-attempt-sat_current::2026-06-11T12:41:21+00:00"
+    )
+    fingerprint = (
+        "current-ai-reviewer-gate-replay::002-dm-china-us-mortality-attribution::"
+        f"{work_unit_id}::{source_eval_id}"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": source_eval_id,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": "sha256:fresh-gate-receipt",
+                "gate_replay_status": "blocked",
+                "blocking_issue_count": 2,
+                "gate_replay_blockers": [
+                    "medical_publication_surface_blocked",
+                    "claim_evidence_consistency_failed",
+                ],
+                "latest_record_path": (
+                    f"/workspace/studies/{study_id}/artifacts/controller/"
+                    "gate_clearing_batch/latest.json"
+                ),
+            },
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_attempt_id": "sat_58099ea2494e3ed8eb6f978a",
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "action_type": "run_gate_clearing_batch",
+                    "status": "blocked",
+                    "stage_name": work_unit_id,
+                    "outcome": "blocked_with_domain_typed_blocker",
+                    "progress_delta_classification": "typed_blocker",
+                    "remaining_blockers": [
+                        "domain_owner_action_dispatch_zero_selected_dispatch",
+                        "display_surface_materialization_failed",
+                    ],
+                    "source_path": (
+                        f"/workspace/studies/{study_id}/artifacts/supervision/consumer/"
+                        "default_executor_execution/sat_58099ea2494e3ed8eb6f978a.closeout.json"
+                    ),
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "study_progress.next_forced_delta.owner_action",
+            "next_owner": "gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": source_eval_id,
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "owner_receipt_required": True,
+        },
+        next_owner="gate_clearing_batch",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "publication_gate"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["state"]["blocker_type"] == "publication_gate_replay_blocked"
+    assert work_unit["state"]["typed_blocker"]["gate_replay_status"] == "blocked"
+    assert work_unit["state"]["typed_blocker"]["gate_replay_blockers"] == [
+        "medical_publication_surface_blocked",
+        "claim_evidence_consistency_failed",
+    ]
+    assert work_unit["state"]["typed_blocker"]["source_ref"].endswith(
+        "/artifacts/controller/gate_clearing_batch/latest.json"
+    )
+
+
 def test_current_work_unit_prefers_raw_terminal_handoff_over_flattened_monitoring_summary() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

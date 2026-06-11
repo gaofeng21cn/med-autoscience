@@ -12,6 +12,7 @@ from med_autoscience.controllers.guarded_apply_owner_delta_contract import (
     normalize_guarded_apply_current_owner_delta,
 )
 from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
+    consumed_gate_replay_blocker_for_action,
     gate_replay_consumed_by_source_eval,
     terminal_closeout_blocker_for_action,
 )
@@ -23,6 +24,19 @@ from med_autoscience.controllers.current_work_unit_parts.action_projection_field
     required_output_contract as _required_output_contract,
     work_unit_fingerprint as _work_unit_fingerprint,
     work_unit_id as _work_unit_id,
+)
+from med_autoscience.controllers.current_work_unit_parts.policy_constants import (
+    CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS,
+    CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS,
+    LIVE_ATTEMPT_SUPERSEDED_BLOCKERS,
+    MEDICAL_READINESS_BLOCKERS,
+    OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE,
+    PAPER_DELTA_PRIOR_BLOCKER_SUPERSEDING_ACTION_SOURCES,
+    PROVIDER_ADMISSION_AUTHORITIES,
+    PROVIDER_ADMISSION_REPAIR_ACTIONS,
+    REASON_ONLY_TYPED_BLOCKERS,
+    RUNNING_HEALTH_VALUES,
+    TERMINAL_CLOSEOUT_STATUSES,
 )
 from med_autoscience.controllers.stage_route_currentness_identity import (
     currentness_identities_match,
@@ -40,116 +54,6 @@ ALLOWED_STATUSES = (
     "running_provider_attempt",
     "typed_blocker",
     "blocked_current_work_unit",
-)
-LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
-    {
-        "live_worker_requires_worker_running",
-        "managed_runtime_audit_unhealthy",
-        "domain_owner_action_dispatch_execution_count_zero",
-        "medical_paper_readiness_missing",
-        "medical_paper_readiness_not_ready",
-        "no_selected_dispatch_for_requested_action_types",
-        "opl_execution_authorization_required",
-        "opl_current_control_state.handoff_required",
-        "opl_stage_attempt_admission_required",
-        "provider_admission_current_control_state_required",
-        "quest_waiting_opl_runtime_owner_route",
-        "repair_progress_ai_reviewer_recheck_required",
-        "run_quality_repair_batch_not_visible_in_current_opl_control_state",
-        "runtime_recovery_not_authorized",
-        "runtime_recovery_retry_budget_exhausted",
-        "stage_packet_superseded_by_current_consumed_domain_transition",
-    }
-)
-CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS = frozenset(
-    {
-        "opl_execution_authorization_required",
-        "opl_current_control_state.handoff_required",
-        "opl_stage_attempt_admission_required",
-        "provider_admission_current_control_state_required",
-        "quest_marked_running_but_no_live_session",
-        "quest_waiting_opl_runtime_owner_route",
-        "repair_progress_ai_reviewer_recheck_required",
-        "repair_progress_gate_replay_required",
-        "runtime_recovery_not_authorized",
-    }
-)
-MEDICAL_READINESS_BLOCKERS = frozenset(
-    {
-        "medical_paper_readiness_missing",
-        "medical_paper_readiness_not_ready",
-    }
-)
-CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS = frozenset(
-    {
-        "domain_owner_action_dispatch_execution_count_zero",
-        "gate_clearing_batch_source_eval_currentness_mismatch",
-        "no_selected_dispatch_for_requested_action_types",
-        "owner_route_stale",
-        "run_quality_repair_batch_not_visible_in_current_opl_control_state",
-        "stale_stage_attempt_current_owner_route_superseded",
-        "stage_packet_superseded_by_current_consumed_domain_transition",
-        "stale_stage_packet_current_owner_route_changed",
-    }
-)
-PAPER_DELTA_PRIOR_BLOCKER_SUPERSEDING_ACTION_SOURCES = frozenset(
-    {
-        "domain_transition",
-        "repair_progress_projection.mas_owner_repair_execution_evidence",
-        "study_progress.next_forced_delta.owner_action",
-    }
-)
-OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE = "opl_current_control_state_action_queue"
-PROVIDER_ADMISSION_REPAIR_ACTIONS = frozenset(
-    {
-        "return_to_ai_reviewer_workflow",
-        "run_gate_clearing_batch",
-        "run_quality_repair_batch",
-    }
-)
-PROVIDER_ADMISSION_AUTHORITIES = frozenset({"mas_provider_admission_identity"})
-REASON_ONLY_TYPED_BLOCKERS = frozenset(
-    {
-        "medical_paper_readiness_missing",
-        "medical_paper_readiness_not_ready",
-        "medical_prose_review_request_rehydrate_required",
-        "paper_progress_stall_current_missing",
-        "paper_progress_stall_fingerprint_stale",
-        "paper_progress_stall_terminal",
-        "progress_first_owner_redrive_budget_exhausted",
-        "typed_closeout_packet_required",
-    }
-)
-RUNNING_HEALTH_VALUES = frozenset(
-    {
-        "attempt_running",
-        "live",
-        "provider_admitted",
-        "running",
-    }
-)
-TERMINAL_CLOSEOUT_STATUSES = frozenset(
-    {
-        "blocked",
-        "closed",
-        "closed_with_domain_owner_refs",
-        "closed_with_owner_receipt_refs",
-        "completed",
-        "completed_with_domain_owner_record_only_archive",
-        "completed_with_record_only_artifact_delta",
-        "executed_progress_delta",
-        "executed_record_only",
-        "executed_record_only_archive_materialized",
-        "executed_with_domain_side_effect_observed",
-        "executed_with_owner_receipt",
-        "failed",
-        "materialized_record_only_archive",
-        "record_materialized_with_domain_owner_followthrough_observed",
-        "record_only_archive_materialized",
-        "repeat_suppressed",
-        "terminal",
-        "typed_blocked",
-    }
 )
 AUTHORITY_BOUNDARY = {
     "surface_kind": SURFACE_KIND,
@@ -260,6 +164,24 @@ def build_current_work_unit(
         runtime_health=runtime_health_payload,
         running_attempt=running_attempt,
     )
+    gate_replay_blocker = consumed_gate_replay_blocker_for_action(
+        progress=progress_payload,
+        action=action,
+        currentness_basis=basis,
+        mapping=_mapping,
+        text=_text,
+        text_items=_text_items,
+    )
+    if gate_replay_blocker is not None:
+        return _typed_blocker_work_unit(
+            blocker=gate_replay_blocker,
+            action=action,
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            source_refs=resolved_source_refs,
+            currentness_basis=basis,
+            source="gate_clearing_batch_followthrough",
+        )
     if running_attempt is not None:
         if _running_attempt_can_supersede_blocker(resolved_typed_blocker):
             return _current_work_unit(

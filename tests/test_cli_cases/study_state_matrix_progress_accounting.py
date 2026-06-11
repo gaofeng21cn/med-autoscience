@@ -195,6 +195,58 @@ def test_study_state_matrix_does_not_count_stale_active_run_id_as_running(
     assert transition["next_work_unit"]["lane"] == "review"
 
 
+def test_study_progress_suppresses_non_running_opl_stage_attempt_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    domain_status_projection = importlib.import_module("med_autoscience.controllers.domain_status_projection")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    def fake_progress_projection(*, study_id: str, **_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "runtime_liveness_status": "blocked",
+            "active_run_id": None,
+            "continuation_state": {
+                "quest_status": "active",
+                "active_run_id": "opl-stage-attempt://sat-stale",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+            },
+            "opl_current_control_state": {
+                "status": "blocked",
+                "running_provider_attempt": False,
+                "active_run_id": None,
+                "current_execution_envelopes": {
+                    study_id: {
+                        "state_kind": "typed_blocker",
+                        "owner": "publication_gate",
+                    }
+                },
+            },
+        }
+
+    monkeypatch.setattr(domain_status_projection, "progress_projection", fake_progress_projection)
+
+    payload = progress.read_study_progress(profile=profile, study_id=study_id, materialize_read_model_artifacts=False)
+
+    assert payload["active_run_id"] is None
+    assert payload["opl_runtime_refs"]["active_run_id"] is None
+    assert payload["opl_runtime_refs"]["active_run_id_source"] == "invalidated_no_running_provider_attempt"
+    assert payload["opl_runtime_refs"]["strict_live"] is False
+
+
 def test_study_state_matrix_fail_closes_generic_target_surface_owner_action(
     monkeypatch,
     tmp_path: Path,

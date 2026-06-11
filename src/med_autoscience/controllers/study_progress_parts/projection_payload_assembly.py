@@ -1028,9 +1028,40 @@ def _active_run_id_with_live_handoff(
     *,
     handoff: Mapping[str, Any],
 ) -> str | None:
-    if not _handoff_has_strict_live_provider_attempt(handoff):
-        return active_run_id
-    return _non_empty_text(handoff.get("active_run_id")) or active_run_id
+    if _handoff_has_strict_live_provider_attempt(handoff):
+        return _non_empty_text(handoff.get("active_run_id")) or active_run_id
+    if _handoff_disproves_active_run_id(handoff, active_run_id):
+        return None
+    return active_run_id
+
+
+def _handoff_disproves_active_run_id(
+    handoff: Mapping[str, Any],
+    active_run_id: str | None,
+) -> bool:
+    if active_run_id is None:
+        return False
+    if not active_run_id.startswith("opl-stage-attempt://"):
+        return False
+    if handoff.get("running_provider_attempt") is True:
+        return False
+    runtime_health = _mapping_copy(handoff.get("runtime_health"))
+    runtime_liveness_status = _non_empty_text(runtime_health.get("runtime_liveness_status"))
+    health_status = _non_empty_text(runtime_health.get("health_status"))
+    return not (
+        runtime_liveness_status in {
+            "attempt_running",
+            "provider_admitted",
+            "running",
+            "live",
+        }
+        or health_status in {
+            "attempt_running",
+            "provider_admitted",
+            "running",
+            "live",
+        }
+    )
 
 
 def _handoff_has_strict_live_provider_attempt(handoff: Mapping[str, Any]) -> bool:
@@ -1098,6 +1129,11 @@ def _runtime_refs_with_live_handoff(
     handoff: Mapping[str, Any],
 ) -> dict[str, Any]:
     result = dict(refs)
+    if _handoff_disproves_active_run_id(handoff, _non_empty_text(result.get("active_run_id"))):
+        result["stale_active_run_id"] = result.get("active_run_id")
+        result["active_run_id"] = None
+        result["active_run_id_source"] = "invalidated_no_running_provider_attempt"
+        result["strict_live"] = False
     if not _handoff_has_strict_live_provider_attempt(handoff):
         return result
     active_run_id = _active_run_id_with_live_handoff(

@@ -3,6 +3,8 @@ from __future__ import annotations
 import subprocess
 import sys
 
+from med_autoscience.display_pack_e2e_runtime import _run_subprocess_renderer
+
 from .shared import Any, Path, _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID, _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID, _REPO_ROOT, _build_paper_surface_readmes, _build_render_context, _illustration_payload_path, _paper_relative_path, _prune_unreferenced_generated_surface_outputs, _replace_catalog_entry, _require_namespaced_registry_id, _resolve_figure_catalog_id, _resolve_illustration_shell_paper_role, _resolve_table_catalog_id, _table_payload_path, display_layout_qc, display_pack_lock, display_pack_runtime, display_registry, dump_json, get_template_short_id, load_json, publication_display_contract, utc_now, write_text
 from .contract_backed_registry import resolve_contract_backed_figure_registry_fields, resolve_contract_backed_layout_sidecar_path
 from .payload_loader import _load_evidence_display_payload
@@ -153,6 +155,58 @@ def _resolve_requirement_key_from_shell(
     if shell_id and display_registry.is_illustration_shell(shell_id):
         return shell_id
     return requirement_key
+
+
+def _render_evidence_figure_by_template_runtime(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    paper_root: Path,
+    figure_id: str,
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+    output_svg_path: Path | None = None,
+) -> dict[str, Any]:
+    runtime = display_pack_runtime.resolve_display_template_runtime(
+        repo_root=_REPO_ROOT,
+        template_id=template_id,
+        paper_root=paper_root,
+    )
+    template_manifest = runtime.template_manifest
+    if template_manifest.execution_mode == "python_plugin":
+        render_callable = display_pack_runtime.load_python_plugin_callable(
+            repo_root=_REPO_ROOT,
+            template_id=template_id,
+            paper_root=paper_root,
+        )
+        render_kwargs = {
+            "template_id": template_id,
+            "display_payload": display_payload,
+            "output_png_path": output_png_path,
+            "output_pdf_path": output_pdf_path,
+            "layout_sidecar_path": layout_sidecar_path,
+        }
+        if output_svg_path is not None:
+            render_kwargs["output_svg_path"] = output_svg_path
+        render_result = render_callable(**render_kwargs)
+        return dict(render_result) if isinstance(render_result, dict) else {}
+    if output_svg_path is not None:
+        raise ValueError(f"subprocess evidence figure template `{template_id}` cannot export svg from this materializer")
+    if template_manifest.execution_mode == "subprocess":
+        return _run_subprocess_renderer(
+            runtime_template_root=runtime.template_path.parent,
+            pack_root=runtime.pack_root,
+            template_manifest=template_manifest,
+            paper_root=paper_root,
+            figure_id=figure_id,
+            full_template_id=template_manifest.full_template_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=layout_sidecar_path,
+        )
+    raise ValueError(f"unsupported display template execution mode `{template_manifest.execution_mode}`")
 
 
 def _materialize_contract_backed_figure(
@@ -779,21 +833,16 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 layout_sidecar_path=layout_sidecar_path,
                 output_svg_path=output_svg_path,
             )
-            render_callable = display_pack_runtime.load_python_plugin_callable(
-                repo_root=_REPO_ROOT,
+            render_result = _render_evidence_figure_by_template_runtime(
                 template_id=spec.template_id,
+                display_payload=render_payload,
                 paper_root=resolved_paper_root,
+                figure_id=figure_id,
+                output_png_path=output_png_path,
+                output_pdf_path=output_pdf_path,
+                layout_sidecar_path=layout_sidecar_path,
+                output_svg_path=output_svg_path,
             )
-            render_kwargs = {
-                "template_id": spec.template_id,
-                "display_payload": render_payload,
-                "output_png_path": output_png_path,
-                "output_pdf_path": output_pdf_path,
-                "layout_sidecar_path": layout_sidecar_path,
-            }
-            if output_svg_path is not None:
-                render_kwargs["output_svg_path"] = output_svg_path
-            render_callable(**render_kwargs)
             layout_sidecar = _load_layout_sidecar_or_raise(path=layout_sidecar_path, template_id=spec.template_id)
             layout_sidecar["render_context"] = render_context
             dump_json(layout_sidecar_path, layout_sidecar)
@@ -837,6 +886,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 ],
                 "claim_ids": [],
                 "render_context": render_context,
+                "render_result": render_result,
             }
             figure_catalog["figures"] = _replace_catalog_entry(
                 list(figure_catalog.get("figures") or []),

@@ -36,6 +36,25 @@ def _is_opl_stage_attempt_run_id(value: str | None) -> bool:
     return bool(value and value.startswith(_OPL_STAGE_ATTEMPT_PREFIX))
 
 
+def _opl_control_disproves_running_attempt(
+    *,
+    opl_control_present: bool,
+    opl_control: Mapping[str, Any],
+    runtime_liveness_status: str,
+    active_run_id: str | None,
+) -> bool:
+    if not opl_control_present or not _is_opl_stage_attempt_run_id(active_run_id):
+        return False
+    if opl_control.get("running_provider_attempt") is True:
+        return False
+    return runtime_liveness_status not in {
+        "attempt_running",
+        "provider_admitted",
+        "running",
+        "live",
+    }
+
+
 def _trusted_continuation_stage_attempt(
     *,
     active_run_id: str | None,
@@ -209,6 +228,14 @@ def resolve_opl_runtime_refs(
     reason = _text(status_payload.get("reason")) or _text(status_payload.get("runtime_reason"))
     opl_control_present = bool(opl_control)
     liveness_source_present = bool(runtime_liveness_audit)
+    if _opl_control_disproves_running_attempt(
+        opl_control_present=opl_control_present,
+        opl_control=opl_control,
+        runtime_liveness_status=runtime_liveness_status,
+        active_run_id=active_run_id,
+    ):
+        active_run_id = None
+        active_run_id_source = "invalidated_no_running_provider_attempt"
     if (
         not opl_control_present
         and
