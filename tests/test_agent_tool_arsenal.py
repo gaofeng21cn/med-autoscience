@@ -32,6 +32,15 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
     assert progress["result_envelope_schema_ref"] == (
         "contracts/agent_tool_arsenal.json#/result_envelope_schema"
     )
+    assert progress["lightweight_executor_receipt_contract_ref"] == (
+        "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract"
+    )
+    assert progress["executor_receipt_ref_policy"] == {
+        "field": "executor_receipt_ref",
+        "required": False,
+        "receipt_only": True,
+        "can_block_current_owner_action": False,
+    }
     assert "current_owner_delta" in progress["when_to_use"]
 
     capability_registry = arsenal["scientific_capability_registry"]
@@ -103,6 +112,10 @@ def test_agent_tool_arsenal_indexes_owner_callable_cards_with_lifecycle_contract
         "no_op_current",
         "failed",
     ]
+    assert schema["properties"]["executor_receipt_ref"]["type"] == "string"
+    assert schema["properties"]["lightweight_executor_receipt_contract_ref"]["const"] == (
+        "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract"
+    )
 
 
 def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner_delta() -> None:
@@ -125,6 +138,12 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert plan["authority_boundary"]["can_write_publication_quality"] is False
     assert "verify_required_input_refs" in plan["invocation_steps"]
     assert "emit_tool_result_envelope" in plan["invocation_steps"]
+    assert "attach_optional_lightweight_executor_receipt_ref" in plan["invocation_steps"]
+    assert plan["requires"]["executor_receipt_ref_required"] is False
+    assert plan["requires"]["lightweight_executor_receipt_contract_ref"] == (
+        "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract"
+    )
+    assert plan["authority_boundary"]["executor_receipt_can_block_current_owner_action"] is False
 
     display_plan = module.build_capability_invocation_plan(
         current_owner_delta={
@@ -139,6 +158,7 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert display_plan["selected_tool_id"] == "display_pack_agent"
     assert display_plan["selected_tool_mode"] == "preflight"
     assert display_plan["requires"]["owner_receipt_or_typed_blocker"] is False
+    assert display_plan["requires"]["executor_receipt_ref_required"] is False
 
 
 def test_agent_tool_arsenal_completeness_diagnostic_maps_runtime_and_support_tools() -> None:
@@ -177,6 +197,11 @@ def test_agent_tool_arsenal_completeness_diagnostic_maps_runtime_and_support_too
         "scientific_capability_registry",
         "study_progress",
     ]
+    assert diagnostic["lightweight_executor_receipt_contract_ref"] == (
+        "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract"
+    )
+    assert diagnostic["executor_receipt_ref_policy"]["receipt_only"] is True
+    assert diagnostic["executor_receipt_ref_policy"]["can_block_current_owner_action"] is False
     assert "agent_tool_arsenal" in diagnostic["support_or_diagnostic_mcp_tools"]
     assert "doctor_audit" in diagnostic["support_or_diagnostic_mcp_tools"]
     assert diagnostic["authority_boundary"]["diagnostic_only"] is True

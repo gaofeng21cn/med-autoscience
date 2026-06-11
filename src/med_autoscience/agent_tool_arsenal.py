@@ -16,6 +16,10 @@ CONTRACT_ID = "mas_agent_tool_arsenal.v1"
 CONTRACT_REF = "contracts/agent_tool_arsenal.json"
 RESULT_ENVELOPE_SCHEMA_REF = f"{CONTRACT_REF}#/result_envelope_schema"
 AUDIT_TRAIL_SCHEMA_REF = f"{CONTRACT_REF}#/tool_audit_trail_schema"
+LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF = (
+    "src/med_autoscience/lightweight_executor_receipts.py::"
+    "build_lightweight_executor_receipt_contract"
+)
 ORDINARY_PLANNING_ROOT = "current_owner_delta"
 FORBIDDEN_DOMAIN_AUTHORITY = [
     "study_truth",
@@ -61,6 +65,10 @@ def build_tool_result_envelope_schema() -> dict[str, Any]:
             "structured_content_ref": {"type": "string"},
             "structured_payload": {"type": "object"},
             "raw_surface_kind": {"type": "string"},
+            "executor_receipt_ref": {"type": "string"},
+            "lightweight_executor_receipt_contract_ref": {
+                "const": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
+            },
             "owner_receipt_ref": {"type": "string"},
             "typed_blocker_ref": {"type": "string"},
             "result_summary": {"type": "string"},
@@ -147,6 +155,8 @@ def build_agent_tool_arsenal_completeness_diagnostic(
         "owner_callable_card_count": len(
             [item for item in list(payload.get("owner_callable_cards") or []) if isinstance(item, Mapping)]
         ),
+        "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
+        "executor_receipt_ref_policy": _executor_receipt_ref_policy(),
         "issues": issues,
         "authority_boundary": {
             "diagnostic_only": True,
@@ -231,6 +241,8 @@ def build_agent_tool_arsenal_index(
         "result_envelope_schema": build_tool_result_envelope_schema(),
         "tool_audit_trail_schema_ref": AUDIT_TRAIL_SCHEMA_REF,
         "tool_audit_trail_schema": build_tool_audit_trail_schema(),
+        "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
+        "executor_receipt_ref_policy": _executor_receipt_ref_policy(),
         "authority_boundary": {
             "mas_owns_domain_truth_and_authority_functions": True,
             "opl_owns_generated_descriptor_projection": True,
@@ -353,6 +365,8 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         "output_schema_ref": _text(action.get("output_schema_ref")),
         "output_schema": _output_schema_for_action(action),
         "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
+        "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
+        "executor_receipt_ref_policy": _executor_receipt_ref_policy(),
         "allowed_writes": (
             _allowed_writes_for_action(action_id)
             if (not read_only or refs_only_runtime_write)
@@ -433,6 +447,10 @@ def _build_owner_callable_cards() -> list[dict[str, Any]]:
                 ),
                 "gate_replay_target": callable_payload.get("gate_replay_target"),
                 "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
+                "lightweight_executor_receipt_contract_ref": (
+                    LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
+                ),
+                "executor_receipt_ref_policy": _executor_receipt_ref_policy(),
                 "authority_boundary": {
                     "can_write_domain_truth": False,
                     "can_write_publication_quality": False,
@@ -468,6 +486,10 @@ def _owner_callable_invocation_plan(
                     "requires_owner_receipt_or_typed_blocker"
                 )
             ),
+            "executor_receipt_ref_required": False,
+            "lightweight_executor_receipt_contract_ref": (
+                LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
+            ),
         },
         "invocation_steps": [
             "verify_required_input_refs",
@@ -475,6 +497,7 @@ def _owner_callable_invocation_plan(
             "check_allowed_writes_and_forbidden_authority",
             "invoke_owner_callable_surface",
             "emit_tool_result_envelope",
+            "attach_optional_lightweight_executor_receipt_ref",
         ],
         "authority_boundary": {
             "can_write_domain_truth": False,
@@ -482,8 +505,11 @@ def _owner_callable_invocation_plan(
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
             "tool_result_envelope_is_authority_outcome": False,
+            "executor_receipt_can_block_current_owner_action": False,
+            "executor_receipt_counts_as_owner_receipt": False,
         },
         "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
+        "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
     }
 
 
@@ -507,12 +533,17 @@ def _action_invocation_plan(
             "owner_receipt_or_typed_blocker": bool(
                 _mapping(action_card.get("authority_effects")).get("can_return_owner_receipt")
             ),
+            "executor_receipt_ref_required": False,
+            "lightweight_executor_receipt_contract_ref": (
+                LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
+            ),
         },
         "invocation_steps": [
             "verify_required_input_refs",
             "check_allowed_writes_and_forbidden_authority",
             "invoke_mcp_or_descriptor_target",
             "emit_tool_result_envelope",
+            "attach_optional_lightweight_executor_receipt_ref",
         ],
         "authority_boundary": {
             "can_write_domain_truth": False,
@@ -520,8 +551,11 @@ def _action_invocation_plan(
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
             "tool_result_envelope_is_authority_outcome": False,
+            "executor_receipt_can_block_current_owner_action": False,
+            "executor_receipt_counts_as_owner_receipt": False,
         },
         "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
+        "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
     }
 
 
@@ -541,6 +575,11 @@ def _capability_invocation_plan_contract() -> dict[str, Any]:
             "check_allowed_writes_and_forbidden_authority",
             "emit_tool_result_envelope",
         ],
+        "optional_receipt_evidence": {
+            "executor_receipt_ref": "may_attach_when_available",
+            "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
+            "can_block_current_owner_action": False,
+        },
         "non_authority_rule": (
             "Invocation metadata never becomes MAS study truth, publication quality, "
             "artifact authority, memory authority, or production readiness."
@@ -583,6 +622,15 @@ def _allowed_writes_for_action(action_id: str) -> list[str]:
             "explicit OPL opt-in executor/proof refs",
         ]
     return ["MAS domain handler target refs only"]
+
+
+def _executor_receipt_ref_policy() -> dict[str, Any]:
+    return {
+        "field": "executor_receipt_ref",
+        "required": False,
+        "receipt_only": True,
+        "can_block_current_owner_action": False,
+    }
 
 
 def _when_to_use(*, action_id: str, summary: str) -> str:
@@ -670,6 +718,7 @@ __all__ = [
     "AUDIT_TRAIL_SCHEMA_REF",
     "CONTRACT_ID",
     "CONTRACT_REF",
+    "LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF",
     "ORDINARY_PLANNING_ROOT",
     "RESULT_ENVELOPE_SCHEMA_REF",
     "build_agent_tool_arsenal_completeness_diagnostic",

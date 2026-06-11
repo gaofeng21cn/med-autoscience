@@ -25,9 +25,11 @@ FORBIDDEN_WRITES = (
     "memory/**/body",
 )
 EXECUTION_REF_FIELDS = (
+    "status",
     "exit_code",
     "stdout_ref",
     "stderr_ref",
+    "output_refs",
     "artifact_refs",
     "changed_file_refs",
     "duration_ms",
@@ -83,6 +85,7 @@ def build_lightweight_executor_receipt(
         "command_ref": _text(command_ref) or "missing_command_ref",
         "work_unit": _work_unit_payload(work_unit),
         "execution": _execution_payload(execution),
+        "evidence_source": _evidence_source_payload(None),
         "isolation": _isolation_payload(
             effective_level=effective_level,
             requested_level=requested_level,
@@ -100,6 +103,55 @@ def build_lightweight_executor_receipt(
         "authority_boundary": _authority_boundary(),
         "readiness_authorization": _readiness_authorization(),
     }
+
+
+def build_lightweight_executor_receipt_from_evidence(
+    evidence: Mapping[str, Any],
+    *,
+    work_unit: Mapping[str, Any] | None = None,
+    executor_backend: str | None = None,
+    command_ref: str | None = None,
+    requested_isolation_level: str | None = None,
+    host_context: Mapping[str, Any] | None = None,
+    explicit_sandbox_request: bool | None = None,
+) -> dict[str, Any]:
+    payload = _mapping(evidence)
+    source_payload = _source_payload(payload)
+    audit_trail = _mapping(payload.get("audit_trail"))
+    explicit_work_unit = _mapping(work_unit)
+    inferred_work_unit = _work_unit_from_evidence(payload=payload, source_payload=source_payload)
+    inferred_work_unit.update({key: value for key, value in explicit_work_unit.items() if _text(value)})
+    backend = (
+        _text(executor_backend)
+        or _text(payload.get("executor_backend"))
+        or ("tool_result_envelope" if _is_tool_result_envelope(payload) else "executor_evidence_dict")
+    )
+    sandbox_request = (
+        bool(payload.get("explicit_sandbox_request"))
+        if explicit_sandbox_request is None
+        else explicit_sandbox_request
+    )
+    receipt = build_lightweight_executor_receipt(
+        executor_backend=backend,
+        command_ref=(
+            _text(command_ref)
+            or _text(payload.get("command_ref"))
+            or _command_ref_from_evidence(payload)
+        ),
+        work_unit=inferred_work_unit,
+        execution=_execution_from_evidence(
+            payload=payload,
+            source_payload=source_payload,
+            audit_trail=audit_trail,
+        ),
+        requested_isolation_level=(
+            _text(requested_isolation_level) or _text(payload.get("requested_isolation_level"))
+        ),
+        host_context=host_context if host_context is not None else _mapping(payload.get("host_context")),
+        explicit_sandbox_request=sandbox_request,
+    )
+    receipt["evidence_source"] = _evidence_source_payload(payload)
+    return receipt
 
 
 def build_lightweight_executor_receipt_contract() -> dict[str, Any]:
@@ -214,9 +266,11 @@ def _work_unit_payload(value: Mapping[str, Any] | None) -> dict[str, Any]:
 def _execution_payload(value: Mapping[str, Any] | None) -> dict[str, Any]:
     payload = _mapping(value)
     return {
+        "status": _text(payload.get("status")),
         "exit_code": _int_or_none(payload.get("exit_code")),
         "stdout_ref": _text(payload.get("stdout_ref")),
         "stderr_ref": _text(payload.get("stderr_ref")),
+        "output_refs": _text_list(payload.get("output_refs")),
         "artifact_refs": _text_list(payload.get("artifact_refs")),
         "changed_file_refs": _text_list(payload.get("changed_file_refs")),
         "duration_ms": _int_or_none(payload.get("duration_ms")),
@@ -225,6 +279,135 @@ def _execution_payload(value: Mapping[str, Any] | None) -> dict[str, Any]:
         "env_fingerprint": _text(payload.get("env_fingerprint")),
         "failure_class": _text(payload.get("failure_class")),
     }
+
+
+def _execution_from_evidence(
+    *,
+    payload: Mapping[str, Any],
+    source_payload: Mapping[str, Any],
+    audit_trail: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "status": _first_text(source_payload, payload, "status"),
+        "exit_code": source_payload.get("exit_code", payload.get("exit_code")),
+        "stdout_ref": _first_text(source_payload, payload, "stdout_ref"),
+        "stderr_ref": _first_text(source_payload, payload, "stderr_ref"),
+        "output_refs": _output_refs_from_evidence(
+            payload=payload,
+            source_payload=source_payload,
+            audit_trail=audit_trail,
+        ),
+        "artifact_refs": _first_text_list(source_payload, payload, "artifact_refs"),
+        "changed_file_refs": _first_text_list(source_payload, payload, "changed_file_refs"),
+        "duration_ms": source_payload.get("duration_ms", payload.get("duration_ms")),
+        "resource_usage_ref": _first_text(source_payload, payload, "resource_usage_ref"),
+        "working_dir_ref": _first_text(source_payload, payload, "working_dir_ref"),
+        "env_fingerprint": _first_text(source_payload, payload, "env_fingerprint"),
+        "failure_class": _first_text(source_payload, payload, "failure_class"),
+    }
+
+
+def _source_payload(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    structured = payload.get("structured_payload")
+    return structured if isinstance(structured, Mapping) else payload
+
+
+def _is_tool_result_envelope(payload: Mapping[str, Any]) -> bool:
+    return _text(payload.get("surface_kind")) == "mas_tool_result_envelope"
+
+
+def _command_ref_from_evidence(payload: Mapping[str, Any]) -> str:
+    if _is_tool_result_envelope(payload):
+        tool_id = _text(payload.get("tool_id")) or "unknown_tool"
+        tool_mode = _text(payload.get("tool_mode"))
+        return f"tool_result_envelope:{tool_id}:{tool_mode}" if tool_mode else f"tool_result_envelope:{tool_id}"
+    action_type = _text(payload.get("action_type")) or _text(payload.get("action_id")) or "unknown_action"
+    return f"executor_evidence:{action_type}"
+
+
+def _work_unit_from_evidence(
+    *,
+    payload: Mapping[str, Any],
+    source_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "owner": _first_text(source_payload, payload, "owner"),
+        "action_type": (
+            _first_text(source_payload, payload, "action_type")
+            or _first_text(source_payload, payload, "action_id")
+            or _first_text(source_payload, payload, "tool_id")
+        ),
+        "action_id": _first_text(source_payload, payload, "action_id"),
+        "work_unit_id": _first_text(source_payload, payload, "work_unit_id")
+        or _first_text(source_payload, payload, "unit_id"),
+        "work_unit_fingerprint": _first_text(source_payload, payload, "work_unit_fingerprint"),
+        "source_fingerprint": _first_text(source_payload, payload, "source_fingerprint"),
+        "idempotency_key": _first_text(source_payload, payload, "idempotency_key"),
+    }
+
+
+def _evidence_source_payload(value: Mapping[str, Any] | None) -> dict[str, Any]:
+    payload = _mapping(value)
+    source_payload = _source_payload(payload)
+    return {
+        "surface_kind": _text(payload.get("surface_kind")),
+        "tool_id": _text(payload.get("tool_id")) or _text(source_payload.get("tool_id")),
+        "tool_mode": _text(payload.get("tool_mode")) or _text(source_payload.get("tool_mode")),
+        "action_type": _text(payload.get("action_type")) or _text(source_payload.get("action_type")),
+        "status": _text(payload.get("status")) or _text(source_payload.get("status")),
+        "content_ref": _text(payload.get("content_ref")),
+        "structured_content_ref": _text(payload.get("structured_content_ref")),
+        "executor_receipt_ref": _text(payload.get("executor_receipt_ref")),
+        "lightweight_executor_receipt_contract_ref": _text(
+            payload.get("lightweight_executor_receipt_contract_ref")
+        ),
+    }
+
+
+def _output_refs_from_evidence(
+    *,
+    payload: Mapping[str, Any],
+    source_payload: Mapping[str, Any],
+    audit_trail: Mapping[str, Any],
+) -> list[str]:
+    refs: list[str] = []
+    refs.extend(_text_list(payload.get("content_ref")))
+    refs.extend(_text_list(payload.get("structured_content_ref")))
+    refs.extend(_text_list(source_payload.get("output_refs")))
+    refs.extend(_text_list(payload.get("output_refs")))
+    refs.extend(_text_list(source_payload.get("artifact_refs")))
+    refs.extend(_text_list(payload.get("artifact_refs")))
+    refs.extend(_text_list(source_payload.get("changed_file_refs")))
+    refs.extend(_text_list(payload.get("changed_file_refs")))
+    refs.extend(_text_list(audit_trail.get("allowed_write_refs")))
+    refs.extend(_text_list(audit_trail.get("receipt_refs")))
+    refs.extend(_text_list(payload.get("executor_receipt_ref")))
+    return _dedupe_text(refs)
+
+
+def _first_text(primary: Mapping[str, Any], secondary: Mapping[str, Any], key: str) -> str | None:
+    return _text(primary.get(key)) or _text(secondary.get(key))
+
+
+def _first_text_list(
+    primary: Mapping[str, Any],
+    secondary: Mapping[str, Any],
+    key: str,
+) -> list[str]:
+    values = _text_list(primary.get(key))
+    return values if values else _text_list(secondary.get(key))
+
+
+def _dedupe_text(values: Sequence[object]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = _text(value)
+        if text is None or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
 
 
 def _authority_boundary() -> dict[str, bool | str]:
@@ -311,5 +494,6 @@ __all__ = [
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "build_lightweight_executor_receipt",
+    "build_lightweight_executor_receipt_from_evidence",
     "build_lightweight_executor_receipt_contract",
 ]

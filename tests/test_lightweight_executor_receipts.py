@@ -108,6 +108,108 @@ def test_lightweight_executor_receipt_allows_explicit_l3_proof_lane_without_auth
     assert receipt["execution"]["failure_class"] == "dependency_resolution_failed"
 
 
+def test_lightweight_executor_receipt_builds_from_tool_result_envelope_refs_only() -> None:
+    module = importlib.import_module("med_autoscience.lightweight_executor_receipts")
+
+    receipt = module.build_lightweight_executor_receipt_from_evidence(
+        {
+            "surface_kind": "mas_tool_result_envelope",
+            "tool_id": "study_progress",
+            "tool_mode": "status",
+            "status": "failed",
+            "content_ref": "mcp://mas/tools/study_progress/content",
+            "structured_content_ref": "mcp://mas/tools/study_progress/structuredContent",
+            "structured_payload": {
+                "artifact_refs": ["artifacts/progress/latest.json"],
+                "changed_file_refs": ["artifacts/progress/latest.json"],
+                "stdout_ref": "artifacts/executor/stdout.txt",
+                "stderr_ref": "artifacts/executor/stderr.txt",
+                "failure_class": "progress_projection_failed",
+                "env_fingerprint": "sha256:env",
+            },
+            "audit_trail": {
+                "allowed_write_refs": ["artifacts/progress/latest.json"],
+                "receipt_refs": ["artifacts/executor_receipts/study_progress.json"],
+            },
+        },
+        work_unit={
+            "owner": "MedAutoScience",
+            "action_type": "study_progress",
+            "work_unit_id": "progress-read",
+            "work_unit_fingerprint": "sha256:work-unit",
+        },
+    )
+
+    assert receipt["surface_kind"] == "mas_lightweight_executor_receipt"
+    assert receipt["executor_backend"] == "tool_result_envelope"
+    assert receipt["command_ref"] == "tool_result_envelope:study_progress:status"
+    assert receipt["status"] == "executor_receipt_recorded"
+    assert receipt["work_unit"]["action_type"] == "study_progress"
+    assert receipt["work_unit"]["work_unit_fingerprint"] == "sha256:work-unit"
+    assert receipt["execution"]["status"] == "failed"
+    assert receipt["execution"]["stdout_ref"] == "artifacts/executor/stdout.txt"
+    assert receipt["execution"]["stderr_ref"] == "artifacts/executor/stderr.txt"
+    assert receipt["execution"]["output_refs"] == [
+        "mcp://mas/tools/study_progress/content",
+        "mcp://mas/tools/study_progress/structuredContent",
+        "artifacts/progress/latest.json",
+        "artifacts/executor_receipts/study_progress.json",
+    ]
+    assert receipt["execution"]["failure_class"] == "progress_projection_failed"
+    assert receipt["execution"]["env_fingerprint"] == "sha256:env"
+    assert receipt["evidence_source"]["surface_kind"] == "mas_tool_result_envelope"
+    assert receipt["evidence_source"]["tool_id"] == "study_progress"
+    assert receipt["refs_only"] is True
+    assert receipt["body_included"] is False
+    assert receipt["authority_boundary"]["can_execute_command"] is False
+    assert receipt["authority_boundary"]["can_write_owner_receipt"] is False
+    assert receipt["authority_boundary"]["can_write_typed_blocker"] is False
+    assert receipt["can_block_current_owner_action"] is False
+
+
+def test_lightweight_executor_receipt_builds_from_executor_evidence_dict_and_keeps_l3_explicit() -> None:
+    module = importlib.import_module("med_autoscience.lightweight_executor_receipts")
+
+    receipt = module.build_lightweight_executor_receipt_from_evidence(
+        {
+            "executor_backend": "codex_default_executor",
+            "command_ref": "artifacts/supervision/requests/current.json#command",
+            "action_type": "run_quality_repair_batch",
+            "status": "failed",
+            "stdout_ref": "artifacts/executor/stdout.txt",
+            "stderr_ref": "artifacts/executor/stderr.txt",
+            "output_refs": ["artifacts/executor/result.json"],
+            "failure_class": "unit_test_failed",
+            "env_fingerprint": "sha256:default-env",
+            "requested_isolation_level": "L3_containerized_sandbox",
+            "host_context": {
+                "inside_container": True,
+                "docker_socket_mounted": True,
+            },
+        }
+    )
+
+    assert receipt["executor_backend"] == "codex_default_executor"
+    assert receipt["command_ref"] == "artifacts/supervision/requests/current.json#command"
+    assert receipt["status"] == "sandbox_not_authorized"
+    assert receipt["work_unit"]["action_type"] == "run_quality_repair_batch"
+    assert receipt["execution"]["status"] == "failed"
+    assert receipt["execution"]["stdout_ref"] == "artifacts/executor/stdout.txt"
+    assert receipt["execution"]["stderr_ref"] == "artifacts/executor/stderr.txt"
+    assert receipt["execution"]["output_refs"] == ["artifacts/executor/result.json"]
+    assert receipt["execution"]["failure_class"] == "unit_test_failed"
+    assert receipt["execution"]["env_fingerprint"] == "sha256:default-env"
+    assert receipt["isolation"]["level"] == "L1_process_workspace"
+    assert receipt["isolation"]["requested_level"] == "L3_containerized_sandbox"
+    assert receipt["isolation"]["docker_socket_mount_allowed"] is False
+    assert receipt["diagnostics"] == [
+        "containerized sandbox requires explicit proof-lane authorization",
+        "inside-container context disables default Docker sandbox",
+        "Docker socket mount is not accepted as implicit sandbox authorization",
+    ]
+    assert receipt["receipt_counts_as_owner_receipt"] is False
+
+
 def test_external_learning_closure_exposes_lightweight_executor_receipt_contract() -> None:
     closure_module = importlib.import_module("med_autoscience.external_learning_adoption_closure")
 
