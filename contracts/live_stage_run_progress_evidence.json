@@ -33,7 +33,8 @@
       "mas-stage-typed-blocker:medautoscience:baseline_and_evidence_setup:real-paper-line-owner-receipt-or-monitor-freshness-pending",
       "mas-stage-typed-blocker:medautoscience:bounded_analysis_campaign:real-paper-line-owner-receipt-or-monitor-freshness-pending",
       "mas-stage-typed-blocker:medautoscience:manuscript_authoring:real-paper-line-owner-receipt-or-monitor-freshness-pending",
-      "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:real-paper-line-owner-receipt-or-monitor-freshness-pending"
+      "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:real-paper-line-owner-receipt-or-monitor-freshness-pending",
+      "mas-stage-typed-blocker:medautoscience:w7-owner-evidence-tail:real-paper-line-owner-receipt-or-monitor-freshness-pending"
     ],
     "quality_or_export_receipt_refs": [
       "contracts/production_acceptance/mas-production-acceptance.json#/production_like_receipt_chain/required_return_shapes/ai_reviewer_gate_ref",
@@ -56,6 +57,47 @@
     ]
   },
   "typed_blocker_kind": "real_paper_line_owner_receipt_or_monitor_freshness_pending",
+  "current_owner_delta_owner_answer": {
+    "surface_kind": "mas_current_owner_delta_owner_answer_ref",
+    "status": "typed_blocker_ref_recorded_not_ready_claim",
+    "source_observation": "current_owner_delta_owner_answer_missing=true",
+    "answers_missing_owner_answer": true,
+    "current_owner": "med-autoscience",
+    "stage_id": "paper_autonomy/guarded-apply",
+    "next_required_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
+    "accepted_answer_shape": "typed_blocker_ref",
+    "accepted_answer_shapes": [
+      "domain_owner_receipt_ref",
+      "quality_gate_receipt_ref",
+      "typed_blocker_ref",
+      "human_gate_ref",
+      "route_back_evidence_ref"
+    ],
+    "owner_answer_ref": "mas-stage-typed-blocker:medautoscience:w7-owner-evidence-tail:real-paper-line-owner-receipt-or-monitor-freshness-pending",
+    "typed_blocker_ref": "mas-stage-typed-blocker:medautoscience:w7-owner-evidence-tail:real-paper-line-owner-receipt-or-monitor-freshness-pending",
+    "missing_owner_evidence_sources": [
+      "real_paper_line_owner_receipt_ref",
+      "paper_or_artifact_delta_ref",
+      "independent_reviewer_or_auditor_record_ref",
+      "human_gate_or_resume_ref",
+      "route_back_evidence_ref"
+    ],
+    "route_back_conditions": [
+      "domain_owner_receipt_ref_observed_for_current_stage_run_identity",
+      "quality_gate_receipt_ref_observed_for_current_stage_run_identity",
+      "human_gate_ref_observed_for_current_stage_run_identity",
+      "route_back_evidence_ref_observed_for_current_stage_run_identity",
+      "stable_typed_blocker_ref_resolved_to_next_paper_delta_or_human_gate"
+    ],
+    "closeout_effect": {
+      "closes_current_owner_delta_owner_answer_missing": true,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "production_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_fresh": false
+    }
+  },
   "next_owner_action": "continue MAS-owned paper-line owner receipt, human gate, quality gate, route-back, no-regression, or stable typed blocker resolution before any publication/domain/production ready claim",
   "authority_boundary": {
     "refs_only": true,

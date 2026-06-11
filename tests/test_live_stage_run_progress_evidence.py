@@ -16,6 +16,23 @@ def _contract() -> dict[str, object]:
     return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
 
 
+def test_live_stage_run_progress_evidence_schema_ref_is_repo_tracked() -> None:
+    payload = _contract()
+
+    assert payload["schema_ref"] == (
+        "contracts/opl-framework/domain-live-stage-run-progress-evidence.schema.json"
+    )
+    schema_path = REPO_ROOT / str(payload["schema_ref"])
+    assert schema_path.exists()
+
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    assert schema["properties"]["surface_kind"]["const"] == (
+        "domain_live_stage_run_progress_evidence"
+    )
+    owner_answer_schema = schema["properties"]["current_owner_delta_owner_answer"]
+    assert "typed_blocker_ref" in owner_answer_schema["required"]
+
+
 def test_live_stage_run_progress_evidence_records_domain_owned_refs() -> None:
     payload = _contract()
 
@@ -53,6 +70,9 @@ def test_live_stage_run_progress_evidence_has_opl_consumable_ref_shapes() -> Non
     assert payload["typed_blocker_kind"] == (
         "real_paper_line_owner_receipt_or_monitor_freshness_pending"
     )
+    assert "mas-stage-typed-blocker:medautoscience:w7-owner-evidence-tail:" in (
+        " ".join(refs["typed_blocker_refs"])
+    )
 
     for ref in refs["owner_receipt_refs"]:
         contract_ref = ref.split("#", 1)[0]
@@ -60,6 +80,54 @@ def test_live_stage_run_progress_evidence_has_opl_consumable_ref_shapes() -> Non
     for ref in refs["no_regression_refs"]:
         contract_ref = ref.split("#", 1)[0]
         assert (REPO_ROOT / contract_ref).exists()
+
+
+def test_live_stage_run_progress_evidence_answers_owner_delta_missing_with_typed_blocker_ref() -> None:
+    payload = _contract()
+    answer = payload["current_owner_delta_owner_answer"]
+    refs = payload["refs"]
+
+    assert answer["surface_kind"] == "mas_current_owner_delta_owner_answer_ref"
+    assert answer["status"] == "typed_blocker_ref_recorded_not_ready_claim"
+    assert answer["source_observation"] == "current_owner_delta_owner_answer_missing=true"
+    assert answer["answers_missing_owner_answer"] is True
+    assert answer["current_owner"] == "med-autoscience"
+    assert answer["stage_id"] == "paper_autonomy/guarded-apply"
+    assert answer["next_required_delta"] == (
+        "domain_owner_receipt_quality_gate_or_typed_blocker_required"
+    )
+    assert answer["accepted_answer_shape"] == "typed_blocker_ref"
+    assert answer["accepted_answer_shapes"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert answer["owner_answer_ref"] == answer["typed_blocker_ref"]
+    assert answer["typed_blocker_ref"] in refs["typed_blocker_refs"]
+    assert answer["missing_owner_evidence_sources"] == [
+        "real_paper_line_owner_receipt_ref",
+        "paper_or_artifact_delta_ref",
+        "independent_reviewer_or_auditor_record_ref",
+        "human_gate_or_resume_ref",
+        "route_back_evidence_ref",
+    ]
+    assert answer["route_back_conditions"] == [
+        "domain_owner_receipt_ref_observed_for_current_stage_run_identity",
+        "quality_gate_receipt_ref_observed_for_current_stage_run_identity",
+        "human_gate_ref_observed_for_current_stage_run_identity",
+        "route_back_evidence_ref_observed_for_current_stage_run_identity",
+        "stable_typed_blocker_ref_resolved_to_next_paper_delta_or_human_gate",
+    ]
+    assert answer["closeout_effect"] == {
+        "closes_current_owner_delta_owner_answer_missing": True,
+        "domain_ready_claimed": False,
+        "publication_ready_claimed": False,
+        "production_ready_claimed": False,
+        "artifact_mutation_authorized": False,
+        "current_package_fresh": False,
+    }
 
 
 def test_live_stage_run_progress_evidence_is_not_ready_authority() -> None:

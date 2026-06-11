@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "med-autoscience/contracts/opl-framework/domain-live-stage-run-progress-evidence.schema.json",
+  "title": "Domain Live StageRun Progress Evidence",
+  "type": "object",
+  "required": [
+    "surface_kind",
+    "schema_ref",
+    "schema_version",
+    "domain_id",
+    "domain_agent_id",
+    "owner",
+    "updated_at",
+    "status",
+    "role",
+    "evidence_scope",
+    "refs",
+    "typed_blocker_kind",
+    "current_owner_delta_owner_answer",
+    "next_owner_action",
+    "authority_boundary",
+    "non_claims"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "surface_kind": {
+      "const": "domain_live_stage_run_progress_evidence"
+    },
+    "schema_ref": {
+      "const": "contracts/opl-framework/domain-live-stage-run-progress-evidence.schema.json"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "owner_evidence_recorded_not_ready_claim",
+        "owner_typed_blocker_recorded_not_ready_claim"
+      ]
+    },
+    "role": {
+      "const": "w7_domain_owned_live_stage_run_progress_evidence"
+    },
+    "refs": {
+      "type": "object",
+      "required": [
+        "owner_receipt_refs",
+        "typed_blocker_refs",
+        "doc_refs",
+        "next_verification_command_refs"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "owner_receipt_refs": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "typed_blocker_refs": {
+          "$ref": "#/$defs/nonEmptyStringArray"
+        },
+        "quality_or_export_receipt_refs": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "human_gate_refs": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "no_regression_refs": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "doc_refs": {
+          "$ref": "#/$defs/nonEmptyStringArray"
+        },
+        "next_verification_command_refs": {
+          "$ref": "#/$defs/nonEmptyStringArray"
+        }
+      }
+    },
+    "current_owner_delta_owner_answer": {
+      "type": "object",
+      "required": [
+        "surface_kind",
+        "status",
+        "source_observation",
+        "answers_missing_owner_answer",
+        "current_owner",
+        "stage_id",
+        "next_required_delta",
+        "accepted_answer_shape",
+        "accepted_answer_shapes",
+        "owner_answer_ref",
+        "typed_blocker_ref",
+        "missing_owner_evidence_sources",
+        "route_back_conditions",
+        "closeout_effect"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "surface_kind": {
+          "const": "mas_current_owner_delta_owner_answer_ref"
+        },
+        "status": {
+          "const": "typed_blocker_ref_recorded_not_ready_claim"
+        },
+        "source_observation": {
+          "const": "current_owner_delta_owner_answer_missing=true"
+        },
+        "answers_missing_owner_answer": {
+          "const": true
+        },
+        "current_owner": {
+          "const": "med-autoscience"
+        },
+        "stage_id": {
+          "const": "paper_autonomy/guarded-apply"
+        },
+        "next_required_delta": {
+          "const": "domain_owner_receipt_quality_gate_or_typed_blocker_required"
+        },
+        "accepted_answer_shape": {
+          "const": "typed_blocker_ref"
+        },
+        "accepted_answer_shapes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "domain_owner_receipt_ref",
+              "quality_gate_receipt_ref",
+              "typed_blocker_ref",
+              "human_gate_ref",
+              "route_back_evidence_ref"
+            ]
+          },
+          "contains": {
+            "const": "typed_blocker_ref"
+          },
+          "minItems": 5,
+          "uniqueItems": true
+        },
+        "owner_answer_ref": {
+          "type": "string",
+          "pattern": "^mas-stage-typed-blocker:"
+        },
+        "typed_blocker_ref": {
+          "type": "string",
+          "pattern": "^mas-stage-typed-blocker:"
+        },
+        "missing_owner_evidence_sources": {
+          "$ref": "#/$defs/nonEmptyStringArray"
+        },
+        "route_back_conditions": {
+          "$ref": "#/$defs/nonEmptyStringArray"
+        },
+        "closeout_effect": {
+          "type": "object",
+          "required": [
+            "closes_current_owner_delta_owner_answer_missing",
+            "domain_ready_claimed",
+            "publication_ready_claimed",
+            "production_ready_claimed",
+            "artifact_mutation_authorized",
+            "current_package_fresh"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "closes_current_owner_delta_owner_answer_missing": {
+              "const": true
+            },
+            "domain_ready_claimed": {
+              "const": false
+            },
+            "publication_ready_claimed": {
+              "const": false
+            },
+            "production_ready_claimed": {
+              "const": false
+            },
+            "artifact_mutation_authorized": {
+              "const": false
+            },
+            "current_package_fresh": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "required": [
+        "refs_only",
+        "body_included",
+        "evidence_owner",
+        "opl_can_write_domain_truth",
+        "opl_can_sign_owner_receipt",
+        "opl_can_create_typed_blocker",
+        "opl_can_claim_domain_ready",
+        "opl_can_claim_publication_ready",
+        "opl_can_claim_production_ready"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "refs_only": {
+          "const": true
+        },
+        "body_included": {
+          "const": false
+        },
+        "evidence_owner": {
+          "const": "domain_repo"
+        },
+        "opl_can_write_domain_truth": {
+          "const": false
+        },
+        "opl_can_sign_owner_receipt": {
+          "const": false
+        },
+        "opl_can_create_typed_blocker": {
+          "const": false
+        },
+        "opl_can_claim_domain_ready": {
+          "const": false
+        },
+        "opl_can_claim_publication_ready": {
+          "const": false
+        },
+        "opl_can_claim_production_ready": {
+          "const": false
+        }
+      }
+    }
+  },
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "nonEmptyStringArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
