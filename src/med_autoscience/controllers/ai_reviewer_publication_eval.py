@@ -10,6 +10,7 @@ from med_autoscience.publication_eval_latest import (
     materialize_ai_reviewer_publication_eval_latest,
 )
 from med_autoscience.publication_eval_record import PublicationEvalRecord
+from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 
 from . import ai_reviewer_publication_eval_workflow, domain_status_projection
 from .domain_owner_action_dispatch_parts.action_execution import ai_reviewer_request_refs
@@ -190,6 +191,9 @@ def _refs_from_record_and_request(
     for surface in ("reporting_guideline", "calibration_refs"):
         if optional_refs.get(surface) is None:
             optional_refs[surface] = _optional_text(input_bundle.get(surface))
+    stable_prose_review = stable_medical_prose_review_path(study_root=study_root)
+    if stable_prose_review.exists():
+        required_refs["medical_prose_review"] = str(stable_prose_review)
     return required_refs, optional_refs
 
 

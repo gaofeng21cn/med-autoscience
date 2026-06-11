@@ -515,6 +515,12 @@ def _current_control_authority_present(current_study: Mapping[str, Any]) -> bool
 
 def _fresh_progress_envelope_blocks_dispatch_selection(progress: Mapping[str, Any]) -> bool:
     envelope = _mapping(progress.get("current_execution_envelope"))
+    current_action = _mapping(progress.get("current_executable_owner_action"))
+    if _typed_blocker_allows_repair_progress_followup(
+        envelope=envelope,
+        current_action=current_action,
+    ):
+        return False
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
     if state_kind == "typed_blocker" and _fresh_progress_typed_blocker_reason(envelope) in {
         "medical_paper_readiness_missing",
@@ -522,6 +528,99 @@ def _fresh_progress_envelope_blocks_dispatch_selection(progress: Mapping[str, An
     }:
         return False
     return state_kind in {"typed_blocker", "parked"}
+
+
+def _typed_blocker_allows_repair_progress_followup(
+    *,
+    envelope: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    if state_kind != "typed_blocker":
+        return False
+    if not _is_repair_progress_followup_action(current_action):
+        return False
+    blocker = _mapping(envelope.get("typed_blocker"))
+    if _text(blocker.get("owner")) != "one-person-lab":
+        return False
+    blocker_reasons = {
+        text
+        for value in (
+            blocker.get("blocker_id"),
+            blocker.get("blocker_type"),
+            blocker.get("reason"),
+            blocker.get("blocked_reason"),
+            blocker.get("terminal_closeout_status"),
+            blocker.get("terminal_closeout_outcome"),
+        )
+        if (text := _text(value)) is not None
+    }
+    if not any("opl_execution_authorization_required" in reason for reason in blocker_reasons):
+        return False
+    if _text(current_action.get("action_type")) != _text(blocker.get("action_type")):
+        return False
+    return _actions_share_currentness_identity(current_action, blocker)
+
+
+def _is_repair_progress_followup_action(action: Mapping[str, Any]) -> bool:
+    source = _text(action.get("source")) or _text(action.get("source_surface"))
+    if source != "repair_progress_projection.mas_owner_repair_execution_evidence":
+        return False
+    if _text(action.get("action_type")) not in {
+        "return_to_ai_reviewer_workflow",
+        "run_gate_clearing_batch",
+    }:
+        return False
+    return bool(_mapping(action.get("repair_progress_precedence")) or _text(action.get("source_ref")) is not None)
+
+
+def _actions_share_currentness_identity(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> bool:
+    left_work_unit = _work_unit_identity(left)
+    right_work_unit = _work_unit_identity(right)
+    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
+        return False
+    left_fingerprints = _currentness_fingerprints(left)
+    right_fingerprints = _currentness_fingerprints(right)
+    return bool(left_fingerprints and right_fingerprints and left_fingerprints.intersection(right_fingerprints))
+
+
+def _currentness_fingerprints(payload: Mapping[str, Any]) -> set[str]:
+    owner_route = _dispatch_owner_route(payload)
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    handoff = _mapping(payload.get("handoff_packet"))
+    return {
+        text
+        for value in (
+            payload.get("work_unit_fingerprint"),
+            payload.get("action_fingerprint"),
+            payload.get("fingerprint"),
+            owner_route.get("work_unit_fingerprint"),
+            owner_route.get("source_fingerprint"),
+            source_refs.get("work_unit_fingerprint"),
+            currentness_basis.get("work_unit_fingerprint"),
+            handoff.get("work_unit_fingerprint"),
+            handoff.get("action_fingerprint"),
+        )
+        if (text := _text(value)) is not None
+    }
+
+
+def _work_unit_identity(payload: Mapping[str, Any]) -> str | None:
+    owner_route = _dispatch_owner_route(payload)
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return (
+        _text(payload.get("work_unit_id"))
+        or _work_unit_id(payload.get("next_work_unit"))
+        or _text(owner_route.get("owner_reason"))
+        or _text(source_refs.get("work_unit_id"))
+        or _text(currentness_basis.get("work_unit_id"))
+        or _text(_mapping(payload.get("handoff_packet")).get("next_work_unit"))
+    )
 
 
 def _terminal_closeout_owner_answer_dispatches_only(

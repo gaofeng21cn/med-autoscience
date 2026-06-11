@@ -746,6 +746,16 @@ def test_ai_reviewer_publication_eval_record_controller_rebuilds_production_trac
     manuscript_digest = "sha256:" + hashlib.sha256(manuscript_text.encode("utf-8")).hexdigest()
     request_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
     review_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    body_authority_review_path = (
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "_body_authority"
+        / "paper_authority_cutover"
+        / "current_body"
+        / "paper"
+        / "medical_prose_review.json"
+    )
     current_request_digest = "sha256:" + "b" * 64
     stale_request_digest = "sha256:" + "a" * 64
     _write_json(
@@ -778,6 +788,16 @@ def test_ai_reviewer_publication_eval_record_controller_rebuilds_production_trac
             },
         },
     )
+    _write_json(
+        body_authority_review_path,
+        {
+            "surface": "medical_prose_review",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+        },
+    )
     evidence_ledger_ref = str(study_root / "paper" / "evidence_ledger.json")
     _write_json(
         study_root / "paper" / "claim_evidence_map.json",
@@ -791,6 +811,21 @@ def test_ai_reviewer_publication_eval_record_controller_rebuilds_production_trac
     _write_json(study_root / "artifacts" / "controller" / "study_charter.json", {"schema_version": 1})
     _write_json(study_root / "paper" / "medical_manuscript_blueprint.json", {"schema_version": 1})
     _write_json(study_root / "artifacts" / "publication_gate" / "latest.json", {"schema_version": 1})
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "supervisor_action_request",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {
+                "required_refs": {
+                    "medical_prose_review": {"path": str(body_authority_review_path)},
+                },
+            },
+        },
+    )
     payload["recommended_actions"] = [
         {
             "action_id": "route-current-record-to-write",
@@ -864,6 +899,8 @@ def test_ai_reviewer_publication_eval_record_controller_rebuilds_production_trac
     assert reviewer_os["decision_matrix"]
     assert reviewer_os["claim_evidence_alignment"]["status"] == "ready"
     assert reviewer_os["publication_quality_readiness"]["status"] == "blocked"
+    assert reviewer_os["input_bundle"]["medical_prose_review"] == str(review_path.resolve())
+    assert reviewer_os["currentness_checks"]["medical_prose_review"]["ref"] == str(review_path.resolve())
     assert reviewer_os["currentness_checks"]["medical_prose_review"]["request_digest"] == current_request_digest
     assert reviewer_os["currentness_checks"]["medical_prose_review"]["durable_medical_prose_review_status"] == (
         "stale_for_current_request"

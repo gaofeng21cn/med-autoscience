@@ -155,6 +155,12 @@ def current_execution_envelope_actions(
             paper_progress_delta_counted=paper_progress_delta_counted,
         ):
             return [current_action] if current_action is not None else []
+        if _handoff_actions_superseded_by_reconciled_current_action(
+            handoff=handoff,
+            handoff_actions=handoff_actions,
+            current_action=current_action,
+        ):
+            return [current_action] if current_action is not None else []
         return handoff_actions
     return [current_action] if current_action is not None else []
 
@@ -219,6 +225,53 @@ def _handoff_actions_superseded_by_current_paper_delta(
     return paper_progress_delta_counted
 
 
+def _handoff_actions_superseded_by_reconciled_current_action(
+    *,
+    handoff: Mapping[str, Any],
+    handoff_actions: list[dict[str, Any]],
+    current_action: Mapping[str, Any] | None,
+) -> bool:
+    if handoff.get("running_provider_attempt") is True:
+        return False
+    if current_action is None or not handoff_actions:
+        return False
+    if _non_empty_text(current_action.get("source_surface")) not in CURRENT_OWNER_ACTION_SOURCES:
+        return False
+    return not _actions_have_same_identity(left=current_action, right=handoff_actions[0])
+
+
+def _actions_have_same_identity(
+    *,
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> bool:
+    left_action_type = _non_empty_text(left.get("action_type")) or _first_text(_text_items(left.get("allowed_actions")))
+    right_action_type = _non_empty_text(right.get("action_type")) or _first_text(_text_items(right.get("allowed_actions")))
+    if left_action_type is not None and right_action_type is not None and left_action_type != right_action_type:
+        return False
+    left_work_unit = _work_unit_identity(left.get("work_unit_id")) or _work_unit_identity(left.get("next_work_unit"))
+    right_work_unit = _work_unit_identity(right.get("work_unit_id")) or _work_unit_identity(right.get("next_work_unit"))
+    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
+        return False
+    left_fingerprints = _action_identity_fingerprints(left)
+    right_fingerprints = _action_identity_fingerprints(right)
+    if left_fingerprints and right_fingerprints and not left_fingerprints.intersection(right_fingerprints):
+        return False
+    return True
+
+
+def _action_identity_fingerprints(action: Mapping[str, Any]) -> set[str]:
+    return {
+        text
+        for value in (
+            action.get("work_unit_fingerprint"),
+            action.get("action_fingerprint"),
+            action.get("fingerprint"),
+        )
+        if (text := _non_empty_text(value)) is not None
+    }
+
+
 def _is_readiness_action(action: Mapping[str, Any]) -> bool:
     values = {
         _non_empty_text(action.get("action_type")),
@@ -227,6 +280,10 @@ def _is_readiness_action(action: Mapping[str, Any]) -> bool:
         *_text_items(action.get("allowed_actions")),
     }
     return READINESS_ACTION in values
+
+
+def _first_text(values: list[str]) -> str | None:
+    return values[0] if values else None
 
 
 def _text_items(value: object) -> list[str]:
@@ -254,6 +311,12 @@ def _has_human_gate_authority_ref(payload: Mapping[str, Any]) -> bool:
         if _surface_has_human_gate_ref(surface):
             return True
     return False
+
+
+def _work_unit_identity(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _non_empty_text(value.get("unit_id")) or _non_empty_text(value.get("work_unit_id"))
+    return _non_empty_text(value)
 
 
 def _surface_has_human_gate_ref(surface: Mapping[str, Any]) -> bool:

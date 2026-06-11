@@ -276,6 +276,10 @@ def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) ->
 
 def _with_stage_log_workbench_summary(projection: dict[str, Any]) -> dict[str, Any]:
     payload = dict(projection)
+    paper_stage_log = _mapping_copy(payload.get("paper_stage_log"))
+    next_forced_delta = _mapping_copy(paper_stage_log.get("next_forced_delta"))
+    if next_forced_delta:
+        payload["next_forced_delta"] = next_forced_delta
     summary = _stage_log_workbench_summary(payload)
     if summary:
         payload["stage_log_workbench_summary"] = summary

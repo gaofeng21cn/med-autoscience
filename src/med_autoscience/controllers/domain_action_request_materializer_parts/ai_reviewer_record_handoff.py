@@ -10,6 +10,7 @@ from med_autoscience.controllers.domain_owner_action_dispatch_parts.action_execu
     build_ai_reviewer_record_production_request,
     build_ai_reviewer_record_worker_handoff,
 )
+from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.runtime_control import repeat_suppression
@@ -65,7 +66,7 @@ def ai_reviewer_record_production_handoff_dispatch(
     )
     production_request = build_ai_reviewer_record_production_request(
         request=request,
-        required_refs=_record_production_required_input_refs(request),
+        required_refs=_record_production_required_input_refs(request, study_root=study_root),
         stale_record_ref=stale_record_ref,
         required_currentness_refs=required_currentness_refs,
         request_kind=request_kind,
@@ -326,12 +327,19 @@ def _record_production_required_currentness_refs(
     return _string_items(lifecycle.get("required_currentness_refs"))
 
 
-def _record_production_required_input_refs(request: Mapping[str, Any]) -> dict[str, str | None]:
+def _record_production_required_input_refs(
+    request: Mapping[str, Any],
+    *,
+    study_root: Path,
+) -> dict[str, str | None]:
     required = _mapping(_mapping(request.get("input_contract")).get("required_refs"))
     refs: dict[str, str | None] = {}
     for surface, payload in required.items():
         if text := _text(_mapping(payload).get("path")) or _text(payload):
             refs[str(surface)] = text
+    stable_prose_review = stable_medical_prose_review_path(study_root=study_root)
+    if stable_prose_review.exists():
+        refs["medical_prose_review"] = str(stable_prose_review)
     return refs
 
 

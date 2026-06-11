@@ -161,6 +161,94 @@ def test_progress_first_monitoring_routes_next_forced_delta_over_stale_readiness
     assert action["allowed_actions"] == ["run_gate_clearing_batch"]
     assert monitoring["owner_action_admission"]["admission_requested"] is True
 
+
+def test_progress_first_monitoring_routes_next_forced_delta_over_stale_owner_route_blocker() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "002-dm-china-us-mortality-attribution::stage-attempt-sat_current::2026-06-11T12:41:21+00:00"
+    )
+    fingerprint = (
+        "current-ai-reviewer-gate-replay::002-dm-china-us-mortality-attribution::"
+        f"{work_unit_id}::{source_eval_id}"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": study_id,
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "paper_progress_delta": {"count": 1},
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "typed_blocker",
+                "owner": "write",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:stale-publication-gate-replay",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "owner_route_stale",
+                        "blocked_reason": "owner_route_stale",
+                        "owner": "write",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": "sha256:stale-publication-gate-replay",
+                    },
+                },
+            },
+            "next_forced_delta": {
+                "required_delta_kind": "review_current_paper_delta",
+                "reason": "paper_progress_delta_observed",
+                "work_unit_id": work_unit_id,
+                "eval_id": source_eval_id,
+                "target_surface": {
+                    "ref_kind": "route_obligation",
+                    "route_target": "write",
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+                "target_surface_specificity": "explicit_owner_route_target",
+                "acceptance_refs": ["progress_first_sprint_state.deliverable_progress_delta"],
+                "owner_action": {
+                    "next_owner": "write",
+                    "work_unit_id": work_unit_id,
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "study_progress.next_forced_delta.owner_action",
+                "next_owner": "write",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "source_eval_id": source_eval_id,
+                "action_type": "run_gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "owner_receipt_required": True,
+                "required_delta_kind": "review_current_paper_delta",
+            },
+        }
+    )
+
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["owner_action_current"] is True
+    assert monitoring["typed_blocker"] is None
+    assert monitoring["current_blockers"] == []
+    assert monitoring["next_owner"] == "write"
+    assert monitoring["controller_action"] == "run_gate_clearing_batch"
+    assert monitoring["next_work_unit"] == work_unit_id
+    assert monitoring["current_executable_owner_action"]["work_unit_fingerprint"] == fingerprint
+
+
 def test_progress_first_monitoring_requests_admission_for_current_executable_owner_action_without_hard_gate() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

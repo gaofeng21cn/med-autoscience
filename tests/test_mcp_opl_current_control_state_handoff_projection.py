@@ -582,6 +582,122 @@ def test_handoff_projection_accepts_terminal_closeout_owner_receipt_ref(tmp_path
     assert "terminal_closeout_owner_answer_required" not in projection.get("why_not_applied", [])
 
 
+def test_handoff_projection_accepts_terminal_closeout_next_handoff_refs(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-10T12:00:00+00:00",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "provider_admission_pending",
+                    "active_run_id": "opl-stage-attempt://sat-next-handoff",
+                    "active_stage_attempt_id": "sat-next-handoff",
+                    "running_provider_attempt": True,
+                    "runtime_health": {
+                        "health_status": "running",
+                        "runtime_liveness_status": "live",
+                    },
+                    "action_queue": [
+                        {
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "status": "ready",
+                            "owner": "ai_reviewer",
+                            "work_unit_id": "ai-reviewer-record",
+                            "work_unit_fingerprint": "wu-fp-1",
+                            "stage_attempt_id": "sat-next-handoff",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    closeout_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat-next-handoff.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "generated_at": "2026-06-10T12:01:00+00:00",
+            "study_id": "001-risk",
+            "stage_attempt_id": "sat-next-handoff",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "status": "closed_with_domain_owner_refs",
+            "domain_owner_refs": {
+                "publication_eval_record_ref": "studies/001-risk/artifacts/publication_eval/ai_reviewer_responses/record.json",
+                "next_dispatch_ref": "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                "next_request_ref": "studies/001-risk/artifacts/supervision/requests/gate_clearing_batch/latest.json",
+            },
+            "paper_stage_log": {
+                "stage_name": "return_to_ai_reviewer_workflow",
+                "problem_summary": "Provider produced current reviewer evidence and routed the next owner.",
+                "stage_goal": "Produce reviewer record and next gate-clearing handoff.",
+                "stage_work_done": [
+                    "Materialized the reviewer record.",
+                    "Routed the next owner to run_gate_clearing_batch.",
+                ],
+                "paper_work_done": ["Produced record-only reviewer evidence."],
+                "changed_stage_surfaces": [
+                    "studies/001-risk/artifacts/publication_eval/ai_reviewer_responses/record.json",
+                    "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                    "studies/001-risk/artifacts/supervision/requests/gate_clearing_batch/latest.json",
+                ],
+                "changed_paper_surfaces": [],
+                "progress_delta_classification": "deliverable_progress",
+                "outcome": "closed_with_domain_owner_refs",
+                "remaining_blockers": ["Domain readiness remains owned by MAS gate surfaces."],
+                "next_forced_delta": {
+                    "required_delta_kind": "owner_route_replay_or_typed_blocker",
+                    "reason": "domain_action_request_materialize_routed_next_owner_after_current_ai_reviewer_record",
+                    "owner_action": {
+                        "next_owner": "gate_clearing_batch",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "current_package_freshness_required",
+                    },
+                    "target_surface": {
+                        "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json"
+                    },
+                    "acceptance_refs": ["owner_receipt_ref", "typed_blocker_ref", "changed_surface_ref"],
+                },
+                "evidence_refs": [
+                    "studies/001-risk/artifacts/publication_eval/ai_reviewer_responses/record.json",
+                    "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                    "studies/001-risk/artifacts/supervision/requests/gate_clearing_batch/latest.json",
+                ],
+            },
+            "closeout_refs": [
+                "studies/001-risk/artifacts/publication_eval/ai_reviewer_responses/record.json",
+                "studies/001-risk/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                "studies/001-risk/artifacts/supervision/requests/gate_clearing_batch/latest.json",
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    assert projection["running_provider_attempt"] is False
+    assert projection["active_run_id"] is None
+    assert "typed_blocker" not in projection
+    assert projection["next_owner"] != "one-person-lab"
+    assert "terminal_closeout_owner_answer_required" not in projection.get("why_not_applied", [])
+    assert projection["latest_terminal_stage_log"]["next_forced_delta"]["owner_action"]["action_type"] == (
+        "run_gate_clearing_batch"
+    )
+
+
 def test_live_attempt_merge_replaces_stale_handoff_stage_attempt_identity() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
 
@@ -621,6 +737,64 @@ def test_live_attempt_merge_replaces_stale_handoff_stage_attempt_identity() -> N
     assert merged["active_run_id"] == "opl-stage-attempt://sat-current"
     assert merged["active_stage_attempt_id"] == "sat-current"
     assert merged["active_workflow_id"] == "wf-current"
+
+
+def test_live_attempt_merge_keeps_running_over_prior_same_work_unit_terminal_closeout() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+
+    merged = module.merge_live_attempt_observability_into_handoff(
+        handoff={
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "active_run_id": None,
+            "active_stage_attempt_id": None,
+            "active_workflow_id": None,
+            "running_provider_attempt": False,
+            "blocked_reason": "opl_execution_authorization_required",
+            "next_owner": "one-person-lab",
+            "action_queue": [
+                {
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "work_unit_fingerprint": "domain-transition::route_back_same_line::dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                }
+            ],
+            "latest_terminal_stage_log": {
+                "stage_attempt_id": None,
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "status": "blocked",
+                "typed_blocker_reason": "opl_execution_authorization_required",
+                "source_path": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_execution/latest.json",
+            },
+        },
+        live_attempt_handoff={
+            "surface_kind": "opl_current_control_state_provider_attempt_handoff",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "active_run_id": "opl-stage-attempt://sat-current",
+            "active_stage_attempt_id": "sat-current",
+            "active_workflow_id": "wf-current",
+            "running_provider_attempt": True,
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+            "stage_progress_log": {
+                "planned_work": {
+                    "stage_attempt_id": "sat-current",
+                    "stage_packet_ref": "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_dispatches/run_gate_clearing_batch.json",
+                }
+            },
+        },
+    )
+
+    assert merged is not None
+    assert merged["running_provider_attempt"] is True
+    assert merged["active_run_id"] == "opl-stage-attempt://sat-current"
+    assert merged["active_stage_attempt_id"] == "sat-current"
+    assert merged["active_workflow_id"] == "wf-current"
+    assert merged["blocked_reason"] is None
+    assert "typed_blocker" not in merged
 
 
 def test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard() -> None:

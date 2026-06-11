@@ -933,6 +933,12 @@ def _current_action_aligned_with_execution_envelope(
     state_kind = _non_empty_text(envelope.get("state_kind"))
     if _non_empty_text(action.get("source")) == "repair_progress_projection.mas_owner_repair_execution_evidence":
         return dict(action)
+    if (
+        state_kind == "typed_blocker"
+        and _non_empty_text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
+        and _envelope_typed_blocker_reason(envelope) == "gate_clearing_batch_source_eval_currentness_mismatch"
+    ):
+        return dict(action)
     if state_kind == "typed_blocker" and _non_empty_text(action.get("source")) == "stage_native_workspace_next_action":
         return dict(action)
     if state_kind != "executable_owner_action":
@@ -950,6 +956,14 @@ def _current_action_aligned_with_execution_envelope(
     if envelope_work_unit is not None and action_work_units and envelope_work_unit not in action_work_units:
         return None
     return dict(action)
+
+
+def _envelope_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | None:
+    blocker = _mapping_copy(envelope.get("typed_blocker"))
+    for key in ("blocker_type", "blocker_id", "blocked_reason", "reason"):
+        if text := _non_empty_text(blocker.get(key)):
+            return text
+    return None
 
 
 def _stage_native_current_owner_action(*, study_root: Path) -> dict[str, Any] | None:

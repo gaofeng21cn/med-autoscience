@@ -37,6 +37,7 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
         "medical_paper_readiness_missing",
         "medical_paper_readiness_not_ready",
         "no_selected_dispatch_for_requested_action_types",
+        "opl_execution_authorization_required",
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
         "provider_admission_current_control_state_required",
@@ -70,7 +71,9 @@ MEDICAL_READINESS_BLOCKERS = frozenset(
 CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS = frozenset(
     {
         "domain_owner_action_dispatch_execution_count_zero",
+        "gate_clearing_batch_source_eval_currentness_mismatch",
         "no_selected_dispatch_for_requested_action_types",
+        "owner_route_stale",
         "run_quality_repair_batch_not_visible_in_current_opl_control_state",
         "stale_stage_attempt_current_owner_route_superseded",
         "stage_packet_superseded_by_current_consumed_domain_transition",
@@ -177,7 +180,10 @@ def build_current_work_unit(
     runtime_health_payload = _mapping(runtime_health)
     resolved_source_refs = _source_refs(status_payload, progress_payload, source_refs)
     stage_owner_answer_action = _stage_owner_answer_missing_action(progress_payload)
-    action = _first_action(actions) or _action_from_current_action(current_executable_owner_action)
+    action = _selected_current_action(
+        actions=actions,
+        current_executable_owner_action=current_executable_owner_action,
+    )
     if stage_owner_answer_action is not None and not _action_supersedes_stage_owner_answer(
         action=action,
         progress=progress_payload,
@@ -266,6 +272,20 @@ def build_current_work_unit(
                 action=action,
             )
         if resolved_typed_blocker is not None:
+            if action is not None and _action_supersedes_typed_blocker(
+                action=action,
+                blocker=resolved_typed_blocker,
+                progress=progress_payload,
+            ):
+                return _action_work_unit(
+                    action=action,
+                    owner=_action_owner(action, next_owner=next_owner),
+                    status_payload=status_payload,
+                    progress_payload=progress_payload,
+                    source_refs=resolved_source_refs,
+                    currentness_basis=basis,
+                    provider_admission=provider_admission,
+                )
             return _typed_blocker_work_unit(
                 blocker=resolved_typed_blocker,
                 action=action,
@@ -568,7 +588,29 @@ def _running_attempt_can_supersede_blocker(blocker: Mapping[str, Any] | None) ->
     payload = _mapping(blocker)
     if not payload:
         return True
-    return _text(payload.get("blocker_type")) in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS
+    return bool(_blocker_reason_values(payload).intersection(LIVE_ATTEMPT_SUPERSEDED_BLOCKERS))
+
+
+def _blocker_reason_values(blocker: Mapping[str, Any]) -> set[str]:
+    values = {
+        text
+        for value in (
+            blocker.get("blocker_type"),
+            blocker.get("blocker_id"),
+            blocker.get("blocked_reason"),
+            blocker.get("reason"),
+            blocker.get("terminal_closeout_status"),
+            blocker.get("terminal_closeout_outcome"),
+            blocker.get("progress_delta_classification"),
+        )
+        if (text := _text(value)) is not None
+    }
+    return values | {
+        superseded
+        for value in values
+        for superseded in LIVE_ATTEMPT_SUPERSEDED_BLOCKERS
+        if superseded in value
+    }
 
 
 def _running_attempt_satisfies_stage_owner_answer(
@@ -979,6 +1021,19 @@ def _action_supersedes_typed_blocker(
     )
 
 
+def action_supersedes_typed_blocker(
+    *,
+    action: Mapping[str, Any],
+    blocker: Mapping[str, Any] | None,
+    progress: Mapping[str, Any] | None = None,
+) -> bool:
+    return _action_supersedes_typed_blocker(
+        action=action,
+        blocker=blocker,
+        progress=progress,
+    )
+
+
 def _action_is_stage_current_owner_delta(action: Mapping[str, Any]) -> bool:
     return (
         _text(action.get("source_surface"))
@@ -1272,6 +1327,54 @@ def _action_from_envelope(envelope: Mapping[str, Any] | None) -> dict[str, Any] 
     }
 
 
+def _selected_current_action(
+    *,
+    actions: Sequence[Mapping[str, Any]] | None,
+    current_executable_owner_action: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    current_action = _action_from_current_action(current_executable_owner_action)
+    queued_action = _first_action(actions)
+    if current_action is None:
+        return queued_action
+    if queued_action is None:
+        return current_action
+    if _actions_have_same_identity(left=current_action, right=queued_action):
+        return {**queued_action, **current_action}
+    return current_action
+
+
+def _actions_have_same_identity(
+    *,
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> bool:
+    left_action_type = _action_type(left)
+    right_action_type = _action_type(right)
+    if left_action_type is not None and right_action_type is not None and left_action_type != right_action_type:
+        return False
+    left_work_unit = _work_unit_id(left.get("work_unit_id")) or _work_unit_id(left.get("next_work_unit"))
+    right_work_unit = _work_unit_id(right.get("work_unit_id")) or _work_unit_id(right.get("next_work_unit"))
+    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
+        return False
+    left_fingerprints = _action_identity_fingerprints(left)
+    right_fingerprints = _action_identity_fingerprints(right)
+    if left_fingerprints and right_fingerprints and not left_fingerprints.intersection(right_fingerprints):
+        return False
+    return True
+
+
+def _action_identity_fingerprints(action: Mapping[str, Any]) -> set[str]:
+    return {
+        text
+        for value in (
+            action.get("work_unit_fingerprint"),
+            action.get("action_fingerprint"),
+            action.get("fingerprint"),
+        )
+        if (text := _text(value)) is not None
+    }
+
+
 def _first_action(actions: Sequence[Mapping[str, Any]] | None) -> dict[str, Any] | None:
     for item in actions or []:
         if isinstance(item, Mapping):
@@ -1484,5 +1587,6 @@ def _first_text(items: Sequence[str]) -> str | None:
 __all__ = [
     "ALLOWED_STATUSES",
     "SURFACE_KIND",
+    "action_supersedes_typed_blocker",
     "build_current_work_unit",
 ]

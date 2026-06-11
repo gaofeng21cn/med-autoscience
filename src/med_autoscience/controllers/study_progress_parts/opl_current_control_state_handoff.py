@@ -41,8 +41,10 @@ LIVE_ATTEMPT_SUPERSEDED_BLOCKERS = frozenset(
         "managed_runtime_audit_unhealthy",
         "medical_paper_readiness_missing",
         "medical_paper_readiness_not_ready",
+        "opl_execution_authorization_required",
         "opl_current_control_state.handoff_required",
         "opl_stage_attempt_admission_required",
+        "provider_admission_current_control_state_required",
         "quest_waiting_opl_runtime_owner_route",
         "repair_progress_ai_reviewer_recheck_required",
         "runtime_recovery_not_authorized",
@@ -64,6 +66,7 @@ TERMINAL_STAGE_LOG_STATUSES = frozenset(
         "failed",
         "terminal",
         "typed_blocked",
+        "typed_blocker",
     }
 )
 
@@ -567,6 +570,7 @@ def _apply_terminal_closeout_owner_answer_gate(projection: dict[str, Any]) -> di
     updated["blocked_reason"] = blocker["blocker_id"]
     updated["next_owner"] = blocker["owner"]
     updated["external_supervisor_required"] = True
+    updated["terminal_closeout_consumed"] = True
     why_not_applied = _string_list(updated.get("why_not_applied"))
     if blocker["blocker_id"] not in why_not_applied:
         why_not_applied.append(blocker["blocker_id"])
@@ -578,7 +582,7 @@ def _apply_terminal_closeout_owner_answer_gate(projection: dict[str, Any]) -> di
                 **dict(item),
                 "consumption": {
                     **_observability_mapping(item.get("consumption")),
-                    "state": "blocked_by_terminal_closeout_missing_owner_answer",
+                    "state": "consumed_by_terminal_stage_closeout",
                     "typed_blocker_ref": source_ref,
                 },
             }
@@ -609,17 +613,52 @@ def _terminal_closeout_has_owner_answer(
     if _non_empty_text(terminal.get("route_outcome")) == "owner_receipt":
         return True
     paper_stage_log = _observability_mapping(terminal.get("paper_stage_log"))
+    if _terminal_stage_log_has_next_owner_handoff(terminal=terminal, paper_stage_log=paper_stage_log):
+        return True
     if _string_list(paper_stage_log.get("changed_paper_surfaces")):
         return True
     outcome = _non_empty_text(paper_stage_log.get("outcome"))
     return outcome in {
-        "typed_blocker",
         "blocked_with_domain_typed_blocker",
         "owner_receipt",
         "owner_receipt_recorded",
         "handoff_ready",
         "next_handoff",
     }
+
+
+def _terminal_stage_log_has_next_owner_handoff(
+    *,
+    terminal: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+) -> bool:
+    next_forced_delta = _observability_mapping(paper_stage_log.get("next_forced_delta"))
+    owner_action = _observability_mapping(next_forced_delta.get("owner_action"))
+    if (
+        _non_empty_text(owner_action.get("action_type")) is not None
+        and (
+            _non_empty_text(owner_action.get("next_owner")) is not None
+            or _non_empty_text(owner_action.get("owner")) is not None
+        )
+        and (
+            _non_empty_text(owner_action.get("work_unit_id")) is not None
+            or _non_empty_text(owner_action.get("next_work_unit")) is not None
+            or _non_empty_text(next_forced_delta.get("work_unit_id")) is not None
+        )
+    ):
+        return True
+    if _non_empty_text(terminal.get("status")) != "closed_with_domain_owner_refs":
+        return False
+    domain_refs = _observability_mapping(terminal.get("domain_owner_refs"))
+    return any(
+        _non_empty_text(domain_refs.get(key)) is not None
+        for key in (
+            "next_dispatch_ref",
+            "next_request_ref",
+            "next_owner_ref",
+            "route_back_evidence_ref",
+        )
+    )
 
 
 def _terminal_closeout_matches_handoff_action(
@@ -656,9 +695,10 @@ def _terminal_closeout_owner_answer_blocker(
     action = _observability_mapping(matching_action)
     source_ref = _non_empty_text(terminal.get("record_path")) or _non_empty_text(terminal.get("source_path"))
     blocker = {
-        "blocker_id": "terminal_closeout_owner_answer_required",
-        "blocker_type": "terminal_closeout_owner_answer_required",
-        "owner": "one-person-lab",
+        "blocker_id": "typed_closeout_packet_required",
+        "blocker_type": "typed_closeout_packet_required",
+        "owner": "MedAutoScience",
+        "source": "terminal_stage_closeout_missing_owner_answer",
         "summary": (
             "Terminal provider closeout must include a MAS owner receipt, typed blocker, or next handoff "
             "before the current work unit can continue."

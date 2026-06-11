@@ -14,6 +14,7 @@ from ..owner_action_admission import (
     build_owner_action_admission_projection,
     provider_attempt_proof_for_current_action,
 )
+from ...current_work_unit import action_supersedes_typed_blocker
 from .artifact_first import (
     artifact_first_owner_action as _artifact_first_owner_action,
     current_action_from_stage_artifact_index as _current_action_from_stage_artifact_index,
@@ -152,9 +153,16 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         active_run_id = None
         active_stage_attempt_id = None
         active_workflow_id = None
+    current_action_supersedes_canonical_typed_blocker = _current_action_supersedes_canonical_typed_blocker(
+        current_action=current_action,
+        canonical_current_work_unit=canonical_current_work_unit,
+        canonical_work_unit_state=canonical_work_unit_state,
+        progress=payload,
+    )
     if (
         current_work_unit_status in {"typed_blocker", "blocked_current_work_unit"}
         and _next_forced_delta_owner_action(current_action)
+        and not current_action_supersedes_canonical_typed_blocker
     ):
         current_action = {}
     owner_action_supersedes_envelope_blocker = handoff_owner_action is not None or (
@@ -182,9 +190,14 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         strict_running_provider_liveness and current_action_provider_attempt_proof
     )
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
+    canonical_work_unit_for_aliases = (
+        {}
+        if current_action_supersedes_canonical_typed_blocker
+        else canonical_current_work_unit
+    )
     next_work_unit = (
         hydration_work_unit
-        or _work_unit_projection(canonical_current_work_unit.get("work_unit_id"))
+        or _work_unit_projection(canonical_work_unit_for_aliases.get("work_unit_id"))
         or _work_unit_from_current_action(current_action)
         or _work_unit_from_action(handoff_owner_action)
         or (
@@ -257,7 +270,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         state_kind = "executable_owner_action"
     else:
         state_kind = _text(execution.get("state_kind"))
-    if current_work_unit_status in {"executable_owner_action", "running_provider_attempt", "typed_blocker"}:
+    if (
+        current_work_unit_status in {"executable_owner_action", "running_provider_attempt", "typed_blocker"}
+        and not current_action_supersedes_canonical_typed_blocker
+    ):
         state_kind = current_work_unit_status
     if state_kind is None:
         if receipt_consumed:
@@ -300,6 +316,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             canonical_current_work_unit,
             state_kind=state_kind,
             current_action=current_action,
+            action_supersedes_canonical_typed_blocker=current_action_supersedes_canonical_typed_blocker,
         ),
         "next_owner": (
             _explicit_wakeup_hydration_owner(launch_policy)
@@ -404,10 +421,40 @@ def _current_work_unit_owner_action_current(
     *,
     state_kind: str | None,
     current_action: Mapping[str, Any],
+    action_supersedes_canonical_typed_blocker: bool = False,
 ) -> bool:
+    if action_supersedes_canonical_typed_blocker:
+        return state_kind == "executable_owner_action" and bool(current_action)
     if current_work_unit:
         return _text(current_work_unit.get("status")) == "executable_owner_action"
     return state_kind == "executable_owner_action" and bool(current_action)
+
+
+def _current_action_supersedes_canonical_typed_blocker(
+    *,
+    current_action: Mapping[str, Any],
+    canonical_current_work_unit: Mapping[str, Any],
+    canonical_work_unit_state: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    if _text(canonical_current_work_unit.get("status")) not in {"typed_blocker", "blocked_current_work_unit"}:
+        return False
+    if not _next_forced_delta_owner_action(current_action):
+        return False
+    blocker = _mapping(canonical_work_unit_state.get("typed_blocker"))
+    if not blocker:
+        blocker = {
+            "blocker_type": _text(canonical_work_unit_state.get("blocker_type")),
+            "blocker_id": _text(canonical_work_unit_state.get("blocker_id")),
+            "blocked_reason": _text(canonical_work_unit_state.get("blocked_reason")),
+            "work_unit_id": _text(canonical_current_work_unit.get("work_unit_id")),
+            "work_unit_fingerprint": _text(canonical_current_work_unit.get("work_unit_fingerprint")),
+        }
+    return action_supersedes_typed_blocker(
+        action=current_action,
+        blocker=blocker,
+        progress=progress,
+    )
 
 
 def _canonical_typed_blocker_blocks_liveness(

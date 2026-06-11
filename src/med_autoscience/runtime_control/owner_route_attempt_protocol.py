@@ -494,6 +494,9 @@ _REASON_REGISTRY = {
     "owner_authorized_publication_gate_replay": _gate_clearing_entry(
         "DM003:owner_authorized_publication_gate_replay"
     ),
+    "publication_gate_replay_blocked": _gate_clearing_entry(
+        "DM003:publication_gate_replay_blocked"
+    ),
     "domain_transition_publication_gate_blocker": _gate_clearing_entry(
         "DM003:domain_transition_publication_gate_blocker"
     ),

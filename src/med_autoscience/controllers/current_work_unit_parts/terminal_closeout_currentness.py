@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from med_autoscience.runtime_control.owner_route_attempt_protocol import owner_reason_contract
+
 
 MappingReader = Callable[[object], dict[str, Any]]
 TextReader = Callable[[object], str | None]
@@ -59,7 +61,12 @@ def terminal_closeout_blocker_for_action(
             "blocker_type": blocker_type,
             "blocker_id": blocker_type,
             "blocked_reason": blocker_type,
-            "owner": _terminal_stage_blocker_owner(terminal, mapping=mapping, text=text),
+            "owner": _terminal_stage_blocker_owner(
+                terminal,
+                blocker_reason=blocker_type,
+                mapping=mapping,
+                text=text,
+            ),
             "action_type": action_type(action_payload),
             "work_unit_id": resolved_work_unit_id,
             "work_unit_fingerprint": resolved_work_unit_fingerprint,
@@ -177,6 +184,7 @@ def _terminal_stage_blocker_reason(
         typed_blocker.get("blocker_type"),
         typed_blocker.get("reason"),
         semantic.get("typed_blocker"),
+        *_terminal_remaining_blockers(terminal, text=text),
     ):
         resolved = text(value)
         if resolved is not None:
@@ -189,16 +197,36 @@ def _terminal_stage_blocker_reason(
 def _terminal_stage_blocker_owner(
     terminal: Mapping[str, Any],
     *,
+    blocker_reason: str,
     mapping: MappingReader,
     text: TextReader,
 ) -> str:
     typed_blocker = mapping(terminal.get("typed_blocker"))
-    return (
+    explicit_owner = (
         text(typed_blocker.get("owner"))
         or text(terminal.get("owner"))
         or text(terminal.get("current_owner"))
+    )
+    contract = owner_reason_contract(reason=blocker_reason, owner=explicit_owner)
+    return (
+        explicit_owner
+        or text(contract.get("owner"))
         or "one-person-lab"
     )
+
+
+def _terminal_remaining_blockers(
+    terminal: Mapping[str, Any],
+    *,
+    text: TextReader,
+) -> tuple[str, ...]:
+    remaining = terminal.get("remaining_blockers")
+    if isinstance(remaining, str):
+        resolved = text(remaining)
+        return (resolved,) if resolved is not None else ()
+    if not isinstance(remaining, list | tuple):
+        return ()
+    return tuple(resolved for item in remaining if (resolved := text(item)) is not None)
 
 
 def _action_source_eval_id(
@@ -232,4 +260,3 @@ def _consumption_source_eval_id(
         or text(consumption.get("eval_id"))
         or text(basis.get("source_eval_id"))
     )
-

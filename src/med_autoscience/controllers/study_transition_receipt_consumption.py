@@ -30,7 +30,7 @@ from med_autoscience.controllers.study_transition_receipt_consumption_parts.owne
     owner_route_currentness_basis as build_owner_route_currentness_basis,
 )
 
-_DEFAULT_EXECUTOR_EXECUTED_STATUSES = frozenset({"executed"})
+_DEFAULT_EXECUTOR_EXECUTED_STATUSES = frozenset({"executed", "closed_with_domain_owner_refs"})
 
 
 def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:

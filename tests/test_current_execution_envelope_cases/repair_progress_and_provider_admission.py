@@ -248,6 +248,62 @@ def test_envelope_actions_prefer_current_domain_transition_over_stale_readiness_
     ]
 
 
+def test_envelope_actions_prefer_repair_progress_current_action_over_stale_gate_handoff_queue() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
+
+    actions = module.current_execution_envelope_actions(
+        handoff={
+            "running_provider_attempt": False,
+            "action_queue": [
+                {
+                    "action_type": "run_gate_clearing_batch",
+                    "owner": "gate_clearing_batch",
+                    "recommended_owner": "gate_clearing_batch",
+                    "next_work_unit": "ai_reviewer_record_gate_consumption",
+                    "work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "work_unit_fingerprint": (
+                        "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption"
+                    ),
+                }
+            ],
+            "latest_terminal_stage_log": {
+                "action_type": "run_gate_clearing_batch",
+                "status": "blocked",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "blocked_reason": "opl_execution_authorization_required",
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "next_owner": "ai_reviewer",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+            "action_fingerprint": "sha256:current-ai-reviewer-record",
+            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            "source_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+            "acceptance_refs": ["artifacts/supervision/requests/ai_reviewer/latest.json"],
+        },
+    )
+
+    assert actions == [
+        {
+            "action_type": "return_to_ai_reviewer_workflow",
+            "owner": "ai_reviewer",
+            "recommended_owner": "ai_reviewer",
+            "next_owner": "ai_reviewer",
+            "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            "source_surface": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "source_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+            "acceptance_refs": ["artifacts/supervision/requests/ai_reviewer/latest.json"],
+        }
+    ]
+
+
 def test_envelope_actions_drop_stale_readiness_handoff_queue_after_paper_delta_without_current_action() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"

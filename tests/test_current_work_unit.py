@@ -315,6 +315,88 @@ def test_current_work_unit_projects_live_repair_progress_precedence_over_stage_r
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_keeps_reconciled_current_action_over_stale_gate_terminal_blocker() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "publication_supervision",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "paper_progress_delta": {"count": 1},
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_attempt_id": "sat_2af188d02fc0999c46931598",
+                    "action_type": "run_gate_clearing_batch",
+                    "status": "blocked",
+                    "stage_name": "ai_reviewer_record_gate_consumption",
+                    "work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "work_unit_fingerprint": "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption",
+                    "blocked_reason": "opl_execution_authorization_required",
+                    "source_eval_id": (
+                        "publication-eval::002-dm-china-us-mortality-attribution::"
+                        "stage-attempt-sat_73cbcf44529e4c3ed3cd2e9a::2026-06-10T08:04:48+00:00"
+                    ),
+                    "source_path": (
+                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_2af188d02fc0999c46931598.closeout.json"
+                    ),
+                }
+            },
+        },
+        actions=[
+            {
+                "source": "study_progress.next_forced_delta.owner_action",
+                "next_owner": "gate_clearing_batch",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::ai_reviewer_record_gate_consumption",
+                "action_type": "run_gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "target_surface": {
+                    "ref_kind": "route_obligation",
+                    "route_target": "gate_clearing_batch",
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+            }
+        ],
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "next_owner": "ai_reviewer",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+            "action_fingerprint": "sha256:current-ai-reviewer-record",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "ai_reviewer_publication_eval_delta_or_typed_blocker",
+            "source_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+            "acceptance_refs": [
+                "artifacts/controller/repair_execution_evidence/latest.json",
+                "artifacts/controller/repair_execution_receipts/latest.json",
+                "artifacts/supervision/requests/ai_reviewer/latest.json",
+            ],
+            "repair_progress_precedence": {
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "source_work_unit_id": "analysis_claim_evidence_repair",
+                "source_fingerprint": "sha256:current-ai-reviewer-record",
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "ai_reviewer"
+    assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
+    assert work_unit["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert work_unit["work_unit_fingerprint"] == "sha256:current-ai-reviewer-record"
+    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_suppresses_consumed_current_owner_action_receipt() -> None:
     module = _module()
 
@@ -535,6 +617,83 @@ def test_current_work_unit_projects_gate_consumption_action_over_opl_authorizati
     assert work_unit["owner"] == "gate_clearing_batch"
     assert work_unit["action_type"] == "run_gate_clearing_batch"
     assert work_unit["work_unit_id"] == "ai_reviewer_record_gate_consumption"
+    assert work_unit["state"]["source"] == "study_progress.next_forced_delta.owner_action"
+    assert "typed_blocker" not in work_unit["state"]
+
+
+def test_current_work_unit_projects_gate_consumption_action_over_stale_currentness_mismatch_blocker() -> None:
+    module = _module()
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::stage-attempt-sat_current::"
+        "2026-06-11T11:30:58+00:00"
+    )
+    fingerprint = (
+        "current-ai-reviewer-gate-replay::002-dm-china-us-mortality-attribution::"
+        f"ai_reviewer_record_gate_consumption::{source_eval_id}"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "publication_supervision",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "next_forced_delta": {
+                "required_delta_kind": "review_current_paper_delta",
+                "reason": "paper_progress_delta_observed",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "eval_id": source_eval_id,
+                "target_surface": {
+                    "ref_kind": "route_obligation",
+                    "route_target": "write",
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+                "owner_action": {
+                    "next_owner": "write",
+                    "work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "study_progress.next_forced_delta.owner_action",
+            "next_owner": "write",
+            "work_unit_id": "ai_reviewer_record_gate_consumption",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": source_eval_id,
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "review_current_paper_delta",
+            "target_surface": {
+                "ref_kind": "route_obligation",
+                "route_target": "write",
+                "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+            },
+        },
+        typed_blocker={
+            "blocker_id": "gate_clearing_batch_source_eval_currentness_mismatch",
+            "blocker_type": "gate_clearing_batch_source_eval_currentness_mismatch",
+            "owner": "gate_clearing_batch",
+            "work_unit_id": "ai_reviewer_record_gate_consumption",
+            "work_unit_fingerprint": fingerprint,
+            "current_ai_reviewer_eval_id": source_eval_id,
+            "publication_eval_latest_eval_id": "publication-eval::older",
+        },
+        next_owner="gate_clearing_batch",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == "ai_reviewer_record_gate_consumption"
+    assert work_unit["work_unit_fingerprint"] == fingerprint
     assert work_unit["state"]["source"] == "study_progress.next_forced_delta.owner_action"
     assert "typed_blocker" not in work_unit["state"]
 
@@ -1119,6 +1278,68 @@ def test_current_work_unit_running_attempt_supersedes_provider_admission_current
     assert work_unit["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     assert work_unit["work_unit_fingerprint"] == "domain-transition::route_back_same_line::dpcc"
     assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-live-gate-replay"
+
+
+def test_current_work_unit_running_attempt_supersedes_prior_opl_authorization_terminal_blocker() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "action_type": "run_gate_clearing_batch",
+                    "status": "blocked",
+                    "outcome": (
+                        "blocked:{'blocker_id': 'opl_execution_authorization_required', "
+                        "'owner': 'one-person-lab'}"
+                    ),
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "source_path": (
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                        "supervision/consumer/default_executor_execution/latest.json"
+                    ),
+                }
+            },
+        },
+        actions=[
+            {
+                "source": "opl_current_control_state_action_queue",
+                "action_type": "run_gate_clearing_batch",
+                "owner": "gate_clearing_batch",
+                "next_owner": "gate_clearing_batch",
+                "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::dpcc",
+                "action_fingerprint": "domain-transition::route_back_same_line::dpcc",
+            }
+        ],
+        next_owner="one-person-lab",
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat-live-gate-replay",
+            "active_stage_attempt_id": "sat-live-gate-replay",
+            "active_workflow_id": "wf-live-gate-replay",
+            "owner": "gate_clearing_batch",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "work_unit_fingerprint": "domain-transition::route_back_same_line::dpcc",
+            "action_fingerprint": "domain-transition::route_back_same_line::dpcc",
+            "action_type": "run_gate_clearing_batch",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::dpcc",
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "running_provider_attempt"
+    assert work_unit["state"]["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-live-gate-replay"
+    assert "typed_blocker" not in work_unit["state"]
 
 
 def test_running_provider_attempt_uses_currentness_work_unit_before_attempt_identity() -> None:

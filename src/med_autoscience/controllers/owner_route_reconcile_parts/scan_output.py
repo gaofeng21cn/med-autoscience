@@ -72,15 +72,34 @@ def merge_current_execution_envelopes(
                 and isinstance(envelope, Mapping)
             }
         )
-    envelopes.update(
-        {
-            study_id: dict(envelope)
-            for study in output_studies
-            if (study_id := _text(study.get("study_id"))) is not None
-            and isinstance((envelope := study.get("current_execution_envelope")), Mapping)
-        }
-    )
+    for study in output_studies:
+        study_id = _text(study.get("study_id"))
+        if study_id is None:
+            continue
+        envelope = study.get("current_execution_envelope")
+        if not isinstance(envelope, Mapping):
+            continue
+        if (
+            retain_unscanned_studies
+            and study_id not in scanned_ids
+            and _previous_envelope_precedes_retained_study_envelope(
+                previous_envelope=_mapping(envelopes.get(study_id)),
+                retained_envelope=envelope,
+            )
+        ):
+            continue
+        envelopes[study_id] = dict(envelope)
     return envelopes
+
+
+def _previous_envelope_precedes_retained_study_envelope(
+    *,
+    previous_envelope: Mapping[str, Any],
+    retained_envelope: Mapping[str, Any],
+) -> bool:
+    return _text(previous_envelope.get("state_kind")) == "running_provider_attempt" and _text(
+        retained_envelope.get("state_kind")
+    ) != "running_provider_attempt"
 
 
 def previous_action_ids(previous_payload: Mapping[str, Any] | None) -> set[str]:

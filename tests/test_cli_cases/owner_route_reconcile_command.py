@@ -144,3 +144,48 @@ def test_owner_route_reconcile_scoped_scan_does_not_retain_previous_execution_en
     )
 
     assert envelopes == {"002-dm": {"state_kind": "executable_owner_action"}}
+
+
+def test_owner_route_reconcile_retained_study_keeps_previous_live_running_envelope() -> None:
+    scan_output = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.scan_output"
+    )
+
+    envelopes = scan_output.merge_current_execution_envelopes(
+        previous_payload={
+            "current_execution_envelopes": {
+                "002-dm": {
+                    "state_kind": "running_provider_attempt",
+                    "owner": "med-autoscience",
+                    "next_work_unit": "ai_reviewer_record_gate_consumption",
+                    "source": "opl_provider_attempt",
+                },
+            },
+        },
+        output_studies=[
+            {
+                "study_id": "002-dm",
+                "handoff_scan_status": "retained_from_previous_scan",
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "write",
+                    "next_work_unit": "ai_reviewer_record_gate_consumption",
+                    "source": "older_retained_study_projection",
+                },
+            },
+            {
+                "study_id": "003-dpcc",
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                },
+            },
+        ],
+        scanned_studies=[{"study_id": "003-dpcc"}],
+        retain_unscanned_studies=True,
+    )
+
+    assert envelopes["002-dm"]["state_kind"] == "running_provider_attempt"
+    assert envelopes["002-dm"]["source"] == "opl_provider_attempt"
+    assert envelopes["003-dpcc"]["owner"] == "ai_reviewer"

@@ -17,6 +17,7 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 )
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
+from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.policies.publication_critique import (
     FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS,
 )
@@ -111,6 +112,12 @@ def _production_request_with_owner_callable_payload_ref(
 ) -> dict[str, Any]:
     payload_ref = str(_record_production_payload_path(profile=profile, study_id=study_id).resolve())
     result = dict(production_request)
+    stable_prose_review = stable_medical_prose_review_path(study_root=profile.studies_root / study_id)
+    if stable_prose_review.exists():
+        result["required_input_refs"] = {
+            **_mapping(result.get("required_input_refs")),
+            "medical_prose_review": str(stable_prose_review),
+        }
     result["owner_callable_payload_ref"] = payload_ref
     result["owner_callable_payload_role"] = "ai_reviewer_record_payload_authoring_target"
     result["owner_callable_profile_ref"] = _profile_ref(profile)
