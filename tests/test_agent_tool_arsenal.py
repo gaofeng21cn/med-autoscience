@@ -226,7 +226,7 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert display_plan["requires"]["executor_receipt_ref_required"] is False
     assert display_plan["primary_operational_card"]["tool_id"] == "display_pack_agent"
     assert display_plan["primary_operational_card"]["default_invocation"]["arguments"] == {
-        "mode": "preflight"
+        "mode": "orchestrate"
     }
 
 
