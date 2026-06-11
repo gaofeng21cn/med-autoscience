@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-11：provider-hosted owner callable 不得被自己的 running envelope 自拦
+
+- 决策：`domain-handler export` / scheduler admission 阶段仍必须把 canonical `running_provider_attempt` 视为硬门，避免同一 work unit 重复导出或重复启动 provider attempt。但 OPL 已经启动 `domain_owner/default-executor-dispatch` provider-hosted attempt 后，provider 在 MAS 内部调用 `domain-owner-action-dispatch` 时，fresh `current_execution_envelope.state_kind=running_provider_attempt` 代表“当前 owner callable 正在本 attempt 内执行”，不得阻断同一 dispatch selection。此时真正阻断 selection 的 envelope 只保留 `typed_blocker` 与 `parked`；`medical_paper_readiness_missing` 继续按 readiness owner 例外处理。
+- 理由：DM003 / DM002 的 provider-hosted default-executor attempt 可以在 OPL 上显示 running，但 MAS dispatch selector 又 fresh 读取到同一 `running_provider_attempt` envelope，直接返回 `executed_count=0 / no_selected_dispatch`。这会把“已 admission 的 provider attempt”变成空转，用户看到的是似乎在跑但没有论文 owner delta。
+- 影响：这是 MAS dispatch selector 的执行阶段 currentness 修复，不写 DM-CVD study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、typed blocker、human gate、OPL queue 或 provider attempt。论文推进仍只按 owner receipt、quality gate receipt、stable typed blocker、human gate、route-back evidence、paper/evidence/reviewer/gate/package semantic delta 或 strict provider running proof 计数。
+
 ## 2026-06-11：Display Pack Agent OS 采用 orchestrate-first 普通路径
 
 - 决策：`display_pack_agent.orchestrate` / `display-pack-agent-orchestrate` 成为 MAS agent 使用 Display Pack 的普通入口。该入口从 `current_owner_delta`、`claim_ref`、`data_ref`、`paper_target` 和自然语言 intent 编译 `figure_intent` 与结构化 `figure_request`，随后返回 template plan、preflight、quality floor、typed repair routes、下一步 callable 和 `publication_readiness_verdict=false`。`plan`、`preflight` 和 `render` 继续保留为低层诊断与执行 surface，但 Agent 默认不需要先手工选模板。
