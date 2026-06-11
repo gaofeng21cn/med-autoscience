@@ -82,7 +82,27 @@
       "same_work_unit_fingerprint_when_present"
     ],
     "missing_identity_policy": "fail_closed_to_diagnostic_or_typed_blocker_candidate",
-    "weak_label_match_can_authorize_route": false
+    "weak_label_match_can_authorize_route": false,
+    "shared_identity_helper": {
+      "surface": "stage_route_currentness_identity",
+      "module": "src/med_autoscience/controllers/stage_route_currentness_identity.py",
+      "applies_to": [
+        "current_work_unit action selection",
+        "domain_action_request_materializer currentness preemption",
+        "domain_owner_action_dispatch fresh typed-blocker gate",
+        "study_progress current owner action projection reconcile"
+      ],
+      "canonical_match_fields": [
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "owner_route.source_refs.owner_route_currentness_basis"
+      ],
+      "repair_followup_requires_shared_fingerprint": true,
+      "same_action_without_work_unit_or_fingerprint_authorizes_route": false,
+      "missing_strong_identity_policy": "fail_closed_to_currentness_diagnostic"
+    }
   },
   "lifecycle_state_machine": {
     "main_chain": [

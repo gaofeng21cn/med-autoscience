@@ -7,6 +7,9 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers import stage_native_next_action_admission
+from med_autoscience.controllers.stage_route_currentness_identity import (
+    currentness_identities_match,
+)
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
@@ -559,7 +562,7 @@ def _typed_blocker_allows_repair_progress_followup(
         return False
     if _text(current_action.get("action_type")) != _text(blocker.get("action_type")):
         return False
-    return _actions_share_currentness_identity(current_action, blocker)
+    return currentness_identities_match(current_action, blocker, require_fingerprint=True)
 
 
 def _is_repair_progress_followup_action(action: Mapping[str, Any]) -> bool:
@@ -572,55 +575,6 @@ def _is_repair_progress_followup_action(action: Mapping[str, Any]) -> bool:
     }:
         return False
     return bool(_mapping(action.get("repair_progress_precedence")) or _text(action.get("source_ref")) is not None)
-
-
-def _actions_share_currentness_identity(
-    left: Mapping[str, Any],
-    right: Mapping[str, Any],
-) -> bool:
-    left_work_unit = _work_unit_identity(left)
-    right_work_unit = _work_unit_identity(right)
-    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
-        return False
-    left_fingerprints = _currentness_fingerprints(left)
-    right_fingerprints = _currentness_fingerprints(right)
-    return bool(left_fingerprints and right_fingerprints and left_fingerprints.intersection(right_fingerprints))
-
-
-def _currentness_fingerprints(payload: Mapping[str, Any]) -> set[str]:
-    owner_route = _dispatch_owner_route(payload)
-    source_refs = _mapping(owner_route.get("source_refs"))
-    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    handoff = _mapping(payload.get("handoff_packet"))
-    return {
-        text
-        for value in (
-            payload.get("work_unit_fingerprint"),
-            payload.get("action_fingerprint"),
-            payload.get("fingerprint"),
-            owner_route.get("work_unit_fingerprint"),
-            owner_route.get("source_fingerprint"),
-            source_refs.get("work_unit_fingerprint"),
-            currentness_basis.get("work_unit_fingerprint"),
-            handoff.get("work_unit_fingerprint"),
-            handoff.get("action_fingerprint"),
-        )
-        if (text := _text(value)) is not None
-    }
-
-
-def _work_unit_identity(payload: Mapping[str, Any]) -> str | None:
-    owner_route = _dispatch_owner_route(payload)
-    source_refs = _mapping(owner_route.get("source_refs"))
-    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    return (
-        _text(payload.get("work_unit_id"))
-        or _work_unit_id(payload.get("next_work_unit"))
-        or _text(owner_route.get("owner_reason"))
-        or _text(source_refs.get("work_unit_id"))
-        or _text(currentness_basis.get("work_unit_id"))
-        or _text(_mapping(payload.get("handoff_packet")).get("next_work_unit"))
-    )
 
 
 def _terminal_closeout_owner_answer_dispatches_only(

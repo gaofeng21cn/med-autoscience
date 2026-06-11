@@ -17,6 +17,8 @@ from med_autoscience.controllers.owner_route_reconcile_parts import (
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_work_unit_action,
     fresh_progress_arbitration,
+    owner_route_currentness_projection,
+    repair_progress_currentness,
     stage_native_next_action,
 )
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -507,7 +509,9 @@ def _fresh_progress_current_action(
     if not _progress_has_executable_owner_action(progress):
         return None
     current_action = _mapping(progress.get("current_executable_owner_action"))
-    repair_progress_followup = _current_action_is_repair_progress_followup(current_action)
+    repair_progress_followup = repair_progress_currentness.current_action_is_repair_progress_followup(
+        current_action
+    )
     ticket = {} if repair_progress_followup else _current_owner_ticket(progress)
     target_surface = _mapping(ticket.get("target_surface")) or _mapping(current_action.get("target_surface"))
     surface_key = (
@@ -611,7 +615,7 @@ def _fresh_progress_currentness_barrier(
     if state_kind not in {"typed_blocker", "parked", "running_provider_attempt"}:
         return None
     current_action = _mapping(progress.get("current_executable_owner_action"))
-    if _typed_blocker_allows_repair_progress_followup(
+    if repair_progress_currentness.typed_blocker_allows_repair_progress_followup(
         envelope=envelope,
         current_action=current_action,
     ):
@@ -651,44 +655,12 @@ def _fresh_progress_typed_blocker_reason(envelope: Mapping[str, Any]) -> str | N
     )
 
 
-def _typed_blocker_allows_repair_progress_followup(
-    *,
-    envelope: Mapping[str, Any],
-    current_action: Mapping[str, Any],
-) -> bool:
-    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    if state_kind != "typed_blocker":
-        return False
-    if not _current_action_is_repair_progress_followup(current_action):
-        return False
-    blocker = _mapping(envelope.get("typed_blocker"))
-    if _text(blocker.get("owner")) != "one-person-lab":
-        return False
-    blocker_reasons = {
-        text
-        for value in (
-            blocker.get("blocker_id"),
-            blocker.get("blocker_type"),
-            blocker.get("reason"),
-            blocker.get("blocked_reason"),
-            blocker.get("terminal_closeout_status"),
-            blocker.get("terminal_closeout_outcome"),
-        )
-        if (text := _text(value)) is not None
-    }
-    if not any("opl_execution_authorization_required" in reason for reason in blocker_reasons):
-        return False
-    if not _actions_share_currentness_identity(current_action, blocker):
-        return False
-    return _text(current_action.get("action_type")) == _text(blocker.get("action_type"))
-
-
 def _progress_has_executable_owner_action(progress: Mapping[str, Any]) -> bool:
     current_action = _mapping(progress.get("current_executable_owner_action"))
     envelope = _mapping(progress.get("current_execution_envelope"))
     state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
     if state_kind is not None:
-        if _typed_blocker_allows_repair_progress_followup(
+        if repair_progress_currentness.typed_blocker_allows_repair_progress_followup(
             envelope=envelope,
             current_action=current_action,
         ):
@@ -788,19 +760,6 @@ def _current_owner_ticket(progress: Mapping[str, Any]) -> dict[str, Any]:
         if _text(payload.get("surface_kind")) == "mas_current_owner_ticket":
             return payload
     return {}
-
-
-def _current_action_is_repair_progress_followup(current_action: Mapping[str, Any]) -> bool:
-    source = _text(current_action.get("source")) or _text(current_action.get("source_surface"))
-    if source != "repair_progress_projection.mas_owner_repair_execution_evidence":
-        return False
-    action_type = fresh_progress_arbitration.current_action_supported_action_type(current_action)
-    if action_type not in {"return_to_ai_reviewer_workflow", "run_gate_clearing_batch"}:
-        return False
-    return bool(
-        _mapping(current_action.get("repair_progress_precedence"))
-        or _text(current_action.get("source_ref")) is not None
-    )
 
 
 def _fresh_progress_owner_route(
@@ -1283,7 +1242,12 @@ def _domain_transition_owner_route(
         and _text(transition.get("controller_action")) is not None
         and _mapping(transition.get("next_work_unit"))
     ):
-        current_study = _study_with_owner_route_currentness(study, generated=generated)
+        current_study = owner_route_currentness_projection.study_with_owner_route_currentness(
+            study,
+            generated=generated,
+            ensure_owner_route_v2=owner_route_part.ensure_owner_route_v2,
+            action_allowed_by_owner_route=_action_allowed_by_owner_route,
+        )
         return owner_route_part.build_owner_route(
             study_id=study_id,
             quest_id=quest_id,
@@ -1416,7 +1380,7 @@ def _scan_currentness_preempts_fresh_progress(
     *,
     fresh_action: Mapping[str, Any],
 ) -> bool:
-    if _fresh_repair_progress_action_matches_scan_currentness(
+    if repair_progress_currentness.generated_action_matches_scan_currentness(
         study=study,
         fresh_action=fresh_action,
     ):
@@ -1427,208 +1391,15 @@ def _scan_currentness_preempts_fresh_progress(
     return _current_execution_is_authoritative(study)
 
 
-def _fresh_repair_progress_action_matches_scan_currentness(
-    *,
-    study: Mapping[str, Any],
-    fresh_action: Mapping[str, Any],
-) -> bool:
-    if not _is_repair_progress_followup_action(fresh_action):
-        return False
-    envelope = _mapping(study.get("current_execution_envelope"))
-    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
-    if state_kind == "running_provider_attempt":
-        return False
-    return any(
-        _actions_share_currentness_identity(fresh_action, candidate)
-        for candidate in _scan_currentness_candidates(study)
-    )
-
-
 def _fresh_repair_progress_action_matches_action_currentness(
     *,
     fresh_action: Mapping[str, Any],
     currentness_action: Mapping[str, Any],
 ) -> bool:
-    return _is_repair_progress_followup_action(
-        fresh_action
-    ) and _actions_share_currentness_identity(fresh_action, currentness_action)
-
-
-def _is_repair_progress_followup_action(action: Mapping[str, Any]) -> bool:
-    if _text(action.get("current_action_source")) != (
-        "repair_progress_projection.mas_owner_repair_execution_evidence"
-    ):
-        return False
-    if _text(action.get("action_type")) not in {
-        "return_to_ai_reviewer_workflow",
-        "run_gate_clearing_batch",
-    }:
-        return False
-    if not (
-        _mapping(action.get("repair_progress_precedence"))
-        or _text(action.get("source_ref")) is not None
-    ):
-        return False
-    return True
-
-
-def _scan_currentness_candidates(study: Mapping[str, Any]) -> list[dict[str, Any]]:
-    candidates: list[dict[str, Any]] = []
-    for value in (
-        study.get("owner_route"),
-        study.get("current_executable_owner_action"),
-        study.get("current_work_unit"),
-    ):
-        payload = _mapping(value)
-        if payload:
-            candidates.append(payload)
-    envelope = _mapping(study.get("current_execution_envelope"))
-    if envelope:
-        candidates.append(envelope)
-    for action in study.get("action_queue") or []:
-        payload = _mapping(action)
-        if payload:
-            candidates.append(payload)
-    return candidates
-
-
-def _actions_share_currentness_identity(
-    left: Mapping[str, Any],
-    right: Mapping[str, Any],
-) -> bool:
-    left_work_unit = _work_unit_identity(left)
-    right_work_unit = _work_unit_identity(right)
-    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
-        return False
-    left_fingerprints = _currentness_fingerprints(left)
-    right_fingerprints = _currentness_fingerprints(right)
-    return bool(left_fingerprints and right_fingerprints and left_fingerprints.intersection(right_fingerprints))
-
-
-def _currentness_fingerprints(payload: Mapping[str, Any]) -> set[str]:
-    owner_route = owner_route_part.ensure_owner_route_v2(
-        _mapping(payload.get("owner_route"))
-        or _mapping(_mapping(payload.get("handoff_packet")).get("owner_route"))
-        or (payload if _text(payload.get("surface")) == "domain_route_owner_route" else {})
+    return repair_progress_currentness.generated_action_matches_action_currentness(
+        fresh_action=fresh_action,
+        currentness_action=currentness_action,
     )
-    source_refs = _mapping(owner_route.get("source_refs"))
-    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    handoff = _mapping(payload.get("handoff_packet"))
-    return {
-        text
-        for value in (
-            payload.get("work_unit_fingerprint"),
-            payload.get("action_fingerprint"),
-            payload.get("fingerprint"),
-            owner_route.get("work_unit_fingerprint"),
-            owner_route.get("source_fingerprint"),
-            source_refs.get("work_unit_fingerprint"),
-            currentness_basis.get("work_unit_fingerprint"),
-            handoff.get("work_unit_fingerprint"),
-            handoff.get("action_fingerprint"),
-        )
-        if (text := _text(value)) is not None
-    }
-
-
-def _work_unit_identity(payload: Mapping[str, Any]) -> str | None:
-    owner_route = owner_route_part.ensure_owner_route_v2(
-        _mapping(payload.get("owner_route"))
-        or _mapping(_mapping(payload.get("handoff_packet")).get("owner_route"))
-        or (payload if _text(payload.get("surface")) == "domain_route_owner_route" else {})
-    )
-    source_refs = _mapping(owner_route.get("source_refs"))
-    currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
-    return (
-        _text(payload.get("work_unit_id"))
-        or _work_unit_id(payload.get("next_work_unit"))
-        or _text(owner_route.get("owner_reason"))
-        or _text(source_refs.get("work_unit_id"))
-        or _text(currentness_basis.get("work_unit_id"))
-    )
-
-
-def _study_with_owner_route_currentness(
-    study: Mapping[str, Any],
-    *,
-    generated: list[dict[str, Any]],
-) -> dict[str, Any]:
-    payload = dict(study)
-    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(payload.get("owner_route")))
-    if not owner_route or not _owner_route_currentness_applies_to_generated(
-        owner_route=owner_route,
-        generated=generated,
-    ):
-        return payload
-    source_refs = _mapping(owner_route.get("source_refs"))
-    basis = _mapping(_mapping(owner_route.get("currentness_contract")).get("basis")) or _mapping(
-        source_refs.get("owner_route_currentness_basis")
-    )
-    if "runtime_health_snapshot" not in payload and (runtime_epoch := _text(basis.get("runtime_health_epoch"))):
-        payload["runtime_health_snapshot"] = {"runtime_health_epoch": runtime_epoch}
-    if "study_truth_snapshot" not in payload:
-        truth_epoch = _text(basis.get("truth_epoch")) or _text(owner_route.get("truth_epoch"))
-        source_signature = _text(owner_route.get("source_fingerprint"))
-        if truth_epoch or source_signature:
-            payload["study_truth_snapshot"] = {
-                key: value
-                for key, value in {
-                    "truth_epoch": truth_epoch,
-                    "source_signature": source_signature,
-                }.items()
-                if value is not None
-            }
-    if "publication_eval" not in payload and (source_eval_id := _text(basis.get("source_eval_id"))):
-        payload["publication_eval"] = {"eval_id": source_eval_id}
-    return payload
-
-
-def _owner_route_currentness_applies_to_generated(
-    *,
-    owner_route: Mapping[str, Any],
-    generated: list[dict[str, Any]],
-) -> bool:
-    if any(_action_allowed_by_owner_route(action, owner_route) for action in generated):
-        return True
-    source_refs = _mapping(owner_route.get("source_refs"))
-    basis = _mapping(_mapping(owner_route.get("currentness_contract")).get("basis")) or _mapping(
-        source_refs.get("owner_route_currentness_basis")
-    )
-    route_work_unit_id = _text(basis.get("work_unit_id")) or _text(source_refs.get("work_unit_id"))
-    route_work_unit_fingerprint = _text(basis.get("work_unit_fingerprint")) or _text(
-        source_refs.get("work_unit_fingerprint")
-    )
-    if route_work_unit_id is None and route_work_unit_fingerprint is None:
-        return False
-    for action in generated:
-        action_work_unit_id = (
-            _text(action.get("controller_work_unit_id"))
-            or _text(action.get("executable_work_unit"))
-            or _work_unit_id(action.get("next_work_unit"))
-        )
-        action_work_unit_fingerprint = _text(action.get("work_unit_fingerprint"))
-        if (
-            route_work_unit_id is not None
-            and route_work_unit_id == action_work_unit_id
-            and (
-                _action_allowed_by_owner_route(action, owner_route)
-                or action_work_unit_id in domain_transition_actions.AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
-            )
-        ):
-            return True
-        if (
-            route_work_unit_fingerprint is not None
-            and action_work_unit_fingerprint is not None
-            and route_work_unit_fingerprint != action_work_unit_fingerprint
-        ):
-            continue
-        if (
-            route_work_unit_fingerprint is not None
-            and action_work_unit_fingerprint is not None
-            and route_work_unit_fingerprint == action_work_unit_fingerprint
-        ):
-            return True
-    return False
 
 
 def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:

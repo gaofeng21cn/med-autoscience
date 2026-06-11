@@ -15,6 +15,18 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
     gate_replay_consumed_by_source_eval,
     terminal_closeout_blocker_for_action,
 )
+from med_autoscience.controllers.current_work_unit_parts.action_projection_fields import (
+    acceptance_refs as _acceptance_refs,
+    action_fingerprint as _action_fingerprint,
+    action_type as _action_type,
+    input_refs as _input_refs,
+    required_output_contract as _required_output_contract,
+    work_unit_fingerprint as _work_unit_fingerprint,
+    work_unit_id as _work_unit_id,
+)
+from med_autoscience.controllers.stage_route_currentness_identity import (
+    currentness_identities_match,
+)
 from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     currentness_basis as owner_route_currentness_basis,
     owner_reason_contract,
@@ -1338,41 +1350,9 @@ def _selected_current_action(
         return queued_action
     if queued_action is None:
         return current_action
-    if _actions_have_same_identity(left=current_action, right=queued_action):
+    if currentness_identities_match(current_action, queued_action):
         return {**queued_action, **current_action}
     return current_action
-
-
-def _actions_have_same_identity(
-    *,
-    left: Mapping[str, Any],
-    right: Mapping[str, Any],
-) -> bool:
-    left_action_type = _action_type(left)
-    right_action_type = _action_type(right)
-    if left_action_type is not None and right_action_type is not None and left_action_type != right_action_type:
-        return False
-    left_work_unit = _work_unit_id(left.get("work_unit_id")) or _work_unit_id(left.get("next_work_unit"))
-    right_work_unit = _work_unit_id(right.get("work_unit_id")) or _work_unit_id(right.get("next_work_unit"))
-    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
-        return False
-    left_fingerprints = _action_identity_fingerprints(left)
-    right_fingerprints = _action_identity_fingerprints(right)
-    if left_fingerprints and right_fingerprints and not left_fingerprints.intersection(right_fingerprints):
-        return False
-    return True
-
-
-def _action_identity_fingerprints(action: Mapping[str, Any]) -> set[str]:
-    return {
-        text
-        for value in (
-            action.get("work_unit_fingerprint"),
-            action.get("action_fingerprint"),
-            action.get("fingerprint"),
-        )
-        if (text := _text(value)) is not None
-    }
 
 
 def _first_action(actions: Sequence[Mapping[str, Any]] | None) -> dict[str, Any] | None:
@@ -1430,86 +1410,6 @@ def _action_source(action: Mapping[str, Any]) -> str | None:
     ):
         return "repair_progress_projection.mas_owner_repair_execution_evidence"
     return None
-
-
-def _action_type(action: Mapping[str, Any]) -> str | None:
-    return _text(action.get("action_type")) or _first_text(_text_items(action.get("allowed_actions")))
-
-
-def _work_unit_id(value: object) -> str | None:
-    if isinstance(value, Mapping):
-        return (
-            _text(value.get("unit_id"))
-            or _text(value.get("work_unit_id"))
-            or _text(value.get("id"))
-            or _text(value.get("ref"))
-        )
-    return _text(value)
-
-
-def _work_unit_fingerprint(
-    action: Mapping[str, Any],
-    *,
-    currentness_basis: Mapping[str, Any],
-) -> str | None:
-    return (
-        _text(action.get("work_unit_fingerprint"))
-        or _text(action.get("fingerprint"))
-        or _text(currentness_basis.get("work_unit_fingerprint"))
-    )
-
-
-def _action_fingerprint(
-    action: Mapping[str, Any],
-    *,
-    currentness_basis: Mapping[str, Any],
-) -> str | None:
-    return (
-        _text(action.get("action_fingerprint"))
-        or _text(action.get("fingerprint"))
-        or _text(action.get("work_unit_fingerprint"))
-        or _text(currentness_basis.get("work_unit_fingerprint"))
-    )
-
-
-def _input_refs(action: Mapping[str, Any], source_refs: Sequence[str]) -> list[str]:
-    refs = list(source_refs)
-    for key in (
-        "source_ref",
-        "latest_owner_answer_ref",
-        "dispatch_path",
-        "request_ref",
-        "stage_packet_ref",
-    ):
-        if ref := _text(action.get(key)):
-            refs.append(ref)
-    refs.extend(_text_items(action.get("input_refs")))
-    refs.extend(_text_items(action.get("source_refs")))
-    return list(dict.fromkeys(refs))
-
-
-def _required_output_contract(action: Mapping[str, Any]) -> dict[str, Any]:
-    explicit = _mapping(action.get("required_output_contract"))
-    if explicit:
-        return explicit
-    contract = {
-        "owner_receipt_required": action.get("owner_receipt_required") is not False,
-        "typed_blocker_accepted": True,
-        "accepted_terminal_results": ["owner_receipt", "typed_blocker"],
-        "required_delta_kind": _text(action.get("required_delta_kind")),
-        "target_surface": _mapping(action.get("target_surface")) or None,
-        "required_output_surface": _text(action.get("required_output_surface")),
-    }
-    return {key: value for key, value in contract.items() if value not in (None, "", [], {})}
-
-
-def _acceptance_refs(action: Mapping[str, Any]) -> list[str]:
-    refs = _text_items(action.get("acceptance_refs"))
-    refs.extend(_text_items(action.get("closeout_refs")))
-    for key in ("owner_receipt_ref", "typed_blocker_ref", "source_ref"):
-        if ref := _text(action.get(key)):
-            refs.append(ref)
-    return list(dict.fromkeys(refs))
 
 
 def _source_refs(

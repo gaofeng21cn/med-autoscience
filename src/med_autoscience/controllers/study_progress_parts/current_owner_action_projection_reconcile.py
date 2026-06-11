@@ -5,6 +5,7 @@ from typing import Any, Mapping
 from .current_executable_owner_action import owner_action_next_step
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .shared import _mapping_copy, _non_empty_text
+from ..stage_route_currentness_identity import currentness_identities_match
 
 CURRENT_OWNER_ACTION_SOURCES = frozenset(
     {
@@ -237,39 +238,7 @@ def _handoff_actions_superseded_by_reconciled_current_action(
         return False
     if _non_empty_text(current_action.get("source_surface")) not in CURRENT_OWNER_ACTION_SOURCES:
         return False
-    return not _actions_have_same_identity(left=current_action, right=handoff_actions[0])
-
-
-def _actions_have_same_identity(
-    *,
-    left: Mapping[str, Any],
-    right: Mapping[str, Any],
-) -> bool:
-    left_action_type = _non_empty_text(left.get("action_type")) or _first_text(_text_items(left.get("allowed_actions")))
-    right_action_type = _non_empty_text(right.get("action_type")) or _first_text(_text_items(right.get("allowed_actions")))
-    if left_action_type is not None and right_action_type is not None and left_action_type != right_action_type:
-        return False
-    left_work_unit = _work_unit_identity(left.get("work_unit_id")) or _work_unit_identity(left.get("next_work_unit"))
-    right_work_unit = _work_unit_identity(right.get("work_unit_id")) or _work_unit_identity(right.get("next_work_unit"))
-    if left_work_unit is not None and right_work_unit is not None and left_work_unit != right_work_unit:
-        return False
-    left_fingerprints = _action_identity_fingerprints(left)
-    right_fingerprints = _action_identity_fingerprints(right)
-    if left_fingerprints and right_fingerprints and not left_fingerprints.intersection(right_fingerprints):
-        return False
-    return True
-
-
-def _action_identity_fingerprints(action: Mapping[str, Any]) -> set[str]:
-    return {
-        text
-        for value in (
-            action.get("work_unit_fingerprint"),
-            action.get("action_fingerprint"),
-            action.get("fingerprint"),
-        )
-        if (text := _non_empty_text(value)) is not None
-    }
+    return not currentness_identities_match(current_action, handoff_actions[0])
 
 
 def _is_readiness_action(action: Mapping[str, Any]) -> bool:
@@ -280,10 +249,6 @@ def _is_readiness_action(action: Mapping[str, Any]) -> bool:
         *_text_items(action.get("allowed_actions")),
     }
     return READINESS_ACTION in values
-
-
-def _first_text(values: list[str]) -> str | None:
-    return values[0] if values else None
 
 
 def _text_items(value: object) -> list[str]:
@@ -311,12 +276,6 @@ def _has_human_gate_authority_ref(payload: Mapping[str, Any]) -> bool:
         if _surface_has_human_gate_ref(surface):
             return True
     return False
-
-
-def _work_unit_identity(value: object) -> str | None:
-    if isinstance(value, Mapping):
-        return _non_empty_text(value.get("unit_id")) or _non_empty_text(value.get("work_unit_id"))
-    return _non_empty_text(value)
 
 
 def _surface_has_human_gate_ref(surface: Mapping[str, Any]) -> bool:
