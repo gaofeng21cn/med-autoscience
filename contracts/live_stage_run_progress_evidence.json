@@ -1,0 +1,87 @@
+{
+  "surface_kind": "domain_live_stage_run_progress_evidence",
+  "schema_ref": "contracts/opl-framework/domain-live-stage-run-progress-evidence.schema.json",
+  "schema_version": 1,
+  "domain_id": "med-autoscience",
+  "domain_agent_id": "mas",
+  "owner": "MedAutoScience",
+  "updated_at": "2026-06-11",
+  "status": "owner_typed_blocker_recorded_not_ready_claim",
+  "role": "w7_domain_owned_live_stage_run_progress_evidence",
+  "evidence_scope": {
+    "stage_run_progress_evidence_owner": "MedAutoScience",
+    "opl_consumer": "one-person-lab",
+    "source_contract": "contracts/production_acceptance/mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json",
+    "source_acceptance_contract": "contracts/production_acceptance/mas-production-acceptance.json",
+    "source_status": "refs_only_multiprofile_owner_chain_snapshot_observed",
+    "live_paper_line_count": 9,
+    "success_payload_count": 4,
+    "typed_blocker_payload_count": 5,
+    "domain_ready_claimed": false,
+    "production_ready_claimed": false,
+    "publication_ready_claimed": false,
+    "artifact_mutation_authorized": false,
+    "current_package_mutation_authorized": false
+  },
+  "refs": {
+    "owner_receipt_refs": [
+      "contracts/production_acceptance/mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json#/paper_line_owner_payload_summary",
+      "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence"
+    ],
+    "typed_blocker_refs": [
+      "mas-stage-typed-blocker:medautoscience:direction_and_route_selection:real-paper-line-owner-receipt-or-monitor-freshness-pending",
+      "mas-stage-typed-blocker:medautoscience:baseline_and_evidence_setup:real-paper-line-owner-receipt-or-monitor-freshness-pending",
+      "mas-stage-typed-blocker:medautoscience:bounded_analysis_campaign:real-paper-line-owner-receipt-or-monitor-freshness-pending",
+      "mas-stage-typed-blocker:medautoscience:manuscript_authoring:real-paper-line-owner-receipt-or-monitor-freshness-pending",
+      "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:real-paper-line-owner-receipt-or-monitor-freshness-pending"
+    ],
+    "quality_or_export_receipt_refs": [
+      "contracts/production_acceptance/mas-production-acceptance.json#/production_like_receipt_chain/required_return_shapes/ai_reviewer_gate_ref",
+      "contracts/production_acceptance/mas-production-acceptance.json#/production_like_receipt_chain/required_return_shapes/quality_publication_gate_ref"
+    ],
+    "human_gate_refs": [
+      "contracts/production_acceptance/mas-production-acceptance.json#/production_like_receipt_chain/required_return_shapes/human_gate_ref"
+    ],
+    "no_regression_refs": [
+      "contracts/production_acceptance/mas-production-acceptance.json#/purpose_first_owner_delta_gate/classification_policy",
+      "contracts/foundry-agent-os-domain-kernel-manifest.json#/forbidden_authority_flags"
+    ],
+    "doc_refs": [
+      "docs/status.md#当前测试证据差距",
+      "docs/active/mas-ideal-state-gap-plan.md#测试--证据差距"
+    ],
+    "next_verification_command_refs": [
+      "scripts/run-pytest-clean.sh -q tests/test_live_stage_run_progress_evidence.py tests/test_mas_production_acceptance.py",
+      "scripts/verify.sh"
+    ]
+  },
+  "typed_blocker_kind": "real_paper_line_owner_receipt_or_monitor_freshness_pending",
+  "next_owner_action": "continue MAS-owned paper-line owner receipt, human gate, quality gate, route-back, no-regression, or stable typed blocker resolution before any publication/domain/production ready claim",
+  "authority_boundary": {
+    "refs_only": true,
+    "body_included": false,
+    "evidence_owner": "domain_repo",
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_publication_eval": false,
+    "opl_can_write_controller_decisions": false,
+    "opl_can_write_current_package": false,
+    "opl_can_mutate_artifact_body": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_sign_owner_receipt": false,
+    "opl_can_create_typed_blocker": false,
+    "opl_can_authorize_quality_or_export": false,
+    "opl_can_claim_domain_ready": false,
+    "opl_can_claim_publication_ready": false,
+    "opl_can_claim_production_ready": false,
+    "provider_completion_counts_as_domain_ready": false,
+    "structural_conformance_counts_as_live_progress": false
+  },
+  "non_claims": {
+    "domain_ready": false,
+    "publication_ready": false,
+    "submission_ready": false,
+    "artifact_mutation_authorized": false,
+    "current_package_fresh": false,
+    "production_ready": false
+  }
+}

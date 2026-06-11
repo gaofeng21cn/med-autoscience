@@ -25,6 +25,7 @@ Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `
 最近一次已记录 Display Pack v2 landing status：`2026-06-10`
 最近一次已记录 accepted typed closeout / current-control handoff currentness hardening：`2026-06-10`
 最近一次已记录 running attempt / terminal closeout currentness hardening：`2026-06-11`
+最近一次已记录 MAS live StageRun progress evidence contract：`2026-06-11`
 
 Plugin native profile pointer: `contracts/opl-native-profile.json` 只声明 OPL Flow / OPL Doc 插件同步与 drift 检查所需的 repo-native profile；它不是 MAS medical truth、runtime truth、publication verdict、artifact authority、owner receipt 或 production-ready 证据。
 
@@ -187,7 +188,7 @@ Provider-hosted dispatch 的授权边界固定为：`OPL_STAGE_ATTEMPT_ID`、wor
 
 | 证据差距 | 当前状态 | 仍需看到 |
 | --- | --- | --- |
-| 真实 paper-line provider apply | multi-profile guarded-apply、DM002 canary、research evidence pack read-model/schema/canary 已证明 refs-only owner-chain shape、stable blocker 和 fail-closed 审计链可见。 | 更多真实 paper line 产出 owner receipt、paper/artifact delta、independent reviewer/auditor record、human gate/resume、route decision、stop-loss、artifact/memory lifecycle receipt 或 stable typed blocker。 |
+| 真实 paper-line provider apply | multi-profile guarded-apply、DM002 canary、research evidence pack read-model/schema/canary 已证明 refs-only owner-chain shape、stable blocker 和 fail-closed 审计链可见。`contracts/live_stage_run_progress_evidence.json` 现在把这组 MAS-owned owner receipt / typed blocker / human gate / quality gate / no-regression refs 暴露为 OPL 可消费的 live StageRun progress evidence contract；它只关闭“domain owner 已给出 refs 或 blocker”这一 owner-chain evidence 缺口。 | 更多真实 paper line 产出 owner receipt、paper/artifact delta、independent reviewer/auditor record、human gate/resume、route decision、stop-loss、artifact/memory lifecycle receipt 或 stable typed blocker，并由 MAS owner 把 blocker 解析为 route-back、human gate 或下一 paper delta；该合同不声明 publication-ready、domain-ready、artifact mutation authorization、current package freshness 或 production-ready。 |
 | owner-chain dispatch ledger scaleout | `domain_dispatch_evidence_record_payload` 与 OPL refs-only identity preflight / record / verify 已覆盖 success refs path 和 typed-blocker path；2026-06-07 新增 readiness owner callable 的 payload exporter coverage，fresh OPL worklist 已读到 `open_worklist_item_count=0`。 | 只处理 fresh OPL worklist 重新暴露且能绑定 MAS current owner delta 的 workorder；已 verified typed-blocker receipt 不能升级成 success receipt，success refs receipt 也不能写成 domain-ready 或 production-ready。 |
 | publication-route memory receipts | Router/writeback refs 已进入 body-free evidence packets、paper-line result、domain-dispatch payload 和 stage expected refs。 | 多条真实 paper line 持续产生 accepted/rejected/blocked writeback receipts，并由 owner route 明确 memory accept/reject/blocker 结论。 |
 | artifact lifecycle receipts | Artifact lifecycle report / retention plan 已输出 bounded refs、physical-thinning handoff 和 stable typed blocker refs-only shape。 | OPL apply receipt、真实 cleanup/restore/freshness apply receipt 或 MAS artifact mutation permission；不能由 report/plan 直接授权 cleanup 或 artifact mutation。 |
