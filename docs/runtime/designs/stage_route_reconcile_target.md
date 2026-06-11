@@ -92,6 +92,27 @@ stateDiagram-v2
 
 预算耗尽后，停止自动 redrive，输出 MAS typed blocker candidate 或 route-back evidence。不能继续靠同一 tick / heartbeat / automation prompt 重复跑。
 
+## Stage Log 最小可用性
+
+每个 terminal closeout 必须把“执行了什么”和“是否推进论文”拆开：
+
+- `paper_stage_log` 是 MAS canonical domain log；`user_stage_log` 与 `stage_log_summary` 只是可等价投影的 alias。
+- 显式 domain log 必须包含 stage 目标、实际做了什么、paper 做了什么、stage / paper changed surfaces、outcome、remaining blockers、duration、token usage、cost、usage/cost refs、progress_delta_classification、deliverable / paper / platform delta、next forced delta 和 evidence refs。
+- duration / token / cost 未采到时必须写成 explicit missing，例如 `status=missing`、`value=null` 和 missing reason；不能用空对象或猜测值。
+- 显式 user-facing stage log 缺 required fields 时，MAS 消费 terminal closeout 为 `domain_closeout_provided_incomplete_user_stage_log` typed blocker；该状态不给 paper-progress credit，不自动 redrive。
+- 没有显式 stage log 的旧 closeout，只允许 MAS 从结构化 owner receipt / typed blocker / repair evidence 派生 fallback read-model log，用于兼容历史 closeout；fallback 不升级为论文语义真相。
+
+OPL 的 `stage_progress_log.user_stage_log` 只投影 domain-provided semantic summary、duration/token/cost observed/missing 状态和 refs；OPL 不从 artifact body、memory body、publication verdict body 或 transcript 中自行生成“论文做了什么”。
+
+## Transport Payload 边界
+
+Temporal / queue / workflow state 中只放小 payload：
+
+- 保留：`stage_attempt_id`、idempotency key、closeout refs、consumed refs、memory/writeback refs、rejected writes summary、next owner、domain-ready verdict、route impact、authority boundary、trace/span refs。
+- 禁止：paper/user stage log body、transcript、paper/manuscript body、artifact body、memory body、large detail arrays、publication verdict body。
+
+完整正文只保存在 MAS/OPL 文件和 ledger 中，由 refs 连接。这样做的目的不是“压缩日志”，而是防止 provider 已写 closeout 但 Temporal completion 因 payload 过大失败，从而再次制造假 running / pending / terminal 分裂。
+
 ## OPL 基座优化
 
 OPL 侧应把以下能力做成一等基座接口：
@@ -119,14 +140,14 @@ MAS 侧对应收薄：
 
 ## 成熟工程经验映射
 
-- Temporal：借鉴 durable history、retry、signal/query 和 idempotent activity；provider completion 仍只是 transport evidence。
+- Temporal：借鉴 durable history、retry、signal/query、idempotent activity 和 payload limit；provider completion 仍只是 transport evidence，activity result 必须 refs-only。
 - Kubernetes controller：借鉴 desired/current/status/conditions reconcile；read-model 和 worklist 不能成为第二 truth。
 - Argo Workflows：借鉴 exit handler、retry strategy、archive 和 memoization边界；archive 不等于 evidence body 或 authority ledger。
-- Airflow：借鉴 task metadata / XCom 小元数据边界；artifact body、memory body、study truth 不进入 task metadata。
-- Durable Functions / Step Functions：借鉴 deterministic orchestrator、callback token、redrive 从失败点继续；human answer 必须由 MAS authority surface 消费。
-- OpenLineage / OpenTelemetry：借鉴 lineage 和 observability 分层；lineage/trace 不能关闭 quality gate 或 publication verdict。
+- Airflow：借鉴 XCom small metadata boundary；artifact body、memory body、study truth 不进入 task metadata。
+- Step Functions / Durable Functions：借鉴 deterministic orchestrator、callback token、execution identity / idempotency 和 redrive 从失败点继续；human answer 必须由 MAS authority surface 消费。
+- OpenLineage / OpenTelemetry：借鉴 lineage、span links 和 observability 分层；lineage/trace 不能关闭 quality gate 或 publication verdict。
 
-这些映射的 machine-readable source refs 归 `contracts/stage_route_reconcile_contract.json`；当前采用的官方来源包括 Kubernetes controller、Temporal activity、Argo retry、Airflow XCom、AWS Step Functions StartExecution、Durable Functions code constraints、OpenLineage facets 和 OpenTelemetry traces。
+这些映射的 machine-readable source refs 归 `contracts/stage_route_reconcile_contract.json`；当前采用的官方来源包括 [Kubernetes Controllers](https://kubernetes.io/docs/concepts/architecture/controller/)、[Temporal Activity return values](https://docs.temporal.io/develop/typescript/activities/basics)、[Temporal limits](https://docs.temporal.io/cloud/limits)、[Argo retry/exit handlers](https://argo-workflows.readthedocs.io/en/latest/walk-through/retrying-failed-or-errored-steps/)、[Airflow XComs](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/xcoms.html)、[AWS Step Functions StartExecution](https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html)、[OpenTelemetry traces](https://opentelemetry.io/docs/concepts/signals/traces/) 和 [OpenLineage specification](https://openlineage.io/docs/spec/object-model/)。
 
 ## 运行态监督链
 

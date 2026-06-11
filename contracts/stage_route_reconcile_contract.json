@@ -263,6 +263,56 @@
     "budget_exhaustion_action": "stop_redrive_and_emit_mas_typed_blocker_candidate_or_route_back_evidence",
     "automatic_redrive_after_budget_exhaustion_allowed": false
   },
+  "stage_log_minimum_viability": {
+    "surface_kind": "mas_opl_stage_log_minimum_viability_policy",
+    "canonical_domain_log_field": "paper_stage_log",
+    "accepted_aliases": [
+      "paper_stage_log",
+      "user_stage_log",
+      "stage_log_summary"
+    ],
+    "required_domain_fields": [
+      "stage_name",
+      "problem_summary",
+      "stage_goal",
+      "stage_work_done",
+      "paper_work_done",
+      "changed_stage_surfaces",
+      "changed_paper_surfaces",
+      "outcome",
+      "remaining_blockers",
+      "duration",
+      "token_usage",
+      "cost",
+      "usage_refs",
+      "cost_refs",
+      "progress_delta_classification",
+      "deliverable_progress_delta",
+      "paper_progress_delta",
+      "platform_repair_delta",
+      "next_forced_delta",
+      "evidence_refs"
+    ],
+    "empty_lists_are_explicit_complete_values_for": [
+      "changed_stage_surfaces",
+      "changed_paper_surfaces",
+      "remaining_blockers",
+      "usage_refs",
+      "cost_refs",
+      "evidence_refs"
+    ],
+    "missing_domain_fields_effect": "consume_terminal_closeout_as_typed_blocker",
+    "typed_blocker_reason": "domain_closeout_provided_incomplete_user_stage_log",
+    "paper_progress_credit_allowed_when_incomplete": false,
+    "automatic_redrive_allowed_when_incomplete": false,
+    "authority_boundary": {
+      "mas_consumes_as_domain_typed_blocker": true,
+      "opl_projects_missing_fields_only": true,
+      "provider_completion_is_domain_progress": false,
+      "can_write_paper_body": false,
+      "can_authorize_quality_or_submission": false
+    }
+  },
   "opl_substrate_optimization": {
     "opl_owns": [
       "StageRun Kernel",
@@ -353,6 +403,11 @@
         "capability": "no_progress_budget_contract",
         "owner": "OPL Framework / MAS consumer",
         "required_effect": "lineage budget, repeat thresholds, reset conditions, typed-blocker escalation, and automatic-redrive stop are schema-backed and regression-tested"
+      },
+      {
+        "capability": "stage_log_minimum_viability_contract",
+        "owner": "MAS consumer / OPL stage_progress_log projection",
+        "required_effect": "terminal closeout missing required user-stage-log domain fields is consumed as domain_closeout_provided_incomplete_user_stage_log typed blocker, receives no paper-progress credit, and cannot trigger automatic redrive"
       },
       {
         "capability": "worker_source_stale_supervisor_projection",

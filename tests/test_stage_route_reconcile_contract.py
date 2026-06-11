@@ -141,6 +141,39 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     )
     assert anti_loop["automatic_redrive_after_budget_exhaustion_allowed"] is False
 
+    stage_log = contract["stage_log_minimum_viability"]
+    assert stage_log["surface_kind"] == "mas_opl_stage_log_minimum_viability_policy"
+    assert stage_log["canonical_domain_log_field"] == "paper_stage_log"
+    assert stage_log["accepted_aliases"] == [
+        "paper_stage_log",
+        "user_stage_log",
+        "stage_log_summary",
+    ]
+    assert {
+        "stage_goal",
+        "stage_work_done",
+        "paper_work_done",
+        "duration",
+        "token_usage",
+        "cost",
+        "progress_delta_classification",
+        "deliverable_progress_delta",
+        "paper_progress_delta",
+        "platform_repair_delta",
+        "next_forced_delta",
+    } <= set(stage_log["required_domain_fields"])
+    assert stage_log["missing_domain_fields_effect"] == "consume_terminal_closeout_as_typed_blocker"
+    assert stage_log["typed_blocker_reason"] == "domain_closeout_provided_incomplete_user_stage_log"
+    assert stage_log["paper_progress_credit_allowed_when_incomplete"] is False
+    assert stage_log["automatic_redrive_allowed_when_incomplete"] is False
+    assert stage_log["authority_boundary"] == {
+        "mas_consumes_as_domain_typed_blocker": True,
+        "opl_projects_missing_fields_only": True,
+        "provider_completion_is_domain_progress": False,
+        "can_write_paper_body": False,
+        "can_authorize_quality_or_submission": False,
+    }
+
     split = contract["opl_substrate_optimization"]
     assert "StageRun Kernel" in split["opl_owns"]
     assert "durable queue" in split["opl_owns"]
@@ -197,6 +230,11 @@ def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_p
     assert "automatic-redrive stop" in capabilities["no_progress_budget_contract"][
         "required_effect"
     ]
+    assert capabilities["stage_log_minimum_viability_contract"]["required_effect"] == (
+        "terminal closeout missing required user-stage-log domain fields is consumed as "
+        "domain_closeout_provided_incomplete_user_stage_log typed blocker, receives no "
+        "paper-progress credit, and cannot trigger automatic redrive"
+    )
     assert "no active attempt exists" in capabilities["worker_source_stale_supervisor_projection"][
         "required_effect"
     ]

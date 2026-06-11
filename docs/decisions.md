@@ -24,6 +24,21 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 在 019eb0e8 线程中反复暴露出两类坏状态：OPL/MAS 读面把已 terminal 的 stage attempt 继续投成 running，以及同一 closeout 被消费后仍回到 provider admission pending / heartbeat 监督。根因不是自动任务文案，而是 stage-route handshake、identity、closeout consumption 和 anti-loop budget 没有统一成机器合同。
 - 影响：这是控制面和设计合同修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、quality verdict、human gate 或 OPL runtime artifact。真实论文推进仍只按 MAS owner receipt、quality gate receipt、stable typed blocker、human gate、route-back evidence、paper/evidence/reviewer/gate/package semantic delta 或 strict provider running proof 计数。
 
+## 2026-06-11：stage closeout 的用户可读 stage log 必须达到最小语义可用性
+
+- 决策：MAS terminal closeout 的 canonical 用户可读 domain log 是 `paper_stage_log`；`user_stage_log` 和 `stage_log_summary` 只是 alias。显式 domain log 必须包含 stage 目标、实际工作、paper 工作、changed stage / paper surfaces、outcome、remaining blockers、duration、token usage、cost、usage/cost refs、progress_delta_classification、deliverable / paper / platform delta、next forced delta 和 evidence refs。
+- 决策：显式 `paper_stage_log` / `user_stage_log` / `stage_log_summary` 缺 required fields 时，MAS 必须把该 terminal closeout 消费为 `domain_closeout_provided_incomplete_user_stage_log` typed blocker；不给 paper-progress credit，不自动 redrive。OPL 只能把缺字段投影为 `stage_progress_log.user_stage_log` missing-domain-fields 状态，不能替 domain 生成论文语义摘要或 typed blocker。
+- 决策：duration / token / cost 未采集时必须写成 explicit missing 状态和 reason；不得用空对象、heartbeat 时间、attempt elapsed time、transport success 或估算值冒充 token/cost 或论文推进。没有显式 stage log 的历史 closeout 只允许 MAS 从结构化 owner receipt / typed blocker / repair evidence 派生 fallback read-model log，不升级为论文语义真相。
+- 理由：019eb0e8 线程显示两篇论文已有 stage closeout，但用户想知道“每个 stage 做了什么、花多久、token/cost”；旧 closeout 里 token/cost 经常缺失，部分 stage log 只写 outcome / next delta，无法支撑人读进度，也容易把 platform repair 误报成 paper progress。
+- 影响：这是 closeout consumption / read-model / stage log contract 修复，不写 paper body、study truth、publication verdict、controller decision、current package、owner receipt、quality gate receipt、human gate 或 OPL runtime artifact。论文进度仍只按 owner receipt、stable typed blocker、route-back evidence、reviewer/gate/package semantic delta 或 strict running proof 判定。
+
+## 2026-06-11：Temporal activity completion payload 必须 refs-only
+
+- 决策：OPL Temporal `codexStageActivity` 返回给 workflow/activity completion 的 closeout packet 必须收薄为 refs-only summary：保留 stage attempt id、idempotency key、closeout refs、consumed refs、writeback refs、rejected writes summary、next owner、domain-ready verdict、route impact 和 authority boundary；完整 closeout body、`paper_stage_log` / `user_stage_log` / `stage_log_summary`、transcript、paper/artifact/memory body 和大 detail arrays 留在文件/ledger。
+- 决策：MAS 只消费 closeout refs 和 domain-owned closeout 文件；Temporal result / workflow history / OPL queue metadata 不能成为 domain truth、publication quality、paper progress 或 owner receipt authority。
+- 理由：019eb0e8 线程中 OPL worker 日志多次出现 Temporal completion payload 超 4MB，形成“provider 已写 closeout，但 workflow completion 失败，MAS 后续消费不到可靠 terminal”的卡点。成熟系统也遵循同一边界：Temporal 有 payload limits，Airflow XCom 只适合小元数据，Kubernetes controller 只 reconcile desired/current/status，OpenTelemetry / OpenLineage 用 refs/links 做可观测性而不承载 domain truth。
+- 影响：这是 OPL transport / workflow-state hardening，MAS 侧只记录消费规则；不写 study truth、paper body、publication verdict、controller decision、current package、owner receipt、typed blocker、quality verdict、human gate、OPL DB 或 runtime artifact。当前 active attempt 仍需自然 terminal 后再由 DHD apply 消费 closeout；worker stale restart 只能等 active attempt 为 0。
+
 ## 2026-06-11：default-executor closeout 必须压过同一 stage attempt 的 OPL live 投影
 
 - 决策：MAS 在投影 `domain_owner/default-executor-dispatch` provider liveness 时，必须先检查同一 workspace、study 和 `stage_attempt_id` 下的 `artifacts/supervision/consumer/default_executor_execution/<stage_attempt_id>.closeout.json`。若该 closeout 是 `stage_attempt_closeout_packet` 或状态属于 blocked / closed / completed / executed / failed / progress-delta / typed-blocker 等终态，MAS 必须 fail closed，不得从 OPL queue linked liveness、queue inspect 或 attempt ledger 返回 `running_provider_attempt=true`。

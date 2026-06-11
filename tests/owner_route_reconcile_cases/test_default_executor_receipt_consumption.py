@@ -461,7 +461,38 @@ def test_consumes_record_only_ai_reviewer_owner_receipt_closeout(
                 ],
             },
             "paper_stage_log": {
+                "stage_name": work_unit_id,
+                "problem_summary": "AI reviewer record was materialized as a record-only owner receipt.",
+                "stage_goal": "Produce the current AI reviewer record without mutating publication authority.",
+                "stage_work_done": [
+                    "Materialized record-only AI reviewer publication evaluation evidence.",
+                ],
+                "paper_work_done": [
+                    "Materialized record-only AI reviewer publication evaluation evidence.",
+                ],
+                "changed_stage_surfaces": [
+                    (
+                        f"studies/{study_id}/artifacts/publication_eval/"
+                        "ai_reviewer_responses/20260611T003454Z_publication_eval_record.json"
+                    )
+                ],
+                "changed_paper_surfaces": [
+                    (
+                        f"studies/{study_id}/artifacts/publication_eval/"
+                        "ai_reviewer_responses/20260611T003454Z_publication_eval_record.json"
+                    )
+                ],
                 "outcome": "closed_with_domain_owner_refs",
+                "remaining_blockers": [],
+                "duration": {"status": "missing", "value": None},
+                "token_usage": {"status": "missing", "value": None, "total_tokens": None},
+                "cost": {"status": "missing", "value": None, "total_cost": None},
+                "usage_refs": [],
+                "cost_refs": [],
+                "progress_delta_classification": "deliverable_progress",
+                "deliverable_progress_delta": {"count": 1, "token_usage_total": None},
+                "paper_progress_delta": {"count": 1, "token_usage_total": None},
+                "platform_repair_delta": {"count": 0, "token_usage_total": None},
                 "next_forced_delta": {
                     "required_delta_kind": "paper_progress_delta_or_typed_blocker",
                     "work_unit_id": "current_package_freshness_required",
@@ -471,6 +502,12 @@ def test_consumes_record_only_ai_reviewer_owner_receipt_closeout(
                         "work_unit_id": "current_package_freshness_required",
                     },
                 },
+                "evidence_refs": [
+                    (
+                        f"studies/{study_id}/artifacts/publication_eval/"
+                        "ai_reviewer_responses/20260611T003454Z_publication_eval_record.json"
+                    )
+                ],
             },
             "closeout_refs": [
                 f"studies/{study_id}/{closeout_ref}",

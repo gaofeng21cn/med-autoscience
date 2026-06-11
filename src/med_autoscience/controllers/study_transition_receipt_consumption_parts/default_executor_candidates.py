@@ -5,6 +5,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.default_executor_closeout_contract import (
+    default_executor_typed_closeout_contract,
+)
+
 
 EXECUTED_STATUSES = frozenset({"executed"})
 EXECUTION_REF = Path("artifacts/supervision/consumer/default_executor_execution/latest.json")
@@ -83,6 +87,24 @@ def _execution_from_stage_closeout(
         owner_receipt=owner_receipt,
         domain_execution=domain_execution,
     )
+    explicit_user_stage_log = _stage_closeout_user_stage_log(closeout)
+    user_stage_log = explicit_user_stage_log or _fallback_stage_closeout_user_stage_log(
+        closeout=closeout,
+        action_type=action_type,
+        owner_receipt=owner_receipt,
+        domain_execution=domain_execution,
+        repair_evidence=repair_evidence,
+        blocked_reason=closeout_blocked_reason,
+    )
+    missing_user_stage_log_fields = _missing_user_stage_log_fields(
+        action_type=action_type,
+        user_stage_log=user_stage_log,
+    )
+    incomplete_user_stage_log_reason = (
+        "domain_closeout_provided_incomplete_user_stage_log"
+        if missing_user_stage_log_fields
+        else ""
+    )
     return {
         "surface": "default_executor_dispatch_execution",
         "schema_version": 1,
@@ -100,9 +122,19 @@ def _execution_from_stage_closeout(
         "stage_closeout_surface_kind": _text(closeout.get("surface_kind")),
         "stage_closeout_status": _text(closeout.get("status")),
         "stage_closeout_refs": _text_list(closeout.get("closeout_refs")),
-        "stage_closeout_outcome": _stage_closeout_outcome(closeout),
-        "typed_blocker_reason": _text(closeout.get("typed_blocker_reason")) or _stage_closeout_gate_replay_blocked_reason(closeout),
-        "typed_blocker_ref": _text(closeout.get("typed_blocker_ref")) or _stage_closeout_gate_replay_report_ref(closeout),
+        "stage_closeout_outcome": (
+            "typed_blocker" if incomplete_user_stage_log_reason else _stage_closeout_outcome(closeout)
+        ),
+        "typed_blocker_reason": (
+            _text(closeout.get("typed_blocker_reason"))
+            or incomplete_user_stage_log_reason
+            or _stage_closeout_gate_replay_blocked_reason(closeout)
+        ),
+        "typed_blocker_ref": (
+            _text(closeout.get("typed_blocker_ref"))
+            or (str(closeout_ref) if incomplete_user_stage_log_reason else "")
+            or _stage_closeout_gate_replay_report_ref(closeout)
+        ),
         "owner_receipt_ref": _text(closeout.get("owner_receipt_ref")),
         "stage_closeout_required_ref_field": _text(
             _mapping(closeout.get("required_closeout_packet")).get("required_ref_field")
@@ -110,12 +142,29 @@ def _execution_from_stage_closeout(
         or "closeout_refs",
         "stage_attempt_id": _text(closeout.get("stage_attempt_id")),
         "typed_blocker": _mapping(closeout.get("typed_blocker")),
+        "paper_stage_log": user_stage_log or {},
+        "missing_user_stage_log_fields": missing_user_stage_log_fields,
+        "missing_domain_fields": missing_user_stage_log_fields,
+        "semantic_gap": (
+            {
+                "reason": incomplete_user_stage_log_reason,
+                "missing_domain_fields": missing_user_stage_log_fields,
+                "source": "paper_stage_log",
+                "owner": "MedAutoScience",
+            }
+            if incomplete_user_stage_log_reason
+            else {}
+        ),
         "owner_result": {
             "status": (
-                _text(owner_receipt.get("status"))
-                or _text(closeout.get("route_outcome"))
-                or _stage_closeout_owner_result_status(closeout)
-                or _text(closeout.get("status"))
+                "blocked"
+                if incomplete_user_stage_log_reason
+                else (
+                    _text(owner_receipt.get("status"))
+                    or _text(closeout.get("route_outcome"))
+                    or _stage_closeout_owner_result_status(closeout)
+                    or _text(closeout.get("status"))
+                )
             ),
             "owner": _text(owner_receipt.get("owner")),
             "owner_receipt_ref": _text(closeout.get("owner_receipt_ref")),
@@ -126,16 +175,172 @@ def _execution_from_stage_closeout(
             "publication_eval_latest_write_authorized": owner_receipt.get("publication_eval_latest_write_authorized"),
             "controller_decision_write_authorized": owner_receipt.get("controller_decision_write_authorized"),
             "ok": _stage_closeout_has_story_surface_delta(closeout),
-            "blocked_reason": closeout_blocked_reason,
+            "blocked_reason": incomplete_user_stage_log_reason or closeout_blocked_reason,
             "blocked_reasons": list(owner_receipt.get("blocked_reasons") or []),
             "dispatcher_result": _mapping(domain_execution.get("dispatcher_result")),
-            "repair_execution_evidence": repair_evidence,
+            "repair_execution_evidence": _repair_evidence_with_user_stage_log_gap(
+                repair_evidence=repair_evidence,
+                reason=incomplete_user_stage_log_reason,
+                missing_fields=missing_user_stage_log_fields,
+            ),
             "quality_authorized": False,
             "submission_authorized": False,
             "current_package_write_authorized": False,
         },
         "receipt_ref": str(closeout_ref),
     }
+
+
+def _stage_closeout_user_stage_log(closeout: Mapping[str, Any]) -> Mapping[str, Any]:
+    for field in ("paper_stage_log", "user_stage_log", "stage_log_summary"):
+        value = _mapping(closeout.get(field))
+        if value:
+            return value
+    route_impact = _mapping(closeout.get("route_impact"))
+    for field in ("paper_stage_log", "user_stage_log", "stage_log_summary"):
+        value = _mapping(route_impact.get(field))
+        if value:
+            return value
+    return {}
+
+
+def _fallback_stage_closeout_user_stage_log(
+    *,
+    closeout: Mapping[str, Any],
+    action_type: str,
+    owner_receipt: Mapping[str, Any],
+    domain_execution: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+    blocked_reason: str,
+) -> dict[str, Any]:
+    changed_surfaces = [
+        _text(item.get("path"))
+        for item in _mapping_list(repair_evidence.get("changed_artifact_refs"))
+        if _text(item.get("path"))
+    ]
+    status = _text(owner_receipt.get("status")) or _text(closeout.get("route_outcome")) or _text(closeout.get("status"))
+    outcome = "typed_blocker" if blocked_reason else status
+    deliverable_count = 1 if changed_surfaces else 0
+    platform_repair_count = 0 if changed_surfaces else (1 if blocked_reason else 0)
+    return {
+        "surface_kind": "mas_paper_facing_stage_log_summary",
+        "schema_version": 1,
+        "status": "available",
+        "stage_name": _text(closeout.get("work_unit_id")) or action_type,
+        "problem_summary": (
+            f"{action_type} ended with typed blocker {blocked_reason}."
+            if blocked_reason
+            else f"{action_type} produced closeout refs for the current owner route."
+        ),
+        "stage_goal": _text(owner_receipt.get("required_output_surface"))
+        or _text(domain_execution.get("required_output_surface"))
+        or f"Complete the owner-authorized {action_type} work unit or return a typed blocker.",
+        "stage_work_done": [
+            _text(owner_receipt.get("publication_eval_record_ref"))
+            or _text(owner_receipt.get("owner_callable_surface"))
+            or _text(repair_evidence.get("status"))
+            or _text(closeout.get("route_outcome"))
+            or _text(closeout.get("status"))
+            or "terminal closeout observed"
+        ],
+        "paper_work_done": [
+            _text(owner_receipt.get("publication_eval_record_ref"))
+            or _text(owner_receipt.get("owner_callable_surface"))
+            or _text(repair_evidence.get("status"))
+            or _text(closeout.get("route_outcome"))
+            or _text(closeout.get("status"))
+            or "terminal closeout observed"
+        ],
+        "changed_stage_surfaces": changed_surfaces,
+        "changed_paper_surfaces": changed_surfaces,
+        "outcome": outcome,
+        "remaining_blockers": [blocked_reason] if blocked_reason else [],
+        "duration": {"status": "missing", "value": None},
+        "token_usage": {"status": "missing", "value": None, "total_tokens": None},
+        "cost": {"status": "missing", "value": None, "total_cost": None},
+        "usage_refs": [],
+        "cost_refs": [],
+        "progress_delta_classification": (
+            "deliverable_progress"
+            if changed_surfaces
+            else ("typed_blocker" if blocked_reason else "platform_repair")
+        ),
+        "deliverable_progress_delta": {"count": deliverable_count, "token_usage_total": None},
+        "paper_progress_delta": {"count": deliverable_count, "token_usage_total": None},
+        "platform_repair_delta": {"count": platform_repair_count, "token_usage_total": None},
+        "next_forced_delta": {
+            "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+            "work_unit_id": _text(closeout.get("work_unit_id")) or action_type,
+            "owner_action": {
+                "next_owner": _text(closeout.get("next_owner")) or _text(owner_receipt.get("owner")),
+                "action_type": action_type,
+                "work_unit_id": _text(closeout.get("work_unit_id")) or action_type,
+            },
+            "reason": f"typed_blocker::{blocked_reason}" if blocked_reason else "terminal_closeout_observed",
+        },
+        "evidence_refs": _text_list(closeout.get("closeout_refs")),
+        "fallback_source": "stage_closeout_structured_fields",
+    }
+
+
+def _missing_user_stage_log_fields(
+    *,
+    action_type: str,
+    user_stage_log: Mapping[str, Any],
+) -> list[str]:
+    required = default_executor_typed_closeout_contract(action_type=action_type)[
+        "required_user_stage_log_fields"
+    ]
+    return [
+        field
+        for field in required
+        if _user_stage_log_field_missing(user_stage_log, field)
+    ]
+
+
+def _user_stage_log_field_missing(user_stage_log: Mapping[str, Any], field: str) -> bool:
+    if field not in user_stage_log:
+        return True
+    if field in {
+        "changed_stage_surfaces",
+        "changed_paper_surfaces",
+        "remaining_blockers",
+        "usage_refs",
+        "cost_refs",
+        "evidence_refs",
+    }:
+        return False
+    value = user_stage_log.get(field)
+    if isinstance(value, Mapping):
+        return not value
+    if isinstance(value, list | tuple | set):
+        return False if field in {"deliverable_progress_delta", "paper_progress_delta", "platform_repair_delta"} else not value
+    return value in (None, "")
+
+
+def _repair_evidence_with_user_stage_log_gap(
+    *,
+    repair_evidence: Mapping[str, Any],
+    reason: str,
+    missing_fields: list[str],
+) -> dict[str, Any]:
+    if not reason:
+        return dict(repair_evidence)
+    blockers = _text_list(repair_evidence.get("blockers"))
+    if reason not in blockers:
+        blockers.append(reason)
+    payload = dict(repair_evidence)
+    payload["status"] = "typed_blocker"
+    payload["blocked_reason"] = reason
+    payload["blockers"] = blockers
+    payload["missing_domain_fields"] = list(missing_fields)
+    payload["semantic_gap"] = {
+        "reason": reason,
+        "missing_domain_fields": list(missing_fields),
+        "source": "paper_stage_log",
+        "owner": "MedAutoScience",
+    }
+    return payload
 
 
 def _stage_closeout_owner_result_status(closeout: Mapping[str, Any]) -> str | None:
