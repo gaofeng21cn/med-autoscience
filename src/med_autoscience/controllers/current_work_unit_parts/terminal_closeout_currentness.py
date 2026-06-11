@@ -38,15 +38,19 @@ def terminal_closeout_blocker_for_action(
     action_payload = mapping(action)
     if not action_payload:
         return None
-    terminal = _latest_terminal_stage(progress, mapping=mapping)
-    if not terminal or not _terminal_stage_blocks_action(
-        terminal,
-        action=action_payload,
-        mapping=mapping,
-        text=text,
-        action_type=action_type,
-        work_unit_id=work_unit_id,
-    ):
+    terminal = None
+    for candidate in _terminal_stage_candidates(progress, mapping=mapping):
+        if _terminal_stage_blocks_action(
+            candidate,
+            action=action_payload,
+            mapping=mapping,
+            text=text,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        ):
+            terminal = candidate
+            break
+    if terminal is None:
         return None
     blocker_type = _terminal_stage_blocker_reason(terminal, mapping=mapping, text=text)
     resolved_work_unit_id = work_unit_id(action_payload.get("work_unit_id")) or work_unit_id(
@@ -106,8 +110,19 @@ def _latest_terminal_stage(
     *,
     mapping: MappingReader,
 ) -> dict[str, Any]:
+    for terminal in _terminal_stage_candidates(progress, mapping=mapping):
+        return terminal
+    return {}
+
+
+def _terminal_stage_candidates(
+    progress: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+) -> tuple[dict[str, Any], ...]:
     progress_first = mapping(progress.get("progress_first_monitoring_summary"))
     handoff = mapping(progress.get("opl_current_control_state_handoff"))
+    candidates: list[dict[str, Any]] = []
     for value in (
         progress_first.get("latest_terminal_stage"),
         progress_first.get("latest_terminal_stage_log"),
@@ -117,8 +132,8 @@ def _latest_terminal_stage(
     ):
         terminal = mapping(value)
         if terminal:
-            return terminal
-    return {}
+            candidates.append(terminal)
+    return tuple(candidates)
 
 
 def _terminal_stage_blocks_action(
@@ -183,6 +198,8 @@ def _terminal_stage_blocker_reason(
 ) -> str:
     typed_blocker = mapping(terminal.get("typed_blocker"))
     paper_stage_log = mapping(terminal.get("paper_stage_log"))
+    paper_next_forced_delta = mapping(paper_stage_log.get("next_forced_delta"))
+    paper_owner_action = mapping(paper_next_forced_delta.get("owner_action"))
     semantic = mapping(terminal.get("terminal_closeout_semantic_completeness"))
     for value in (
         terminal.get("blocked_reason"),
@@ -193,6 +210,9 @@ def _terminal_stage_blocker_reason(
         typed_blocker.get("blocker_type"),
         typed_blocker.get("reason"),
         semantic.get("typed_blocker"),
+        paper_owner_action.get("reason"),
+        paper_next_forced_delta.get("blocker_type"),
+        paper_next_forced_delta.get("blocked_reason"),
         *_terminal_remaining_blockers(terminal, text=text),
         *_terminal_remaining_blockers(paper_stage_log, text=text),
     ):

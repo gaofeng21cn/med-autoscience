@@ -500,12 +500,17 @@ def _terminal_closeout_domain_typed_blocker(
         "typed_blocker",
     }:
         return {}
-    remaining = _dedupe_text(paper_stage_log.get("remaining_blockers") or [])
-    blocker_type = remaining[0] if remaining else _text(latest_terminal_stage_log.get("typed_blocker_reason"))
-    if blocker_type is None:
-        return {}
     next_forced_delta = _mapping(paper_stage_log.get("next_forced_delta"))
     owner_action = _mapping(next_forced_delta.get("owner_action"))
+    remaining = _dedupe_text(paper_stage_log.get("remaining_blockers") or [])
+    blocker_type = (
+        _text(owner_action.get("reason"))
+        or _text(next_forced_delta.get("blocker_type"))
+        or _text(next_forced_delta.get("blocked_reason"))
+        or (remaining[0] if remaining else _text(latest_terminal_stage_log.get("typed_blocker_reason")))
+    )
+    if blocker_type is None:
+        return {}
     owner = (
         _text(owner_action.get("next_owner"))
         or _text(owner_action.get("owner"))

@@ -480,3 +480,107 @@ def test_current_work_unit_uses_latest_terminal_handoff_domain_blocker_over_repe
     assert work_unit["state"]["typed_blocker"]["terminal_closeout_outcome"] == (
         "blocked_with_domain_typed_blocker"
     )
+
+
+def test_current_work_unit_prefers_raw_terminal_handoff_over_flattened_monitoring_summary() -> None:
+    module = _module()
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "ai_reviewer_record_gate_consumption"
+    source_eval_id = (
+        "publication-eval::002-dm-china-us-mortality-attribution::"
+        "002-dm-china-us-mortality-attribution::stage-attempt-sat_current::2026-06-11T12:41:21+00:00"
+    )
+    fingerprint = (
+        "current-ai-reviewer-gate-replay::002-dm-china-us-mortality-attribution::"
+        f"{work_unit_id}::{source_eval_id}"
+    )
+    terminal_summary = {
+        "stage_attempt_id": "sat_58099ea2494e3ed8eb6f978a",
+        "stage_id": "domain_owner/default-executor-dispatch",
+        "action_type": "run_gate_clearing_batch",
+        "status": "blocked",
+        "stage_name": "run_gate_clearing_batch",
+        "outcome": "blocked_with_domain_typed_blocker",
+        "progress_delta_classification": "typed_blocker",
+        "remaining_blockers": [
+            "domain_owner_action_dispatch_zero_selected_dispatch",
+            "display_surface_materialization_failed",
+        ],
+        "source_path": (
+            "/workspace/studies/002-dm-china-us-mortality-attribution/"
+            "artifacts/supervision/consumer/default_executor_execution/"
+            "sat_58099ea2494e3ed8eb6f978a.closeout.json"
+        ),
+    }
+    raw_terminal_handoff = {
+        **terminal_summary,
+        "paper_stage_log": {
+            "stage_name": "run_gate_clearing_batch",
+            "outcome": "blocked_with_domain_typed_blocker",
+            "progress_delta_classification": "typed_blocker",
+            "remaining_blockers": [
+                "domain_owner_action_dispatch_zero_selected_dispatch",
+                "display_surface_materialization_failed",
+                "template_execution_mode_mismatch",
+            ],
+            "next_forced_delta": {
+                "required_delta_kind": "repair_display_surface_materialization_then_replay_gate",
+                "work_unit_id": work_unit_id,
+                "owner_action": {
+                    "next_owner": "artifact_os",
+                    "action_type": "artifact_display_surface_materialization_required",
+                    "reason": "display_surface_materialization_failed",
+                },
+            },
+        },
+    }
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "paper_progress_delta": {"count": 1},
+            "next_forced_delta": {
+                "required_delta_kind": "review_current_paper_delta",
+                "reason": "paper_progress_delta_observed",
+                "work_unit_id": work_unit_id,
+                "eval_id": source_eval_id,
+                "owner_action": {
+                    "next_owner": "write",
+                    "work_unit_id": work_unit_id,
+                    "allowed_actions": ["run_gate_clearing_batch"],
+                    "owner_receipt_required": True,
+                },
+            },
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": terminal_summary,
+            },
+            "opl_current_control_state_handoff": {
+                "latest_terminal_stage_log": raw_terminal_handoff,
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "study_progress.next_forced_delta.owner_action",
+            "next_owner": "write",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": source_eval_id,
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "review_current_paper_delta",
+        },
+        next_owner="write",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "artifact_os"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["state"]["blocker_type"] == "display_surface_materialization_failed"
