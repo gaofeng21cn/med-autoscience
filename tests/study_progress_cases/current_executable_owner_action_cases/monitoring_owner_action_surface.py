@@ -212,9 +212,14 @@ def test_current_owner_action_uses_gate_replay_after_ai_reviewer_record_consumed
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
     )
+    source_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260611T003412Z::sat_current"
+    )
 
     action = module.build_current_executable_owner_action(
         {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "repair_progress_projection": {
                 "paper_delta_observed": True,
                 "accepted_owner_receipt": True,
@@ -240,6 +245,7 @@ def test_current_owner_action_uses_gate_replay_after_ai_reviewer_record_consumed
             "next_forced_delta": {
                 "required_delta_kind": "review_current_paper_delta",
                 "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "eval_id": source_eval_id,
                 "target_surface": {
                     "ref_kind": "route_obligation",
                     "route_target": "gate_clearing_batch",
@@ -269,6 +275,15 @@ def test_current_owner_action_uses_gate_replay_after_ai_reviewer_record_consumed
     assert action["next_owner"] == "gate_clearing_batch"
     assert action["allowed_actions"] == ["run_gate_clearing_batch"]
     assert action["work_unit_id"] == "ai_reviewer_record_gate_consumption"
+    expected_fingerprint = (
+        "current-ai-reviewer-gate-replay::003-dpcc-primary-care-phenotype-treatment-gap::"
+        f"ai_reviewer_record_gate_consumption::{source_eval_id}"
+    )
+    assert action["work_unit_fingerprint"] == expected_fingerprint
+    assert action["action_fingerprint"] == expected_fingerprint
+    assert action["source_eval_id"] == source_eval_id
+    assert action["owner_route_currentness_basis"]["source_eval_id"] == source_eval_id
+    assert action["owner_route_currentness_basis"]["work_unit_fingerprint"] == expected_fingerprint
 
 
 def test_progress_first_monitoring_prefers_repair_followup_over_stale_readiness_queue() -> None:

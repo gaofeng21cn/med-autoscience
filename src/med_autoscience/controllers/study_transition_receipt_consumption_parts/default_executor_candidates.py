@@ -78,6 +78,11 @@ def _execution_from_stage_closeout(
     repair_evidence = _stage_closeout_repair_evidence(closeout)
     owner_receipt = _mapping(closeout.get("owner_receipt"))
     domain_execution = _mapping(closeout.get("domain_execution"))
+    closeout_blocked_reason = _stage_closeout_blocked_reason(
+        closeout=closeout,
+        owner_receipt=owner_receipt,
+        domain_execution=domain_execution,
+    )
     return {
         "surface": "default_executor_dispatch_execution",
         "schema_version": 1,
@@ -95,6 +100,10 @@ def _execution_from_stage_closeout(
         "stage_closeout_surface_kind": _text(closeout.get("surface_kind")),
         "stage_closeout_status": _text(closeout.get("status")),
         "stage_closeout_refs": _text_list(closeout.get("closeout_refs")),
+        "stage_closeout_outcome": _stage_closeout_outcome(closeout),
+        "typed_blocker_reason": _text(closeout.get("typed_blocker_reason")) or _stage_closeout_gate_replay_blocked_reason(closeout),
+        "typed_blocker_ref": _text(closeout.get("typed_blocker_ref")) or _stage_closeout_gate_replay_report_ref(closeout),
+        "owner_receipt_ref": _text(closeout.get("owner_receipt_ref")),
         "stage_closeout_required_ref_field": _text(
             _mapping(closeout.get("required_closeout_packet")).get("required_ref_field")
         )
@@ -102,11 +111,22 @@ def _execution_from_stage_closeout(
         "stage_attempt_id": _text(closeout.get("stage_attempt_id")),
         "typed_blocker": _mapping(closeout.get("typed_blocker")),
         "owner_result": {
-            "status": _text(owner_receipt.get("status")) or _text(closeout.get("route_outcome")) or _text(closeout.get("status")),
+            "status": (
+                _text(owner_receipt.get("status"))
+                or _text(closeout.get("route_outcome"))
+                or _stage_closeout_owner_result_status(closeout)
+                or _text(closeout.get("status"))
+            ),
+            "owner": _text(owner_receipt.get("owner")),
+            "owner_receipt_ref": _text(closeout.get("owner_receipt_ref")),
+            "owner_callable_surface": _text(owner_receipt.get("owner_callable_surface")),
+            "publication_eval_record_ref": _text(owner_receipt.get("publication_eval_record_ref")),
+            "record_only_surface": owner_receipt.get("record_only_surface"),
+            "publication_eval_surface": _text(owner_receipt.get("publication_eval_surface")),
+            "publication_eval_latest_write_authorized": owner_receipt.get("publication_eval_latest_write_authorized"),
+            "controller_decision_write_authorized": owner_receipt.get("controller_decision_write_authorized"),
             "ok": _stage_closeout_has_story_surface_delta(closeout),
-            "blocked_reason": _text(domain_execution.get("blocked_reason"))
-            or _text(owner_receipt.get("typed_blocker"))
-            or _text(closeout.get("blocked_reason")),
+            "blocked_reason": closeout_blocked_reason,
             "blocked_reasons": list(owner_receipt.get("blocked_reasons") or []),
             "dispatcher_result": _mapping(domain_execution.get("dispatcher_result")),
             "repair_execution_evidence": repair_evidence,
@@ -118,10 +138,57 @@ def _execution_from_stage_closeout(
     }
 
 
+def _stage_closeout_owner_result_status(closeout: Mapping[str, Any]) -> str | None:
+    if _stage_closeout_outcome(closeout) == "typed_blocker":
+        return "blocked"
+    return None
+
+
+def _stage_closeout_outcome(closeout: Mapping[str, Any]) -> str:
+    return _text(closeout.get("outcome")) or ("typed_blocker" if _stage_closeout_gate_replay_blocked_reason(closeout) else "")
+
+
+def _stage_closeout_blocked_reason(
+    *,
+    closeout: Mapping[str, Any],
+    owner_receipt: Mapping[str, Any],
+    domain_execution: Mapping[str, Any],
+) -> str:
+    return (
+        _text(domain_execution.get("blocked_reason"))
+        or _text(owner_receipt.get("typed_blocker"))
+        or _text(closeout.get("typed_blocker_reason"))
+        or _stage_closeout_gate_replay_blocked_reason(closeout)
+        or _text(closeout.get("blocked_reason"))
+    )
+
+
+def _stage_closeout_gate_replay_blocked_reason(closeout: Mapping[str, Any]) -> str:
+    if _text(closeout.get("action_type")) != "run_gate_clearing_batch":
+        return ""
+    domain_execution = _mapping(closeout.get("domain_execution"))
+    gate_replay = _mapping(closeout.get("gate_replay"))
+    if (
+        _text(domain_execution.get("gate_replay_status")) == "blocked"
+        or _text(domain_execution.get("publication_work_unit_lifecycle_status")) == "blocked"
+        or _text(gate_replay.get("status")) == "blocked"
+    ):
+        return "publication_gate_replay_blocked"
+    return ""
+
+
+def _stage_closeout_gate_replay_report_ref(closeout: Mapping[str, Any]) -> str:
+    domain_execution = _mapping(closeout.get("domain_execution"))
+    gate_replay = _mapping(closeout.get("gate_replay"))
+    return _text(domain_execution.get("publication_gate_report_json")) or _text(gate_replay.get("report_json"))
+
+
 def _stage_closeout_execution_status(closeout: Mapping[str, Any]) -> str:
     domain_execution_status = _text(_mapping(closeout.get("domain_execution")).get("execution_status"))
     if domain_execution_status in EXECUTED_STATUSES:
         return domain_execution_status
+    if _text(closeout.get("execution_status")) in EXECUTED_STATUSES:
+        return _text(closeout.get("execution_status"))
     if _text(closeout.get("route_outcome")) == "write_repair_delta_recorded" and _stage_closeout_has_story_surface_delta(
         closeout
     ):
@@ -206,9 +273,11 @@ def _stage_closeout_stage_packet_owner_route(*, closeout: Mapping[str, Any], stu
     stage_packet_ref = _text(closeout.get("stage_packet_ref"))
     if not stage_packet_ref:
         return {}
-    if not _stage_packet_ref_has_immutable_owner_route_identity(stage_packet_ref):
-        return {}
-    stage_packet = _read_json_object(_resolve_study_workspace_ref(study_root=study_root, ref=stage_packet_ref))
+    stage_packet = _stage_closeout_resolved_stage_packet(
+        closeout=closeout,
+        study_root=study_root,
+        stage_packet_ref=stage_packet_ref,
+    )
     if stage_packet is None:
         return {}
     if _text(stage_packet.get("action_type")) != _text(closeout.get("action_type")):
@@ -216,6 +285,33 @@ def _stage_closeout_stage_packet_owner_route(*, closeout: Mapping[str, Any], stu
     if _text(stage_packet.get("study_id")) != _text(closeout.get("study_id")):
         return {}
     return dict(_mapping(stage_packet.get("owner_route")) or _mapping(_mapping(stage_packet.get("prompt_contract")).get("owner_route")))
+
+
+def _stage_closeout_resolved_stage_packet(
+    *,
+    closeout: Mapping[str, Any],
+    study_root: Path,
+    stage_packet_ref: str,
+) -> dict[str, Any] | None:
+    if _stage_packet_ref_has_immutable_owner_route_identity(stage_packet_ref):
+        return _read_json_object(_resolve_study_workspace_ref(study_root=study_root, ref=stage_packet_ref))
+    for immutable_ref in _stage_closeout_immutable_dispatch_refs(closeout):
+        stage_packet = _read_json_object(_resolve_study_workspace_ref(study_root=study_root, ref=immutable_ref))
+        if stage_packet is None:
+            continue
+        if _text(stage_packet.get("action_type")) != _text(closeout.get("action_type")):
+            continue
+        if _text(stage_packet.get("study_id")) != _text(closeout.get("study_id")):
+            continue
+        return stage_packet
+    return None
+
+
+def _stage_closeout_immutable_dispatch_refs(closeout: Mapping[str, Any]) -> list[str]:
+    refs = _text_list(closeout.get("closeout_refs"))
+    refs.extend(_text_list(closeout.get("evidence_refs")))
+    refs.extend(_text_list(_mapping(closeout.get("domain_execution")).get("closeout_refs")))
+    return [ref for ref in refs if _stage_packet_ref_has_immutable_owner_route_identity(ref)]
 
 
 def _stage_packet_ref_has_immutable_owner_route_identity(stage_packet_ref: str) -> bool:

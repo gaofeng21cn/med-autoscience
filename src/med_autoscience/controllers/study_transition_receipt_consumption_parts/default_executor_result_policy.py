@@ -26,12 +26,16 @@ def default_executor_owner_result_consumable(
     if _current_manuscript_digest_mismatch(owner_result=owner_result, repair_evidence=repair_evidence):
         return False
     if action_type == "return_to_ai_reviewer_workflow":
-        return _ai_reviewer_workflow_owner_result_satisfies_route_output(owner_result=owner_result)
+        return _ai_reviewer_workflow_owner_result_satisfies_route_output(
+            owner_result=owner_result
+        ) or _ai_reviewer_record_only_owner_receipt_satisfies_route_output(owner_result=owner_result)
     if action_type == "run_quality_repair_batch":
         return _quality_repair_batch_owner_result_satisfies_route_output(
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         )
+    if action_type == "run_gate_clearing_batch" and _text(owner_result.get("blocked_reason")):
+        return True
     if action_type == "publication_gate_specificity_required":
         return publication_gate_specificity_owner_result_satisfies_route_output(owner_result=owner_result)
     if owner_result.get("ok") is True:
@@ -116,6 +120,27 @@ def _ai_reviewer_workflow_owner_result_satisfies_route_output(*, owner_result: M
         return False
     refresh = _mapping(owner_result.get("controller_decision_refresh"))
     return _text(refresh.get("refresh_status")) == "materialized"
+
+
+def _ai_reviewer_record_only_owner_receipt_satisfies_route_output(*, owner_result: Mapping[str, Any]) -> bool:
+    if _text(owner_result.get("owner")) != "ai_reviewer":
+        return False
+    if not _text(owner_result.get("owner_receipt_ref")):
+        return False
+    if not _text(owner_result.get("publication_eval_record_ref")):
+        return False
+    if owner_result.get("record_only_surface") is not True:
+        return False
+    if _text(owner_result.get("publication_eval_surface")) != "not_written":
+        return False
+    if owner_result.get("publication_eval_latest_write_authorized") is not False:
+        return False
+    if owner_result.get("controller_decision_write_authorized") is not False:
+        return False
+    return _text(owner_result.get("status")) in {
+        "closed_with_domain_owner_refs",
+        "owner_receipt",
+    }
 
 
 def _quality_repair_batch_owner_result_satisfies_route_output(

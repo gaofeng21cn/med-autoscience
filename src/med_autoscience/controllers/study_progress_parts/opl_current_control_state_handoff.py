@@ -602,7 +602,11 @@ def _terminal_closeout_has_owner_answer(
         return True
     if _observability_mapping(terminal.get("typed_blocker")):
         return True
+    if _non_empty_text(terminal.get("typed_blocker_ref")) or _non_empty_text(terminal.get("owner_receipt_ref")):
+        return True
     if _string_list(terminal.get("typed_blocker_refs")) or _string_list(terminal.get("owner_receipt_refs")):
+        return True
+    if _non_empty_text(terminal.get("route_outcome")) == "owner_receipt":
         return True
     paper_stage_log = _observability_mapping(terminal.get("paper_stage_log"))
     if _string_list(paper_stage_log.get("changed_paper_surfaces")):

@@ -180,8 +180,11 @@ def default_executor_execution_receipt_consumption(
                     "action_type": action_type,
                     "execution_status": _text(execution.get("execution_status")),
                     "owner_result_status": _text(owner_result.get("status")),
+                    "owner_receipt_ref": _text(execution.get("owner_receipt_ref"))
+                    or _text(owner_result.get("owner_receipt_ref")),
                     "repair_execution_evidence_status": _text(repair_evidence.get("status")),
                     **({"blocked_reason": blocked_reason} if blocked_reason else {}),
+                    **_typed_blocker_consumption_fields(execution, blocked_reason=blocked_reason),
                     "work_unit_id": _text(owner_route_currentness_basis.get("work_unit_id")),
                     "work_unit_fingerprint": _text(owner_route_currentness_basis.get("work_unit_fingerprint")),
                     "canonical_work_unit_identity": owner_route_currentness_basis,
@@ -193,7 +196,11 @@ def default_executor_execution_receipt_consumption(
                     "quality_authorized": False,
                     "submission_authorized": False,
                     "current_package_write_authorized": False,
-                    "next_action": "do_not_redrive_consumed_owner_route",
+                    "next_action": (
+                        "honor_typed_blocker_without_redrive"
+                        if _text(execution.get("stage_closeout_outcome")) == "typed_blocker"
+                        else "do_not_redrive_consumed_owner_route"
+                    ),
                 },
                 study_root=study_root,
             )
@@ -210,6 +217,42 @@ def default_executor_execution_receipt_consumption(
             repeat_count=len(nonconsumable_matches),
         )
     return dict(_mapping(latest_outcome.get("payload")))
+
+
+def _typed_blocker_consumption_fields(
+    execution: Mapping[str, Any],
+    *,
+    blocked_reason: str | None,
+) -> dict[str, Any]:
+    if _text(execution.get("stage_closeout_outcome")) != "typed_blocker":
+        return {}
+    reason = (
+        _text(execution.get("typed_blocker_reason"))
+        or _text(blocked_reason)
+        or "default_executor_typed_blocker"
+    )
+    typed_blocker_ref = _text(execution.get("typed_blocker_ref"))
+    owner_receipt_ref = _text(execution.get("owner_receipt_ref"))
+    return {
+        key: value
+        for key, value in {
+            "outcome": "typed_blocker",
+            "typed_blocker_reason": reason,
+            "typed_blocker_ref": typed_blocker_ref,
+            "owner_receipt_ref": owner_receipt_ref,
+            "typed_blocker": {
+                "surface_kind": "mas_domain_typed_blocker",
+                "schema_version": 1,
+                "reason": reason,
+                "blocker_type": reason,
+                "source_ref": typed_blocker_ref,
+                "owner_receipt_ref": owner_receipt_ref,
+                "next_owner": "med-autoscience",
+                "write_permitted": False,
+            },
+        }.items()
+        if value is not None
+    }
 
 
 def default_executor_execution_nonconsumable_closeout(
@@ -619,6 +662,8 @@ def _recovered_stage_packet_currentness_consumable(
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
 ) -> bool:
+    if action_type == "run_gate_clearing_batch":
+        return _text(owner_result.get("blocked_reason")) == "publication_gate_replay_blocked"
     if action_type != "run_quality_repair_batch":
         return False
     if owner_result.get("ok") is not True and _text(owner_result.get("status")) not in {"executed", "applied", "ok"}:

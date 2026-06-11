@@ -174,7 +174,7 @@ def _envelope_from_current_work_unit(
         return _envelope(
             state_kind="running_provider_attempt",
             owner=_text(work_unit.get("owner")) or "supervisor_only/live_provider_attempt",
-            next_work_unit=_text(work_unit.get("work_unit_id")),
+            next_work_unit=_running_provider_attempt_work_unit_or_identity(work_unit),
             typed_blocker=None,
             parked_state=None,
             source_refs=source_refs,
@@ -203,6 +203,20 @@ def _current_work_unit_stage_owner_answer(work_unit: Mapping[str, Any]) -> bool:
     if _current_work_unit_status(work_unit) != "typed_blocker":
         return False
     return _text(_mapping(work_unit.get("state")).get("source")) == "stage_owner_answer"
+
+
+def _running_provider_attempt_work_unit_or_identity(work_unit: Mapping[str, Any]) -> str | None:
+    proof = _mapping(_mapping(work_unit.get("state")).get("provider_attempt_proof"))
+    proof_work_unit = _text(proof.get("work_unit_id")) or _text(proof.get("next_work_unit"))
+    if work_unit_id := _text(work_unit.get("work_unit_id")):
+        return work_unit_id
+    if proof_work_unit is not None:
+        return proof_work_unit
+    return (
+        _text(proof.get("active_stage_attempt_id"))
+        or _text(proof.get("active_run_id"))
+        or _text(proof.get("active_workflow_id"))
+    )
 
 
 def _parked_state(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[str, str] | None:

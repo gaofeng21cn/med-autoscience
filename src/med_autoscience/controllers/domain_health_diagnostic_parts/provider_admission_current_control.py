@@ -288,7 +288,15 @@ def _receipt_is_accepted_closeout(receipt: Mapping[str, Any]) -> bool:
         _non_empty_text(receipt.get("current_attempt_state")),
         _non_empty_text(receipt.get("reconciliation_status")),
     }
-    return "accepted_typed_closeout" in statuses
+    if "accepted_typed_closeout" in statuses:
+        return True
+    if _non_empty_text(receipt.get("outcome")) != "typed_blocker":
+        return False
+    if _non_empty_text(receipt.get("execution_status")) != "executed":
+        return False
+    return _non_empty_text(receipt.get("typed_blocker_ref")) is not None or _non_empty_text(
+        receipt.get("typed_blocker_reason")
+    ) is not None
 
 
 def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> dict[str, Any]:

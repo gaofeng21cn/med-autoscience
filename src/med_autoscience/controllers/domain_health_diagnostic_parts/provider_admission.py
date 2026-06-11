@@ -197,7 +197,13 @@ def provider_attempt_matches_identity(
     }
     if expected_fingerprints:
         live_fingerprints = _provider_attempt_fingerprints(live_attempt)
-        if not live_fingerprints or live_fingerprints.isdisjoint(expected_fingerprints):
+        if not live_fingerprints or (
+            live_fingerprints.isdisjoint(expected_fingerprints)
+            and not _gate_replay_identity_source_eval_matches(
+                live_attempt=live_attempt,
+                identity=identity,
+            )
+        ):
             return False
         strong_match = True
     expected_dispatch = _non_empty_text(identity.get("dispatch_path"))
@@ -228,6 +234,37 @@ def _provider_attempt_fingerprints(live_attempt: Mapping[str, Any]) -> set[str]:
         )
         if (text := _non_empty_text(value)) is not None
     }
+
+
+def _gate_replay_identity_source_eval_matches(
+    *,
+    live_attempt: Mapping[str, Any],
+    identity: Mapping[str, Any],
+) -> bool:
+    action_type = _non_empty_text(identity.get("action_type"))
+    if action_type != "run_gate_clearing_batch":
+        return False
+    work_unit_id = _non_empty_text(identity.get("work_unit_id"))
+    live_work_unit_id = _non_empty_text(live_attempt.get("work_unit_id"))
+    if (
+        work_unit_id not in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+        or live_work_unit_id not in PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
+    ):
+        return False
+    expected_source_eval = _source_eval_id_for_identity(identity)
+    live_source_eval = _source_eval_id_for_identity(live_attempt)
+    return expected_source_eval is not None and expected_source_eval == live_source_eval
+
+
+def _source_eval_id_for_identity(identity: Mapping[str, Any]) -> str | None:
+    owner_route = _mapping(identity.get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return (
+        _non_empty_text(identity.get("source_eval_id"))
+        or _non_empty_text(source_refs.get("source_eval_id"))
+        or _non_empty_text(basis.get("source_eval_id"))
+    )
 
 
 def provider_probe_has_non_running_actions(scan_result: Mapping[str, Any]) -> bool:

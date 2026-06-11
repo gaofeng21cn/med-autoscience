@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
+    current_ai_reviewer_gate_replay_fingerprint,
+)
+
 from .shared import _mapping_copy, _non_empty_text
 
 SURFACE_KIND = "current_executable_owner_action"
@@ -208,6 +212,7 @@ def _repair_followup_action(
 def _from_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     next_forced_delta = _mapping_copy(payload.get("next_forced_delta"))
     owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
+    study_id = _non_empty_text(payload.get("study_id"))
     owner = _non_empty_text(owner_action.get("next_owner")) or _non_empty_text(
         next_forced_delta.get("next_owner")
     )
@@ -224,6 +229,29 @@ def _from_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None
     )
     if owner is None and work_unit_id is None and not allowed_actions:
         return None
+    source_eval_id = _next_forced_delta_source_eval_id(
+        next_forced_delta=next_forced_delta,
+        owner_action=owner_action,
+        payload=payload,
+    )
+    eval_bound_fingerprint = current_ai_reviewer_gate_replay_fingerprint(
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+    )
+    owner_route_currentness_basis = (
+        _compact(
+            {
+                "source_eval_id": source_eval_id,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": eval_bound_fingerprint,
+                "source": "study_progress.next_forced_delta.owner_action",
+            }
+        )
+        if eval_bound_fingerprint is not None
+        else {}
+    )
     return _compact(
         {
             "surface_kind": SURFACE_KIND,
@@ -232,6 +260,10 @@ def _from_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None
             "source": "study_progress.next_forced_delta.owner_action",
             "next_owner": owner,
             "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": eval_bound_fingerprint,
+            "action_fingerprint": eval_bound_fingerprint,
+            "source_eval_id": source_eval_id,
+            "owner_route_currentness_basis": owner_route_currentness_basis or None,
             "action_type": action_type,
             "allowed_actions": allowed_actions,
             "owner_receipt_required": owner_action.get("owner_receipt_required") is not False,
@@ -243,6 +275,22 @@ def _from_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None
             "acceptance_refs": _text_items(next_forced_delta.get("acceptance_refs")),
             "authority_boundary": _authority_boundary(),
         }
+    )
+
+
+def _next_forced_delta_source_eval_id(
+    *,
+    next_forced_delta: Mapping[str, Any],
+    owner_action: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> str | None:
+    publication_eval = _mapping_copy(payload.get("publication_eval"))
+    return (
+        _non_empty_text(owner_action.get("source_eval_id"))
+        or _non_empty_text(owner_action.get("eval_id"))
+        or _non_empty_text(next_forced_delta.get("source_eval_id"))
+        or _non_empty_text(next_forced_delta.get("eval_id"))
+        or _non_empty_text(publication_eval.get("eval_id"))
     )
 
 

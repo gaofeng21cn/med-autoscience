@@ -230,7 +230,7 @@ def build_current_work_unit(
                 status="running_provider_attempt",
                 owner=_text(running_attempt.get("owner")) or _text(next_owner),
                 action_type=_text(running_attempt.get("action_type")),
-                work_unit_id=_running_work_unit_id(running_attempt, currentness_basis=basis),
+                work_unit_id=_running_work_unit_id(running_attempt, currentness_basis=basis, action=action),
                 work_unit_fingerprint=_text(running_attempt.get("work_unit_fingerprint")),
                 action_fingerprint=_text(running_attempt.get("action_fingerprint")),
                 input_refs=resolved_source_refs,
@@ -506,24 +506,31 @@ def _running_work_unit_id(
     running_attempt: Mapping[str, Any],
     *,
     currentness_basis: Mapping[str, Any] | None = None,
+    action: Mapping[str, Any] | None = None,
 ) -> str | None:
     health = _mapping(running_attempt.get("runtime_health"))
     basis = _mapping(currentness_basis)
+    action_payload = _mapping(action)
+    action_source = _text(action_payload.get("source")) or _text(action_payload.get("source_surface"))
+    action_work_unit = None if action_source == OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE else _work_unit_id(basis.get("work_unit_id"))
     return (
         _work_unit_id(running_attempt.get("work_unit_id"))
         or _work_unit_id(running_attempt.get("next_work_unit"))
         or _work_unit_id(health.get("work_unit_id"))
-        or _work_unit_id(basis.get("work_unit_id"))
+        or action_work_unit
         or _text(running_attempt.get("action_type"))
     )
 
 
 def _provider_attempt_proof_state(running_attempt: Mapping[str, Any]) -> dict[str, Any]:
+    health = _mapping(running_attempt.get("runtime_health"))
     return {
         "running_provider_attempt": True,
         "active_stage_attempt_id": _text(running_attempt.get("active_stage_attempt_id")),
         "active_run_id": _text(running_attempt.get("active_run_id")),
         "active_workflow_id": _text(running_attempt.get("active_workflow_id")),
+        "work_unit_id": _work_unit_id(running_attempt.get("work_unit_id")) or _work_unit_id(health.get("work_unit_id")),
+        "next_work_unit": _work_unit_id(running_attempt.get("next_work_unit")) or _work_unit_id(health.get("next_work_unit")),
         "runtime_health": _mapping(running_attempt.get("runtime_health")) or None,
     }
 

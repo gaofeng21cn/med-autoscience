@@ -493,6 +493,95 @@ def test_handoff_projection_fail_closed_when_terminal_closeout_lacks_owner_answe
     assert projection["next_owner"] == "one-person-lab"
 
 
+def test_handoff_projection_accepts_terminal_closeout_owner_receipt_ref(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-06-10T12:00:00+00:00",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "active",
+                    "active_run_id": "opl-stage-attempt://sat-owner-answer",
+                    "active_stage_attempt_id": "sat-owner-answer",
+                    "running_provider_attempt": True,
+                    "runtime_health": {
+                        "health_status": "running",
+                        "runtime_liveness_status": "live",
+                    },
+                    "action_queue": [
+                        {
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "status": "ready",
+                            "owner": "ai_reviewer",
+                            "work_unit_id": "ai-reviewer-record",
+                            "work_unit_fingerprint": "wu-fp-1",
+                            "stage_attempt_id": "sat-owner-answer",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    closeout_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "generated_at": "2026-06-10T12:01:00+00:00",
+            "study_id": "001-risk",
+            "executions": [
+                {
+                    "generated_at": "2026-06-10T12:01:00+00:00",
+                    "study_id": "001-risk",
+                    "stage_attempt_id": "sat-owner-answer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "completed",
+                    "status": "closed_with_domain_owner_refs",
+                    "route_outcome": "owner_receipt",
+                    "owner_receipt_ref": (
+                        "studies/001-risk/artifacts/supervision/consumer/default_executor_execution/"
+                        "sat-owner-answer.closeout.json#owner_receipt"
+                    ),
+                    "paper_stage_log": {
+                        "stage_name": "return_to_ai_reviewer_workflow",
+                        "problem_summary": "Provider returned record-only AI reviewer evidence.",
+                        "stage_goal": "Produce an AI reviewer owner receipt.",
+                        "stage_work_done": ["Materialized reviewer record."],
+                        "paper_work_done": ["No publication latest surface was written."],
+                        "changed_stage_surfaces": [
+                            "studies/001-risk/artifacts/publication_eval/ai_reviewer_responses/record.json"
+                        ],
+                        "changed_paper_surfaces": [],
+                        "progress_delta_classification": "deliverable_progress",
+                        "outcome": "closed_with_domain_owner_refs",
+                        "remaining_blockers": [],
+                    },
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    assert projection["running_provider_attempt"] is False
+    assert projection["active_run_id"] is None
+    assert "typed_blocker" not in projection
+    assert "terminal_closeout_owner_answer_required" not in projection.get("why_not_applied", [])
+
+
 def test_live_attempt_merge_replaces_stale_handoff_stage_attempt_identity() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
 

@@ -372,6 +372,116 @@ def test_materialized_current_control_clears_candidate_after_accepted_typed_clos
     )
 
 
+def test_materialized_current_control_clears_candidate_after_executed_typed_blocker_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    fingerprint = (
+        "current-ai-reviewer-gate-replay::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record::"
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260610T215426Z::sat_55f14ca934dd33c5287aecff"
+    )
+    dispatch_path = (
+        profile.workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "source": "mas_opl_runtime_owner_handoff.provider_admission_identity",
+        "execution_ref": str(
+            profile.workspace_root
+            / "runtime"
+            / "artifacts"
+            / "supervision"
+            / "opl_current_control_state"
+            / "latest.json"
+        ),
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "dispatch_path": str(dispatch_path),
+        "dispatch_authority": "consumer_default_executor_dispatch",
+        "next_executable_owner": "gate_clearing_batch",
+        "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-10T23:36:08+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "active",
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "default_executor_execution_receipt_consumption": {
+                    "status": "consumed",
+                    "receipt_kind": "default_executor_execution",
+                    "receipt_ref": (
+                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_efe4fb48feb300595e5aade7.closeout.json"
+                    ),
+                    "stage_attempt_id": "sat_efe4fb48feb300595e5aade7",
+                    "action_type": "run_gate_clearing_batch",
+                    "execution_status": "executed",
+                    "outcome": "typed_blocker",
+                    "typed_blocker_reason": "publication_gate_replay_blocked",
+                    "typed_blocker_ref": (
+                        "runtime/quests/003-dpcc-primary-care-phenotype-treatment-gap/"
+                        "artifacts/reports/publishability_gate/2026-06-10T233125Z.json"
+                    ),
+                    "owner_receipt_ref": (
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                        "artifacts/controller/gate_clearing_batch/latest.json"
+                    ),
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "dispatch_path": str(dispatch_path),
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "gate_clearing_batch",
+                    "next_work_unit": work_unit_id,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                    "source": "mas_provider_admission_identity",
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
+    assert result["studies"][0]["provider_admission_pending_count"] == 0
+
+
 def test_materialized_current_control_clears_previous_gate_queue_when_ai_reviewer_is_current(
     tmp_path: Path,
 ) -> None:
