@@ -46,6 +46,17 @@ CURRENT_CONTROL_PROVIDER_ADMISSION_DISPATCH_AUTHORITIES = {
     "run_quality_repair_batch": {None, "quality_repair_batch_writer_handoff", "consumer_default_executor_dispatch"},
     "run_gate_clearing_batch": {None, "consumer_default_executor_dispatch"},
 }
+PROVIDER_ADMISSION_FAIL_CLOSED_TYPED_BLOCKERS = frozenset(
+    {
+        "no_selected_dispatch_for_requested_action_types",
+        "owner_route_no_selected_dispatch_for_requested_action",
+        "run_quality_repair_batch_no_longer_selected_current_owner_route",
+        "run_quality_repair_batch_not_visible_in_current_opl_control_state",
+        "stale_stage_attempt_current_owner_route_superseded",
+        "stale_stage_packet_current_owner_route_changed",
+        "stage_packet_superseded_by_current_consumed_domain_transition",
+    }
+)
 
 
 def materialized_record_only_provider_handoff(materialize_result: Mapping[str, Any]) -> bool:
@@ -1027,6 +1038,14 @@ def _typed_blocker_envelope_allows_provider_admission(
     execution: Mapping[str, Any],
     current_action_identity: Mapping[str, Any],
 ) -> bool:
+    blocker = _mapping(envelope.get("typed_blocker"))
+    blocker_reason = (
+        _non_empty_text(blocker.get("blocker_id"))
+        or _non_empty_text(blocker.get("blocker_type"))
+        or _non_empty_text(blocker.get("reason"))
+    )
+    if blocker_reason in PROVIDER_ADMISSION_FAIL_CLOSED_TYPED_BLOCKERS:
+        return False
     if _authorization_required_execution_matches_current_action(
         execution,
         current_action_identity=current_action_identity,
@@ -1047,12 +1066,6 @@ def _typed_blocker_envelope_allows_provider_admission(
         current_action_identity=current_action_identity,
     ):
         return True
-    blocker = _mapping(envelope.get("typed_blocker"))
-    blocker_reason = (
-        _non_empty_text(blocker.get("blocker_id"))
-        or _non_empty_text(blocker.get("blocker_type"))
-        or _non_empty_text(blocker.get("reason"))
-    )
     return blocker_reason in {
         "medical_paper_readiness_missing",
         "medical_paper_readiness_not_ready",

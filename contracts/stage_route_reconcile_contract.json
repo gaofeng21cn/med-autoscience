@@ -143,6 +143,18 @@
     },
     {
       "rank": 3,
+      "signal": "same_work_unit_stop_loss_terminal_stage",
+      "effect": "project_typed_blocker_and_suppress_provider_admission",
+      "required_match": [
+        "study_id",
+        "action_type",
+        "work_unit_id_or_fingerprint"
+      ],
+      "allowed_output": "typed_blocker",
+      "default_blocker": "anti_loop_budget_exhausted"
+    },
+    {
+      "rank": 4,
       "signal": "accepted_typed_closeout_for_same_identity",
       "effect": "consume_provider_admission_pending",
       "required_match": [
@@ -152,7 +164,7 @@
       "allowed_output": "typed_blocker_or_next_owner_projection"
     },
     {
-      "rank": 4,
+      "rank": 5,
       "signal": "fresh_current_owner_action",
       "effect": "project_executable_owner_action",
       "required_match": [
@@ -163,7 +175,7 @@
       "allowed_output": "executable_owner_action"
     },
     {
-      "rank": 5,
+      "rank": 6,
       "signal": "stable_typed_blocker_for_current_identity",
       "effect": "project_typed_blocker",
       "required_match": [
@@ -173,7 +185,7 @@
       "allowed_output": "typed_blocker"
     },
     {
-      "rank": 6,
+      "rank": 7,
       "signal": "stale_or_unmatched_runtime_residue",
       "effect": "audit_only",
       "required_match": [],
@@ -206,6 +218,7 @@
       "progress_delta",
       "record_materialized",
       "record_only_archive",
+      "repeat_suppressed",
       "succeeded",
       "terminal",
       "typed_blocker",
@@ -243,6 +256,7 @@
     ],
     "no_progress_signals": [
       "same_work_unit_terminal_closeout_without_domain_consumption",
+      "same_work_unit_repeat_suppressed_terminal_stage",
       "provider_admission_pending_for_consumed_identity",
       "idempotent_noop_without_new_owner_delta",
       "owner_output_already_current_without_next_owner_delta",

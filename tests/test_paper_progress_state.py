@@ -496,6 +496,62 @@ def test_dm003_opl_live_provider_attempt_with_paper_delta_is_progressing() -> No
     assert state["why_not_progressing"] is None
 
 
+def test_current_work_unit_typed_blocker_suppresses_stale_provider_attempt_write_activity() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "study_macro_state": {
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "opl-stage-attempt://sat_stale_or_superseded"},
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "MedAutoScience",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::0915410f804b3697",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "stage_packet_not_selected_by_domain_owner_action_dispatch",
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_type": "stage_packet_not_selected_by_domain_owner_action_dispatch",
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "active_run_id": "opl-stage-attempt://sat_stale_or_superseded",
+                "active_stage_attempt_id": "sat_stale_or_superseded",
+                "running_provider_attempt": True,
+                "runtime_health": {
+                    "health_status": "running",
+                    "runtime_liveness_status": "live",
+                },
+            },
+            "latest_terminal_stage_log": {
+                "paper_stage_log": {
+                    "changed_stage_surfaces": [
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/consumer/default_executor_execution/sat_590.closeout.json"
+                    ],
+                    "changed_paper_surfaces": [],
+                }
+            },
+        }
+    )
+
+    assert state["actual_write_active"] is False
+    assert state["state"] != "progressing"
+    assert state["why_not_progressing"] == "paper_facing_progress_delta_or_typed_blocker_missing"
+
+
 def test_stale_paper_delta_refs_do_not_count_as_active_progress() -> None:
     state = _module().build_paper_progress_state(
         {

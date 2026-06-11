@@ -326,6 +326,65 @@ def test_progress_first_monitoring_projects_terminal_closeout_semantic_completen
     }
 
 
+def test_progress_first_monitoring_treats_current_work_unit_typed_blocker_as_not_running() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "MedAutoScience",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::0915410f804b3697",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "stage_packet_not_selected_by_domain_owner_action_dispatch",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::0915410f804b3697",
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_type": "stage_packet_not_selected_by_domain_owner_action_dispatch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::0915410f804b3697",
+                },
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": True,
+                "active_run_id": "opl-stage-attempt://sat_stale_or_superseded",
+                "active_stage_attempt_id": "sat_stale_or_superseded",
+                "active_workflow_id": "wf_stale_or_superseded",
+                "runtime_health": {
+                    "health_status": "running",
+                    "runtime_liveness_status": "live",
+                },
+            },
+        }
+    )
+
+    assert monitoring["running_provider_attempt"] is False
+    assert monitoring["active_run_id"] is None
+    assert monitoring["active_stage_attempt_id"] is None
+    assert monitoring["active_workflow_id"] is None
+    assert monitoring["worker_liveness"]["stale_active_run_id"] == (
+        "opl-stage-attempt://sat_stale_or_superseded"
+    )
+    assert monitoring["execution_state_kind"] == "typed_blocker"
+    assert monitoring["typed_blocker"]["blocker_type"] == (
+        "stage_packet_not_selected_by_domain_owner_action_dispatch"
+    )
+
+
 def test_progress_first_monitoring_counts_paper_delta_despite_missing_closeout_observability() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

@@ -59,6 +59,14 @@ def build_runtime_report(
     managed_study_autonomy_slo_statuses: list[dict[str, Any]],
     managed_study_autonomy_repair_actions: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    managed_study_actions = _managed_study_actions_with_currentness(
+        managed_study_actions=managed_study_actions,
+        progress_currentness=managed_study_progress_currentness,
+    )
+    managed_study_opl_runtime_owner_handoffs = _managed_handoffs_with_currentness(
+        handoffs=managed_study_opl_runtime_owner_handoffs,
+        progress_currentness=managed_study_progress_currentness,
+    )
     dispatch_counters = _dispatch_counters(
         dispatches=managed_study_outer_loop_dispatches,
         suppressions=managed_study_no_op_suppressions,
@@ -139,6 +147,135 @@ def _dispatch_starts_worker(dispatch: dict[str, Any]) -> bool:
         return True
     action_type = str(dispatch.get("controller_action_type") or dispatch.get("action_type") or "").strip()
     return action_type in {"request_opl_stage_attempt", "request_opl_stage_attempt_relaunch"}
+
+
+def _managed_study_actions_with_currentness(
+    *,
+    managed_study_actions: list[dict[str, Any]],
+    progress_currentness: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for action in managed_study_actions:
+        if not isinstance(action, Mapping):
+            result.append(action)
+            continue
+        study_id = _text(action.get("study_id"))
+        if study_id is None:
+            result.append(dict(action))
+            continue
+        currentness = _mapping(progress_currentness.get(study_id))
+        if not currentness:
+            result.append(dict(action))
+            continue
+        result.append(_managed_study_action_with_currentness(action, currentness=currentness))
+    return result
+
+
+def _managed_study_action_with_currentness(
+    action: Mapping[str, Any],
+    *,
+    currentness: Mapping[str, Any],
+) -> dict[str, Any]:
+    current_work_unit = _mapping(currentness.get("current_work_unit"))
+    current_execution = _mapping(currentness.get("current_execution_envelope"))
+    current_owner_action = _mapping(currentness.get("current_executable_owner_action"))
+    state_kind = _text(current_work_unit.get("status")) or _text(current_execution.get("state_kind"))
+    if state_kind not in {"running_provider_attempt", "typed_blocker", "blocked_current_work_unit"}:
+        return dict(action)
+
+    result = dict(action)
+    if current_work_unit:
+        result["current_work_unit"] = current_work_unit
+    if current_execution:
+        result["current_execution_envelope"] = current_execution
+    if current_owner_action:
+        result["current_executable_owner_action"] = current_owner_action
+
+    if state_kind == "running_provider_attempt":
+        result["decision"] = "noop"
+        result["reason"] = "running_provider_attempt_observed"
+        result["running_provider_attempt"] = True
+        proof = _mapping(_mapping(current_work_unit.get("state")).get("provider_attempt_proof"))
+        if proof:
+            result["provider_attempt_proof"] = proof
+            if active_run_id := _text(proof.get("active_run_id")):
+                result["active_run_id"] = active_run_id
+            if active_stage_attempt_id := _text(proof.get("active_stage_attempt_id")):
+                result["active_stage_attempt_id"] = active_stage_attempt_id
+            if active_workflow_id := _text(proof.get("active_workflow_id")):
+                result["active_workflow_id"] = active_workflow_id
+        return result
+
+    if state_kind in {"typed_blocker", "blocked_current_work_unit"}:
+        result["decision"] = "blocked"
+        result["reason"] = (
+            _current_work_unit_blocker_reason(current_work_unit)
+            or _current_execution_blocker_reason(current_execution)
+            or state_kind
+        )
+        result["running_provider_attempt"] = False
+    return result
+
+
+def _current_work_unit_blocker_reason(current_work_unit: Mapping[str, Any]) -> str | None:
+    state = _mapping(current_work_unit.get("state"))
+    typed_blocker = _mapping(state.get("typed_blocker"))
+    return (
+        _text(typed_blocker.get("blocked_reason"))
+        or _text(typed_blocker.get("blocker_type"))
+        or _text(typed_blocker.get("blocker_id"))
+        or _text(state.get("blocker_type"))
+    )
+
+
+def _current_execution_blocker_reason(current_execution: Mapping[str, Any]) -> str | None:
+    typed_blocker = _mapping(current_execution.get("typed_blocker"))
+    return (
+        _text(typed_blocker.get("blocked_reason"))
+        or _text(typed_blocker.get("blocker_type"))
+        or _text(typed_blocker.get("blocker_id"))
+    )
+
+
+def _managed_handoffs_with_currentness(
+    *,
+    handoffs: list[dict[str, Any]],
+    progress_currentness: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for handoff in handoffs:
+        if not isinstance(handoff, Mapping):
+            result.append(handoff)
+            continue
+        study_id = _text(handoff.get("study_id"))
+        currentness = _mapping(progress_currentness.get(study_id)) if study_id is not None else {}
+        result.append(_managed_handoff_with_currentness(handoff, currentness=currentness))
+    return result
+
+
+def _managed_handoff_with_currentness(
+    handoff: Mapping[str, Any],
+    *,
+    currentness: Mapping[str, Any],
+) -> dict[str, Any]:
+    result = dict(handoff)
+    current_work_unit = _mapping(currentness.get("current_work_unit"))
+    current_execution = _mapping(currentness.get("current_execution_envelope"))
+    state_kind = _text(current_work_unit.get("status")) or _text(current_execution.get("state_kind"))
+    if state_kind not in {"running_provider_attempt", "typed_blocker", "blocked_current_work_unit"}:
+        return result
+    if _text(result.get("status")) != "handoff_required":
+        return result
+    result["status"] = "superseded_by_current_work_unit"
+    result["previous_status"] = "handoff_required"
+    result["reason"] = state_kind
+    result["current_work_unit"] = current_work_unit or None
+    result["current_execution_envelope"] = current_execution or None
+    result["refs_only_handoff_superseded"] = True
+    result["next_action_summary"] = (
+        "Canonical current_work_unit supersedes this refs-only OPL handoff record."
+    )
+    return result
 
 
 def _current_execution_envelopes(

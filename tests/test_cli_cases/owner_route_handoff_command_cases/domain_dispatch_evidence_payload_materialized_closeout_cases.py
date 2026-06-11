@@ -15,6 +15,14 @@ def test_domain_handler_dispatch_evidence_payload_materializes_stage_attempt_clo
     stage_attempt_id = "sat_e6f92e06019386999767fccc"
     stage_attempt_source = "mas_default_executor_source_31f624984b95141678c05395"
     domain_source = "7fb3d7989fa07608"
+    owner_route_basis = {
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "gate-replay-route-back::write::publication-blockers::0915410f804b3697",
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+        "source_eval_id": "publication-eval::dm002::current-ai-reviewer",
+        "owner_reason": "medical_prose_write_repair",
+    }
     dispatch_ref = (
         "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
         "default_executor_dispatches/immutable/run_quality_repair_batch/735ab53344e0c086e868219d.json"
@@ -59,6 +67,15 @@ def test_domain_handler_dispatch_evidence_payload_materializes_stage_attempt_clo
                     "current_owner_route": {
                         "next_owner": "write",
                         "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                        "work_unit_fingerprint": owner_route_basis["work_unit_fingerprint"],
+                        "truth_epoch": owner_route_basis["truth_epoch"],
+                        "runtime_health_epoch": owner_route_basis["runtime_health_epoch"],
+                        "source_refs": {
+                            "owner_route_currentness_basis": owner_route_basis,
+                            "work_unit_id": owner_route_basis["work_unit_id"],
+                            "work_unit_fingerprint": owner_route_basis["work_unit_fingerprint"],
+                            "source_eval_id": owner_route_basis["source_eval_id"],
+                        },
                     },
                     "execution_observation": {
                         "execution_status": "blocked",
@@ -124,9 +141,20 @@ def test_domain_handler_dispatch_evidence_payload_materializes_stage_attempt_clo
     assert closeout["stage_attempt_id"] == stage_attempt_id
     assert closeout["status"] == "blocked"
     assert closeout["blocked_reason"] == "paper_progress_stall_fingerprint_stale"
+    assert closeout["owner_route_basis"] == owner_route_basis
+    assert closeout["owner_route_currentness"] == owner_route_basis
+    assert closeout["work_unit_id"] == owner_route_basis["work_unit_id"]
+    assert closeout["work_unit_fingerprint"] == owner_route_basis["work_unit_fingerprint"]
+    assert closeout["action_fingerprint"] == owner_route_basis["work_unit_fingerprint"]
+    assert closeout["source_eval_id"] == owner_route_basis["source_eval_id"]
+    assert closeout["truth_epoch"] == owner_route_basis["truth_epoch"]
+    assert closeout["runtime_health_epoch"] == owner_route_basis["runtime_health_epoch"]
     assert closeout["provider_completion_is_domain_completion"] is False
     assert closeout["domain_blocker"]["surface_kind"] == "mas_domain_typed_blocker"
     assert closeout["domain_blocker"]["reason"] == "paper_progress_stall_fingerprint_stale"
+    assert closeout["domain_blocker"]["work_unit_id"] == owner_route_basis["work_unit_id"]
+    assert closeout["domain_blocker"]["work_unit_fingerprint"] == owner_route_basis["work_unit_fingerprint"]
+    assert closeout["domain_blocker"]["source_eval_id"] == owner_route_basis["source_eval_id"]
     assert closeout["typed_blocker_ref"] == f"{closeout_ref}#domain_blocker"
     record_payload = payload["opl_runtime_action_execute_payload"]
     assert record_payload["source_fingerprint"] == stage_attempt_source

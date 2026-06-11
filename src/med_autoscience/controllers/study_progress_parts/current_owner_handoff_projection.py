@@ -297,9 +297,14 @@ def apply_current_owner_handoff_user_visible_status(payload: Mapping[str, Any]) 
     executable_owner_action = _mapping_copy(payload.get("current_executable_owner_action"))
     user_visible = _mapping_copy(payload.get("user_visible_projection"))
     handoff_action = current_owner_handoff_action(payload)
-    if not current_owner_redrive_domain_transition(payload) and handoff_action is None:
+    redrive_transition = current_owner_redrive_domain_transition(payload)
+    if not redrive_transition and handoff_action is None:
         return dict(payload)
-    if handoff_action is None and owner_action_next_step(executable_owner_action) is None:
+    if (
+        handoff_action is None
+        and owner_action_next_step(executable_owner_action) is None
+        and not redrive_transition
+    ):
         return dict(payload)
     next_step = current_owner_handoff_next_action(payload, user_visible=user_visible)
     if next_step is None:

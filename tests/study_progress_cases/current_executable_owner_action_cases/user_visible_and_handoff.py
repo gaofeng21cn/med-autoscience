@@ -101,6 +101,66 @@ def test_user_visible_projection_does_not_mark_stale_live_macro_state_as_running
     )
 
 
+def test_user_visible_projection_treats_current_work_unit_typed_blocker_as_not_live() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.user_visible_projection")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "opl-stage-attempt://sat_stale_or_superseded"},
+                "conditions": [],
+            },
+            "supervision": {
+                "active_run_id": "opl-stage-attempt://sat_stale_or_superseded",
+                "health_status": "live",
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "med-autoscience",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "medical_prose_review_request_digest_missing",
+                        "owner": "med-autoscience",
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "med-autoscience",
+                "typed_blocker": {
+                    "blocker_type": "medical_prose_review_request_digest_missing",
+                    "owner": "med-autoscience",
+                },
+            },
+        }
+    )
+
+    assert projection["state"] == "queued/repair/quality"
+    assert projection["writer_state"] == "queued"
+    assert projection["actual_write_active"] is False
+    assert projection["owner_resolution_state"] == "ready_for_owner_action"
+    assert projection["next_owner"] == "med-autoscience"
+    assert projection["study_macro_state"]["writer_state"] == "queued"
+    assert projection["study_macro_state"]["details"]["stale_active_run_id"] == (
+        "opl-stage-attempt://sat_stale_or_superseded"
+    )
+    assert projection["supervision"]["active_run_id"] is None
+    assert projection["supervision"]["stale_active_run_id"] == (
+        "opl-stage-attempt://sat_stale_or_superseded"
+    )
+    assert projection["supervision"]["liveness_suppressed_by"] == "canonical_current_work_unit"
+
+
 def test_user_visible_projection_ignores_stale_run_id_when_owner_action_supersedes_user_park() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.user_visible_projection")
 

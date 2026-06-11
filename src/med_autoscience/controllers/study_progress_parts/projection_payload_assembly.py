@@ -837,7 +837,22 @@ def assemble_study_progress_payload(
         {**payload, "execution_owner_guard": execution_owner_guard}
     )
     refreshed_current_action = build_current_executable_owner_action(payload)
-    if refreshed_current_action != _mapping_copy(payload.get("current_executable_owner_action")):
+    refreshed_current_work_unit = current_work_unit.build_current_work_unit(
+        status=status,
+        progress=payload,
+        actions=envelope_actions,
+        current_executable_owner_action=_mapping_copy(payload.get("current_executable_owner_action")),
+        provider_admission=handoff,
+        live_provider_attempt=handoff,
+        typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
+        blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
+        next_owner=_non_empty_text(handoff.get("next_owner")),
+        runtime_health=runtime_health_snapshot,
+    )
+    if (
+        refreshed_current_action != _mapping_copy(payload.get("current_executable_owner_action"))
+        or refreshed_current_work_unit != _mapping_copy(payload.get("current_work_unit"))
+    ):
         payload["current_executable_owner_action"] = refreshed_current_action
         refreshed_actions = current_execution_envelope_actions(
             handoff=handoff,
@@ -884,6 +899,7 @@ def assemble_study_progress_payload(
         payload["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(
             {**payload, "execution_owner_guard": execution_owner_guard}
         )
+    payload["user_visible_projection"] = build_user_visible_projection(payload)
     if materialize_sidecar_observation:
         payload["evo_scientist_sidecar_observation"] = (
             evo_scientist_sidecar_refs.observe_current_owner_payload(

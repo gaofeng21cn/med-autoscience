@@ -55,6 +55,15 @@ def materialize_blocked_default_executor_closeout(
         or "med-autoscience"
     )
     generated_at = text(execution.get("generated_at"))
+    owner_route_basis = _owner_route_currentness_basis(
+        execution=execution,
+        dispatch_packet=dispatch_packet,
+    )
+    work_unit_id = text(owner_route_basis.get("work_unit_id"))
+    work_unit_fingerprint = text(owner_route_basis.get("work_unit_fingerprint"))
+    source_eval_id = text(owner_route_basis.get("source_eval_id"))
+    truth_epoch = text(owner_route_basis.get("truth_epoch"))
+    runtime_health_epoch = text(owner_route_basis.get("runtime_health_epoch"))
     closeout = {
         "surface_kind": "stage_attempt_closeout_packet",
         "schema_version": 1,
@@ -67,6 +76,20 @@ def materialize_blocked_default_executor_closeout(
         "closeout_id": f"stage-attempt-closeout::{stage_attempt_id}::{blocked_reason}",
         "status": "blocked",
         "blocked_reason": blocked_reason,
+        **(
+            {
+                "owner_route_basis": dict(owner_route_basis),
+                "owner_route_currentness": dict(owner_route_basis),
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "source_eval_id": source_eval_id,
+                "truth_epoch": truth_epoch,
+                "runtime_health_epoch": runtime_health_epoch,
+            }
+            if owner_route_basis
+            else {}
+        ),
         "domain_blocker": {
             "surface_kind": "mas_domain_typed_blocker",
             "schema_version": 1,
@@ -79,6 +102,19 @@ def materialize_blocked_default_executor_closeout(
             "stage_attempt_id": stage_attempt_id,
             "stage_packet_ref": dispatch_ref,
             "blocked_at": generated_at,
+            **(
+                {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "action_fingerprint": work_unit_fingerprint,
+                    "source_eval_id": source_eval_id,
+                    "truth_epoch": truth_epoch,
+                    "runtime_health_epoch": runtime_health_epoch,
+                    "owner_route_currentness_basis": dict(owner_route_basis),
+                }
+                if owner_route_basis
+                else {}
+            ),
             "provider_completion_is_domain_completion": False,
             "authority_boundary": closeout_authority_boundary(),
         },
@@ -124,6 +160,66 @@ def materialize_blocked_default_executor_closeout(
     }
     write_json_object(closeout_path, closeout)
     return closeout
+
+
+def _owner_route_currentness_basis(
+    *,
+    execution: Mapping[str, Any],
+    dispatch_packet: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    for route in (
+        mapping(execution.get("current_owner_route")),
+        mapping(execution.get("owner_route")),
+        mapping(mapping(execution.get("prompt_contract")).get("owner_route")),
+        mapping(mapping(execution.get("prompt_contract")).get("owner_route_currentness_basis")),
+        mapping(dispatch_packet or {}).get("owner_route"),
+        mapping(mapping(dispatch_packet or {}).get("prompt_contract")).get("owner_route"),
+        mapping(mapping(dispatch_packet or {}).get("prompt_contract")).get("owner_route_currentness_basis"),
+    ):
+        basis = _route_currentness_basis(mapping(route))
+        if basis:
+            return basis
+    return {}
+
+
+def _route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:
+    source_refs = mapping(route.get("source_refs"))
+    nested = mapping(source_refs.get("owner_route_currentness_basis"))
+    basis = {
+        "work_unit_id": (
+            text(nested.get("work_unit_id"))
+            or text(source_refs.get("work_unit_id"))
+            or text(route.get("work_unit_id"))
+        ),
+        "work_unit_fingerprint": (
+            text(nested.get("work_unit_fingerprint"))
+            or text(source_refs.get("work_unit_fingerprint"))
+            or text(route.get("work_unit_fingerprint"))
+            or text(route.get("action_fingerprint"))
+        ),
+        "source_eval_id": (
+            text(nested.get("source_eval_id"))
+            or text(source_refs.get("source_eval_id"))
+            or text(route.get("source_eval_id"))
+        ),
+        "truth_epoch": (
+            text(nested.get("truth_epoch"))
+            or text(source_refs.get("study_truth_epoch"))
+            or text(route.get("truth_epoch"))
+            or text(route.get("route_epoch"))
+        ),
+        "runtime_health_epoch": (
+            text(nested.get("runtime_health_epoch"))
+            or text(source_refs.get("runtime_health_epoch"))
+            or text(route.get("runtime_health_epoch"))
+        ),
+        "owner_reason": (
+            text(nested.get("owner_reason"))
+            or text(source_refs.get("owner_reason"))
+            or text(route.get("owner_reason"))
+        ),
+    }
+    return {key: value for key, value in basis.items() if value is not None}
 
 
 def _matching_blocked_default_executor_execution(

@@ -111,19 +111,23 @@ def _provider_admission_scanned_currentness_studies(
         normalized_study_id = _non_empty_text(study_id)
         if normalized_study_id is None:
             continue
-        current_action = _mapping(_mapping(payload).get("current_executable_owner_action"))
-        if not current_action:
-            continue
-        current_work_unit = _mapping(_mapping(payload).get("current_work_unit"))
-        current_owner_ticket = _mapping(_mapping(payload).get("current_owner_ticket"))
-        current_execution_envelope = _mapping(_mapping(payload).get("current_execution_envelope"))
-        domain_transition = _mapping(_mapping(payload).get("domain_transition"))
+        progress_payload = _mapping(payload)
+        current_action = _mapping(progress_payload.get("current_executable_owner_action"))
+        current_work_unit = _mapping(progress_payload.get("current_work_unit"))
+        current_owner_ticket = _mapping(progress_payload.get("current_owner_ticket"))
+        current_execution_envelope = _mapping(progress_payload.get("current_execution_envelope"))
+        domain_transition = _mapping(progress_payload.get("domain_transition"))
         progress_first_monitoring_summary = _mapping(
-            _mapping(payload).get("progress_first_monitoring_summary")
+            progress_payload.get("progress_first_monitoring_summary")
         )
-        intervention_lane = _mapping(_mapping(payload).get("intervention_lane"))
+        intervention_lane = _mapping(progress_payload.get("intervention_lane"))
+        closeout_evidence = _progress_currentness_closeout_evidence(progress_payload)
+        if not any((current_action, current_work_unit, current_execution_envelope, closeout_evidence)):
+            continue
         next_owner = _non_empty_text(current_action.get("next_owner"))
-        work_unit_id = _non_empty_text(current_action.get("work_unit_id"))
+        work_unit_id = _non_empty_text(current_action.get("work_unit_id")) or _non_empty_text(
+            current_work_unit.get("work_unit_id")
+        )
         execution_envelope = dict(current_execution_envelope) if current_execution_envelope else {
             "state_kind": "executable_owner_action",
             "owner": next_owner,
@@ -135,21 +139,189 @@ def _provider_admission_scanned_currentness_studies(
         studies.append(
             {
                 "study_id": normalized_study_id,
-                "quest_id": _non_empty_text(current_action.get("quest_id")) or normalized_study_id,
+                "quest_id": _non_empty_text(current_action.get("quest_id"))
+                or _non_empty_text(current_work_unit.get("quest_id"))
+                or normalized_study_id,
                 "handoff_scan_status": "scanned_no_provider_admission",
                 "provider_admission_pending_count": 0,
                 "action_queue": [],
-                "current_executable_owner_action": dict(current_action),
+                **({"current_executable_owner_action": dict(current_action)} if current_action else {}),
                 **({"current_work_unit": dict(current_work_unit)} if current_work_unit else {}),
                 **({"current_owner_ticket": dict(current_owner_ticket)} if current_owner_ticket else {}),
                 **({"domain_transition": dict(domain_transition)} if domain_transition else {}),
                 **({"progress_first_monitoring_summary": dict(progress_first_monitoring_summary)}
                    if progress_first_monitoring_summary else {}),
                 **({"intervention_lane": dict(intervention_lane)} if intervention_lane else {}),
+                **({"accepted_closeout_evidence": closeout_evidence} if closeout_evidence else {}),
                 "current_execution_envelope": execution_envelope,
             }
         )
     return studies
+
+
+def _progress_currentness_closeout_evidence(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    evidence: list[dict[str, Any]] = []
+    identity = _progress_currentness_current_identity(payload)
+    for key in (
+        "default_executor_execution_receipt_consumption",
+        "terminal_closeout_precedence_evidence",
+        "latest_stage_attempt_closeout",
+        "stage_attempt_closeout",
+    ):
+        item = _mapping(payload.get(key))
+        if item:
+            evidence.append(_closeout_evidence_with_identity(item, identity=identity))
+    progress_first = _mapping(payload.get("progress_first_monitoring_summary"))
+    for key in ("latest_terminal_stage", "latest_terminal_stage_log"):
+        item = _mapping(progress_first.get(key))
+        if item:
+            evidence.append(_terminal_stage_closeout_evidence(item, identity=identity))
+    for key in (
+        "accepted_closeout_evidence",
+        "stage_attempt_closeouts",
+        "default_executor_execution_receipt_consumptions",
+    ):
+        for item in payload.get(key) or []:
+            mapped = _mapping(item)
+            if mapped:
+                evidence.append(_closeout_evidence_with_identity(mapped, identity=identity))
+    return evidence
+
+
+def _terminal_stage_closeout_evidence(
+    terminal: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    status = _non_empty_text(terminal.get("status"))
+    classification = _non_empty_text(terminal.get("progress_delta_classification"))
+    blocker_id = _terminal_stage_blocker_id(terminal)
+    payload = {
+        **dict(terminal),
+        "surface_kind": _non_empty_text(terminal.get("surface_kind")) or "stage_attempt_closeout_packet",
+        "status": status,
+        "stage_closeout_status": status,
+        "execution_status": status,
+        "outcome": "typed_blocker" if classification == "typed_blocker" else _non_empty_text(terminal.get("outcome")),
+        "blocked_reason": blocker_id,
+        "typed_blocker_reason": blocker_id,
+        "typed_blocker_ref": _non_empty_text(terminal.get("source_path")),
+        "typed_blocker": {
+            "blocker_id": blocker_id,
+            "blocker_type": blocker_id,
+            "owner": "one-person-lab",
+            "write_permitted": False,
+        },
+    }
+    return _closeout_evidence_with_identity(payload, identity=identity)
+
+
+def _terminal_stage_blocker_id(terminal: Mapping[str, Any]) -> str:
+    typed_blocker = _mapping(terminal.get("typed_blocker"))
+    semantic = _mapping(terminal.get("terminal_closeout_semantic_completeness"))
+    for value in (
+        terminal.get("blocked_reason"),
+        terminal.get("typed_blocker_reason"),
+        terminal.get("blocker_id"),
+        terminal.get("blocker_type"),
+        typed_blocker.get("blocker_id"),
+        typed_blocker.get("blocker_type"),
+        typed_blocker.get("reason"),
+        semantic.get("typed_blocker"),
+    ):
+        text = _non_empty_text(value)
+        if text is not None:
+            return text
+    if _non_empty_text(terminal.get("status")) == "repeat_suppressed":
+        return "anti_loop_budget_exhausted"
+    return _non_empty_text(terminal.get("status")) or "terminal_closeout_observed"
+
+
+def _closeout_evidence_with_identity(
+    closeout: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    result = dict(closeout)
+    for key in (
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "source_eval_id",
+        "truth_epoch",
+        "runtime_health_epoch",
+    ):
+        if result.get(key) in (None, "", [], {}) and identity.get(key) not in (None, "", [], {}):
+            result[key] = identity[key]
+    basis = _mapping(result.get("owner_route_currentness_basis"))
+    if not basis:
+        basis = {
+            key: result.get(key)
+            for key in (
+                "work_unit_id",
+                "work_unit_fingerprint",
+                "source_eval_id",
+                "truth_epoch",
+                "runtime_health_epoch",
+            )
+            if result.get(key) not in (None, "", [], {})
+        }
+        if basis:
+            result["owner_route_currentness_basis"] = basis
+    return result
+
+
+def _progress_currentness_current_identity(payload: Mapping[str, Any]) -> dict[str, Any]:
+    current_work_unit = _mapping(payload.get("current_work_unit"))
+    current_action = _mapping(payload.get("current_executable_owner_action"))
+    currentness_basis = _mapping(current_work_unit.get("currentness_basis")) or _mapping(
+        current_action.get("owner_route_currentness_basis")
+    )
+    next_forced_delta = _mapping(payload.get("next_forced_delta"))
+    owner_action = _mapping(next_forced_delta.get("owner_action"))
+    current_owner_ticket = _mapping(next_forced_delta.get("current_owner_ticket")) or _mapping(
+        payload.get("current_owner_ticket")
+    )
+    ticket_work_unit = _mapping(current_owner_ticket.get("work_unit"))
+    allowed_actions = _same_tick_text_items(current_action.get("allowed_actions")) or _same_tick_text_items(
+        owner_action.get("allowed_actions")
+    )
+    action_type = (
+        _non_empty_text(current_work_unit.get("action_type"))
+        or _non_empty_text(current_action.get("action_type"))
+        or _non_empty_text(owner_action.get("action_type"))
+        or (allowed_actions[0] if len(allowed_actions) == 1 else None)
+    )
+    work_unit_id = (
+        _non_empty_text(current_work_unit.get("work_unit_id"))
+        or _non_empty_text(current_action.get("work_unit_id"))
+        or _non_empty_text(owner_action.get("work_unit_id"))
+        or _non_empty_text(next_forced_delta.get("work_unit_id"))
+        or _non_empty_text(ticket_work_unit.get("work_unit_id"))
+        or _non_empty_text(ticket_work_unit.get("unit_id"))
+    )
+    fingerprint = (
+        _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+        or _non_empty_text(current_work_unit.get("action_fingerprint"))
+        or _non_empty_text(current_action.get("work_unit_fingerprint"))
+        or _non_empty_text(current_action.get("action_fingerprint"))
+        or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
+    )
+    return {
+        key: value
+        for key, value in {
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": _non_empty_text(current_action.get("source_eval_id"))
+            or _non_empty_text(currentness_basis.get("source_eval_id")),
+            "truth_epoch": _non_empty_text(currentness_basis.get("truth_epoch")),
+            "runtime_health_epoch": _non_empty_text(currentness_basis.get("runtime_health_epoch")),
+        }.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _provider_admission_candidates_from_progress_currentness(

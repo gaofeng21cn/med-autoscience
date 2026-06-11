@@ -79,6 +79,11 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     writer_state = _non_empty_text(macro_state.get("writer_state")) or "conflict"
     user_next = _non_empty_text(macro_state.get("user_next")) or "inspect"
     reason = _non_empty_text(macro_state.get("reason")) or "truth_conflict"
+    liveness_blocked_by_current_work_unit = _canonical_typed_blocker_blocks_liveness(payload)
+    if liveness_blocked_by_current_work_unit:
+        writer_state = "queued"
+        user_next = "repair"
+        reason = "quality"
     details = _mapping_copy(macro_state.get("details"))
     paper_progress_state = build_paper_progress_state(payload)
     package_delivered = bool(details.get("package_delivered")) or bool(paper_progress_state.get("package_delivered"))
@@ -197,8 +202,17 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         "next_step": next_step,
         "needs_user_decision": user_action_required,
         "needs_physician_decision": user_action_required,
-        "study_macro_state": dict(macro_state),
-        "supervision": _supervision_projection(payload),
+        "study_macro_state": _display_macro_state(
+            macro_state,
+            writer_state=writer_state,
+            user_next=user_next,
+            reason=reason,
+            liveness_blocked_by_current_work_unit=liveness_blocked_by_current_work_unit,
+        ),
+        "supervision": _supervision_projection(
+            payload,
+            liveness_blocked_by_current_work_unit=liveness_blocked_by_current_work_unit,
+        ),
         "paper_progress_state": paper_progress_state,
         "current_executable_owner_action": executable_owner_action or None,
         "evidence": evidence,
@@ -262,6 +276,47 @@ def _top_level_writer_conflicts(payload: Mapping[str, Any], macro_state: Mapping
     if top_level_stage in _ACTIVE_TOP_LEVEL_STAGES and writer_state not in {"live", "queued"}:
         return True
     return False
+
+
+def _canonical_typed_blocker_blocks_liveness(payload: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
+        return True
+    execution = _mapping_copy(payload.get("current_execution_envelope"))
+    return _non_empty_text(execution.get("state_kind")) == "typed_blocker" and bool(
+        _mapping_copy(execution.get("typed_blocker"))
+    )
+
+
+def _display_macro_state(
+    macro_state: Mapping[str, Any],
+    *,
+    writer_state: str,
+    user_next: str,
+    reason: str,
+    liveness_blocked_by_current_work_unit: bool,
+) -> dict[str, Any]:
+    result = dict(macro_state)
+    if not liveness_blocked_by_current_work_unit:
+        return result
+    result["writer_state"] = writer_state
+    result["user_next"] = user_next
+    result["reason"] = reason
+    details = _mapping_copy(result.get("details"))
+    active_run_id = _non_empty_text(details.pop("active_run_id", None))
+    if active_run_id is not None:
+        details["stale_active_run_id"] = active_run_id
+    result["details"] = details
+    result["conditions"] = [
+        condition
+        for condition in result.get("conditions") or []
+        if not (
+            isinstance(condition, Mapping)
+            and _non_empty_text(condition.get("type")) == "LiveWriter"
+        )
+    ]
+    result.setdefault("suppression_reason", "canonical_current_work_unit_blocks_liveness")
+    return result
 
 
 def _current_owner_action_supersedes_stale_user_park(
@@ -402,6 +457,8 @@ def _fresh_artifact_delta_present(payload: Mapping[str, Any]) -> bool:
 
 def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> str | None:
     executable_action = _user_facing_executable_owner_action(payload)
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    execution = _mapping_copy(payload.get("current_execution_envelope"))
     impact = _mapping_copy(payload.get("production_blocker_impact"))
     owner_route = _mapping_copy(payload.get("owner_route"))
     paper_progress_stall = _mapping_copy(payload.get("paper_progress_stall"))
@@ -410,6 +467,8 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
     ai_repair_lifecycle = _mapping_copy(payload.get("ai_repair_lifecycle"))
     return (
         _non_empty_text(executable_action.get("next_owner"))
+        or _non_empty_text(current_work_unit.get("owner"))
+        or _non_empty_text(execution.get("owner"))
         or _non_empty_text(impact.get("next_owner"))
         or _non_empty_text(owner_route.get("next_owner"))
         or _non_empty_text(details.get("decision_owner"))
@@ -667,15 +726,25 @@ def _evidence_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _supervision_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _supervision_projection(
+    payload: Mapping[str, Any],
+    *,
+    liveness_blocked_by_current_work_unit: bool = False,
+) -> dict[str, Any]:
     supervision = _mapping_copy(payload.get("supervision"))
-    return {
+    result = {
         "browser_url": _non_empty_text(supervision.get("browser_url")),
         "quest_session_api_url": _non_empty_text(supervision.get("quest_session_api_url")),
         "active_run_id": _non_empty_text(supervision.get("active_run_id")),
         "health_status": _non_empty_text(supervision.get("health_status")),
         "supervisor_tick_status": _non_empty_text(supervision.get("supervisor_tick_status")),
     }
+    if liveness_blocked_by_current_work_unit and result["active_run_id"] is not None:
+        result["stale_active_run_id"] = result["active_run_id"]
+        result["active_run_id"] = None
+        result["health_status"] = "blocked"
+        result["liveness_suppressed_by"] = "canonical_current_work_unit"
+    return result
 
 
 def _current_runtime_redrive_route(payload: Mapping[str, Any]) -> bool:

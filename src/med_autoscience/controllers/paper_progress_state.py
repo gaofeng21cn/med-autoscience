@@ -231,6 +231,8 @@ def _delta_count(value: Mapping[str, Any]) -> int:
 def _actual_write_active(payload: Mapping[str, Any], *, visible_progress: bool) -> bool:
     macro_state = _study_macro_state(payload)
     writer_state = _text(macro_state.get("writer_state"))
+    if _canonical_typed_blocker_blocks_liveness(payload):
+        return False
     if writer_state != "live" and not _live_provider_attempt(payload):
         return False
     if not visible_progress:
@@ -244,6 +246,8 @@ def _actual_write_active(payload: Mapping[str, Any], *, visible_progress: bool) 
 
 
 def _live_provider_attempt(payload: Mapping[str, Any]) -> bool:
+    if _canonical_typed_blocker_blocks_liveness(payload):
+        return False
     runtime_liveness = _mapping(payload.get("runtime_liveness_audit"))
     if runtime_liveness.get("running_provider_attempt") is True:
         return True
@@ -258,6 +262,16 @@ def _live_provider_attempt(payload: Mapping[str, Any]) -> bool:
     if execution_handoff.get("running_provider_attempt") is True:
         return True
     return False
+
+
+def _canonical_typed_blocker_blocks_liveness(payload: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping(payload.get("current_work_unit"))
+    if _text(current_work_unit.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
+        return True
+    execution = _mapping(payload.get("current_execution_envelope"))
+    return _text(execution.get("state_kind")) == "typed_blocker" and bool(
+        _mapping(execution.get("typed_blocker"))
+    )
 
 
 def _provider_attempt_run_id(payload: Mapping[str, Any]) -> str | None:

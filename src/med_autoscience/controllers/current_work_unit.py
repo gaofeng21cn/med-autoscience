@@ -11,6 +11,10 @@ from med_autoscience.controllers.guarded_apply_owner_delta_contract import (
     guarded_apply_identity_typed_blocker,
     normalize_guarded_apply_current_owner_delta,
 )
+from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_currentness import (
+    gate_replay_consumed_by_source_eval,
+    terminal_closeout_blocker_for_action,
+)
 from med_autoscience.runtime_control.owner_route_attempt_protocol import (
     currentness_basis as owner_route_currentness_basis,
     owner_reason_contract,
@@ -127,6 +131,7 @@ TERMINAL_CLOSEOUT_STATUSES = frozenset(
         "materialized_record_only_archive",
         "record_materialized_with_domain_owner_followthrough_observed",
         "record_only_archive_materialized",
+        "repeat_suppressed",
         "terminal",
         "typed_blocked",
     }
@@ -187,6 +192,19 @@ def build_current_work_unit(
         blocked_reason=blocked_reason,
         owner=next_owner,
     )
+    terminal_action_blocker = terminal_closeout_blocker_for_action(
+        progress_payload,
+        action=action,
+        mapping=_mapping,
+        text=_text,
+        text_items=_text_items,
+        action_type=_action_type,
+        work_unit_id=_work_unit_id,
+        work_unit_fingerprint=_work_unit_fingerprint,
+        action_fingerprint=_action_fingerprint,
+    )
+    if terminal_action_blocker is not None:
+        resolved_typed_blocker = terminal_action_blocker
     running_attempt = _strict_running_provider_attempt(
         live_provider_attempt=live_provider_attempt,
         provider_running_proof=provider_running_proof,
@@ -1156,7 +1174,7 @@ def _action_consumed_by_dispatch_receipt(
     consumption = _mapping(_mapping(progress.get("progress_first_monitoring_summary")).get("dispatch_consumption"))
     if not consumption:
         consumption = _mapping(progress.get("dispatch_consumption"))
-    if _text(consumption.get("consumption_status")) != "consumed":
+    if _text(consumption.get("consumption_status")) not in {"consumed", "receipt_consumed"}:
         return False
     action_work_unit = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
     consumed_work_unit = _work_unit_id(consumption.get("work_unit_id"))
@@ -1200,7 +1218,14 @@ def _action_consumed_by_dispatch_receipt(
     }
     if not action_fingerprints or not consumed_fingerprints:
         return False
-    return bool(action_fingerprints.intersection(consumed_fingerprints))
+    if action_fingerprints.intersection(consumed_fingerprints):
+        return True
+    return gate_replay_consumed_by_source_eval(
+        action=action,
+        consumption=consumption,
+        mapping=_mapping,
+        text=_text,
+    )
 
 
 def _route_work_unit_id(route: Mapping[str, Any]) -> str | None:

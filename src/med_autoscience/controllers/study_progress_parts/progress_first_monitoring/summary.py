@@ -139,6 +139,19 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or non_artifact_current_action
     )
     current_work_unit_status = _text(canonical_current_work_unit.get("status"))
+    canonical_typed_blocker_blocks_liveness = _canonical_typed_blocker_blocks_liveness(
+        current_work_unit=canonical_current_work_unit,
+        execution=execution,
+        domain_transition=domain_transition,
+        transition_consumed_owner_action=transition_consumed_owner_action,
+        transition_consumed_same_work_unit=transition_consumed_same_work_unit,
+        gate_clearing_dispatch_consumption=gate_clearing_dispatch_consumption,
+    )
+    if canonical_typed_blocker_blocks_liveness:
+        running_provider_attempt = False
+        active_run_id = None
+        active_stage_attempt_id = None
+        active_workflow_id = None
     if (
         current_work_unit_status in {"typed_blocker", "blocked_current_work_unit"}
         and _next_forced_delta_owner_action(current_action)
@@ -146,7 +159,6 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         current_action = {}
     owner_action_supersedes_envelope_blocker = handoff_owner_action is not None or (
         transition_consumed_owner_action
-        and _text(execution.get("state_kind")) != "typed_blocker"
         and not transition_consumed_same_work_unit
         and gate_clearing_dispatch_consumption is None
     )
@@ -334,6 +346,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             or (
                 _text(domain_transition.get("controller_action"))
                 if not envelope_blocks_current_action
+                or _domain_transition_has_current_owner_route(domain_transition=domain_transition)
                 else None
             )
             or _text(payload.get("runtime_decision"))
@@ -395,6 +408,41 @@ def _current_work_unit_owner_action_current(
     if current_work_unit:
         return _text(current_work_unit.get("status")) == "executable_owner_action"
     return state_kind == "executable_owner_action" and bool(current_action)
+
+
+def _canonical_typed_blocker_blocks_liveness(
+    *,
+    current_work_unit: Mapping[str, Any],
+    execution: Mapping[str, Any],
+    domain_transition: Mapping[str, Any],
+    transition_consumed_owner_action: bool,
+    transition_consumed_same_work_unit: bool,
+    gate_clearing_dispatch_consumption: Mapping[str, Any] | None,
+) -> bool:
+    if _text(current_work_unit.get("status")) in {"typed_blocker", "blocked_current_work_unit"}:
+        return True
+    if (
+        transition_consumed_owner_action
+        and not transition_consumed_same_work_unit
+        and gate_clearing_dispatch_consumption is None
+    ):
+        return False
+    if _domain_transition_has_current_owner_route(domain_transition=domain_transition):
+        return False
+    if _text(execution.get("state_kind")) == "typed_blocker" and _mapping(execution.get("typed_blocker")):
+        return True
+    return False
+
+
+def _domain_transition_has_current_owner_route(*, domain_transition: Mapping[str, Any]) -> bool:
+    if _mapping(domain_transition.get("typed_blocker")):
+        return False
+    return (
+        _text(domain_transition.get("owner")) is not None
+        or _text(domain_transition.get("route_target")) is not None
+        or _text(domain_transition.get("controller_action")) is not None
+        or _work_unit_projection(domain_transition.get("next_work_unit")) is not None
+    )
 
 
 def _next_forced_delta_from_current_work_unit(
@@ -881,7 +929,9 @@ def _running_provider_attempt_ref(
     key: str,
 ) -> str | None:
     if key == "active_run_id":
-        return _text(handoff.get(key))
+        if running_provider_attempt is True or _bool_or_none(handoff.get("running_provider_attempt")) is False:
+            return _text(handoff.get(key))
+        return None
     if running_provider_attempt is not True:
         return None
     return _text(handoff.get(key))
