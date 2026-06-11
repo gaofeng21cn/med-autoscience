@@ -106,3 +106,25 @@ def test_currentness_match_can_require_fingerprint_for_repair_followup() -> None
 
     assert currentness_identities_match(left, right)
     assert not currentness_identities_match(left, right, require_fingerprint=True)
+
+
+def test_currentness_match_treats_source_eval_id_as_strong_currentness_key() -> None:
+    left = {
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": "gate-replay",
+        "work_unit_fingerprint": "sha256:fresh-gate-receipt",
+        "source_eval_id": "publication-eval::current",
+    }
+    right = {
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": "gate-replay",
+        "work_unit_fingerprint": "current-owner-delta::gate-replay::different-format",
+        "source_eval_id": "publication-eval::current",
+    }
+    stale = {
+        **right,
+        "source_eval_id": "publication-eval::stale",
+    }
+
+    assert currentness_identities_match(left, right)
+    assert not currentness_identities_match(left, stale)
