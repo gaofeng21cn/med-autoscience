@@ -34,6 +34,7 @@ from med_autoscience.mcp_server_parts.handler_adapter import (
     optional_int as _optional_int,
     optional_mapping as _optional_mapping,
     optional_path as _optional_path,
+    optional_string as _optional_string,
     require_path_list as _require_path_list,
     require_string as _require_string,
 )

@@ -23,6 +23,11 @@
       "emit_tool_result_envelope"
     ],
     "non_authority_rule": "Invocation metadata never becomes MAS study truth, publication quality, artifact authority, memory authority, or production readiness.",
+    "optional_receipt_evidence": {
+      "can_block_current_owner_action": false,
+      "executor_receipt_ref": "may_attach_when_available",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract"
+    },
     "planning_root": "current_owner_delta",
     "selection_order": [
       "current_owner_delta.action_type owner callable card",
@@ -33,7 +38,14 @@
   },
   "contract_id": "mas_agent_tool_arsenal.v1",
   "domain_id": "med-autoscience",
+  "executor_receipt_ref_policy": {
+    "can_block_current_owner_action": false,
+    "field": "executor_receipt_ref",
+    "receipt_only": true,
+    "required": false
+  },
   "human_operator_role": "governance_and_authorization_not_manual_tool_composition",
+  "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
   "ordinary_planning_root": "current_owner_delta",
   "owner": "MedAutoScience",
   "owner_callable_cards": [
@@ -67,6 +79,12 @@
         "terminal_projection_writer": "publication_handoff_stage_projection.py",
         "terminal_stage_owner_answer_requires_trusted_opl_binding": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -89,6 +107,7 @@
         "provider-backed capability payload or existing canonical capability surface",
         "artifacts/supervision/requests/medical_paper_readiness/latest.json"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "MedAutoScience",
       "required_output_refs": [
         "artifacts/medical_paper/readiness.json",
@@ -124,6 +143,12 @@
       "closeout_contract": {
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -140,6 +165,7 @@
         "owner_route",
         "authority_snapshot"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "MAS/controller",
       "required_output_refs": [
         "MAS controller redrive receipt or typed blocker"
@@ -174,6 +200,12 @@
       "closeout_contract": {
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -190,6 +222,7 @@
         "artifacts/controller/analysis_harmonization/latest.json",
         "artifacts/controller_decisions/latest.json"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "decision",
       "required_output_refs": [
         "artifacts/controller_decisions/latest.json"
@@ -224,6 +257,12 @@
       "closeout_contract": {
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -240,6 +279,7 @@
         "artifacts/controller/analysis_harmonization/latest.json",
         "artifacts/controller/source_provenance/latest.json"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "provenance_limited_harmonization_owner",
       "required_output_refs": [
         "artifacts/controller/provenance_limited_harmonization/latest.json",
@@ -275,6 +315,12 @@
       "closeout_contract": {
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -291,6 +337,7 @@
         "paper_root",
         "publication_gate_report"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "publication_gate",
       "required_output_refs": [
         "artifacts/publication_eval/latest.json"
@@ -340,6 +387,12 @@
         "submission_ready_claim_authorized": false,
         "terminal_projection_writer": "publication_handoff_stage_projection.py"
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -363,6 +416,7 @@
         "artifacts/stage_outputs/08-publication_package_handoff/publication_package_manifest.json",
         "artifacts/stage_outputs/08-publication_package_handoff/publication_gate_receipt.json"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "publication_gate_owner",
       "required_output_refs": [
         "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
@@ -398,6 +452,12 @@
       "closeout_contract": {
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -415,6 +475,7 @@
         "analysis/clean_room_execution/20_transportability/model_spec_and_feature_list.md",
         "legacy runtime result refs"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "source_provenance_owner",
       "required_output_refs": [
         "canonical transport model provenance bundle",
@@ -453,6 +514,12 @@
         "currentness_required": true,
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -475,6 +542,7 @@
         "study_charter",
         "artifacts/supervision/requests/ai_reviewer/latest.json"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "ai_reviewer",
       "required_output_refs": [
         "artifacts/publication_eval/latest.json"
@@ -517,6 +585,12 @@
         "requires_owner_receipt_or_typed_blocker": false,
         "submission_ready_claim_authorized": false
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -541,6 +615,7 @@
         "current owner action dispatch or owner route",
         "external_learning_adoption_closure"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "external_learning_sidecar",
       "required_output_refs": [
         "artifacts/advisory/external_learning_sidecar/latest.json",
@@ -576,6 +651,12 @@
       "closeout_contract": {
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -592,6 +673,7 @@
         "publication_gate_report",
         "paper_root"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "gate_clearing_batch",
       "required_output_refs": [
         "artifacts/controller/gate_clearing_batch/latest.json"
@@ -640,6 +722,12 @@
         ],
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -661,6 +749,7 @@
         "publication_eval/latest.json",
         "paper_root"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "quality_repair_batch",
       "required_output_refs": [
         "paper/*",
@@ -696,6 +785,12 @@
       "closeout_contract": {
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -712,6 +807,7 @@
         "submission_minimal_manifest",
         "study_root"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "delivery_sync",
       "required_output_refs": [
         "manuscript/current_package",
@@ -747,6 +843,12 @@
       "closeout_contract": {
         "requires_owner_receipt_or_typed_blocker": true
       },
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -764,6 +866,7 @@
         "harmonization_route_back/latest.md",
         "analysis inputs"
       ],
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "owner": "analysis_harmonization_owner",
       "required_output_refs": [
         "unit-harmonized external-validation rerun evidence",
@@ -796,6 +899,12 @@
       },
       "content_ref": {
         "type": "string"
+      },
+      "executor_receipt_ref": {
+        "type": "string"
+      },
+      "lightweight_executor_receipt_contract_ref": {
+        "const": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract"
       },
       "owner_receipt_ref": {
         "type": "string"
@@ -1199,6 +1308,12 @@
       "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
       "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
       "effect": "mutating",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1217,6 +1332,7 @@
         "task_intent"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "submit_study_task"
@@ -1282,6 +1398,12 @@
       "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
       "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
       "effect": "mutating",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1299,6 +1421,7 @@
         "study_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "launch_study"
@@ -1362,6 +1485,12 @@
       "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1377,6 +1506,7 @@
         "study_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": true,
         "tool_name": "study_progress"
@@ -1447,6 +1577,12 @@
       "command": "uv run python -m med_autoscience.cli study-state-matrix --profile <profile> --format json",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1461,6 +1597,7 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "study_state_matrix"
@@ -1527,6 +1664,12 @@
       "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1542,6 +1685,7 @@
         "study_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "export_inspection_package"
@@ -1612,6 +1756,12 @@
       "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1627,6 +1777,7 @@
         "quest_root"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "publication_aftercare_plan"
@@ -1695,6 +1846,12 @@
       "command": "medautosci domain-handler export --profile <profile> --format json",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1709,6 +1866,7 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "external_learning_adoption_closure"
@@ -1776,6 +1934,12 @@
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-discover --repo-root <mas_repo>",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1791,6 +1955,7 @@
         "paper_root"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "mode": "discover",
         "public_runtime": true,
@@ -1860,6 +2025,12 @@
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-plan --repo-root <mas_repo> --figure-request-json '<figure_request_json>'",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1876,6 +2047,7 @@
         "figure_request"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "mode": "plan",
         "public_runtime": true,
@@ -1946,6 +2118,12 @@
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-orchestrate --repo-root <mas_repo> --paper-root <paper_root> --current-owner-delta-json '<current_owner_delta_json>'",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -1967,6 +2145,7 @@
         "figure_request"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "mode": "orchestrate",
         "public_runtime": true,
@@ -2036,6 +2215,12 @@
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-preflight --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -2053,6 +2238,7 @@
         "figure_request"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "mode": "preflight",
         "public_runtime": true,
@@ -2127,6 +2313,12 @@
       "command": "uv run python -m med_autoscience.cli publication display-pack-agent-render --repo-root <mas_repo> --paper-root <paper_root> --figure-request-json '<figure_request_json>'",
       "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
       "effect": "mutating",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -2144,6 +2336,7 @@
         "visual_audit_review"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "mode": "render",
         "public_runtime": true,
@@ -2219,6 +2412,12 @@
       "command": "medautosci domain-handler export --profile <profile> --format json",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -2233,6 +2432,7 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "lightweight_executor_receipt"
@@ -2310,6 +2510,12 @@
       "command": "uv run python -m med_autoscience.cli scientific-capability-registry --mode <index|resolve|invoke>",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -2326,6 +2532,7 @@
         "capability_id"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": true,
         "tool_name": "scientific_capability_registry"
@@ -2389,6 +2596,12 @@
       "command": "uv run python -m med_autoscience.cli doctor mainline-status",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -2401,6 +2614,7 @@
       "idempotency_policy": "read_only_no_side_effects",
       "input_refs": [],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "mainline_status"
@@ -2464,6 +2678,12 @@
       "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -2476,6 +2696,7 @@
       "idempotency_policy": "read_only_no_side_effects",
       "input_refs": [],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "mainline_phase"
@@ -2539,6 +2760,12 @@
       "command": "medautosci domain-handler export --profile <profile> --format json",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -2553,6 +2780,7 @@
         "profile_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "domain_handler_export"
@@ -2621,6 +2849,12 @@
       "command": "medautosci domain-handler dispatch --task <task.json> --format json",
       "current_delta_applicability": "only_when_current_owner_delta_selects_this_action_or_human_gate_authorizes",
       "effect": "mutating",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -2635,6 +2869,7 @@
         "task_ref"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": false,
         "tool_name": "domain_handler_dispatch"
@@ -2698,6 +2933,12 @@
       "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
       "current_delta_applicability": "inspect_current_owner_delta_and_supporting_surfaces",
       "effect": "read_only",
+      "executor_receipt_ref_policy": {
+        "can_block_current_owner_action": false,
+        "field": "executor_receipt_ref",
+        "receipt_only": true,
+        "required": false
+      },
       "forbidden_authority": [
         "study_truth",
         "publication_quality",
@@ -2712,6 +2953,7 @@
         "workspace_roots"
       ],
       "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "lightweight_executor_receipt_contract_ref": "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract",
       "mcp_invocation": {
         "public_runtime": true,
         "tool_name": "authority_operations"
