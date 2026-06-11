@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import importlib
 from pathlib import Path
 
 from med_autoscience.controllers.study_transition_receipt_consumption import (
     default_executor_execution_nonconsumable_closeout,
     default_executor_execution_receipt_consumption,
 )
+from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -140,3 +142,195 @@ def test_gate_replay_closeout_with_incomplete_stage_log_consumes_as_typed_blocke
     assert receipt["changed_artifact_ref_count"] == 0
     assert receipt["next_action"] == "honor_typed_blocker_without_redrive"
     assert redrive == {}
+
+
+def test_stage_log_workbench_projection_is_refs_only_body_free_read_model(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    mcp_projection = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    closeout_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/stage_attempt_closeouts/"
+        "sat_workbench_projection.json"
+    )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "stage_attempt_closeouts" / "sat_workbench_projection.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "generated_at": "2026-06-11T08:30:00+00:00",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_attempt_id": "sat_workbench_projection",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "status": "completed",
+            "duration": {
+                "status": "missing",
+                "seconds": None,
+                "missing_duration_reason": "no_terminal_stage_duration_observed",
+            },
+            "token_usage": {
+                "status": "missing",
+                "total_tokens": None,
+                "missing_token_usage_reason": "no_terminal_stage_token_usage_observed",
+            },
+            "cost": {
+                "status": "missing",
+                "usd": None,
+                "missing_cost_reason": "no_terminal_stage_cost_observed",
+            },
+            "usage_refs": [f"{closeout_ref}#usage"],
+            "cost_refs": [f"{closeout_ref}#cost"],
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "schema_version": 1,
+                "status": "available",
+                "stage_name": "publication gate replay",
+                "current_owner": "gate_clearing_batch",
+                "problem_summary": "Gate replay ended with a typed blocker.",
+                "stage_goal": "Produce a gate replay owner receipt or typed blocker.",
+                "stage_work_done": ["Recorded the replay closeout and blocker refs."],
+                "paper_work_done": [],
+                "changed_stage_surfaces": [
+                    f"{closeout_ref}#stage-log",
+                    f"{closeout_ref}#semantic-gap",
+                ],
+                "changed_paper_surfaces": [],
+                "outcome": "typed_blocker",
+                "remaining_blockers": ["domain_closeout_provided_incomplete_user_stage_log"],
+                "duration": {
+                    "status": "missing",
+                    "seconds": None,
+                    "missing_duration_reason": "no_terminal_stage_duration_observed",
+                },
+                "token_usage": {
+                    "status": "missing",
+                    "total_tokens": None,
+                    "missing_token_usage_reason": "no_terminal_stage_token_usage_observed",
+                },
+                "cost": {
+                    "status": "missing",
+                    "usd": None,
+                    "missing_cost_reason": "no_terminal_stage_cost_observed",
+                },
+                "usage_refs": [f"{closeout_ref}#usage"],
+                "cost_refs": [f"{closeout_ref}#cost"],
+                "progress_delta_classification": "platform_repair",
+                "deliverable_progress_delta": {"count": 0, "token_usage_total": None},
+                "paper_progress_delta": {"count": 0, "token_usage_total": None},
+                "platform_repair_delta": {"count": 1, "token_usage_total": None},
+                "next_forced_delta": {
+                    "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                    "work_unit_id": work_unit_id,
+                    "target_surface": {"surface_ref": "publication_gate/latest.json"},
+                    "owner_action": {
+                        "next_owner": "gate_clearing_batch",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": work_unit_id,
+                    },
+                    "acceptance_refs": ["owner_receipt_ref", "typed_blocker_ref"],
+                    "reason": "typed_blocker::publication_gate_replay_blocked",
+                },
+                "evidence_refs": [closeout_ref],
+            },
+            "closeout_refs": [closeout_ref],
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "quest_root": str(profile.managed_runtime_home / "quests" / study_id),
+            "quest_status": "running",
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "runtime_health_snapshot": {"health_status": "blocked"},
+            "authority_snapshot": {},
+        },
+    )
+    profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
+    monkeypatch.setattr(profiler, "profile_study_cycle", lambda **_: {})
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+    compact = mcp_projection.compact_study_progress_projection(result)
+    markdown = mcp_projection.render_mcp_study_progress_markdown(result)
+
+    terminal = result["opl_current_control_state_handoff"]["latest_terminal_stage_log"]
+    summary = terminal["stage_log_workbench_summary"]
+    assert summary["surface_kind"] == "mas_stage_log_workbench_summary"
+    assert summary["read_model"] == "stage_log_minimum_viability_workbench_projection"
+    assert summary["body_policy"] == "refs_only_body_free"
+    assert summary["authority_boundary"] == {
+        "refs_only": True,
+        "body_free": True,
+        "observability_only": True,
+        "can_mark_domain_ready": False,
+        "can_write_paper_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_block_provider_admission": False,
+    }
+    assert summary["stage_goal"] == {
+        "field": "stage_goal",
+        "status": "present",
+        "item_count": 1,
+        "refs": [closeout_ref],
+        "body_included": False,
+    }
+    assert summary["actual_work"]["field"] == "stage_work_done"
+    assert summary["actual_work"]["body_included"] is False
+    assert summary["actual_work"]["item_count"] == 1
+    assert summary["paper_delta"]["status"] == "present"
+    assert summary["paper_delta"]["count"] == 0
+    assert summary["deliverable_delta"]["status"] == "present"
+    assert summary["platform_delta"]["count"] == 1
+    assert summary["platform_delta"]["changed_surface_refs"] == [
+        f"{closeout_ref}#stage-log",
+        f"{closeout_ref}#semantic-gap",
+    ]
+    assert summary["observability"] == {
+        "status": "missing",
+        "duration": {
+            "status": "missing",
+            "missing_reason": "no_terminal_stage_duration_observed",
+        },
+        "token_usage": {
+            "status": "missing",
+            "missing_reason": "no_terminal_stage_token_usage_observed",
+        },
+        "cost": {
+            "status": "missing",
+            "missing_reason": "no_terminal_stage_cost_observed",
+        },
+        "missing_fields": ["duration", "token_usage", "cost"],
+    }
+    assert summary["evidence_refs"] == [closeout_ref]
+    assert summary["usage_refs"] == [f"{closeout_ref}#usage"]
+    assert summary["cost_refs"] == [f"{closeout_ref}#cost"]
+    assert summary["next_forced_delta"] == {
+        "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+        "reason": "typed_blocker::publication_gate_replay_blocked",
+        "work_unit_id": work_unit_id,
+        "target_surface": {"surface_ref": "publication_gate/latest.json"},
+        "acceptance_refs": ["owner_receipt_ref", "typed_blocker_ref"],
+        "owner_action": {
+            "next_owner": "gate_clearing_batch",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+        },
+        "body_included": False,
+    }
+    assert "stage_work_done" not in summary
+    assert "paper_work_done" not in summary
+    assert compact["opl_current_control_state_handoff"]["latest_terminal_stage_log"][
+        "stage_log_workbench_summary"
+    ]["body_policy"] == "refs_only_body_free"
+    assert "latest_terminal_stage_workbench_summary" in markdown

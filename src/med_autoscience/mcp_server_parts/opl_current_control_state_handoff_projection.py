@@ -53,6 +53,7 @@ def _compact_terminal_stage_log(value: Any) -> dict[str, Any] | None:
             "cost_refs",
             "missing_observability_fields",
             "paper_stage_log",
+            "stage_log_workbench_summary",
             "closeout_refs",
             "authority_boundary",
         ),
@@ -78,6 +79,11 @@ def _compact_terminal_stage_log(value: Any) -> dict[str, Any] | None:
             compact[ref_key] = _compact_string_list(compact.get(ref_key), limit=6)
     if isinstance(compact.get("closeout_refs"), list):
         compact["closeout_refs"] = _compact_string_list(compact.get("closeout_refs"), limit=6)
+    workbench_summary = compact.get("stage_log_workbench_summary")
+    if isinstance(workbench_summary, dict):
+        for ref_key in ("evidence_refs", "usage_refs", "cost_refs", "source_refs"):
+            if isinstance(workbench_summary.get(ref_key), list):
+                workbench_summary[ref_key] = _compact_string_list(workbench_summary.get(ref_key), limit=6)
     return compact
 
 
@@ -213,6 +219,11 @@ def render_mcp_progress_opl_current_control_state_handoff(compact: dict[str, Any
             )
     latest_terminal_stage_log = dashboard.get("latest_terminal_stage_log")
     if isinstance(latest_terminal_stage_log, dict):
+        workbench_summary = (
+            latest_terminal_stage_log.get("stage_log_workbench_summary")
+            if isinstance(latest_terminal_stage_log.get("stage_log_workbench_summary"), dict)
+            else {}
+        )
         paper_stage_log = (
             latest_terminal_stage_log.get("paper_stage_log")
             if isinstance(latest_terminal_stage_log.get("paper_stage_log"), dict)
@@ -226,6 +237,23 @@ def render_mcp_progress_opl_current_control_state_handoff(compact: dict[str, Any
         outcome = str(paper_stage_log.get("outcome") or "").strip()
         if outcome:
             lines.append(f"- latest_terminal_stage_outcome: `{outcome}`")
+        if workbench_summary:
+            paper_delta = (
+                workbench_summary.get("paper_delta")
+                if isinstance(workbench_summary.get("paper_delta"), dict)
+                else {}
+            )
+            platform_delta = (
+                workbench_summary.get("platform_delta")
+                if isinstance(workbench_summary.get("platform_delta"), dict)
+                else {}
+            )
+            lines.append(
+                "- latest_terminal_stage_workbench_summary: "
+                f"paper_delta `{paper_delta.get('status') or 'missing'}`；"
+                f"platform_delta `{platform_delta.get('status') or 'missing'}`；"
+                f"body_free `{workbench_summary.get('body_policy') == 'refs_only_body_free'}`"
+            )
         duration = (
             latest_terminal_stage_log.get("duration")
             if isinstance(latest_terminal_stage_log.get("duration"), dict)

@@ -158,30 +158,32 @@ def _terminal_stage_log_from_execution_record(
     )
     if not paper_stage_log:
         return None
-    return _normalize_terminal_stage_log_progress_fields(
-        {
-            "surface_kind": "mas_latest_terminal_stage_log_projection",
-            "read_model": "study_latest_terminal_stage_log_projection",
-            "authority": "observability_only",
-            "source_path": str(source_path),
-            "record_path": record_path,
-            "generated_at": _non_empty_text(execution.get("generated_at")),
-            "study_id": study_id,
-            "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
-            "stage_id": _non_empty_text(execution.get("stage_id")) or "domain_owner/default-executor-dispatch",
-            "action_type": _non_empty_text(execution.get("action_type")),
-            "status": _non_empty_text(execution.get("execution_status"))
-            or _non_empty_text(execution.get("status")),
-            "route_outcome": _non_empty_text(execution.get("route_outcome")),
-            "owner_receipt_ref": _non_empty_text(execution.get("owner_receipt_ref")),
-            "typed_blocker_ref": _non_empty_text(execution.get("typed_blocker_ref")),
-            "owner_receipt_refs": _string_list(execution.get("owner_receipt_refs")),
-            "typed_blocker_refs": _string_list(execution.get("typed_blocker_refs")),
-            "paper_stage_log": paper_stage_log,
-            **_terminal_stage_log_observability(execution),
-            "closeout_refs": _string_list(execution.get("closeout_refs")),
-            "authority_boundary": _terminal_stage_log_authority_boundary(),
-        }
+    return _with_stage_log_workbench_summary(
+        _normalize_terminal_stage_log_progress_fields(
+            {
+                "surface_kind": "mas_latest_terminal_stage_log_projection",
+                "read_model": "study_latest_terminal_stage_log_projection",
+                "authority": "observability_only",
+                "source_path": str(source_path),
+                "record_path": record_path,
+                "generated_at": _non_empty_text(execution.get("generated_at")),
+                "study_id": study_id,
+                "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
+                "stage_id": _non_empty_text(execution.get("stage_id")) or "domain_owner/default-executor-dispatch",
+                "action_type": _non_empty_text(execution.get("action_type")),
+                "status": _non_empty_text(execution.get("execution_status"))
+                or _non_empty_text(execution.get("status")),
+                "route_outcome": _non_empty_text(execution.get("route_outcome")),
+                "owner_receipt_ref": _non_empty_text(execution.get("owner_receipt_ref")),
+                "typed_blocker_ref": _non_empty_text(execution.get("typed_blocker_ref")),
+                "owner_receipt_refs": _string_list(execution.get("owner_receipt_refs")),
+                "typed_blocker_refs": _string_list(execution.get("typed_blocker_refs")),
+                "paper_stage_log": paper_stage_log,
+                **_terminal_stage_log_observability(execution),
+                "closeout_refs": _string_list(execution.get("closeout_refs")),
+                "authority_boundary": _terminal_stage_log_authority_boundary(),
+            }
+        )
     )
 
 
@@ -204,28 +206,30 @@ def _terminal_stage_log_from_closeout(
     )
     if not paper_stage_log:
         return None
-    return _normalize_terminal_stage_log_progress_fields(
-        {
-            "surface_kind": "mas_latest_terminal_stage_log_projection",
-            "read_model": "study_latest_terminal_stage_log_projection",
-            "authority": "observability_only",
-            "source_path": str(closeout_path),
-            "generated_at": _non_empty_text(closeout.get("generated_at")),
-            "study_id": study_id,
-            "stage_attempt_id": _non_empty_text(closeout.get("stage_attempt_id")),
-            "stage_id": _non_empty_text(closeout.get("stage_id")),
-            "action_type": _non_empty_text(closeout.get("action_type")),
-            "status": _non_empty_text(closeout.get("status")),
-            "route_outcome": _non_empty_text(closeout.get("route_outcome")),
-            "owner_receipt_ref": _non_empty_text(closeout.get("owner_receipt_ref")),
-            "typed_blocker_ref": _non_empty_text(closeout.get("typed_blocker_ref")),
-            "owner_receipt_refs": _string_list(closeout.get("owner_receipt_refs")),
-            "typed_blocker_refs": _string_list(closeout.get("typed_blocker_refs")),
-            "paper_stage_log": paper_stage_log,
-            **_terminal_stage_log_observability(closeout),
-            "closeout_refs": _string_list(closeout.get("closeout_refs")),
-            "authority_boundary": _terminal_stage_log_authority_boundary(),
-        }
+    return _with_stage_log_workbench_summary(
+        _normalize_terminal_stage_log_progress_fields(
+            {
+                "surface_kind": "mas_latest_terminal_stage_log_projection",
+                "read_model": "study_latest_terminal_stage_log_projection",
+                "authority": "observability_only",
+                "source_path": str(closeout_path),
+                "generated_at": _non_empty_text(closeout.get("generated_at")),
+                "study_id": study_id,
+                "stage_attempt_id": _non_empty_text(closeout.get("stage_attempt_id")),
+                "stage_id": _non_empty_text(closeout.get("stage_id")),
+                "action_type": _non_empty_text(closeout.get("action_type")),
+                "status": _non_empty_text(closeout.get("status")),
+                "route_outcome": _non_empty_text(closeout.get("route_outcome")),
+                "owner_receipt_ref": _non_empty_text(closeout.get("owner_receipt_ref")),
+                "typed_blocker_ref": _non_empty_text(closeout.get("typed_blocker_ref")),
+                "owner_receipt_refs": _string_list(closeout.get("owner_receipt_refs")),
+                "typed_blocker_refs": _string_list(closeout.get("typed_blocker_refs")),
+                "paper_stage_log": paper_stage_log,
+                **_terminal_stage_log_observability(closeout),
+                "closeout_refs": _string_list(closeout.get("closeout_refs")),
+                "authority_boundary": _terminal_stage_log_authority_boundary(),
+            }
+        )
     )
 
 
@@ -268,6 +272,242 @@ def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) ->
     projection["status"] = "typed_blocker"
     projection["paper_stage_log"] = normalized_log
     return projection
+
+
+def _with_stage_log_workbench_summary(projection: dict[str, Any]) -> dict[str, Any]:
+    payload = dict(projection)
+    summary = _stage_log_workbench_summary(payload)
+    if summary:
+        payload["stage_log_workbench_summary"] = summary
+    return payload
+
+
+def _stage_log_workbench_summary(projection: Mapping[str, Any]) -> dict[str, Any]:
+    paper_stage_log = _mapping_copy(projection.get("paper_stage_log"))
+    if not paper_stage_log:
+        return {}
+    next_forced_delta = _mapping_copy(paper_stage_log.get("next_forced_delta"))
+    owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
+    summary = {
+        "surface_kind": "mas_stage_log_workbench_summary",
+        "read_model": "stage_log_minimum_viability_workbench_projection",
+        "schema_version": 1,
+        "authority": "observability_only",
+        "body_policy": "refs_only_body_free",
+        "stage_attempt_id": _non_empty_text(projection.get("stage_attempt_id")),
+        "stage_id": _non_empty_text(projection.get("stage_id")),
+        "action_type": _non_empty_text(projection.get("action_type")),
+        "status": _non_empty_text(projection.get("status")),
+        "stage_goal": _field_presence_summary(paper_stage_log, "stage_goal"),
+        "actual_work": _field_presence_summary(paper_stage_log, "stage_work_done"),
+        "paper_delta": _delta_summary(
+            delta=paper_stage_log.get("paper_progress_delta"),
+            changed_surfaces=paper_stage_log.get("changed_paper_surfaces"),
+            body_field=paper_stage_log.get("paper_work_done"),
+        ),
+        "deliverable_delta": _delta_summary(
+            delta=paper_stage_log.get("deliverable_progress_delta"),
+            changed_surfaces=paper_stage_log.get("changed_paper_surfaces"),
+            body_field=paper_stage_log.get("paper_work_done"),
+        ),
+        "platform_delta": _delta_summary(
+            delta=paper_stage_log.get("platform_repair_delta"),
+            changed_surfaces=paper_stage_log.get("changed_stage_surfaces"),
+            body_field=paper_stage_log.get("stage_work_done"),
+        ),
+        "observability": {
+            "status": _non_empty_text(projection.get("observability_status")) or "missing",
+            "duration": _observed_or_missing_status(projection.get("duration")),
+            "token_usage": _observed_or_missing_status(projection.get("token_usage")),
+            "cost": _observed_or_missing_status(projection.get("cost")),
+            "missing_fields": _string_list(projection.get("missing_observability_fields")),
+        },
+        "evidence_refs": _unique_texts(
+            [
+                *_string_list(paper_stage_log.get("evidence_refs")),
+                *_string_list(projection.get("closeout_refs")),
+            ]
+        ),
+        "usage_refs": _unique_texts(
+            [
+                *_string_list(paper_stage_log.get("usage_refs")),
+                *_string_list(projection.get("usage_refs")),
+            ]
+        ),
+        "cost_refs": _unique_texts(
+            [
+                *_string_list(paper_stage_log.get("cost_refs")),
+                *_string_list(projection.get("cost_refs")),
+            ]
+        ),
+        "next_forced_delta": _next_forced_delta_workbench_summary(
+            next_forced_delta=next_forced_delta,
+            owner_action=owner_action,
+        ),
+        "missing_domain_fields": _string_list(projection.get("missing_domain_fields")),
+        "semantic_gap": _mapping_copy(projection.get("semantic_gap")),
+        "source_refs": _unique_texts(
+            [
+                _non_empty_text(projection.get("source_path")),
+                *_string_list(projection.get("closeout_refs")),
+            ]
+        ),
+        "authority_boundary": _stage_log_workbench_authority_boundary(),
+    }
+    return _stage_log_workbench_summary_payload(summary)
+
+
+def _field_presence_summary(paper_stage_log: Mapping[str, Any], field: str) -> dict[str, Any]:
+    value = paper_stage_log.get(field)
+    refs = _field_refs(paper_stage_log, field)
+    return {
+        "field": field,
+        "status": "missing" if _paper_stage_log_field_missing(field, paper_stage_log) else "present",
+        "item_count": _item_count(value),
+        "refs": refs,
+        "body_included": False,
+    }
+
+
+def _delta_summary(
+    *,
+    delta: object,
+    changed_surfaces: object,
+    body_field: object,
+) -> dict[str, Any]:
+    delta_mapping = _mapping_copy(delta)
+    summary = {
+        "status": "present" if delta_mapping else "missing",
+        "count": _number_or_none(delta_mapping.get("count")),
+        "token_usage_total": _number_or_none(delta_mapping.get("token_usage_total")),
+        "changed_surface_refs": _string_list(changed_surfaces),
+        "work_item_count": _item_count(body_field),
+        "body_included": False,
+    }
+    return {key: value for key, value in summary.items() if value not in (None, [], {})}
+
+
+def _stage_log_workbench_summary_payload(summary: Mapping[str, Any]) -> dict[str, Any]:
+    required_even_when_empty = {
+        "evidence_refs",
+        "usage_refs",
+        "cost_refs",
+        "next_forced_delta",
+        "missing_domain_fields",
+        "source_refs",
+    }
+    return {
+        key: value
+        for key, value in summary.items()
+        if value is not None and (value not in ([], {}) or key in required_even_when_empty)
+    }
+
+
+def _observed_or_missing_status(value: object) -> dict[str, Any]:
+    payload = _observability_mapping(value)
+    if not payload:
+        return {"status": "missing"}
+    status = _non_empty_text(payload.get("status"))
+    if status == "missing":
+        return {"status": "missing", "missing_reason": _missing_reason(payload)}
+    return {"status": "observed"}
+
+
+def _missing_reason(value: Mapping[str, Any]) -> str | None:
+    for key in (
+        "missing_duration_reason",
+        "missing_token_usage_reason",
+        "missing_cost_reason",
+        "missing_reason",
+    ):
+        if text := _non_empty_text(value.get(key)):
+            return text
+    return None
+
+
+def _next_forced_delta_workbench_summary(
+    *,
+    next_forced_delta: Mapping[str, Any],
+    owner_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    if not next_forced_delta and not owner_action:
+        return {}
+    summary = {
+        "required_delta_kind": _non_empty_text(next_forced_delta.get("required_delta_kind")),
+        "reason": _non_empty_text(next_forced_delta.get("reason")),
+        "work_unit_id": _non_empty_text(next_forced_delta.get("work_unit_id")),
+        "target_surface": _mapping_copy(next_forced_delta.get("target_surface")),
+        "acceptance_refs": _string_list(next_forced_delta.get("acceptance_refs")),
+        "owner_action": {
+            "next_owner": _non_empty_text(owner_action.get("next_owner")),
+            "action_type": _non_empty_text(owner_action.get("action_type")),
+            "work_unit_id": _non_empty_text(owner_action.get("work_unit_id")),
+        },
+        "body_included": False,
+    }
+    owner_action_summary = {
+        key: value
+        for key, value in summary["owner_action"].items()
+        if value is not None
+    }
+    if owner_action_summary:
+        summary["owner_action"] = owner_action_summary
+    else:
+        summary.pop("owner_action", None)
+    return {key: value for key, value in summary.items() if value not in (None, [], {})}
+
+
+def _field_refs(paper_stage_log: Mapping[str, Any], field: str) -> list[str]:
+    field_ref_keys = (
+        f"{field}_ref",
+        f"{field}_refs",
+        f"{field}_source_ref",
+        f"{field}_source_refs",
+    )
+    refs: list[str] = []
+    for key in field_ref_keys:
+        refs.extend(_string_list(paper_stage_log.get(key)))
+    if field in {"stage_goal", "stage_work_done", "paper_work_done"}:
+        refs.extend(_string_list(paper_stage_log.get("evidence_refs")))
+    return _unique_texts(refs)
+
+
+def _item_count(value: object) -> int:
+    if isinstance(value, str):
+        return 1 if value.strip() else 0
+    if isinstance(value, Mapping):
+        return 1 if value else 0
+    if isinstance(value, list | tuple | set):
+        return len(value)
+    return 0 if value is None else 1
+
+
+def _number_or_none(value: object) -> int | float | None:
+    number = _number_value(value)
+    if number is not None:
+        return number
+    return None
+
+
+def _unique_texts(values: list[str | None]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        text = _non_empty_text(value)
+        if text is not None and text not in result:
+            result.append(text)
+    return result
+
+
+def _stage_log_workbench_authority_boundary() -> dict[str, bool]:
+    return {
+        "refs_only": True,
+        "body_free": True,
+        "observability_only": True,
+        "can_mark_domain_ready": False,
+        "can_write_paper_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_block_provider_admission": False,
+    }
 
 
 def _semantic_gap(missing: list[str]) -> dict[str, Any]:

@@ -356,6 +356,57 @@
     "typed_blocker_reason": "domain_closeout_provided_incomplete_user_stage_log",
     "paper_progress_credit_allowed_when_incomplete": false,
     "automatic_redrive_allowed_when_incomplete": false,
+    "workbench_projection": {
+      "field": "stage_log_workbench_summary",
+      "surface_kind": "mas_stage_log_workbench_summary",
+      "read_model": "stage_log_minimum_viability_workbench_projection",
+      "projection_scope": "agent_operator_workbench_summary",
+      "source_log_field": "paper_stage_log",
+      "body_policy": "refs_only_body_free",
+      "required_summary_fields": [
+        "stage_goal",
+        "actual_work",
+        "paper_delta",
+        "deliverable_delta",
+        "platform_delta",
+        "observability",
+        "evidence_refs",
+        "next_forced_delta",
+        "missing_domain_fields",
+        "source_refs",
+        "authority_boundary"
+      ],
+      "field_presence_shape": {
+        "status": "present_or_missing",
+        "item_count": "integer",
+        "refs": "refs_only",
+        "body_included": false
+      },
+      "observability_shape": {
+        "duration": "observed_or_missing",
+        "token_usage": "observed_or_missing",
+        "cost": "observed_or_missing"
+      },
+      "forbidden_body_fields": [
+        "stage_goal_body",
+        "stage_work_done",
+        "paper_work_done",
+        "paper_body",
+        "artifact_body",
+        "memory_body",
+        "publication_verdict_body",
+        "transcript_body"
+      ],
+      "authority_boundary": {
+        "refs_only": true,
+        "body_free": true,
+        "observability_only": true,
+        "can_mark_domain_ready": false,
+        "can_write_paper_truth": false,
+        "can_authorize_quality_verdict": false,
+        "can_block_provider_admission": false
+      }
+    },
     "authority_boundary": {
       "mas_consumes_as_domain_typed_blocker": true,
       "opl_projects_missing_fields_only": true,

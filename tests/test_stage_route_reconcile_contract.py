@@ -196,6 +196,49 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     assert stage_log["typed_blocker_reason"] == "domain_closeout_provided_incomplete_user_stage_log"
     assert stage_log["paper_progress_credit_allowed_when_incomplete"] is False
     assert stage_log["automatic_redrive_allowed_when_incomplete"] is False
+    workbench_projection = stage_log["workbench_projection"]
+    assert workbench_projection["field"] == "stage_log_workbench_summary"
+    assert workbench_projection["read_model"] == "stage_log_minimum_viability_workbench_projection"
+    assert workbench_projection["projection_scope"] == "agent_operator_workbench_summary"
+    assert workbench_projection["source_log_field"] == "paper_stage_log"
+    assert workbench_projection["body_policy"] == "refs_only_body_free"
+    assert {
+        "stage_goal",
+        "actual_work",
+        "paper_delta",
+        "deliverable_delta",
+        "platform_delta",
+        "observability",
+        "evidence_refs",
+        "next_forced_delta",
+        "missing_domain_fields",
+        "source_refs",
+        "authority_boundary",
+    } <= set(workbench_projection["required_summary_fields"])
+    assert workbench_projection["field_presence_shape"] == {
+        "status": "present_or_missing",
+        "item_count": "integer",
+        "refs": "refs_only",
+        "body_included": False,
+    }
+    assert {
+        "stage_work_done",
+        "paper_work_done",
+        "paper_body",
+        "artifact_body",
+        "memory_body",
+        "publication_verdict_body",
+        "transcript_body",
+    } <= set(workbench_projection["forbidden_body_fields"])
+    assert workbench_projection["authority_boundary"] == {
+        "refs_only": True,
+        "body_free": True,
+        "observability_only": True,
+        "can_mark_domain_ready": False,
+        "can_write_paper_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_block_provider_admission": False,
+    }
     assert stage_log["authority_boundary"] == {
         "mas_consumes_as_domain_typed_blocker": True,
         "opl_projects_missing_fields_only": True,

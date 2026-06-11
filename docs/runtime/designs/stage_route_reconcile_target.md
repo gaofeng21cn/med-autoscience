@@ -115,6 +115,8 @@ stateDiagram-v2
 
 OPL 的 `stage_progress_log.user_stage_log` 只投影 domain-provided semantic summary、duration/token/cost observed/missing 状态和 refs；OPL 不从 artifact body、memory body、publication verdict body 或 transcript 中自行生成“论文做了什么”。
 
+`stage_log_workbench_summary` 是给 agent/operator workbench 的最小可用 read-model：从 `paper_stage_log` 派生 stage goal、actual work、paper / deliverable / platform delta、observability、evidence refs、next forced delta、missing domain fields 和 source refs 的字段状态、计数、refs 与下一步指针。它必须是 `refs_only_body_free`：不复制 `stage_work_done` / `paper_work_done` 正文，不带 paper body、artifact body、memory body、publication verdict body 或 transcript body；authority 固定为 observability-only，不能写 paper truth、声明 domain-ready、授权 quality verdict，也不能新增 blocking preflight。
+
 ## Transport Payload 边界
 
 Temporal / queue / workflow state 中只放小 payload：
