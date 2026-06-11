@@ -3,13 +3,24 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_catalog
+from med_autoscience.agent_tool_arsenal_parts.operational_contract import (
+    agent_execution_index,
+    default_invocation_for_action,
+    drift_checks,
+    failure_classes_for_card,
+    fallback_cards_for_action,
+    next_safe_actions_for_action_card,
+    next_step_hint_for_card,
+    operational_card_view,
+    operational_fields,
+    preflight_checks_for_card,
+    success_signals_for_action,
+)
 from med_autoscience.runtime_control.owner_callable_registry import (
     owner_callable_registry,
     paper_work_unit_lifecycle_for_action,
 )
-from med_autoscience.scientific_capability_registry import (
-    build_scientific_capability_registry,
-)
+from med_autoscience.scientific_capability_registry import build_scientific_capability_registry
 
 
 CONTRACT_ID = "mas_agent_tool_arsenal.v1"
@@ -37,7 +48,15 @@ REQUIRED_TOOL_CARD_FIELDS = [
     "forbidden_authority",
     "idempotency_policy",
     "current_delta_applicability",
+    "default_invocation",
+    "required_refs",
+    "optional_refs",
+    "preflight_checks",
+    "success_signals",
+    "failure_classes",
+    "next_safe_actions",
 ]
+EMPTY_LIST_ALLOWED_TOOL_CARD_FIELDS = {"required_refs", "optional_refs"}
 
 
 def build_tool_result_envelope_schema() -> dict[str, Any]:
@@ -50,6 +69,7 @@ def build_tool_result_envelope_schema() -> dict[str, Any]:
             "surface_kind",
             "tool_id",
             "status",
+            "recovery",
             "audit_trail",
             "authority_boundary",
         ],
@@ -71,6 +91,82 @@ def build_tool_result_envelope_schema() -> dict[str, Any]:
             },
             "owner_receipt_ref": {"type": "string"},
             "typed_blocker_ref": {"type": "string"},
+            "receipt_refs": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "typed_blocker_refs": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "diagnostic_refs": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "missing_refs": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "retryability": {
+                "type": "string",
+                "enum": ["retry_safe", "retry_after_refs", "no_retry", "owner_needed"],
+            },
+            "staleness": {"type": "object"},
+            "next_safe_actions": {
+                "type": "array",
+                "items": {"type": "object"},
+            },
+            "owner_needed": {"type": "boolean"},
+            "no_forbidden_authority_claim": {"type": "boolean"},
+            "recovery": {
+                "type": "object",
+                "additionalProperties": True,
+                "required": [
+                    "retryability",
+                    "staleness",
+                    "missing_refs",
+                    "next_safe_actions",
+                    "owner_needed",
+                    "receipt_refs",
+                    "typed_blocker_refs",
+                    "diagnostic_refs",
+                    "no_forbidden_authority_claim",
+                ],
+                "properties": {
+                    "retryability": {
+                        "type": "string",
+                        "enum": [
+                            "retry_safe",
+                            "retry_after_refs",
+                            "no_retry",
+                            "owner_needed",
+                        ],
+                    },
+                    "staleness": {"type": "object"},
+                    "missing_refs": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "next_safe_actions": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                    },
+                    "owner_needed": {"type": "boolean"},
+                    "receipt_refs": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "typed_blocker_refs": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "diagnostic_refs": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "no_forbidden_authority_claim": {"const": True},
+                },
+            },
             "result_summary": {"type": "string"},
             "audit_trail": {"$ref": "#/tool_audit_trail_schema"},
             "authority_boundary": {"type": "object"},
@@ -103,12 +199,22 @@ def build_agent_tool_arsenal_completeness_diagnostic(
     public_runtime_tool_names = {name for name in public_runtime_tool_names if name}
     support_or_diagnostic = sorted(manifest_names - public_runtime_tool_names)
     missing_manifest = sorted(public_runtime_tool_names - manifest_names) if manifest_names else []
+    manifest_by_name = {
+        _text(item.get("name")): item
+        for item in list(mcp_tool_manifest or [])
+        if isinstance(item, Mapping) and _text(item.get("name"))
+    }
     issues: list[dict[str, Any]] = []
+    manifest_output_schema_missing: list[str] = []
+    manifest_input_schema_missing: list[str] = []
+    manifest_annotation_missing: list[str] = []
     for card in tool_cards:
         missing_fields = [
             field
             for field in REQUIRED_TOOL_CARD_FIELDS
-            if field not in card or card.get(field) in (None, "", [], {})
+            if field not in card
+            or card.get(field) in (None, "", {})
+            or (card.get(field) == [] and field not in EMPTY_LIST_ALLOWED_TOOL_CARD_FIELDS)
         ]
         if missing_fields:
             issues.append(
@@ -119,6 +225,15 @@ def build_agent_tool_arsenal_completeness_diagnostic(
                     "missing_fields": missing_fields,
                 }
             )
+        tool_name = _text(_mapping(card.get("mcp_invocation")).get("tool_name")) or _text(card.get("tool_id"))
+        if tool_name in manifest_by_name:
+            manifest_entry = manifest_by_name[tool_name]
+            if not isinstance(manifest_entry.get("outputSchema"), Mapping):
+                manifest_output_schema_missing.append(tool_name)
+            if not isinstance(manifest_entry.get("inputSchema"), Mapping):
+                manifest_input_schema_missing.append(tool_name)
+            if not isinstance(manifest_entry.get("annotations"), Mapping):
+                manifest_annotation_missing.append(tool_name)
         forbidden = set(str(item) for item in list(card.get("forbidden_authority") or []))
         missing_forbidden = sorted(set(FORBIDDEN_DOMAIN_AUTHORITY) - forbidden)
         if missing_forbidden:
@@ -137,8 +252,36 @@ def build_agent_tool_arsenal_completeness_diagnostic(
                 "tool_id": name,
             }
         )
+    issues.extend(
+        {
+            "issue_id": "manifest_tool_missing_output_schema",
+            "tool_id": name,
+        }
+        for name in sorted(set(manifest_output_schema_missing))
+    )
+    issues.extend(
+        {
+            "issue_id": "manifest_tool_missing_input_schema",
+            "tool_id": name,
+        }
+        for name in sorted(set(manifest_input_schema_missing))
+    )
+    issues.extend(
+        {
+            "issue_id": "manifest_tool_missing_annotations",
+            "tool_id": name,
+        }
+        for name in sorted(set(manifest_annotation_missing))
+    )
+    diagnostic_drift_checks = drift_checks(
+        tool_cards=tool_cards,
+        issues=issues,
+        support_or_diagnostic=support_or_diagnostic,
+        result_envelope_schema_ref=RESULT_ENVELOPE_SCHEMA_REF,
+    )
     return {
         "surface_kind": "mas_agent_tool_arsenal_completeness_diagnostic",
+        "doctor_surface_kind": "mas_agent_tool_arsenal_drift_parity_doctor",
         "schema_version": 1,
         "contract_id": CONTRACT_ID,
         "status": "complete" if not issues else "attention_required",
@@ -157,6 +300,23 @@ def build_agent_tool_arsenal_completeness_diagnostic(
         ),
         "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
         "executor_receipt_ref_policy": _executor_receipt_ref_policy(),
+        "parity_summary": {
+            "surface_kind": "mas_agent_tool_arsenal_drift_parity_summary",
+            "status": "complete" if not issues else "attention_required",
+            "public_runtime_manifest_missing": missing_manifest,
+            "missing_public_runtime_mcp_tools": missing_manifest,
+            "unexpected_public_runtime_mcp_tools": [],
+            "manifest_output_schema_missing": sorted(set(manifest_output_schema_missing)),
+            "manifest_input_schema_missing": sorted(set(manifest_input_schema_missing)),
+            "manifest_annotation_missing": sorted(set(manifest_annotation_missing)),
+            "support_or_diagnostic_tool_count": len(support_or_diagnostic),
+            "support_or_diagnostic_tools": support_or_diagnostic,
+            "support_or_diagnostic_mcp_tools": support_or_diagnostic,
+            "doctor_audit_available": "doctor_audit" in manifest_names,
+            "agent_tool_arsenal_available": "agent_tool_arsenal" in manifest_names,
+            "operator_contract_direct_read_required": False,
+        },
+        "drift_checks": diagnostic_drift_checks,
         "issues": issues,
         "authority_boundary": {
             "diagnostic_only": True,
@@ -228,11 +388,17 @@ def build_agent_tool_arsenal_index(
         "abi_surfaces": [
             "ToolArsenalIndex",
             "ToolUseCard",
+            "OperationalToolCard",
+            "AgentExecutionIndex",
             "CapabilityInvocationPlan",
             "ToolResultEnvelope",
             "ToolAuditTrail",
         ],
         "tool_index_entries": [_index_entry(card) for card in tool_cards],
+        "agent_execution_index": agent_execution_index(
+            tool_cards=tool_cards,
+            ordinary_planning_root=ORDINARY_PLANNING_ROOT,
+        ),
         "tool_cards": tool_cards,
         "owner_callable_cards": owner_cards,
         "scientific_capability_registry": build_scientific_capability_registry(),
@@ -327,8 +493,10 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         else {}
     )
     requires_stage_attempt = (not read_only) and not human_gate_ids and not refs_only_runtime_write
-    return {
+    required_refs = [str(item) for item in list(action.get("workspace_locator_fields") or [])]
+    card = {
         "surface_kind": "mas_tool_use_card",
+        "operational_surface_kind": "mas_operational_tool_card",
         "card_kind": "action_catalog",
         "tool_id": mcp_tool_name,
         **({"tool_mode": mcp_tool_mode} if mcp_tool_mode else {}),
@@ -350,6 +518,28 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
             "Do not use this card to bypass MAS authority surfaces, manual-compose a human "
             "tool recipe, or infer publication readiness from tool availability."
         ),
+        "default_invocation": default_invocation_for_action(
+            mcp_tool_name=mcp_tool_name,
+            mcp_tool_mode=mcp_tool_mode,
+            public_runtime=public_runtime,
+            descriptor_only=descriptor_only,
+            command=_text(source_command.get("command")),
+        ),
+        "required_refs": required_refs,
+        "optional_refs": [],
+        "preflight_checks": preflight_checks_for_card(
+            requires_stage_attempt=requires_stage_attempt
+        ),
+        "success_signals": success_signals_for_action(action_id=action_id),
+        "failure_classes": failure_classes_for_card(
+            requires_stage_attempt=requires_stage_attempt
+        ),
+        "next_safe_actions": next_safe_actions_for_action_card(
+            tool_name=mcp_tool_name,
+            tool_mode=mcp_tool_mode,
+            callability=callability,
+            required_refs=required_refs,
+        ),
         "risk_annotations": {
             **mcp_tool_annotations(
                 mcp_tool_name,
@@ -360,7 +550,7 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
             "requires_opl_stage_attempt_or_lease": requires_stage_attempt,
             "domain_truth_write": False,
         },
-        "input_refs": [str(item) for item in list(action.get("workspace_locator_fields") or [])],
+        "input_refs": required_refs,
         "input_schema_ref": _text(action.get("input_schema_ref")),
         "output_schema_ref": _text(action.get("output_schema_ref")),
         "output_schema": _output_schema_for_action(action),
@@ -394,6 +584,8 @@ def _build_tool_use_card(action: Mapping[str, Any]) -> dict[str, Any]:
         },
         "audit_trail_schema_ref": AUDIT_TRAIL_SCHEMA_REF,
     }
+    card["operational"] = operational_fields(card)
+    return card
 
 
 def _build_owner_callable_cards() -> list[dict[str, Any]]:
@@ -406,62 +598,95 @@ def _build_owner_callable_cards() -> list[dict[str, Any]]:
             if isinstance(lifecycle.get("completion_proof"), Mapping)
             else {"requires_owner_receipt_or_typed_blocker": True}
         )
-        cards.append(
-            {
-                "surface_kind": "mas_owner_callable_tool_card",
-                "card_kind": "owner_callable",
-                "tool_id": f"owner_callable:{action_type}",
-                "action_type": action_type,
-                "owner": _required_text(callable_payload.get("owner"), "owner"),
-                "callable_surface": _required_text(
-                    callable_payload.get("callable_surface"),
-                    "callable_surface",
-                ),
-                "input_refs": _list_text(
-                    lifecycle.get("required_input_refs") or callable_payload.get("required_inputs")
-                ),
-                "required_output_refs": _list_text(
-                    lifecycle.get("required_output_refs") or callable_payload.get("required_outputs")
-                ),
-                "allowed_writes": _list_text(lifecycle.get("allowed_writes")),
-                "forbidden_writes": _list_text(lifecycle.get("forbidden_writes")),
-                "forbidden_authority": list(FORBIDDEN_DOMAIN_AUTHORITY),
-                "closeout_contract": completion_proof,
-                "risk_annotations": {
-                    **mcp_tool_annotations(f"owner_callable:{action_type}", read_only=False),
-                    "requires_human_gate": False,
-                    "requires_opl_stage_attempt_or_lease": True,
-                    "domain_truth_write": False,
-                },
-                "idempotency_policy": _required_text(
-                    callable_payload.get("idempotency_scope"),
-                    "idempotency_scope",
-                ),
-                "source_fingerprint_scope": _required_text(
-                    callable_payload.get("source_fingerprint_scope"),
-                    "source_fingerprint_scope",
-                ),
-                "artifact_delta_predicate": _required_text(
-                    callable_payload.get("artifact_delta_predicate"),
-                    "artifact_delta_predicate",
-                ),
-                "gate_replay_target": callable_payload.get("gate_replay_target"),
-                "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
-                "lightweight_executor_receipt_contract_ref": (
-                    LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
-                ),
-                "executor_receipt_ref_policy": _executor_receipt_ref_policy(),
-                "authority_boundary": {
-                    "can_write_domain_truth": False,
-                    "can_write_publication_quality": False,
-                    "can_authorize_publication_quality": False,
-                    "can_authorize_submission_readiness": False,
-                    "owner_receipt_or_typed_blocker_required": bool(
-                        completion_proof.get("requires_owner_receipt_or_typed_blocker")
-                    ),
-                },
-            }
+        callable_surface = _required_text(
+            callable_payload.get("callable_surface"),
+            "callable_surface",
         )
+        input_refs = _list_text(
+            lifecycle.get("required_input_refs") or callable_payload.get("required_inputs")
+        )
+        card = {
+            "surface_kind": "mas_owner_callable_tool_card",
+            "operational_surface_kind": "mas_operational_tool_card",
+            "card_kind": "owner_callable",
+            "tool_id": f"owner_callable:{action_type}",
+            "action_type": action_type,
+            "owner": _required_text(callable_payload.get("owner"), "owner"),
+            "callable_surface": callable_surface,
+            "input_refs": input_refs,
+            "required_refs": input_refs,
+            "optional_refs": [],
+            "required_output_refs": _list_text(
+                lifecycle.get("required_output_refs") or callable_payload.get("required_outputs")
+            ),
+            "allowed_writes": _list_text(lifecycle.get("allowed_writes")),
+            "forbidden_writes": _list_text(lifecycle.get("forbidden_writes")),
+            "forbidden_authority": list(FORBIDDEN_DOMAIN_AUTHORITY),
+            "closeout_contract": completion_proof,
+            "default_invocation": {
+                "surface": "owner_callable",
+                "callable_surface": callable_surface,
+                "arguments": {
+                    "current_owner_delta": "<current_owner_delta>",
+                },
+            },
+            "preflight_checks": preflight_checks_for_card(requires_stage_attempt=True),
+            "success_signals": [
+                "owner_receipt_ref_or_typed_blocker_ref_present",
+                "allowed_writes_match_owner_callable_contract",
+                "no_forbidden_authority_claim",
+            ],
+            "failure_classes": failure_classes_for_card(requires_stage_attempt=True),
+            "next_safe_actions": [
+                {
+                    "action": "invoke_owner_callable_surface",
+                    "requires": ["current_owner_delta", "required_refs"],
+                },
+                {
+                    "action": "collect_missing_refs",
+                    "when": "required_refs_missing",
+                },
+                {
+                    "action": "surface_owner_needed",
+                    "when": "owner_receipt_or_typed_blocker_missing",
+                },
+            ],
+            "risk_annotations": {
+                **mcp_tool_annotations(f"owner_callable:{action_type}", read_only=False),
+                "requires_human_gate": False,
+                "requires_opl_stage_attempt_or_lease": True,
+                "domain_truth_write": False,
+            },
+            "idempotency_policy": _required_text(
+                callable_payload.get("idempotency_scope"),
+                "idempotency_scope",
+            ),
+            "source_fingerprint_scope": _required_text(
+                callable_payload.get("source_fingerprint_scope"),
+                "source_fingerprint_scope",
+            ),
+            "artifact_delta_predicate": _required_text(
+                callable_payload.get("artifact_delta_predicate"),
+                "artifact_delta_predicate",
+            ),
+            "gate_replay_target": callable_payload.get("gate_replay_target"),
+            "result_envelope_schema_ref": RESULT_ENVELOPE_SCHEMA_REF,
+            "lightweight_executor_receipt_contract_ref": (
+                LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
+            ),
+            "executor_receipt_ref_policy": _executor_receipt_ref_policy(),
+            "authority_boundary": {
+                "can_write_domain_truth": False,
+                "can_write_publication_quality": False,
+                "can_authorize_publication_quality": False,
+                "can_authorize_submission_readiness": False,
+                "owner_receipt_or_typed_blocker_required": bool(
+                    completion_proof.get("requires_owner_receipt_or_typed_blocker")
+                ),
+            },
+        }
+        card["operational"] = operational_fields(card)
+        cards.append(card)
     return sorted(cards, key=lambda item: str(item["action_type"]))
 
 
@@ -491,6 +716,21 @@ def _owner_callable_invocation_plan(
                 LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
             ),
         },
+        "selection_policy": {
+            "surface_kind": "mas_capability_selection_policy",
+            "primary_selection": "owner_callable",
+            "selection_reason": "current_owner_delta.action_type matched owner callable registry",
+            "fallback_order": [
+                "collect_missing_refs",
+                "surface_owner_needed",
+                "emit_typed_blocker_candidate",
+            ],
+            "support_or_diagnostic_tools_auto_selected": False,
+            "missing_capability_default": "fail_open_unless_hard_gate",
+        },
+        "primary_operational_card": operational_card_view(owner_card),
+        "fallback_cards": [],
+        "next_safe_actions": list(owner_card.get("next_safe_actions") or []),
         "invocation_steps": [
             "verify_required_input_refs",
             "verify_current_owner_delta_fingerprint",
@@ -538,6 +778,23 @@ def _action_invocation_plan(
                 LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF
             ),
         },
+        "selection_policy": {
+            "surface_kind": "mas_capability_selection_policy",
+            "primary_selection": "action_catalog",
+            "selection_reason": (
+                "current_owner_delta.action_type/action_id matched MAS action catalog card"
+            ),
+            "fallback_order": [
+                "collect_missing_refs",
+                "invoke_refs_only_capability_when_applicable",
+                "emit_typed_blocker_candidate_when_hard_gate_blocks",
+            ],
+            "support_or_diagnostic_tools_auto_selected": False,
+            "missing_capability_default": "fail_open_unless_hard_gate",
+        },
+        "primary_operational_card": operational_card_view(action_card),
+        "fallback_cards": fallback_cards_for_action(action_card),
+        "next_safe_actions": list(action_card.get("next_safe_actions") or []),
         "invocation_steps": [
             "verify_required_input_refs",
             "check_allowed_writes_and_forbidden_authority",
@@ -567,7 +824,10 @@ def _capability_invocation_plan_contract() -> dict[str, Any]:
         "selection_order": [
             "current_owner_delta.action_type owner callable card",
             "current_owner_delta.action_id action catalog card",
-            "typed_blocker when no matching card exists",
+            "ordinary public runtime action card",
+            "refs-only advisory capability",
+            "diagnostic/support tool only when explicitly requested",
+            "typed_blocker candidate when no matching card exists",
         ],
         "hard_requirements": [
             "verify_required_input_refs",
@@ -580,6 +840,11 @@ def _capability_invocation_plan_contract() -> dict[str, Any]:
             "lightweight_executor_receipt_contract_ref": LIGHTWEIGHT_EXECUTOR_RECEIPT_CONTRACT_REF,
             "can_block_current_owner_action": False,
         },
+        "agent_hot_path_rule": (
+            "Autonomous agents consume AgentExecutionIndex, OperationalToolCard, "
+            "CapabilityInvocationPlan, and ToolResultEnvelope; raw contracts remain "
+            "generation and validation inputs."
+        ),
         "non_authority_rule": (
             "Invocation metadata never becomes MAS study truth, publication quality, "
             "artifact authority, memory authority, or production readiness."
@@ -595,6 +860,9 @@ def _index_entry(card: Mapping[str, Any]) -> dict[str, Any]:
         "effect": card["effect"],
         "callability": card["callability"],
         "current_delta_applicability": card["current_delta_applicability"],
+        "when_to_use": card.get("when_to_use", ""),
+        "required_refs": list(card.get("required_refs") or card.get("input_refs") or []),
+        "next_step_hint": next_step_hint_for_card(card),
         "read_only": bool(_mapping(card.get("risk_annotations")).get("readOnlyHint")),
     }
 

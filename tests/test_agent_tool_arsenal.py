@@ -5,6 +5,19 @@ import importlib
 from med_autoscience.action_catalog import build_mas_action_catalog
 
 
+RECOVERY_FIELDS = {
+    "retryability",
+    "staleness",
+    "missing_refs",
+    "next_safe_actions",
+    "owner_needed",
+    "receipt_refs",
+    "typed_blocker_refs",
+    "diagnostic_refs",
+    "no_forbidden_authority_claim",
+}
+
+
 def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> None:
     module = importlib.import_module("med_autoscience.agent_tool_arsenal")
 
@@ -42,6 +55,23 @@ def test_agent_tool_arsenal_builds_agent_facing_cards_from_action_catalog() -> N
         "can_block_current_owner_action": False,
     }
     assert "current_owner_delta" in progress["when_to_use"]
+    assert progress["default_invocation"] == {
+        "surface": "mcp",
+        "tool_name": "study_progress",
+        "arguments": {},
+    }
+    assert progress["required_refs"] == ["profile_ref", "study_id"]
+    assert progress["optional_refs"] == []
+    assert progress["preflight_checks"] == [
+        "confirm_current_owner_delta_matches_card_applicability",
+        "verify_required_refs_available",
+        "check_allowed_writes_and_forbidden_authority",
+    ]
+    assert "structured_payload_matches_output_schema" in progress["success_signals"]
+    assert progress["failure_classes"]["missing_refs"]["retryability"] == "retry_after_refs"
+    assert progress["next_safe_actions"][0]["action"] == "invoke_tool"
+    assert progress["operational"]["default_invocation"] == progress["default_invocation"]
+    assert progress["operational"]["required_refs"] == progress["required_refs"]
 
     capability_registry = arsenal["scientific_capability_registry"]
     assert capability_registry["surface_kind"] == "mas_scientific_capability_registry"
@@ -128,6 +158,25 @@ def test_agent_tool_arsenal_indexes_owner_callable_cards_with_lifecycle_contract
     assert schema["properties"]["lightweight_executor_receipt_contract_ref"]["const"] == (
         "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract"
     )
+    assert schema["properties"]["retryability"]["enum"] == [
+        "retry_safe",
+        "retry_after_refs",
+        "no_retry",
+        "owner_needed",
+    ]
+    assert schema["properties"]["staleness"]["type"] == "object"
+    assert schema["properties"]["missing_refs"]["type"] == "array"
+    assert schema["properties"]["next_safe_actions"]["type"] == "array"
+    assert schema["properties"]["owner_needed"]["type"] == "boolean"
+    assert schema["properties"]["receipt_refs"]["type"] == "array"
+    assert schema["properties"]["typed_blocker_refs"]["type"] == "array"
+    assert schema["properties"]["diagnostic_refs"]["type"] == "array"
+    assert schema["properties"]["no_forbidden_authority_claim"]["type"] == "boolean"
+    assert "recovery" in schema["required"]
+    recovery = schema["properties"]["recovery"]
+    assert recovery["type"] == "object"
+    assert RECOVERY_FIELDS <= set(recovery["required"])
+    assert recovery["properties"]["no_forbidden_authority_claim"]["const"] is True
 
 
 def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner_delta() -> None:
@@ -156,6 +205,10 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
         "src/med_autoscience/lightweight_executor_receipts.py::build_lightweight_executor_receipt_contract"
     )
     assert plan["authority_boundary"]["executor_receipt_can_block_current_owner_action"] is False
+    assert plan["selection_policy"]["primary_selection"] == "owner_callable"
+    assert plan["primary_operational_card"]["tool_id"] == "owner_callable:run_quality_repair_batch"
+    assert plan["fallback_cards"] == []
+    assert plan["next_safe_actions"][0]["action"] == "invoke_owner_callable_surface"
 
     display_plan = module.build_capability_invocation_plan(
         current_owner_delta={
@@ -171,6 +224,10 @@ def test_agent_tool_arsenal_builds_capability_invocation_plan_from_current_owner
     assert display_plan["selected_tool_mode"] == "orchestrate"
     assert display_plan["requires"]["owner_receipt_or_typed_blocker"] is False
     assert display_plan["requires"]["executor_receipt_ref_required"] is False
+    assert display_plan["primary_operational_card"]["tool_id"] == "display_pack_agent"
+    assert display_plan["primary_operational_card"]["default_invocation"]["arguments"] == {
+        "mode": "preflight"
+    }
 
 
 def test_agent_tool_arsenal_completeness_diagnostic_maps_runtime_and_support_tools() -> None:
@@ -202,6 +259,13 @@ def test_agent_tool_arsenal_completeness_diagnostic_maps_runtime_and_support_too
         "forbidden_authority",
         "idempotency_policy",
         "current_delta_applicability",
+        "default_invocation",
+        "required_refs",
+        "optional_refs",
+        "preflight_checks",
+        "success_signals",
+        "failure_classes",
+        "next_safe_actions",
     ]
     assert diagnostic["public_runtime_mcp_tools"] == [
         "authority_operations",
@@ -217,3 +281,15 @@ def test_agent_tool_arsenal_completeness_diagnostic_maps_runtime_and_support_too
     assert "agent_tool_arsenal" in diagnostic["support_or_diagnostic_mcp_tools"]
     assert "doctor_audit" in diagnostic["support_or_diagnostic_mcp_tools"]
     assert diagnostic["authority_boundary"]["diagnostic_only"] is True
+    assert diagnostic["doctor_surface_kind"] == "mas_agent_tool_arsenal_drift_parity_doctor"
+    assert diagnostic["parity_summary"]["status"] == "complete"
+    assert diagnostic["parity_summary"]["public_runtime_manifest_missing"] == []
+    assert diagnostic["parity_summary"]["missing_public_runtime_mcp_tools"] == []
+    assert diagnostic["parity_summary"]["doctor_audit_available"] is True
+    assert diagnostic["parity_summary"]["agent_tool_arsenal_available"] is True
+    assert diagnostic["parity_summary"]["support_or_diagnostic_tool_count"] >= 1
+    drift_checks = {item["check_id"]: item for item in diagnostic["drift_checks"]}
+    assert drift_checks["tool_card_operational_contract"]["status"] == "passed"
+    assert drift_checks["result_envelope_recovery_contract"]["status"] == "passed"
+    assert drift_checks["mcp_manifest_tool_card_parity"]["status"] == "passed"
+    assert drift_checks["doctor_audit_support_surface_parity"]["status"] == "passed"

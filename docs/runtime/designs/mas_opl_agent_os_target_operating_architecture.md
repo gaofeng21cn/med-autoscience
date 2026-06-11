@@ -149,10 +149,10 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 当前实现状态：
 
 - `src/med_autoscience/action_catalog.py` 当前生成 MAS action catalog，已经表达 action id、effect、command、surface kind、MCP tool name、workspace locator fields 和 authority boundary；具体 action 集合以 `contracts/action_catalog.json` 为机器真相。
-- `src/med_autoscience/mcp_server_parts/tool_registry.py` 当前暴露 10 个 MCP task tools；`study_progress`、`display_pack_agent`、`scientific_capability_registry`、`authority_operations` 和只读 `agent_tool_arsenal` 已携带 `outputSchema` 与 tool annotations，`display_pack_agent` 以 `discover / plan / preflight / render` mode 聚合绘图资产包调用，`scientific_capability_registry` 以 `index / resolve / invoke` mode 聚合外部科学能力与 refs-only advisory worker 调用，`agent_tool_arsenal` 支持读取 index、card、plan、result envelope schema 和 completeness diagnostic。成功 MCP call result 的 `structuredContent` 已统一为 `mas_tool_result_envelope`，原 payload 保存在 `structured_payload`；`doctor_audit`、`workspace_readiness`、`research_assets`、`publication_status`、`open_auto_research_soak` 和 `agent_tool_arsenal` 等非 action-card tools 由 diagnostic 显式标为 support / diagnostic MCP tools。
+- `src/med_autoscience/mcp_server_parts/tool_registry.py` 当前暴露 10 个 MCP task tools；`study_progress`、`display_pack_agent`、`scientific_capability_registry`、`authority_operations` 和只读 `agent_tool_arsenal` 已携带 `outputSchema` 与 tool annotations，`display_pack_agent` 以 `discover / plan / preflight / render` mode 聚合绘图资产包调用，`scientific_capability_registry` 以 `index / resolve / invoke` mode 聚合外部科学能力与 refs-only advisory worker 调用，`agent_tool_arsenal` 支持读取 index、card、plan、result envelope schema 和 completeness diagnostic。成功 MCP call result 的 `structuredContent` 已统一为 `mas_tool_result_envelope`，原 payload 保存在 `structured_payload`；envelope 现在带 `recovery` 与顶层快捷字段，明确 retryability、missing refs、staleness、next safe actions、owner_needed、receipt/blocker/diagnostic refs 和 no-forbidden-authority proof；`doctor_audit`、`workspace_readiness`、`research_assets`、`publication_status`、`open_auto_research_soak` 和 `agent_tool_arsenal` 等非 action-card tools 由 diagnostic 显式标为 support / diagnostic MCP tools。
 - `src/med_autoscience/runtime_control/owner_callable_registry.py` 当前表达 owner action 到 callable surface 的 required inputs / outputs / idempotency / fingerprint scope；`contracts/agent_tool_arsenal.json` 已把这些 owner callable 编成 `owner_callable_cards`，供 `current_owner_delta.action_type` 解析 invocation plan。
 - `plugins/mas/skills/mas/SKILL.md` 仍是 direct path skill 约束和人读护栏；agent-facing 调用材料由 `contracts/agent_tool_arsenal.json` 和 MCP `agent_tool_arsenal` 读取，不要求 executor 读长 runbook 后自行拼装工具。
-- `contracts/pack_compiler_input.json` 已请求 CLI / MCP / Skill / product-entry / domain-handler / status / workbench / harness generated surfaces，并把 `agent_tool_arsenal` source ref 指向 `src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index`；`scientific_capability_registry` 已作为 callable/action catalog/MCP/CLI/product-entry ABI 落地。`contracts/agent_tool_arsenal.json` 的 counts 是 invocation ABI / card counts，不是 OPL brand module counts；OPL 十大品牌模块 taxonomy 以 OPL repo 为 owner truth，MAS 只消费 projection / handler boundary。剩余尾项是 hosted OPL ordinary-path consumption、direct/hosted parity 和 live current-owner-delta soak。
+- `contracts/pack_compiler_input.json` 已请求 CLI / MCP / Skill / product-entry / domain-handler / status / workbench / harness generated surfaces，并把 `agent_tool_arsenal` source ref 指向 `src/med_autoscience/agent_tool_arsenal.py::build_agent_tool_arsenal_index`；`scientific_capability_registry` 已作为 callable/action catalog/MCP/CLI/product-entry ABI 落地。`contracts/agent_tool_arsenal.json` 的 counts 是 invocation ABI / card counts，不是 OPL brand module counts；新增合同字段只作为生成/校验材料，Agent ordinary path 只消费 `AgentExecutionIndex`、`OperationalToolCard`、`CapabilityInvocationPlan.primary_operational_card` 和 `ToolResultEnvelope.recovery`。OPL 十大品牌模块 taxonomy 以 OPL repo 为 owner truth，MAS 只消费 projection / handler boundary。剩余尾项是 hosted OPL ordinary-path live soak、direct/hosted parity、live current-owner-delta soak 和 hosted OPL ordinary-path 对这些 ordinary execution views 的消费验证。
 - `lightweight_executor_receipt` 已从 descriptor-only contract 扩展为 L0/L1 可用 evidence 面：`src/med_autoscience/lightweight_executor_receipts.py` 能从 `ToolResultEnvelope` 或 default executor evidence dict 生成 refs-only receipt，记录 tool/action status、stdout/stderr refs、output refs、failure class、env fingerprint 与 isolation diagnostic；`ToolResultEnvelope` / `CapabilityInvocationPlan` / `ToolUseCard` 已暴露可选 `executor_receipt_ref` 和 `lightweight_executor_receipt_contract_ref`。默认只承认 `L0_host_clean_runner` / `L1_process_workspace` 的 Codex / `uv` clean runner / process-workspace evidence；Docker / OpenHands 仍只允许显式 `L3_containerized_sandbox` proof lane，inside-container 默认不启用 Docker / DinD / Docker socket。该 receipt 不执行命令、不新增 external runtime 或 admission gate，也不能写 owner receipt、typed blocker、publication eval、controller decisions、current package、submission package、stage closeout、quality verdict 或 artifact authority，缺 receipt 不阻断 current owner action。
 
 目标接口：
@@ -160,27 +160,28 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | Surface | Owner | 目标职责 |
 | --- | --- | --- |
 | `ToolArsenalIndex` | OPL generated, MAS declares domain intent | 只给 agent 一个 compact index：capability family、stage/action applicability、risk class、effect、required refs、load detail pointer。 |
-| `ToolUseCard` | OPL generated, MAS authority bounded | 单个工具的完整 card：when to use、when not to use、input refs、allowed writes、forbidden authority、output schema、receipt/blocker shape、examples、timeout/budget、verification hint。 |
-| `CapabilityInvocationPlan` | OPL resolves, MAS bounds | 从 `current_owner_delta` 生成本次可调用工具集合、调用顺序、预算、hard gate 条件、human approval requirement 和 no-new-default-next-action 约束。 |
-| `ToolResultEnvelope` | Tool returns, OPL stores refs, MAS consumes authority refs | 所有工具结果统一返回 status、output refs、diagnostic refs、receipt refs、typed blocker candidate、error class、retryability、idempotency key 和 no-forbidden-write proof。 |
+| `AgentExecutionIndex` | OPL generated, MAS declares domain intent | Agent 热路径的短索引，只暴露 tool id、适用语义、required refs、risk 和 next step hint；不要求 Agent 读取原始合同。 |
+| `ToolUseCard` / `OperationalToolCard` | OPL generated, MAS authority bounded | 单个工具的完整 card 与可执行操作子集：when to use、when not to use、default invocation、required/optional refs、preflight checks、success signals、failure classes、next safe actions、allowed writes、forbidden authority 和 output schema。 |
+| `CapabilityInvocationPlan` | OPL resolves, MAS bounds | 从 `current_owner_delta` 生成一个 primary operational card、少量 fallback、调用顺序、hard gate 条件、human approval requirement 和 no-new-default-next-action 约束。 |
+| `ToolResultEnvelope` | Tool returns, OPL stores refs, MAS consumes authority refs | 所有工具结果统一返回 status、output refs、diagnostic refs、receipt refs、typed blocker candidate、error class、`recovery`、retryability、idempotency key 和 no-forbidden-authority proof。 |
 | `ToolAuditTrail` | OPL observability / lineage | 记录 agent 为什么选择该工具、输入 refs、输出 refs、model/tool/handoff id、duration、failure class 和 follow-up owner delta；不能签 MAS authority。 |
 
 设计原则：
 
 1. `current_owner_delta` 是唯一 ordinary planning root。Agent 先读当前 owner / action / desired delta / hard gate，再解析工具；不能从全局工具清单或历史 worklist 反推下一步。
-2. 工具发现分两层。默认上下文只放 compact `ToolArsenalIndex`；只有当前 delta 命中 stage、owner action、ref family 或 failure class 时，才延迟加载对应 `ToolUseCard`。
+2. 工具发现分两层。默认上下文只放 compact `AgentExecutionIndex`；只有当前 delta 命中 stage、owner action、ref family 或 failure class 时，才延迟加载对应 `OperationalToolCard`。
 3. 工具描述必须面向模型。每个 card 写清任务语义、适用条件、反例、输入 ref contract、输出 ref family、常见失败、最小 examples 和验证方式；短命令名、CLI 习惯或人类 runbook 不算 agent affordance。
 4. 风险注解必须机器可读。至少包括 `read_only`、`mutating`、`destructive_candidate`、`idempotent`、`open_world`、`requires_human_gate`、`requires_opl_stage_attempt_or_lease`、`can_write_domain_truth=false/true`、`can_sign_owner_receipt=false/true`。
 5. 结构化输出是硬门。tool 没有 `outputSchema` / `ToolResultEnvelope` 时只能作为 diagnostic 或 legacy target；进入 ordinary path 的工具必须能返回 owner receipt、typed blocker、quality gate receipt、human gate、route-back evidence、refs-only advisory 或 explicit no-op。
 6. 人类用户只管理目标、授权和异常。用户不需要知道哪个 CLI / MCP / helper 应该怎么拼；human gate 只出现在不可逆 mutation、外部提交、敏感凭据、publication/submission/export、artifact mutation 或 route-required authority 缺口上。
-7. 工具失败默认变成可接力结果。失败必须产出 typed blocker candidate、route-back evidence、retryable failure class、missing ref family 或 platform repair delta；不能只给 stderr 或长文本。
+7. 工具失败默认变成可接力结果。失败必须在 `ToolResultEnvelope.recovery` 里产出 typed blocker candidate refs、route-back evidence、retryability、missing ref family、diagnostic refs、owner-needed signal 或 platform repair delta；不能只给 stderr 或长文本。
 8. OPL 负责调用丝滑度，MAS 负责医学边界。OPL 处理 discovery、deferred loading、task execution、session state、approval interrupt、observability、retry/dead-letter；MAS 只声明工具能否写 domain truth、签 receipt、产生 blocker、消费 refs 或触发 reviewer / human gate。
 
 理想调用链：
 
 1. Agent 读取 `current_owner_delta`。
-2. OPL `ToolArsenalIndex` 根据 stage、owner action、required refs、failure class 和 available context 返回 3-7 个候选 tool cards。
-3. Agent 或 OPL resolver 选择最小工具集，形成 `CapabilityInvocationPlan`。
+2. OPL `AgentExecutionIndex` 根据 stage、owner action、required refs、failure class 和 available context 返回短候选；需要细节时延迟加载对应 `OperationalToolCard`。
+3. Agent 或 OPL resolver 选择最小工具集，形成带 `primary_operational_card` 的 `CapabilityInvocationPlan`。
 4. Tool 执行并返回 `ToolResultEnvelope`。
 5. MAS owner surface 只消费符合 authority boundary 的 refs、receipt、blocker、quality gate 或 human gate；sidecar/advisory refs 只进入 reviewer briefing 或 next owner input。
 6. OPL State Index / Workbench 投影 next `current_owner_delta`，audit trail 进入 drilldown。
@@ -199,9 +200,10 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | `TypedBlocker` | MAS / gate owner | 命名 blocker、route-back owner、repair condition、avoided forbidden shortcut |
 | `HumanGate` | MAS declares, OPL transports | 明确人类决策项、可选动作、resume token、超时处理 |
 | `ToolArsenalIndex` | OPL generated, MAS domain intent | 按 current delta 暴露 compact tool candidates，避免全量工具上下文噪声 |
-| `ToolUseCard` | OPL generated, MAS bounded | 描述单个工具何时用、何时不用、输入输出、风险注解、examples 和验收 |
+| `AgentExecutionIndex` | OPL generated, MAS domain intent | Agent 热路径短索引；从合同生成，不要求直接读合同 |
+| `ToolUseCard` / `OperationalToolCard` | OPL generated, MAS bounded | 描述单个工具何时用、何时不用、输入输出、风险注解、default invocation、recovery hint、examples 和验收 |
 | `CapabilityInvocationPlan` | OPL schedules, MAS bounds | 当前 delta 触发 capability 的 inputs、question、budget、output refs |
-| `ToolResultEnvelope` | Tool / OPL / MAS owner surface | 统一 status、output refs、receipt/blocker refs、error class、retryability 和 no-forbidden-write proof |
+| `ToolResultEnvelope` | Tool / OPL / MAS owner surface | 统一 status、output refs、receipt/blocker refs、error class、recovery、retryability 和 no-forbidden-authority proof |
 | `ProvenanceEnvelope` | MAS / OPL refs-only | entity / activity / agent / dataset / run / artifact lineage refs |
 | `ObservabilityEvent` | OPL | trace / metric / log / failure class；永不直接授权 domain verdict |
 | `AuthorityKernelInventory` | MAS authority kernel | 用机器可读 inventory 固定 retained authority function 的 category、owner、active caller、allowed writes、forbidden authority、output refs、不能上收原因和 retirement / upcollect target；它不声明 authority 已退役或 production-ready。 |

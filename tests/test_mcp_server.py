@@ -22,6 +22,38 @@ EXPECTED_MCP_TOOLS = [
     "authority_operations",
     "agent_tool_arsenal",
 ]
+RECOVERY_FIELDS = {
+    "retryability",
+    "staleness",
+    "missing_refs",
+    "next_safe_actions",
+    "owner_needed",
+    "receipt_refs",
+    "typed_blocker_refs",
+    "diagnostic_refs",
+    "no_forbidden_authority_claim",
+}
+
+
+def _assert_recovery_envelope(envelope: dict[str, object]) -> dict[str, object]:
+    recovery = envelope["recovery"]
+    assert isinstance(recovery, dict)
+    assert RECOVERY_FIELDS <= set(recovery)
+    assert recovery["retryability"] in {
+        "retry_safe",
+        "retry_after_refs",
+        "no_retry",
+        "owner_needed",
+    }
+    assert isinstance(recovery["staleness"], dict)
+    assert isinstance(recovery["missing_refs"], list)
+    assert isinstance(recovery["next_safe_actions"], list)
+    assert isinstance(recovery["owner_needed"], bool)
+    assert isinstance(recovery["receipt_refs"], list)
+    assert isinstance(recovery["typed_blocker_refs"], list)
+    assert isinstance(recovery["diagnostic_refs"], list)
+    assert recovery["no_forbidden_authority_claim"] is True
+    return recovery
 
 
 def _structured_payload(result: dict[str, object]) -> dict[str, object]:
@@ -32,6 +64,7 @@ def _structured_payload(result: dict[str, object]) -> dict[str, object]:
     assert envelope["authority_boundary"]["can_write_domain_truth"] is False
     assert envelope["authority_boundary"]["can_authorize_publication_quality"] is False
     assert envelope["authority_boundary"]["can_authorize_submission_readiness"] is False
+    _assert_recovery_envelope(envelope)
     payload = envelope["structured_payload"]
     assert isinstance(payload, dict)
     return payload
@@ -57,6 +90,21 @@ def _assert_tool_result_envelope(
     assert "publication_quality" in structured["audit_trail"]["forbidden_authority"]
     assert structured["authority_boundary"]["tool_result_envelope_is_authority_outcome"] is False
     assert isinstance(structured["structured_payload"], dict)
+    _assert_recovery_envelope(structured)
+    assert structured["retryability"] in {
+        "retry_safe",
+        "retry_after_refs",
+        "no_retry",
+        "owner_needed",
+    }
+    assert isinstance(structured["staleness"], dict)
+    assert isinstance(structured["missing_refs"], list)
+    assert isinstance(structured["next_safe_actions"], list)
+    assert isinstance(structured["owner_needed"], bool)
+    assert isinstance(structured["receipt_refs"], list)
+    assert isinstance(structured["typed_blocker_refs"], list)
+    assert isinstance(structured["diagnostic_refs"], list)
+    assert structured["no_forbidden_authority_claim"] is True
     return structured
 
 
@@ -118,6 +166,8 @@ def test_mcp_tools_expose_agent_invocation_annotations_and_output_schema() -> No
 
     for tool in tools.values():
         assert tool["outputSchema"]["title"] == "MAS ToolResultEnvelope"
+        assert "recovery" in tool["outputSchema"]["required"]
+        assert "recovery" in tool["outputSchema"]["properties"]
         assert "readOnlyHint" in tool["annotations"]
         assert "destructiveHint" in tool["annotations"]
         assert "idempotentHint" in tool["annotations"]
@@ -196,6 +246,10 @@ def test_mcp_tools_call_jsonrpc_returns_single_result_envelope() -> None:
     assert envelope["status"] == "succeeded"
     assert envelope["structured_payload"]["title"] == "MAS ToolResultEnvelope"
     assert "structured_payload" not in envelope["structured_payload"]
+    assert envelope["retryability"] == "retry_safe"
+    assert envelope["next_safe_actions"][0]["action"] == "consume_structured_payload"
+    assert envelope["recovery"]["retryability"] == "retry_safe"
+    assert "structured_payload" not in envelope["recovery"]
 
 
 @pytest.mark.parametrize(
@@ -438,6 +492,7 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
     index_payload = _structured_payload(index_result)
     assert index_payload["surface_kind"] == "mas_agent_tool_arsenal_index"
     assert index_payload["ordinary_planning_root"] == "current_owner_delta"
+    assert index_payload["agent_execution_index"]["raw_contract_direct_read_required"] is False
     assert any(item["tool_id"] == "study_progress" for item in index_payload["tool_cards"])
 
     card_result = module.call_tool(
@@ -450,6 +505,7 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
     card_payload = _structured_payload(card_result)
     assert card_payload["tool_id"] == "study_progress"
     assert card_payload["risk_annotations"]["readOnlyHint"] is True
+    assert card_payload["operational"]["required_refs"] == card_payload["required_refs"]
 
     plan_result = module.call_tool(
         "agent_tool_arsenal",
@@ -467,6 +523,10 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
     plan_payload = _structured_payload(plan_result)
     assert plan_payload["selected_tool_id"] == "owner_callable:run_quality_repair_batch"
     assert plan_payload["requires"]["owner_receipt_or_typed_blocker"] is True
+    assert plan_payload["primary_operational_card"]["tool_id"] == (
+        "owner_callable:run_quality_repair_batch"
+    )
+    assert plan_payload["selection_policy"]["primary_selection"] == "owner_callable"
 
     schema_result = module.call_tool("agent_tool_arsenal", {"mode": "result_envelope_schema"})
 
@@ -478,6 +538,7 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
     assert schema_result["isError"] is False
     schema_payload = _structured_payload(schema_result)
     assert schema_payload["title"] == "MAS ToolResultEnvelope"
+    assert "recovery" in schema_payload["required"]
 
     diagnostic_result = module.call_tool("agent_tool_arsenal", {"mode": "completeness_diagnostic"})
 
@@ -496,6 +557,13 @@ def test_mcp_agent_tool_arsenal_returns_index_card_plan_and_schema() -> None:
     assert "doctor_audit" in diagnostic_payload["support_or_diagnostic_mcp_tools"]
     assert "workspace_readiness" in diagnostic_payload["support_or_diagnostic_mcp_tools"]
     assert "display_pack_agent" in diagnostic_payload["public_runtime_mcp_tools"]
+    assert diagnostic_payload["doctor_surface_kind"] == (
+        "mas_agent_tool_arsenal_drift_parity_doctor"
+    )
+    assert diagnostic_payload["parity_summary"]["status"] == "complete"
+    assert diagnostic_payload["parity_summary"]["doctor_audit_available"] is True
+    drift_checks = {item["check_id"]: item for item in diagnostic_payload["drift_checks"]}
+    assert drift_checks["mcp_manifest_tool_card_parity"]["status"] == "passed"
 
 
 def test_mcp_display_pack_agent_plans_from_structured_figure_request() -> None:

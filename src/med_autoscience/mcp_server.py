@@ -150,6 +150,13 @@ def _tool_result_envelope(
         first = content[0]
         if isinstance(first, dict):
             text = str(first.get("text") or "")
+    recovery = _tool_result_recovery(
+        tool_name=tool_name,
+        payload=payload,
+        card=card,
+        is_error=is_error,
+        result_summary=text,
+    )
     envelope: dict[str, Any] = {
         **payload,
         "surface_kind": "mas_tool_result_envelope",
@@ -165,6 +172,8 @@ def _tool_result_envelope(
         ),
         "structured_content_ref": f"mcp://{SERVER_NAME}/tools/{tool_name}/structuredContent",
         "result_summary": text[:500],
+        **recovery,
+        "recovery": recovery,
         "audit_trail": {
             "surface_kind": "mas_tool_audit_trail",
             "source_refs": [
@@ -206,6 +215,140 @@ def _tool_result_envelope(
     if is_error:
         envelope["error_class"] = "tool_execution_error"
     return envelope
+
+
+def _tool_result_recovery(
+    *,
+    tool_name: str,
+    payload: dict[str, Any],
+    card: dict[str, Any] | None,
+    is_error: bool,
+    result_summary: str,
+) -> dict[str, Any]:
+    required_refs = list(card.get("required_refs") or card.get("input_refs") or []) if card else []
+    missing_refs = _extract_missing_refs(payload, required_refs=required_refs, is_error=is_error)
+    owner_needed = _owner_needed_from_payload(payload, is_error=is_error)
+    receipt_refs = _extract_ref_list(payload, keys=("receipt_refs", "owner_receipt_refs"))
+    typed_blocker_refs = _extract_ref_list(payload, keys=("typed_blocker_refs", "blocker_refs"))
+    diagnostic_refs = _extract_ref_list(
+        payload,
+        keys=("diagnostic_refs", "evidence_refs", "source_refs"),
+    )
+    owner_receipt_ref = _string_or_empty(payload.get("owner_receipt_ref"))
+    typed_blocker_ref = _string_or_empty(payload.get("typed_blocker_ref"))
+    if owner_receipt_ref and owner_receipt_ref not in receipt_refs:
+        receipt_refs.append(owner_receipt_ref)
+    if typed_blocker_ref and typed_blocker_ref not in typed_blocker_refs:
+        typed_blocker_refs.append(typed_blocker_ref)
+    if missing_refs:
+        retryability = "retry_after_refs"
+    elif owner_needed:
+        retryability = "owner_needed"
+    elif is_error:
+        retryability = "retry_safe"
+    else:
+        retryability = "retry_safe"
+    next_safe_actions = _result_next_safe_actions(
+        tool_name=tool_name,
+        card=card,
+        retryability=retryability,
+        missing_refs=missing_refs,
+        diagnostic_refs=diagnostic_refs,
+        result_summary=result_summary,
+    )
+    return {
+        "retryability": retryability,
+        "staleness": {
+            "source_fingerprint_required": bool(
+                card
+                and _string_or_empty(card.get("idempotency_policy"))
+                != "read_only_no_side_effects"
+            ),
+            "source_refs": diagnostic_refs[:5],
+            "current_owner_delta_bound": bool(card),
+        },
+        "missing_refs": missing_refs,
+        "next_safe_actions": next_safe_actions,
+        "owner_needed": owner_needed,
+        "receipt_refs": receipt_refs,
+        "typed_blocker_refs": typed_blocker_refs,
+        "diagnostic_refs": diagnostic_refs,
+        "no_forbidden_authority_claim": True,
+    }
+
+
+def _extract_missing_refs(
+    payload: dict[str, Any],
+    *,
+    required_refs: list[Any],
+    is_error: bool,
+) -> list[str]:
+    explicit = _extract_ref_list(payload, keys=("missing_refs", "required_missing_refs"))
+    if explicit:
+        return explicit
+    if not is_error:
+        return []
+    return []
+
+
+def _owner_needed_from_payload(payload: dict[str, Any], *, is_error: bool) -> bool:
+    if bool(payload.get("owner_needed")):
+        return True
+    status = str(payload.get("status") or "").lower()
+    if status in {"owner_needed", "blocked_owner_needed"}:
+        return True
+    blocker = payload.get("typed_blocker_ref") or payload.get("typed_blocker_refs")
+    return bool(is_error and blocker)
+
+
+def _result_next_safe_actions(
+    *,
+    tool_name: str,
+    card: dict[str, Any] | None,
+    retryability: str,
+    missing_refs: list[str],
+    diagnostic_refs: list[str],
+    result_summary: str,
+) -> list[dict[str, Any]]:
+    if missing_refs:
+        return [
+            {
+                "action": "collect_missing_refs",
+                "missing_refs": missing_refs,
+            }
+        ]
+    if retryability == "owner_needed":
+        return [{"action": "surface_owner_needed"}]
+    if retryability == "retry_safe" and "Unsupported" in result_summary:
+        return [
+            {
+                "action": "inspect_diagnostic_refs",
+                "diagnostic_refs": diagnostic_refs,
+            }
+        ]
+    if card and card.get("callability") == "mcp_runtime":
+        return [
+            {
+                "action": "consume_structured_payload",
+                "tool_name": tool_name,
+            }
+        ]
+    return [{"action": "consume_structured_payload", "tool_name": tool_name}]
+
+
+def _extract_ref_list(payload: dict[str, Any], *, keys: tuple[str, ...]) -> list[str]:
+    refs: list[str] = []
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            refs.append(value.strip())
+        elif isinstance(value, (list, tuple)):
+            refs.extend(str(item).strip() for item in value if str(item).strip())
+    return list(dict.fromkeys(refs))
+
+
+def _string_or_empty(value: object) -> str:
+    return str(value or "").strip()
 
 
 def _wrap_tool_result(
