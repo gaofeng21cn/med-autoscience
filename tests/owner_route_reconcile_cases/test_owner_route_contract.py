@@ -473,39 +473,70 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    monkeypatch.setattr(
+        module.current_action_selection.fresh_progress_current_action,
+        "current_actions",
+        lambda **_: [],
+    )
     owner_route = {
+        "study_id": study_id,
+        "quest_id": "quest-dm002",
         "route_epoch": "truth-epoch-dm002",
+        "truth_epoch": "truth-epoch-dm002",
+        "runtime_health_epoch": "runtime-health-epoch-dm002",
         "source_fingerprint": "truth-source-dm002",
+        "work_unit_fingerprint": "truth-source-dm002",
         "current_owner": "managed_runtime",
         "next_owner": "ai_reviewer",
         "owner_reason": "ai_reviewer_assessment_required",
         "allowed_actions": ["return_to_ai_reviewer_workflow"],
         "blocked_actions": ["publication_gate_specificity_required"],
+        "source_refs": {
+            "study_truth_epoch": "truth-epoch-dm002",
+            "runtime_health_epoch": "runtime-health-epoch-dm002",
+            "source_eval_id": "truth-source-dm002",
+            "work_unit_id": "truth-source-dm002",
+            "work_unit_fingerprint": "truth-source-dm002",
+            "owner_route_currentness_basis": {
+                "truth_epoch": "truth-epoch-dm002",
+                "runtime_health_epoch": "runtime-health-epoch-dm002",
+                "source_eval_id": "truth-source-dm002",
+                "work_unit_id": "truth-source-dm002",
+                "work_unit_fingerprint": "truth-source-dm002",
+            },
+        },
         "idempotency_key": "owner-route::dm002::truth-epoch-dm002::ai_reviewer::ai_reviewer_assessment_required::abc123",
+    }
+    action = {
+        "study_id": study_id,
+        "quest_id": "quest-dm002",
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "owner": "ai_reviewer",
+        "reason": "ai_reviewer_assessment_required",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "owner_route": owner_route,
+        "handoff_packet": {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "authority": "observability_only",
+            "request_owner": "ai_reviewer",
+            "owner_route": owner_route,
+        },
     }
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
-            "action_queue": [
+            "studies": [
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dm002",
-                    "action_type": "return_to_ai_reviewer_workflow",
-                    "authority": "observability_only",
-                    "owner": "ai_reviewer",
-                    "reason": "ai_reviewer_assessment_required",
-                    "required_output_surface": "artifacts/publication_eval/latest.json",
                     "owner_route": owner_route,
-                    "handoff_packet": {
-                        "request_kind": "return_to_ai_reviewer_workflow",
-                        "authority": "observability_only",
-                        "request_owner": "ai_reviewer",
-                        "owner_route": owner_route,
-                    },
+                    "action_queue": [action],
                 }
             ],
+            "action_queue": [action],
         },
     )
 

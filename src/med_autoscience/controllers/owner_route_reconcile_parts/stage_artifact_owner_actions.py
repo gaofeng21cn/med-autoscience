@@ -238,7 +238,7 @@ def action_queue_with_terminal_publication_handoff(
     )
     if repair is not None:
         return [decorate_action(study_id=study_id, quest_id=quest_id, action=repair)]
-    if _has_repair_progress_followup_action(actions):
+    if _has_accepted_repair_progress_followup_action(actions):
         return actions
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
@@ -263,7 +263,7 @@ def projection_fields(progress: Mapping[str, Any], actions: list[Mapping[str, An
     if repair_action is not None:
         result["current_executable_owner_action"] = _projection_action_from_repair(repair_action)
         return result
-    if _has_repair_progress_followup_action(actions or []):
+    if _has_accepted_repair_progress_followup_action(actions or []):
         return result
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
@@ -292,6 +292,14 @@ def _readiness_repair_action_from_actions(actions: list[Mapping[str, Any]]) -> d
             continue
         return payload
     return None
+
+
+def _has_accepted_repair_progress_followup_action(actions: list[Mapping[str, Any]]) -> bool:
+    for action in actions:
+        payload = _mapping(action)
+        if _mapping(payload.get("repair_progress_followup")).get("accepted_owner_receipt") is True:
+            return True
+    return False
 
 
 def _has_repair_progress_followup_action(actions: list[Mapping[str, Any]]) -> bool:
