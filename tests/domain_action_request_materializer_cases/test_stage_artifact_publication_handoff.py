@@ -685,7 +685,8 @@ def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_wi
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == "complete_medical_paper_readiness_surface"
     assert dispatch["owner_route"]["work_unit_fingerprint"] == readiness_fingerprint
     assert any(
-        item["reason"] == "superseded_by_current_stage_readiness_followup"
+        item["reason"]
+        == "stage_native_workspace_next_action_requires_current_work_unit_currentness_match"
         and item["action_type"] == "run_quality_repair_batch"
         for item in result["ignored_actions"]
     )

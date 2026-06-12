@@ -127,6 +127,22 @@
       "weak_identity_effect": "suppress_provider_admission_pending",
       "fingerprintless_stop_loss_closeout_match": "requires_same_source_eval_truth_or_runtime_health_epoch",
       "action_id_role": "action_family_only_not_route_or_attempt_identity"
+    },
+    "progress_current_owner_ticket_contract": {
+      "synthetic_fingerprint_prefix_forbidden": "study-progress-current-owner-ticket::",
+      "required_strong_identity_any": [
+        "owner_route.source_refs.owner_route_currentness_basis",
+        "current_executable_owner_action.source_fingerprint",
+        "current_executable_owner_action.work_unit_fingerprint",
+        "current_executable_owner_action.action_fingerprint",
+        "current_executable_owner_action.source_eval_id",
+        "current_work_unit.work_unit_fingerprint",
+        "current_owner_ticket.work_unit.work_unit_fingerprint"
+      ],
+      "weak_identity_signal": "weak_fresh_progress_current_owner_ticket_identity",
+      "weak_identity_effect": "diagnostic_only_no_default_executor_dispatch",
+      "weak_identity_reason": "fresh_progress_current_owner_ticket_requires_strong_currentness_identity",
+      "route_generation_policy": "do_not_generate_owner_route_from_generated_at_or_source_ref_only"
     }
   },
   "lifecycle_state_machine": {
@@ -220,6 +236,16 @@
     },
     {
       "rank": 6,
+      "signal": "weak_fresh_progress_current_owner_ticket_identity",
+      "effect": "diagnostic_only_no_default_executor_dispatch",
+      "required_match": [
+        "current_owner_ticket_or_current_action_present",
+        "missing_strong_currentness_identity"
+      ],
+      "allowed_output": "ignored_diagnostic"
+    },
+    {
+      "rank": 7,
       "signal": "fresh_current_owner_action",
       "effect": "project_executable_owner_action",
       "required_match": [
@@ -230,7 +256,7 @@
       "allowed_output": "executable_owner_action"
     },
     {
-      "rank": 7,
+      "rank": 8,
       "signal": "stable_typed_blocker_for_current_identity",
       "effect": "project_typed_blocker",
       "required_match": [
@@ -240,7 +266,7 @@
       "allowed_output": "typed_blocker"
     },
     {
-      "rank": 8,
+      "rank": 9,
       "signal": "stale_or_unmatched_runtime_residue",
       "effect": "audit_only",
       "required_match": [],
@@ -378,6 +404,15 @@
         ]
       },
       {
+        "decision": "current_typed_blocker_precedes_provider_admission",
+        "effect": "suppress_provider_admission_pending",
+        "required_match": [
+          "study_id",
+          "action_type_or_work_unit_id",
+          "current_work_unit_or_execution_envelope_typed_blocker"
+        ]
+      },
+      {
         "decision": "pending_provider_admission",
         "effect": "retain_provider_admission_pending",
         "required_match": [
@@ -422,8 +457,16 @@
       "no_weak_provider_admission_identity",
       "no_matching_live_attempt",
       "no_matching_accepted_closeout",
+      "no_current_typed_blocker_for_same_action_or_work_unit",
       "no_same_currentness_basis_fingerprintless_stop_loss_closeout"
-    ]
+    ],
+    "scoped_scan_unscanned_retention_policy": {
+      "retention_semantics": "audit_only",
+      "active_queue_semantics": "scanned_studies_only",
+      "unscanned_study_action_queue_effect": "remove_from_active_action_queue_and_keep_under_unscanned_action_queue_retained_for_audit",
+      "history_field": "unscanned_active_action_suppressed_count",
+      "can_increment_provider_admission_pending_count": false
+    }
   },
   "owner_action_dispatch_authority_policy": {
     "surface_kind": "mas_owner_action_dispatch_authority_policy",
@@ -446,6 +489,24 @@
     ],
     "allowed_readiness_dispatch_effect": "execute_or_handoff_owner_action",
     "forbidden_readiness_dispatch_effect": "blocker_only_executes_complete_medical_paper_readiness_surface",
+    "stage_native_next_action_policy": {
+      "dispatch_requires_any": [
+        "canonical_current_work_unit_binding",
+        "owner_route_match_with_allowed_action",
+        "shared_currentness_identity_with_fingerprint"
+      ],
+      "stale_or_unbound_effect": "diagnostic_only_no_default_executor_dispatch",
+      "blocked_reason": "stage_native_workspace_next_action_requires_current_work_unit_currentness_match"
+    },
+    "default_dispatch_allowed_false_effect": "ignored_diagnostic_no_request_task_no_default_executor_dispatch",
+    "terminal_closeout_owner_answer_dispatch_policy": {
+      "requires_any": [
+        "closeout_ref_or_source_ref_points_to_dispatch",
+        "typed_blocker_ref_points_to_dispatch",
+        "shared_currentness_identity_with_fingerprint"
+      ],
+      "same_action_and_work_unit_without_ref_or_fingerprint_effect": "reject_dispatch_as_stale_identity"
+    },
     "authority_boundary": {
       "can_write_domain_truth": false,
       "can_authorize_publication_ready": false,

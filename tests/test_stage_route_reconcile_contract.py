@@ -70,6 +70,22 @@ def test_stage_route_reconcile_contract_requires_strong_identity_and_closeout_se
     ]
     assert identity["missing_identity_policy"] == "fail_closed_to_diagnostic_or_typed_blocker_candidate"
     assert identity["weak_label_match_can_authorize_route"] is False
+    progress_ticket = identity["progress_current_owner_ticket_contract"]
+    assert progress_ticket["synthetic_fingerprint_prefix_forbidden"] == (
+        "study-progress-current-owner-ticket::"
+    )
+    assert "current_executable_owner_action.work_unit_fingerprint" in (
+        progress_ticket["required_strong_identity_any"]
+    )
+    assert progress_ticket["weak_identity_effect"] == (
+        "diagnostic_only_no_default_executor_dispatch"
+    )
+    assert progress_ticket["weak_identity_reason"] == (
+        "fresh_progress_current_owner_ticket_requires_strong_currentness_identity"
+    )
+    assert progress_ticket["route_generation_policy"] == (
+        "do_not_generate_owner_route_from_generated_at_or_source_ref_only"
+    )
 
     handshake = contract["closeout_handshake"]
     assert handshake["required_sequence"] == [
@@ -94,12 +110,13 @@ def test_stage_route_reconcile_contract_orders_currentness_and_blocks_transport_
     contract = _contract()
 
     precedence = contract["currentness_precedence"]
-    assert [item["signal"] for item in precedence[:6]] == [
+    assert [item["signal"] for item in precedence[:7]] == [
         "weak_provider_admission_identity",
         "terminal_closeout_for_same_stage_attempt",
         "strict_live_provider_attempt_for_current_identity",
         "same_work_unit_stop_loss_terminal_stage",
         "accepted_typed_closeout_for_same_identity",
+        "weak_fresh_progress_current_owner_ticket_identity",
         "fresh_current_owner_action",
     ]
     assert precedence[0]["effect"] == "suppress_provider_admission_pending"
@@ -108,6 +125,8 @@ def test_stage_route_reconcile_contract_orders_currentness_and_blocks_transport_
     assert precedence[3]["effect"] == "project_typed_blocker_and_suppress_provider_admission"
     assert precedence[3]["allowed_output"] == "typed_blocker"
     assert precedence[3]["default_blocker"] == "anti_loop_budget_exhausted"
+    assert precedence[5]["effect"] == "diagnostic_only_no_default_executor_dispatch"
+    assert precedence[5]["allowed_output"] == "ignored_diagnostic"
     assert precedence[-1]["allowed_output"] == "ignored_diagnostic"
 
     lifecycle = contract["lifecycle_state_machine"]
@@ -156,6 +175,7 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "terminal_closeout_precedes_live_projection",
         "running_identity_observed",
         "accepted_closeout_consumed_pending",
+        "current_typed_blocker_precedes_provider_admission",
         "pending_provider_admission",
     ]
     effects = {item["decision"]: item["effect"] for item in arbiter["decision_kinds"]}
@@ -165,6 +185,9 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     )
     assert effects["running_identity_observed"] == "suppress_provider_admission_pending"
     assert effects["accepted_closeout_consumed_pending"] == (
+        "suppress_provider_admission_pending"
+    )
+    assert effects["current_typed_blocker_precedes_provider_admission"] == (
         "suppress_provider_admission_pending"
     )
     assert effects["pending_provider_admission"] == "retain_provider_admission_pending"
@@ -183,8 +206,13 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "no_weak_provider_admission_identity",
         "no_matching_live_attempt",
         "no_matching_accepted_closeout",
+        "no_current_typed_blocker_for_same_action_or_work_unit",
         "no_same_currentness_basis_fingerprintless_stop_loss_closeout",
     ]
+    unscanned = arbiter["scoped_scan_unscanned_retention_policy"]
+    assert unscanned["retention_semantics"] == "audit_only"
+    assert unscanned["active_queue_semantics"] == "scanned_studies_only"
+    assert unscanned["can_increment_provider_admission_pending_count"] is False
     self_identity = arbiter["carrier_self_identity_policy"]
     assert self_identity["current_control_action_can_self_authorize"] is False
     assert self_identity["missing_canonical_identity_effect"] == (
@@ -225,6 +253,27 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     assert dispatch_policy["forbidden_readiness_dispatch_effect"] == (
         "blocker_only_executes_complete_medical_paper_readiness_surface"
     )
+    stage_native = dispatch_policy["stage_native_next_action_policy"]
+    assert stage_native["dispatch_requires_any"] == [
+        "canonical_current_work_unit_binding",
+        "owner_route_match_with_allowed_action",
+        "shared_currentness_identity_with_fingerprint",
+    ]
+    assert stage_native["stale_or_unbound_effect"] == (
+        "diagnostic_only_no_default_executor_dispatch"
+    )
+    assert dispatch_policy["default_dispatch_allowed_false_effect"] == (
+        "ignored_diagnostic_no_request_task_no_default_executor_dispatch"
+    )
+    terminal_owner_answer = dispatch_policy["terminal_closeout_owner_answer_dispatch_policy"]
+    assert terminal_owner_answer["requires_any"] == [
+        "closeout_ref_or_source_ref_points_to_dispatch",
+        "typed_blocker_ref_points_to_dispatch",
+        "shared_currentness_identity_with_fingerprint",
+    ]
+    assert terminal_owner_answer[
+        "same_action_and_work_unit_without_ref_or_fingerprint_effect"
+    ] == "reject_dispatch_as_stale_identity"
     assert dispatch_policy["authority_boundary"] == {
         "can_write_domain_truth": False,
         "can_authorize_publication_ready": False,
