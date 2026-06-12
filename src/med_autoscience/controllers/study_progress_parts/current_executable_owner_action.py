@@ -962,7 +962,10 @@ def _terminal_stage_semantically_consumes_ai_reviewer_followup(
     next_forced_delta: Mapping[str, Any],
 ) -> bool:
     required_delta_kind = _non_empty_text(next_forced_delta.get("required_delta_kind"))
-    if required_delta_kind != "same_line_write_repair_or_gate_replay_route":
+    if required_delta_kind not in {
+        "same_line_write_repair_or_gate_replay_route",
+        "same_line_write_repair_or_typed_blocker_consumption",
+    }:
         return False
     next_work_unit = _non_empty_text(next_forced_delta.get("work_unit_id"))
     owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
@@ -974,7 +977,7 @@ def _terminal_stage_semantically_consumes_ai_reviewer_followup(
         _non_empty_text(paper_stage_log.get("progress_delta_classification"))
         or _non_empty_text(terminal.get("progress_delta_classification"))
     )
-    if progress_delta_classification not in {"deliverable_progress", "paper_progress"}:
+    if progress_delta_classification not in {"deliverable_progress", "paper_progress", "mixed"}:
         return False
     refs = _dedupe_text(
         [

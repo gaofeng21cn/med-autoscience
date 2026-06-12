@@ -51,7 +51,7 @@ def test_progress_first_monitoring_consumes_ai_reviewer_recheck_terminal_write_r
                         "sat-current-ai-reviewer.closeout.json"
                     ),
                     "paper_stage_log": {
-                        "progress_delta_classification": "deliverable_progress",
+                        "progress_delta_classification": "mixed",
                         "changed_paper_surfaces": [
                             "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
                             "20260612T123416Z_publication_eval_record.json"
@@ -59,7 +59,7 @@ def test_progress_first_monitoring_consumes_ai_reviewer_recheck_terminal_write_r
                     },
                     "next_forced_delta": {
                         "action_type": "run_quality_repair_batch",
-                        "required_delta_kind": "same_line_write_repair_or_gate_replay_route",
+                        "required_delta_kind": "same_line_write_repair_or_typed_blocker_consumption",
                         "work_unit_id": "medical_prose_write_repair",
                         "target_surface": {
                             "ref_kind": "route_obligation",
