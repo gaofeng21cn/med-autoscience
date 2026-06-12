@@ -66,6 +66,9 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         running_provider_attempt=running_provider_attempt,
         handoff=handoff,
         key="active_run_id",
+    ) or _observability_active_run_id(
+        running_provider_attempt=running_provider_attempt,
+        handoff=handoff,
     )
     active_stage_attempt_id = _running_provider_attempt_ref(
         running_provider_attempt=running_provider_attempt,
@@ -392,6 +395,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         canonical_current_work_unit,
         fallback=next_forced_delta,
     )
+    summary_active_run_id = active_run_id or _observability_active_run_id(
+        running_provider_attempt=running_provider_attempt,
+        handoff=handoff,
+    )
     return {
         "surface": "progress_first_monitoring_summary",
         "schema_version": 1,
@@ -400,7 +407,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "generated_at": _text(payload.get("generated_at")),
         "current_stage": _text(payload.get("current_stage")),
         "paper_stage": _text(payload.get("paper_stage")),
-        "active_run_id": active_run_id,
+        "active_run_id": summary_active_run_id,
         "active_stage_attempt_id": active_stage_attempt_id,
         "active_workflow_id": active_workflow_id,
         "running_provider_attempt": running_provider_attempt,
@@ -1229,6 +1236,19 @@ def _running_provider_attempt_ref(
     return _text(handoff.get(key))
 
 
+def _observability_active_run_id(
+    *,
+    running_provider_attempt: bool | None,
+    handoff: Mapping[str, Any],
+) -> str | None:
+    if running_provider_attempt is True:
+        return None
+    active_run_id = _text(handoff.get("active_run_id"))
+    if active_run_id is None or active_run_id.startswith("opl-stage-attempt://"):
+        return None
+    return active_run_id
+
+
 def _stale_active_run_id(
     *,
     running_provider_attempt: bool | None,
@@ -1238,11 +1258,18 @@ def _stale_active_run_id(
 ) -> str | None:
     if running_provider_attempt is True:
         return None
-    return (
-        _text(supervision.get("active_run_id"))
-        or _text(payload.get("active_run_id"))
-        or _text(handoff.get("active_run_id"))
+    observability_active_run_id = _observability_active_run_id(
+        running_provider_attempt=running_provider_attempt,
+        handoff=handoff,
     )
+    for active_run_id in (
+        _text(supervision.get("active_run_id")),
+        _text(payload.get("active_run_id")),
+        _text(handoff.get("active_run_id")),
+    ):
+        if active_run_id is not None and active_run_id != observability_active_run_id:
+            return active_run_id
+    return None
 
 
 

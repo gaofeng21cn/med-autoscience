@@ -29,4 +29,5 @@ from tests.study_progress_cases.user_visible_projection import *
 from tests.study_progress_cases.domain_routeback_currentness_projection import *
 from tests.study_progress_cases.repair_progress_projection import *
 from tests.study_progress_cases.progress_first_projection import *
+from tests.study_progress_cases.progress_first_paper_delta_cases import *
 from tests.study_progress_cases.current_executable_owner_action import *
