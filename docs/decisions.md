@@ -11,6 +11,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 类 live 状态可能同时满足“旧 running proof 应清掉”和“新 writer/gate action 仍可 admission”。旧实现把 admission 绑到 top-level visibility，导致 stale active run 已正确清除后，operator 看到 `owner_action_admission=null`，误判为没有下一步或 DHD/OPL 无事可做。
 - 影响：这是 MAS progress-first read-model 修复，不启动 OPL、不消费 closeout、不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、owner receipt、typed blocker、human gate 或 OPL runtime artifact。论文推进仍按 owner receipt、stable typed blocker、changed surface、reviewer/gate delta、human gate、route-back 或 strict provider running proof 计数。
 
+## 2026-06-12：current dispatch identity hard-state barrier 优先于 residual owner action
+
+- 决策：`canonical_current_dispatch_identity` 必须先读取 canonical `current_work_unit.status` 与 `current_execution_envelope.state_kind`。当任一 surface 已是 `typed_blocker`、`running_provider_attempt`、`blocked_current_work_unit`、`blocked_typed_owner` 或 `parked` 时，residual `current_executable_owner_action`、旧 persisted dispatch、旧 gate replay 或旧 repair-progress action 只能进入 blocked identity / diagnostic，不能继续生成 default-executor dispatch task。
+- 理由：DM003 类 closeout / reviewer / gate replay 链路可能留下 residual owner action；DM002 类 stop-loss blocker 也可能同时保留旧 repair/gate carrier。若 dispatch identity 先采信 residual action，会把 stable typed blocker 或 running/parked current state 重新打开成可执行队列，形成同一 work-unit redrive 或重复 provider admission。
+- 影响：这是 MAS owner-route / default-executor dispatch currentness 修复，不执行 DHD apply / hydrate / tick / redrive，不写 study truth、paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL runtime artifact。解除 blocker 只能来自新的 current work-unit identity、MAS owner receipt / quality gate receipt、stable typed blocker、human gate、route-back evidence 或同一 current identity strict provider running proof。
+
 ## 2026-06-12：runtime supervision operator policy 固定 observe / apply / hydrate / restart 边界
 
 - 决策：新增 `contracts/stage_route_reconcile_contract.json#/runtime_supervision_operator_policy`，把 operator 对 MAS/OPL current-control 的读法集中成 desired / running / terminal / read_model 四态。desired 只来自 MAS `current_owner_delta` / `current_work_unit` / provider admission identity；running 只来自同 current identity 的 StageRun lease、Temporal/provider liveness 和无 matching terminal closeout；terminal 只来自同 identity terminal closeout refs；read_model 是可重建投影，不能授权 desired 或 paper progress。

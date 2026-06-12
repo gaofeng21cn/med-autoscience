@@ -18,10 +18,6 @@ def canonical_current_dispatch_identity(
     envelope_state = _text(current_execution_envelope.get("state_kind")) or _text(
         current_execution_envelope.get("execution_state_kind")
     )
-    if current_owner_action:
-        identity = _current_owner_action_dispatch_identity(current_owner_action, study_id=study_id)
-        if identity:
-            return identity
     if work_unit_status in {
         "typed_blocker",
         "running_provider_attempt",
@@ -38,6 +34,10 @@ def canonical_current_dispatch_identity(
         "parked",
     }:
         return {"blocked": True, "source": "current_execution_envelope", "state_kind": envelope_state}
+    if current_owner_action:
+        identity = _current_owner_action_dispatch_identity(current_owner_action, study_id=study_id)
+        if identity:
+            return identity
     if work_unit_status == "executable_owner_action":
         identity = _current_work_unit_dispatch_identity(current_work_unit, study_id=study_id)
         owner_action_identity = _current_owner_action_dispatch_identity(current_owner_action, study_id=study_id)

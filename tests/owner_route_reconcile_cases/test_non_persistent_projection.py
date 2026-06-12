@@ -181,6 +181,112 @@ def test_domain_handler_export_does_not_persist_dispatch_identity(
     assert stage_packet_path.stat().st_mtime_ns == before_stage_packet_mtime
 
 
+def test_default_executor_dispatch_tasks_suppress_residual_action_when_current_work_unit_is_typed_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_handoff_parts.default_executor_dispatch_tasks"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.toml"
+    profile_ref.write_text("[profile]\n", encoding="utf-8")
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    stage_packet_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "immutable"
+        / "run_gate_clearing_batch"
+        / "stage-packet.json"
+    )
+    dispatch = {
+        "surface": "default_executor_dispatch_request",
+        "dispatch_status": "ready",
+        "action_type": "run_gate_clearing_batch",
+        "next_executable_owner": "gate_clearing_batch",
+        "executor_kind": "codex_cli_default",
+        "dispatch_authority": "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "refs": {
+            "dispatch_path": str(dispatch_path),
+            "stage_packet_path": str(stage_packet_path),
+        },
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner_route": {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "next_owner": "gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "source_refs": {
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:gate-replay-current",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "sha256:gate-replay-current",
+                    "truth_epoch": "truth::current",
+                    "runtime_health_epoch": "runtime::current",
+                },
+            },
+            "truth_epoch": "truth::current",
+            "runtime_health_epoch": "runtime::current",
+            "work_unit_fingerprint": "sha256:gate-replay-current",
+            "source_fingerprint": "sha256:gate-replay-current",
+        },
+    }
+    _write_json(dispatch_path, dispatch)
+    _write_json(stage_packet_path, {**dispatch, "immutable_packet_ref": "existing"})
+
+    tasks = module.default_executor_dispatch_tasks(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        current_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+            "next_owner": "gate_clearing_batch",
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": "sha256:gate-replay-current",
+        },
+        current_work_unit={
+            "surface_kind": "current_work_unit",
+            "status": "typed_blocker",
+            "owner": "one-person-lab",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": "sha256:gate-replay-current",
+            "state": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_id": "opl_execution_authorization_required",
+                    "owner": "one-person-lab",
+                },
+            },
+        },
+        current_execution_envelope={"state_kind": "typed_blocker"},
+        persist_identity=False,
+    )
+
+    assert tasks == []
+
+
 def test_scan_domain_routes_can_project_without_overwriting_workspace_latest(
     monkeypatch,
     tmp_path: Path,

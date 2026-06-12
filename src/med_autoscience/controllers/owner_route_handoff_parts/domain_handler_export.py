@@ -399,15 +399,6 @@ def _export_current_owner_action(
     study: Mapping[str, Any],
     current_progress: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    progress_action = mapping(current_progress.get("current_executable_owner_action"))
-    if progress_action:
-        projection_action = mapping(study.get("current_owner_action"))
-        if text(progress_action.get("action_type")) == text(projection_action.get("action_type")):
-            return _merge_projection_owner_action_identity(
-                progress_action=progress_action,
-                projection_action=projection_action,
-            )
-        return progress_action
     current_work_unit = mapping(current_progress.get("current_work_unit"))
     current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
     envelope_state = text(current_execution_envelope.get("state_kind")) or text(
@@ -417,6 +408,15 @@ def _export_current_owner_action(
         _ordinary_pending_tasks_blocked_status(envelope_state)
     ):
         return {}
+    progress_action = mapping(current_progress.get("current_executable_owner_action"))
+    if progress_action:
+        projection_action = mapping(study.get("current_owner_action"))
+        if text(progress_action.get("action_type")) == text(projection_action.get("action_type")):
+            return _merge_projection_owner_action_identity(
+                progress_action=progress_action,
+                projection_action=projection_action,
+            )
+        return progress_action
     projection_action = mapping(study.get("current_owner_action"))
     if text(projection_action.get("source")) == "opl_current_control_state_action_queue":
         return {}

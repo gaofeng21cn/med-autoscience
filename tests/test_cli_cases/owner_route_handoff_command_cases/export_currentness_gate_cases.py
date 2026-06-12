@@ -135,6 +135,36 @@ def test_domain_handler_export_suppresses_ordinary_tasks_when_fresh_current_work
     )
 
 
+def test_export_current_owner_action_suppresses_residual_action_under_typed_blocker() -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export")
+
+    action = module._export_current_owner_action(
+        study={
+            "current_owner_action": {
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+            },
+        },
+        current_progress={
+            "current_executable_owner_action": {
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+            },
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+            },
+            "current_execution_envelope": {"state_kind": "typed_blocker"},
+        },
+    )
+
+    assert action == {}
+
+
 def test_domain_handler_export_suppresses_legacy_route_tasks_under_current_owner_action(
     tmp_path: Path,
     capsys,
