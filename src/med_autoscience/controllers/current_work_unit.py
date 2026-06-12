@@ -411,21 +411,39 @@ def _typed_blocker_work_unit(
         )
         resolved_work_unit_fingerprint = _text(resolved_basis.get("work_unit_fingerprint"))
         resolved_action_fingerprint = resolved_work_unit_fingerprint
-    return _current_work_unit(
-        status=status_kind,
-        owner=owner,
-        action_type=_text(blocker.get("action_type")) or _text(blocker.get("work_unit_id")),
+    enriched_blocker = _owner_answer_typed_blocker(
+        blocker=blocker,
+        action=resolved_action,
+        currentness_basis=resolved_basis,
         work_unit_id=_work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(blocker.get("next_work_unit")),
         work_unit_fingerprint=resolved_work_unit_fingerprint,
         action_fingerprint=resolved_action_fingerprint,
-        input_refs=_input_refs(blocker, source_refs),
-        required_output_contract=_required_output_contract(blocker),
-        acceptance_refs=_acceptance_refs(blocker),
+    )
+    owner_answer_binding = _owner_answer_binding(
+        blocker=enriched_blocker,
+        action=resolved_action,
         currentness_basis=resolved_basis,
+        progress_payload=progress_payload,
+        status_payload=status_payload,
+    )
+    return _current_work_unit(
+        status=status_kind,
+        owner=owner,
+        action_type=_text(enriched_blocker.get("action_type")) or _text(enriched_blocker.get("work_unit_id")),
+        work_unit_id=_work_unit_id(enriched_blocker.get("work_unit_id")) or _work_unit_id(
+            enriched_blocker.get("next_work_unit")
+        ),
+        work_unit_fingerprint=resolved_work_unit_fingerprint,
+        action_fingerprint=resolved_action_fingerprint,
+        input_refs=_input_refs(enriched_blocker, source_refs),
+        required_output_contract=_typed_blocker_required_output_contract(enriched_blocker),
+        acceptance_refs=_acceptance_refs(enriched_blocker),
+        currentness_basis=_mapping(enriched_blocker.get("currentness_basis")) or resolved_basis,
         state={
             "state_kind": status_kind,
             "source": source,
-            "typed_blocker": dict(blocker),
+            "typed_blocker": enriched_blocker,
+            "owner_answer_binding": owner_answer_binding,
             "blocker_type": blocker_type,
             "mas_owner_authority_preserved": True,
             "stale_queue_or_handoff_can_override": False,
@@ -434,6 +452,170 @@ def _typed_blocker_work_unit(
         progress_payload=progress_payload,
         action=resolved_action,
     )
+
+
+def _owner_answer_typed_blocker(
+    *,
+    blocker: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+    currentness_basis: Mapping[str, Any],
+    work_unit_id: str | None,
+    work_unit_fingerprint: str | None,
+    action_fingerprint: str | None,
+) -> dict[str, Any]:
+    payload = dict(blocker)
+    answer_ref = _typed_blocker_answer_ref(payload)
+    if answer_ref is not None:
+        payload["typed_blocker_ref"] = answer_ref
+        payload["latest_owner_answer_ref"] = answer_ref
+        payload["latest_owner_answer_kind"] = "typed_blocker"
+    basis = _typed_blocker_owner_answer_basis(
+        blocker=payload,
+        action=action,
+        currentness_basis=currentness_basis,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+        action_fingerprint=action_fingerprint,
+    )
+    if basis:
+        payload["currentness_basis"] = basis
+        payload["owner_route_currentness_basis"] = basis
+    payload["owner_answer_shape"] = "typed_blocker_ref"
+    return payload
+
+
+def _typed_blocker_answer_ref(blocker: Mapping[str, Any]) -> str | None:
+    closeout_refs = _text_items(blocker.get("closeout_refs"))
+    for ref in closeout_refs:
+        if ref.endswith("#typed_blocker"):
+            return ref
+    return _text(blocker.get("typed_blocker_ref")) or _text(blocker.get("source_ref"))
+
+
+def _typed_blocker_owner_answer_basis(
+    *,
+    blocker: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+    currentness_basis: Mapping[str, Any],
+    work_unit_id: str | None,
+    work_unit_fingerprint: str | None,
+    action_fingerprint: str | None,
+) -> dict[str, Any]:
+    action_payload = _mapping(action)
+    action_source_refs = _mapping(action_payload.get("source_refs"))
+    existing = _mapping(blocker.get("currentness_basis")) or _mapping(
+        blocker.get("owner_route_currentness_basis")
+    )
+    basis = {
+        key: value
+        for key, value in existing.items()
+        if value not in (None, "", [], {}) and key not in _OWNER_ANSWER_IDENTITY_BASIS_KEYS
+    }
+    basis.update(
+        {
+            key: value
+            for key, value in currentness_basis.items()
+            if value not in (None, "", [], {})
+        }
+    )
+    for key, value in {
+        "source_eval_id": _text(action_payload.get("source_eval_id"))
+        or _text(action_source_refs.get("source_eval_id")),
+        "truth_epoch": _text(action_payload.get("truth_epoch")),
+        "runtime_health_epoch": _text(action_payload.get("runtime_health_epoch")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": action_fingerprint,
+        "source_fingerprint": _text(blocker.get("source_fingerprint"))
+        or _text(action_payload.get("source_fingerprint")),
+        "idempotency_key": _text(blocker.get("idempotency_key")) or _text(action_payload.get("idempotency_key")),
+        "stage_attempt_id": _text(blocker.get("stage_attempt_id")) or _text(action_payload.get("stage_attempt_id")),
+    }.items():
+        if value is not None:
+            basis[key] = value
+    return {key: value for key, value in basis.items() if value not in (None, "", [], {})}
+
+
+_OWNER_ANSWER_IDENTITY_BASIS_KEYS = frozenset(
+    {
+        "source_eval_id",
+        "truth_epoch",
+        "runtime_health_epoch",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "action_fingerprint",
+        "source_fingerprint",
+        "idempotency_key",
+        "stage_attempt_id",
+    }
+)
+
+
+def _owner_answer_binding(
+    *,
+    blocker: Mapping[str, Any],
+    action: Mapping[str, Any] | None,
+    currentness_basis: Mapping[str, Any],
+    progress_payload: Mapping[str, Any],
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    typed_blocker_ref = _typed_blocker_answer_ref(blocker)
+    if typed_blocker_ref is None:
+        return None
+    basis = _mapping(blocker.get("currentness_basis")) or dict(currentness_basis)
+    return {
+        "answer_kind": "typed_blocker_ref",
+        "typed_blocker_ref": typed_blocker_ref,
+        "latest_owner_answer_ref": typed_blocker_ref,
+        "accepted_answer_shape": [
+            "domain_owner_receipt_ref",
+            "quality_gate_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_evidence_ref",
+        ],
+        "stage_id": _stage_id(action=action, progress=progress_payload, status=status_payload),
+        "work_unit_id": _text(basis.get("work_unit_id")) or _text(blocker.get("work_unit_id")),
+        "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint"))
+        or _text(blocker.get("work_unit_fingerprint")),
+        "source_fingerprint": _text(basis.get("source_fingerprint")) or _text(blocker.get("source_fingerprint")),
+        "idempotency_key": _text(basis.get("idempotency_key")) or _text(blocker.get("idempotency_key")),
+        "stage_attempt_id": _text(basis.get("stage_attempt_id")) or _text(blocker.get("stage_attempt_id")),
+        "currentness_basis": basis,
+        "stage_run_closeout_policy": {
+            "owner_answer_required": True,
+            "accepted_terminal_results": ["owner_receipt", "typed_blocker"],
+            "provider_completion_is_domain_completion": False,
+            "domain_ready_authorized": False,
+        },
+    }
+
+
+def _typed_blocker_required_output_contract(blocker: Mapping[str, Any]) -> dict[str, Any]:
+    contract = _required_output_contract(blocker)
+    typed_blocker_ref = _typed_blocker_answer_ref(blocker)
+    if typed_blocker_ref is None:
+        return contract
+    accepted = list(contract.get("accepted_terminal_results") or [])
+    for item in ("owner_receipt", "typed_blocker"):
+        if item not in accepted:
+            accepted.append(item)
+    return {
+        **contract,
+        "owner_receipt_required": contract.get("owner_receipt_required") is not False,
+        "typed_blocker_accepted": True,
+        "accepted_terminal_results": accepted,
+        "accepted_return_shape": [
+            "domain_owner_receipt_ref",
+            "quality_gate_receipt_ref",
+            "typed_blocker_ref",
+            "human_gate_ref",
+            "route_back_evidence_ref",
+        ],
+        "typed_blocker_ref": typed_blocker_ref,
+        "provider_completion_is_domain_completion": False,
+        "domain_ready_authorized": False,
+    }
 
 
 def _current_work_unit(

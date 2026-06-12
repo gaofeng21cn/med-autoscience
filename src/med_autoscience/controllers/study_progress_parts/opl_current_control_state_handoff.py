@@ -867,6 +867,13 @@ def _typed_closeout_blocker_projection(
         "action_fingerprint": _non_empty_text(typed_closeout.get("action_fingerprint"))
         or _non_empty_text(action.get("action_fingerprint"))
         or _non_empty_text(action.get("fingerprint")),
+        "source_fingerprint": _non_empty_text(typed_closeout.get("source_fingerprint"))
+        or _non_empty_text(action.get("source_fingerprint")),
+        "idempotency_key": _non_empty_text(typed_closeout.get("idempotency_key"))
+        or _non_empty_text(action.get("idempotency_key")),
+        "stage_attempt_id": _non_empty_text(typed_closeout.get("stage_attempt_id"))
+        or _non_empty_text(action.get("stage_attempt_id"))
+        or _non_empty_text(action.get("active_stage_attempt_id")),
         "source_ref": _non_empty_text(typed_closeout.get("receipt_ref"))
         or _non_empty_text(typed_closeout.get("source_path")),
         "typed_blocker_ref": _non_empty_text(typed_closeout.get("receipt_ref"))

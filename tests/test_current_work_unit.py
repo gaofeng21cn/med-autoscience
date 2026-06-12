@@ -495,6 +495,107 @@ def test_current_work_unit_projects_gate_consumption_action_over_opl_authorizati
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_binds_anti_loop_typed_blocker_as_owner_answer_ref() -> None:
+    module = _module()
+    typed_blocker_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+        "default_executor_execution/sat_82a2b164657c9b4d0c312db9.closeout.json#typed_blocker"
+    )
+    closeout_ref = typed_blocker_ref.removesuffix("#typed_blocker")
+    work_unit_id = "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    work_unit_fingerprint = "owner-route::write::manuscript_story_surface_delta_missing::run_quality_repair_batch"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "current_stage": "queued",
+            "truth_epoch": "truth-event-000040-1a4d1f9cfed66d87",
+            "publication_eval": {
+                "eval_id": (
+                    "publication-eval::002-dm-china-us-mortality-attribution::"
+                    "stage-attempt-sat_73cbcf44529e4c3ed3cd2e9a::2026-06-10T08:04:48+00:00"
+                )
+            },
+        },
+        actions=[
+            {
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "action_type": "run_quality_repair_batch",
+                "next_owner": "write",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "source_fingerprint": "mas_default_executor_source_77f18f8da1eb6e57139208c1",
+                "idempotency_key": "idem_cd631f437e1e7f3be53f386e",
+                "allowed_actions": ["run_quality_repair_batch"],
+            }
+        ],
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "schema_version": 1,
+            "blocker_kind": "anti_loop_budget_exhausted",
+            "reason": "anti_loop_budget_exhausted",
+            "blocker_id": "opl_execution_authorization_required",
+            "blocker_type": "anti_loop_budget_exhausted",
+            "owner": "one-person-lab",
+            "write_permitted": False,
+            "provider_completion_is_domain_completion": False,
+            "required_next_owner": "one-person-lab",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": work_unit_fingerprint,
+            "source_ref": closeout_ref,
+            "typed_blocker_ref": closeout_ref,
+            "closeout_refs": [closeout_ref, typed_blocker_ref],
+            "currentness_basis": {
+                "truth_epoch": "",
+                "runtime_health_epoch": "",
+                "source_eval_id": "",
+                "work_unit_fingerprint": "",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "owner_reason": "",
+            },
+        },
+        runtime_health={"runtime_health_epoch": "runtime-health-event-006909-9c3c5d628dfad1da"},
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == work_unit_fingerprint
+    assert work_unit["currentness_basis"]["work_unit_id"] == work_unit_id
+    assert work_unit["currentness_basis"]["truth_epoch"] == "truth-event-000040-1a4d1f9cfed66d87"
+    assert work_unit["currentness_basis"]["runtime_health_epoch"] == (
+        "runtime-health-event-006909-9c3c5d628dfad1da"
+    )
+    blocker = work_unit["state"]["typed_blocker"]
+    assert blocker["typed_blocker_ref"] == typed_blocker_ref
+    assert blocker["latest_owner_answer_ref"] == typed_blocker_ref
+    assert blocker["latest_owner_answer_kind"] == "typed_blocker"
+    assert blocker["owner_answer_shape"] == "typed_blocker_ref"
+    assert blocker["currentness_basis"]["work_unit_id"] == work_unit_id
+    assert blocker["currentness_basis"]["work_unit_fingerprint"] == work_unit_fingerprint
+    assert blocker["currentness_basis"]["source_fingerprint"] == "mas_default_executor_source_77f18f8da1eb6e57139208c1"
+    assert blocker["currentness_basis"]["idempotency_key"] == "idem_cd631f437e1e7f3be53f386e"
+    binding = work_unit["state"]["owner_answer_binding"]
+    assert binding["answer_kind"] == "typed_blocker_ref"
+    assert binding["typed_blocker_ref"] == typed_blocker_ref
+    assert binding["accepted_answer_shape"] == [
+        "domain_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+    assert binding["stage_run_closeout_policy"]["provider_completion_is_domain_completion"] is False
+    assert work_unit["required_output_contract"]["typed_blocker_ref"] == typed_blocker_ref
+    assert work_unit["required_output_contract"]["domain_ready_authorized"] is False
+
+
 def test_current_work_unit_projects_gate_consumption_action_over_stale_currentness_mismatch_blocker() -> None:
     module = _module()
     source_eval_id = (

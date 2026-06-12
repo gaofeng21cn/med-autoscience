@@ -487,6 +487,8 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
     stale_fingerprint = "publication-blockers::497d1260db522f01"
     next_work_unit = "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
     next_fingerprint = "owner-route::write::manuscript_story_surface_delta_missing::run_quality_repair_batch"
+    source_fingerprint = "mas_default_executor_source_77f18f8da1eb6e57139208c1"
+    idempotency_key = "idem_cd631f437e1e7f3be53f386e"
     handoff_path = (
         profile.workspace_root
         / "runtime"
@@ -590,6 +592,8 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
             "stage_attempt_id": "sat_82",
             "stage_id": "domain_owner/default-executor-dispatch",
             "generated_at": "2026-06-11T20:11:08Z",
+            "source_fingerprint": source_fingerprint,
+            "idempotency_key": idempotency_key,
             "status": "closed_with_typed_blocker",
             "outcome": "repeat_suppressed_with_typed_blocker",
             "action_type": "run_quality_repair_batch",
@@ -697,12 +701,27 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
     assert handoff["typed_blocker"]["owner"] == "one-person-lab"
     assert handoff["typed_blocker"]["work_unit_id"] == next_work_unit
     assert handoff["typed_blocker"]["work_unit_fingerprint"] == next_fingerprint
+    assert handoff["typed_blocker"]["source_fingerprint"] == source_fingerprint
+    assert handoff["typed_blocker"]["idempotency_key"] == idempotency_key
+    assert handoff["typed_blocker"]["stage_attempt_id"] == "sat_82"
     assert handoff["consumed_action_queue"][0]["work_unit_id"] == stale_work_unit
     assert handoff["action_queue"] == []
     assert current_work_unit["status"] == "typed_blocker"
     assert current_work_unit["owner"] == "one-person-lab"
     assert current_work_unit["work_unit_id"] == next_work_unit
+    assert current_work_unit["state"]["typed_blocker"]["currentness_basis"]["source_fingerprint"] == (
+        source_fingerprint
+    )
+    assert current_work_unit["state"]["typed_blocker"]["currentness_basis"]["idempotency_key"] == (
+        idempotency_key
+    )
+    assert current_work_unit["state"]["typed_blocker"]["currentness_basis"]["stage_attempt_id"] == "sat_82"
+    assert current_work_unit["state"]["owner_answer_binding"]["source_fingerprint"] == source_fingerprint
+    assert current_work_unit["state"]["owner_answer_binding"]["idempotency_key"] == idempotency_key
+    assert current_work_unit["state"]["owner_answer_binding"]["stage_attempt_id"] == "sat_82"
     assert current_work_unit["state"]["blocker_type"] == "anti_loop_budget_exhausted"
+    assert result["current_execution_envelope"]["typed_blocker"]["source_fingerprint"] == source_fingerprint
+    assert result["current_execution_envelope"]["typed_blocker"]["idempotency_key"] == idempotency_key
     assert result["current_executable_owner_action"] is None
     assert result["current_execution_evidence"]["action_queue"] == []
 
