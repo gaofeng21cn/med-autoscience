@@ -1053,7 +1053,11 @@ def test_domain_health_diagnostic_dry_run_aggregates_gate_admission_candidates_f
     assert [candidate["study_id"] for candidate in candidates] == [dm002]
     assert [candidate["action_type"] for candidate in candidates] == ["run_gate_clearing_batch"]
     assert [candidate["work_unit_fingerprint"] for candidate in candidates] == [dm002_fingerprint]
-    assert dm003_fingerprint in result["action_fingerprints"]
+    assert result["action_fingerprints"] == [dm002_fingerprint]
+    assert dm003_fingerprint not in result["action_fingerprints"]
+    assert result["provider_admission_current_control_state"]["stage_route_arbiter"][
+        "decision_counts"
+    ] == {"pending_provider_admission": 1}
 
 
 def test_provider_probe_requires_running_attempt_fingerprint_match() -> None:

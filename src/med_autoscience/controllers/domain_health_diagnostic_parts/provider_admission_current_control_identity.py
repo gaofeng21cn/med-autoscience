@@ -183,6 +183,207 @@ def candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def candidate_with_progress_currentness_identity(
+    candidate: Mapping[str, Any],
+    *,
+    scanned_studies_by_id: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    payload = dict(candidate)
+    study_id = _non_empty_text(payload.get("study_id"))
+    study = _mapping(scanned_studies_by_id.get(study_id)) if study_id is not None else {}
+    current_action = _mapping(study.get("current_executable_owner_action"))
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    basis = _candidate_progress_currentness_basis(
+        payload,
+        current_action=current_action,
+        current_work_unit=current_work_unit,
+    )
+    closeout_basis = _candidate_closeout_currentness_basis(payload, study=study)
+    if closeout_basis:
+        basis = {
+            **closeout_basis,
+            **basis,
+            "truth_epoch": _non_empty_text(basis.get("truth_epoch"))
+            or _non_empty_text(closeout_basis.get("truth_epoch")),
+            "runtime_health_epoch": _non_empty_text(basis.get("runtime_health_epoch"))
+            or _non_empty_text(closeout_basis.get("runtime_health_epoch")),
+            "source_eval_id": _non_empty_text(basis.get("source_eval_id"))
+            or _non_empty_text(closeout_basis.get("source_eval_id")),
+        }
+    if basis:
+        payload["currentness_basis"] = basis
+    if _non_empty_text(payload.get("dispatch_path")) is None and _non_empty_text(
+        payload.get("dispatch_ref")
+    ) is None:
+        dispatch_ref = _progress_currentness_dispatch_ref(
+            payload,
+            current_action=current_action,
+        )
+        if dispatch_ref is None and basis:
+            dispatch_ref = _closeout_precedence_dispatch_ref(payload)
+        if dispatch_ref is not None:
+            payload["dispatch_ref"] = dispatch_ref
+    return payload
+
+
+def _candidate_closeout_currentness_basis(
+    candidate: Mapping[str, Any],
+    *,
+    study: Mapping[str, Any],
+) -> dict[str, Any]:
+    for receipt in accepted_closeout_receipts(study):
+        basis = closeout_owner_route_basis(receipt)
+        if not basis:
+            continue
+        closeout_identity = {
+            "action_type": _non_empty_text(receipt.get("action_type"))
+            or _non_empty_text(candidate.get("action_type")),
+            "work_unit_id": _non_empty_text(receipt.get("work_unit_id"))
+            or _non_empty_text(basis.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(receipt.get("work_unit_fingerprint"))
+            or _non_empty_text(receipt.get("action_fingerprint"))
+            or _non_empty_text(basis.get("work_unit_fingerprint")),
+            "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint"))
+            or _non_empty_text(receipt.get("work_unit_fingerprint"))
+            or _non_empty_text(basis.get("work_unit_fingerprint")),
+        }
+        if _identity_core_matches(closeout_identity, identity=candidate):
+            return dict(basis)
+    return {}
+
+
+def _identity_core_matches(
+    payload: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    expected_action = _non_empty_text(identity.get("action_type"))
+    if expected_action is not None and _non_empty_text(payload.get("action_type")) != expected_action:
+        return False
+    expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
+    if (
+        expected_work_unit is not None
+        and _non_empty_text(payload.get("work_unit_id")) != expected_work_unit
+    ):
+        return False
+    expected_fingerprint = _non_empty_text(identity.get("work_unit_fingerprint")) or _non_empty_text(
+        identity.get("action_fingerprint")
+    )
+    payload_fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
+        payload.get("action_fingerprint")
+    )
+    if expected_fingerprint is None:
+        return True
+    return payload_fingerprint == expected_fingerprint
+
+
+def _candidate_progress_currentness_basis(
+    candidate: Mapping[str, Any],
+    *,
+    current_action: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+) -> dict[str, Any]:
+    existing = _mapping(candidate.get("currentness_basis"))
+    action_matches = _identity_core_matches(current_action, identity=candidate)
+    work_unit_matches = _identity_core_matches(current_work_unit, identity=candidate)
+    action_basis = (
+        _mapping(current_action.get("owner_route_currentness_basis"))
+        or _mapping(current_action.get("currentness_basis"))
+        if action_matches
+        else {}
+    )
+    work_unit_basis = (
+        _mapping(current_work_unit.get("currentness_basis")) if work_unit_matches else {}
+    )
+    basis = {
+        **dict(work_unit_basis),
+        **dict(action_basis),
+        **dict(existing),
+    }
+    for key, value in {
+        "work_unit_id": _non_empty_text(basis.get("work_unit_id"))
+        or _non_empty_text(candidate.get("work_unit_id"))
+        or (_non_empty_text(current_action.get("work_unit_id")) if action_matches else None)
+        or (_non_empty_text(current_work_unit.get("work_unit_id")) if work_unit_matches else None),
+        "work_unit_fingerprint": _non_empty_text(basis.get("work_unit_fingerprint"))
+        or _non_empty_text(candidate.get("work_unit_fingerprint"))
+        or _non_empty_text(candidate.get("action_fingerprint"))
+        or (_non_empty_text(current_action.get("work_unit_fingerprint")) if action_matches else None)
+        or (_non_empty_text(current_action.get("action_fingerprint")) if action_matches else None)
+        or (_non_empty_text(current_work_unit.get("work_unit_fingerprint")) if work_unit_matches else None)
+        or (_non_empty_text(current_work_unit.get("action_fingerprint")) if work_unit_matches else None),
+        "source_eval_id": _non_empty_text(basis.get("source_eval_id"))
+        or _non_empty_text(candidate.get("source_eval_id"))
+        or (_non_empty_text(current_action.get("source_eval_id")) if action_matches else None),
+        "truth_epoch": _non_empty_text(basis.get("truth_epoch"))
+        or _non_empty_text(candidate.get("truth_epoch"))
+        or (_non_empty_text(current_action.get("truth_epoch")) if action_matches else None),
+        "runtime_health_epoch": _non_empty_text(basis.get("runtime_health_epoch"))
+        or _non_empty_text(candidate.get("runtime_health_epoch"))
+        or (_non_empty_text(current_action.get("runtime_health_epoch")) if action_matches else None),
+    }.items():
+        if value is not None:
+            basis[key] = value
+    basis = {key: value for key, value in basis.items() if value not in (None, "", [], {})}
+    if basis_conflicts_with_identity(basis, identity=candidate):
+        return {}
+    return basis
+
+
+def basis_conflicts_with_identity(
+    basis: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    for basis_key, identity_keys in {
+        "work_unit_id": ("work_unit_id",),
+        "work_unit_fingerprint": ("work_unit_fingerprint", "action_fingerprint"),
+    }.items():
+        basis_value = _non_empty_text(basis.get(basis_key))
+        identity_value = next(
+            (
+                text
+                for key in identity_keys
+                if (text := _non_empty_text(identity.get(key))) is not None
+            ),
+            None,
+        )
+        if basis_value is not None and identity_value is not None and basis_value != identity_value:
+            return True
+    return False
+
+
+def _progress_currentness_dispatch_ref(
+    candidate: Mapping[str, Any],
+    *,
+    current_action: Mapping[str, Any],
+) -> str | None:
+    source_ref = _non_empty_text(candidate.get("execution_ref")) or _non_empty_text(
+        current_action.get("source_ref")
+    )
+    source = _non_empty_text(current_action.get("source")) or _non_empty_text(candidate.get("source"))
+    route_key = route_identity_key(candidate)
+    if source_ref is None and source is None and route_key is None:
+        return None
+    return "::".join(
+        item
+        for item in (
+            "study-progress-current-owner-action",
+            route_key,
+            source,
+            source_ref,
+        )
+        if item is not None
+    )
+
+
+def _closeout_precedence_dispatch_ref(candidate: Mapping[str, Any]) -> str | None:
+    route_key = route_identity_key(candidate)
+    if route_key is None:
+        return None
+    return f"terminal-closeout-precedence::{route_key}"
+
+
 def weak_provider_admission_identity(identity: Mapping[str, Any]) -> dict[str, Any]:
     missing: list[str] = []
     for key in ("study_id", "action_type", "work_unit_id"):
@@ -221,9 +422,109 @@ def currentness_basis_strong(basis: Mapping[str, Any]) -> bool:
     )
 
 
+def accepted_closeout_receipts(study: Mapping[str, Any]) -> list[dict[str, Any]]:
+    receipts: list[dict[str, Any]] = []
+    for key in (
+        "default_executor_execution_receipt_consumption",
+        "opl_provider_attempt",
+        "terminal_closeout_precedence_evidence",
+        "stage_attempt_closeout",
+        "latest_stage_attempt_closeout",
+        "latest_terminal_stage",
+    ):
+        _append_closeout_receipt(receipts, _mapping(study.get(key)))
+    for key in (
+        "accepted_closeout_evidence",
+        "stage_attempt_closeouts",
+        "default_executor_execution_receipt_consumptions",
+        "stage_attempt_closeout_receipts",
+    ):
+        for item in study.get(key) or []:
+            _append_closeout_receipt(receipts, _mapping(item))
+    return receipts
+
+
+def _append_closeout_receipt(receipts: list[dict[str, Any]], receipt: Mapping[str, Any]) -> None:
+    normalized = _normalized_closeout_receipt(receipt)
+    if normalized:
+        receipts.append(normalized)
+
+
+def _normalized_closeout_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    if not receipt:
+        return {}
+    basis = closeout_owner_route_basis(receipt)
+    typed_blocker = _mapping(receipt.get("typed_blocker"))
+    normalized = dict(receipt)
+    for key, value in {
+        "work_unit_id": _non_empty_text(receipt.get("work_unit_id"))
+        or _non_empty_text(basis.get("work_unit_id")),
+        "work_unit_fingerprint": _non_empty_text(receipt.get("work_unit_fingerprint"))
+        or _non_empty_text(receipt.get("action_fingerprint"))
+        or _non_empty_text(typed_blocker.get("action_fingerprint"))
+        or _non_empty_text(basis.get("work_unit_fingerprint")),
+        "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint"))
+        or _non_empty_text(receipt.get("work_unit_fingerprint"))
+        or _non_empty_text(typed_blocker.get("action_fingerprint"))
+        or _non_empty_text(basis.get("work_unit_fingerprint")),
+        "source_eval_id": _non_empty_text(receipt.get("source_eval_id"))
+        or _non_empty_text(basis.get("source_eval_id")),
+        "truth_epoch": _non_empty_text(receipt.get("truth_epoch"))
+        or _non_empty_text(basis.get("truth_epoch")),
+        "runtime_health_epoch": _non_empty_text(receipt.get("runtime_health_epoch"))
+        or _non_empty_text(basis.get("runtime_health_epoch")),
+    }.items():
+        if value is not None:
+            normalized[key] = value
+    if basis and not _mapping(normalized.get("owner_route")):
+        normalized["owner_route"] = {
+            "work_unit_fingerprint": _non_empty_text(normalized.get("work_unit_fingerprint")),
+            "source_eval_id": _non_empty_text(normalized.get("source_eval_id")),
+            "truth_epoch": _non_empty_text(normalized.get("truth_epoch")),
+            "runtime_health_epoch": _non_empty_text(normalized.get("runtime_health_epoch")),
+            "source_refs": {
+                "owner_route_currentness_basis": dict(basis),
+                "work_unit_id": _non_empty_text(normalized.get("work_unit_id")),
+                "work_unit_fingerprint": _non_empty_text(normalized.get("work_unit_fingerprint")),
+                "source_eval_id": _non_empty_text(normalized.get("source_eval_id")),
+            },
+        }
+    return normalized
+
+
+def closeout_owner_route_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    for value in (
+        receipt.get("owner_route_basis"),
+        receipt.get("owner_route_currentness"),
+        _mapping(receipt.get("owner_route")).get("source_refs", {}),
+        _mapping(_mapping(receipt.get("owner_route")).get("source_refs")).get(
+            "owner_route_currentness_basis"
+        ),
+        receipt.get("canonical_work_unit_identity"),
+        receipt.get("owner_route_currentness_basis"),
+    ):
+        basis = _mapping(value)
+        if any(
+            _non_empty_text(basis.get(key)) is not None
+            for key in (
+                "work_unit_id",
+                "work_unit_fingerprint",
+                "source_eval_id",
+                "truth_epoch",
+                "runtime_health_epoch",
+            )
+        ):
+            return dict(basis)
+    return {}
+
+
 __all__ = [
+    "accepted_closeout_receipts",
     "attempt_idempotency_key",
+    "basis_conflicts_with_identity",
     "candidate_with_identity",
+    "candidate_with_progress_currentness_identity",
+    "closeout_owner_route_basis",
     "currentness_basis_strong",
     "provider_admission_current_control_action",
     "provider_admission_current_control_study",

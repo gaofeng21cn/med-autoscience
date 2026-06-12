@@ -18,10 +18,13 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     text_items as _text_items,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_identity import (
+    current_action_currentness_basis as _current_action_currentness_basis,
     current_identity_is_opl_authorization_typed_blocker as _current_identity_is_opl_authorization_typed_blocker,
     current_work_unit_opl_authorization_required as _current_work_unit_opl_authorization_required,
     matches_current_action as _matches_current_action,
     matches_current_action_without_fingerprint as _matches_current_action_without_fingerprint,
+    owner_route_currentness_basis_complete as _owner_route_currentness_basis_complete,
+    status_requires_current_identity as _status_requires_current_identity,
     work_unit_ids_equivalent_for_action as _work_unit_ids_equivalent_for_action,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
@@ -513,13 +516,27 @@ def provider_admission_candidate_from_current_control_action(
     basis = _mapping(candidate.get("currentness_basis")) or _mapping(
         _mapping(candidate.get("owner_route")).get("source_refs", {})
     ).get("owner_route_currentness_basis")
+    current_identity_basis = _mapping(current_identity.get("currentness_basis"))
     if isinstance(basis, Mapping):
         candidate["currentness_basis"] = {
+            **dict(current_identity_basis),
             **dict(basis),
             "work_unit_id": _non_empty_text(basis.get("work_unit_id")) or work_unit_id,
             "work_unit_fingerprint": _non_empty_text(basis.get("work_unit_fingerprint"))
             or action_fingerprint,
         }
+        if not _owner_route_currentness_basis_complete(candidate["currentness_basis"]):
+            candidate["currentness_basis"] = {
+                **dict(candidate["currentness_basis"]),
+                "truth_epoch": _non_empty_text(candidate["currentness_basis"].get("truth_epoch"))
+                or _non_empty_text(current_identity_basis.get("truth_epoch")),
+                "runtime_health_epoch": _non_empty_text(
+                    candidate["currentness_basis"].get("runtime_health_epoch")
+                )
+                or _non_empty_text(current_identity_basis.get("runtime_health_epoch")),
+                "source_eval_id": _non_empty_text(candidate["currentness_basis"].get("source_eval_id"))
+                or _non_empty_text(current_identity_basis.get("source_eval_id")),
+            }
     candidate["source_refs"] = {
         **_mapping(candidate.get("source_refs")),
         "current_control_ref": current_control_ref,
@@ -782,8 +799,10 @@ def provider_admission_candidate_from_execution(
     currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
         _mapping(_mapping(execution.get("prompt_contract")).get("owner_route_currentness_basis"))
     )
-    if currentness_basis:
+    current_identity_basis = _mapping(current_identity.get("currentness_basis"))
+    if currentness_basis or current_identity_basis:
         currentness_basis = {
+            **dict(current_identity_basis),
             **dict(currentness_basis),
             "work_unit_id": _non_empty_text(currentness_basis.get("work_unit_id")) or work_unit_id,
             "work_unit_fingerprint": _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
@@ -878,6 +897,12 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
     fingerprints = list(dict.fromkeys(fingerprints))
     if fingerprint is None and fingerprints:
         fingerprint = fingerprints[0]
+    basis = _current_action_currentness_basis(
+        status_payload=status_payload,
+        current=current,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=fingerprint,
+    )
     return {
         "action_ids": action_ids,
         "work_unit_id": work_unit_id,
@@ -886,6 +911,7 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
         "source_ref": source_ref,
         "source": _non_empty_text(current.get("source")),
         "next_owner": _non_empty_text(current.get("next_owner")),
+        "currentness_basis": basis if basis else None,
     }
 
 
@@ -947,35 +973,6 @@ def _current_control_action_identity(action: Mapping[str, Any]) -> dict[str, Any
         or _non_empty_text(action.get("owner"))
         or _non_empty_text(owner_route.get("next_owner")),
     }
-
-
-def _owner_route_currentness_basis_complete(currentness_basis: Mapping[str, Any]) -> bool:
-    if _non_empty_text(currentness_basis.get("work_unit_id")) is None:
-        return False
-    if _non_empty_text(currentness_basis.get("work_unit_fingerprint")) is None:
-        return False
-    if _non_empty_text(currentness_basis.get("truth_epoch")) is None:
-        return False
-    return (
-        _non_empty_text(currentness_basis.get("runtime_health_epoch")) is not None
-        or _non_empty_text(currentness_basis.get("source_eval_id")) is not None
-    )
-
-
-def _status_requires_current_identity(status_payload: Mapping[str, Any]) -> bool:
-    if _mapping(status_payload.get("current_work_unit")):
-        return True
-    if _mapping(status_payload.get("current_executable_owner_action")):
-        return True
-    envelope = _mapping(status_payload.get("current_execution_envelope"))
-    state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(envelope.get("execution_state_kind"))
-    if state_kind in {"executable_owner_action", "running_provider_attempt"}:
-        return True
-    if _mapping(status_payload.get("opl_current_control_state_handoff")):
-        return True
-    if _mapping(status_payload.get("opl_current_control_state")):
-        return True
-    return False
 
 
 def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[str, Any]:

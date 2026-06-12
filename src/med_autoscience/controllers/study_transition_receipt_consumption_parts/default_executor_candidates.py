@@ -194,6 +194,8 @@ def _execution_from_stage_closeout(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
         "action_fingerprint": work_unit_fingerprint,
+        "raw_closeout_work_unit_fingerprint_present": _text(closeout.get("work_unit_fingerprint")) is not None,
+        "raw_closeout_action_fingerprint_present": _text(closeout.get("action_fingerprint")) is not None,
         "source_eval_id": source_eval_id,
         "execution_status": _stage_closeout_execution_status(closeout),
         "execution_id": _text(closeout.get("execution_id"))

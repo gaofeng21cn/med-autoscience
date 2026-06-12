@@ -543,6 +543,269 @@ def test_provider_admission_current_control_suppresses_record_only_owner_refs_cl
     assert decision["evidence_status"] == "closed_with_domain_owner_refs"
 
 
+def test_provider_admission_current_control_suppresses_record_only_owner_refs_closeout_without_fingerprint(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_fingerprint = "sha256:current-ai-reviewer"
+    candidate = _provider_candidate(profile, study_id, action_fingerprint=action_fingerprint)
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-12T12:45:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "running_provider_attempt": False,
+                "current_work_unit": {
+                    "status": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": candidate["work_unit_id"],
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "next_work_unit": candidate["work_unit_id"],
+                },
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "status": "closed_with_domain_owner_refs",
+                        "stage_attempt_id": "sat-record-only-without-fingerprint",
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "work_unit_id": candidate["work_unit_id"],
+                        "owner_result": {
+                            "status": "closed_with_domain_owner_refs",
+                            "owner": "ai_reviewer",
+                            "owner_receipt_ref": (
+                                "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                                "supervision/consumer/default_executor_execution/"
+                                "sat-record-only-without-fingerprint.closeout.json#owner_receipt"
+                            ),
+                            "publication_eval_record_ref": (
+                                "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                                "publication_eval/ai_reviewer_responses/"
+                                "20260612T123416Z_publication_eval_record.json"
+                            ),
+                            "publication_eval_surface": "not_written",
+                            "record_only_surface": True,
+                            "quality_authorized": False,
+                            "submission_authorized": False,
+                        },
+                    }
+                ],
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["stage_route_arbiter"]["pending_count"] == 0
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "accepted_closeout_consumed_pending": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "accepted_closeout_consumed_pending"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["evidence_status"] == "closed_with_domain_owner_refs"
+
+
+def test_provider_admission_currentness_basis_not_inherited_from_different_current_action(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "work_unit_fingerprint": "sha256:stale-ai-reviewer",
+        "action_fingerprint": "sha256:stale-ai-reviewer",
+        "dispatch_path": str(
+            profile.studies_root
+            / study_id
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_dispatches"
+            / "return_to_ai_reviewer_workflow.json"
+        ),
+        "next_executable_owner": "ai_reviewer",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-12T13:20:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "running_provider_attempt": False,
+                "current_executable_owner_action": {
+                    "status": "ready",
+                    "next_owner": "write",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "currentness_basis": {
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                        "source_eval_id": "publication-eval::003::fresh-write",
+                        "truth_epoch": "truth::fresh",
+                    },
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "write",
+                    "next_work_unit": "medical_prose_write_repair",
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "weak_provider_admission_identity": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "weak_provider_admission_identity"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+
+
+def test_fingerprintless_stop_loss_closeout_does_not_consume_new_source_eval_identity(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    fingerprint = "sha256:current-ai-reviewer"
+    candidate = _provider_candidate(profile, study_id, action_fingerprint=fingerprint)
+    candidate["currentness_basis"] = {
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "source_eval_id": "publication-eval::003::new",
+        "truth_epoch": "truth::shared",
+        "runtime_health_epoch": "runtime::shared",
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-12T13:30:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "running_provider_attempt": False,
+                "current_work_unit": {
+                    "status": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "currentness_basis": dict(candidate["currentness_basis"]),
+                },
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "status": "closed_with_typed_domain_blocker",
+                        "stage_closeout_status": "blocked",
+                        "outcome": "repeat_suppressed_with_typed_blocker",
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "work_unit_id": work_unit_id,
+                        "typed_blocker_reason": "anti_loop_budget_exhausted",
+                        "owner_route_currentness_basis": {
+                            "work_unit_id": work_unit_id,
+                            "source_eval_id": "publication-eval::003::old",
+                            "truth_epoch": "truth::shared",
+                            "runtime_health_epoch": "runtime::shared",
+                        },
+                    }
+                ],
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+    assert result["stage_route_arbiter_decisions"][0]["decision"] == "pending_provider_admission"
+
+
+def test_provider_admission_report_accepts_record_only_owner_refs_closeout_without_fingerprint() -> None:
+    report = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    identity = {
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "work_unit_fingerprint": "sha256:current-ai-reviewer",
+        "action_fingerprint": "sha256:current-ai-reviewer",
+    }
+
+    closeout = report._closeout_evidence_with_identity(
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "status": "closed_with_domain_owner_refs",
+            "stage_attempt_id": "sat-record-only-without-fingerprint",
+            "action_type": "return_to_ai_reviewer_workflow",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            "owner_result": {
+                "status": "closed_with_domain_owner_refs",
+                "owner": "ai_reviewer",
+                "owner_receipt_ref": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                    "supervision/consumer/default_executor_execution/"
+                    "sat-record-only-without-fingerprint.closeout.json#owner_receipt"
+                ),
+                "publication_eval_record_ref": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                    "publication_eval/ai_reviewer_responses/20260612T123416Z_publication_eval_record.json"
+                ),
+                "publication_eval_surface": "not_written",
+                "record_only_surface": True,
+                "quality_authorized": False,
+                "submission_authorized": False,
+            },
+        },
+        identity=identity,
+    )
+
+    assert closeout.get("identity_binding_status") != "inferred_from_current_work_unit"
+    assert report._closeout_identity_matches_current(closeout, identity=identity)
+
+
 def test_provider_admission_current_control_retains_pending_when_closeout_identity_was_inferred(
     tmp_path: Path,
 ) -> None:
@@ -741,3 +1004,65 @@ def test_provider_admission_current_control_retains_pending_when_legacy_closeout
         "pending_provider_admission": 1,
     }
     assert result["stage_route_arbiter_decisions"][0]["decision"] == "pending_provider_admission"
+
+
+def test_provider_admission_candidate_inherits_current_action_currentness_basis() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_type = "run_quality_repair_batch"
+    work_unit_id = "medical_prose_write_repair"
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    status_payload = {
+        "study_id": study_id,
+        "study_progress_generated_at": "2026-06-12T09:30:00+00:00",
+        "current_executable_owner_action": {
+            "status": "ready",
+            "next_owner": "write",
+            "action_type": action_type,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "source_eval_id": "publication-eval::003::current-ai-reviewer-record",
+            "truth_epoch": "truth::003::current",
+            "runtime_health_epoch": "runtime::003::current",
+            "allowed_actions": [action_type],
+        },
+    }
+    execution = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "dispatch_path": (
+            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+            "consumer/default_executor_dispatches/run_quality_repair_batch.json"
+        ),
+        "execution_status": "handoff_ready",
+        "provider_attempt_or_lease_required": True,
+        "owner_route_current": True,
+        "next_executable_owner": "write",
+        "owner_route": {
+            "source_refs": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+            },
+        },
+    }
+
+    [candidate] = module.provider_admission_candidates_from_execution_payload(
+        {"executions": [execution]},
+        execution_ref="studies/003/default_executor_execution/latest.json",
+        status_payload=status_payload,
+    )
+
+    assert candidate["currentness_basis"] == {
+        "source_eval_id": "publication-eval::003::current-ai-reviewer-record",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+        "truth_epoch": "truth::003::current",
+        "runtime_health_epoch": "runtime::003::current",
+    }

@@ -38,6 +38,67 @@ def current_identity_is_opl_authorization_typed_blocker(identity: Mapping[str, A
     return identity.get("opl_execution_authorization_required") is True
 
 
+def current_action_currentness_basis(
+    *,
+    status_payload: Mapping[str, Any],
+    current: Mapping[str, Any],
+    work_unit_id: str | None,
+    work_unit_fingerprint: str | None,
+) -> dict[str, Any]:
+    existing = _mapping(current.get("owner_route_currentness_basis")) or _mapping(
+        current.get("currentness_basis")
+    )
+    generated_at = _non_empty_text(status_payload.get("study_progress_generated_at")) or _non_empty_text(
+        status_payload.get("generated_at")
+    )
+    basis = {
+        **dict(existing),
+        "source_eval_id": _non_empty_text(existing.get("source_eval_id"))
+        or _non_empty_text(current.get("source_eval_id")),
+        "work_unit_id": _non_empty_text(existing.get("work_unit_id")) or work_unit_id,
+        "work_unit_fingerprint": _non_empty_text(existing.get("work_unit_fingerprint"))
+        or work_unit_fingerprint,
+        "truth_epoch": _non_empty_text(existing.get("truth_epoch"))
+        or _non_empty_text(current.get("truth_epoch"))
+        or generated_at,
+        "runtime_health_epoch": _non_empty_text(existing.get("runtime_health_epoch"))
+        or _non_empty_text(current.get("runtime_health_epoch"))
+        or generated_at,
+    }
+    return {key: value for key, value in basis.items() if value is not None}
+
+
+def owner_route_currentness_basis_complete(currentness_basis: Mapping[str, Any]) -> bool:
+    if _non_empty_text(currentness_basis.get("work_unit_id")) is None:
+        return False
+    if _non_empty_text(currentness_basis.get("work_unit_fingerprint")) is None:
+        return False
+    if _non_empty_text(currentness_basis.get("truth_epoch")) is None:
+        return False
+    return (
+        _non_empty_text(currentness_basis.get("runtime_health_epoch")) is not None
+        or _non_empty_text(currentness_basis.get("source_eval_id")) is not None
+    )
+
+
+def status_requires_current_identity(status_payload: Mapping[str, Any]) -> bool:
+    if _mapping(status_payload.get("current_work_unit")):
+        return True
+    if _mapping(status_payload.get("current_executable_owner_action")):
+        return True
+    envelope = _mapping(status_payload.get("current_execution_envelope"))
+    state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(
+        envelope.get("execution_state_kind")
+    )
+    if state_kind in {"executable_owner_action", "running_provider_attempt"}:
+        return True
+    if _mapping(status_payload.get("opl_current_control_state_handoff")):
+        return True
+    if _mapping(status_payload.get("opl_current_control_state")):
+        return True
+    return False
+
+
 def matches_current_action(
     *,
     action_type: str,

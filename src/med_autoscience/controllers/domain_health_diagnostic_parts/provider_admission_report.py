@@ -58,6 +58,11 @@ def materialize_report_provider_admission_current_control_state(
         progress_currentness=progress_currentness,
         scanned_studies=scanned_studies,
     )
+    scanned_studies = _with_candidate_root_closeout_scans(
+        profile=profile,
+        candidates=candidates,
+        scanned_studies=scanned_studies,
+    )
     candidates = _merge_provider_admission_candidates(
         candidates,
         _provider_admission_candidates_from_progress_currentness(
@@ -225,6 +230,53 @@ def _provider_admission_scanned_report_studies(
     return studies
 
 
+def _with_candidate_root_closeout_scans(
+    *,
+    profile: WorkspaceProfile,
+    candidates: list[dict[str, Any]],
+    scanned_studies: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    studies = [dict(study) for study in scanned_studies]
+    seen_study_ids = {
+        study_id
+        for study in studies
+        if (study_id := _non_empty_text(study.get("study_id"))) is not None
+    }
+    for candidate in candidates:
+        study_id = _non_empty_text(candidate.get("study_id"))
+        if study_id is None or study_id in seen_study_ids:
+            continue
+        closeout_evidence = _study_root_closeout_evidence(
+            study_root=Path(profile.studies_root) / study_id,
+            identity=candidate,
+        )
+        if not closeout_evidence:
+            continue
+        studies.append(
+            {
+                "study_id": study_id,
+                "quest_id": _non_empty_text(candidate.get("quest_id")) or study_id,
+                "handoff_scan_status": "scanned_no_provider_admission",
+                "provider_admission_pending_count": 0,
+                "running_provider_attempt": False,
+                "action_queue": [],
+                "accepted_closeout_evidence": closeout_evidence,
+                "current_execution_envelope": {
+                    "state_kind": "terminal_closeout_observed",
+                    "owner": _non_empty_text(candidate.get("next_executable_owner"))
+                    or _non_empty_text(candidate.get("recommended_owner"))
+                    or _non_empty_text(candidate.get("request_owner")),
+                    "next_work_unit": _non_empty_text(candidate.get("work_unit_id")),
+                    "typed_blocker": None,
+                    "parked_state": None,
+                    "source": "candidate_root_closeout_evidence",
+                },
+            }
+        )
+        seen_study_ids.add(study_id)
+    return studies
+
+
 def _progress_currentness_closeout_evidence(
     payload: Mapping[str, Any],
     *,
@@ -387,11 +439,34 @@ def _closeout_has_native_current_identity(closeout: Mapping[str, Any]) -> bool:
     if _mapping(closeout.get("owner_route_currentness_basis")):
         return True
     work_unit = _non_empty_text(closeout.get("work_unit_id"))
+    if (
+        work_unit is not None
+        and _non_empty_text(closeout.get("action_type")) is not None
+        and _closeout_has_record_only_owner_ref(closeout)
+    ):
+        return True
     fingerprint = _non_empty_text(closeout.get("work_unit_fingerprint")) or _non_empty_text(
         closeout.get("action_fingerprint")
     )
     source_eval_id = _non_empty_text(closeout.get("source_eval_id"))
     return work_unit is not None and (fingerprint is not None or source_eval_id is not None)
+
+
+def _closeout_has_record_only_owner_ref(closeout: Mapping[str, Any]) -> bool:
+    owner_result = _mapping(closeout.get("owner_result"))
+    owner_receipt = _mapping(closeout.get("owner_receipt"))
+    return any(
+        _non_empty_text(value) is not None
+        for value in (
+            closeout.get("owner_receipt_ref"),
+            closeout.get("record_ref"),
+            closeout.get("publication_eval_record_ref"),
+            owner_receipt.get("owner_receipt_ref"),
+            owner_receipt.get("publication_eval_record_ref"),
+            owner_result.get("owner_receipt_ref"),
+            owner_result.get("publication_eval_record_ref"),
+        )
+    )
 
 
 def _closeout_identity_matches_current(
@@ -420,7 +495,18 @@ def _closeout_identity_matches_current(
         return True
     if closeout_fingerprint == expected_fingerprint:
         return True
+    if (
+        _closeout_had_no_raw_fingerprint(closeout)
+        and _closeout_has_record_only_owner_ref(closeout)
+    ):
+        return True
     return closeout_fingerprint is None and is_anti_loop_stop_loss_closeout(closeout)
+
+
+def _closeout_had_no_raw_fingerprint(closeout: Mapping[str, Any]) -> bool:
+    if closeout.get("raw_closeout_work_unit_fingerprint_present") is False:
+        return closeout.get("raw_closeout_action_fingerprint_present") is False
+    return False
 
 
 def _closeout_has_opl_execution_authorization_blocker(closeout: Mapping[str, Any]) -> bool:
@@ -665,12 +751,14 @@ def _provider_admission_candidates_from_same_tick_materialize(
             "provider_completion_is_domain_completion": False,
             "owner_route_current": True,
             "same_tick_materialized_provider_admission": True,
-            **(
-                {"currentness_basis": dict(_mapping(base.get("currentness_basis")))}
-                if _mapping(base.get("currentness_basis"))
-                else {}
-            ),
         }
+        currentness_basis = _same_tick_materialized_currentness_basis(
+            candidate,
+            base=base,
+            materialize_result=materialize_result,
+        )
+        if currentness_basis:
+            candidate["currentness_basis"] = currentness_basis
         if candidate["study_id"] is not None and candidate["action_type"] is not None:
             current_action_identity = current_action_by_study.get(candidate["study_id"])
             if current_action_identity is not None and not _same_tick_candidate_matches_current_action(
@@ -680,6 +768,46 @@ def _provider_admission_candidates_from_same_tick_materialize(
                 continue
             candidates.append({key: value for key, value in candidate.items() if value is not None})
     return candidates
+
+
+def _same_tick_materialized_currentness_basis(
+    candidate: Mapping[str, Any],
+    *,
+    base: Mapping[str, Any],
+    materialize_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    base_basis = _mapping(base.get("currentness_basis"))
+    work_unit_id = _non_empty_text(candidate.get("work_unit_id"))
+    fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
+        candidate.get("action_fingerprint")
+    )
+    if work_unit_id is None or fingerprint is None:
+        return dict(base_basis)
+    generated_at = (
+        _non_empty_text(base_basis.get("truth_epoch"))
+        or _non_empty_text(materialize_result.get("generated_at"))
+        or _non_empty_text(materialize_result.get("scanned_at"))
+        or fingerprint
+    )
+    runtime_epoch = (
+        _non_empty_text(base_basis.get("runtime_health_epoch"))
+        or _non_empty_text(materialize_result.get("runtime_health_epoch"))
+        or generated_at
+    )
+    basis = {
+        **dict(base_basis),
+        "work_unit_id": _non_empty_text(base_basis.get("work_unit_id")) or work_unit_id,
+        "work_unit_fingerprint": _non_empty_text(base_basis.get("work_unit_fingerprint")) or fingerprint,
+        "truth_epoch": generated_at,
+        "runtime_health_epoch": runtime_epoch,
+        "admission_identity_source": "same_tick_materialized_dispatch",
+    }
+    source_eval_id = _non_empty_text(base_basis.get("source_eval_id")) or _non_empty_text(
+        candidate.get("source_eval_id")
+    )
+    if source_eval_id is not None:
+        basis["source_eval_id"] = source_eval_id
+    return {key: value for key, value in basis.items() if value not in (None, "", [], {})}
 
 
 def _same_tick_materialized_candidate(candidate: Mapping[str, Any]) -> bool:

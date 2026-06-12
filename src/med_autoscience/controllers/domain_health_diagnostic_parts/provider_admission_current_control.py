@@ -11,8 +11,12 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     is_anti_loop_stop_loss_closeout,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control_identity import (
+    accepted_closeout_receipts as _accepted_closeout_receipts,
     attempt_idempotency_key as _attempt_idempotency_key,
+    basis_conflicts_with_identity as _basis_conflicts_with_identity,
     candidate_with_identity as _candidate_with_identity,
+    candidate_with_progress_currentness_identity as _candidate_with_progress_currentness_identity,
+    closeout_owner_route_basis as _closeout_owner_route_basis,
     provider_admission_current_control_study,
     route_identity_key as _route_identity_key,
     weak_provider_admission_identity as _weak_provider_admission_identity,
@@ -45,17 +49,25 @@ def materialize_provider_admission_current_control_state(
 ) -> dict[str, Any] | None:
     if not candidates and not scanned_studies:
         return None
-    candidates = [_candidate_with_identity(candidate) for candidate in candidates]
     latest_path = supervision_surfaces.latest_path(profile)
     history_path = supervision_surfaces.history_path(profile)
     previous_payload = supervision_surfaces.read_json_object(latest_path)
     scanned_studies = _normalized_scanned_studies(scanned_studies)
-    live_studies_by_id = _live_scanned_studies_by_id(scanned_studies)
     scanned_studies_by_id = {
         study_id: dict(study)
         for study in scanned_studies or []
         if (study_id := _non_empty_text(study.get("study_id"))) is not None
     }
+    candidates = [
+        _candidate_with_identity(
+            _candidate_with_progress_currentness_identity(
+                candidate,
+                scanned_studies_by_id=scanned_studies_by_id,
+            )
+        )
+        for candidate in candidates
+    ]
+    live_studies_by_id = _live_scanned_studies_by_id(scanned_studies)
     arbiter_decisions = _stage_route_arbiter_decisions(
         candidates,
         live_studies_by_id=live_studies_by_id,
@@ -1094,10 +1106,21 @@ def _accepted_closeout_matches_candidate_identity(
     receipt_fingerprint = _non_empty_text(receipt.get("work_unit_fingerprint")) or _non_empty_text(
         receipt.get("action_fingerprint")
     )
+    if _receipt_had_no_raw_fingerprint(receipt):
+        receipt_fingerprint = None
     action_and_work_unit_match = (
         _non_empty_text(receipt.get("action_type")) == expected_action
         and _non_empty_text(receipt.get("work_unit_id")) == expected_work_unit
     )
+    if (
+        action_and_work_unit_match
+        and receipt_fingerprint is None
+        and _receipt_is_record_only_owner_refs_closeout(
+            receipt,
+            statuses=_receipt_statuses(receipt),
+        )
+    ):
+        return True
     if (
         action_and_work_unit_match
         and receipt_fingerprint is None
@@ -1158,102 +1181,6 @@ def _receipt_has_opl_execution_authorization_blocker(receipt: Mapping[str, Any])
     )
 
 
-def _accepted_closeout_receipts(study: Mapping[str, Any]) -> list[dict[str, Any]]:
-    receipts: list[dict[str, Any]] = []
-    for key in (
-        "default_executor_execution_receipt_consumption",
-        "opl_provider_attempt",
-        "terminal_closeout_precedence_evidence",
-        "stage_attempt_closeout",
-        "latest_stage_attempt_closeout",
-        "latest_terminal_stage",
-    ):
-        _append_closeout_receipt(receipts, _mapping(study.get(key)))
-    for key in (
-        "accepted_closeout_evidence",
-        "stage_attempt_closeouts",
-        "default_executor_execution_receipt_consumptions",
-        "stage_attempt_closeout_receipts",
-    ):
-        for item in study.get(key) or []:
-            _append_closeout_receipt(receipts, _mapping(item))
-    return receipts
-
-
-def _append_closeout_receipt(receipts: list[dict[str, Any]], receipt: Mapping[str, Any]) -> None:
-    normalized = _normalized_closeout_receipt(receipt)
-    if normalized:
-        receipts.append(normalized)
-
-
-def _normalized_closeout_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
-    if not receipt:
-        return {}
-    basis = _closeout_owner_route_basis(receipt)
-    typed_blocker = _mapping(receipt.get("typed_blocker"))
-    normalized = dict(receipt)
-    for key, value in {
-        "work_unit_id": _non_empty_text(receipt.get("work_unit_id"))
-        or _non_empty_text(basis.get("work_unit_id")),
-        "work_unit_fingerprint": _non_empty_text(receipt.get("work_unit_fingerprint"))
-        or _non_empty_text(receipt.get("action_fingerprint"))
-        or _non_empty_text(typed_blocker.get("action_fingerprint"))
-        or _non_empty_text(basis.get("work_unit_fingerprint")),
-        "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint"))
-        or _non_empty_text(receipt.get("work_unit_fingerprint"))
-        or _non_empty_text(typed_blocker.get("action_fingerprint"))
-        or _non_empty_text(basis.get("work_unit_fingerprint")),
-        "source_eval_id": _non_empty_text(receipt.get("source_eval_id"))
-        or _non_empty_text(basis.get("source_eval_id")),
-        "truth_epoch": _non_empty_text(receipt.get("truth_epoch"))
-        or _non_empty_text(basis.get("truth_epoch")),
-        "runtime_health_epoch": _non_empty_text(receipt.get("runtime_health_epoch"))
-        or _non_empty_text(basis.get("runtime_health_epoch")),
-    }.items():
-        if value is not None:
-            normalized[key] = value
-    if basis and not _mapping(normalized.get("owner_route")):
-        normalized["owner_route"] = {
-            "work_unit_fingerprint": _non_empty_text(normalized.get("work_unit_fingerprint")),
-            "source_eval_id": _non_empty_text(normalized.get("source_eval_id")),
-            "truth_epoch": _non_empty_text(normalized.get("truth_epoch")),
-            "runtime_health_epoch": _non_empty_text(normalized.get("runtime_health_epoch")),
-            "source_refs": {
-                "owner_route_currentness_basis": dict(basis),
-                "work_unit_id": _non_empty_text(normalized.get("work_unit_id")),
-                "work_unit_fingerprint": _non_empty_text(normalized.get("work_unit_fingerprint")),
-                "source_eval_id": _non_empty_text(normalized.get("source_eval_id")),
-            },
-        }
-    return normalized
-
-
-def _closeout_owner_route_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:
-    for value in (
-        receipt.get("owner_route_basis"),
-        receipt.get("owner_route_currentness"),
-        _mapping(receipt.get("owner_route")).get("source_refs", {}),
-        _mapping(_mapping(receipt.get("owner_route")).get("source_refs")).get(
-            "owner_route_currentness_basis"
-        ),
-        receipt.get("canonical_work_unit_identity"),
-        receipt.get("owner_route_currentness_basis"),
-    ):
-        basis = _mapping(value)
-        if any(
-            _non_empty_text(basis.get(key)) is not None
-            for key in (
-                "work_unit_id",
-                "work_unit_fingerprint",
-                "source_eval_id",
-                "truth_epoch",
-                "runtime_health_epoch",
-            )
-        ):
-            return dict(basis)
-    return {}
-
-
 def _identity_has_match_key(identity: Mapping[str, Any]) -> bool:
     return _weak_provider_admission_identity(identity) == {}
 
@@ -1312,15 +1239,20 @@ def _receipt_is_record_only_owner_refs_closeout(
         return False
     if "closed_with_domain_owner_refs" not in statuses:
         return False
-    if "executed" not in statuses and "completed" not in statuses:
-        return False
     if _receipt_has_opl_execution_authorization_blocker(receipt):
         return False
     return _receipt_has_current_owner_ref(receipt)
 
 
+def _receipt_had_no_raw_fingerprint(receipt: Mapping[str, Any]) -> bool:
+    if receipt.get("raw_closeout_work_unit_fingerprint_present") is False:
+        return receipt.get("raw_closeout_action_fingerprint_present") is False
+    return False
+
+
 def _receipt_has_current_owner_ref(receipt: Mapping[str, Any]) -> bool:
     owner_result = _mapping(receipt.get("owner_result"))
+    owner_receipt = _mapping(receipt.get("owner_receipt"))
     return any(
         _non_empty_text(value) is not None
         for value in (
@@ -1329,6 +1261,8 @@ def _receipt_has_current_owner_ref(receipt: Mapping[str, Any]) -> bool:
             receipt.get("publication_eval_record_ref"),
             owner_result.get("owner_receipt_ref"),
             owner_result.get("publication_eval_record_ref"),
+            owner_receipt.get("owner_receipt_ref"),
+            owner_receipt.get("publication_eval_record_ref"),
         )
     )
 
@@ -1354,12 +1288,24 @@ def _source_currentness_matches(receipt: Mapping[str, Any], *, identity: Mapping
     identity_basis = _mapping(identity.get("currentness_basis"))
     if not receipt_basis or not identity_basis:
         return False
-    for key in ("source_eval_id", "truth_epoch", "runtime_health_epoch"):
+    if _basis_conflicts_with_identity(receipt_basis, identity=identity):
+        return False
+    if _basis_conflicts_with_identity(identity_basis, identity=identity):
+        return False
+    receipt_source_eval = _non_empty_text(receipt_basis.get("source_eval_id"))
+    identity_source_eval = _non_empty_text(identity_basis.get("source_eval_id"))
+    if receipt_source_eval is not None or identity_source_eval is not None:
+        return receipt_source_eval is not None and receipt_source_eval == identity_source_eval
+    compared = False
+    for key in ("truth_epoch", "runtime_health_epoch"):
         receipt_value = _non_empty_text(receipt_basis.get(key))
         identity_value = _non_empty_text(identity_basis.get(key))
-        if receipt_value is not None and identity_value is not None:
-            return receipt_value == identity_value
-    return False
+        if receipt_value is None or identity_value is None:
+            continue
+        compared = True
+        if receipt_value != identity_value:
+            return False
+    return compared
 
 
 __all__ = [
