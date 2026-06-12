@@ -116,6 +116,28 @@ def dispatch(
     }
 
 
+def patch_dispatchable_study_progress(
+    monkeypatch,
+    *,
+    default_study_id: str | None = None,
+    actions_by_study: dict[str, dict[str, object]] | None = None,
+) -> None:
+    from med_autoscience.controllers import study_progress
+
+    def fake_read_study_progress(**kwargs) -> dict[str, object]:
+        study_id = str(kwargs.get("study_id") or default_study_id or "test-study")
+        action = dict((actions_by_study or {}).get(study_id, {}))
+        action.setdefault("surface_kind", "current_executable_owner_action")
+        action.setdefault("source", "test.domain_owner_action_dispatch.dispatchable_progress")
+        return {
+            "study_id": study_id,
+            "current_execution_envelope": {"state_kind": "executable_owner_action"},
+            "current_executable_owner_action": action,
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", fake_read_study_progress)
+
+
 def write_scan_latest(profile, study_id: str, owner_route: dict[str, object]) -> None:
     write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
