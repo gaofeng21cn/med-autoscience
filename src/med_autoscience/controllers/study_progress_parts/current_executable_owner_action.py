@@ -917,11 +917,19 @@ def _terminal_stage_closeout_consumes_repair_followup(
         or _non_empty_text(owner_action.get("next_owner"))
         or _non_empty_text(owner_action.get("owner"))
     )
+    next_action_type = _non_empty_text(owner_action.get("action_type")) or _non_empty_text(
+        next_forced_delta.get("action_type")
+    )
+    if _terminal_stage_semantically_consumes_ai_reviewer_followup(
+        terminal=terminal,
+        paper_stage_log=paper_stage_log,
+        next_forced_delta=next_forced_delta,
+    ):
+        return next_action_type in TERMINAL_NEXT_FORCED_DELTA_ACTIONS or next_action_type in {
+            "return_to_write",
+        }
     if next_owner != "mas_controller":
         return False
-    next_action_type = _non_empty_text(next_forced_delta.get("action_type")) or _non_empty_text(
-        owner_action.get("action_type")
-    )
     if next_action_type not in {
         "consume_record_only_ai_reviewer_closeout_or_route_next_owner",
         "return_to_write",
@@ -936,12 +944,6 @@ def _terminal_stage_closeout_consumes_repair_followup(
     source_eval_id = _non_empty_text(next_forced_delta.get("source_eval_id"))
     if terminal_stage_attempt is not None and source_eval_id is not None:
         return terminal_stage_attempt in source_eval_id
-    if _terminal_stage_semantically_consumes_ai_reviewer_followup(
-        terminal=terminal,
-        paper_stage_log=paper_stage_log,
-        next_forced_delta=next_forced_delta,
-    ):
-        return True
     action_fingerprint = (
         _non_empty_text(action.get("work_unit_fingerprint"))
         or _non_empty_text(action.get("action_fingerprint"))
