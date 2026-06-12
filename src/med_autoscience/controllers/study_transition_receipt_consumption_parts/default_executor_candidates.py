@@ -31,13 +31,73 @@ def default_executor_execution_candidates(*, study_root: Path) -> list[tuple[Map
     receipt = _read_json_object(resolved_study_root / EXECUTION_REF)
     candidates: list[tuple[Mapping[str, Any], str]] = []
     if receipt is not None:
-        candidates.extend((execution, str(EXECUTION_REF)) for execution in reversed(_mapping_list(receipt.get("executions"))))
         candidates.extend(
-            (execution, f"{EXECUTION_REF}#execution_ledger")
+            (_execution_from_receipt(execution), str(EXECUTION_REF))
+            for execution in reversed(_mapping_list(receipt.get("executions")))
+        )
+        candidates.extend(
+            (_execution_from_receipt(execution), f"{EXECUTION_REF}#execution_ledger")
             for execution in reversed(_mapping_list(receipt.get("execution_ledger")))
         )
     candidates.extend(_stage_closeout_candidates(study_root=resolved_study_root))
     return candidates
+
+
+def _execution_from_receipt(execution: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = dict(execution)
+    route = _receipt_execution_owner_route(execution)
+    route_source_refs = _mapping(route.get("source_refs"))
+    route_currentness_basis = _mapping(route_source_refs.get("owner_route_currentness_basis"))
+    work_unit_id = (
+        _text(execution.get("work_unit_id"))
+        or _text(route_currentness_basis.get("work_unit_id"))
+        or _text(route_source_refs.get("work_unit_id"))
+    )
+    work_unit_fingerprint = (
+        _text(execution.get("work_unit_fingerprint"))
+        or _text(execution.get("action_fingerprint"))
+        or _text(route_currentness_basis.get("work_unit_fingerprint"))
+        or _text(route_source_refs.get("work_unit_fingerprint"))
+        or _text(route.get("work_unit_fingerprint"))
+    )
+    source_eval_id = (
+        _text(execution.get("source_eval_id"))
+        or _text(route_currentness_basis.get("source_eval_id"))
+        or _text(route_source_refs.get("source_eval_id"))
+        or _text(route.get("source_eval_id"))
+    )
+    canonical_work_unit_identity = route_currentness_basis or {
+        key: value
+        for key, value in {
+            "source_eval_id": source_eval_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "work_unit_id": work_unit_id,
+        }.items()
+        if value
+    }
+    if work_unit_id:
+        normalized["work_unit_id"] = work_unit_id
+    if work_unit_fingerprint:
+        normalized["work_unit_fingerprint"] = work_unit_fingerprint
+        normalized["action_fingerprint"] = work_unit_fingerprint
+    if source_eval_id:
+        normalized["source_eval_id"] = source_eval_id
+    if route:
+        normalized.setdefault("current_owner_route", route)
+        normalized.setdefault("owner_route", route)
+    if route_currentness_basis:
+        normalized["owner_route_currentness_basis"] = route_currentness_basis
+    if canonical_work_unit_identity:
+        normalized["canonical_work_unit_identity"] = canonical_work_unit_identity
+    return normalized
+
+
+def _receipt_execution_owner_route(execution: Mapping[str, Any]) -> Mapping[str, Any]:
+    return (
+        _mapping(execution.get("current_owner_route"))
+        or _mapping(execution.get("owner_route"))
+        or _mapping(_mapping(execution.get("prompt_contract")).get("owner_route"))
+    )
 
 
 def _stage_closeout_candidates(*, study_root: Path) -> list[tuple[Mapping[str, Any], str]]:
