@@ -529,7 +529,7 @@ def test_materialize_prefers_stage_readiness_followup_over_stale_control_next_ac
     )
 
 
-def test_materialize_prefers_stage_native_write_repair_after_stable_readiness_answer(
+def test_materialize_keeps_explicit_readiness_action_over_stage_native_repair_without_repair_current_action(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -676,21 +676,17 @@ def test_materialize_prefers_stage_native_write_repair_after_stable_readiness_an
     )
 
     assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
-        "run_quality_repair_batch"
+        "complete_medical_paper_readiness_surface"
     ]
     dispatch = result["default_executor_dispatches"][0]
-    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["next_executable_owner"] == "MedAutoScience"
     source_action = dispatch["source_action"]
-    assert source_action["authority"] == "stage_native_workspace_next_action"
-    assert source_action["stage_native_next_action_admission"]["default_dispatch_allowed"] is True
-    assert source_action["current_work_unit_binding"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
-        "medical_publication_surface_blocked_write_repair"
-    )
-    assert dispatch["owner_route"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
+    assert source_action["authority"] == "mas_owner_surface"
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == "complete_medical_paper_readiness_surface"
+    assert dispatch["owner_route"]["work_unit_fingerprint"] == readiness_fingerprint
     assert any(
-        item["reason"] == "superseded_by_stage_native_next_action_after_readiness_answer"
-        and item["action_type"] == "complete_medical_paper_readiness_surface"
+        item["reason"] == "superseded_by_current_stage_readiness_followup"
+        and item["action_type"] == "run_quality_repair_batch"
         for item in result["ignored_actions"]
     )
 

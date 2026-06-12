@@ -549,6 +549,196 @@ def test_materializer_allows_explicit_readiness_current_action_to_block_stale_do
     ).exists()
 
 
+def test_materializer_does_not_dispatch_weak_progress_current_owner_ticket(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_queue": [],
+                }
+            ],
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "generated_at": "2026-06-12T02:40:00+00:00",
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "finalize",
+                "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "source": "study_progress.next_forced_delta.owner_action",
+                "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                "next_owner": "finalize",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+            "current_owner_ticket": {
+                "surface_kind": "mas_current_owner_ticket",
+                "owner": "finalize",
+                "allowed_action": "run_gate_clearing_batch",
+                "work_unit": {
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                },
+                "target_surface": {
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+            },
+            "owner_route": {
+                "surface": "domain_route_owner_route",
+                "schema_version": 2,
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "truth_epoch": "2026-06-12T02:40:00+00:00",
+                "route_epoch": "2026-06-12T02:40:00+00:00",
+                "current_owner": "mas_controller",
+                "next_owner": "finalize",
+                "owner_reason": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert any(
+        item["action_type"] == "run_gate_clearing_batch"
+        and item["reason"]
+        == "fresh_progress_current_owner_ticket_requires_strong_currentness_identity"
+        for item in result["ignored_actions"]
+    )
+    assert not (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    ).exists()
+
+
+def test_materializer_dispatches_fresh_progress_ticket_with_strong_currentness_identity(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_queue": [],
+                }
+            ],
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "generated_at": "2026-06-12T02:41:00+00:00",
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-current",
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "finalize",
+                "next_work_unit": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "source": "study_progress.next_forced_delta.owner_action",
+                "source_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                "next_owner": "finalize",
+                "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                "allowed_actions": ["run_gate_clearing_batch"],
+                "source_fingerprint": "sha256:current-gate-replay-source",
+                "work_unit_fingerprint": "sha256:current-gate-replay-work-unit",
+            },
+            "current_owner_ticket": {
+                "surface_kind": "mas_current_owner_ticket",
+                "owner": "finalize",
+                "allowed_action": "run_gate_clearing_batch",
+                "work_unit": {
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                },
+                "target_surface": {
+                    "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                },
+            },
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["request_task_count"] == 1
+    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["action_type"] == "run_gate_clearing_batch"
+    assert dispatch["owner_route"]["source_fingerprint"] == "sha256:current-gate-replay-source"
+    assert dispatch["owner_route"]["work_unit_fingerprint"] == "sha256:current-gate-replay-work-unit"
+    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"] == {
+        "truth_epoch": "truth-event-current",
+        "runtime_health_epoch": "runtime-health-current",
+        "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        "work_unit_fingerprint": "sha256:current-gate-replay-work-unit",
+    }
+
+
 def test_materializer_blocks_stale_provider_admission_when_fresh_progress_is_stop_loss_blocker(
     monkeypatch,
     tmp_path: Path,

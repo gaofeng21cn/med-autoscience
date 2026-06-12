@@ -33,6 +33,10 @@ def current_typed_blocker_barrier_for_actions(
         _text(fresh_action.get("action_type")) or ""
     ).startswith("current_execution_envelope_"):
         return dict(fresh_action)
+    if fresh_action is not None and repair_progress_currentness.generated_action_is_repair_progress_followup(
+        fresh_action
+    ):
+        return None
     current_action = _mapping(study.get("current_executable_owner_action"))
     envelope = _mapping(study.get("current_execution_envelope"))
     if repair_progress_currentness.typed_blocker_allows_repair_progress_followup(

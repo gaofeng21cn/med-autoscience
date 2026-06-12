@@ -683,6 +683,15 @@ def _selected_actions(
         if study_id in current_writer_handoff_actions:
             ignored.append(_ignored_action(action, "superseded_by_current_quality_repair_writer_handoff"))
             continue
+        if action.get("default_dispatch_allowed") is False:
+            ignored.append(
+                _ignored_action(
+                    action,
+                    _text(action.get("default_dispatch_blocked_reason"))
+                    or "default_dispatch_not_allowed",
+                )
+            )
+            continue
         selected_action = publication_owner_materialization.materialization_action(
             profile=profile,
             action=action,

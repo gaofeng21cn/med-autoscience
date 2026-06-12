@@ -81,6 +81,15 @@ def materialize_provider_admission_current_control_state(
         scanned_action_queue=action_queue,
         retain_unscanned_studies=True,
     )
+    output_studies, output_actions, unscanned_audit = _audit_only_unscanned_handoff(
+        output_studies=output_studies,
+        output_actions=output_actions,
+        scanned_study_ids={
+            study_id
+            for study in studies
+            if (study_id := _non_empty_text(study.get("study_id"))) is not None
+        },
+    )
     current_execution_envelopes = scan_output.merge_current_execution_envelopes(
         previous_payload=previous_payload,
         output_studies=output_studies,
@@ -122,6 +131,7 @@ def materialize_provider_admission_current_control_state(
         pending_count=len(pending_candidates),
     )
     payload["stage_route_arbiter_decisions"] = arbiter_decisions
+    payload["unscanned_handoff_retention"] = unscanned_audit
     payload["current_control_refresh_source"] = "domain_health_diagnostic.provider_admission_candidates"
     if apply:
         supervision_surfaces.write_json(latest_path, payload)
@@ -139,12 +149,81 @@ def materialize_provider_admission_current_control_state(
                 "stage_route_arbiter_decision_counts": payload["stage_route_arbiter"][
                     "decision_counts"
                 ],
+                "unscanned_active_action_suppressed_count": unscanned_audit[
+                    "active_action_suppressed_count"
+                ],
                 "latest_action_count": len(output_actions),
                 "source": "domain_health_diagnostic.provider_admission_candidates",
             },
         )
     payload["written"] = bool(apply)
     return payload
+
+
+def _audit_only_unscanned_handoff(
+    *,
+    output_studies: list[dict[str, Any]],
+    output_actions: list[dict[str, Any]],
+    scanned_study_ids: set[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    retained_ids = {
+        study_id
+        for study in output_studies
+        if (study_id := _non_empty_text(study.get("study_id"))) is not None
+        and study_id not in scanned_study_ids
+    }
+    if not retained_ids:
+        return output_studies, output_actions, _unscanned_handoff_retention_payload(
+            retained_ids=[],
+            active_action_suppressed_count=0,
+        )
+    sanitized_studies: list[dict[str, Any]] = []
+    suppressed_count = 0
+    for study in output_studies:
+        study_id = _non_empty_text(study.get("study_id"))
+        if study_id not in retained_ids:
+            sanitized_studies.append(dict(study))
+            continue
+        action_queue = [
+            dict(action)
+            for action in study.get("action_queue") or []
+            if isinstance(action, Mapping)
+        ]
+        suppressed_count += len(action_queue)
+        payload = dict(study)
+        payload["retained_unscanned_study"] = True
+        payload["active_provider_admission_allowed"] = False
+        payload["unscanned_action_queue_retained_for_audit"] = action_queue
+        payload["action_queue"] = []
+        sanitized_studies.append(payload)
+    active_actions = [
+        dict(action)
+        for action in output_actions
+        if _non_empty_text(action.get("study_id")) not in retained_ids
+    ]
+    suppressed_count += len(output_actions) - len(active_actions)
+    return (
+        sanitized_studies,
+        active_actions,
+        _unscanned_handoff_retention_payload(
+            retained_ids=sorted(retained_ids),
+            active_action_suppressed_count=suppressed_count,
+        ),
+    )
+
+
+def _unscanned_handoff_retention_payload(
+    *,
+    retained_ids: list[str],
+    active_action_suppressed_count: int,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "provider_admission_current_control_unscanned_handoff_retention",
+        "retained_unscanned_study_ids": retained_ids,
+        "active_action_suppressed_count": active_action_suppressed_count,
+        "active_queue_semantics": "scanned_studies_only",
+        "retention_semantics": "audit_only",
+    }
 
 
 def _stage_route_arbiter_decisions(
@@ -203,6 +282,20 @@ def _stage_route_arbiter_decisions(
                     decision="accepted_closeout_consumed_pending",
                     effect="suppress_provider_admission_pending",
                     evidence=_matching_accepted_closeout(scanned_study, identity=candidate),
+                )
+            )
+            continue
+        typed_blocker_precedence = _current_typed_blocker_precedence_evidence(
+            scanned_study,
+            identity=candidate,
+        )
+        if typed_blocker_precedence:
+            decisions.append(
+                _arbiter_decision(
+                    candidate,
+                    decision="current_typed_blocker_precedes_provider_admission",
+                    effect="suppress_provider_admission_pending",
+                    evidence=typed_blocker_precedence,
                 )
             )
             continue
@@ -812,8 +905,88 @@ def _candidates_not_covered_by_live_attempt(
             continue
         if _accepted_closeout_matches_identity(scanned_study, identity=candidate):
             continue
+        if _current_typed_blocker_precedence_evidence(scanned_study, identity=candidate):
+            continue
         pending.append(dict(candidate))
     return pending
+
+
+def _current_typed_blocker_precedence_evidence(
+    study: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    blocker = _current_typed_blocker(study)
+    if not blocker:
+        return {}
+    expected_action = _non_empty_text(identity.get("action_type"))
+    expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
+    blocker_action = _non_empty_text(blocker.get("action_type"))
+    blocker_work_unit = _non_empty_text(blocker.get("work_unit_id"))
+    if expected_action is not None and blocker_action is not None and blocker_action != expected_action:
+        return {}
+    if expected_work_unit is not None and blocker_work_unit is not None and blocker_work_unit != expected_work_unit:
+        return {}
+    if expected_action is None and expected_work_unit is None:
+        return {}
+    if blocker_action is None and blocker_work_unit is None:
+        return {}
+    return blocker
+
+
+def _current_typed_blocker(study: Mapping[str, Any]) -> dict[str, Any]:
+    current = _mapping(study.get("current_work_unit"))
+    current_status = _non_empty_text(current.get("status"))
+    if current_status == "typed_blocker":
+        state = _mapping(current.get("state"))
+        typed_blocker = _mapping(state.get("typed_blocker")) or _mapping(current.get("typed_blocker"))
+        return {
+            key: value
+            for key, value in {
+                **typed_blocker,
+                "status": "typed_blocker",
+                "owner": _non_empty_text(current.get("owner")) or _non_empty_text(typed_blocker.get("owner")),
+                "action_type": _non_empty_text(current.get("action_type"))
+                or _non_empty_text(typed_blocker.get("action_type")),
+                "work_unit_id": _non_empty_text(current.get("work_unit_id"))
+                or _non_empty_text(typed_blocker.get("work_unit_id")),
+                "work_unit_fingerprint": _non_empty_text(current.get("work_unit_fingerprint"))
+                or _non_empty_text(current.get("action_fingerprint"))
+                or _non_empty_text(typed_blocker.get("work_unit_fingerprint"))
+                or _non_empty_text(typed_blocker.get("action_fingerprint")),
+                "source": "current_work_unit.typed_blocker",
+                "blocker_type": _non_empty_text(typed_blocker.get("blocker_type"))
+                or _non_empty_text(typed_blocker.get("blocker_id"))
+                or _non_empty_text(state.get("blocker_type")),
+            }.items()
+            if value not in (None, "", [], {})
+        }
+    if current:
+        return {}
+    envelope = _mapping(study.get("current_execution_envelope"))
+    state_kind = _non_empty_text(envelope.get("state_kind")) or _non_empty_text(
+        envelope.get("execution_state_kind")
+    )
+    if state_kind != "typed_blocker":
+        return {}
+    typed_blocker = _mapping(envelope.get("typed_blocker"))
+    return {
+        key: value
+        for key, value in {
+            **typed_blocker,
+            "status": "typed_blocker",
+            "owner": _non_empty_text(envelope.get("owner")) or _non_empty_text(typed_blocker.get("owner")),
+            "action_type": _non_empty_text(typed_blocker.get("action_type")),
+            "work_unit_id": _non_empty_text(typed_blocker.get("work_unit_id")),
+            "work_unit_fingerprint": _non_empty_text(typed_blocker.get("work_unit_fingerprint"))
+            or _non_empty_text(typed_blocker.get("action_fingerprint")),
+            "source": "current_execution_envelope.typed_blocker",
+            "blocker_type": _non_empty_text(typed_blocker.get("blocker_type"))
+            or _non_empty_text(typed_blocker.get("blocker_id"))
+            or _non_empty_text(typed_blocker.get("reason")),
+        }.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _accepted_closeout_matches_identity(

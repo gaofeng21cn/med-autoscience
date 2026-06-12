@@ -313,6 +313,28 @@ def test_domain_health_diagnostic_retains_pending_over_stale_authorization_close
     study_root = profile.studies_root / study_id
     work_unit_id = "analysis_claim_evidence_repair"
     fingerprint = "publication-blockers::497d1260db522f01"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "analysis-campaign",
+            "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
     dump_json(
         study_root
         / "artifacts"
@@ -360,6 +382,13 @@ def test_domain_health_diagnostic_retains_pending_over_stale_authorization_close
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": fingerprint,
             "action_fingerprint": fingerprint,
+            "dispatch_path": str(dispatch_path),
+            "currentness_basis": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": fingerprint,
+                "truth_epoch": "truth-event-current",
+                "runtime_health_epoch": "runtime-health-current",
+            },
             "next_executable_owner": "analysis-campaign",
             "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
             "provider_attempt_or_lease_required": True,
@@ -578,3 +607,234 @@ def test_stale_report_provider_admission_candidate_is_suppressed_by_fresh_progre
     assert result["studies"][0]["handoff_scan_status"] == "provider_admission_from_mas_handoff"
     assert result["studies"][0]["current_execution_envelope"]["owner"] == "write"
     assert result["studies"][0]["current_execution_envelope"]["next_work_unit"] == current_work_unit_id
+
+
+def test_provider_admission_current_control_retains_unscanned_handoff_as_audit_only(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    retained_study_id = "002-dm-china-us-mortality-attribution"
+    scanned_study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    latest_path = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    retained_action = {
+        "study_id": retained_study_id,
+        "quest_id": retained_study_id,
+        "action_id": "provider-admission::dm002::stale",
+        "action_type": "run_quality_repair_batch",
+        "owner": "write",
+        "request_owner": "write",
+        "work_unit_id": "stale_write_repair",
+        "work_unit_fingerprint": "sha256:stale-dm002-write",
+    }
+    dump_json(
+        latest_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-06-11T10:00:00+00:00",
+            "studies": [
+                {
+                    "study_id": retained_study_id,
+                    "quest_id": retained_study_id,
+                    "handoff_scan_status": "provider_admission_from_mas_handoff",
+                    "action_queue": [retained_action],
+                }
+            ],
+            "action_queue": [retained_action],
+            "provider_admission_pending_count": 1,
+        },
+    )
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[],
+        generated_at="2026-06-12T03:00:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": scanned_study_id,
+                "quest_id": scanned_study_id,
+                "handoff_scan_status": "scanned",
+                "action_queue": [],
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["action_queue"] == []
+    assert result["queue_history"]["provider_admission_pending_count"] == 0
+    retained = next(
+        study for study in result["studies"] if study["study_id"] == retained_study_id
+    )
+    assert retained["retained_unscanned_study"] is True
+    assert retained["active_provider_admission_allowed"] is False
+    assert retained["action_queue"] == []
+    assert retained["unscanned_action_queue_retained_for_audit"] == [retained_action]
+    assert result["unscanned_handoff_retention"] == {
+        "surface_kind": "provider_admission_current_control_unscanned_handoff_retention",
+        "retained_unscanned_study_ids": [retained_study_id],
+        "active_action_suppressed_count": 2,
+        "active_queue_semantics": "scanned_studies_only",
+        "retention_semantics": "audit_only",
+    }
+
+
+def test_domain_health_diagnostic_suppresses_stale_candidate_when_fresh_current_work_unit_is_typed_blocker(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = profile.studies_root / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+    stale_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "gate_clearing_batch",
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
+    )
+
+    def fake_impl(**_: object) -> dict[str, object]:
+        candidate = {
+            "surface": "opl_provider_admission_candidate",
+            "schema_version": 1,
+            "status": "provider_admission_pending",
+            "source": "default_executor_execution",
+            "execution_ref": str(
+                study_root
+                / "artifacts"
+                / "supervision"
+                / "consumer"
+                / "default_executor_execution"
+                / "latest.json"
+            ),
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": stale_fingerprint,
+            "action_fingerprint": stale_fingerprint,
+            "dispatch_path": str(dispatch_path),
+            "currentness_basis": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": stale_fingerprint,
+                "truth_epoch": "truth-event-stale-candidate",
+                "runtime_health_epoch": "runtime-health-stale-candidate",
+            },
+            "blocked_reason": "opl_execution_authorization_required",
+            "next_executable_owner": "gate_clearing_batch",
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "provider_attempt_or_lease_required": True,
+            "provider_completion_is_domain_completion": False,
+        }
+        typed_blocker = {
+            "blocker_id": "anti_loop_budget_exhausted",
+            "blocker_type": "anti_loop_budget_exhausted",
+            "blocked_reason": "anti_loop_budget_exhausted",
+            "owner": "one-person-lab",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "source_ref": str(
+                study_root
+                / "artifacts"
+                / "supervision"
+                / "consumer"
+                / "default_executor_execution"
+                / "latest.json"
+            ),
+        }
+        return {
+            "schema_version": 1,
+            "scanned_at": "2026-06-12T04:17:57+00:00",
+            "runtime_root": str(profile.runtime_root),
+            "managed_study_opl_provider_admission_candidates": [candidate],
+            "provider_admission_pending_count": 1,
+            "action_fingerprints": [stale_fingerprint],
+            "current_execution_evidence": {
+                "provider_admission_candidates": [candidate],
+                "progress_currentness": {
+                    study_id: {
+                        "current_work_unit": {
+                            "surface_kind": "current_work_unit",
+                            "schema_version": 1,
+                            "status": "typed_blocker",
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "owner": "one-person-lab",
+                            "action_type": "run_gate_clearing_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": None,
+                            "action_fingerprint": None,
+                            "state": {
+                                "state_kind": "typed_blocker",
+                                "typed_blocker": typed_blocker,
+                                "stale_queue_or_handoff_can_override": False,
+                            },
+                        },
+                        "current_execution_envelope": {
+                            "state_kind": "typed_blocker",
+                            "owner": "one-person-lab",
+                            "next_work_unit": None,
+                            "typed_blocker": typed_blocker,
+                        },
+                    },
+                },
+            },
+        }
+
+    monkeypatch.setattr(module, "_run_domain_health_diagnostic_for_runtime_impl", fake_impl)
+
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        study_ids=(study_id,),
+        request_opl_stage_attempts=True,
+    )
+
+    assert result["provider_admission_pending_count"] == 0
+    assert result["managed_study_opl_provider_admission_candidates"] == []
+    assert result["current_execution_evidence"]["provider_admission_candidates"] == []
+    assert result["action_fingerprints"] == []
+    control = result["provider_admission_current_control_state"]
+    assert control["provider_admission_pending_count"] == 0
+    assert control["provider_admission_candidates"] == []
+    assert control["action_queue"] == []
+    assert control["stage_route_arbiter"]["decision_counts"] == {
+        "current_typed_blocker_precedes_provider_admission": 1,
+    }
+    assert control["stage_route_arbiter_decisions"][0]["effect"] == (
+        "suppress_provider_admission_pending"
+    )

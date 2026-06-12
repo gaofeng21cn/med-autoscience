@@ -154,7 +154,7 @@ def _patch_readiness_blocker_progress(monkeypatch, *, study_id: str, readiness_r
     monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
 
 
-def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_after_readiness_blocker(
+def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_and_readiness_blocker_only(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -181,12 +181,13 @@ def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_af
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
-        "complete_medical_paper_readiness_surface"
-    ]
-    dispatch = result["default_executor_dispatches"][0]
-    assert dispatch["next_executable_owner"] == "MedAutoScience"
-    assert dispatch["source_action"]["authority"] == "mas_owner_surface"
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert any(
+        item["action_type"] == "complete_medical_paper_readiness_surface"
+        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
+        for item in result["ignored_actions"]
+    )
     assert any(
         item["action_type"] == "run_quality_repair_batch"
         and item["reason"] == "stage_native_workspace_next_action_requires_authority_binding"
@@ -194,7 +195,7 @@ def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_af
     )
 
 
-def test_materialize_domain_action_requests_routes_bound_stage_native_write_after_readiness_blocker(
+def test_materialize_domain_action_requests_blocks_bound_but_stale_stage_native_write_and_readiness_blocker_only(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -232,6 +233,104 @@ def test_materialize_domain_action_requests_routes_bound_stage_native_write_afte
         apply=False,
     )
 
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert not any(
+        item["action_type"] in {"complete_medical_paper_readiness_surface", "run_quality_repair_batch"}
+        for item in result["default_executor_dispatches"]
+    )
+
+
+def test_materialize_domain_action_requests_routes_stage_native_write_when_current_work_unit_matches_binding(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setattr(progress_module, "read_study_progress", lambda **_: {})
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    current_stage_id = "08-publication_package_handoff"
+    source_surface = "artifacts/reports/medical_publication_surface/latest.json"
+    work_unit_id = "medical_publication_surface_blocked_write_repair"
+    repair_work_unit_fingerprint = (
+        "canonical-current-work-unit::08-publication_package_handoff::"
+        "medical_publication_surface_blocked_write_repair"
+    )
+    current_work_unit_binding = {
+        "source": "canonical_current_work_unit",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": repair_work_unit_fingerprint,
+    }
+    _write_stage_native_next_action(
+        study_root=study_root,
+        current_work_unit_binding=current_work_unit_binding,
+    )
+    epoch = f"stage-native-next-action::{study_id}::{current_stage_id}"
+    stage_native_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": epoch,
+        "runtime_health_epoch": epoch,
+        "work_unit_fingerprint": repair_work_unit_fingerprint,
+        "failure_signature": "run_quality_repair_batch",
+        "trace_id": f"owner-route-trace::{study_id}::run_quality_repair_batch",
+        "route_epoch": epoch,
+        "source_fingerprint": repair_work_unit_fingerprint,
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "owner_reason": "run_quality_repair_batch",
+        "active_run_id": None,
+        "allowed_actions": ["run_quality_repair_batch"],
+        "blocked_actions": [],
+        "source_refs": {
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": repair_work_unit_fingerprint,
+            "source_surface": source_surface,
+            "stage_index_ref": "control/stage_index.json",
+            "current_stage_id": current_stage_id,
+            "current_work_unit_binding": current_work_unit_binding,
+            "owner_route_currentness_basis": {
+                "truth_epoch": epoch,
+                "runtime_health_epoch": epoch,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": repair_work_unit_fingerprint,
+            },
+        },
+        "idempotency_key": f"owner-route::{study_id}::{epoch}::write::run_quality_repair_batch",
+    }
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner_route": stage_native_route,
+                    "action_queue": [],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
     assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
         "run_quality_repair_batch"
     ]
@@ -241,12 +340,5 @@ def test_materialize_domain_action_requests_routes_bound_stage_native_write_afte
     assert source_action["authority"] == "stage_native_workspace_next_action"
     assert source_action["stage_native_next_action_admission"]["default_dispatch_allowed"] is True
     assert source_action["current_work_unit_binding"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
-        "medical_publication_surface_blocked_write_repair"
-    )
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
     assert dispatch["owner_route"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
-    assert any(
-        item["action_type"] == "complete_medical_paper_readiness_surface"
-        and item["reason"] == "superseded_by_stage_native_next_action_after_readiness_answer"
-        for item in result["ignored_actions"]
-    )

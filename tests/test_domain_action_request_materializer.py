@@ -503,7 +503,7 @@ def test_materialize_domain_action_requests_blocks_stage_native_write_when_fresh
     )
 
 
-def test_materialize_domain_action_requests_routes_readiness_missing_typed_blocker_to_stage_native_write(
+def test_materialize_domain_action_requests_blocks_readiness_and_stage_native_when_current_action_missing(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -602,19 +602,17 @@ def test_materialize_domain_action_requests_routes_readiness_missing_typed_block
         apply=False,
     )
 
-    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
-        "run_quality_repair_batch"
-    ]
-    dispatch = result["default_executor_dispatches"][0]
-    assert dispatch["next_executable_owner"] == "write"
-    assert dispatch["source_action"]["authority"] == "stage_native_workspace_next_action"
-    assert dispatch["source_action"]["required_output_surface"] == (
-        "canonical manuscript story-surface delta or "
-        "typed blocker:manuscript_story_surface_delta_missing"
-    )
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
     assert any(
         item["action_type"] == "complete_medical_paper_readiness_surface"
-        and item["reason"] == "superseded_by_stage_native_next_action_after_readiness_answer"
+        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
+        for item in result["ignored_actions"]
+    )
+    assert any(
+        item["action_type"] == "run_quality_repair_batch"
+        and item["reason"]
+        == "stage_native_workspace_next_action_requires_current_work_unit_currentness_match"
         for item in result["ignored_actions"]
     )
 
