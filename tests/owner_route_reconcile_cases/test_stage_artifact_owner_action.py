@@ -398,6 +398,83 @@ def test_scan_domain_routes_derives_repair_from_stable_readiness_blocker_gaps(
     assert result["action_queue"][0]["action_type"] == "run_quality_repair_batch"
 
 
+def test_readiness_repair_supersedes_stale_repair_progress_gate_replay() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions"
+    )
+    typed_blocker_ref = (
+        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    )
+    stale_gate_replay_actions = [
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "quest-dm003",
+            "action_type": "run_gate_clearing_batch",
+            "owner": "gate_clearing_batch",
+            "reason": "repair_progress_gate_replay_required",
+            "next_work_unit": "publication_gate_replay",
+            "work_unit_fingerprint": "stale-gate-replay",
+        }
+    ]
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm003::readiness-blocker-gaps",
+        "gaps": [
+            {
+                "gap_id": "publication_gate_replay_required_after_current_ai_reviewer_record",
+                "submission_impact": "blocked",
+            },
+            {"gap_id": "package_and_submission_authority_pending", "submission_impact": "blocked"},
+        ],
+    }
+    progress_payload = {
+        "medical_paper_readiness": {"overall_status": "blocked"},
+        "stage_kernel_projection": {
+            "current_owner_delta": {
+                "owner": "MedAutoScience",
+                "action": "complete_medical_paper_readiness_surface",
+                "reason": "medical_paper_readiness_missing",
+                "blocked_surface": "publication_handoff_owner_gate",
+                "source_ref": typed_blocker_ref,
+                "source_kind": "typed_blocker",
+                "latest_owner_answer_kind": "typed_blocker",
+            }
+        },
+    }
+
+    actions = module.action_queue_with_terminal_publication_handoff(
+        actions=stale_gate_replay_actions,
+        progress=progress_payload,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-dm003",
+        publication_eval_payload=publication_eval,
+        decorate_action=lambda *, study_id, quest_id, action: {
+            **action,
+            "study_id": study_id,
+            "quest_id": quest_id,
+        },
+    )
+
+    assert [action["action_type"] for action in actions] == ["run_gate_clearing_batch"]
+    action = actions[0]
+    assert action["reason"] == "medical_paper_readiness_repair_required"
+    assert action["owner"] == "gate_clearing_batch"
+    assert action["next_work_unit"] == "readiness_blocker_publication_gate_replay"
+    assert action["readiness_blocker_followup_superseded"] == (
+        "complete_medical_paper_readiness_surface"
+    )
+    assert action["work_unit_fingerprint"] == (
+        "readiness-blocker-repair::publication-eval::dm003::readiness-blocker-gaps::"
+        "package_and_submission_authority_pending+"
+        "publication_gate_replay_required_after_current_ai_reviewer_record"
+    )
+    projection = module.projection_fields(progress_payload, actions)
+    assert projection["current_executable_owner_action"]["next_owner"] == "gate_clearing_batch"
+    assert projection["current_executable_owner_action"]["allowed_actions"] == [
+        "run_gate_clearing_batch"
+    ]
+
+
 def test_stage_kernel_typed_blocker_answer_without_next_action_suppresses_requeue() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions"

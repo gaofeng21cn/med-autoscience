@@ -36,6 +36,8 @@ _WRITE_REPAIR_GAPS = frozenset(
 _GATE_REPAIR_GAPS = frozenset(
     {
         "current_package_stale",
+        "package_and_submission_authority_pending",
+        "publication_gate_replay_required_after_current_ai_reviewer_record",
         "stale_submission_minimal_authority",
         "submission_hardening_incomplete",
         "submission_minimal_missing",
@@ -230,14 +232,14 @@ def action_queue_with_terminal_publication_handoff(
     decorate_action: Callable[..., dict[str, Any]],
     publication_eval_payload: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    if _has_repair_progress_followup_action(actions):
-        return actions
     repair = readiness_blocker_repair_action(
         progress=progress,
         publication_eval_payload=publication_eval_payload,
     )
     if repair is not None:
         return [decorate_action(study_id=study_id, quest_id=quest_id, action=repair)]
+    if _has_repair_progress_followup_action(actions):
+        return actions
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
         return [decorate_action(study_id=study_id, quest_id=quest_id, action=followup)]
@@ -257,11 +259,11 @@ def projection_fields(progress: Mapping[str, Any], actions: list[Mapping[str, An
     result: dict[str, Any] = {}
     if _text(stage_artifact_index.get("surface_kind")) == "stage_artifact_index":
         result["stage_artifact_index"] = stage_artifact_index
-    if _has_repair_progress_followup_action(actions or []):
-        return result
     repair_action = _readiness_repair_action_from_actions(actions or [])
     if repair_action is not None:
         result["current_executable_owner_action"] = _projection_action_from_repair(repair_action)
+        return result
+    if _has_repair_progress_followup_action(actions or []):
         return result
     followup = typed_blocker_followup_action(progress)
     if followup is not None:
