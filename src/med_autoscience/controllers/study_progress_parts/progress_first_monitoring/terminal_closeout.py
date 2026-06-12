@@ -74,6 +74,11 @@ def _latest_terminal_stage_summary(
         paper_stage_log,
         infer_from_surfaces=infer_from_surfaces,
     )
+    effective_next_forced_delta = _effective_terminal_next_forced_delta(
+        latest_terminal_stage_log=latest_terminal_stage_log,
+        paper_stage_log=paper_stage_log,
+        fallback=next_forced_delta,
+    )
     return {
         "stage_attempt_id": _text(latest_terminal_stage_log.get("stage_attempt_id")),
         "stage_id": _text(latest_terminal_stage_log.get("stage_id")),
@@ -90,6 +95,11 @@ def _latest_terminal_stage_summary(
         "changed_stage_surfaces": _text_list(paper_stage_log.get("changed_stage_surfaces")),
         "changed_paper_surfaces": _text_list(paper_stage_log.get("changed_paper_surfaces")),
         "remaining_blockers": _text_list(paper_stage_log.get("remaining_blockers")),
+        "next_forced_delta": _compact_mapping(
+            effective_next_forced_delta,
+            NEXT_FORCED_DELTA_SUMMARY_KEYS,
+        )
+        or None,
         "evidence_refs": _text_list(paper_stage_log.get("evidence_refs")),
         "missing_user_stage_log_fields": missing_user_fields,
         "missing_domain_fields": list(missing_user_fields),
@@ -106,7 +116,7 @@ def _latest_terminal_stage_summary(
         "terminal_closeout_semantic_completeness": _terminal_closeout_semantic_completeness(
             latest_terminal_stage_log=latest_terminal_stage_log,
             paper_stage_log=paper_stage_log,
-            next_forced_delta=next_forced_delta,
+            next_forced_delta=effective_next_forced_delta,
             progress_delta_classification=progress_delta_classification,
             progress_delta_classification_source=progress_delta_classification_source,
             missing_user_fields=missing_user_fields,
@@ -115,6 +125,19 @@ def _latest_terminal_stage_summary(
         ),
         "source_path": _text(latest_terminal_stage_log.get("source_path")),
     }
+
+
+def _effective_terminal_next_forced_delta(
+    *,
+    latest_terminal_stage_log: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+    fallback: Mapping[str, Any],
+) -> dict[str, Any]:
+    return (
+        _mapping(paper_stage_log.get("next_forced_delta"))
+        or _mapping(latest_terminal_stage_log.get("next_forced_delta"))
+        or dict(fallback)
+    )
 
 
 def _terminal_closeout_semantic_completeness(
@@ -155,11 +178,8 @@ def _terminal_closeout_semantic_completeness(
         "typed_blocker": typed_blocker,
         "typed_blocker_diagnostic": _text(latest_terminal_stage_log.get("diagnostic")),
         "semantic_gap": semantic_gap,
-        "next_forced_delta": (
-            _compact_mapping(next_forced_delta, NEXT_FORCED_DELTA_SUMMARY_KEYS) or None
-            if typed_blocker is not None
-            else None
-        ),
+        "next_forced_delta": _compact_mapping(next_forced_delta, NEXT_FORCED_DELTA_SUMMARY_KEYS)
+        or None,
     }
     if progress_delta_classification_source is not None:
         result["progress_delta_classification_source"] = progress_delta_classification_source

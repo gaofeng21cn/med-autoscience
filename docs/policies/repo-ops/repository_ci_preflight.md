@@ -28,7 +28,7 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 - `smoke`：本地默认入口，即不带参数的 `scripts/verify.sh`。它负责快速确认当前 checkout 的基础 sanity 与最小入口合同，适合提交前和小改动自检。`line budget` 是有意保留在 smoke 前置 sanity 里的 advisory signal，用来及时发现测试或源码文件继续膨胀；默认 line-budget advisory 不阻断 smoke、fast、ci-preflight 或本地开发。smoke 的 pytest 部分保持在 `contracts/test-lane-manifest.json` 声明的最小、无 repo-root 写入入口面内。
 - `regression`：显式回归入口，即 `scripts/verify.sh regression`。它负责比 smoke 更宽的行为回归，默认由 advisory/nightly 承接，避免把高漂移或高耗时回归压到每次 push。默认 regression 明确排除 `meta`、`display_heavy`、`submission_heavy`、`materialization_heavy` 与 `family`，这些面由各自 lane 承担。
 - `ci-preflight`：push CI 入口，即 `scripts/verify.sh ci-preflight <base-ref>`。它负责基于 base ref 展开 checked-in preflight contract，只检查本次变更实际触达的高风险面，并与 build 一起保护主线。
-- `structure`：显式结构入口，即 `scripts/verify.sh structure`。structure lane 继续运行 advisory line budget 与 Sentrux 结构检查；默认 line budget 不阻断 structure lane。需要把 line budget 作为 hard gate 时，显式运行 `scripts/verify.sh line-budget:strict`、`scripts/verify.sh structure:strict`、`make line-budget-strict` 或 `make test-structure-strict`。
+- `structure`：显式结构入口，即 `scripts/verify.sh structure`。structure lane 继续运行 advisory line budget 与 Sentrux 结构检查；line budget 不阻断 structure lane。历史 `scripts/verify.sh line-budget:strict`、`scripts/verify.sh structure:strict`、`make line-budget-strict` 和 `make test-structure-strict` 只保留兼容入口；行数预算由定时结构治理任务统一消化，不作为本地 hard gate。
 
 ## 耗时预算
 

@@ -18,6 +18,19 @@ CURRENT_OWNER_ACTION_SOURCES = frozenset(
     }
 )
 READINESS_ACTION = "complete_medical_paper_readiness_surface"
+OWNER_ACTION_SUPERSEDABLE_PARKED_STATES = frozenset(
+    {
+        "waiting_user_decision",
+        "explicit_resume_pending",
+    }
+)
+OWNER_ACTION_SUPERSEDABLE_EXPLICIT_RESUME_REASONS = frozenset(
+    {
+        "blocked_turn_closeout_waiting_for_owner",
+        "completed_parked_auto_continue_no_new_message",
+        "parked_after_checkpoint_no_new_message",
+    }
+)
 
 
 def reconcile_current_owner_action_projection(payload: dict[str, Any]) -> dict[str, Any]:
@@ -119,7 +132,12 @@ def current_owner_action_supersedes_stale_user_park(
     auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
     if auto_parked.get("parked") is not True:
         return False
-    if _non_empty_text(auto_parked.get("parked_state")) != "waiting_user_decision":
+    parked_state = _non_empty_text(auto_parked.get("parked_state"))
+    if parked_state not in OWNER_ACTION_SUPERSEDABLE_PARKED_STATES:
+        return False
+    if parked_state == "explicit_resume_pending" and _non_empty_text(
+        auto_parked.get("source_reason")
+    ) not in OWNER_ACTION_SUPERSEDABLE_EXPLICIT_RESUME_REASONS:
         return False
     classification = _mapping_copy(auto_parked.get("runtime_failure_classification"))
     if _has_human_gate_authority_ref(payload):

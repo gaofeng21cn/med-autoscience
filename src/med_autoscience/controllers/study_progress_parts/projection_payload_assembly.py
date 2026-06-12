@@ -31,6 +31,9 @@ from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .projection_payload_assembly_parts.progress_delta import (
     progress_delta_metrics as _progress_delta_metrics,
 )
+from .projection_payload_assembly_parts.running_provider_status import (
+    apply_running_provider_attempt_top_level_status,
+)
 from .repair_progress_projection import build_repair_progress_projection
 from .research_pack_progress_projection import build_research_pack_progress_summary_projection
 from .shared import SCHEMA_VERSION, _mapping_copy, _non_empty_text, _read_json_object
@@ -622,7 +625,8 @@ def assemble_study_progress_payload(
 
 
 def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[str, Any]:
-    updated = apply_current_owner_handoff_user_visible_status(payload)
+    updated = apply_running_provider_attempt_top_level_status(payload)
+    updated = apply_current_owner_handoff_user_visible_status(updated)
     updated = _apply_current_work_unit_typed_blocker_user_visible_status(updated)
     updated = _apply_runtime_medical_publication_surface_user_visible_status(updated)
     return _apply_terminal_delivery_user_visible_status(updated)

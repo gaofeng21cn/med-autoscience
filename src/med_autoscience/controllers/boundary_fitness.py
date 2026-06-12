@@ -9,7 +9,7 @@ from pathlib import Path, PurePosixPath
 
 
 PREFERRED_LINE_LIMIT = 1000
-CLEAR_VIOLATION_LINE_LIMIT = 1500
+CLEAR_ADVISORY_LINE_LIMIT = 1500
 PART_NEAR_LINE_LIMIT = 900
 SHARED_BASE_BUCKET_LINE_LIMIT = 800
 DEFAULT_BASELINE: dict[str, int] = {
@@ -289,16 +289,16 @@ def _oversized_file_finding(
     line_count: int,
     baseline: int | None,
 ) -> BoundaryFinding:
-    if line_count > CLEAR_VIOLATION_LINE_LIMIT:
+    if line_count > CLEAR_ADVISORY_LINE_LIMIT:
         return BoundaryFinding(
             path=relative_path,
             kind="oversized_file",
-            severity="violation",
+            severity="advisory",
             line_count=line_count,
-            limit=CLEAR_VIOLATION_LINE_LIMIT,
+            limit=CLEAR_ADVISORY_LINE_LIMIT,
             baseline=baseline,
             message=(
-                f"{line_count} lines exceeds the clear {CLEAR_VIOLATION_LINE_LIMIT}-line boundary violation limit"
+                f"{line_count} lines exceeds the clear {CLEAR_ADVISORY_LINE_LIMIT}-line boundary advisory limit"
             ),
             recommendation=natural_boundary_recommendation(relative_path),
         )

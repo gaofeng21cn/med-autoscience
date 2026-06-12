@@ -134,8 +134,10 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
         "tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q"
     ) in makefile
     assert "scripts/run-pytest-clean.sh tests/test_opl_agent_lab_longline_migration.py -q" in makefile
+    assert "line-budget:" in makefile
+    assert "scripts/run-python-clean.sh scripts/line_budget.py" in makefile
     assert "line-budget-strict:" in makefile
-    assert "scripts/run-python-clean.sh scripts/line_budget.py --strict" in makefile
+    assert "line-budget-strict: line-budget" in makefile
     assert "test-structure:" in makefile
     assert "scripts/run-python-clean.sh scripts/line_budget.py" in makefile
     assert "scripts/run-structure-quality-gate.sh" in makefile
@@ -156,7 +158,8 @@ def test_structure_lane_keeps_advisory_line_budget_and_quality_gate_wrapper() ->
     assert "\tscripts/run-python-clean.sh scripts/line_budget.py" in structure_block
     assert "--strict" not in structure_block
     assert "\tscripts/run-structure-quality-gate.sh" in structure_block
-    assert "\tscripts/run-python-clean.sh scripts/line_budget.py --strict" in strict_block
+    assert "\tscripts/run-python-clean.sh scripts/line_budget.py" in strict_block
+    assert "--strict" not in strict_block
     assert "\tscripts/run-structure-quality-gate.sh" in strict_block
 
 
@@ -415,6 +418,8 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "submission" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "line-budget" ]]; then' in verify_script
+    assert 'run_with_optional_summary "line-budget" "make line-budget" make line-budget' in verify_script
     assert 'if [[ "${lane}" == "structure" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "line-budget:strict" ]]; then' in verify_script
     assert (
@@ -436,6 +441,7 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
     assert "make test-submission" in verify_script
+    assert "make line-budget" in verify_script
     assert "make test-structure" in verify_script
     assert "make line-budget-strict" in verify_script
     assert "make test-structure-strict" in verify_script

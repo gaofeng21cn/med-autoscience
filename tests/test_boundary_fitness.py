@@ -20,26 +20,26 @@ def _write_python_lines(path: Path, line_count: int) -> None:
     path.write_text("\n".join(f"VALUE_{index} = {index}" for index in range(line_count)) + "\n", encoding="utf-8")
 
 
-def test_audit_reports_preferred_boundary_advisories_and_clear_violations(tmp_path: Path) -> None:
+def test_audit_reports_preferred_and_clear_line_budget_advisories(tmp_path: Path) -> None:
     module = _boundary_fitness_module()
     advisory_path = Path("src/med_autoscience/controllers/large_controller.py")
-    violation_path = Path("src/med_autoscience/controllers/overgrown_controller.py")
+    clear_advisory_path = Path("src/med_autoscience/controllers/overgrown_controller.py")
     _write_python_lines(tmp_path / advisory_path, 1001)
-    _write_python_lines(tmp_path / violation_path, 1501)
+    _write_python_lines(tmp_path / clear_advisory_path, 1501)
 
     report = module.audit_boundary_fitness(
         tmp_path,
-        tracked_files=(advisory_path.as_posix(), violation_path.as_posix()),
-        baseline={advisory_path.as_posix(): 1001, violation_path.as_posix(): 1501},
+        tracked_files=(advisory_path.as_posix(), clear_advisory_path.as_posix()),
+        baseline={advisory_path.as_posix(): 1001, clear_advisory_path.as_posix(): 1501},
     )
 
     oversized = {finding.path: finding for finding in report.oversized_findings}
     assert oversized[advisory_path.as_posix()].severity == "advisory"
     assert oversized[advisory_path.as_posix()].limit == module.PREFERRED_LINE_LIMIT
-    assert oversized[violation_path.as_posix()].severity == "violation"
-    assert oversized[violation_path.as_posix()].limit == module.CLEAR_VIOLATION_LINE_LIMIT
-    assert oversized[violation_path.as_posix()] in report.blocking_findings
-    assert "natural responsibility boundary" in oversized[violation_path.as_posix()].recommendation
+    assert oversized[clear_advisory_path.as_posix()].severity == "advisory"
+    assert oversized[clear_advisory_path.as_posix()].limit == module.CLEAR_ADVISORY_LINE_LIMIT
+    assert "natural responsibility boundary" in oversized[clear_advisory_path.as_posix()].recommendation
+    assert report.blocking_findings == ()
 
 
 def test_audit_reports_new_or_growing_files_over_preferred_boundary_as_advisory(tmp_path: Path) -> None:

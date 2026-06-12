@@ -999,6 +999,7 @@ def _action_supersedes_typed_blocker(
         return (
             _action_is_stage_current_owner_delta(action)
             or _provider_admission_repair_action_supersedes_readiness_blocker(action)
+            or _publication_eval_repair_action_supersedes_readiness_blocker(action)
             or _paper_delta_current_action_supersedes_prior_blocker(
                 action=action,
                 progress=_mapping(progress),

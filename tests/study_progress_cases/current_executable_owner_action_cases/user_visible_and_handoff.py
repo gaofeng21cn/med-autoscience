@@ -414,6 +414,71 @@ def test_current_owner_action_projection_requires_human_gate_authority_ref() -> 
     assert result["study_macro_state"]["details"]["decision_owner"] == "MedAutoScience"
 
 
+def test_current_owner_action_projection_suppresses_closeout_waiting_explicit_resume_when_owner_action_exists() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"
+    )
+
+    payload = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_stage": "auto_runtime_parked",
+        "next_system_action": "等待显式 resume、rerun 或 relaunch。",
+        "auto_runtime_parked": {
+            "surface_kind": "auto_runtime_parked",
+            "schema_version": 1,
+            "parked": True,
+            "parked_state": "explicit_resume_pending",
+            "parked_owner": "user",
+            "awaiting_explicit_wakeup": True,
+            "auto_execution_complete": False,
+            "source_reason": "blocked_turn_closeout_waiting_for_owner",
+            "runtime_failure_classification": {
+                "requires_human_gate": False,
+                "auto_recovery_allowed": True,
+                "blocker_class": "none",
+            },
+        },
+        "status_narration_contract": {
+            "stage": {"current_stage": "auto_runtime_parked"},
+            "next_step": "等待显式 resume、rerun 或 relaunch。",
+        },
+        "operator_status_card": {
+            "handling_state": "explicit_resume_pending",
+            "current_focus": "等待显式 resume、rerun 或 relaunch。",
+        },
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+            "next_owner": "write",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "source_ref": "artifacts/publication_eval/latest.json",
+        },
+    }
+
+    result = module.reconcile_current_owner_action_projection(payload)
+
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["superseded_by_current_owner_action"] is True
+    assert result["parked_state"] is None
+    assert result["awaiting_explicit_wakeup"] is False
+    assert result["current_stage"] == "publication_supervision"
+    assert result["next_system_action"] == (
+        "等待 write owner 执行 run_quality_repair_batch，"
+        "处理 work unit medical_prose_write_repair，"
+        "产出 owner receipt、typed blocker 或下一 owner handoff。"
+    )
+    assert result["status_narration_contract"]["next_step"] == result["next_system_action"]
+    assert result["operator_status_card"]["current_focus"] == result["next_system_action"]
+    assert result["study_macro_state"]["writer_state"] == "queued"
+    assert result["study_macro_state"]["details"]["decision_owner"] == "write"
+    assert result["study_macro_state"]["details"]["next_work_unit"] == "medical_prose_write_repair"
+
+
 def test_current_owner_action_projection_preserves_authorized_human_gate() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_owner_action_projection_reconcile"

@@ -32,6 +32,7 @@ CURRENT_ACTION_SUPERSEDED_RUNTIME_BLOCKERS = frozenset(
         "repair_progress_ai_reviewer_recheck_required",
         "repair_progress_gate_replay_required",
         "runtime_recovery_not_authorized",
+        "current_typed_blocker_precedes_provider_admission",
     }
 )
 MEDICAL_READINESS_BLOCKERS = frozenset(
@@ -100,9 +101,11 @@ TERMINAL_CLOSEOUT_STATUSES = frozenset(
         "completed",
         "completed_with_domain_owner_record_only_archive",
         "completed_with_record_only_artifact_delta",
+        "executed",
         "executed_progress_delta",
         "executed_record_only",
         "executed_record_only_archive_materialized",
+        "owner_receipt",
         "executed_with_domain_side_effect_observed",
         "executed_with_owner_receipt",
         "failed",

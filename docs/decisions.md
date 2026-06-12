@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-12：strict running provider proof 必须覆盖 parked / preflight 顶层读面
+
+- 决策：`study_progress` post-assembly 必须让 strict running provider proof 覆盖顶层 `current_stage`、`status_narration_contract`、`study_macro_state`、`intervention_lane`、`user_visible_projection`、`supervision` 和 `operator_status_card`。当 canonical `current_work_unit.status=running_provider_attempt`、`current_execution_envelope.state_kind=running_provider_attempt`、`progress_first_monitoring_summary.running_provider_attempt=true`，或 OPL handoff 给出同一 current identity 的 strict live proof 且无 matching terminal closeout 时，顶层状态统一显示 `managed_runtime_active` / `runtime_running_watch`，并移除默认 operator card 中的 parked/preflight 字段。
+- 决策：matching terminal closeout 永远压过 running projection。`study_progress` 不能把 terminal completed attempt 继续显示为 running，也不能自行消费 closeout；closeout consumption、旧 handoff 释放和下一 owner / typed blocker / changed surface 推导仍归 `runtime domain-health-diagnostic --apply` 或同等 MAS authority consumer。
+- 理由：DM003 已出现 OPL provider attempt 真实 running 时，`current_work_unit` 与 `current_execution_envelope` 能识别 `running_provider_attempt`，但 top-level `current_stage`、status narration 和 operator card 仍停在 `runtime_preflight` / `auto_runtime_parked`。这会让 operator 误判为还应 hydrate/tick/redrive，而不是监督当前 attempt。随后 attempt terminal completed 且有 closeout refs 时，又必须避免把旧 running proof 当成论文继续推进。
+- 影响：这是 MAS read-model/currentness 修复，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、typed blocker、human gate、OPL queue 或 provider attempt。验证入口是 focused `opl_current_control_state_stage_log_merge`，再配合 CLI/MCP progress read-model 测试和 `make test-meta`。
+
 ## 2026-06-12：DM002 / DM003 recovery 必须走 MAS owner callable / OPL StageRun 执行入口
 
 - 决策：Codex 前台会话只能做监督、读 live truth、改 repo docs/contracts/tests、实现缺失的 MAS owner callable 或 derived repair action，以及运行 repo-native verification。真实论文 recovery 的执行入口必须是 MAS owner callable、MAS domain-handler dispatch，或 OPL StageRun provider attempt 内部调用 Codex；前台 Codex 不能绕过 MAS/OPL 直接走 paper-local 路线。
@@ -405,12 +412,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：OPL/MAS 当前目标是 `Declarative Medical Research Pack + OPL hosted runtime + MAS minimal authority functions`。继续生成或保留 `ops/mas` 私有 runtime bridge 会让 operator 误以为 MAS 仍持有 launcher/runtime control，从而拖慢 owner handoff 和 cleanup 判断。
 - 影响：这是 platform repair / workspace topology hygiene，不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、artifact body、memory body、`current_package` 或 owner receipt。它减少默认入口和目录噪音，但不声明 paper-line progress、publication-ready、domain-ready 或 production-ready。
 
-## 2026-06-07：preferred line budget 是 advisory，strict 入口才可阻断
+## 2026-06-07：preferred line budget 是 advisory，统一由定时结构治理消化
 
-- 决策：`scripts/line_budget.py` 默认只报告 preferred line budget advisory，不因 1000 行 preferred boundary、缺 reviewed baseline 或超过旧 baseline 而返回失败。需要把超线作为硬门时，必须显式使用 `scripts/line_budget.py --strict` 或 `MAS_LINE_BUDGET_STRICT=1`。
-- 决策：`boundary_fitness` 的 `blocking_findings` 只保留 clear structural violation，例如 1500 行以上 clear violation、机械编号 split residue、stale boundary baseline 等明确结构违规；preferred 1000 行预算、未建 baseline 或 baseline 增长只进入 `oversized_findings` advisory。`make test-meta` 不能通过 `test_current_repo_boundary_guard_has_no_blocking_findings` 把 preferred advisory 重新变成 preflight 阻断。
-- 理由：OPL family structure cleanup 已把 family structure scan 固定为 advisory surface；MAS 仓内 `line_budget.py` 也已按默认 advisory / explicit strict 的语义维护。但 `test-meta` 仍直接断言 `boundary_fitness.blocking_findings == ()`，在 1000 行附近文件出现时表现为 CI/preflight hard fail，和当前 line-budget contract 漂移。
-- 影响：这是结构治理 gate 语义修复，不改变源码自然边界治理方向，也不把超线信号隐藏。结构 cleanup 仍应按 owner/natural boundary 拆分；只是不再让 preferred budget 在默认 preflight 中阻断论文/runtime 修复。严格结构 lane、release hardening 或显式 strict gate 仍可用 strict 入口阻断 oversized files。
+- 决策：`scripts/line_budget.py` 只报告 preferred line budget advisory，不因 1000 行 preferred boundary、1500 行 clear line-budget signal、缺 reviewed baseline 或超过旧 baseline 而返回失败。历史 `--strict` flag、`MAS_LINE_BUDGET_STRICT=1`、`line-budget:strict`、`structure:strict` 和 `make line-budget-strict` 只保留为兼容入口；line-budget 本身不再作为硬门，后续由定时结构治理任务统一消化。
+- 决策：`boundary_fitness` 的 `blocking_findings` 只保留 clear structural violation，例如机械编号 split residue、stale boundary baseline 等明确结构违规；1000 行 preferred boundary、1500 行 clear line-budget signal、未建 baseline 或 baseline 增长都只进入 `oversized_findings` advisory。`make test-meta` 不能通过 `test_current_repo_boundary_guard_has_no_blocking_findings` 把 line-budget advisory 重新变成 preflight 阻断。
+- 理由：OPL family structure cleanup 已把 family structure scan 固定为 advisory surface；MAS 仓内 `line_budget.py` 也应按统一 advisory 语义维护。但 `test-meta` 和历史 strict 入口曾把 line-budget signal 重新表现为 CI/preflight hard fail，和当前 line-budget contract 漂移。
+- 影响：这是结构治理 gate 语义修复，不改变源码自然边界治理方向，也不把超线信号隐藏。结构 cleanup 仍应按 owner/natural boundary 拆分；只是不再让 line-budget 在默认 preflight、meta、smoke 或历史 strict 入口中阻断论文/runtime 修复。结构质量 gate 仍可阻断非 line-budget 的明确结构违规。
 
 ## 2026-06-07：dispatchable owner route 不得停在无 human gate 的 idle/parked 状态
 
@@ -1162,7 +1169,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 - 决策：`.sentrux/baseline.json` 记录的是 Sentrux 扫描器当前口径下的 repo structural baseline，不是医学研究 truth 或 MAS runtime contract。当 `origin/main` 在同一 `sentrux` 版本下已经因 baseline drift 失败，且 OPL quality details 未显示本轮新增复杂函数或规则违例时，应通过 `sentrux gate --save` 刷新 baseline，再让 `scripts/verify.sh structure` 继续阻断后续真实结构回退。
 - 理由：DM002 live-attempt currentness 修复期间，`scripts/verify.sh structure` 报 `God files: 3 -> 4`；fresh lineage 验证显示 `origin/main` 在 `sentrux 0.5.7` 下同样失败，而 `.sentrux/baseline.json` 上次刷新于 2026-05-21。该失败来自 structure baseline 与当前扫描器/主线事实不同步，不是 DM002 修复引入的新增复杂函数、cycle、规则违例或论文 owner blocker。
-- 影响：这是 MAS repo verification baseline currentness 修复，不放宽显式 strict line budget、rules check、OPL quality details 或后续 structure strict gate。它不写 DM002 study truth、runtime-owned `.ds`、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。
+- 影响：这是 MAS repo verification baseline currentness 修复，不放宽 rules check、OPL quality details 或后续结构质量 gate。它不写 DM002 study truth、runtime-owned `.ds`、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。
 
 ## 2026-05-26：repair execution evidence stable latest 不得被无 currentness 的弱 blocker 降级
 
@@ -1831,7 +1838,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 ## 2026-05-22：stage quality pack contract catalog 按自然边界拆分
 
 - 决策：`stage_quality_contract.py` 继续作为 public contract/API owner，保留 `build_stage_quality_pack_contract`、projection builder、pack id 常量和 `CONTRACT_REF`；静态 pack catalog、promotion evidence、owner refs 与 required refs 迁入 `stage_quality_contract_parts/catalog.py`，由 `stage_quality_contract_parts/__init__.py` 做显式 re-export。
-- 理由：DM003 writer materializer 修复当时触发 smoke `line_budget` gate，暴露 `stage_quality_contract.py` 已超过 preferred boundary 且没有 reviewed baseline。当前默认 line budget 是 advisory；需要 hard gate 时使用显式 strict 入口。正确处理方式仍是按 quality-pack catalog 自然边界拆分，而不是新增白名单或隐藏 advisory signal。
+- 理由：DM003 writer materializer 修复当时触发 smoke `line_budget` signal，暴露 `stage_quality_contract.py` 已超过 preferred boundary 且没有 reviewed baseline。当前 line budget 是 advisory，由定时结构治理统一消化。正确处理方式仍是按 quality-pack catalog 自然边界拆分，而不是新增白名单或隐藏 advisory signal。
 - 影响：这是结构治理修复，不改变 stage quality pack contract 的 public callable 或 authority boundary；OPL projection 仍只能消费 descriptor/ref/freshness locator，不能授权 MAS truth、quality verdict、publication readiness 或 submission readiness。
 
 ## 2026-05-21：provenance-limited rebuild handoff 必须覆盖旧 methodology decision

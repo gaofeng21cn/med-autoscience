@@ -348,6 +348,99 @@ def test_study_progress_projects_live_opl_attempt_without_stage_progress_log(
     assert result["progress_first_monitoring_summary"]["active_stage_attempt_id"] == "sat-live"
     assert result["progress_first_monitoring_summary"]["running_provider_attempt"] is True
     assert result["progress_first_monitoring_summary"]["execution_state_kind"] == "running_provider_attempt"
+    assert result["current_work_unit"]["status"] == "running_provider_attempt"
+    assert result["current_execution_envelope"]["state_kind"] == "running_provider_attempt"
+    assert result["active_run_id"] == "opl-stage-attempt://sat-live"
+    assert result["current_stage"] == "managed_runtime_active"
+    assert result["status_narration_contract"]["stage"]["current_stage"] == "managed_runtime_active"
+    assert "auto_runtime_parked" not in result["operator_status_card"]
+    assert "parked_state" not in result["operator_status_card"]
+
+
+def test_running_provider_top_level_projection_yields_to_matching_owner_receipt_closeout() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.running_provider_status"
+    )
+
+    payload = {
+        "current_stage": "auto_runtime_parked",
+        "active_run_id": "opl-stage-attempt://sat-completed",
+        "current_blockers": ["medical_paper_readiness_missing"],
+        "current_work_unit": {"status": "running_provider_attempt"},
+        "current_execution_envelope": {"state_kind": "running_provider_attempt"},
+        "progress_first_monitoring_summary": {
+            "running_provider_attempt": True,
+            "active_stage_attempt_id": "sat-completed",
+        },
+        "opl_current_control_state_handoff": {
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat-completed",
+            "active_stage_attempt_id": "sat-completed",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+            "latest_terminal_stage_log": {
+                "stage_attempt_id": "sat-completed",
+                "status": "executed",
+                "outcome": "owner_receipt",
+                "closeout_refs": [
+                    "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                    "sat-completed.closeout.json",
+                    "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
+                    "20260612T100912Z_publication_eval_record.json",
+                ],
+            },
+        },
+    }
+
+    result = module.apply_running_provider_attempt_top_level_status(payload)
+
+    assert result is payload
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["current_blockers"] == ["medical_paper_readiness_missing"]
+
+
+def test_running_provider_top_level_projection_yields_to_progress_first_terminal_closeout() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.running_provider_status"
+    )
+
+    payload = {
+        "current_stage": "auto_runtime_parked",
+        "active_run_id": "opl-stage-attempt://sat-completed",
+        "current_blockers": ["medical_paper_readiness_missing"],
+        "current_work_unit": {"status": "running_provider_attempt"},
+        "current_execution_envelope": {"state_kind": "running_provider_attempt"},
+        "progress_first_monitoring_summary": {
+            "running_provider_attempt": True,
+            "active_stage_attempt_id": "sat-completed",
+            "latest_terminal_stage": {
+                "stage_attempt_id": "sat-completed",
+                "status": "executed",
+                "outcome": "owner_receipt",
+                "closeout_refs": [
+                    "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                    "sat-completed.closeout.json",
+                ],
+            },
+        },
+        "opl_current_control_state_handoff": {
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat-completed",
+            "active_stage_attempt_id": "sat-completed",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+        },
+    }
+
+    result = module.apply_running_provider_attempt_top_level_status(payload)
+
+    assert result is payload
+    assert result["current_stage"] == "auto_runtime_parked"
+    assert result["current_blockers"] == ["medical_paper_readiness_missing"]
 
 
 def test_study_progress_terminal_closeout_missing_owner_answer_blocks_stale_running(
@@ -486,9 +579,9 @@ def test_study_progress_terminal_closeout_missing_owner_answer_blocks_stale_runn
     assert dashboard["running_provider_attempt"] is False
     assert dashboard["active_run_id"] is None
     assert dashboard["action_queue"] == []
-    assert dashboard["typed_blocker"]["blocker_id"] == "terminal_closeout_owner_answer_required"
+    assert dashboard["typed_blocker"]["blocker_id"] == "typed_closeout_packet_required"
     monitoring = result["progress_first_monitoring_summary"]
     assert monitoring["running_provider_attempt"] is False
     assert monitoring["execution_state_kind"] == "typed_blocker"
-    assert monitoring["typed_blocker"]["blocker_id"] == "terminal_closeout_owner_answer_required"
-    assert "terminal_closeout_owner_answer_required" in monitoring["current_blockers"]
+    assert monitoring["typed_blocker"]["blocker_id"] == "typed_closeout_packet_required"
+    assert "typed_closeout_packet_required" in monitoring["current_blockers"]

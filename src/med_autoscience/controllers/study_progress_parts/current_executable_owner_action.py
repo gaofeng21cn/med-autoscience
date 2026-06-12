@@ -52,6 +52,11 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     if repair_progress_action is not None:
         if not _action_consumed_by_dispatch_receipt(action=repair_progress_action, payload=payload):
             return repair_progress_action
+        publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
+        if publication_repair_action is not None and _consumed_ai_reviewer_followup_routes_to_write_repair(
+            payload
+        ):
+            return publication_repair_action
         gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
         next_forced_delta_action = _from_current_next_forced_delta(payload)
         if _next_forced_delta_supersedes_gate_followthrough(
@@ -62,7 +67,6 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         if gate_followthrough_action is not None:
             return gate_followthrough_action
         if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
-            publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
             if publication_repair_action is not None:
                 return publication_repair_action
         if next_forced_delta_action is not None:
@@ -141,6 +145,21 @@ def _from_current_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any
     return _from_next_forced_delta(payload)
 
 
+def _consumed_ai_reviewer_followup_routes_to_write_repair(payload: Mapping[str, Any]) -> bool:
+    terminal = _latest_ai_reviewer_terminal_stage(payload)
+    if _non_empty_text(terminal.get("action_type")) != AI_REVIEWER_ACTION:
+        return False
+    paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+    next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
+        paper_stage_log.get("next_forced_delta")
+    )
+    return _terminal_stage_semantically_consumes_ai_reviewer_followup(
+        terminal=terminal,
+        paper_stage_log=paper_stage_log,
+        next_forced_delta=next_forced_delta,
+    )
+
+
 def _from_gate_followthrough_current_work_unit(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     followthrough = _mapping_copy(payload.get("gate_clearing_batch_followthrough"))
     if _non_empty_text(followthrough.get("status")) not in GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES:
@@ -210,18 +229,18 @@ def _from_gate_followthrough_current_work_unit(payload: Mapping[str, Any]) -> di
 
 
 def _from_terminal_stage_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
-    terminal = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    terminal = _latest_terminal_stage_with_next_forced_delta(payload)
     paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
     next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
         paper_stage_log.get("next_forced_delta")
     )
     owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
-    action_type = (
+    raw_action_type = (
         _non_empty_text(owner_action.get("action_type"))
         or _non_empty_text(next_forced_delta.get("action_type"))
         or _non_empty_text(terminal.get("action_type"))
     )
+    action_type = _terminal_next_forced_delta_action_type(raw_action_type)
     if action_type not in TERMINAL_NEXT_FORCED_DELTA_ACTIONS:
         return None
     work_unit_id = (
@@ -233,6 +252,7 @@ def _from_terminal_stage_next_forced_delta(payload: Mapping[str, Any]) -> dict[s
         _non_empty_text(owner_action.get("next_owner"))
         or _non_empty_text(owner_action.get("owner"))
         or _non_empty_text(next_forced_delta.get("next_owner"))
+        or _terminal_next_forced_delta_default_owner(raw_action_type)
         or _terminal_next_forced_delta_default_owner(action_type)
     )
     if owner is None and work_unit_id is None:
@@ -299,6 +319,8 @@ def _from_terminal_stage_next_forced_delta(payload: Mapping[str, Any]) -> dict[s
 
 
 def _terminal_next_forced_delta_default_owner(action_type: str | None) -> str | None:
+    if action_type == "return_to_write":
+        return "write"
     if action_type == GATE_CLEARING_ACTION:
         return GATE_CLEARING_OWNER
     if action_type == QUALITY_REPAIR_ACTION:
@@ -306,6 +328,40 @@ def _terminal_next_forced_delta_default_owner(action_type: str | None) -> str | 
     if action_type == "consume_record_only_ai_reviewer_closeout_or_route_next_owner":
         return "mas_controller"
     return None
+
+
+def _terminal_next_forced_delta_action_type(action_type: str | None) -> str | None:
+    if action_type == "return_to_write":
+        return QUALITY_REPAIR_ACTION
+    return action_type
+
+
+def _latest_terminal_stage_with_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any]:
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    progress_first = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    for value in (
+        progress_first.get("latest_terminal_stage"),
+        progress_first.get("latest_terminal_stage_log"),
+        handoff.get("latest_terminal_stage_log"),
+        payload.get("latest_terminal_stage"),
+        payload.get("latest_terminal_stage_log"),
+    ):
+        terminal = _mapping_copy(value)
+        if not terminal:
+            continue
+        paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+        next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
+            paper_stage_log.get("next_forced_delta")
+        )
+        owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
+        action_type = _terminal_next_forced_delta_action_type(
+            _non_empty_text(owner_action.get("action_type"))
+            or _non_empty_text(next_forced_delta.get("action_type"))
+            or _non_empty_text(terminal.get("action_type"))
+        )
+        if action_type in TERMINAL_NEXT_FORCED_DELTA_ACTIONS:
+            return terminal
+    return {}
 
 
 def _terminal_next_forced_delta_fingerprint(
@@ -835,22 +891,41 @@ def _terminal_stage_closeout_consumes_repair_followup(
         return False
     if _non_empty_text(action.get("work_unit_id")) != AI_REVIEWER_WORK_UNIT:
         return False
-    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
-    terminal = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    terminal = _latest_ai_reviewer_terminal_stage(payload)
     if _non_empty_text(terminal.get("action_type")) != AI_REVIEWER_ACTION:
         return False
-    if _non_empty_text(terminal.get("status")) != "closed_with_domain_owner_refs":
+    status = _non_empty_text(terminal.get("status"))
+    outcome = _non_empty_text(terminal.get("outcome"))
+    if status not in {
+        "closed_with_domain_owner_refs",
+        "completed_with_domain_owner_record_only_archive",
+        "completed_with_record_only_artifact_delta",
+        "executed",
+        "executed_record_only",
+        "executed_record_only_archive_materialized",
+        "executed_with_owner_receipt",
+        "record_only_archive_materialized",
+    } and outcome not in {"owner_receipt", "closed_with_domain_owner_refs"}:
         return False
     paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
     next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
         paper_stage_log.get("next_forced_delta")
     )
-    if _non_empty_text(next_forced_delta.get("owner")) != "mas_controller":
+    owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
+    next_owner = (
+        _non_empty_text(next_forced_delta.get("owner"))
+        or _non_empty_text(owner_action.get("next_owner"))
+        or _non_empty_text(owner_action.get("owner"))
+    )
+    if next_owner != "mas_controller":
         return False
-    if (
-        _non_empty_text(next_forced_delta.get("action_type"))
-        != "consume_record_only_ai_reviewer_closeout_or_route_next_owner"
-    ):
+    next_action_type = _non_empty_text(next_forced_delta.get("action_type")) or _non_empty_text(
+        owner_action.get("action_type")
+    )
+    if next_action_type not in {
+        "consume_record_only_ai_reviewer_closeout_or_route_next_owner",
+        "return_to_write",
+    }:
         return False
     action_stage_attempt = _stage_attempt_id_from_refs(action.get("acceptance_refs"))
     terminal_stage_attempt = _non_empty_text(terminal.get("stage_attempt_id")) or _stage_attempt_id_from_refs(
@@ -861,6 +936,12 @@ def _terminal_stage_closeout_consumes_repair_followup(
     source_eval_id = _non_empty_text(next_forced_delta.get("source_eval_id"))
     if terminal_stage_attempt is not None and source_eval_id is not None:
         return terminal_stage_attempt in source_eval_id
+    if _terminal_stage_semantically_consumes_ai_reviewer_followup(
+        terminal=terminal,
+        paper_stage_log=paper_stage_log,
+        next_forced_delta=next_forced_delta,
+    ):
+        return True
     action_fingerprint = (
         _non_empty_text(action.get("work_unit_fingerprint"))
         or _non_empty_text(action.get("action_fingerprint"))
@@ -870,6 +951,56 @@ def _terminal_stage_closeout_consumes_repair_followup(
     return action_fingerprint is not None and any(
         action_fingerprint in ref for ref in terminal_refs if isinstance(ref, str)
     )
+
+
+def _terminal_stage_semantically_consumes_ai_reviewer_followup(
+    *,
+    terminal: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+    next_forced_delta: Mapping[str, Any],
+) -> bool:
+    required_delta_kind = _non_empty_text(next_forced_delta.get("required_delta_kind"))
+    if required_delta_kind != "same_line_write_repair_or_gate_replay_route":
+        return False
+    next_work_unit = _non_empty_text(next_forced_delta.get("work_unit_id"))
+    owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
+    if _non_empty_text(owner_action.get("work_unit_id")) not in {next_work_unit, None}:
+        return False
+    if next_work_unit in {None, AI_REVIEWER_WORK_UNIT}:
+        return False
+    progress_delta_classification = (
+        _non_empty_text(paper_stage_log.get("progress_delta_classification"))
+        or _non_empty_text(terminal.get("progress_delta_classification"))
+    )
+    if progress_delta_classification not in {"deliverable_progress", "paper_progress"}:
+        return False
+    refs = _dedupe_text(
+        [
+            terminal.get("source_path"),
+            *list(terminal.get("closeout_refs") or []),
+            *list(terminal.get("changed_paper_surfaces") or []),
+            *list(paper_stage_log.get("changed_paper_surfaces") or []),
+            _mapping_copy(next_forced_delta.get("target_surface")).get("surface_ref"),
+            _mapping_copy(next_forced_delta.get("target_surface")).get("publication_eval_latest_ref"),
+        ]
+    )
+    return any("publication_eval/ai_reviewer_responses" in ref for ref in refs)
+
+
+def _latest_ai_reviewer_terminal_stage(payload: Mapping[str, Any]) -> dict[str, Any]:
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    progress_first = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    for value in (
+        progress_first.get("latest_terminal_stage"),
+        progress_first.get("latest_terminal_stage_log"),
+        handoff.get("latest_terminal_stage_log"),
+        payload.get("latest_terminal_stage"),
+        payload.get("latest_terminal_stage_log"),
+    ):
+        terminal = _mapping_copy(value)
+        if _non_empty_text(terminal.get("action_type")) == AI_REVIEWER_ACTION:
+            return terminal
+    return {}
 
 
 def _stage_attempt_id_from_refs(value: object) -> str | None:

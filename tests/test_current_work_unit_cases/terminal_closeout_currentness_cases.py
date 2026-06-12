@@ -122,6 +122,79 @@ def test_current_work_unit_treats_repeat_suppressed_gate_replay_terminal_stage_a
     assert work_unit["state"]["stale_queue_or_handoff_can_override"] is False
 
 
+def test_current_work_unit_uses_write_repair_after_executed_ai_reviewer_receipt_over_stale_gate_blocker() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "auto_runtime_parked",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+            "paper_progress_delta": {"count": 1},
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_attempt_id": "sat_fdeabae35e46694c6f8dacd2",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "status": "executed",
+                    "outcome": "owner_receipt",
+                    "progress_delta_classification": "deliverable_progress",
+                    "changed_paper_surfaces": [
+                        "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
+                        "20260612T100912Z_publication_eval_record.json"
+                    ],
+                    "source_path": (
+                        "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_fdeabae35e46694c6f8dacd2.closeout.json"
+                    ),
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+            "next_owner": "write",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "action_fingerprint": "publication-blockers::0915410f804b3697",
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "target_surface": {
+                "ref_kind": "publication_eval_recommended_action",
+                "route_target": "write",
+                "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+            },
+        },
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "blocker_kind": "current_typed_blocker_precedes_provider_admission",
+            "blocker_type": "current_typed_blocker_precedes_provider_admission",
+            "blocked_reason": "current_typed_blocker_precedes_provider_admission",
+            "owner": "one-person-lab",
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "source_ref": (
+                "artifacts/supervision/consumer/default_executor_execution/"
+                "sat_b2652a75945b6ed8fb16148e.closeout.json"
+            ),
+        },
+        next_owner="one-person-lab",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["state"]["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+
+
 def test_current_work_unit_preserves_anti_loop_stop_loss_over_stage_readiness_blocker() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

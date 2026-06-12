@@ -161,7 +161,11 @@ AI-first 的 admission 锚点是 `current_executable_owner_action`，不是 `nex
 
 Provider admission pending 必须由强 identity 判断，不能由 `action_id`、action family、旧 queue label 或 handoff 文案判断。强 identity 至少包含 study、action、work-unit id / fingerprint、dispatch ref、`route_identity_key`、`attempt_idempotency_key` 和 strong `owner_route_currentness_basis`。缺这些字段时，operator outcome 是 currentness diagnostic / typed blocker candidate，不是可启动 provider admission。
 
+strict running proof 一旦成立，operator 顶层读面必须进入 `runtime_running_watch`：canonical `current_work_unit` / `current_execution_envelope` / `progress_first_monitoring_summary` 或 OPL handoff 任一面给出 `running_provider_attempt`，且同一 active stage attempt 没有 terminal closeout 时，`current_stage` 应显示 `managed_runtime_active`，`active_run_id` 应保留 provider attempt ref，parked / preflight / release-resource 字段只能作为被 supersede 的诊断，不得留在 `operator_status_card` 的默认面。该状态的唯一动作是监督当前 attempt；不要重复 DHD apply、hydrate、tick 或 queue redrive 同一 work unit。
+
 `not_running`、`stopped`、terminal workflow completed、queue completed、default executor `handoff_ready` 和旧 active/run 字段都不是 running proof。workflow completed 也不算论文进展；只有 DHD apply 或等价 MAS authority consumer 消费 terminal closeout 后，fresh `study progress` 产生 owner receipt、typed blocker、paper/artifact delta、reviewer/gate delta 或 next handoff，才计入对应 Progress-first outcome。
+
+attempt terminal completed 后，即使旧 read-model 仍残留 `active_run_id` 或 `running_provider_attempt=true`，matching terminal closeout 必须压过 running projection。`study_progress` 只负责显示 terminal-aware read model；它不消费 closeout。消费 closeout、释放旧 handoff、推导唯一 next owner / typed blocker / changed surface 的入口仍是 `runtime domain-health-diagnostic --apply` 或同等 MAS authority consumer。
 
 2026-06-12 DM002 / DM003 运行态监督口径：若 fresh `study progress` 与 `domain-health-diagnostic --dry-run` 同时显示 `active_run_id=null`、`running_provider_attempt=false`、`provider_admission_pending_count=0`、`provider_admission_candidates=[]` 和 `action_queue=[]`，当前论文线没有 active provider work。DM002 类 `anti_loop_budget_exhausted` 按 `terminal_stop_loss` / `blocked_with_typed_owner` 处理，DM003 类 `medical_paper_readiness_missing` 按 current typed blocker 处理；下一步归 blocker owner、human/operator gate、route-back、新 work-unit identity 或 owner receipt，而不是继续同一 `run_quality_repair_batch`、heartbeat 或 quest-running 读面。
 

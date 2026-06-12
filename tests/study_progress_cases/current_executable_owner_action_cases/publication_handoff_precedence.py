@@ -907,6 +907,230 @@ def test_current_executable_owner_action_consumes_record_only_ai_reviewer_termin
     ]
 
 
+def test_current_executable_owner_action_consumes_executed_ai_reviewer_receipt_and_returns_to_write() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "publication_eval": {
+                "source_publication_eval": {
+                    "eval_id": "publication-eval::003::blocked-current",
+                    "verdict": {"overall_verdict": "blocked"},
+                    "recommended_actions": [
+                        {
+                            "action_id": "publication-eval-action::route_back_same_line::publication-blockers",
+                            "action_type": "route_back_same_line",
+                            "priority": "now",
+                            "reason": "medical publication surface is blocked",
+                            "evidence_refs": [
+                                "runtime/quests/003/artifacts/reports/publishability_gate/latest.json"
+                            ],
+                            "route_target": "write",
+                            "route_key_question": "What is the narrowest same-line manuscript repair?",
+                            "route_rationale": "Close reviewer-first publication-surface concerns.",
+                            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                            "next_work_unit": {
+                                "unit_id": "medical_prose_write_repair",
+                                "lane": "write",
+                                "summary": "Repair structured medical reporting.",
+                            },
+                        }
+                    ],
+                    "gaps": [
+                        {
+                            "gap_id": "gap-002",
+                            "gap_type": "reporting",
+                            "severity": "must_fix",
+                            "summary": "medical_publication_surface_blocked",
+                        }
+                    ],
+                },
+            },
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "owner": "MedAutoScience",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "reason": "medical_paper_readiness_missing",
+                    "required_input": "complete_medical_paper_readiness_surface",
+                    "blocked_surface": "publication_handoff_owner_gate",
+                    "source_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+                    "source_kind": "typed_blocker",
+                },
+                "stage_run_kernel": {
+                    "status": "TypedBlocked",
+                    "typed_blocker_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": "sha256:fc2032327815ef9ab106e4ca972923ae2f18b3e3da019cf257298e2b3e3bc08a",
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "ai_reviewer_recheck_request_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
+                "gate_replay_refs": [
+                    "runtime/quests/003/artifacts/reports/publishability_gate/2026-06-12T062725Z.json"
+                ],
+            },
+            "opl_current_control_state_handoff": {
+                "latest_terminal_stage_log": {
+                    "stage_attempt_id": "sat_fdeabae35e46694c6f8dacd2",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "status": "executed",
+                    "outcome": "owner_receipt",
+                    "source_path": (
+                        "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_fdeabae35e46694c6f8dacd2.closeout.json"
+                    ),
+                    "closeout_refs": [
+                        "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_fdeabae35e46694c6f8dacd2.closeout.json",
+                        "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
+                        "20260612T100912Z_publication_eval_record.json",
+                    ],
+                    "paper_stage_log": {
+                        "stage_name": "return_to_ai_reviewer_workflow",
+                        "outcome": "owner_receipt",
+                        "progress_delta_classification": "deliverable_progress",
+                        "changed_paper_surfaces": [
+                            "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
+                            "20260612T100912Z_publication_eval_record.json"
+                        ],
+                        "next_forced_delta": {
+                            "required_delta_kind": "same_line_write_repair_or_gate_replay_route",
+                            "work_unit_id": "medical_prose_write_repair",
+                            "target_surface": {
+                                "surface_ref": (
+                                    "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
+                                    "20260612T100912Z_publication_eval_record.json"
+                                ),
+                                "publication_eval_latest_ref": (
+                                    "studies/003/artifacts/publication_eval/latest.json"
+                                ),
+                            },
+                            "owner_action": {
+                                "next_owner": "mas_controller",
+                                "action_type": "return_to_write",
+                                "work_unit_id": "medical_prose_write_repair",
+                            },
+                            "reason": "ai_reviewer_record_routes_back_to_write_repair_before_readiness",
+                        },
+                    },
+                },
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert action["next_owner"] == "write"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["work_unit_id"] == "medical_prose_write_repair"
+    assert action["work_unit_fingerprint"] == "publication-blockers::0915410f804b3697"
+
+
+def test_current_executable_owner_action_uses_progress_first_ai_reviewer_terminal_over_stale_handoff_terminal() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "publication_eval": {
+                "source_publication_eval": {
+                    "eval_id": "publication-eval::003::blocked-current",
+                    "verdict": {"overall_verdict": "blocked"},
+                    "recommended_actions": [
+                        {
+                            "action_id": "publication-eval-action::route_back_same_line::publication-blockers",
+                            "action_type": "route_back_same_line",
+                            "priority": "now",
+                            "route_target": "write",
+                            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                            "next_work_unit": {
+                                "unit_id": "medical_prose_write_repair",
+                                "lane": "write",
+                            },
+                        }
+                    ],
+                    "gaps": [
+                        {
+                            "gap_id": "gap-002",
+                            "gap_type": "reporting",
+                            "severity": "must_fix",
+                        }
+                    ],
+                },
+            },
+            "repair_progress_projection": {
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": "sha256:repair-progress",
+                "ai_reviewer_recheck_request_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
+            },
+            "opl_current_control_state_handoff": {
+                "latest_terminal_stage_log": {
+                    "stage_attempt_id": "sat_old_gate",
+                    "action_type": "run_gate_clearing_batch",
+                    "status": "executed",
+                    "outcome": "typed_blocker",
+                },
+            },
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_attempt_id": "sat_fdeabae35e46694c6f8dacd2",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "status": "executed",
+                    "outcome": "owner_receipt",
+                    "source_path": (
+                        "studies/003/artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_fdeabae35e46694c6f8dacd2.closeout.json"
+                    ),
+                    "closeout_refs": [
+                        "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
+                        "20260612T100912Z_publication_eval_record.json",
+                    ],
+                    "paper_stage_log": {
+                        "progress_delta_classification": "deliverable_progress",
+                        "changed_paper_surfaces": [
+                            "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
+                            "20260612T100912Z_publication_eval_record.json"
+                        ],
+                        "next_forced_delta": {
+                            "required_delta_kind": "same_line_write_repair_or_gate_replay_route",
+                            "work_unit_id": "medical_prose_write_repair",
+                            "target_surface": {
+                                "publication_eval_latest_ref": (
+                                    "studies/003/artifacts/publication_eval/latest.json"
+                                ),
+                            },
+                            "owner_action": {
+                                "next_owner": "mas_controller",
+                                "action_type": "return_to_write",
+                                "work_unit_id": "medical_prose_write_repair",
+                            },
+                        },
+                    },
+                },
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert action["next_owner"] == "write"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["work_unit_id"] == "medical_prose_write_repair"
+
+
 def test_current_executable_owner_action_prefers_publication_eval_repair_over_record_only_closeout_on_readiness_blocker() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"

@@ -162,6 +162,11 @@ if [[ "${lane}" == "family" ]]; then
   exit 0
 fi
 
+if [[ "${lane}" == "line-budget" ]]; then
+  run_with_optional_summary "line-budget" "make line-budget" make line-budget
+  exit 0
+fi
+
 if [[ "${lane}" == "line-budget:strict" ]]; then
   run_with_optional_summary "line-budget:strict" "make line-budget-strict" make line-budget-strict
   exit 0
@@ -187,5 +192,5 @@ if [[ "${lane}" == "control-plane" ]]; then
   exit 0
 fi
 
-echo "Usage: scripts/verify.sh [smoke|regression|ci-preflight <base-ref>|fast|meta|display|submission|family|line-budget:strict|structure|structure:strict|control-plane|full]" >&2
+echo "Usage: scripts/verify.sh [smoke|regression|ci-preflight <base-ref>|fast|meta|display|submission|family|line-budget|line-budget:strict|structure|structure:strict|control-plane|full]" >&2
 exit 1
