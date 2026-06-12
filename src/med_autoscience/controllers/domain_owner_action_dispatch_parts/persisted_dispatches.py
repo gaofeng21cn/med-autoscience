@@ -19,6 +19,7 @@ from . import owner_request_paths
 from . import consumed_default_executor_dispatch_filter
 from . import consumed_writer_handoff_filter
 from . import current_writer_handoff
+from . import opl_execution_preflight
 from . import persisted_handoff_selection
 from . import publication_owner_materialization_currentness
 from . import runtime_current_dispatch_selection
@@ -167,8 +168,7 @@ def selected_dispatches(
     dispatch_relative_root: Path,
 ) -> list[dict[str, Any]]:
     fresh_progress = _read_fresh_study_progress(profile=profile, study_id=study_id)
-    if _fresh_progress_envelope_blocks_dispatch_selection(fresh_progress):
-        return []
+    progress_envelope_blocks_dispatch_selection = _fresh_progress_envelope_blocks_dispatch_selection(fresh_progress)
     terminal_closeout_owner_answer = _terminal_closeout_owner_answer_required(fresh_progress)
     current_study = _scan_study(scan_payload, study_id)
     current_study = _with_consumed_transition_owner_route(current_study)
@@ -301,6 +301,21 @@ def selected_dispatches(
             dispatches=selected,
             current_study=current_study,
         )
+        if progress_envelope_blocks_dispatch_selection:
+            runtime_current_selected = _dispatches_selectable_despite_blocking_progress(
+                profile=profile,
+                study_id=study_id,
+                dispatches=runtime_current_selected,
+                current_study=current_study,
+                fresh_progress=fresh_progress,
+            )
+            current_selected = _dispatches_selectable_despite_blocking_progress(
+                profile=profile,
+                study_id=study_id,
+                dispatches=current_selected,
+                current_study=current_study,
+                fresh_progress=fresh_progress,
+            )
         if runtime_current_selected:
             return runtime_current_selected
         if current_selected:
@@ -313,6 +328,8 @@ def selected_dispatches(
             if stage_native_selected:
                 return stage_native_selected
         if _consumed_transition_owner_route(current_study):
+            return []
+        if progress_envelope_blocks_dispatch_selection:
             return []
         if _current_control_authority_present(current_study):
             return []
@@ -391,6 +408,33 @@ def selected_dispatches(
         dispatches=selected,
         current_study=current_study,
     )
+    if progress_envelope_blocks_dispatch_selection:
+        runtime_current_selected = _dispatches_selectable_despite_blocking_progress(
+            profile=profile,
+            study_id=study_id,
+            dispatches=runtime_current_selected,
+            current_study=current_study,
+            fresh_progress=fresh_progress,
+        )
+        current_selected_candidate = _selected_dispatches_only(
+            profile=profile,
+            study_id=study_id,
+            dispatches=selected,
+            current_study=current_study,
+            fresh_progress=fresh_progress,
+        )
+        current_selected_candidate = _dispatches_selectable_despite_blocking_progress(
+            profile=profile,
+            study_id=study_id,
+            dispatches=current_selected_candidate,
+            current_study=current_study,
+            fresh_progress=fresh_progress,
+        )
+        if runtime_current_selected:
+            return runtime_current_selected
+        if current_selected_candidate:
+            return current_selected_candidate
+        return []
     if runtime_current_selected:
         return runtime_current_selected
     current_selected = _selected_dispatches_only(
@@ -402,6 +446,8 @@ def selected_dispatches(
     )
     if current_selected:
         return current_selected
+    if progress_envelope_blocks_dispatch_selection:
+        return []
     if _current_control_authority_present(current_study):
         return []
     return selected
@@ -443,6 +489,9 @@ def _selected_dispatches_only(
         ):
             selected.append(dispatch)
             continue
+        if opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(dispatch):
+            selected.append(dispatch)
+            continue
         if _stage_native_next_action_matches_dispatch(
             profile=profile,
             study_id=study_id,
@@ -461,6 +510,92 @@ def _selected_dispatches_only(
         if not _current_control_authority_present(current_study) and not _dispatch_owner_route(dispatch):
             selected.append(dispatch)
     return selected
+
+
+def _dispatches_selectable_despite_blocking_progress(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatches: list[dict[str, Any]],
+    current_study: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return [
+        dispatch
+        for dispatch in dispatches
+        if _dispatch_selectable_despite_blocking_progress(
+            profile=profile,
+            study_id=study_id,
+            dispatch=dispatch,
+            current_study=current_study,
+            fresh_progress=fresh_progress,
+        )
+    ]
+
+
+def _dispatch_selectable_despite_blocking_progress(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+    current_study: Mapping[str, Any],
+    fresh_progress: Mapping[str, Any],
+) -> bool:
+    if not _blocking_progress_allows_current_dispatch_selection(fresh_progress):
+        return False
+    action_type = _text(dispatch.get("action_type")) or ""
+    if _dispatch_currentness_score(dispatch, current_study) > (0, 0):
+        return True
+    if _terminal_closeout_owner_answer_required(
+        fresh_progress
+    ) and _dispatch_matches_terminal_closeout_owner_answer(
+        progress=fresh_progress,
+        dispatch=dispatch,
+    ):
+        return True
+    if owner_request_matches_dispatch(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+    ):
+        return True
+    if live_provider_attempt_owner_route_from_scan_payload(
+        scan_payload={"studies": [dict(current_study)]},
+        study_id=study_id,
+        dispatch=dispatch,
+    ):
+        return True
+    if opl_execution_preflight.provider_hosted_stage_attempt_authorizes_dispatch(dispatch):
+        return True
+    if _stage_native_next_action_matches_dispatch(
+        profile=profile,
+        study_id=study_id,
+        dispatch=dispatch,
+    ):
+        return True
+    if current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+    ):
+        return True
+    return False
+
+
+def _blocking_progress_allows_current_dispatch_selection(progress: Mapping[str, Any]) -> bool:
+    envelope = _mapping(progress.get("current_execution_envelope"))
+    state_kind = _text(envelope.get("state_kind")) or _text(envelope.get("execution_state_kind"))
+    if state_kind == "parked":
+        return True
+    if state_kind != "typed_blocker":
+        return False
+    return _fresh_progress_typed_blocker_reason(envelope) in {
+        "current_work_unit_unresolved",
+        "no_selected_dispatch_for_requested_action_types",
+        "stage_packet_not_current_selected_dispatch",
+    }
 
 
 def _without_unauthorized_stage_native_dispatches(

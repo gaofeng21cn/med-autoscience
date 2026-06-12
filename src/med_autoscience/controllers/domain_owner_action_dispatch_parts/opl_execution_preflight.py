@@ -173,6 +173,10 @@ def with_provider_hosted_opl_authorization(dispatch: Mapping[str, Any]) -> dict[
     return result
 
 
+def provider_hosted_stage_attempt_authorizes_dispatch(dispatch: Mapping[str, Any]) -> bool:
+    return _provider_hosted_stage_attempt_authorization(dispatch=dispatch) is not None
+
+
 def _provider_hosted_stage_attempt_authorization(*, dispatch: Mapping[str, Any]) -> dict[str, Any] | None:
     stage_attempt_id = _env_text("OPL_STAGE_ATTEMPT_ID")
     stage_packet_ref = _env_text("OPL_STAGE_PACKET_REF")
