@@ -237,20 +237,28 @@ def _with_candidate_root_closeout_scans(
     scanned_studies: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     studies = [dict(study) for study in scanned_studies]
-    seen_study_ids = {
-        study_id
-        for study in studies
+    study_index_by_id = {
+        study_id: index
+        for index, study in enumerate(studies)
         if (study_id := _non_empty_text(study.get("study_id"))) is not None
     }
     for candidate in candidates:
         study_id = _non_empty_text(candidate.get("study_id"))
-        if study_id is None or study_id in seen_study_ids:
+        if study_id is None:
             continue
         closeout_evidence = _study_root_closeout_evidence(
             study_root=Path(profile.studies_root) / study_id,
             identity=candidate,
         )
         if not closeout_evidence:
+            continue
+        if study_id in study_index_by_id:
+            study = dict(studies[study_index_by_id[study_id]])
+            study["accepted_closeout_evidence"] = [
+                *_mapping_list(study.get("accepted_closeout_evidence")),
+                *closeout_evidence,
+            ]
+            studies[study_index_by_id[study_id]] = study
             continue
         studies.append(
             {
@@ -273,7 +281,7 @@ def _with_candidate_root_closeout_scans(
                 },
             }
         )
-        seen_study_ids.add(study_id)
+        study_index_by_id[study_id] = len(studies) - 1
     return studies
 
 
@@ -975,6 +983,10 @@ def _same_tick_text_items(value: object) -> list[str]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _mapping_list(value: object) -> list[dict[str, Any]]:
+    return [dict(item) for item in value or [] if isinstance(item, Mapping)]
 
 
 __all__ = [
