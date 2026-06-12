@@ -165,6 +165,55 @@ def test_export_current_owner_action_suppresses_residual_action_under_typed_bloc
     assert action == {}
 
 
+def test_export_current_owner_action_merges_projection_route_currentness_identity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.domain_handler_export")
+    currentness_basis = {
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "work_unit_fingerprint": "sha256:current-route",
+        "truth_epoch": "truth::current",
+        "runtime_health_epoch": "runtime::current",
+    }
+    route = {
+        "surface": "domain_route_owner_route",
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "next_owner": "ai_reviewer",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+    }
+
+    action = module._export_current_owner_action(
+        study={
+            "current_owner_action": {
+                "source": "opl_current_control_state_action_queue",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "owner_route": route,
+                "owner_route_currentness_basis": currentness_basis,
+                "source_fingerprint": "sha256:current-route",
+                "work_unit_fingerprint": "sha256:current-route",
+            },
+        },
+        current_progress={
+            "current_executable_owner_action": {
+                "source": "current_work_unit",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+            },
+            "current_work_unit": {"status": "executable_owner_action"},
+            "current_execution_envelope": {"state_kind": "executable_owner_action"},
+        },
+    )
+
+    assert action["source"] == "current_work_unit"
+    assert action["owner_route"] == {
+        **route,
+        "source_refs": {"owner_route_currentness_basis": currentness_basis},
+    }
+    assert action["owner_route_currentness_basis"] == currentness_basis
+    assert action["source_fingerprint"] == "sha256:current-route"
+    assert action["work_unit_fingerprint"] == "sha256:current-route"
+
+
 def test_domain_handler_export_suppresses_legacy_route_tasks_under_current_owner_action(
     tmp_path: Path,
     capsys,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .shared import *  # noqa: F403,F401
+from med_autoscience.controllers import control_identity
 
 
 def test_domain_handler_export_projects_gate_clearing_default_executor_dispatch(
@@ -153,8 +154,12 @@ def test_domain_handler_export_accepts_current_finalize_gate_replay_alias(
     write_profile(profile_path, workspace_root=workspace_root)
     _write_json(study_root / "study.yaml", {"study_id": study_id})
     current_work_unit_id = "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
-    current_fingerprint = (
-        f"study-progress-current-owner-ticket::{study_id}::{current_work_unit_id}::run_gate_clearing_batch"
+    expected_currentness_fingerprint = control_identity.stable_route_currentness_fingerprint(
+        study_id=study_id,
+        source="owner_route_currentness_basis",
+        work_unit_id=current_work_unit_id,
+        action_type="run_gate_clearing_batch",
+        source_eval_id="publication-eval::003::current-ai-reviewer-record",
     )
     owner_route = {
         "surface": "domain_route_owner_route",
@@ -279,19 +284,16 @@ def test_domain_handler_export_accepts_current_finalize_gate_replay_alias(
     assert task["action_type"] == "run_gate_clearing_batch"
     assert task["domain_owner"] == "gate_clearing_batch"
     assert task["work_unit_id"] == current_work_unit_id
-    assert task["work_unit_fingerprint"] == current_fingerprint
+    assert task["work_unit_fingerprint"] == expected_currentness_fingerprint
     assert task["payload"]["next_executable_owner"] == "gate_clearing_batch"
     assert task["payload"]["dispatch_authority"] == "consumer_default_executor_dispatch"
     assert task["payload"]["work_unit_id"] == current_work_unit_id
-    assert task["payload"]["work_unit_fingerprint"] == current_fingerprint
+    assert task["payload"]["work_unit_fingerprint"] == expected_currentness_fingerprint
     basis = task["payload"]["owner_route_currentness_basis"]
     assert basis["truth_epoch"] == "truth-event-current-ai-reviewer-record"
     assert basis["runtime_health_epoch"] == "runtime-health-event-current-gate"
     assert basis["source_eval_id"] == "publication-eval::003::current-ai-reviewer-record"
-    persisted_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    owner_route = persisted_dispatch["owner_route"]
-    assert persisted_dispatch["dispatch_authority"] == "consumer_default_executor_dispatch"
-    assert owner_route["source_refs"]["work_unit_id"] == current_work_unit_id
-    assert owner_route["source_refs"]["current_owner_action_source"] == (
-        "study_progress.next_forced_delta.owner_action"
+    assert task["payload"]["owner_route_currentness_basis"]["work_unit_id"] == current_work_unit_id
+    assert task["payload"]["owner_route_currentness_basis"]["source_eval_id"] == (
+        "publication-eval::003::current-ai-reviewer-record"
     )

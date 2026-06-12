@@ -34,13 +34,13 @@ def canonical_current_dispatch_identity(
         "parked",
     }:
         return {"blocked": True, "source": "current_execution_envelope", "state_kind": envelope_state}
-    if current_owner_action:
-        identity = _current_owner_action_dispatch_identity(current_owner_action, study_id=study_id)
-        if identity:
-            return identity
     if work_unit_status == "executable_owner_action":
         identity = _current_work_unit_dispatch_identity(current_work_unit, study_id=study_id)
         owner_action_identity = _current_owner_action_dispatch_identity(current_owner_action, study_id=study_id)
+        if not identity and owner_action_identity:
+            promoted = dict(owner_action_identity)
+            promoted["source"] = "current_work_unit"
+            return promoted
         identity = _merge_equivalent_current_owner_action_identity(
             current_work_unit_identity=identity,
             current_owner_action_identity=owner_action_identity,
@@ -54,6 +54,10 @@ def canonical_current_dispatch_identity(
             identity["source"] = "current_execution_envelope"
             return identity
         return {"blocked": True, "source": "current_execution_envelope", "state_kind": envelope_state}
+    if current_owner_action:
+        identity = _current_owner_action_dispatch_identity(current_owner_action, study_id=study_id)
+        if identity:
+            return identity
     return {}
 
 
@@ -215,6 +219,13 @@ def _current_work_unit_dispatch_identity(
     if action_type is None or work_unit_id is None:
         return {}
     if fingerprint is None or control_identity.is_synthetic_current_owner_ticket(fingerprint):
+        fingerprint = _route_currentness_fingerprint_from_basis(
+            study_id=study_id,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+            basis=currentness_basis,
+        )
+    if fingerprint is None:
         return {}
     identity = {
         "source": "current_work_unit",
@@ -266,6 +277,13 @@ def _current_owner_action_dispatch_identity(
     if action_type is None or work_unit_id is None:
         return {}
     if fingerprint is None or control_identity.is_synthetic_current_owner_ticket(fingerprint):
+        fingerprint = _route_currentness_fingerprint_from_basis(
+            study_id=study_id,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+            basis=basis,
+        )
+    if fingerprint is None:
         return {}
     identity = {
         "source": _text(current_owner_action.get("source")) or "current_executable_owner_action",
@@ -470,6 +488,28 @@ def _currentness_basis_from_identity(
     if work_unit_fingerprint is not None:
         basis["work_unit_fingerprint"] = work_unit_fingerprint
     return basis
+
+
+def _route_currentness_fingerprint_from_basis(
+    *,
+    study_id: str | None,
+    action_type: str | None,
+    work_unit_id: str | None,
+    basis: Mapping[str, Any],
+) -> str | None:
+    truth_epoch = _text(basis.get("truth_epoch"))
+    runtime_health_epoch = _text(basis.get("runtime_health_epoch"))
+    source_eval_id = _text(basis.get("source_eval_id"))
+    basis_work_unit_id = _text(basis.get("work_unit_id")) or work_unit_id
+    if not any((truth_epoch, runtime_health_epoch, source_eval_id)):
+        return None
+    return control_identity.stable_route_currentness_fingerprint(
+        study_id=study_id,
+        source="owner_route_currentness_basis",
+        work_unit_id=basis_work_unit_id,
+        action_type=action_type,
+        source_eval_id=source_eval_id,
+    )
 
 
 def _mapping(value: object) -> Mapping[str, Any]:

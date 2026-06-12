@@ -460,10 +460,35 @@ def _merge_projection_owner_action_identity(
         "target_surface_specificity",
         "next_action",
         "source_ref",
+        "owner_route",
+        "owner_route_currentness_basis",
+        "source_fingerprint",
+        "work_unit_fingerprint",
     ):
         value = projection_action.get(key)
-        if value is not None and merged.get(key) is None:
+        current_value = merged.get(key)
+        if value is not None and (
+            current_value is None
+            or (
+                key
+                in {
+                    "target_surface",
+                    "next_action",
+                    "owner_route",
+                    "owner_route_currentness_basis",
+                }
+                and not mapping(current_value)
+            )
+        ):
             merged[key] = value
+    owner_route = mapping(merged.get("owner_route"))
+    currentness_basis = mapping(merged.get("owner_route_currentness_basis"))
+    if owner_route and currentness_basis:
+        route = dict(owner_route)
+        source_refs = dict(mapping(route.get("source_refs")))
+        source_refs["owner_route_currentness_basis"] = dict(currentness_basis)
+        route["source_refs"] = source_refs
+        merged["owner_route"] = route
     if text(projection_action.get("source")) != "opl_current_control_state_action_queue":
         merged["source"] = text(projection_action.get("source")) or text(merged.get("source"))
     return merged

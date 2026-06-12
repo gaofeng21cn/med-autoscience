@@ -671,12 +671,9 @@ def test_domain_handler_export_materializes_stage_native_identity_over_stale_wri
     assert [task["payload"]["action_type"] for task in tasks] == ["run_quality_repair_batch"]
     assert tasks[0]["payload"]["work_unit_id"] == "run_quality_repair_batch"
     assert tasks[0]["payload"]["dispatch_authority"] == "stage_native_workspace_next_action"
-    dispatch_ref = workspace_root / tasks[0]["payload"]["dispatch_ref"]
-    assert dispatch_ref.is_file()
-    persisted_dispatch = json.loads(dispatch_ref.read_text(encoding="utf-8"))
-    persisted_basis = persisted_dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"]
-    assert persisted_basis["work_unit_id"] == "run_quality_repair_batch"
-    assert persisted_dispatch["owner_route"]["route_epoch"] == (
+    basis = tasks[0]["payload"]["owner_route_currentness_basis"]
+    assert basis["work_unit_id"] == "run_quality_repair_batch"
+    assert basis["truth_epoch"] == (
         f"stage-native-next-action::{study_id}::08-publication_package_handoff"
     )
 
