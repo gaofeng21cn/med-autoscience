@@ -74,7 +74,7 @@ def test_provider_admission_candidate_requires_current_action_identity() -> None
     assert [candidate["action_fingerprint"] for candidate in result] == [current_fingerprint]
 
 
-def test_provider_admission_candidate_accepts_study_progress_owner_ticket_identity() -> None:
+def test_provider_admission_candidate_rejects_readiness_current_owner_ticket_identity() -> None:
     provider_admission = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
     )
@@ -138,7 +138,7 @@ def test_provider_admission_candidate_accepts_study_progress_owner_ticket_identi
         },
     )
 
-    assert [candidate["action_fingerprint"] for candidate in result] == [ticket_fingerprint]
+    assert result == []
 
 
 def test_provider_admission_candidate_rejects_cross_action_current_ticket_authorization_blocker() -> None:

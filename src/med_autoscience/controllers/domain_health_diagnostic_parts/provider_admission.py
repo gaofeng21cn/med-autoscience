@@ -430,12 +430,15 @@ def provider_admission_candidate_from_current_control_action(
         or _non_empty_text(source_refs.get("work_unit_id"))
         or _non_empty_text(currentness_basis.get("work_unit_id"))
     )
-    action_fingerprint = _first_non_synthetic_fingerprint(
+    action_fingerprint = _first_currentness_fingerprint(
         action.get("action_fingerprint"),
         action.get("work_unit_fingerprint"),
         action.get("source_fingerprint"),
         source_refs.get("work_unit_fingerprint"),
         currentness_basis.get("work_unit_fingerprint"),
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
     )
     dispatch_path = _current_control_action_dispatch_path(action, study_root=study_root, action_type=action_type)
     dispatch_payload = _read_json_object(dispatch_path) if dispatch_path is not None else None
@@ -600,7 +603,7 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
     )
     action_fingerprint = (
         eval_bound_fingerprint
-        or _first_non_synthetic_fingerprint(
+        or _first_currentness_fingerprint(
             current.get("action_fingerprint"),
             current.get("work_unit_fingerprint"),
             current_action_basis.get("work_unit_fingerprint"),
@@ -609,8 +612,19 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
             current_work_unit.get("work_unit_fingerprint"),
             current_work_unit_basis.get("work_unit_fingerprint"),
             current_work_unit_basis.get("source_fingerprint"),
+            study_id=study_id,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
         )
     )
+    if action_fingerprint is None and _currentness_basis_can_bind_stable_ticket(
+        current_work_unit_basis
+    ):
+        action_fingerprint = _stable_provider_admission_ticket(
+            study_id=study_id,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        )
     if action_fingerprint is None:
         return None
     source_refs = {
@@ -703,6 +717,39 @@ def _first_non_synthetic_fingerprint(*values: object) -> str | None:
         if text is not None and not control_identity.is_synthetic_current_owner_ticket(text):
             return text
     return None
+
+
+def _first_currentness_fingerprint(
+    *values: object,
+    study_id: str | None,
+    action_type: str | None,
+    work_unit_id: str | None,
+) -> str | None:
+    fingerprint = _first_non_synthetic_fingerprint(*values)
+    if fingerprint is not None:
+        return fingerprint
+    stable_ticket = _stable_provider_admission_ticket(
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    )
+    if stable_ticket is None:
+        return None
+    for value in values:
+        if _non_empty_text(value) == stable_ticket:
+            return stable_ticket
+    return None
+
+
+def _currentness_basis_can_bind_stable_ticket(basis: Mapping[str, Any]) -> bool:
+    if _non_empty_text(basis.get("work_unit_id")) is None:
+        return False
+    if _non_empty_text(basis.get("truth_epoch")) is None:
+        return False
+    return (
+        _non_empty_text(basis.get("runtime_health_epoch")) is not None
+        or _non_empty_text(basis.get("source_eval_id")) is not None
+    )
 
 
 def _required_output_surface(current: Mapping[str, Any]) -> str | None:
@@ -891,12 +938,37 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
     work_unit_id = _non_empty_text(current.get("work_unit_id")) or _non_empty_text(next_action.get("action_id"))
     surface_key = _non_empty_text(current.get("surface_key")) or _non_empty_text(target_surface.get("surface_key"))
     source_ref = _non_empty_text(current.get("source_ref")) or _non_empty_text(current.get("latest_owner_answer_ref"))
-    fingerprint = _non_empty_text(current.get("work_unit_fingerprint"))
-    if control_identity.is_synthetic_current_owner_ticket(fingerprint):
-        fingerprint = None
+    action_type = _current_action_action_type(current)
+    current_action_basis = _mapping(current.get("owner_route_currentness_basis")) or _mapping(
+        current.get("currentness_basis")
+    )
+    fingerprint = _first_currentness_fingerprint(
+        current.get("work_unit_fingerprint"),
+        current.get("action_fingerprint"),
+        current_action_basis.get("work_unit_fingerprint"),
+        current_action_basis.get("source_fingerprint"),
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+    )
+    if fingerprint is None and _current_action_can_bind_stable_ticket(
+        status_payload=status_payload,
+        current=current,
+        currentness_basis=current_action_basis,
+    ):
+        fingerprint = _stable_provider_admission_ticket(
+            study_id=study_id,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        )
     fingerprints: list[str] = []
     if fingerprint is not None:
         fingerprints.append(fingerprint)
+    if work_unit_id is not None and source_ref is not None:
+        fingerprints.append(
+            "stage-current-owner-delta::"
+            f"{work_unit_id}::{surface_key or 'unspecified_surface'}::{source_ref}"
+        )
     repair_precedence = _mapping(current.get("repair_progress_precedence"))
     repair_fingerprint = _non_empty_text(repair_precedence.get("source_fingerprint"))
     if repair_fingerprint is not None:
@@ -906,11 +978,6 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
         text = _non_empty_text(item)
         if text is not None and text.startswith("sha256:"):
             fingerprints.append(text)
-    if fingerprint is None and work_unit_id is not None and source_ref is not None:
-        fingerprints.append(
-            "stage-current-owner-delta::"
-            f"{work_unit_id}::{surface_key or 'unspecified_surface'}::{source_ref}"
-        )
     fingerprints = list(dict.fromkeys(fingerprints))
     if fingerprint is None and fingerprints:
         fingerprint = fingerprints[0]
@@ -1020,13 +1087,16 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
     )
     fingerprint = (
         eval_bound_fingerprint
-        or _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
-        or _non_empty_text(current_work_unit.get("action_fingerprint"))
-        or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
-        or _non_empty_text(currentness_basis.get("source_fingerprint"))
+        or _first_currentness_fingerprint(
+            current_work_unit.get("work_unit_fingerprint"),
+            current_work_unit.get("action_fingerprint"),
+            currentness_basis.get("work_unit_fingerprint"),
+            currentness_basis.get("source_fingerprint"),
+            study_id=_non_empty_text(current_work_unit.get("study_id")),
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+        )
     )
-    if control_identity.is_synthetic_current_owner_ticket(fingerprint):
-        fingerprint = None
     fingerprints = [
         item
         for item in (
@@ -1036,7 +1106,11 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
             _non_empty_text(currentness_basis.get("work_unit_fingerprint")),
             _non_empty_text(currentness_basis.get("source_fingerprint")),
         )
-        if item is not None and not control_identity.is_synthetic_current_owner_ticket(item)
+        if item is not None
+        and (
+            not control_identity.is_synthetic_current_owner_ticket(item)
+            or item == fingerprint
+        )
     ]
     return {
         "action_ids": [item for item in (action_type, work_unit_id) if item is not None],
@@ -1048,6 +1122,23 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
         "next_owner": _non_empty_text(current_work_unit.get("owner")),
         "opl_execution_authorization_required": opl_authorization_typed_blocker,
     }
+
+
+def _current_action_can_bind_stable_ticket(
+    *,
+    status_payload: Mapping[str, Any],
+    current: Mapping[str, Any],
+    currentness_basis: Mapping[str, Any],
+) -> bool:
+    if _currentness_basis_can_bind_stable_ticket(currentness_basis):
+        return True
+    if _non_empty_text(current.get("source_ref")) is not None:
+        return True
+    if _non_empty_text(current.get("source_eval_id")) is not None:
+        return True
+    return _non_empty_text(status_payload.get("generated_at")) is not None or _non_empty_text(
+        status_payload.get("study_progress_generated_at")
+    ) is not None
 
 
 def _status_envelope_blocks_provider_admission(
@@ -1391,11 +1482,14 @@ def _work_unit_fingerprint(execution: Mapping[str, Any]) -> str | None:
     basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
         _mapping(execution.get("prompt_contract")).get("owner_route_currentness_basis")
     )
-    return _first_non_synthetic_fingerprint(
+    return _first_currentness_fingerprint(
         execution.get("action_fingerprint"),
         owner_route.get("work_unit_fingerprint"),
         source_refs.get("work_unit_fingerprint"),
         basis.get("work_unit_fingerprint"),
+        study_id=_non_empty_text(execution.get("study_id")),
+        action_type=_non_empty_text(execution.get("action_type")),
+        work_unit_id=handoff_work_unit_id(execution),
     )
 
 
@@ -1420,7 +1514,11 @@ def _work_unit_fingerprints(
             _non_empty_text(basis.get("work_unit_fingerprint")),
             _non_empty_text(basis.get("source_fingerprint")),
         )
-        if item is not None and not control_identity.is_synthetic_current_owner_ticket(item)
+        if item is not None
+        and (
+            not control_identity.is_synthetic_current_owner_ticket(item)
+            or item == canonical_fingerprint
+        )
     ]
     return list(dict.fromkeys(fingerprints))
 

@@ -631,6 +631,8 @@ def _same_tick_progress_current_actions(
         current = _mapping(_mapping(payload).get("current_executable_owner_action"))
         if not current:
             continue
+        current_work_unit = _mapping(_mapping(payload).get("current_work_unit"))
+        current_work_unit_basis = _mapping(current_work_unit.get("currentness_basis"))
         next_action = _mapping(current.get("next_action"))
         repair_precedence = _mapping(current.get("repair_progress_precedence"))
         allowed_actions = _same_tick_text_items(current.get("allowed_actions"))
@@ -640,6 +642,10 @@ def _same_tick_progress_current_actions(
                 current.get("action_fingerprint"),
                 current.get("source_fingerprint"),
                 repair_precedence.get("source_fingerprint"),
+                current_work_unit.get("work_unit_fingerprint"),
+                current_work_unit.get("action_fingerprint"),
+                current_work_unit_basis.get("work_unit_fingerprint"),
+                current_work_unit_basis.get("source_fingerprint"),
             ]
         )
         projected_action = _study_current_action_for_provider_admission(

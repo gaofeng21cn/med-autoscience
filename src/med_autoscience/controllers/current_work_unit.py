@@ -1221,9 +1221,13 @@ def _action_supersedes_typed_blocker(
             )
         )
     if blocker_type in CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS:
-        return _gate_followthrough_actionable_repair_action(action) or _paper_delta_current_action_supersedes_prior_blocker(
-            action=action,
-            progress=_mapping(progress),
+        return (
+            _gate_followthrough_actionable_repair_action(action)
+            or _publication_eval_repair_action_supersedes_readiness_blocker(action)
+            or _paper_delta_current_action_supersedes_prior_blocker(
+                action=action,
+                progress=_mapping(progress),
+            )
         )
     if blocker_type not in MEDICAL_READINESS_BLOCKERS:
         return False

@@ -152,6 +152,98 @@ def test_current_work_unit_projects_live_repair_progress_precedence_over_stage_r
     assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_projects_publication_eval_repair_over_stale_gate_selector_blocker() -> None:
+    module = _module()
+    fingerprint = "publication-blockers::0915410f804b3697"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "paper_stage": "analysis-campaign",
+            "publication_eval": {
+                "eval_id": (
+                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "2026-06-12T20:06:05+00:00"
+                ),
+                "verdict": {"overall_verdict": "blocked"},
+            },
+            "gate_clearing_batch_followthrough": {
+                "surface_kind": "gate_clearing_batch_followthrough",
+                "status": "executed",
+                "source_eval_id": (
+                    "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+                    "2026-06-12T20:06:05+00:00"
+                ),
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:8d94eccab0e8236ff9c5b46ae36f90251473f0da6b8b23e0392286976bb8f415",
+                "work_unit_currentness": {
+                    "explicit_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_publication_work_unit_id": "medical_prose_write_repair",
+                    "current_work_unit_fingerprint": fingerprint,
+                    "current_actionability_status": "actionable",
+                    "lacks_specific_blocker_object": False,
+                },
+                "gate_replay_status": "blocked",
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+            "next_owner": "write",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "publication_eval_recommended_repair_delta_or_typed_blocker",
+            "target_surface": {
+                "ref_kind": "publication_eval_recommended_action",
+                "route_target": "write",
+                "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+            },
+        },
+        typed_blocker={
+            "surface_kind": "mas_domain_typed_blocker",
+            "schema_version": 1,
+            "blocker_id": "no_selected_dispatch_for_requested_action_types",
+            "blocker_type": "no_selected_dispatch_for_requested_action_types",
+            "blocked_reason": "no_selected_dispatch_for_requested_action_types",
+            "owner": "MedAutoScience",
+            "write_permitted": False,
+            "required_input": (
+                "current selected MAS dispatch for action_type run_gate_clearing_batch "
+                "or an accepted owner receipt for the already materialized gate_clearing_batch artifact"
+            ),
+            "action_type": "run_gate_clearing_batch",
+            "work_unit_id": "publication_gate_replay",
+            "work_unit_fingerprint": "sha256:8d94eccab0e8236ff9c5b46ae36f90251473f0da6b8b23e0392286976bb8f415",
+            "action_fingerprint": "sha256:8d94eccab0e8236ff9c5b46ae36f90251473f0da6b8b23e0392286976bb8f415",
+            "source_ref": (
+                "artifacts/supervision/consumer/default_executor_execution/"
+                "sat_556faaef7e4a16f309819eb3.closeout.json"
+            ),
+        },
+        next_owner="MedAutoScience",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_keeps_reconciled_current_action_over_stale_gate_terminal_blocker() -> None:
     module = _module()
 
