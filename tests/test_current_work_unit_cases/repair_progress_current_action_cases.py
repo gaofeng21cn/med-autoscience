@@ -317,3 +317,37 @@ def test_current_work_unit_suppresses_consumed_action_using_progress_current_act
     assert work_unit["status"] == "blocked_current_work_unit"
     assert work_unit["action_type"] is None
     assert work_unit["work_unit_id"] is None
+
+
+def test_current_work_unit_treats_accepted_repair_progress_followup_reason_as_current_action() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-cvd-mortality-risk",
+            "quest_id": "002-dm-cvd-mortality-risk",
+            "current_stage": "publication_supervision",
+        },
+        actions=[
+            {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": "repair-source-current",
+                "repair_progress_followup": {
+                    "accepted_owner_receipt": True,
+                    "source_fingerprint": "repair-source-current",
+                },
+            }
+        ],
+        blocked_reason="repair_progress_ai_reviewer_recheck_required",
+        next_owner="ai_reviewer",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "ai_reviewer"
+    assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
+    assert work_unit["work_unit_fingerprint"] == "repair-source-current"
+    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert "typed_blocker" not in work_unit["state"]
