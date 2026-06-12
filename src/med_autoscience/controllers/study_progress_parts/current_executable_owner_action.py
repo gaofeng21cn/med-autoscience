@@ -68,6 +68,8 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
         if gate_followthrough_action is not None:
             return gate_followthrough_action
         if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
+            if _next_forced_delta_is_terminal_routeback_action(next_forced_delta_action):
+                return next_forced_delta_action
             if publication_repair_action is not None:
                 return publication_repair_action
         if next_forced_delta_action is not None:
@@ -93,6 +95,8 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
             return gate_followthrough_action
         next_forced_delta_action = _from_current_next_forced_delta(payload)
         if _next_forced_delta_supersedes_stale_readiness_blocker(next_forced_delta_action):
+            return next_forced_delta_action
+        if _next_forced_delta_is_terminal_routeback_action(next_forced_delta_action):
             return next_forced_delta_action
         publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
         if publication_repair_action is not None:
@@ -385,23 +389,31 @@ def _terminal_next_forced_delta_fingerprint(
         or _non_empty_text(next_forced_delta.get("work_unit_fingerprint"))
         or _non_empty_text(next_forced_delta.get("action_fingerprint"))
         or _non_empty_text(next_forced_delta.get("fingerprint"))
-        or _non_empty_text(paper_stage_log.get("work_unit_fingerprint"))
-        or _non_empty_text(paper_stage_log.get("action_fingerprint"))
-        or _non_empty_text(paper_stage_log.get("fingerprint"))
-        or _non_empty_text(terminal.get("work_unit_fingerprint"))
-        or _non_empty_text(terminal.get("action_fingerprint"))
-        or _non_empty_text(terminal.get("fingerprint"))
     )
     if explicit_fingerprint is not None:
         return explicit_fingerprint
+    if work_unit_id == _non_empty_text(paper_stage_log.get("work_unit_id")):
+        paper_stage_fingerprint = (
+            _non_empty_text(paper_stage_log.get("work_unit_fingerprint"))
+            or _non_empty_text(paper_stage_log.get("action_fingerprint"))
+            or _non_empty_text(paper_stage_log.get("fingerprint"))
+        )
+        if paper_stage_fingerprint is not None:
+            return paper_stage_fingerprint
+    if work_unit_id == _non_empty_text(terminal.get("work_unit_id")):
+        terminal_fingerprint = (
+            _non_empty_text(terminal.get("work_unit_fingerprint"))
+            or _non_empty_text(terminal.get("action_fingerprint"))
+            or _non_empty_text(terminal.get("fingerprint"))
+        )
+        if terminal_fingerprint is not None:
+            return terminal_fingerprint
     if action_type != GATE_CLEARING_ACTION:
         raw_action_type = (
             _non_empty_text(owner_action.get("action_type"))
             or _non_empty_text(next_forced_delta.get("action_type"))
             or _non_empty_text(terminal.get("action_type"))
         )
-        if raw_action_type == "return_to_write":
-            return None
         return _terminal_closeout_next_forced_delta_fingerprint(
             payload=payload,
             terminal=terminal,
@@ -877,6 +889,21 @@ def _next_forced_delta_supersedes_stale_readiness_blocker(
     )
 
 
+def _next_forced_delta_is_terminal_routeback_action(
+    action: Mapping[str, Any] | None,
+) -> bool:
+    payload = _mapping_copy(action)
+    if _non_empty_text(payload.get("source")) != "study_progress.next_forced_delta.owner_action":
+        return False
+    if payload.get("terminal_stage_next_forced_delta") is not True:
+        return False
+    if _non_empty_text(payload.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    if _non_empty_text(payload.get("next_owner")) != "write":
+        return False
+    return _non_empty_text(payload.get("work_unit_id")) is not None
+
+
 def _next_forced_delta_supersedes_gate_followthrough(
     *,
     next_forced_delta_action: Mapping[str, Any] | None,
@@ -939,6 +966,8 @@ def _action_consumed_by_dispatch_receipt(
 ) -> bool:
     if _terminal_stage_closeout_consumes_repair_followup(action=action, payload=payload):
         return True
+    if _terminal_gate_closeout_consumes_repair_followup(action=action, payload=payload):
+        return True
     consumption = _mapping_copy(_mapping_copy(payload.get("progress_first_monitoring_summary")).get("dispatch_consumption"))
     if not consumption:
         consumption = _mapping_copy(_mapping_copy(payload.get("domain_transition")).get("completion_receipt_consumption"))
@@ -971,6 +1000,74 @@ def _action_consumed_by_dispatch_receipt(
         action=action,
         consumption=consumption,
     )
+
+
+def _terminal_gate_closeout_consumes_repair_followup(
+    *,
+    action: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+    if _non_empty_text(action.get("action_type")) != GATE_CLEARING_ACTION:
+        return False
+    action_work_unit = _non_empty_text(action.get("work_unit_id"))
+    if action_work_unit != GATE_CLEARING_WORK_UNIT:
+        return False
+    terminal = _latest_gate_replay_terminal_stage(payload)
+    if not terminal:
+        return False
+    if _non_empty_text(terminal.get("action_type")) != GATE_CLEARING_ACTION:
+        return False
+    if _non_empty_text(terminal.get("status")) not in {
+        "blocked",
+        "closed",
+        "completed",
+        "executed",
+        "typed_blocked",
+    }:
+        return False
+    terminal_work_unit = _non_empty_text(terminal.get("work_unit_id"))
+    paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+    next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
+        paper_stage_log.get("next_forced_delta")
+    )
+    terminal_work_unit = terminal_work_unit or _non_empty_text(next_forced_delta.get("work_unit_id"))
+    if terminal_work_unit != action_work_unit:
+        return False
+    action_fingerprint = (
+        _non_empty_text(action.get("work_unit_fingerprint"))
+        or _non_empty_text(action.get("action_fingerprint"))
+        or _non_empty_text(_mapping_copy(action.get("repair_progress_precedence")).get("source_fingerprint"))
+    )
+    terminal_fingerprint = (
+        _non_empty_text(terminal.get("work_unit_fingerprint"))
+        or _non_empty_text(terminal.get("action_fingerprint"))
+        or _non_empty_text(paper_stage_log.get("work_unit_fingerprint"))
+        or _non_empty_text(paper_stage_log.get("action_fingerprint"))
+    )
+    if action_fingerprint is not None and action_fingerprint == terminal_fingerprint:
+        return True
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "typed_blocker":
+        return False
+    if _non_empty_text(current_work_unit.get("work_unit_id")) != action_work_unit:
+        return False
+    current_fingerprint = (
+        _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
+        or _non_empty_text(current_work_unit.get("action_fingerprint"))
+    )
+    if action_fingerprint is not None and action_fingerprint == current_fingerprint:
+        return True
+    state = _mapping_copy(current_work_unit.get("state"))
+    typed_blocker = _mapping_copy(state.get("typed_blocker")) or _mapping_copy(
+        current_work_unit.get("typed_blocker")
+    )
+    blocker_fingerprint = (
+        _non_empty_text(typed_blocker.get("work_unit_fingerprint"))
+        or _non_empty_text(typed_blocker.get("action_fingerprint"))
+    )
+    return action_fingerprint is not None and action_fingerprint == blocker_fingerprint
 
 
 def _terminal_stage_closeout_consumes_repair_followup(
@@ -1097,6 +1194,22 @@ def _latest_ai_reviewer_terminal_stage(payload: Mapping[str, Any]) -> dict[str, 
     ):
         terminal = _mapping_copy(value)
         if _non_empty_text(terminal.get("action_type")) == AI_REVIEWER_ACTION:
+            return terminal
+    return {}
+
+
+def _latest_gate_replay_terminal_stage(payload: Mapping[str, Any]) -> dict[str, Any]:
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    progress_first = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    for value in (
+        progress_first.get("latest_terminal_stage"),
+        progress_first.get("latest_terminal_stage_log"),
+        handoff.get("latest_terminal_stage_log"),
+        payload.get("latest_terminal_stage"),
+        payload.get("latest_terminal_stage_log"),
+    ):
+        terminal = _mapping_copy(value)
+        if _non_empty_text(terminal.get("action_type")) == GATE_CLEARING_ACTION:
             return terminal
     return {}
 

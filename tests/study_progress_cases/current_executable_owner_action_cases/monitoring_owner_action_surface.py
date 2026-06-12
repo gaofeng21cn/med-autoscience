@@ -442,6 +442,170 @@ def test_current_owner_action_stop_loss_typed_blocker_blocks_stale_gate_followth
     assert action is None
 
 
+def test_current_owner_action_routes_terminal_gate_blocker_back_to_write_repair() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    gate_fingerprint = "sha256:12592784fb257f669d5a5678f6c3a6e93a03c5d16ec1d661d1f88c19692bb4df"
+    closeout_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+        "consumer/default_executor_execution/sat_e4dbaf4c7df74333010d29ae.closeout.json"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": study_id,
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": gate_fingerprint,
+                "repair_execution_evidence_ref": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                    "artifacts/controller/repair_execution_evidence/latest.json"
+                ),
+                "owner_receipt_ref": (
+                    "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                    "artifacts/controller/repair_execution_receipts/latest.json"
+                ),
+                "gate_replay_refs": [
+                    "runtime/quests/003-dpcc-primary-care-phenotype-treatment-gap/"
+                    "artifacts/reports/publishability_gate/2026-06-12T143646Z.json"
+                ],
+                "ai_reviewer_recheck_done": True,
+            },
+            "publication_eval": {
+                "source_publication_eval": {
+                    "eval_id": "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::current",
+                    "verdict": {"overall_verdict": "blocked"},
+                    "gaps": [{"gap_id": "gap-001", "summary": "reviewer_first_concerns_unresolved"}],
+                    "recommended_actions": [
+                        {
+                            "action_id": "publication-eval-action::route_back_same_line::current",
+                            "action_type": "route_back_same_line",
+                            "priority": "now",
+                            "route_target": "write",
+                            "reason": "route back to write",
+                            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                            "evidence_refs": [
+                                "runtime/quests/003-dpcc-primary-care-phenotype-treatment-gap/"
+                                "artifacts/reports/publishability_gate/latest.json"
+                            ],
+                            "next_work_unit": {
+                                "unit_id": "medical_prose_write_repair",
+                                "lane": "write",
+                            },
+                        }
+                    ],
+                }
+            },
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "owner": "MedAutoScience",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "reason": "medical_paper_readiness_missing",
+                    "required_input": "complete_medical_paper_readiness_surface",
+                    "blocked_surface": "publication_handoff_owner_gate",
+                    "source_ref": (
+                        "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                    "source_kind": "typed_blocker",
+                },
+                "stage_run_kernel": {
+                    "status": "TypedBlocked",
+                    "current_owner_delta": {
+                        "owner": "MedAutoScience",
+                        "action": "complete_medical_paper_readiness_surface",
+                        "reason": "medical_paper_readiness_missing",
+                        "required_input": "complete_medical_paper_readiness_surface",
+                        "source_ref": (
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                            "artifacts/stage_outputs/08-publication_package_handoff/"
+                            "receipts/typed_blocker.json"
+                        ),
+                        "source_kind": "typed_blocker",
+                    },
+                },
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": gate_fingerprint,
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "medical_publication_surface_blocked",
+                        "blocked_reason": "medical_publication_surface_blocked",
+                        "owner": "one-person-lab",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": gate_fingerprint,
+                        "terminal_closeout_status": "blocked",
+                        "terminal_closeout_outcome": "blocked:publication_gate_replay_blocked",
+                        "source_ref": closeout_ref,
+                    },
+                },
+            },
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_attempt_id": "sat_e4dbaf4c7df74333010d29ae",
+                    "action_type": "run_gate_clearing_batch",
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": gate_fingerprint,
+                    "status": "blocked",
+                    "outcome": "blocked:publication_gate_replay_blocked",
+                    "source_path": closeout_ref,
+                    "paper_stage_log": {
+                        "progress_delta_classification": "typed_blocker",
+                        "next_forced_delta": {
+                            "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                            "reason": (
+                                "publication gate report blocked; controller_stage_note "
+                                "recommends route back to write"
+                            ),
+                            "work_unit_id": "publication_gate_replay",
+                            "target_surface": {
+                                "surface_ref": (
+                                    "MAS publication gate route-back owner action for "
+                                    "reviewer-first concerns and submission hardening"
+                                )
+                            },
+                            "acceptance_refs": [
+                                "owner_receipt_ref",
+                                "typed_blocker_ref",
+                                "changed_surface_ref",
+                            ],
+                            "owner_action": {
+                                "next_owner": "write",
+                                "action_type": "return_to_write",
+                                "work_unit_id": "reviewer_first_publication_surface_repair",
+                            },
+                        }
+                    },
+                    "closeout_refs": [closeout_ref],
+                }
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "study_progress.next_forced_delta.owner_action"
+    assert action["next_owner"] == "write"
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["allowed_actions"] == ["run_quality_repair_batch"]
+    assert action["work_unit_id"] == "reviewer_first_publication_surface_repair"
+    assert action["terminal_stage_next_forced_delta"] is True
+    assert action["work_unit_fingerprint"].startswith("route-currentness::")
+    assert closeout_ref in action["acceptance_refs"]
+
+
 def test_progress_first_monitoring_prefers_repair_followup_over_stale_readiness_queue() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
