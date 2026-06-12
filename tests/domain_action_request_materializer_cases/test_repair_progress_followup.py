@@ -725,3 +725,148 @@ def test_materialize_domain_action_requests_prefers_repair_followup_over_stale_a
     assert dispatch["source_action"]["controller_work_unit_id"] == work_unit_id
     assert dispatch["source_action"]["reason"] == "ai_reviewer_record_stale_after_current_inputs"
     assert dispatch["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+
+
+def test_materialize_domain_action_requests_prefers_terminal_next_forced_write_over_old_ai_reviewer_currentness(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    stale_work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason=stale_work_unit_id,
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    stale_action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "mas_provider_admission_identity",
+        "action_id": f"provider-admission::{study_id}::return_to_ai_reviewer_workflow",
+        "owner": "ai_reviewer",
+        "request_owner": "ai_reviewer",
+        "recommended_owner": "ai_reviewer",
+        "reason": stale_work_unit_id,
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "work_unit_id": stale_work_unit_id,
+        "source_surface": "owner_route_currentness",
+        "next_work_unit": stale_work_unit_id,
+        "owner_route": stale_route,
+        "handoff_packet": {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "authority": "mas_provider_admission_identity",
+            "request_owner": "ai_reviewer",
+            "owner_route": stale_route,
+        },
+    }
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": stale_route,
+                    "current_executable_owner_action": dict(stale_action),
+                    "action_queue": [stale_action],
+                }
+            ],
+            "action_queue": [stale_action],
+        },
+    )
+    write_work_unit_id = "medical_prose_write_repair"
+    write_fingerprint = "publication-blockers::0915410f804b3697"
+    write_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="write",
+        owner_reason=write_work_unit_id,
+        allowed_actions=["run_quality_repair_batch"],
+    )
+    write_route["work_unit_fingerprint"] = write_fingerprint
+    write_route["source_fingerprint"] = write_fingerprint
+    write_route["source_refs"]["work_unit_id"] = write_work_unit_id
+    write_route["source_refs"]["work_unit_fingerprint"] = write_fingerprint
+    write_route["source_refs"]["owner_route_currentness_basis"]["work_unit_id"] = write_work_unit_id
+    write_route["source_refs"]["owner_route_currentness_basis"]["work_unit_fingerprint"] = write_fingerprint
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "generated_at": "2026-06-12T12:36:00+00:00",
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": write_work_unit_id,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": "study_progress.next_forced_delta.owner_action",
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_id": write_work_unit_id,
+                "work_unit_fingerprint": write_fingerprint,
+                "action_fingerprint": write_fingerprint,
+                "required_delta_kind": "same_line_write_repair_or_typed_blocker_consumption",
+                "terminal_stage_next_forced_delta": True,
+                "target_surface": {
+                    "ref_kind": "route_obligation",
+                    "route_target": "write",
+                    "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                    "publication_eval_latest_ref": (
+                        "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
+                        "20260612T123416Z_publication_eval_record.json"
+                    ),
+                },
+                "acceptance_refs": [
+                    "studies/003/default_executor_execution/sat-fresh-ai-reviewer.closeout.json"
+                ],
+            },
+            "current_owner_ticket": None,
+            "owner_route": write_route,
+            "paper_progress_delta": {"count": 1},
+            "deliverable_progress_delta": {"count": 1},
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert [item["action_type"] for item in result["default_executor_dispatches"]] == [
+        "run_quality_repair_batch"
+    ]
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["source_action"]["source_surface"] == "study_progress.current_executable_owner_action"
+    assert dispatch["source_action"]["current_action_source"] == "study_progress.next_forced_delta.owner_action"
+    assert dispatch["source_action"]["work_unit_id"] == write_work_unit_id
+    assert dispatch["source_action"]["work_unit_fingerprint"] == write_fingerprint
+    assert dispatch["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == write_work_unit_id
+    assert {
+        item["action_type"]: item["reason"]
+        for item in result["ignored_actions"]
+        if item["study_id"] == study_id
+    } == {
+        "return_to_ai_reviewer_workflow": "superseded_by_fresh_study_progress_current_owner_ticket",
+    }

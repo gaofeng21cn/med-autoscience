@@ -49,6 +49,11 @@ def can_preempt_scan(
         queue_actions=queue_actions,
     ):
         return True
+    if _terminal_next_forced_write_supersedes_previous_ai_reviewer_queue(
+        fresh_action=fresh_action,
+        queue_actions=queue_actions,
+    ):
+        return True
     if any(not _scan_action_is_readiness_or_stage_native_write(action) for action in queue_actions):
         return False
     if readiness_followup is not None:
@@ -121,6 +126,27 @@ def _fresh_repair_followup_supersedes_previous_repair_queue(
     return any(_scan_action_is_previous_repair_or_provider_admission(action) for action in queue_actions)
 
 
+def _terminal_next_forced_write_supersedes_previous_ai_reviewer_queue(
+    *,
+    fresh_action: Mapping[str, Any],
+    queue_actions: list[dict[str, Any]],
+) -> bool:
+    if fresh_action.get("terminal_stage_next_forced_delta") is not True:
+        return False
+    if _text(fresh_action.get("current_action_source")) != "study_progress.next_forced_delta.owner_action":
+        return False
+    if _text(fresh_action.get("action_type")) != "run_quality_repair_batch":
+        return False
+    if _text(fresh_action.get("required_delta_kind")) not in {
+        "same_line_write_repair_or_gate_replay_route",
+        "same_line_write_repair_or_typed_blocker_consumption",
+    }:
+        return False
+    if not _action_currentness_fingerprints(fresh_action):
+        return False
+    return any(_scan_action_is_previous_ai_reviewer_queue(action) for action in queue_actions)
+
+
 def _scan_action_is_previous_repair_or_provider_admission(action: Mapping[str, Any]) -> bool:
     action_type = _text(action.get("action_type"))
     if action_type not in {"run_quality_repair_batch", "run_gate_clearing_batch"}:
@@ -135,6 +161,23 @@ def _scan_action_is_previous_repair_or_provider_admission(action: Mapping[str, A
         return True
     action_id = _text(action.get("action_id"))
     return bool(action_id and action_id.startswith("provider-admission::"))
+
+
+def _scan_action_is_previous_ai_reviewer_queue(action: Mapping[str, Any]) -> bool:
+    if _text(action.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return False
+    owner = _text(action.get("owner")) or _text(action.get("request_owner")) or _text(action.get("recommended_owner"))
+    if owner not in {None, "ai_reviewer"}:
+        return False
+    required_output = _text(action.get("required_output_surface"))
+    if required_output is not None and required_output != "artifacts/publication_eval/latest.json":
+        return False
+    next_work_unit = _text(action.get("next_work_unit")) or _text(action.get("work_unit_id"))
+    return next_work_unit in {
+        None,
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+    }
 
 
 def has_current_quality_repair_writer_handoff(
@@ -190,6 +233,17 @@ def has_current_quality_repair_writer_handoff(
     ) or owner_route_part.owner_route_matches(
         dispatch={"owner_route": dispatch_route},
         current_route=fresh_owner_route,
+    )
+
+
+def fresh_action_supersedes_currentness_action(
+    *,
+    fresh_action: Mapping[str, Any],
+    currentness_action: Mapping[str, Any],
+) -> bool:
+    return _terminal_next_forced_write_supersedes_previous_ai_reviewer_queue(
+        fresh_action=fresh_action,
+        queue_actions=[dict(currentness_action)],
     )
 
 

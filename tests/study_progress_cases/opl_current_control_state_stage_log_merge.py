@@ -443,6 +443,67 @@ def test_running_provider_top_level_projection_yields_to_progress_first_terminal
     assert result["current_blockers"] == ["medical_paper_readiness_missing"]
 
 
+def test_running_provider_top_level_projection_requires_current_action_running_proof() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.projection_payload_assembly_parts.running_provider_status"
+    )
+
+    payload = {
+        "current_stage": "publication_supervision",
+        "active_run_id": "opl-stage-attempt://sat-stale-readiness",
+        "current_work_unit": {"status": "executable_owner_action"},
+        "current_execution_envelope": {"state_kind": "executable_owner_action"},
+        "current_executable_owner_action": {
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "next_owner": "write",
+            "work_unit_id": "medical_prose_write_repair",
+            "allowed_actions": ["run_quality_repair_batch"],
+        },
+        "progress_first_monitoring_summary": {
+            "running_provider_attempt": False,
+            "active_run_id": None,
+            "active_stage_attempt_id": None,
+            "owner_action_admission": {
+                "provider_attempt_running_proven": False,
+                "provider_attempt_proof": None,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "next_owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "allowed_actions": ["run_quality_repair_batch"],
+            },
+        },
+        "supervision": {"active_run_id": "opl-stage-attempt://sat-stale-readiness"},
+        "opl_current_control_state_handoff": {
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat-stale-readiness",
+            "active_stage_attempt_id": "sat-stale-readiness",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+            "action_queue": [
+                {
+                    "owner": "MedAutoScience",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                }
+            ],
+        },
+    }
+
+    result = module.apply_running_provider_attempt_top_level_status(payload)
+
+    assert result is not payload
+    assert result["current_stage"] == "publication_supervision"
+    assert result["active_run_id"] is None
+    assert result["supervision"]["active_run_id"] is None
+    assert result["supervision"]["stale_active_run_id"] == "opl-stage-attempt://sat-stale-readiness"
+
+
 def test_study_progress_terminal_closeout_missing_owner_answer_blocks_stale_running(
     monkeypatch,
     tmp_path: Path,

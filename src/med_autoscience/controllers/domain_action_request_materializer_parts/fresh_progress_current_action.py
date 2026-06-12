@@ -169,6 +169,10 @@ def _fresh_progress_current_action(
         "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint")),
         "surface_key": surface_key,
         "target_surface": target_surface or None,
+        "required_delta_kind": _text(current_action.get("required_delta_kind")),
+        "terminal_stage_next_forced_delta": (
+            True if current_action.get("terminal_stage_next_forced_delta") is True else None
+        ),
         "repair_progress_precedence": _mapping(current_action.get("repair_progress_precedence")) or None,
         "owner_route": owner_route,
         "handoff_packet": {

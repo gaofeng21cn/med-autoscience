@@ -968,7 +968,11 @@ def test_progress_first_monitoring_prefers_repair_followup_over_stale_readiness_
         }
     )
 
-    assert monitoring["running_provider_attempt"] is True
+    assert monitoring["running_provider_attempt"] is False
+    assert monitoring["active_run_id"] is None
+    assert monitoring["active_stage_attempt_id"] is None
+    assert monitoring["active_workflow_id"] is None
+    assert monitoring["worker_liveness"]["stale_active_run_id"] == "opl-stage-attempt://sat-stale-readiness"
     assert monitoring["execution_state_kind"] == "executable_owner_action"
     assert monitoring["next_owner"] == "ai_reviewer"
     assert monitoring["controller_action"] == "return_to_ai_reviewer_workflow"

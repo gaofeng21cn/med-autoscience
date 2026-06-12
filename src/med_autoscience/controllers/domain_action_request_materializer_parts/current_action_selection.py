@@ -362,9 +362,15 @@ def current_actions_for_studies(
             continue
         if fresh_progress_action is not None:
             if currentness_owner_action is not None:
-                if _fresh_repair_progress_action_matches_action_currentness(
+                if (
+                    fresh_progress_arbitration.fresh_action_supersedes_currentness_action(
+                        fresh_action=fresh_progress_action,
+                        currentness_action=currentness_owner_action,
+                    )
+                    or _fresh_repair_progress_action_matches_action_currentness(
                     fresh_action=fresh_progress_action,
                     currentness_action=currentness_owner_action,
+                    )
                 ):
                     per_study_actions.append(fresh_progress_action)
                     ignored.extend(

@@ -219,6 +219,9 @@ def _request_packet_ref_for_dispatch(action_type: str) -> str | None:
 
 def _source_action_ref(action: Mapping[str, Any]) -> dict[str, Any]:
     source_ref = {key: action[key] for key in SOURCE_ACTION_REF_FIELDS if key in action}
+    for key in ("work_unit_id", "work_unit_fingerprint", "action_fingerprint", "required_delta_kind"):
+        if key in action and key not in source_ref:
+            source_ref[key] = action[key]
     handoff = _mapping(action.get("handoff_packet"))
     handoff_ref = {key: handoff[key] for key in SOURCE_HANDOFF_REF_FIELDS if key in handoff}
     if handoff_ref:

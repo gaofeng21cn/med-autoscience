@@ -58,6 +58,8 @@ TERMINAL_CLOSEOUT_OUTCOMES = frozenset(
 
 
 def apply_running_provider_attempt_top_level_status(payload: dict[str, Any]) -> dict[str, Any]:
+    if _monitoring_suppressed_running_provider_attempt(payload):
+        return _clear_stale_running_provider_attempt(payload)
     if not _payload_has_running_provider_attempt(payload):
         return payload
     handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
@@ -119,6 +121,40 @@ def apply_running_provider_attempt_top_level_status(payload: dict[str, Any]) -> 
     updated["operator_status_card"] = _running_provider_operator_status_card(
         updated.get("operator_status_card"),
     )
+    return updated
+
+
+def _monitoring_suppressed_running_provider_attempt(payload: Mapping[str, Any]) -> bool:
+    monitoring = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    if monitoring.get("running_provider_attempt") is not False:
+        return False
+    if not monitoring.get("current_executable_owner_action"):
+        return False
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    if handoff.get("running_provider_attempt") is not True:
+        return False
+    return (
+        _non_empty_text(handoff.get("active_run_id"))
+        or _non_empty_text(payload.get("active_run_id"))
+        or _non_empty_text(_mapping_copy(payload.get("supervision")).get("active_run_id"))
+    ) is not None
+
+
+def _clear_stale_running_provider_attempt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    updated = dict(payload)
+    supervision = _mapping_copy(updated.get("supervision"))
+    stale_active_run_id = (
+        _non_empty_text(supervision.get("active_run_id"))
+        or _non_empty_text(updated.get("active_run_id"))
+        or _non_empty_text(
+            _mapping_copy(updated.get("opl_current_control_state_handoff")).get("active_run_id")
+        )
+    )
+    updated["active_run_id"] = None
+    supervision["active_run_id"] = None
+    if stale_active_run_id is not None:
+        supervision["stale_active_run_id"] = stale_active_run_id
+    updated["supervision"] = supervision
     return updated
 
 

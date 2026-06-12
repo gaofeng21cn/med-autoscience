@@ -237,6 +237,19 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     current_action_running_provider_attempt = bool(
         strict_running_provider_liveness and current_action_provider_attempt_proof
     )
+    if (
+        strict_running_provider_liveness
+        and current_action
+        and _handoff_identity_conflicts_current_action(
+            handoff=handoff_for_admission,
+            current_action=current_action,
+        )
+        and not current_action_provider_attempt_proof
+    ):
+        running_provider_attempt = False
+        active_run_id = None
+        active_stage_attempt_id = None
+        active_workflow_id = None
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
     canonical_work_unit_for_aliases = (
         {}
@@ -725,6 +738,21 @@ def _strict_running_provider_liveness(handoff: Mapping[str, Any]) -> bool:
         "running",
         "live",
     }
+
+
+def _handoff_identity_conflicts_current_action(
+    *,
+    handoff: Mapping[str, Any],
+    current_action: Mapping[str, Any],
+) -> bool:
+    if not current_action:
+        return False
+    if _first_current_action_queue_item(handoff.get("action_queue")) is None:
+        return False
+    return provider_attempt_proof_for_current_action(
+        handoff=handoff,
+        current_action=current_action,
+    ) is None
 
 
 def _handoff_has_matching_terminal_closeout(handoff: Mapping[str, Any]) -> bool:
