@@ -49,7 +49,7 @@ flowchart TD
 
 - `weak_provider_admission_identity`：provider admission carrier 缺 `study_id` / `action_type` / work-unit id / fingerprint / dispatch ref / strong currentness basis 时，pending fail-closed，不进入 OPL tick。
 - `running_identity_observed`：同一 identity 已有 strict live provider attempt，pending 被压制。
-- `terminal_closeout_precedes_live_projection`：同一 stage attempt / run 已有 accepted typed closeout 或 executed typed blocker，即使 OPL live 读面仍残留 running，也必须先压制 pending 和 stale live 投影。
+- `terminal_closeout_precedes_live_projection`：同一 stage attempt / run 已有 accepted typed closeout 或 executed typed blocker，即使 OPL live 读面仍残留 running，也必须先压制 provider admission pending；同一 decision 另带 `stale_running_projection_effect=suppress_stale_running_projection`，明确 stale live 投影也被压制。
 - `accepted_closeout_consumed_pending`：同一 identity 已有 accepted typed closeout 或 executed typed blocker，pending 被压制。
 - `pending_provider_admission`：没有匹配 live attempt，也没有匹配 accepted closeout，pending 保留，下一步可由 OPL scoped tick / hydrate 接手。
 
@@ -199,4 +199,4 @@ MAS 侧对应收薄：
 
 不能用旧 `active_run_id`、transport succeeded、queue completed、zero worklist、provider-slo healthy、worker heartbeat 或 automation heartbeat 文案判断论文进展。provider-slo 的成功只说明 provider/worker 健康；hydrate 的成功也只说明 StageRun admitted / running watch，仍不等于 paper progress。paper progress 只来自 MAS owner receipt、quality gate receipt、canonical changed surface ref、stable typed blocker、human gate 或 route-back evidence。
 
-2026-06-12 DM002 / DM003 最新只读监督口径：若 `study progress` 和 DHD dry-run 同时显示 `active_run_id=null`、`running_provider_attempt=false`、`provider_admission_pending_count=0`、`provider_admission_candidates=[]` 和 `action_queue=[]`，则 operator 必须判为没有 active provider work。DM002 类 `anti_loop_budget_exhausted` 是 terminal stop-loss / typed owner outcome；DM003 类 `medical_paper_readiness_missing` 是 current typed blocker outcome。后续只能由对应 owner 产出 owner receipt、typed blocker解除、human/operator gate、route-back 或新 work-unit identity，不能靠 heartbeat 或同一 `run_quality_repair_batch` redrive 前进。
+2026-06-12 只读监督口径：若 fresh `study progress` 和 DHD dry-run 同时显示 `active_run_id=null`、`running_provider_attempt=false`、`provider_admission_pending_count=0`、`provider_admission_candidates=[]` 和 `action_queue=[]`，则 operator 必须判为没有 active provider work。DM002 / DM003 的具体 blocker、owner、action、work unit 和 fingerprint 不能从本文或合同样本读取，必须按 live readback 判定。`anti_loop_budget_exhausted` 类 outcome 是 terminal stop-loss / typed owner outcome；`medical_paper_readiness_missing`、`medical_publication_surface_blocked`、`stage_packet_not_current_selected_dispatch` 类 outcome 是当前 typed-blocker 恢复入口。后续只能由对应 owner 产出 owner receipt、typed blocker 解除、human/operator gate、route-back 或新 work-unit identity，不能靠 heartbeat 或同一 `run_quality_repair_batch` redrive 前进。

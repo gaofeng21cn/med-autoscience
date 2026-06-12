@@ -383,7 +383,8 @@
       },
       {
         "decision": "terminal_closeout_precedes_live_projection",
-        "effect": "suppress_stale_running_projection",
+        "effect": "suppress_provider_admission_pending",
+        "stale_running_projection_effect": "suppress_stale_running_projection",
         "required_match": [
           "study_id",
           "stage_attempt_id_or_run_id",
@@ -1100,26 +1101,51 @@
   },
   "dm002_dm003_recovery_acceptance_policy": {
     "surface_kind": "mas_opl_dm002_dm003_recovery_acceptance_policy",
-    "state": "active_recovery_contract",
-    "source_truth_snapshot": {
-      "date": "2026-06-12",
-      "dm002": {
-        "study_id": "002-dm-china-us-mortality-attribution",
-        "current_blocker": "anti_loop_budget_exhausted",
-        "owner": "one-person-lab",
-        "provider_admission_pending_count": 0
-      },
-      "dm003": {
-        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-        "current_blocker": "medical_paper_readiness_missing",
-        "owner": "MedAutoScience",
-        "provider_admission_pending_count": 0
-      }
+    "state": "active_recovery_acceptance_contract",
+    "fresh_truth_policy": {
+      "contract_must_not_be_used_as_current_truth": true,
+      "live_status_must_be_refreshed_before_acceptance": true,
+      "fresh_readback_required_for_fields": [
+        "current_stage",
+        "active_run_id",
+        "current_work_unit.status",
+        "current_work_unit.blocker_type_or_reason",
+        "current_work_unit.owner",
+        "current_work_unit.action_type",
+        "current_work_unit.work_unit_id",
+        "current_work_unit.work_unit_fingerprint",
+        "provider_admission_pending_count",
+        "provider_admission_candidates",
+        "action_queue",
+        "strict_provider_running_proof",
+        "owner_receipt_or_typed_blocker_refs"
+      ],
+      "drift_handling": "if_recent_sample_conflicts_with_fresh_readback_use_fresh_readback_and_treat_sample_as_non_authoritative_context"
     },
-    "dm002_stop_loss_policy": {
+    "recent_non_authoritative_samples": {
+      "purpose": "debug context only; not acceptance truth",
+      "samples_may_be_stale": true,
+      "latest_recorded_at": "2026-06-12",
+      "examples": [
+        {
+          "study_id": "002-dm-china-us-mortality-attribution",
+          "observed_blocker": "anti_loop_budget_exhausted",
+          "owner": "one-person-lab",
+          "provider_admission_pending_count": 0
+        },
+        {
+          "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+          "observed_blocker": "medical_paper_readiness_missing",
+          "owner": "MedAutoScience",
+          "provider_admission_pending_count": 0
+        }
+      ]
+    },
+    "same_work_unit_stop_loss_policy": {
       "blocker": "anti_loop_budget_exhausted",
-      "owner": "one-person-lab",
+      "owner_source": "fresh_current_work_unit_owner",
       "same_work_unit_redrive_allowed": false,
+      "applies_only_when_fresh_current_blocker_matches": true,
       "allowed_reopen_conditions": [
         "new_work_unit_identity",
         "successor_stage_run_identity",
@@ -1135,9 +1161,14 @@
         "replaying_stale_action_queue_or_provider_admission"
       ]
     },
-    "dm003_readiness_policy": {
-      "blocker": "medical_paper_readiness_missing",
-      "owner": "MedAutoScience",
+    "current_typed_blocker_recovery_policy": {
+      "blocker_source": "fresh_current_work_unit_blocker_type_or_reason",
+      "owner_source": "fresh_current_work_unit_owner",
+      "known_recent_blocker_classes": [
+        "medical_paper_readiness_missing",
+        "medical_publication_surface_blocked",
+        "stage_packet_not_current_selected_dispatch"
+      ],
       "must_be_consumed_by_any": [
         "specific_mas_owner_callable",
         "derived_repair_action_with_current_work_unit_binding",

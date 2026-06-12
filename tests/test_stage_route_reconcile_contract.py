@@ -181,7 +181,7 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     effects = {item["decision"]: item["effect"] for item in arbiter["decision_kinds"]}
     assert effects["weak_provider_admission_identity"] == "suppress_provider_admission_pending"
     assert effects["terminal_closeout_precedes_live_projection"] == (
-        "suppress_stale_running_projection"
+        "suppress_provider_admission_pending"
     )
     assert effects["running_identity_observed"] == "suppress_provider_admission_pending"
     assert effects["accepted_closeout_consumed_pending"] == (
@@ -198,6 +198,9 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     )
     assert terminal_decision["successor_policy"] == (
         "if_current_executable_owner_action_has_different_work_unit_identity_keep_successor_pending_and_attach_terminal_precedence_evidence"
+    )
+    assert terminal_decision["stale_running_projection_effect"] == (
+        "suppress_stale_running_projection"
     )
     assert {
         "study_id",
@@ -442,55 +445,81 @@ def test_stage_route_reconcile_contract_declares_dm002_dm003_recovery_acceptance
 
     recovery = contract["dm002_dm003_recovery_acceptance_policy"]
     assert recovery["surface_kind"] == "mas_opl_dm002_dm003_recovery_acceptance_policy"
-    assert recovery["state"] == "active_recovery_contract"
+    assert recovery["state"] == "active_recovery_acceptance_contract"
 
-    snapshot = recovery["source_truth_snapshot"]
-    assert snapshot["date"] == "2026-06-12"
-    assert snapshot["dm002"] == {
-        "study_id": "002-dm-china-us-mortality-attribution",
-        "current_blocker": "anti_loop_budget_exhausted",
-        "owner": "one-person-lab",
-        "provider_admission_pending_count": 0,
-    }
-    assert snapshot["dm003"] == {
-        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-        "current_blocker": "medical_paper_readiness_missing",
-        "owner": "MedAutoScience",
-        "provider_admission_pending_count": 0,
+    truth = recovery["fresh_truth_policy"]
+    assert truth["contract_must_not_be_used_as_current_truth"] is True
+    assert truth["live_status_must_be_refreshed_before_acceptance"] is True
+    assert {
+        "current_stage",
+        "active_run_id",
+        "current_work_unit.status",
+        "current_work_unit.blocker_type_or_reason",
+        "current_work_unit.owner",
+        "current_work_unit.action_type",
+        "current_work_unit.work_unit_id",
+        "current_work_unit.work_unit_fingerprint",
+        "provider_admission_pending_count",
+        "provider_admission_candidates",
+        "action_queue",
+        "strict_provider_running_proof",
+        "owner_receipt_or_typed_blocker_refs",
+    } <= set(truth["fresh_readback_required_for_fields"])
+    assert truth["drift_handling"] == (
+        "if_recent_sample_conflicts_with_fresh_readback_use_fresh_readback_and_treat_sample_as_non_authoritative_context"
+    )
+
+    samples = recovery["recent_non_authoritative_samples"]
+    assert samples["purpose"] == "debug context only; not acceptance truth"
+    assert samples["samples_may_be_stale"] is True
+    assert samples["latest_recorded_at"] == "2026-06-12"
+    assert {
+        sample["study_id"] for sample in samples["examples"]
+    } == {
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
     }
 
-    dm002 = recovery["dm002_stop_loss_policy"]
-    assert dm002["same_work_unit_redrive_allowed"] is False
+    stop_loss = recovery["same_work_unit_stop_loss_policy"]
+    assert stop_loss["blocker"] == "anti_loop_budget_exhausted"
+    assert stop_loss["owner_source"] == "fresh_current_work_unit_owner"
+    assert stop_loss["same_work_unit_redrive_allowed"] is False
+    assert stop_loss["applies_only_when_fresh_current_blocker_matches"] is True
     assert {
         "new_work_unit_identity",
         "successor_stage_run_identity",
         "human_gate_ref",
         "route_back_evidence_ref",
-    } <= set(dm002["allowed_reopen_conditions"])
+    } <= set(stop_loss["allowed_reopen_conditions"])
     assert {
         "same_work_unit_provider_admission_redrive",
         "same_work_unit_default_executor_dispatch",
         "foreground_codex_retry_of_repair_batch",
         "replaying_stale_action_queue_or_provider_admission",
-    } <= set(dm002["forbidden_recovery_actions"])
+    } <= set(stop_loss["forbidden_recovery_actions"])
 
-    dm003 = recovery["dm003_readiness_policy"]
-    assert dm003["blocker"] == "medical_paper_readiness_missing"
-    assert dm003["owner"] == "MedAutoScience"
-    assert dm003["blocker_only_can_execute_complete_readiness_surface"] is False
+    typed_blocker = recovery["current_typed_blocker_recovery_policy"]
+    assert typed_blocker["blocker_source"] == "fresh_current_work_unit_blocker_type_or_reason"
+    assert typed_blocker["owner_source"] == "fresh_current_work_unit_owner"
+    assert {
+        "medical_paper_readiness_missing",
+        "medical_publication_surface_blocked",
+        "stage_packet_not_current_selected_dispatch",
+    } <= set(typed_blocker["known_recent_blocker_classes"])
+    assert typed_blocker["blocker_only_can_execute_complete_readiness_surface"] is False
     assert {
         "specific_mas_owner_callable",
         "derived_repair_action_with_current_work_unit_binding",
         "stable_typed_blocker_with_named_missing_ref_family",
-    } <= set(dm003["must_be_consumed_by_any"])
-    assert dm003["derived_repair_action_required_fields"] == [
+    } <= set(typed_blocker["must_be_consumed_by_any"])
+    assert typed_blocker["derived_repair_action_required_fields"] == [
         "stage_typed_blocker_ref",
         "publication_eval_id",
         "gap_ids",
         "work_unit_fingerprint",
         "required_output_contract",
     ]
-    assert dm003["derived_repair_action_required_outputs_any"] == [
+    assert typed_blocker["derived_repair_action_required_outputs_any"] == [
         "canonical_manuscript_story_surface_delta",
         "claim_evidence_semantic_delta",
         "review_ledger_delta",
@@ -503,7 +532,7 @@ def test_stage_route_reconcile_contract_declares_dm002_dm003_recovery_acceptance
         "stale_gate_replay_or_transition_dispatch",
         "provider_admission_without_current_executable_owner_action",
         "paper_local_manuscript_or_package_edit_without_owner_callable",
-    } <= set(dm003["forbidden_recovery_actions"])
+    } <= set(typed_blocker["forbidden_recovery_actions"])
 
     assert set(recovery["acceptance_requires_any"]) == {
         "mas_owner_receipt_ref",
