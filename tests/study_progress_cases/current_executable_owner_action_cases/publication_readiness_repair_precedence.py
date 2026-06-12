@@ -12,6 +12,43 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 
+def test_terminal_next_forced_write_without_strong_fingerprint_is_not_executable() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "status": "completed",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "source_path": (
+                        "studies/003/artifacts/supervision/consumer/"
+                        "default_executor_execution/sat.closeout.json"
+                    ),
+                    "paper_stage_log": {
+                        "next_forced_delta": {
+                            "required_delta_kind": (
+                                "same_line_write_repair_or_typed_blocker_consumption"
+                            ),
+                            "owner_action": {
+                                "action_type": "return_to_write",
+                                "next_owner": "write",
+                                "work_unit_id": "medical_prose_write_repair",
+                                "allowed_actions": ["run_quality_repair_batch"],
+                            },
+                        }
+                    },
+                }
+            },
+        }
+    )
+
+    assert action is None
+
+
 def test_progress_first_monitoring_prefers_handoff_typed_blocker_readiness_followup_over_terminal_action() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

@@ -300,6 +300,13 @@ def _terminal_stage_blocks_action(
         return False
     if terminal_action is not None and terminal_action != expected_action:
         return False
+    if _terminal_stage_identity_conflicts_action(
+        terminal,
+        action=action,
+        mapping=mapping,
+        text=text,
+    ):
+        return False
     expected_work_unit = work_unit_id(action.get("work_unit_id")) or work_unit_id(action.get("next_work_unit"))
     terminal_work_units = {
         item
@@ -327,6 +334,93 @@ def _terminal_stage_blocks_action(
     if expected_work_unit is not None and terminal_work_units:
         return expected_work_unit in terminal_work_units
     return expected_work_unit is not None
+
+
+def _terminal_stage_identity_conflicts_action(
+    terminal: Mapping[str, Any],
+    *,
+    action: Mapping[str, Any],
+    mapping: MappingReader,
+    text: TextReader,
+) -> bool:
+    action_fp = _action_identity_fingerprint(action, mapping=mapping, text=text)
+    terminal_fp = _terminal_identity_fingerprint(terminal, mapping=mapping, text=text)
+    if action_fp is not None and terminal_fp is not None and action_fp != terminal_fp:
+        return True
+    action_eval = _action_source_eval_id(action, mapping=mapping, text=text)
+    terminal_eval = _terminal_source_eval_id(terminal, mapping=mapping, text=text)
+    return action_eval is not None and terminal_eval is not None and action_eval != terminal_eval
+
+
+def _action_identity_fingerprint(
+    action: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+    text: TextReader,
+) -> str | None:
+    source_refs = mapping(action.get("source_refs"))
+    basis = mapping(action.get("owner_route_currentness_basis")) or mapping(
+        source_refs.get("owner_route_currentness_basis")
+    )
+    return (
+        text(action.get("work_unit_fingerprint"))
+        or text(action.get("action_fingerprint"))
+        or text(action.get("fingerprint"))
+        or text(basis.get("work_unit_fingerprint"))
+        or text(basis.get("source_fingerprint"))
+    )
+
+
+def _terminal_identity_fingerprint(
+    terminal: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+    text: TextReader,
+) -> str | None:
+    paper_stage_log = mapping(terminal.get("paper_stage_log"))
+    next_forced_delta = mapping(terminal.get("next_forced_delta")) or mapping(
+        paper_stage_log.get("next_forced_delta")
+    )
+    owner_action = mapping(next_forced_delta.get("owner_action"))
+    semantic = mapping(terminal.get("terminal_closeout_semantic_completeness"))
+    basis = mapping(terminal.get("owner_route_currentness_basis")) or mapping(
+        semantic.get("owner_route_currentness_basis")
+    )
+    return (
+        text(terminal.get("work_unit_fingerprint"))
+        or text(terminal.get("action_fingerprint"))
+        or text(terminal.get("fingerprint"))
+        or text(paper_stage_log.get("work_unit_fingerprint"))
+        or text(next_forced_delta.get("work_unit_fingerprint"))
+        or text(owner_action.get("work_unit_fingerprint"))
+        or text(basis.get("work_unit_fingerprint"))
+        or text(basis.get("source_fingerprint"))
+    )
+
+
+def _terminal_source_eval_id(
+    terminal: Mapping[str, Any],
+    *,
+    mapping: MappingReader,
+    text: TextReader,
+) -> str | None:
+    paper_stage_log = mapping(terminal.get("paper_stage_log"))
+    next_forced_delta = mapping(terminal.get("next_forced_delta")) or mapping(
+        paper_stage_log.get("next_forced_delta")
+    )
+    owner_action = mapping(next_forced_delta.get("owner_action"))
+    semantic = mapping(terminal.get("terminal_closeout_semantic_completeness"))
+    basis = mapping(terminal.get("owner_route_currentness_basis")) or mapping(
+        semantic.get("owner_route_currentness_basis")
+    )
+    return (
+        text(terminal.get("source_eval_id"))
+        or text(terminal.get("eval_id"))
+        or text(paper_stage_log.get("source_eval_id"))
+        or text(next_forced_delta.get("source_eval_id"))
+        or text(owner_action.get("source_eval_id"))
+        or text(basis.get("source_eval_id"))
+    )
 
 
 def _terminal_stage_blocker_reason(

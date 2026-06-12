@@ -477,6 +477,12 @@ def test_running_provider_top_level_projection_requires_current_action_running_p
             },
         },
         "supervision": {"active_run_id": "opl-stage-attempt://sat-stale-readiness"},
+        "opl_runtime_refs": {
+            "strict_live": True,
+            "worker_running": True,
+            "active_run_id": "opl-stage-attempt://sat-stale-runtime-refs",
+            "active_run_id_source": "status.active_run_id",
+        },
         "opl_current_control_state_handoff": {
             "running_provider_attempt": True,
             "active_run_id": "opl-stage-attempt://sat-stale-readiness",
@@ -502,6 +508,12 @@ def test_running_provider_top_level_projection_requires_current_action_running_p
     assert result["active_run_id"] is None
     assert result["supervision"]["active_run_id"] is None
     assert result["supervision"]["stale_active_run_id"] == "opl-stage-attempt://sat-stale-readiness"
+    assert result["opl_runtime_refs"]["strict_live"] is False
+    assert result["opl_runtime_refs"]["worker_running"] is False
+    assert result["opl_runtime_refs"]["active_run_id"] is None
+    assert result["opl_runtime_refs"]["active_run_id_source"] == (
+        "invalidated_current_action_running_proof_mismatch"
+    )
 
 
 def test_study_progress_terminal_closeout_missing_owner_answer_blocks_stale_running(

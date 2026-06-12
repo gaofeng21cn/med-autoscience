@@ -210,14 +210,11 @@ def _current_work_unit_dispatch_identity(
         or _text(current_work_unit.get("action_fingerprint"))
         or _text(currentness_basis.get("work_unit_fingerprint"))
         or _text(currentness_basis.get("source_fingerprint"))
-        or control_identity.stable_current_owner_ticket_fingerprint(
-            study_id=_text(current_work_unit.get("study_id")) or study_id,
-            work_unit_id=work_unit_id,
-            action_type=action_type,
-        )
     )
     action_ids = [item for item in (action_type, work_unit_id) if item is not None]
     if action_type is None or work_unit_id is None:
+        return {}
+    if fingerprint is None or control_identity.is_synthetic_current_owner_ticket(fingerprint):
         return {}
     identity = {
         "source": "current_work_unit",
@@ -251,11 +248,6 @@ def _current_owner_action_dispatch_identity(
         or _text(current_owner_action.get("source_fingerprint"))
         or _text(basis.get("work_unit_fingerprint"))
         or _text(basis.get("source_fingerprint"))
-        or control_identity.stable_current_owner_ticket_fingerprint(
-            study_id=_text(current_owner_action.get("study_id")) or study_id,
-            work_unit_id=work_unit_id,
-            action_type=action_type,
-        )
     )
     action_ids = list(
         dict.fromkeys(
@@ -272,6 +264,8 @@ def _current_owner_action_dispatch_identity(
         )
     )
     if action_type is None or work_unit_id is None:
+        return {}
+    if fingerprint is None or control_identity.is_synthetic_current_owner_ticket(fingerprint):
         return {}
     identity = {
         "source": _text(current_owner_action.get("source")) or "current_executable_owner_action",
@@ -349,6 +343,16 @@ def _current_owner_action_route_for_dispatch(
     if current_fingerprint is not None:
         owner_route["work_unit_fingerprint"] = current_fingerprint
         owner_route["source_fingerprint"] = current_fingerprint
+    if _text(owner_route.get("idempotency_key")) is None:
+        study_id = (
+            _text(owner_route.get("study_id"))
+            or _text(dispatch.get("study_id"))
+            or _text(current_owner_action.get("study_id"))
+        )
+        identity_basis = current_fingerprint or current_work_unit_id
+        owner_route["idempotency_key"] = "::".join(
+            item for item in ("owner-route", study_id, identity_basis, action_type) if item
+        )
     return owner_route
 
 

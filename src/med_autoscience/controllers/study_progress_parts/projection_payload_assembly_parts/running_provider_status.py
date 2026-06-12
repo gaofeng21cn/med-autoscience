@@ -130,13 +130,11 @@ def _monitoring_suppressed_running_provider_attempt(payload: Mapping[str, Any]) 
         return False
     if not monitoring.get("current_executable_owner_action"):
         return False
-    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
-    if handoff.get("running_provider_attempt") is not True:
-        return False
     return (
-        _non_empty_text(handoff.get("active_run_id"))
+        _non_empty_text(_mapping_copy(payload.get("opl_current_control_state_handoff")).get("active_run_id"))
         or _non_empty_text(payload.get("active_run_id"))
         or _non_empty_text(_mapping_copy(payload.get("supervision")).get("active_run_id"))
+        or _non_empty_text(_mapping_copy(payload.get("opl_runtime_refs")).get("active_run_id"))
     ) is not None
 
 
@@ -149,12 +147,22 @@ def _clear_stale_running_provider_attempt(payload: Mapping[str, Any]) -> dict[st
         or _non_empty_text(
             _mapping_copy(updated.get("opl_current_control_state_handoff")).get("active_run_id")
         )
+        or _non_empty_text(_mapping_copy(updated.get("opl_runtime_refs")).get("active_run_id"))
     )
     updated["active_run_id"] = None
     supervision["active_run_id"] = None
     if stale_active_run_id is not None:
         supervision["stale_active_run_id"] = stale_active_run_id
     updated["supervision"] = supervision
+    runtime_refs = _mapping_copy(updated.get("opl_runtime_refs"))
+    if runtime_refs:
+        runtime_refs["active_run_id"] = None
+        runtime_refs["active_run_id_source"] = "invalidated_current_action_running_proof_mismatch"
+        runtime_refs["strict_live"] = False
+        runtime_refs["worker_running"] = False
+        if stale_active_run_id is not None:
+            runtime_refs["stale_active_run_id"] = stale_active_run_id
+        updated["opl_runtime_refs"] = runtime_refs
     return updated
 
 

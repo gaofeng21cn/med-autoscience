@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from med_autoscience.controllers import control_identity
 from med_autoscience.controllers.guarded_apply_owner_delta_contract import (
     GUARDED_APPLY_ACCEPTED_ANSWER_SHAPES,
     GUARDED_APPLY_DESIRED_DELTA,
@@ -130,6 +131,10 @@ def build_current_work_unit(
         action = None
     if action is None:
         action = _action_from_envelope(current_execution_envelope)
+    if action is not None:
+        action = _action_with_derived_currentness_identity(action=action, progress=progress_payload)
+        if not _action_has_strong_currentness_identity(action):
+            action = None
     resolved_typed_blocker = _typed_blocker(
         typed_blocker,
         blocked_reason=blocked_reason,
@@ -1194,6 +1199,8 @@ def _action_supersedes_typed_blocker(
         )
     if blocker_type not in MEDICAL_READINESS_BLOCKERS:
         return False
+    if _readiness_action_without_current_authority_binding(action):
+        return False
     if _text(action.get("action_type")) == "complete_medical_paper_readiness_surface":
         return True
     if "complete_medical_paper_readiness_surface" in _text_items(action.get("allowed_actions")):
@@ -1221,6 +1228,118 @@ def action_supersedes_typed_blocker(
         blocker=blocker,
         progress=progress,
     )
+
+
+def _action_has_strong_currentness_identity(action: Mapping[str, Any]) -> bool:
+    if _action_type(action) is None:
+        return False
+    if _work_unit_id(action.get("next_work_unit")) is None and _work_unit_id(action.get("work_unit_id")) is None:
+        return False
+    fingerprint = _action_strong_currentness_fingerprint(action)
+    if fingerprint is None or control_identity.is_synthetic_current_owner_ticket(fingerprint):
+        return False
+    return True
+
+
+def _action_strong_currentness_fingerprint(action: Mapping[str, Any]) -> str | None:
+    basis = _mapping(action.get("owner_route_currentness_basis"))
+    fingerprint = (
+        _text(action.get("work_unit_fingerprint"))
+        or _text(action.get("action_fingerprint"))
+        or _text(action.get("fingerprint"))
+        or _text(basis.get("work_unit_fingerprint"))
+        or _text(basis.get("source_fingerprint"))
+    )
+    if fingerprint is not None:
+        if control_identity.is_synthetic_current_owner_ticket(fingerprint):
+            return None
+        return fingerprint
+    return _route_currentness_fingerprint(action=action, progress={})
+
+
+def _route_currentness_fingerprint(
+    *,
+    action: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> str | None:
+    source = _text(action.get("source_surface")) or _text(action.get("source"))
+    if source == "current_executable_owner_action":
+        source = "study_progress.next_forced_delta.owner_action"
+    if source not in {"study_progress.next_forced_delta.owner_action", OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE}:
+        return None
+    for key in ("work_unit_fingerprint", "action_fingerprint", "fingerprint"):
+        if control_identity.is_synthetic_current_owner_ticket(action.get(key)):
+            return None
+    action_type = _action_type(action)
+    work_unit_id = _work_unit_id(action.get("work_unit_id")) or _work_unit_id(action.get("next_work_unit"))
+    if action_type is None or work_unit_id is None:
+        return None
+    if action_type == "run_quality_repair_batch":
+        return None
+    if action_type == "run_gate_clearing_batch" and work_unit_id not in GATE_REPLAY_WORK_UNITS:
+        return None
+    if source == OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE and not _action_matches_next_forced_delta(
+        action=action,
+        progress=progress,
+    ):
+        return None
+    if (
+        source == "study_progress.next_forced_delta.owner_action"
+        and _mapping(action.get("target_surface")) == {}
+        and _mapping(progress.get("next_forced_delta")) == {}
+        and _text(action.get("source_eval_id")) is None
+    ):
+        return None
+    target = _mapping(action.get("target_surface"))
+    return control_identity.stable_route_currentness_fingerprint(
+        study_id=_text(progress.get("study_id")),
+        source=source,
+        work_unit_id=work_unit_id,
+        action_type=action_type,
+        next_owner=_text(action.get("next_owner")) or _text(action.get("owner")),
+        source_eval_id=_text(action.get("source_eval_id")),
+        target_surface_ref=_text(target.get("surface_ref")),
+        required_delta_kind=_text(action.get("required_delta_kind")),
+    )
+
+
+def _action_with_derived_currentness_identity(
+    *,
+    action: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(action)
+    if _action_strong_currentness_fingerprint(payload) is not None:
+        return payload
+    fingerprint = _route_currentness_fingerprint(action=payload, progress=progress)
+    if fingerprint is None:
+        return payload
+    payload["work_unit_fingerprint"] = fingerprint
+    payload["action_fingerprint"] = fingerprint
+    basis = dict(_mapping(payload.get("owner_route_currentness_basis")))
+    basis["source"] = _text(payload.get("source_surface")) or _text(payload.get("source"))
+    basis["work_unit_id"] = _work_unit_id(payload.get("work_unit_id")) or _work_unit_id(
+        payload.get("next_work_unit")
+    )
+    basis["work_unit_fingerprint"] = fingerprint
+    if source_eval_id := _text(payload.get("source_eval_id")):
+        basis["source_eval_id"] = source_eval_id
+    payload["owner_route_currentness_basis"] = basis
+    return payload
+
+
+def _readiness_action_without_current_authority_binding(action: Mapping[str, Any]) -> bool:
+    action_types = {_text(action.get("action_type")), *_text_items(action.get("allowed_actions"))}
+    if "complete_medical_paper_readiness_surface" not in action_types:
+        return False
+    source = _text(action.get("source_surface")) or _text(action.get("source"))
+    if source == "stage_kernel_projection.current_owner_delta":
+        return False
+    if source == "study_progress.next_forced_delta.owner_action":
+        return _mapping(action.get("terminal_closeout_dispatch")) == {}
+    if _text(action.get("authority")) in PROVIDER_ADMISSION_AUTHORITIES:
+        return False
+    return True
 
 
 def _action_is_stage_current_owner_delta(action: Mapping[str, Any]) -> bool:

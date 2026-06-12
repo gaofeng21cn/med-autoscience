@@ -240,6 +240,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     if (
         strict_running_provider_liveness
         and current_action
+        and (
+            current_work_unit_status == "executable_owner_action"
+            or _text(execution.get("state_kind")) == "executable_owner_action"
+            or _first_current_action_queue_item(handoff_for_admission.get("action_queue")) is not None
+        )
         and _handoff_identity_conflicts_current_action(
             handoff=handoff_for_admission,
             current_action=current_action,
@@ -304,13 +309,6 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _text(progress_state.get("classification"))
         or _terminal_progress_delta_classification(paper_stage_log)
     )
-    owner_action_admission = build_owner_action_admission_projection(
-        payload=payload,
-        current_action=current_action,
-        handoff=handoff_for_admission,
-        stage_progress_log=stage_progress_log,
-        latest_terminal_stage_log=latest_terminal_stage_log,
-    )
     owner_action_visible = (
         artifact_first_owner_action
         or _stage_kernel_owner_action(current_action)
@@ -325,6 +323,17 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             and not envelope_blocks_current_action
             and gate_clearing_dispatch_consumption is None
         )
+    )
+    owner_action_admission = (
+        build_owner_action_admission_projection(
+            payload=payload,
+            current_action=current_action,
+            handoff=handoff_for_admission,
+            stage_progress_log=stage_progress_log,
+            latest_terminal_stage_log=latest_terminal_stage_log,
+        )
+        if owner_action_visible and current_action
+        else None
     )
     current_blockers = (
         []
@@ -746,8 +755,6 @@ def _handoff_identity_conflicts_current_action(
     current_action: Mapping[str, Any],
 ) -> bool:
     if not current_action:
-        return False
-    if _first_current_action_queue_item(handoff.get("action_queue")) is None:
         return False
     return provider_attempt_proof_for_current_action(
         handoff=handoff,
@@ -1192,8 +1199,6 @@ def _running_provider_attempt_ref(
     handoff: Mapping[str, Any],
     key: str,
 ) -> str | None:
-    if key == "active_run_id":
-        return _text(handoff.get(key))
     if running_provider_attempt is not True:
         return None
     return _text(handoff.get(key))

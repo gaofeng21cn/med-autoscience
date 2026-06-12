@@ -4,12 +4,15 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from med_autoscience.controllers import control_identity
+
 
 @dataclass(frozen=True)
 class StageRouteCurrentnessIdentity:
     action_type: str | None
     work_unit_id: str | None
     fingerprints: frozenset[str]
+    source_eval_id: str | None = None
 
     @property
     def has_strong_match_key(self) -> bool:
@@ -42,41 +45,43 @@ def currentness_identity(payload: Mapping[str, Any] | None) -> StageRouteCurrent
             handoff_route_basis.get("work_unit_id"),
         ),
         fingerprints=frozenset(
-            _text(value)
+            _strong_fingerprint(value)
             for value in (
                 payload_basis.get("work_unit_fingerprint"),
                 payload_basis.get("action_fingerprint"),
-                payload_basis.get("source_eval_id"),
                 data.get("work_unit_fingerprint"),
                 data.get("action_fingerprint"),
-                data.get("source_eval_id"),
                 data.get("fingerprint"),
                 owner_route.get("work_unit_fingerprint"),
                 owner_route.get("source_fingerprint"),
-                owner_route.get("source_eval_id"),
                 source_refs.get("work_unit_fingerprint"),
                 source_refs.get("action_fingerprint"),
-                source_refs.get("source_eval_id"),
                 currentness_basis.get("work_unit_fingerprint"),
                 currentness_basis.get("action_fingerprint"),
-                currentness_basis.get("source_eval_id"),
                 handoff.get("work_unit_fingerprint"),
                 handoff.get("action_fingerprint"),
-                handoff.get("source_eval_id"),
                 handoff_basis.get("work_unit_fingerprint"),
                 handoff_basis.get("action_fingerprint"),
-                handoff_basis.get("source_eval_id"),
                 handoff_route.get("work_unit_fingerprint"),
                 handoff_route.get("source_fingerprint"),
-                handoff_route.get("source_eval_id"),
                 handoff_refs.get("work_unit_fingerprint"),
                 handoff_refs.get("action_fingerprint"),
-                handoff_refs.get("source_eval_id"),
                 handoff_route_basis.get("work_unit_fingerprint"),
                 handoff_route_basis.get("action_fingerprint"),
-                handoff_route_basis.get("source_eval_id"),
             )
-            if _text(value) is not None
+            if _strong_fingerprint(value) is not None
+        ),
+        source_eval_id=_first_text(
+            payload_basis.get("source_eval_id"),
+            data.get("source_eval_id"),
+            owner_route.get("source_eval_id"),
+            source_refs.get("source_eval_id"),
+            currentness_basis.get("source_eval_id"),
+            handoff.get("source_eval_id"),
+            handoff_basis.get("source_eval_id"),
+            handoff_route.get("source_eval_id"),
+            handoff_refs.get("source_eval_id"),
+            handoff_route_basis.get("source_eval_id"),
         ),
     )
 
@@ -106,6 +111,14 @@ def currentness_identities_match(
     shared_fingerprints = left_identity.fingerprints.intersection(right_identity.fingerprints)
     if left_identity.fingerprints and right_identity.fingerprints:
         return bool(shared_fingerprints)
+    if left_identity.source_eval_id is not None or right_identity.source_eval_id is not None:
+        return (
+            not require_fingerprint
+            and left_identity.source_eval_id is not None
+            and left_identity.source_eval_id == right_identity.source_eval_id
+            and left_identity.work_unit_id is not None
+            and right_identity.work_unit_id is not None
+        )
     return not require_fingerprint and left_identity.work_unit_id is not None and right_identity.work_unit_id is not None
 
 
@@ -182,6 +195,13 @@ def _text(value: object) -> str | None:
         return None
     stripped = value.strip()
     return stripped or None
+
+
+def _strong_fingerprint(value: object) -> str | None:
+    text = _text(value)
+    if text is None or control_identity.is_synthetic_current_owner_ticket(text):
+        return None
+    return text
 
 
 __all__ = [

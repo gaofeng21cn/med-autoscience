@@ -35,6 +35,39 @@ def stable_current_owner_ticket_fingerprint(
     return f"study-progress-current-owner-ticket::{study_id}::{work_unit_id}::{action_type}"
 
 
+def stable_route_currentness_fingerprint(
+    *,
+    study_id: str | None,
+    source: str | None,
+    work_unit_id: str | None,
+    action_type: str | None,
+    next_owner: str | None = None,
+    source_eval_id: str | None = None,
+    target_surface_ref: str | None = None,
+    required_delta_kind: str | None = None,
+) -> str | None:
+    if source is None or work_unit_id is None or action_type is None:
+        return None
+    digest = _digest(
+        {
+            "action_type": action_type,
+            "next_owner": next_owner,
+            "required_delta_kind": required_delta_kind,
+            "source": source,
+            "source_eval_id": source_eval_id,
+            "study_id": study_id,
+            "target_surface_ref": target_surface_ref,
+            "work_unit_id": work_unit_id,
+        }
+    )
+    return f"route-currentness::{study_id or 'unknown-study'}::{digest}"
+
+
+def is_synthetic_current_owner_ticket(value: object) -> bool:
+    text = _text(value)
+    return text is not None and text.startswith("study-progress-current-owner-ticket::")
+
+
 @dataclass(frozen=True)
 class ControlWorkUnitIdentity:
     domain: str

@@ -430,12 +430,12 @@ def provider_admission_candidate_from_current_control_action(
         or _non_empty_text(source_refs.get("work_unit_id"))
         or _non_empty_text(currentness_basis.get("work_unit_id"))
     )
-    action_fingerprint = (
-        _non_empty_text(action.get("action_fingerprint"))
-        or _non_empty_text(action.get("work_unit_fingerprint"))
-        or _non_empty_text(action.get("source_fingerprint"))
-        or _non_empty_text(source_refs.get("work_unit_fingerprint"))
-        or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
+    action_fingerprint = _first_non_synthetic_fingerprint(
+        action.get("action_fingerprint"),
+        action.get("work_unit_fingerprint"),
+        action.get("source_fingerprint"),
+        source_refs.get("work_unit_fingerprint"),
+        currentness_basis.get("work_unit_fingerprint"),
     )
     dispatch_path = _current_control_action_dispatch_path(action, study_root=study_root, action_type=action_type)
     dispatch_payload = _read_json_object(dispatch_path) if dispatch_path is not None else None
@@ -593,18 +593,26 @@ def _study_current_action_for_provider_admission(study: Mapping[str, Any]) -> di
         work_unit_id=work_unit_id,
         source_eval_id=source_eval_id,
     )
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    current_work_unit_basis = _mapping(current_work_unit.get("currentness_basis"))
+    current_action_basis = _mapping(current.get("owner_route_currentness_basis")) or _mapping(
+        current.get("currentness_basis")
+    )
     action_fingerprint = (
         eval_bound_fingerprint
-        or _non_empty_text(current.get("action_fingerprint"))
-        or _non_empty_text(current.get("work_unit_fingerprint"))
-        or _non_empty_text(_mapping(study.get("current_work_unit")).get("action_fingerprint"))
-        or _non_empty_text(_mapping(study.get("current_work_unit")).get("work_unit_fingerprint"))
-        or _stable_provider_admission_ticket(
-            study_id=study_id,
-            action_type=action_type,
-            work_unit_id=work_unit_id,
+        or _first_non_synthetic_fingerprint(
+            current.get("action_fingerprint"),
+            current.get("work_unit_fingerprint"),
+            current_action_basis.get("work_unit_fingerprint"),
+            current_action_basis.get("source_fingerprint"),
+            current_work_unit.get("action_fingerprint"),
+            current_work_unit.get("work_unit_fingerprint"),
+            current_work_unit_basis.get("work_unit_fingerprint"),
+            current_work_unit_basis.get("source_fingerprint"),
         )
     )
+    if action_fingerprint is None:
+        return None
     source_refs = {
         key: value
         for key, value in {
@@ -687,6 +695,14 @@ def _stable_provider_admission_ticket(
         work_unit_id=work_unit_id,
         action_type=action_type,
     )
+
+
+def _first_non_synthetic_fingerprint(*values: object) -> str | None:
+    for value in values:
+        text = _non_empty_text(value)
+        if text is not None and not control_identity.is_synthetic_current_owner_ticket(text):
+            return text
+    return None
 
 
 def _required_output_surface(current: Mapping[str, Any]) -> str | None:
@@ -819,6 +835,10 @@ def provider_admission_candidate_from_execution(
         "action_type": action_type,
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
+        "work_unit_fingerprints": _work_unit_fingerprints(
+            execution,
+            canonical_fingerprint=work_unit_fingerprint,
+        ),
         "action_fingerprint": _non_empty_text(execution.get("action_fingerprint")) or work_unit_fingerprint,
         "dispatch_path": dispatch_path,
         "dispatch_authority": _non_empty_text(execution.get("dispatch_authority")),
@@ -872,6 +892,8 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
     surface_key = _non_empty_text(current.get("surface_key")) or _non_empty_text(target_surface.get("surface_key"))
     source_ref = _non_empty_text(current.get("source_ref")) or _non_empty_text(current.get("latest_owner_answer_ref"))
     fingerprint = _non_empty_text(current.get("work_unit_fingerprint"))
+    if control_identity.is_synthetic_current_owner_ticket(fingerprint):
+        fingerprint = None
     fingerprints: list[str] = []
     if fingerprint is not None:
         fingerprints.append(fingerprint)
@@ -882,18 +904,13 @@ def _current_action_identity(status_payload: Mapping[str, Any]) -> dict[str, Any
     ticket = _mapping(status_payload.get("current_owner_ticket"))
     for item in ticket.get("required_input_refs") or []:
         text = _non_empty_text(item)
-        if text is not None and (text.startswith("sha256:") or text.startswith("study-progress-current-owner-ticket::")):
+        if text is not None and text.startswith("sha256:"):
             fingerprints.append(text)
     if fingerprint is None and work_unit_id is not None and source_ref is not None:
         fingerprints.append(
             "stage-current-owner-delta::"
             f"{work_unit_id}::{surface_key or 'unspecified_surface'}::{source_ref}"
         )
-    if study_id is not None and work_unit_id is not None:
-        for action_id in action_ids or [work_unit_id]:
-            fingerprints.append(
-                f"study-progress-current-owner-ticket::{study_id}::{work_unit_id}::{action_id}"
-            )
     fingerprints = list(dict.fromkeys(fingerprints))
     if fingerprint is None and fingerprints:
         fingerprint = fingerprints[0]
@@ -1001,23 +1018,15 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
         work_unit_id=work_unit_id,
         source_eval_id=source_eval_id,
     )
-    synthetic_ticket = (
-        _stable_provider_admission_ticket(
-            study_id=_non_empty_text(current_work_unit.get("study_id")),
-            action_type=action_type,
-            work_unit_id=work_unit_id,
-        )
-        if status == "executable_owner_action"
-        else None
-    )
     fingerprint = (
         eval_bound_fingerprint
         or _non_empty_text(current_work_unit.get("work_unit_fingerprint"))
         or _non_empty_text(current_work_unit.get("action_fingerprint"))
         or _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
         or _non_empty_text(currentness_basis.get("source_fingerprint"))
-        or synthetic_ticket
     )
+    if control_identity.is_synthetic_current_owner_ticket(fingerprint):
+        fingerprint = None
     fingerprints = [
         item
         for item in (
@@ -1027,7 +1036,7 @@ def _current_work_unit_identity(current_work_unit: Mapping[str, Any]) -> dict[st
             _non_empty_text(currentness_basis.get("work_unit_fingerprint")),
             _non_empty_text(currentness_basis.get("source_fingerprint")),
         )
-        if item is not None
+        if item is not None and not control_identity.is_synthetic_current_owner_ticket(item)
     ]
     return {
         "action_ids": [item for item in (action_type, work_unit_id) if item is not None],
@@ -1382,12 +1391,38 @@ def _work_unit_fingerprint(execution: Mapping[str, Any]) -> str | None:
     basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
         _mapping(execution.get("prompt_contract")).get("owner_route_currentness_basis")
     )
-    return (
-        _non_empty_text(execution.get("action_fingerprint"))
-        or _non_empty_text(owner_route.get("work_unit_fingerprint"))
-        or _non_empty_text(source_refs.get("work_unit_fingerprint"))
-        or _non_empty_text(basis.get("work_unit_fingerprint"))
+    return _first_non_synthetic_fingerprint(
+        execution.get("action_fingerprint"),
+        owner_route.get("work_unit_fingerprint"),
+        source_refs.get("work_unit_fingerprint"),
+        basis.get("work_unit_fingerprint"),
     )
+
+
+def _work_unit_fingerprints(
+    execution: Mapping[str, Any],
+    *,
+    canonical_fingerprint: str,
+) -> list[str]:
+    owner_route = _mapping(execution.get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
+        _mapping(execution.get("prompt_contract")).get("owner_route_currentness_basis")
+    )
+    fingerprints = [
+        item
+        for item in (
+            canonical_fingerprint,
+            _non_empty_text(execution.get("action_fingerprint")),
+            _non_empty_text(execution.get("work_unit_fingerprint")),
+            _non_empty_text(owner_route.get("work_unit_fingerprint")),
+            _non_empty_text(source_refs.get("work_unit_fingerprint")),
+            _non_empty_text(basis.get("work_unit_fingerprint")),
+            _non_empty_text(basis.get("source_fingerprint")),
+        )
+        if item is not None and not control_identity.is_synthetic_current_owner_ticket(item)
+    ]
+    return list(dict.fromkeys(fingerprints))
 
 
 def _current_control_action_requests_provider_admission(action: Mapping[str, Any]) -> bool:

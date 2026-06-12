@@ -35,8 +35,8 @@ def test_current_work_unit_projects_repair_progress_ai_reviewer_followup() -> No
                 "next_owner": "ai_reviewer",
                 "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                 "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
-                "work_unit_fingerprint": "study-progress-current-owner-ticket::002::ai-reviewer",
-                "action_fingerprint": "study-progress-current-owner-ticket::002::ai-reviewer",
+                "work_unit_fingerprint": "repair-progress::002::ai-reviewer",
+                "action_fingerprint": "repair-progress::002::ai-reviewer",
                 "allowed_actions": ["return_to_ai_reviewer_workflow"],
                 "acceptance_refs": ["artifacts/supervision/requests/ai_reviewer/latest.json"],
             }
@@ -49,9 +49,43 @@ def test_current_work_unit_projects_repair_progress_ai_reviewer_followup() -> No
     assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
     assert work_unit["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
     assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
-    assert work_unit["currentness_basis"]["work_unit_fingerprint"] == (
-        "study-progress-current-owner-ticket::002::ai-reviewer"
+    assert work_unit["currentness_basis"]["work_unit_fingerprint"] == "repair-progress::002::ai-reviewer"
+
+
+def test_current_work_unit_rejects_synthetic_ticket_as_current_fingerprint() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "002-dm-cvd-mortality-risk",
+            "quest_id": "002-dm-cvd-mortality-risk",
+            "current_stage": "publication_supervision",
+        },
+        actions=[
+            {
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "next_owner": "ai_reviewer",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": (
+                    "study-progress-current-owner-ticket::002-dm-cvd-mortality-risk::"
+                    "produce_ai_reviewer_publication_eval_record_against_current_inputs::"
+                    "return_to_ai_reviewer_workflow"
+                ),
+                "action_fingerprint": (
+                    "study-progress-current-owner-ticket::002-dm-cvd-mortality-risk::"
+                    "produce_ai_reviewer_publication_eval_record_against_current_inputs::"
+                    "return_to_ai_reviewer_workflow"
+                ),
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+            }
+        ],
     )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "blocked_current_work_unit"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "current_work_unit_unresolved"
 
 
 def test_current_work_unit_projects_live_repair_progress_precedence_over_stage_readiness_blocker() -> None:
@@ -711,12 +745,10 @@ def test_current_work_unit_projects_next_forced_story_repair_over_stage_readines
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "write"
-    assert work_unit["action_type"] == "run_quality_repair_batch"
-    assert work_unit["work_unit_id"] == "manuscript_story_repair"
-    assert work_unit["state"]["source"] == "study_progress.next_forced_delta.owner_action"
-    assert "typed_blocker" not in work_unit["state"]
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "MedAutoScience"
+    assert work_unit["action_type"] == "complete_medical_paper_readiness_surface"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "medical_paper_readiness_missing"
 
 
 def test_current_work_unit_projects_current_dpcc_gate_replay_over_stage_readiness_blocker() -> None:
@@ -1013,12 +1045,12 @@ def test_current_work_unit_projects_gate_replay_when_stale_quality_repair_closeo
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "executable_owner_action"
-    assert work_unit["owner"] == "finalize"
-    assert work_unit["action_type"] == "run_gate_clearing_batch"
-    assert work_unit["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
-    assert work_unit["state"]["source"] == "opl_current_control_state_action_queue"
-    assert "typed_blocker" not in work_unit["state"]
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == (
+        "stale_stage_packet_current_owner_route_changed"
+    )
 
 
 def test_current_work_unit_preserves_prior_action_blocker_over_mismatched_current_control_repair() -> None:
@@ -1417,8 +1449,8 @@ def test_current_work_unit_treats_handoff_ready_as_pending_evidence_not_running(
                 "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
                 "authority": "mas_provider_admission_identity",
                 "action_id": "provider-admission::002-dm::run_quality_repair_batch",
-                "work_unit_fingerprint": "study-progress-current-owner-ticket::002::repair",
-                "action_fingerprint": "study-progress-current-owner-ticket::002::repair",
+                "work_unit_fingerprint": "provider-admission::002::repair",
+                "action_fingerprint": "provider-admission::002::repair",
             }
         ],
         provider_admission=handoff,
@@ -1431,3 +1463,134 @@ def test_current_work_unit_treats_handoff_ready_as_pending_evidence_not_running(
     assert work_unit["state"]["provider_admission_pending"] is True
     assert work_unit["state"]["pending_provider_admission_evidence"]["execution_status"] == "handoff_ready"
     assert work_unit["status"] != "running_provider_attempt"
+
+
+def test_current_work_unit_keeps_canonical_readiness_blocker_over_stale_readiness_queue() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "current_work_unit": {
+                "status": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_type": "medical_paper_readiness_missing",
+                    "owner": "MedAutoScience",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                },
+            },
+        },
+        actions=[
+            {
+                "source": "opl_current_control_state.action_queue",
+                "action_type": "complete_medical_paper_readiness_surface",
+                "owner": "MedAutoScience",
+                "next_owner": "MedAutoScience",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "allowed_actions": ["complete_medical_paper_readiness_surface"],
+            }
+        ],
+        typed_blocker={
+            "blocker_type": "medical_paper_readiness_missing",
+            "owner": "MedAutoScience",
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+        },
+        next_owner="MedAutoScience",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "medical_paper_readiness_missing"
+    assert work_unit["work_unit_id"] == "complete_medical_paper_readiness_surface"
+
+
+def test_current_work_unit_does_not_turn_stage_kernel_readiness_blocker_into_self_authorized_action() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "medical_paper_readiness": {"overall_status": "not_ready"},
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "owner": "MedAutoScience",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "reason": "medical_paper_readiness_missing",
+                    "required_input": "complete_medical_paper_readiness_surface",
+                    "work_unit_fingerprint": "readiness-blocker::current",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                    "source_kind": "typed_blocker",
+                    "latest_owner_answer_kind": "typed_blocker",
+                    "hard_gate": {"state": "domain_owner_answer_recorded"},
+                }
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "MedAutoScience"
+    assert work_unit["action_type"] == "complete_medical_paper_readiness_surface"
+    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "medical_paper_readiness_missing"
+
+
+def test_current_work_unit_ignores_stale_terminal_closeout_for_new_current_identity() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "status": "blocked",
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::old",
+                    "source_eval_id": "publication-eval::old",
+                    "typed_blocker": {
+                        "blocker_type": "manuscript_story_surface_delta_missing",
+                        "owner": "write",
+                    },
+                },
+            },
+        },
+        actions=[
+            {
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "next_owner": "write",
+                "owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_fingerprint": "publication-blockers::new",
+                "action_fingerprint": "publication-blockers::new",
+                "source_eval_id": "publication-eval::new",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "medical_prose_write_repair",
+                    "work_unit_fingerprint": "publication-blockers::new",
+                    "source_eval_id": "publication-eval::new",
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-current",
+                },
+                "target_surface": {
+                    "next_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                    }
+                },
+            }
+        ],
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["work_unit_fingerprint"] == "publication-blockers::new"
+    assert "typed_blocker" not in work_unit["state"]

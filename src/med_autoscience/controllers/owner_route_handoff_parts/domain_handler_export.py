@@ -282,6 +282,7 @@ def _pending_family_tasks(
                 current_owner_action=current_owner_action,
                 current_work_unit=current_work_unit,
                 current_execution_envelope=current_execution_envelope,
+                persist_identity=False,
             )
         )
         if ordinary_task_blocker or legacy_route_tasks_blocked:

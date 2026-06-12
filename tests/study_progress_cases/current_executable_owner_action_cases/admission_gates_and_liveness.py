@@ -195,7 +195,7 @@ def test_progress_first_monitoring_keeps_stale_active_run_id_out_of_running_fiel
     assert monitoring["owner_action_admission"]["admission_pending"] is True
     assert monitoring["owner_action_admission"]["provider_attempt_started"] is False
 
-def test_progress_first_monitoring_shows_handoff_active_run_ref_without_running_provider_proof() -> None:
+def test_progress_first_monitoring_keeps_handoff_active_run_ref_out_of_running_fields_without_running_provider_proof() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
     )
@@ -221,10 +221,54 @@ def test_progress_first_monitoring_shows_handoff_active_run_ref_without_running_
     )
 
     assert monitoring["running_provider_attempt"] is False
-    assert monitoring["active_run_id"] == "opl-stage-attempt://sat-handoff-ref"
+    assert monitoring["active_run_id"] is None
     assert monitoring["active_stage_attempt_id"] is None
     assert monitoring["active_workflow_id"] is None
+    assert monitoring["worker_liveness"]["stale_active_run_id"] == "opl-stage-attempt://sat-handoff-ref"
     assert monitoring["owner_action_admission"]["provider_attempt_running_proven"] is False
     assert monitoring["owner_action_admission"]["provider_attempt_started"] is False
+
+
+def test_progress_first_monitoring_keeps_running_provider_proof_when_handoff_identity_matches_without_queue() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "next_owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "action_fingerprint": "publication-blockers::0915410f804b3697",
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": True,
+                "next_owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "active_run_id": "opl-stage-attempt://sat-current",
+                "active_stage_attempt_id": "sat-current",
+                "active_workflow_id": "wf-current",
+                "runtime_health": {"runtime_liveness_status": "live"},
+                "action_queue": [],
+            },
+        }
+    )
+
+    assert monitoring["running_provider_attempt"] is True
+    assert monitoring["active_run_id"] == "opl-stage-attempt://sat-current"
+    assert monitoring["active_stage_attempt_id"] == "sat-current"
+    admission = monitoring["owner_action_admission"]
+    assert admission["provider_attempt_running_proven"] is True
+    assert admission["provider_attempt_proof"]["active_stage_attempt_id"] == "sat-current"
+
 
 __all__ = [name for name in globals() if name.startswith("test_")]

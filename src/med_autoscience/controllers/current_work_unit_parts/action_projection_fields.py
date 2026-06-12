@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from med_autoscience.controllers import control_identity
+
 
 def action_type(action: Mapping[str, Any]) -> str | None:
     return _text(action.get("action_type")) or _first_text(_text_items(action.get("allowed_actions")))
@@ -24,7 +26,7 @@ def work_unit_fingerprint(
     *,
     currentness_basis: Mapping[str, Any],
 ) -> str | None:
-    return (
+    return _strong_fingerprint(
         _text(action.get("work_unit_fingerprint"))
         or _text(action.get("fingerprint"))
         or _text(currentness_basis.get("work_unit_fingerprint"))
@@ -36,7 +38,7 @@ def action_fingerprint(
     *,
     currentness_basis: Mapping[str, Any],
 ) -> str | None:
-    return (
+    return _strong_fingerprint(
         _text(action.get("action_fingerprint"))
         or _text(action.get("fingerprint"))
         or _text(action.get("work_unit_fingerprint"))
@@ -109,6 +111,12 @@ def _text_items(value: object) -> list[str]:
 
 def _first_text(items: Sequence[str]) -> str | None:
     return items[0] if items else None
+
+
+def _strong_fingerprint(value: str | None) -> str | None:
+    if value is None or control_identity.is_synthetic_current_owner_ticket(value):
+        return None
+    return value
 
 
 __all__ = [

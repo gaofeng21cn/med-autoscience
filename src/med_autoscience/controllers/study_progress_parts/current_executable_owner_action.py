@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers import control_identity
 from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
     current_ai_reviewer_gate_replay_fingerprint,
 )
@@ -278,6 +279,8 @@ def _from_terminal_stage_next_forced_delta(payload: Mapping[str, Any]) -> dict[s
         work_unit_id=work_unit_id,
         source_eval_id=source_eval_id,
     )
+    if fingerprint is None and action_type != GATE_CLEARING_ACTION:
+        return None
     owner_route_currentness_basis = _compact(
         {
             "source": "study_progress.next_forced_delta.owner_action",
@@ -392,13 +395,64 @@ def _terminal_next_forced_delta_fingerprint(
     if explicit_fingerprint is not None:
         return explicit_fingerprint
     if action_type != GATE_CLEARING_ACTION:
-        return None
+        raw_action_type = (
+            _non_empty_text(owner_action.get("action_type"))
+            or _non_empty_text(next_forced_delta.get("action_type"))
+            or _non_empty_text(terminal.get("action_type"))
+        )
+        if raw_action_type == "return_to_write":
+            return None
+        return _terminal_closeout_next_forced_delta_fingerprint(
+            payload=payload,
+            terminal=terminal,
+            next_forced_delta=next_forced_delta,
+            owner_action=owner_action,
+            action_type=action_type,
+            work_unit_id=work_unit_id,
+            source_eval_id=source_eval_id,
+        )
     study_id = _non_empty_text(payload.get("study_id"))
     return current_ai_reviewer_gate_replay_fingerprint(
         study_id=study_id,
         action_type=action_type,
         work_unit_id=work_unit_id,
         source_eval_id=source_eval_id,
+    )
+
+
+def _terminal_closeout_next_forced_delta_fingerprint(
+    *,
+    payload: Mapping[str, Any],
+    terminal: Mapping[str, Any],
+    next_forced_delta: Mapping[str, Any],
+    owner_action: Mapping[str, Any],
+    action_type: str | None,
+    work_unit_id: str | None,
+    source_eval_id: str | None,
+) -> str | None:
+    terminal_ref = (
+        _non_empty_text(terminal.get("source_path"))
+        or _non_empty_text(terminal.get("source_ref"))
+        or _non_empty_text(terminal.get("closeout_ref"))
+    )
+    stage_attempt_id = _non_empty_text(terminal.get("stage_attempt_id"))
+    reviewer_record_ref = _non_empty_text(next_forced_delta.get("reviewer_record_ref")) or _non_empty_text(
+        owner_action.get("reviewer_record_ref")
+    )
+    publication_eval_ref = _non_empty_text(_mapping_copy(next_forced_delta.get("target_surface")).get("publication_eval_latest_ref"))
+    if not any((terminal_ref, stage_attempt_id, reviewer_record_ref, publication_eval_ref, source_eval_id)):
+        return None
+    return control_identity.stable_route_currentness_fingerprint(
+        study_id=_non_empty_text(payload.get("study_id")),
+        source="study_progress.next_forced_delta.owner_action",
+        work_unit_id=work_unit_id,
+        action_type=action_type,
+        next_owner=_non_empty_text(owner_action.get("next_owner"))
+        or _non_empty_text(owner_action.get("owner"))
+        or _terminal_next_forced_delta_default_owner(action_type),
+        source_eval_id=source_eval_id,
+        target_surface_ref=publication_eval_ref or reviewer_record_ref or terminal_ref,
+        required_delta_kind=_non_empty_text(next_forced_delta.get("required_delta_kind")),
     )
 
 
@@ -704,6 +758,12 @@ def _from_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None
         work_unit_id=work_unit_id,
         source_eval_id=source_eval_id,
     )
+    if (
+        action_type == GATE_CLEARING_ACTION
+        and eval_bound_fingerprint is None
+        and not _consumed_repair_followup_allows_unbound_gate_replay(payload)
+    ):
+        return None
     owner_route_currentness_basis = (
         _compact(
             {
@@ -749,12 +809,29 @@ def _next_forced_delta_source_eval_id(
     payload: Mapping[str, Any],
 ) -> str | None:
     publication_eval = _mapping_copy(payload.get("publication_eval"))
+    progress_first = _mapping_copy(payload.get("progress_first_monitoring_summary"))
+    dispatch_consumption = _mapping_copy(progress_first.get("dispatch_consumption"))
+    canonical_identity = _mapping_copy(dispatch_consumption.get("canonical_work_unit_identity"))
+    owner_route_basis = _mapping_copy(dispatch_consumption.get("owner_route_currentness_basis"))
+    canonical_owner_route_basis = _mapping_copy(canonical_identity.get("owner_route_currentness_basis"))
     return (
         _non_empty_text(owner_action.get("source_eval_id"))
         or _non_empty_text(owner_action.get("eval_id"))
         or _non_empty_text(next_forced_delta.get("source_eval_id"))
         or _non_empty_text(next_forced_delta.get("eval_id"))
         or _non_empty_text(publication_eval.get("eval_id"))
+        or _non_empty_text(dispatch_consumption.get("source_eval_id"))
+        or _non_empty_text(canonical_identity.get("source_eval_id"))
+        or _non_empty_text(owner_route_basis.get("source_eval_id"))
+        or _non_empty_text(canonical_owner_route_basis.get("source_eval_id"))
+    )
+
+
+def _consumed_repair_followup_allows_unbound_gate_replay(payload: Mapping[str, Any]) -> bool:
+    repair_progress_action = _from_repair_progress_projection(payload)
+    return repair_progress_action is not None and _action_consumed_by_dispatch_receipt(
+        action=repair_progress_action,
+        payload=payload,
     )
 
 

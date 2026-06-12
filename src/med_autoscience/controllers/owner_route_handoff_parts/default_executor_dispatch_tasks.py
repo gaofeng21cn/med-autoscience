@@ -40,6 +40,7 @@ def default_executor_dispatch_tasks(
     current_owner_action: Mapping[str, Any] | None = None,
     current_work_unit: Mapping[str, Any] | None = None,
     current_execution_envelope: Mapping[str, Any] | None = None,
+    persist_identity: bool = True,
 ) -> list[dict[str, Any]]:
     dispatch_root = profile.studies_root / study_id / DISPATCH_RELATIVE_ROOT
     if not dispatch_root.is_dir():
@@ -85,7 +86,7 @@ def default_executor_dispatch_tasks(
         dispatch = candidate["dispatch"]
         if not isinstance(dispatch_path, Path) or not isinstance(dispatch, Mapping):
             continue
-        if candidate.get("persist_current_owner_action_identity") is True:
+        if persist_identity and candidate.get("persist_current_owner_action_identity") is True:
             dispatch = _persist_dispatch_packet_identity(
                 dispatch_path=dispatch_path,
                 dispatch=dispatch,
@@ -126,13 +127,14 @@ def default_executor_dispatch_tasks(
         )
         if dispatch_for_task is not dispatch:
             dispatch = dispatch_for_task
-            _persist_dispatch_identity(
-                profile=profile,
-                study_id=study_id,
-                dispatch_path=dispatch_path,
-                stage_packet_path=stage_packet_path,
-                dispatch=dispatch,
-            )
+            if persist_identity:
+                _persist_dispatch_identity(
+                    profile=profile,
+                    study_id=study_id,
+                    dispatch_path=dispatch_path,
+                    stage_packet_path=stage_packet_path,
+                    dispatch=dispatch,
+                )
         prompt_contract_ref = f"{dispatch_ref}#prompt_contract"
         source_refs = _source_refs(
             dispatch=dispatch,

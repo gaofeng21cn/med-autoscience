@@ -12,6 +12,12 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 
+DM002_SOURCE_EVAL_ID = (
+    "publication-eval::002-dm-china-us-mortality-attribution::"
+    "ai-reviewer-record::20260612T000000Z"
+)
+
+
 def test_current_executable_owner_action_skips_consumed_repair_progress_followup() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
@@ -48,11 +54,13 @@ def test_current_executable_owner_action_skips_consumed_repair_progress_followup
             "next_forced_delta": {
                 "required_delta_kind": "review_current_paper_delta",
                 "next_owner": "gate_clearing_batch",
-                "work_unit_id": "dm002_publication_gate_replay_after_current_ai_reviewer_record",
+                "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "source_eval_id": DM002_SOURCE_EVAL_ID,
                 "allowed_actions": ["run_gate_clearing_batch"],
                 "owner_action": {
                     "next_owner": "gate_clearing_batch",
-                    "work_unit_id": "dm002_publication_gate_replay_after_current_ai_reviewer_record",
+                    "work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "source_eval_id": DM002_SOURCE_EVAL_ID,
                     "allowed_actions": ["run_gate_clearing_batch"],
                     "owner_receipt_required": True,
                 },
@@ -68,7 +76,7 @@ def test_current_executable_owner_action_skips_consumed_repair_progress_followup
     assert action is not None
     assert action["source"] == "study_progress.next_forced_delta.owner_action"
     assert action["next_owner"] == "gate_clearing_batch"
-    assert action["work_unit_id"] == "dm002_publication_gate_replay_after_current_ai_reviewer_record"
+    assert action["work_unit_id"] == "ai_reviewer_record_gate_consumption"
     assert action["allowed_actions"] == ["run_gate_clearing_batch"]
 
 
@@ -113,10 +121,12 @@ def test_current_executable_owner_action_keeps_ai_reviewer_followup_when_eval_la
                 "required_delta_kind": "review_current_paper_delta",
                 "next_owner": "write",
                 "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "source_eval_id": DM002_SOURCE_EVAL_ID,
                 "allowed_actions": ["run_gate_clearing_batch"],
                 "owner_action": {
                     "next_owner": "write",
                     "work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "source_eval_id": DM002_SOURCE_EVAL_ID,
                     "allowed_actions": ["run_gate_clearing_batch"],
                     "owner_receipt_required": True,
                 },
@@ -185,10 +195,12 @@ def test_current_executable_owner_action_consumes_ai_reviewer_followup_when_eval
                 "required_delta_kind": "review_current_paper_delta",
                 "next_owner": "write",
                 "work_unit_id": "ai_reviewer_record_gate_consumption",
+                "source_eval_id": DM002_SOURCE_EVAL_ID,
                 "allowed_actions": ["run_gate_clearing_batch"],
                 "owner_action": {
                     "next_owner": "write",
                     "work_unit_id": "ai_reviewer_record_gate_consumption",
+                    "source_eval_id": DM002_SOURCE_EVAL_ID,
                     "allowed_actions": ["run_gate_clearing_batch"],
                     "owner_receipt_required": True,
                 },

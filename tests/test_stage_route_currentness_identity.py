@@ -126,5 +126,66 @@ def test_currentness_match_treats_source_eval_id_as_strong_currentness_key() -> 
         "source_eval_id": "publication-eval::stale",
     }
 
-    assert currentness_identities_match(left, right)
+    assert not currentness_identities_match(left, right)
     assert not currentness_identities_match(left, stale)
+
+
+def test_currentness_match_does_not_accept_source_eval_only_fingerprint() -> None:
+    left = {
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "source_eval_id": "publication-eval::current",
+    }
+    right = {
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "owner_route": {
+            "source_refs": {
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "medical_prose_write_repair",
+                    "source_eval_id": "publication-eval::current",
+                }
+            }
+        },
+    }
+
+    identity = currentness_identity(left)
+    assert identity.fingerprints == frozenset()
+    assert currentness_identities_match(left, right)
+    assert not currentness_identities_match(left, right, require_fingerprint=True)
+
+
+def test_currentness_match_rejects_mismatched_source_eval_without_fingerprint() -> None:
+    left = {
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "source_eval_id": "publication-eval::current",
+    }
+    stale = {
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "source_eval_id": "publication-eval::stale",
+    }
+    missing = {
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+    }
+
+    assert not currentness_identities_match(left, stale)
+    assert not currentness_identities_match(left, missing)
+
+
+def test_currentness_identity_rejects_synthetic_current_owner_ticket_as_fingerprint() -> None:
+    identity = currentness_identity(
+        {
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": (
+                "study-progress-current-owner-ticket::003::"
+                "medical_prose_write_repair::run_quality_repair_batch"
+            ),
+        }
+    )
+
+    assert identity.work_unit_id == "medical_prose_write_repair"
+    assert identity.fingerprints == frozenset()
