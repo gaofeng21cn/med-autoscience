@@ -1,54 +1,9 @@
 from __future__ import annotations
 
 import importlib
-from collections.abc import Mapping
-from typing import Any
 
-
-REQUIRED_KEYS = {
-    "surface_kind",
-    "schema_version",
-    "status",
-    "study_id",
-    "quest_id",
-    "stage_id",
-    "owner",
-    "action_type",
-    "work_unit_id",
-    "work_unit_fingerprint",
-    "action_fingerprint",
-    "input_refs",
-    "required_output_contract",
-    "acceptance_refs",
-    "state",
-    "currentness_basis",
-    "authority_boundary",
-}
-
-
-def _module():
-    return importlib.import_module("med_autoscience.controllers.current_work_unit")
-
-
-def _assert_contract_shape(work_unit: Mapping[str, Any]) -> None:
-    assert set(work_unit) == REQUIRED_KEYS
-    assert work_unit["surface_kind"] == "current_work_unit"
-    assert work_unit["schema_version"] == 1
-    assert work_unit["status"] in {
-        "executable_owner_action",
-        "running_provider_attempt",
-        "typed_blocker",
-        "blocked_current_work_unit",
-    }
-    assert work_unit["authority_boundary"]["top_level_truth"] == "status"
-    assert work_unit["authority_boundary"]["mas_owner_authority_preserved"] is True
-    assert work_unit["authority_boundary"]["stage_transition_authority"] == "OPL Stage Transition Authority"
-    assert work_unit["authority_boundary"]["stage_authority_role"] == (
-        "non_authoritative_observation_and_intent_producer"
-    )
-    assert work_unit["authority_boundary"]["can_write_stage_current_pointer"] is False
-    assert work_unit["authority_boundary"]["can_write_current_owner_delta"] is False
-    assert work_unit["authority_boundary"]["can_write_stage_terminal_state"] is False
+from tests.test_current_work_unit_cases.readiness_identity_cases import *  # noqa: F403,F401
+from tests.test_current_work_unit_cases.shared import _assert_contract_shape, _module
 
 
 def _guarded_apply_current_owner_delta(**overrides: object) -> dict[str, object]:
@@ -1124,47 +1079,6 @@ def test_current_work_unit_treats_accepted_repair_progress_followup_reason_as_cu
     assert work_unit["work_unit_fingerprint"] == "repair-source-current"
     assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
     assert "typed_blocker" not in work_unit["state"]
-
-
-def test_current_work_unit_preserves_readiness_typed_blocker_over_stale_handoff_action() -> None:
-    module = _module()
-
-    work_unit = module.build_current_work_unit(
-        progress={
-            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "current_stage": "publication_supervision",
-            "stage_kernel_projection": {
-                "current_owner_delta": {
-                    "owner": "MedAutoScience",
-                    "action": "complete_medical_paper_readiness_surface",
-                    "reason": "medical_paper_readiness_missing",
-                    "source_ref": "artifacts/stage_outputs/08/receipts/typed_blocker.json",
-                    "source_kind": "typed_blocker",
-                },
-                "stage_run_kernel": {"status": "TypedBlocked"},
-            },
-        },
-        actions=[
-            {
-                "source_surface": "action_queue",
-                "action_type": "complete_medical_paper_readiness_surface",
-                "owner": "MedAutoScience",
-                "next_work_unit": "complete_medical_paper_readiness_surface",
-                "work_unit_id": "complete_medical_paper_readiness_surface",
-                "allowed_actions": ["complete_medical_paper_readiness_surface"],
-            }
-        ],
-        blocked_reason="medical_paper_readiness_not_ready",
-        next_owner="MedAutoScience",
-    )
-
-    _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "typed_blocker"
-    assert work_unit["owner"] == "MedAutoScience"
-    assert work_unit["state"]["source"] == "stage_owner_answer"
-    assert work_unit["state"]["typed_blocker"]["blocker_type"] == "medical_paper_readiness_missing"
-    assert work_unit["state"]["stale_queue_or_handoff_can_override"] is False
 
 
 def test_current_work_unit_accepts_strict_running_provider_proof() -> None:

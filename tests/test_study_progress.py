@@ -21,6 +21,7 @@ from tests.study_progress_cases.medical_readiness_v2_projection import *
 from tests.study_progress_cases.medical_paper_ops_health_projection import *
 from tests.study_progress_cases.open_auto_research_projection import *
 from tests.study_progress_cases.opl_current_control_state_handoff_projection import *
+from tests.study_progress_cases.opl_current_control_state_live_queue_projection import *
 from tests.study_progress_cases.runtime_medical_publication_surface_projection import *
 from tests.study_progress_cases.delivery_inspection_visibility import *
 from tests.study_progress_cases.user_visible_projection import *

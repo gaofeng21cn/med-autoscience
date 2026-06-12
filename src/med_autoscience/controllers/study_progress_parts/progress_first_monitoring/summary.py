@@ -175,7 +175,6 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     if canonical_typed_blocker_blocks_liveness:
         running_provider_attempt = False
-        active_run_id = None
         active_stage_attempt_id = None
         active_workflow_id = None
     current_action_supersedes_canonical_typed_blocker = _current_action_supersedes_canonical_typed_blocker(
@@ -1100,9 +1099,7 @@ def _running_provider_attempt_ref(
     key: str,
 ) -> str | None:
     if key == "active_run_id":
-        if running_provider_attempt is True or _bool_or_none(handoff.get("running_provider_attempt")) is False:
-            return _text(handoff.get(key))
-        return None
+        return _text(handoff.get(key))
     if running_provider_attempt is not True:
         return None
     return _text(handoff.get(key))

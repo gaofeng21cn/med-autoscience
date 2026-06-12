@@ -17,6 +17,8 @@ def canonical_current_work_unit_action(study: Mapping[str, Any]) -> dict[str, An
         return None
     current_work_unit = _mapping(study.get("current_work_unit"))
     current_action = _mapping(study.get("current_executable_owner_action"))
+    if current_work_unit and not _current_work_unit_is_executable_action(current_work_unit):
+        return None
     if not current_work_unit and (
         _text(current_action.get("source")) or _text(current_action.get("source_surface"))
     ) == "stage_kernel_projection.current_owner_delta":
@@ -145,6 +147,14 @@ def _canonical_action_type(*, source: Mapping[str, Any], current_action: Mapping
     ]
     unique_actions = sorted(set(allowed_actions))
     return unique_actions[0] if len(unique_actions) == 1 else None
+
+
+def _current_work_unit_is_executable_action(current_work_unit: Mapping[str, Any]) -> bool:
+    if _text(current_work_unit.get("status")) != "executable_owner_action":
+        return False
+    state = _mapping(current_work_unit.get("state"))
+    state_kind = _text(state.get("state_kind"))
+    return state_kind in {None, "executable_owner_action"}
 
 
 def _work_unit_id(value: object) -> str | None:

@@ -201,6 +201,37 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     }
     assert arbiter["must_be_written_with_current_control"] is True
 
+    dispatch_policy = contract["owner_action_dispatch_authority_policy"]
+    assert dispatch_policy["surface_kind"] == "mas_owner_action_dispatch_authority_policy"
+    assert dispatch_policy["scope"] == [
+        "domain_action_request_materializer",
+        "domain_owner_action_dispatch",
+    ]
+    assert dispatch_policy["typed_blocker_can_self_authorize_owner_action"] is False
+    assert dispatch_policy["blocker_only_effect"] == (
+        "suppress_stale_transition_queue_or_dispatch_and_emit_diagnostic"
+    )
+    assert dispatch_policy["readiness_dispatch_requires_any"] == [
+        "explicit_current_executable_owner_action",
+        "stage_native_workspace_next_action_with_authority_binding",
+        "terminal_closeout_owner_answer_dispatch",
+    ]
+    assert {
+        "current_work_unit.typed_blocker",
+        "current_execution_envelope.typed_blocker",
+        "stale_default_executor_dispatch_owner_route",
+        "source_ref_or_fingerprint_match_without_executable_owner_action",
+    } <= set(dispatch_policy["readiness_blocker_only_forbidden_basis"])
+    assert dispatch_policy["forbidden_readiness_dispatch_effect"] == (
+        "blocker_only_executes_complete_medical_paper_readiness_surface"
+    )
+    assert dispatch_policy["authority_boundary"] == {
+        "can_write_domain_truth": False,
+        "can_authorize_publication_ready": False,
+        "can_convert_blocker_to_owner_receipt": False,
+        "explicit_owner_action_required": True,
+    }
+
     stage_log = contract["stage_log_minimum_viability"]
     assert stage_log["surface_kind"] == "mas_opl_stage_log_minimum_viability_policy"
     assert stage_log["canonical_domain_log_field"] == "paper_stage_log"

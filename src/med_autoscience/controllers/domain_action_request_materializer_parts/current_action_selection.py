@@ -108,13 +108,15 @@ def current_actions_for_studies(
         if canonical_current_action is not None:
             stale_candidate_actions.append(canonical_current_action)
         stale_candidate_actions = _unique_actions(stale_candidate_actions)
-        transition_barrier = (
-            current_typed_blocker_transition_barrier.current_typed_blocker_barrier_for_actions(
-                study=study_payload,
-                fresh_action=fresh_progress_action,
-                candidate_actions=stale_candidate_actions,
+        transition_barrier = None
+        if readiness_followup is None and stage_native_action is None:
+            transition_barrier = (
+                current_typed_blocker_transition_barrier.current_typed_blocker_barrier_for_actions(
+                    study=study_payload,
+                    fresh_action=fresh_progress_action,
+                    candidate_actions=stale_candidate_actions,
+                )
             )
-        )
         if fresh_progress_action is not None and not _mapping(study_payload.get("current_work_unit")):
             canonical_current_action = None
         if transition_barrier is not None:
@@ -155,6 +157,44 @@ def current_actions_for_studies(
                     ],
                 ]
                 if action != canonical_current_action
+            )
+            continue
+        if readiness_followup is not None:
+            if _stage_native_action_supersedes_stable_readiness_answer(
+                study=study_payload,
+                readiness_followup=readiness_followup,
+                stage_native_action=stage_native_action,
+            ):
+                per_study_actions.append(dict(stage_native_action))
+                ignored.extend(
+                    _ignored_action(action, "superseded_by_stage_native_next_action_after_readiness_answer")
+                    for action in [
+                        readiness_followup,
+                        *top_level_study_actions,
+                        *transition_actions,
+                        *[
+                            dict(item)
+                            for item in study_payload.get("action_queue") or []
+                            if isinstance(item, Mapping)
+                        ],
+                    ]
+                )
+                continue
+            per_study_actions.append(readiness_followup)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_current_stage_readiness_followup")
+                for action in [
+                    *top_level_study_actions,
+                    *transition_actions,
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                        and _text(item.get("action_type")) != READINESS_ACTION_TYPE
+                    ],
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                ]
             )
             continue
         if transition_actions:
@@ -332,42 +372,6 @@ def current_actions_for_studies(
                     or _text(action.get("action_id"))
                 )
                 not in selected_fingerprints
-            )
-            continue
-        if readiness_followup is not None:
-            if _stage_native_action_supersedes_stable_readiness_answer(
-                study=study_payload,
-                readiness_followup=readiness_followup,
-                stage_native_action=stage_native_action,
-            ):
-                per_study_actions.append(dict(stage_native_action))
-                ignored.extend(
-                    _ignored_action(action, "superseded_by_stage_native_next_action_after_readiness_answer")
-                    for action in [
-                        readiness_followup,
-                        *top_level_study_actions,
-                        *[
-                            dict(item)
-                            for item in study_payload.get("action_queue") or []
-                            if isinstance(item, Mapping)
-                        ],
-                    ]
-                )
-                continue
-            per_study_actions.append(readiness_followup)
-            ignored.extend(
-                _ignored_action(action, "superseded_by_current_stage_readiness_followup")
-                for action in [
-                    *top_level_study_actions,
-                    *[
-                        dict(item)
-                        for item in study_payload.get("action_queue") or []
-                        if isinstance(item, Mapping)
-                        and _text(item.get("action_type")) != READINESS_ACTION_TYPE
-                    ],
-                    *([stage_native_action] if stage_native_action is not None else []),
-                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
-                ]
             )
             continue
         study_actions, study_ignored = _current_study_actions(

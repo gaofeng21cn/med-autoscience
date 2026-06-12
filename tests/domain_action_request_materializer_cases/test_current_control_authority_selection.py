@@ -231,7 +231,7 @@ def test_materializer_rejects_top_level_action_queue_with_stale_owner_route_iden
     ).exists()
 
 
-def test_materializer_materializes_readiness_owner_action_when_it_blocks_stale_domain_transition(
+def test_materializer_blocks_stale_domain_transition_when_readiness_blocker_has_no_explicit_current_action(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -292,7 +292,6 @@ def test_materializer_materializes_readiness_owner_action_when_it_blocks_stale_d
                         "surface_kind": "current_work_unit",
                         "status": "typed_blocker",
                         "owner": "MedAutoScience",
-                        "action_type": "complete_medical_paper_readiness_surface",
                         "work_unit_id": "complete_medical_paper_readiness_surface",
                         "state": {
                             "state_kind": "typed_blocker",
@@ -386,26 +385,158 @@ def test_materializer_materializes_readiness_owner_action_when_it_blocks_stale_d
         apply=False,
     )
 
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert any(
+        item["action_type"] == "current_execution_envelope_typed_blocker"
+        and item["reason"] == "unsupported_action_type"
+        for item in result["ignored_actions"]
+    )
+    assert any(
+        item["action_type"] == "run_gate_clearing_batch"
+        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
+        for item in result["ignored_actions"]
+    )
+    assert not (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    ).exists()
+
+
+def test_materializer_allows_explicit_readiness_current_action_to_block_stale_domain_transition(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    readiness_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="MedAutoScience",
+        owner_reason="medical_paper_readiness_missing",
+        allowed_actions=["complete_medical_paper_readiness_surface"],
+    )
+    readiness_route["source_refs"] = {
+        **dict(readiness_route["source_refs"]),
+        "owner_route_currentness_basis": {
+            "truth_epoch": f"truth-epoch::{study_id}",
+            "runtime_health_epoch": f"runtime-health::{study_id}::readiness-current-action",
+            "source_eval_id": "publication-eval::003::readiness-current-action",
+            "work_unit_id": "complete_medical_paper_readiness_surface",
+            "work_unit_fingerprint": readiness_route["work_unit_fingerprint"],
+        },
+    }
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": readiness_route,
+                    "current_execution_envelope": {
+                        "state_kind": "typed_blocker",
+                        "owner": "MedAutoScience",
+                        "typed_blocker": {
+                            "blocker_id": "medical_paper_readiness_missing",
+                            "owner": "MedAutoScience",
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                        },
+                    },
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "source": "stage_kernel_projection.current_owner_delta",
+                        "next_owner": "MedAutoScience",
+                        "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "surface_key": "authoring_runtime_authorization",
+                    },
+                    "domain_transition": {
+                        "decision_type": "route_back_same_line",
+                        "route_target": "finalize",
+                        "owner": "finalize",
+                        "controller_action": "request_opl_stage_attempt",
+                        "completion_receipt_consumption": {"status": "consumed"},
+                        "next_work_unit": {
+                            "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                            "lane": "finalize",
+                        },
+                    },
+                }
+            ],
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "generated_at": "2026-06-12T00:57:00+00:00",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_id": "medical_paper_readiness_missing",
+                    "blocker_type": "medical_paper_readiness_missing",
+                    "owner": "MedAutoScience",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "source": "stage_kernel_projection.current_owner_delta",
+                "next_owner": "MedAutoScience",
+                "allowed_actions": ["complete_medical_paper_readiness_surface"],
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "surface_key": "authoring_runtime_authorization",
+                "source_ref": (
+                    "artifacts/stage_outputs/08-publication_package_handoff/"
+                    "receipts/typed_blocker.json"
+                ),
+            },
+            "owner_route": readiness_route,
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
     assert result["request_task_count"] == 1
     assert result["default_executor_dispatch_count"] == 1
     dispatch = result["default_executor_dispatches"][0]
     assert dispatch["action_type"] == "complete_medical_paper_readiness_surface"
     assert dispatch["next_executable_owner"] == "MedAutoScience"
-    assert dispatch["source_action"]["authority"] == "current_work_unit.typed_blocker"
-    assert dispatch["source_action"]["reason"] == "medical_paper_readiness_missing"
+    assert dispatch["source_action"]["authority"] == "mas_owner_surface"
+    assert dispatch["source_action"]["source_surface"] == "stage_kernel_projection.current_owner_delta"
     assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
-    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
-        "complete_medical_paper_readiness_surface"
-    )
-    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"][
-        "work_unit_id"
-    ] == "complete_medical_paper_readiness_surface"
-    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"][
-        "work_unit_fingerprint"
-    ]
     assert any(
         item["action_type"] == "run_gate_clearing_batch"
-        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
+        and item["reason"] == "superseded_by_current_stage_readiness_followup"
         for item in result["ignored_actions"]
     )
     assert not (

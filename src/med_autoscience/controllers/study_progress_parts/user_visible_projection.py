@@ -670,6 +670,8 @@ def _owner_resolution_state(
 ) -> str:
     if actual_write_active:
         return "running"
+    if canonical_typed_blocker_present and next_owner:
+        return "ready_for_owner_action"
     if canonical_typed_blocker_present:
         return "blocked_with_typed_owner"
     if user_action_required:

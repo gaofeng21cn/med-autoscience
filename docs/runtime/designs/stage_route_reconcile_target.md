@@ -97,7 +97,7 @@ stateDiagram-v2
 
 2026-06-11 追加实现规则：MAS 内部所有“当前 action 是否能压过 stale blocker / handoff / provider admission residue”的判断统一走 `stage_route_currentness_identity` helper。该 helper 只提取 `action_type`、`work_unit_id`、`work_unit_fingerprint` / `action_fingerprint` 与 `owner_route.source_refs.owner_route_currentness_basis`，不做业务优先级裁决。repair-progress follow-up 这类会打开 OPL authorization blocker 的路径必须共享 fingerprint；只有同 action 或同浅层 label 不足以授权 redrive。
 
-2026-06-12 追加实现规则：canonical `current_work_unit.status=typed_blocker` / fresh `current_execution_envelope.typed_blocker` 先于旧 `domain_transition` 和 stale current-control queue 裁决。旧 transition 只能在没有 fresh typed blocker、或存在同 currentness identity 的合法 readiness/repair follow-up action 时参与 materialization；否则进入 ignored diagnostic。terminal workflow completed、queue completed 或 default executor `handoff_ready` 不能越过 MAS typed blocker，不能被写成 paper progress。
+2026-06-12 追加实现规则：canonical `current_work_unit.status=typed_blocker` / fresh `current_execution_envelope.typed_blocker` 先于旧 `domain_transition` 和 stale current-control queue 裁决。旧 transition 只能在没有 fresh typed blocker、或存在同 currentness identity 的合法 readiness/repair follow-up action 时参与 materialization；否则进入 ignored diagnostic。fresh typed blocker 可以阻断旧 transition、queue 和 persisted dispatch，但不能自我升级为 owner action；`complete_medical_paper_readiness_surface` 只能来自显式 `current_executable_owner_action`、带 authority binding 的 stage-native next action，或 `terminal_closeout_owner_answer_required` closeout dispatch。terminal workflow completed、queue completed 或 default executor `handoff_ready` 不能越过 MAS typed blocker，不能被写成 paper progress。
 
 ## Anti-loop 预算
 

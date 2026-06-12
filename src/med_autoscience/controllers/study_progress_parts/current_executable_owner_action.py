@@ -91,7 +91,7 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     if _stage_kernel_readiness_answer_without_followup(payload):
         return stage_native_action or domain_transition_action
     artifact_action = _from_stage_artifact_index(payload)
-    if artifact_action is not None:
+    if artifact_action is not None and domain_transition_action is None:
         return artifact_action
     if gate_followthrough_action is not None:
         return gate_followthrough_action

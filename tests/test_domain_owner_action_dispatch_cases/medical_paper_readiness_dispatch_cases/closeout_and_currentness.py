@@ -169,6 +169,152 @@ def test_explicit_readiness_dispatch_is_suppressed_by_fresh_typed_blocker_envelo
     assert result["per_study_execution_summary"][0]["selected_dispatch_count"] == 0
 
 
+def test_default_dispatch_does_not_execute_readiness_missing_typed_blocker_without_explicit_current_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    source_ref = str(
+        study_root
+        / "artifacts"
+        / "stage_outputs"
+        / "08-publication_package_handoff"
+        / "receipts"
+        / "typed_blocker.json"
+    )
+    dispatch = _readiness_dispatch_for_surface(
+        study_id=study_id,
+        surface_key="authoring_runtime_authorization",
+    )
+    basis = {
+        "work_unit_id": ACTION_TYPE,
+        "work_unit_fingerprint": (
+            f"current-readiness-typed-blocker::{study_id}::current"
+        ),
+        "truth_epoch": "truth-event::current",
+        "runtime_health_epoch": "runtime-health-event::current",
+    }
+    for route in (dispatch["owner_route"], dispatch["prompt_contract"]["owner_route"]):
+        assert isinstance(route, dict)
+        route["truth_epoch"] = basis["truth_epoch"]
+        route["runtime_health_epoch"] = basis["runtime_health_epoch"]
+        route["work_unit_fingerprint"] = basis["work_unit_fingerprint"]
+        route["source_fingerprint"] = "current-readiness-source::current"
+        route["source_refs"] = {
+            "work_unit_id": ACTION_TYPE,
+            "work_unit_fingerprint": basis["work_unit_fingerprint"],
+            "blocked_reason": "medical_paper_readiness_missing",
+            "source_ref": source_ref,
+            "owner_route_currentness_basis": dict(basis),
+        }
+    dispatch["source_action"] = {
+        "action_type": ACTION_TYPE,
+        "owner": "MedAutoScience",
+        "reason": "medical_paper_readiness_missing",
+        "authority": "current_work_unit.typed_blocker",
+        "next_work_unit": ACTION_TYPE,
+        "work_unit_fingerprint": basis["work_unit_fingerprint"],
+        "source_ref": source_ref,
+        "source_surface": "current_work_unit",
+    }
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / f"{ACTION_TYPE}.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+    current_work_unit = {
+        "surface_kind": "current_work_unit",
+        "status": "typed_blocker",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "owner": "MedAutoScience",
+        "action_type": ACTION_TYPE,
+        "work_unit_id": ACTION_TYPE,
+        "currentness_basis": {
+            "truth_epoch": basis["truth_epoch"],
+            "runtime_health_epoch": basis["runtime_health_epoch"],
+            "work_unit_id": "older-terminal-stage-work-unit",
+        },
+        "state": {
+            "state_kind": "typed_blocker",
+            "typed_blocker": {
+                "blocker_id": "medical_paper_readiness_missing",
+                "blocker_type": "medical_paper_readiness_missing",
+                "owner": "MedAutoScience",
+                "work_unit_id": ACTION_TYPE,
+                "source_ref": source_ref,
+            },
+        },
+    }
+    current_execution_envelope = {
+        "state_kind": "typed_blocker",
+        "owner": "MedAutoScience",
+        "typed_blocker": {
+            "blocker_id": "medical_paper_readiness_missing",
+            "blocker_type": "medical_paper_readiness_missing",
+            "owner": "MedAutoScience",
+            "work_unit_id": ACTION_TYPE,
+            "source_ref": source_ref,
+        },
+    }
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "current_work_unit": current_work_unit,
+                    "current_execution_envelope": current_execution_envelope,
+                    "action_queue": [],
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": current_work_unit,
+            "current_execution_envelope": current_execution_envelope,
+            "current_executable_owner_action": {},
+        },
+    )
+    monkeypatch.setattr(
+        module.action_execution,
+        "execute_complete_medical_paper_readiness_surface",
+        lambda **_: (_ for _ in ()).throw(
+            AssertionError("blocker-only readiness dispatch must not execute")
+        ),
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["execution_count"] == 0
+    assert result["dry_run_count"] == 0
+    assert result["executions"] == []
+    assert result["per_study_execution_summary"][0]["selected_dispatch_count"] == 0
+
+
 def _provider_payload_for_query(query: str) -> dict[str, object]:
     payload = _complete_provider_payload()
     payload["search_strategy"]["query"] = query

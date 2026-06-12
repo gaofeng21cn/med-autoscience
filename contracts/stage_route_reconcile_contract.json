@@ -425,6 +425,34 @@
       "no_same_currentness_basis_fingerprintless_stop_loss_closeout"
     ]
   },
+  "owner_action_dispatch_authority_policy": {
+    "surface_kind": "mas_owner_action_dispatch_authority_policy",
+    "scope": [
+      "domain_action_request_materializer",
+      "domain_owner_action_dispatch"
+    ],
+    "typed_blocker_can_self_authorize_owner_action": false,
+    "blocker_only_effect": "suppress_stale_transition_queue_or_dispatch_and_emit_diagnostic",
+    "readiness_dispatch_requires_any": [
+      "explicit_current_executable_owner_action",
+      "stage_native_workspace_next_action_with_authority_binding",
+      "terminal_closeout_owner_answer_dispatch"
+    ],
+    "readiness_blocker_only_forbidden_basis": [
+      "current_work_unit.typed_blocker",
+      "current_execution_envelope.typed_blocker",
+      "stale_default_executor_dispatch_owner_route",
+      "source_ref_or_fingerprint_match_without_executable_owner_action"
+    ],
+    "allowed_readiness_dispatch_effect": "execute_or_handoff_owner_action",
+    "forbidden_readiness_dispatch_effect": "blocker_only_executes_complete_medical_paper_readiness_surface",
+    "authority_boundary": {
+      "can_write_domain_truth": false,
+      "can_authorize_publication_ready": false,
+      "can_convert_blocker_to_owner_receipt": false,
+      "explicit_owner_action_required": true
+    }
+  },
   "stage_log_minimum_viability": {
     "surface_kind": "mas_opl_stage_log_minimum_viability_policy",
     "canonical_domain_log_field": "paper_stage_log",

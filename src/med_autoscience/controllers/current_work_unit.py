@@ -41,6 +41,10 @@ from med_autoscience.controllers.current_work_unit_parts.policy_constants import
     RUNNING_HEALTH_VALUES,
     TERMINAL_CLOSEOUT_STATUSES,
 )
+from med_autoscience.controllers.current_work_unit_parts.readiness_identity import (
+    readiness_typed_blocker_currentness_basis,
+    stage_owner_readiness_blocker_should_own_identity,
+)
 from med_autoscience.controllers.stage_route_currentness_identity import (
     currentness_identities_match,
 )
@@ -376,17 +380,34 @@ def _typed_blocker_work_unit(
         or _text(blocker.get("blocked_reason"))
         or "typed_blocker"
     )
+    resolved_action = action
+    resolved_basis = dict(currentness_basis)
+    resolved_work_unit_fingerprint = _text(blocker.get("work_unit_fingerprint"))
+    resolved_action_fingerprint = _text(blocker.get("action_fingerprint"))
+    if stage_owner_readiness_blocker_should_own_identity(
+        blocker=blocker,
+        source=source,
+        blocker_type=blocker_type,
+    ):
+        resolved_action = None
+        resolved_basis = readiness_typed_blocker_currentness_basis(
+            blocker=blocker,
+            progress=progress_payload,
+            fallback_basis=currentness_basis,
+        )
+        resolved_work_unit_fingerprint = _text(resolved_basis.get("work_unit_fingerprint"))
+        resolved_action_fingerprint = resolved_work_unit_fingerprint
     return _current_work_unit(
         status=status_kind,
         owner=owner,
         action_type=_text(blocker.get("action_type")) or _text(blocker.get("work_unit_id")),
         work_unit_id=_work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(blocker.get("next_work_unit")),
-        work_unit_fingerprint=_text(blocker.get("work_unit_fingerprint")),
-        action_fingerprint=_text(blocker.get("action_fingerprint")),
+        work_unit_fingerprint=resolved_work_unit_fingerprint,
+        action_fingerprint=resolved_action_fingerprint,
         input_refs=_input_refs(blocker, source_refs),
         required_output_contract=_required_output_contract(blocker),
         acceptance_refs=_acceptance_refs(blocker),
-        currentness_basis=currentness_basis,
+        currentness_basis=resolved_basis,
         state={
             "state_kind": status_kind,
             "source": source,
@@ -397,7 +418,7 @@ def _typed_blocker_work_unit(
         },
         status_payload=status_payload,
         progress_payload=progress_payload,
-        action=action,
+        action=resolved_action,
     )
 
 
