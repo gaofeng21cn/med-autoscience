@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 
@@ -29,6 +30,12 @@ def _provider_candidate(profile, study_id: str, *, action_fingerprint: str) -> d
         "required_output_surface": "artifacts/publication_eval/latest.json",
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,
+        "currentness_basis": {
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
     }
 
 
@@ -84,6 +91,114 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     assert decision["action_type"] == "return_to_ai_reviewer_workflow"
     assert decision["work_unit_id"] == work_unit_id
     assert decision["work_unit_fingerprint"] == action_fingerprint
+
+
+def test_provider_admission_report_refreshes_scanned_typed_blocker_without_candidates(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    blocker_ref = "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    stale_candidate = _provider_candidate(
+        profile,
+        study_id,
+        action_fingerprint="sha256:stale-ai-reviewer",
+    )
+    latest_path = (
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json"
+    )
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_path.write_text(
+        json.dumps(
+            {
+                "surface": "opl_current_control_state_handoff",
+                "schema_version": 1,
+                "studies": [
+                    {
+                        "study_id": study_id,
+                        "current_execution_envelope": {
+                            "state_kind": "executable_owner_action",
+                            "owner": "ai_reviewer",
+                            "next_work_unit": stale_candidate["work_unit_id"],
+                        },
+                        "current_executable_owner_action": {
+                            "surface_kind": "current_executable_owner_action",
+                            "status": "ready",
+                            "next_owner": "ai_reviewer",
+                            "action_type": stale_candidate["action_type"],
+                            "work_unit_id": stale_candidate["work_unit_id"],
+                            "work_unit_fingerprint": stale_candidate["work_unit_fingerprint"],
+                            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                        },
+                    }
+                ],
+                "action_queue": [stale_candidate],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = report_module.materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        report={
+            "managed_study_opl_provider_admission_candidates": [],
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "decision": "blocked",
+                    "reason": "medical_paper_readiness_missing",
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "typed_blocker",
+                        "owner": "MedAutoScience",
+                        "action_type": "complete_medical_paper_readiness_surface",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "work_unit_fingerprint": f"current-readiness-typed-blocker::{study_id}::fresh",
+                        "state": {
+                            "state_kind": "typed_blocker",
+                            "source": "stage_owner_answer",
+                            "typed_blocker": {
+                                "blocker_type": "medical_paper_readiness_missing",
+                                "owner": "MedAutoScience",
+                                "source_ref": blocker_ref,
+                            },
+                        },
+                    },
+                    "current_executable_owner_action": None,
+                    "running_provider_attempt": False,
+                }
+            ],
+        },
+        apply=False,
+        generated_at="2026-06-12T07:30:00+00:00",
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["provider_admission_candidates"] == []
+    assert result["action_queue"] == []
+    assert result["stage_route_arbiter"]["candidate_count"] == 0
+    study = result["studies"][0]
+    assert study["study_id"] == study_id
+    assert study["current_work_unit"]["status"] == "typed_blocker"
+    assert study["current_work_unit"]["owner"] == "MedAutoScience"
+    assert study["current_execution_envelope"]["state_kind"] == "typed_blocker"
+    assert (
+        result["current_execution_envelopes"][study_id]["typed_blocker"]["blocker_type"]
+        == "medical_paper_readiness_missing"
+    )
 
 
 def test_provider_admission_current_control_terminal_closeout_precedes_stale_live_projection(
@@ -267,6 +382,79 @@ def test_provider_admission_current_control_records_accepted_closeout_arbiter_de
     assert decision["evidence_status"] == "executed"
 
 
+def test_provider_admission_current_control_suppresses_record_only_owner_refs_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_fingerprint = "sha256:current-ai-reviewer"
+    candidate = _provider_candidate(profile, study_id, action_fingerprint=action_fingerprint)
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-12T07:30:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "running_provider_attempt": False,
+                "current_work_unit": {
+                    "status": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": candidate["work_unit_id"],
+                    "work_unit_fingerprint": action_fingerprint,
+                    "action_fingerprint": action_fingerprint,
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "next_work_unit": candidate["work_unit_id"],
+                },
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "status": "closed_with_domain_owner_refs",
+                        "execution_status": "executed",
+                        "stage_attempt_id": "sat-record-only",
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "work_unit_id": candidate["work_unit_id"],
+                        "work_unit_fingerprint": action_fingerprint,
+                        "action_fingerprint": action_fingerprint,
+                        "owner_receipt_ref": "artifacts/supervision/consumer/default_executor_execution/sat-record-only.closeout.json#owner_receipt",
+                        "record_ref": "artifacts/publication_eval/ai_reviewer_responses/record.json",
+                        "owner_result": {
+                            "status": "closed_with_domain_owner_refs",
+                            "owner": "ai_reviewer",
+                            "publication_eval_surface": "not_written",
+                            "record_only_surface": True,
+                            "quality_authorized": False,
+                            "submission_authorized": False,
+                        },
+                    }
+                ],
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 0
+    assert result["stage_route_arbiter"]["pending_count"] == 0
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "accepted_closeout_consumed_pending": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "accepted_closeout_consumed_pending"
+    assert decision["effect"] == "suppress_provider_admission_pending"
+    assert decision["evidence_status"] == "closed_with_domain_owner_refs"
+
+
 def test_provider_admission_current_control_retains_pending_when_closeout_identity_was_inferred(
     tmp_path: Path,
 ) -> None:
@@ -302,6 +490,12 @@ def test_provider_admission_current_control_retains_pending_when_closeout_identi
         "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,
+        "currentness_basis": {
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
     }
 
     result = module.materialize_provider_admission_current_control_state(
@@ -400,6 +594,12 @@ def test_provider_admission_current_control_retains_pending_when_legacy_closeout
         "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,
+        "currentness_basis": {
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": action_fingerprint,
+        },
     }
     action_only_closeout = report._closeout_evidence_with_identity(
         {

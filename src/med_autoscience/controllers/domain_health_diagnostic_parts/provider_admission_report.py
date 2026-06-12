@@ -51,10 +51,12 @@ def materialize_report_provider_admission_current_control_state(
     scanned_studies = _provider_admission_scanned_currentness_studies(
         profile=profile,
         progress_currentness=progress_currentness,
+        report=report,
     )
     candidates = _filter_provider_admission_candidates_by_progress_currentness(
         candidates,
         progress_currentness=progress_currentness,
+        scanned_studies=scanned_studies,
     )
     candidates = _merge_provider_admission_candidates(
         candidates,
@@ -102,8 +104,10 @@ def _provider_admission_scanned_currentness_studies(
     *,
     profile: WorkspaceProfile,
     progress_currentness: Mapping[str, Any] | None,
+    report: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     studies: list[dict[str, Any]] = []
+    seen_study_ids: set[str] = set()
     for study_id, payload in _mapping(progress_currentness).items():
         normalized_study_id = _non_empty_text(study_id)
         if normalized_study_id is None:
@@ -161,6 +165,61 @@ def _provider_admission_scanned_currentness_studies(
                 **({"intervention_lane": dict(intervention_lane)} if intervention_lane else {}),
                 **({"accepted_closeout_evidence": closeout_evidence} if closeout_evidence else {}),
                 "current_execution_envelope": execution_envelope,
+            }
+        )
+        seen_study_ids.add(normalized_study_id)
+    studies.extend(
+        _provider_admission_scanned_report_studies(
+            report=report,
+            seen_study_ids=seen_study_ids,
+        )
+    )
+    return studies
+
+
+def _provider_admission_scanned_report_studies(
+    *,
+    report: Mapping[str, Any] | None,
+    seen_study_ids: set[str],
+) -> list[dict[str, Any]]:
+    studies: list[dict[str, Any]] = []
+    for item in _mapping(report).get("managed_study_actions") or []:
+        study = _mapping(item)
+        study_id = _non_empty_text(study.get("study_id"))
+        if study_id is None or study_id in seen_study_ids:
+            continue
+        current_work_unit = _mapping(study.get("current_work_unit"))
+        current_action = _mapping(study.get("current_executable_owner_action"))
+        current_execution_envelope = _mapping(study.get("current_execution_envelope"))
+        if not any((current_work_unit, current_action, current_execution_envelope)):
+            continue
+        work_unit_id = _non_empty_text(current_action.get("work_unit_id")) or _non_empty_text(
+            current_work_unit.get("work_unit_id")
+        )
+        next_owner = _non_empty_text(current_action.get("next_owner")) or _non_empty_text(
+            current_work_unit.get("owner")
+        )
+        fallback_envelope = {
+            "state_kind": _non_empty_text(current_work_unit.get("status")) or "parked",
+            "owner": next_owner,
+            "next_work_unit": work_unit_id if current_action else None,
+            "typed_blocker": _mapping(_mapping(current_work_unit.get("state")).get("typed_blocker"))
+            or _mapping(current_work_unit.get("typed_blocker"))
+            or None,
+            "parked_state": None,
+            "source": "domain_health_diagnostic.managed_study_actions",
+        }
+        studies.append(
+            {
+                "study_id": study_id,
+                "quest_id": _non_empty_text(study.get("quest_id")) or study_id,
+                "handoff_scan_status": "scanned_no_provider_admission",
+                "provider_admission_pending_count": 0,
+                "running_provider_attempt": bool(study.get("running_provider_attempt")) is True,
+                "action_queue": [],
+                **({"current_executable_owner_action": dict(current_action)} if current_action else {}),
+                **({"current_work_unit": dict(current_work_unit)} if current_work_unit else {}),
+                "current_execution_envelope": dict(current_execution_envelope) if current_execution_envelope else fallback_envelope,
             }
         )
     return studies
@@ -326,7 +385,8 @@ def _closeout_has_native_current_identity(closeout: Mapping[str, Any]) -> bool:
     fingerprint = _non_empty_text(closeout.get("work_unit_fingerprint")) or _non_empty_text(
         closeout.get("action_fingerprint")
     )
-    return work_unit is not None and fingerprint is not None
+    source_eval_id = _non_empty_text(closeout.get("source_eval_id"))
+    return work_unit is not None and (fingerprint is not None or source_eval_id is not None)
 
 
 def _closeout_identity_matches_current(
@@ -507,13 +567,17 @@ def _filter_provider_admission_candidates_by_progress_currentness(
     candidates: list[dict[str, Any]],
     *,
     progress_currentness: Mapping[str, Any] | None,
+    scanned_studies: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     current_action_by_study = _same_tick_progress_current_actions(progress_currentness)
-    if not current_action_by_study:
+    blocked_scanned_study_ids = _scanned_study_ids_without_provider_admission(scanned_studies)
+    if not current_action_by_study and not blocked_scanned_study_ids:
         return [dict(candidate) for candidate in candidates]
     filtered: list[dict[str, Any]] = []
     for candidate in candidates:
         study_id = _non_empty_text(candidate.get("study_id"))
+        if study_id in blocked_scanned_study_ids:
+            continue
         current_action_identity = current_action_by_study.get(study_id) if study_id is not None else None
         if current_action_identity is not None and not _same_tick_candidate_matches_current_action(
             candidate,
@@ -522,6 +586,26 @@ def _filter_provider_admission_candidates_by_progress_currentness(
             continue
         filtered.append(dict(candidate))
     return filtered
+
+
+def _scanned_study_ids_without_provider_admission(
+    scanned_studies: list[dict[str, Any]] | None,
+) -> set[str]:
+    blocked: set[str] = set()
+    for study in scanned_studies or []:
+        study_id = _non_empty_text(study.get("study_id"))
+        if study_id is None:
+            continue
+        if _mapping(study.get("current_executable_owner_action")):
+            continue
+        current_work_unit = _mapping(study.get("current_work_unit"))
+        envelope = _mapping(study.get("current_execution_envelope"))
+        if _non_empty_text(current_work_unit.get("status")) == "typed_blocker":
+            blocked.add(study_id)
+            continue
+        if _non_empty_text(envelope.get("state_kind")) == "typed_blocker":
+            blocked.add(study_id)
+    return blocked
 
 
 def _provider_admission_candidates_from_same_tick_materialize(

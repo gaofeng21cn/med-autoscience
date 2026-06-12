@@ -79,6 +79,26 @@ def _execution_from_stage_closeout(
     if not action_type:
         return None
     route, route_source = _stage_closeout_owner_route(closeout=closeout, study_root=study_root)
+    route_source_refs = _mapping(route.get("source_refs"))
+    route_currentness_basis = _mapping(route_source_refs.get("owner_route_currentness_basis"))
+    work_unit_id = (
+        _text(closeout.get("work_unit_id"))
+        or _text(route_currentness_basis.get("work_unit_id"))
+        or _text(route_source_refs.get("work_unit_id"))
+    )
+    work_unit_fingerprint = (
+        _text(closeout.get("work_unit_fingerprint"))
+        or _text(closeout.get("action_fingerprint"))
+        or _text(route_currentness_basis.get("work_unit_fingerprint"))
+        or _text(route_source_refs.get("work_unit_fingerprint"))
+        or _text(route.get("work_unit_fingerprint"))
+    )
+    source_eval_id = (
+        _text(closeout.get("source_eval_id"))
+        or _text(route_currentness_basis.get("source_eval_id"))
+        or _text(route_source_refs.get("source_eval_id"))
+        or _text(route.get("source_eval_id"))
+    )
     repair_evidence = _stage_closeout_repair_evidence(closeout)
     owner_receipt = _mapping(closeout.get("owner_receipt"))
     domain_execution = _mapping(closeout.get("domain_execution"))
@@ -111,6 +131,10 @@ def _execution_from_stage_closeout(
         "study_id": _text(closeout.get("study_id")),
         "quest_id": _text(closeout.get("quest_id")),
         "action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "action_fingerprint": work_unit_fingerprint,
+        "source_eval_id": source_eval_id,
         "execution_status": _stage_closeout_execution_status(closeout),
         "execution_id": _text(closeout.get("execution_id"))
         or _text(closeout.get("closeout_id"))
@@ -118,6 +142,16 @@ def _execution_from_stage_closeout(
         "idempotency_key": _text(closeout.get("idempotency_key")),
         "current_owner_route": route or None,
         "owner_route": route or None,
+        "owner_route_currentness_basis": route_currentness_basis or None,
+        "canonical_work_unit_identity": route_currentness_basis or {
+            key: value
+            for key, value in {
+                "source_eval_id": source_eval_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "work_unit_id": work_unit_id,
+            }.items()
+            if value
+        },
         "owner_route_currentness_source": route_source,
         "stage_closeout_surface_kind": _text(closeout.get("surface_kind")),
         "stage_closeout_status": _text(closeout.get("status")),

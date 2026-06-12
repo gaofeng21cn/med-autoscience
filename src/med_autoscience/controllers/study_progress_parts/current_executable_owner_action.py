@@ -29,6 +29,7 @@ TERMINAL_NEXT_FORCED_DELTA_ACTIONS = frozenset(
     {
         GATE_CLEARING_ACTION,
         QUALITY_REPAIR_ACTION,
+        "consume_record_only_ai_reviewer_closeout_or_route_next_owner",
     }
 )
 GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES = frozenset(
@@ -207,8 +208,8 @@ def _from_terminal_stage_next_forced_delta(payload: Mapping[str, Any]) -> dict[s
     owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
     action_type = (
         _non_empty_text(owner_action.get("action_type"))
-        or _non_empty_text(terminal.get("action_type"))
         or _non_empty_text(next_forced_delta.get("action_type"))
+        or _non_empty_text(terminal.get("action_type"))
     )
     if action_type not in TERMINAL_NEXT_FORCED_DELTA_ACTIONS:
         return None
@@ -291,6 +292,8 @@ def _terminal_next_forced_delta_default_owner(action_type: str | None) -> str | 
         return GATE_CLEARING_OWNER
     if action_type == QUALITY_REPAIR_ACTION:
         return "write"
+    if action_type == "consume_record_only_ai_reviewer_closeout_or_route_next_owner":
+        return "mas_controller"
     return None
 
 
@@ -657,6 +660,8 @@ def _action_consumed_by_dispatch_receipt(
     action: Mapping[str, Any],
     payload: Mapping[str, Any],
 ) -> bool:
+    if _terminal_stage_closeout_consumes_repair_followup(action=action, payload=payload):
+        return True
     consumption = _mapping_copy(_mapping_copy(payload.get("progress_first_monitoring_summary")).get("dispatch_consumption"))
     if not consumption:
         consumption = _mapping_copy(_mapping_copy(payload.get("domain_transition")).get("completion_receipt_consumption"))
@@ -689,6 +694,62 @@ def _action_consumed_by_dispatch_receipt(
         action=action,
         consumption=consumption,
     )
+
+
+def _terminal_stage_closeout_consumes_repair_followup(
+    *,
+    action: Mapping[str, Any],
+    payload: Mapping[str, Any],
+) -> bool:
+    if _non_empty_text(action.get("source")) != REPAIR_PROGRESS_SOURCE:
+        return False
+    if _non_empty_text(action.get("action_type")) != AI_REVIEWER_ACTION:
+        return False
+    if _non_empty_text(action.get("work_unit_id")) != AI_REVIEWER_WORK_UNIT:
+        return False
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    terminal = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    if _non_empty_text(terminal.get("action_type")) != AI_REVIEWER_ACTION:
+        return False
+    if _non_empty_text(terminal.get("status")) != "closed_with_domain_owner_refs":
+        return False
+    paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+    next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
+        paper_stage_log.get("next_forced_delta")
+    )
+    if _non_empty_text(next_forced_delta.get("owner")) != "mas_controller":
+        return False
+    if (
+        _non_empty_text(next_forced_delta.get("action_type"))
+        != "consume_record_only_ai_reviewer_closeout_or_route_next_owner"
+    ):
+        return False
+    action_stage_attempt = _stage_attempt_id_from_refs(action.get("acceptance_refs"))
+    terminal_stage_attempt = _non_empty_text(terminal.get("stage_attempt_id")) or _stage_attempt_id_from_refs(
+        [terminal.get("source_path")]
+    )
+    if action_stage_attempt is not None and terminal_stage_attempt is not None:
+        return action_stage_attempt == terminal_stage_attempt
+    source_eval_id = _non_empty_text(next_forced_delta.get("source_eval_id"))
+    if terminal_stage_attempt is not None and source_eval_id is not None:
+        return terminal_stage_attempt in source_eval_id
+    action_fingerprint = (
+        _non_empty_text(action.get("work_unit_fingerprint"))
+        or _non_empty_text(action.get("action_fingerprint"))
+        or _non_empty_text(_mapping_copy(action.get("repair_progress_precedence")).get("source_fingerprint"))
+    )
+    terminal_refs = [terminal.get("source_path"), *_text_items(terminal.get("closeout_refs"))]
+    return action_fingerprint is not None and any(
+        action_fingerprint in ref for ref in terminal_refs if isinstance(ref, str)
+    )
+
+
+def _stage_attempt_id_from_refs(value: object) -> str | None:
+    for ref in _text_items(value):
+        for part in ref.replace("#", "/").replace(".", "/").split("/"):
+            if part.startswith("sat_"):
+                return part
+    return None
 
 
 def _ai_reviewer_eval_receipt_consumes_repair_followup(

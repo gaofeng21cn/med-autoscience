@@ -628,6 +628,74 @@ def test_current_executable_owner_action_consumes_ai_reviewer_followup_when_eval
     assert action["allowed_actions"] == ["run_gate_clearing_batch"]
 
 
+def test_current_executable_owner_action_consumes_record_only_ai_reviewer_terminal_closeout() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": "sha256:fc2032327815ef9ab106e4ca972923ae2f18b3e3da019cf257298e2b3e3bc08a",
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "ai_reviewer_recheck_request_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
+                "gate_replay_refs": [
+                    "runtime/quests/003/artifacts/reports/publishability_gate/current.json"
+                ],
+            },
+            "opl_current_control_state_handoff": {
+                "latest_terminal_stage_log": {
+                    "stage_attempt_id": "sat_576b2b902ea0ef671d2764ab",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "status": "closed_with_domain_owner_refs",
+                    "source_path": (
+                        "artifacts/supervision/consumer/stage_attempt_closeouts/"
+                        "sat_576b2b902ea0ef671d2764ab.json"
+                    ),
+                    "paper_stage_log": {
+                        "next_forced_delta": {
+                            "required_delta_kind": (
+                                "mas_owner_route_reconcile_or_typed_blocker_consumption"
+                            ),
+                            "owner": "mas_controller",
+                            "action_type": (
+                                "consume_record_only_ai_reviewer_closeout_or_route_next_owner"
+                            ),
+                            "work_unit_id": (
+                                "after_produce_ai_reviewer_publication_eval_record_against_current_inputs"
+                            ),
+                            "reviewer_record_ref": (
+                                "studies/003/artifacts/publication_eval/ai_reviewer_responses/"
+                                "20260612T065527Z_publication_eval_record.json"
+                            ),
+                            "source_eval_id": (
+                                "publication-eval::003::ai-reviewer-record::"
+                                "20260612T065501Z::sat_576b2b902ea0ef671d2764ab"
+                            ),
+                        }
+                    },
+                }
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "study_progress.next_forced_delta.owner_action"
+    assert action["next_owner"] == "mas_controller"
+    assert action["action_type"] == "consume_record_only_ai_reviewer_closeout_or_route_next_owner"
+    assert action["work_unit_id"] == (
+        "after_produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    )
+    assert action["allowed_actions"] == [
+        "consume_record_only_ai_reviewer_closeout_or_route_next_owner"
+    ]
+
+
 def test_current_executable_owner_action_skips_consumed_repair_progress_from_domain_transition() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"

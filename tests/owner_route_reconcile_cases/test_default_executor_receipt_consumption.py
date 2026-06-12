@@ -301,6 +301,22 @@ def test_default_executor_consumed_receipt_identity_prevents_same_current_contro
         },
     )
 
+    candidates = default_executor_execution_candidates(study_root=study_root)
+    candidate = next(
+        execution
+        for execution, ref in candidates
+        if ref == closeout_ref
+    )
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["work_unit_fingerprint"] == work_unit_fingerprint
+    assert candidate["action_fingerprint"] == work_unit_fingerprint
+    assert (
+        candidate["source_eval_id"]
+        == owner_route["source_refs"]["owner_route_currentness_basis"]["source_eval_id"]
+    )
+    assert candidate["owner_route_currentness_basis"] == owner_route["source_refs"]["owner_route_currentness_basis"]
+    assert candidate["canonical_work_unit_identity"] == owner_route["source_refs"]["owner_route_currentness_basis"]
+
     receipt = default_executor_execution_receipt_consumption(
         study_root=study_root,
         owner_route=owner_route,

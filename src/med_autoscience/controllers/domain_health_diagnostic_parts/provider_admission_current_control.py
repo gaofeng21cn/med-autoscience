@@ -1180,6 +1180,8 @@ def _receipt_is_accepted_closeout(receipt: Mapping[str, Any]) -> bool:
     }
     if "accepted_typed_closeout" in statuses:
         return True
+    if _receipt_is_record_only_owner_refs_closeout(receipt, statuses=statuses):
+        return True
     if _non_empty_text(receipt.get("surface_kind")) in {
         "stage_attempt_closeout_packet",
         "domain_stage_closeout_packet",
@@ -1199,6 +1201,35 @@ def _receipt_is_accepted_closeout(receipt: Mapping[str, Any]) -> bool:
     return _non_empty_text(receipt.get("typed_blocker_ref")) is not None or _non_empty_text(
         receipt.get("typed_blocker_reason")
     ) is not None
+
+
+def _receipt_is_record_only_owner_refs_closeout(
+    receipt: Mapping[str, Any],
+    *,
+    statuses: set[str | None],
+) -> bool:
+    if _non_empty_text(receipt.get("surface_kind")) not in {
+        "stage_attempt_closeout_packet",
+        "domain_stage_closeout_packet",
+    }:
+        return False
+    if "closed_with_domain_owner_refs" not in statuses:
+        return False
+    if "executed" not in statuses and "completed" not in statuses:
+        return False
+    if _receipt_has_opl_execution_authorization_blocker(receipt):
+        return False
+    owner_result = _mapping(receipt.get("owner_result"))
+    return any(
+        _non_empty_text(value) is not None
+        for value in (
+            receipt.get("owner_receipt_ref"),
+            receipt.get("record_ref"),
+            receipt.get("publication_eval_record_ref"),
+            owner_result.get("owner_receipt_ref"),
+            owner_result.get("publication_eval_record_ref"),
+        )
+    )
 
 
 def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> dict[str, Any]:
