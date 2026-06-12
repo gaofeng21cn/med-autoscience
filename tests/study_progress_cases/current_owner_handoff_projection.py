@@ -686,6 +686,136 @@ def test_progress_first_monitoring_prefers_current_handoff_action_over_stale_tra
     assert monitoring["current_blockers"] == []
 
 
+def test_existing_projection_refreshes_readiness_blocker_from_latest_publication_eval_route_back(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "003-risk", quest_id="quest-003")
+    typed_blocker_ref = (
+        "artifacts/stage_outputs/08-publication_package_handoff/"
+        "receipts/typed_blocker.json"
+    )
+    latest_eval_id = "publication-eval::003-risk::quest-003::2026-06-12T09:00:00+00:00"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": latest_eval_id,
+            "study_id": "003-risk",
+            "quest_id": "quest-003",
+            "verdict": {"overall_verdict": "blocked"},
+            "gaps": [
+                {
+                    "gap_id": "gap-medical-prose",
+                    "gap_type": "medical_prose",
+                    "severity": "must_fix",
+                    "summary": "current publication eval requires same-line prose repair",
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::route-back::medical-prose",
+                    "action_type": "route_back_same_line",
+                    "priority": "now",
+                    "reason": "Current eval names a concrete same-line repair.",
+                    "evidence_refs": [
+                        str(study_root / "artifacts" / "publication_eval" / "latest.json")
+                    ],
+                    "route_target": "write",
+                    "route_key_question": "Which prose repair closes the current blocker?",
+                    "route_rationale": "Route back to the write owner for the named current work unit.",
+                    "work_unit_fingerprint": "medical-prose-write-repair::current",
+                    "next_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                        "summary": "Repair medical prose against current publication eval gaps.",
+                    },
+                }
+            ],
+        },
+    )
+    status_payload = {
+        "study_id": "003-risk",
+        "publication_supervisor_state": {},
+        "progress_projection": {
+            "schema_version": 1,
+            "study_id": "003-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-003",
+            "current_stage": "auto_runtime_parked",
+            "paper_stage": "publication_supervision",
+            "next_system_action": "complete_medical_paper_readiness_surface",
+            "current_blockers": ["medical_paper_readiness_missing"],
+            "medical_paper_readiness": {"overall_status": "blocked"},
+            "publication_eval": {
+                "schema_version": 1,
+                "surface_kind": "paper_authority_cutover_projection",
+                "gaps": [],
+                "recommended_actions": [],
+            },
+            "auto_runtime_parked": {
+                "parked": True,
+                "parked_state": "waiting_user_decision",
+                "auto_execution_complete": False,
+            },
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_id": "medical_paper_readiness_missing",
+                    "owner": "MedAutoScience",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "source_ref": typed_blocker_ref,
+                },
+            },
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "owner": "MedAutoScience",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "reason": "medical_paper_readiness_missing",
+                    "required_input": "complete_medical_paper_readiness_surface",
+                    "blocked_surface": "publication_handoff_owner_gate",
+                    "source_ref": typed_blocker_ref,
+                    "source_kind": "typed_blocker",
+                    "latest_owner_answer_kind": "typed_blocker",
+                    "hard_gate": {
+                        "state": "domain_owner_answer_recorded",
+                        "owner_answer_ref": typed_blocker_ref,
+                    },
+                },
+            },
+            "user_visible_projection": {
+                "surface_kind": "study_progress_user_visible_projection",
+                "schema_version": 2,
+                "next_owner": "MedAutoScience",
+                "next_step": "complete_medical_paper_readiness_surface",
+                "paper_progress_state": {"next_owner": "MedAutoScience"},
+            },
+        },
+    }
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id="003-risk",
+        study_root=study_root,
+        status_payload=status_payload,
+        materialize_read_model_artifacts=False,
+    )
+
+    action = result["current_executable_owner_action"]
+    assert action["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert action["publication_eval_id"] == latest_eval_id
+    assert action["stage_typed_blocker_ref"] == typed_blocker_ref
+    assert action["gap_ids"] == ["gap-medical-prose"]
+    assert result["progress_first_monitoring_summary"]["execution_state_kind"] == "executable_owner_action"
+    assert result["progress_first_monitoring_summary"]["next_owner"] == "write"
+    assert result["progress_first_monitoring_summary"]["next_work_unit"] == "medical_prose_write_repair"
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_work_unit"]["work_unit_id"] == "medical_prose_write_repair"
+    assert result["user_visible_projection"]["next_owner"] == "write"
+
+
 def test_existing_progress_projection_refreshes_stale_opl_handoff_route(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     mcp_adapter = importlib.import_module("med_autoscience.mcp_server_parts.projection_adapters")

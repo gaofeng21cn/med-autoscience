@@ -134,6 +134,15 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             else {}
         )
     )
+    publication_eval_current_action = (
+        payload_current_action
+        if _publication_eval_readiness_blocker_repair_action(payload_current_action)
+        else (
+            non_artifact_current_action
+            if _publication_eval_readiness_blocker_repair_action(non_artifact_current_action)
+            else {}
+        )
+    )
     terminal_blocks_owner_actions = bool(terminal_domain_blocker) or _canonical_current_work_unit_terminal_blocker(
         canonical_current_work_unit
     )
@@ -144,6 +153,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         and (
         not stage_kernel_current_action
         and not repair_progress_current_action
+        and not publication_eval_current_action
         and (
             not raw_typed_blocker
             or _stage_artifact_index_has_precedence_evidence(
@@ -160,6 +170,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         stage_kernel_current_action
         or repair_progress_current_action
         or gate_followthrough_current_action
+        or publication_eval_current_action
         or effective_stage_artifact_action
         or payload_current_action
         or non_artifact_current_action
@@ -175,6 +186,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     if canonical_typed_blocker_blocks_liveness:
         running_provider_attempt = False
+        active_run_id = None
         active_stage_attempt_id = None
         active_workflow_id = None
     current_action_supersedes_canonical_typed_blocker = _current_action_supersedes_canonical_typed_blocker(
@@ -192,6 +204,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     owner_action_supersedes_envelope_blocker = (
         handoff_owner_action is not None
         or _gate_followthrough_owner_action(current_action)
+        or _publication_eval_readiness_blocker_repair_action(current_action)
         or (
             _next_forced_delta_owner_action(current_action)
             and transition_consumed_owner_action
@@ -204,7 +217,9 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         raw_typed_blocker=raw_typed_blocker,
         artifact_first_supersedes_blocker=artifact_first_supersedes_blocker,
         current_action=current_action,
-    ) and not owner_action_supersedes_envelope_blocker
+    ) and not (
+        owner_action_supersedes_envelope_blocker
+    )
     if envelope_blocks_current_action:
         current_action = {}
         handoff_owner_action = None
@@ -254,6 +269,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or artifact_first_supersedes_blocker
         or _repair_progress_owner_action(current_action)
         or _gate_followthrough_owner_action(current_action)
+        or _publication_eval_readiness_blocker_repair_action(current_action)
         or _next_forced_delta_owner_action(current_action)
         or handoff_owner_action is not None
         or (
@@ -284,6 +300,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _stage_native_owner_action(current_action)
         or _repair_progress_owner_action(current_action)
         or _gate_followthrough_owner_action(current_action)
+        or _publication_eval_readiness_blocker_repair_action(current_action)
         or _next_forced_delta_owner_action(current_action)
         or handoff_owner_action is not None
         or (
@@ -359,7 +376,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         ),
         "next_owner": (
             _explicit_wakeup_hydration_owner(launch_policy)
-            or _text(canonical_current_work_unit.get("owner"))
+            or (
+                None
+                if _publication_eval_readiness_blocker_repair_action(current_action)
+                else _text(canonical_current_work_unit.get("owner"))
+            )
             or _text(current_action.get("next_owner"))
             or _owner_from_action(handoff_owner_action)
             or (
@@ -391,7 +412,11 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             )
         ),
         "controller_action": (
-            _text(canonical_current_work_unit.get("action_type"))
+            (
+                None
+                if _publication_eval_readiness_blocker_repair_action(current_action)
+                else _text(canonical_current_work_unit.get("action_type"))
+            )
             or _first_text(current_action.get("allowed_actions"))
             or _text(current_action.get("action_type"))
             or (
@@ -478,7 +503,10 @@ def _current_action_supersedes_canonical_typed_blocker(
 ) -> bool:
     if _text(canonical_current_work_unit.get("status")) not in {"typed_blocker", "blocked_current_work_unit"}:
         return False
-    if not _next_forced_delta_owner_action(current_action):
+    if not (
+        _next_forced_delta_owner_action(current_action)
+        or _publication_eval_readiness_blocker_repair_action(current_action)
+    ):
         return False
     blocker = _mapping(canonical_work_unit_state.get("typed_blocker"))
     if not blocker:
@@ -923,6 +951,13 @@ def _gate_followthrough_owner_action(action: Mapping[str, Any]) -> bool:
     )
 
 
+def _publication_eval_readiness_blocker_repair_action(action: Mapping[str, Any]) -> bool:
+    return (
+        _text(action.get("source")) == "publication_eval.recommended_actions.readiness_blocker_repair"
+        and bool(_sequence(action.get("allowed_actions")))
+    )
+
+
 def _next_forced_delta_owner_action(action: Mapping[str, Any]) -> bool:
     return (
         _text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
@@ -944,6 +979,8 @@ def _envelope_typed_blocker_blocks_current_action(
     if _repair_progress_owner_action(current_action):
         return False
     if _gate_followthrough_owner_action(current_action):
+        return False
+    if _publication_eval_readiness_blocker_repair_action(current_action):
         return False
     if _next_forced_delta_owner_action(current_action):
         return _text(execution.get("state_kind")) == "typed_blocker" and bool(raw_typed_blocker)

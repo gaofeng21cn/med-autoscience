@@ -39,6 +39,11 @@ from .current_domain_truth_projection import (
     domain_truth_supersedes_ai_repair_lifecycle as _domain_truth_supersedes_ai_repair_lifecycle,
     progress_projection_respecting_current_domain_truth as _progress_projection_respecting_current_domain_truth,
 )
+from .current_executable_owner_action import build_current_executable_owner_action
+from .current_owner_action_projection_reconcile import (
+    current_execution_envelope_actions,
+    reconcile_current_owner_action_projection,
+)
 from .projection_sources import (
     _attach_existing_autonomy_slo_projection,
     _autonomy_slo_observer_status,
@@ -52,6 +57,7 @@ from .projection_payload_assembly import (
     assemble_study_progress_payload,
     build_projection_refs,
 )
+from .progress_first_monitoring import build_progress_first_monitoring_summary
 from .projection_quality_surfaces import build_quality_projection_surfaces as _quality_projection_surfaces
 from .projection_runtime_surfaces import (
     supervision_health_status as _supervision_health_status,
@@ -61,6 +67,7 @@ from .runtime_closeout_invalidation import status_with_invalidated_closed_runtim
 from .projection_status_context import build_projection_status_context
 from .task_intake_override import task_intake_override_superseded_by_gate_specificity
 from .user_visible_projection import build_user_visible_projection
+from med_autoscience.controllers import current_execution_envelope, current_work_unit
 from . import ai_first_default_entry as _ai_first_default_entry, operator_view as _operator_view, progress_freshness as _progress_freshness_parts, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
 
@@ -93,6 +100,70 @@ def _refresh_existing_projection_user_visible_status(payload: dict[str, Any]) ->
             updated["status_narration_contract"] = status_contract
         return updated
     return payload
+
+
+def _refresh_existing_projection_current_owner_surfaces(
+    *,
+    payload: dict[str, Any],
+    status: dict[str, Any],
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    updated = dict(payload)
+    if publication_eval_payload is not None:
+        updated["publication_eval"] = publication_eval_payload
+    current_action = build_current_executable_owner_action(updated)
+    if current_action is None:
+        return _attach_delivery_inspection_projection(
+            updated,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_root=study_root,
+        )
+    if current_action is not None:
+        updated["current_executable_owner_action"] = current_action
+        updated = reconcile_current_owner_action_projection(updated)
+    handoff = _mapping_copy(updated.get("opl_current_control_state_handoff"))
+    progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
+    envelope_actions = current_execution_envelope_actions(
+        handoff=handoff,
+        current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
+        paper_progress_delta_counted=progress_state.get("paper_progress_delta_counted") is True,
+    )
+    runtime_health_snapshot = _mapping_copy(updated.get("runtime_health_snapshot"))
+    updated["current_work_unit"] = current_work_unit.build_current_work_unit(
+        status=status,
+        progress=updated,
+        actions=envelope_actions,
+        current_executable_owner_action=_mapping_copy(updated.get("current_executable_owner_action")),
+        provider_admission=handoff,
+        live_provider_attempt=handoff,
+        typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
+        blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
+        next_owner=_non_empty_text(handoff.get("next_owner")),
+        runtime_health=runtime_health_snapshot,
+    )
+    updated["current_execution_envelope"] = current_execution_envelope.build_current_execution_envelope(
+        status=status,
+        progress=updated,
+        actions=envelope_actions,
+        blocked_reason=_non_empty_text(handoff.get("blocked_reason")),
+        next_owner=_non_empty_text(handoff.get("next_owner")),
+        typed_blocker=_mapping_copy(handoff.get("typed_blocker")),
+        runtime_health=runtime_health_snapshot,
+        live_provider_attempt=handoff,
+        current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
+    )
+    updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+    updated["user_visible_projection"] = build_user_visible_projection(updated)
+    return _attach_delivery_inspection_projection(
+        updated,
+        profile=profile,
+        profile_ref=profile_ref,
+        study_root=study_root,
+    )
 
 
 def _current_redrive_top_level_next_action(payload: dict[str, Any]) -> str | None:
@@ -180,6 +251,9 @@ def build_study_progress_projection(
     status = status_with_invalidated_closed_runtime_attempt(status=status, study_root=study_root)
     existing_projection = status.get("progress_projection")
     if isinstance(existing_projection, dict) and _non_empty_text(existing_projection.get("study_id")) == study_id:
+        publication_eval_payload = _read_json_object(
+            study_root / "artifacts" / "publication_eval" / "latest.json"
+        )
         normalized_existing = _normalize_study_progress_payload(
             {
                 **existing_projection,
@@ -189,18 +263,18 @@ def build_study_progress_projection(
         normalized_existing.pop("publication_supervisor_state", None)
         normalized_existing = _progress_projection_respecting_current_domain_truth(
             study_root=study_root,
-            publication_eval_payload=_read_json_object(
-                study_root / "artifacts" / "publication_eval" / "latest.json"
-            ),
+            publication_eval_payload=publication_eval_payload,
             payload=normalized_existing,
         )
         return _attach_existing_autonomy_slo_projection(
             _refresh_existing_projection_user_visible_status(
-                _attach_delivery_inspection_projection(
-                    normalized_existing,
+                _refresh_existing_projection_current_owner_surfaces(
+                    payload=normalized_existing,
+                    status=status,
                     profile=profile,
                     profile_ref=profile_ref,
                     study_root=study_root,
+                    publication_eval_payload=publication_eval_payload,
                 )
             ),
             study_root=study_root,
@@ -247,7 +321,10 @@ def build_study_progress_projection(
         study_root=resolved_study_root,
     )
     if cutover_publication_eval is not None:
-        publication_eval_payload = cutover_publication_eval
+        publication_eval_payload = {
+            **cutover_publication_eval,
+            "source_publication_eval": publication_eval_payload,
+        }
     gate_specificity_request_path, gate_specificity_request = _read_gate_specificity_request(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
@@ -943,6 +1020,7 @@ def build_study_progress_projection(
         ai_doctor_state=ai_doctor_state,
         repair_recommendation=repair_recommendation,
         ai_repair_lifecycle=ai_repair_lifecycle,
+        publication_eval_payload=publication_eval_payload,
         stage_artifact_index=stage_artifact_index_projection,
         autonomous_runtime_notice=autonomous_runtime_notice,
         execution_owner_guard=execution_owner_guard,

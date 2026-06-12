@@ -41,11 +41,18 @@ from med_autoscience.controllers.current_work_unit_parts.policy_constants import
     MEDICAL_READINESS_BLOCKERS,
     OPL_CURRENT_CONTROL_ACTION_QUEUE_SOURCE,
     PAPER_DELTA_PRIOR_BLOCKER_SUPERSEDING_ACTION_SOURCES,
+    PUBLICATION_EVAL_READINESS_REPAIR_SOURCE,
     PROVIDER_ADMISSION_AUTHORITIES,
     PROVIDER_ADMISSION_REPAIR_ACTIONS,
     REASON_ONLY_TYPED_BLOCKERS,
     RUNNING_HEALTH_VALUES,
     TERMINAL_CLOSEOUT_STATUSES,
+)
+from med_autoscience.controllers.current_work_unit_parts.primitives import (
+    first_text as _first_text,
+    mapping as _mapping,
+    text as _text,
+    text_items as _text_items,
 )
 from med_autoscience.controllers.current_work_unit_parts.readiness_identity import (
     readiness_typed_blocker_currentness_basis,
@@ -970,6 +977,8 @@ def _action_supersedes_stage_owner_answer(
         return True
     if _gate_consumption_action_supersedes_readiness_blocker(payload):
         return True
+    if _publication_eval_repair_action_supersedes_readiness_blocker(payload):
+        return True
     return _paper_delta_current_action_supersedes_prior_blocker(
         action=payload,
         progress=progress,
@@ -1009,6 +1018,8 @@ def _action_supersedes_typed_blocker(
     if _provider_admission_repair_action_supersedes_readiness_blocker(action):
         return True
     if _gate_consumption_action_supersedes_readiness_blocker(action):
+        return True
+    if _publication_eval_repair_action_supersedes_readiness_blocker(action):
         return True
     return _paper_delta_current_action_supersedes_prior_blocker(
         action=action,
@@ -1130,6 +1141,18 @@ def _provider_admission_repair_action_supersedes_readiness_blocker(action: Mappi
         if text is not None and text.startswith("study-progress-current-owner-ticket::"):
             return True
     return False
+
+
+def _publication_eval_repair_action_supersedes_readiness_blocker(action: Mapping[str, Any]) -> bool:
+    if (_text(action.get("source_surface")) or _text(action.get("source"))) != PUBLICATION_EVAL_READINESS_REPAIR_SOURCE:
+        return False
+    action_type = _text(action.get("action_type"))
+    action_types = {action_type, *_text_items(action.get("allowed_actions"))}
+    if "run_quality_repair_batch" not in action_types:
+        return False
+    if _text(action.get("work_unit_id")) in {None, "complete_medical_paper_readiness_surface"}:
+        return False
+    return bool(_mapping(action.get("target_surface")).get("next_work_unit"))
 
 
 def _gate_followthrough_actionable_repair_action(action: Mapping[str, Any]) -> bool:
@@ -1452,33 +1475,6 @@ def _delta_count(value: Mapping[str, Any]) -> int:
         return int(value.get("count") or 0)
     except (TypeError, ValueError):
         return 0
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _text(value: object) -> str | None:
-    text = str(value or "").strip()
-    return text or None
-
-
-def _text_items(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = _text(value)
-        return [text] if text is not None else []
-    if not isinstance(value, (list, tuple, set)):
-        return []
-    result: list[str] = []
-    for item in value:
-        text = _text(item)
-        if text is not None and text not in result:
-            result.append(text)
-    return result
-
-
-def _first_text(items: Sequence[str]) -> str | None:
-    return items[0] if items else None
 
 
 __all__ = [

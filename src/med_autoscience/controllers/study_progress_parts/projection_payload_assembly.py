@@ -337,6 +337,7 @@ def assemble_study_progress_payload(
     ai_doctor_state: dict[str, Any],
     repair_recommendation: dict[str, Any],
     ai_repair_lifecycle: dict[str, Any] | None,
+    publication_eval_payload: dict[str, Any] | None,
     stage_artifact_index: dict[str, Any] | None,
     autonomous_runtime_notice: dict[str, Any],
     execution_owner_guard: dict[str, Any],
@@ -464,6 +465,7 @@ def assemble_study_progress_payload(
         "platform_repair_delta": progress_delta["platform_repair_delta"],
         "progress_delta_classification": progress_delta["progress_delta_classification"],
         "research_pack_progress_summary": research_pack_progress_summary,
+        "publication_eval": publication_eval_payload,
         "refs": refs,
     }
     if stage_artifact_index is not None:
@@ -640,10 +642,18 @@ def _current_action_aligned_with_execution_envelope(
         return dict(action)
     if _non_empty_text(action.get("source")) == "gate_clearing_batch_followthrough.actionable_current_work_unit":
         return dict(action)
+    if _non_empty_text(action.get("source")) == "publication_eval.recommended_actions.readiness_blocker_repair":
+        return dict(action)
     if (
         state_kind == "typed_blocker"
         and _non_empty_text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
         and _envelope_typed_blocker_reason(envelope) == "gate_clearing_batch_source_eval_currentness_mismatch"
+    ):
+        return dict(action)
+    if (
+        state_kind == "typed_blocker"
+        and _non_empty_text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
+        and action.get("terminal_stage_next_forced_delta") is True
     ):
         return dict(action)
     if state_kind == "typed_blocker" and _non_empty_text(action.get("source")) == "stage_native_workspace_next_action":

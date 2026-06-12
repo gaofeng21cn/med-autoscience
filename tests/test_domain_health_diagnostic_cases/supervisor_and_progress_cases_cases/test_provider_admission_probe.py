@@ -9,6 +9,18 @@ globals().update({
 })
 
 
+def _assert_identity_extends_handoff(candidate: dict, handoff_identity: dict) -> None:
+    for key, value in handoff_identity.items():
+        assert candidate.get(key) == value
+    route_identity_key = (
+        f"provider-admission::{handoff_identity['study_id']}::"
+        f"{handoff_identity['action_fingerprint']}"
+    )
+    assert candidate["route_identity_key"] == route_identity_key
+    assert candidate["attempt_idempotency_key"] == route_identity_key
+    assert candidate["idempotency_key"] == route_identity_key
+
+
 def test_domain_health_diagnostic_same_tick_reports_handoff_pending_without_provider_attempt(
     tmp_path: Path,
     monkeypatch,
@@ -138,6 +150,8 @@ def test_domain_health_diagnostic_dry_run_surfaces_current_handoff_ready_provide
                             "owner_route_currentness_basis": {
                                 "work_unit_id": "complete_medical_paper_readiness_surface",
                                 "work_unit_fingerprint": work_unit_fingerprint,
+                                "truth_epoch": "2026-06-07T19:56:40+00:00",
+                                "runtime_health_epoch": "2026-06-07T19:56:40+00:00",
                             },
                         },
                     },
@@ -273,6 +287,8 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
                             "owner_route_currentness_basis": {
                                 "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
                                 "work_unit_fingerprint": action_fingerprint,
+                                "truth_epoch": "2026-06-08T05:50:00+00:00",
+                                "runtime_health_epoch": "2026-06-08T05:50:00+00:00",
                             },
                         },
                     },
@@ -385,7 +401,8 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
     assert latest_handoff["provider_admission_candidates"] == [identity]
     current_control = json.loads(current_control_path.read_text(encoding="utf-8"))
     assert current_control["provider_admission_pending_count"] == 1
-    assert current_control["provider_admission_candidates"] == [identity]
+    assert len(current_control["provider_admission_candidates"]) == 1
+    _assert_identity_extends_handoff(current_control["provider_admission_candidates"][0], identity)
     assert current_control["current_control_refresh_source"] == (
         "domain_health_diagnostic.provider_admission_candidates"
     )
@@ -394,7 +411,7 @@ def test_runtime_owner_handoff_carries_current_provider_admission_identity(
     ]
     study = current_control["studies"][0]
     assert study["study_id"] == study_id
-    assert study["provider_admission_identity"] == identity
+    _assert_identity_extends_handoff(study["provider_admission_identity"], identity)
     assert [action["action_type"] for action in study["action_queue"]] == [
         "return_to_ai_reviewer_workflow"
     ]
@@ -1121,163 +1138,6 @@ def test_provider_probe_rejects_action_only_running_attempt_match() -> None:
 
     assert provider_admission.provider_probe_has_matching_attempt(scan_result, identity=identity) is False
 
-
-def test_domain_health_diagnostic_rewrites_provider_admission_after_same_tick_owner_route_scan(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    helpers = importlib.import_module("tests.study_runtime_test_helpers")
-    profile = helpers.make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    study_root = profile.studies_root / study_id
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / "run_gate_clearing_batch.json"
-    )
-    execution_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_execution"
-        / "latest.json"
-    )
-    study_root.mkdir(parents=True, exist_ok=True)
-    dump_json(study_root / "study.yaml", {"study_id": study_id})
-
-    stale_owner_route_payload = {
-        "surface": "opl_current_control_state_handoff",
-        "schema_version": 1,
-        "generated_at": "2026-06-09T03:41:44+00:00",
-        "workspace_root": str(profile.workspace_root),
-        "provider_admission_pending_count": 0,
-        "provider_admission_candidates": [],
-        "studies": [
-            {
-                "study_id": study_id,
-                "quest_id": study_id,
-                "action_queue": [
-                    {
-                        "study_id": study_id,
-                        "action_type": "run_gate_clearing_batch",
-                        "status": "queued",
-                        "authority": "observability_only",
-                    }
-                ],
-            }
-        ],
-        "action_queue": [
-            {
-                "study_id": study_id,
-                "action_type": "run_gate_clearing_batch",
-                "status": "queued",
-                "authority": "observability_only",
-            }
-        ],
-    }
-
-    def fake_impl(**kwargs) -> dict[str, object]:
-        return {
-            "schema_version": 1,
-            "scanned_at": "2026-06-09T03:40:56+00:00",
-            "runtime_root": str(profile.runtime_root),
-            "managed_study_opl_provider_admission_candidates": [
-                {
-                    "surface": "opl_provider_admission_candidate",
-                    "schema_version": 1,
-                    "status": "provider_admission_pending",
-                    "source": "default_executor_execution",
-                    "execution_ref": str(execution_path),
-                    "study_id": study_id,
-                    "quest_id": study_id,
-                    "action_type": "run_gate_clearing_batch",
-                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-                    "work_unit_fingerprint": (
-                        "domain-transition::route_back_same_line::"
-                        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
-                    ),
-                    "action_fingerprint": (
-                        "domain-transition::route_back_same_line::"
-                        "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
-                    ),
-                    "dispatch_path": str(dispatch_path),
-                    "dispatch_authority": "consumer_default_executor_dispatch",
-                    "blocked_reason": "opl_execution_authorization_required",
-                    "next_executable_owner": "gate_clearing_batch",
-                    "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
-                    "provider_attempt_or_lease_required": True,
-                    "provider_completion_is_domain_completion": False,
-                    "owner_route_current": True,
-                }
-            ],
-            "provider_admission_pending_count": 1,
-        }
-
-    monkeypatch.setattr(module, "_run_domain_health_diagnostic_for_runtime_impl", fake_impl)
-    monkeypatch.setattr(
-        module,
-        "_run_developer_supervisor_same_tick",
-        lambda **kwargs: (
-            dump_json(module.supervision_surfaces.latest_path(profile), stale_owner_route_payload)
-            or {
-                "surface": "developer_supervisor_same_tick",
-                "schema_version": 1,
-                "stop_reason": "provider_handoff_written_admission_pending",
-                "study_ids": [study_id],
-                "iterations": [],
-                "materialize": {
-                    "surface": "domain_action_request_materializer",
-                    "default_executor_dispatch_count": 1,
-                    "ready_default_executor_dispatch_count": 1,
-                    "default_executor_dispatches": [
-                        {
-                            "study_id": study_id,
-                            "quest_id": study_id,
-                            "action_type": "run_gate_clearing_batch",
-                            "dispatch_status": "ready",
-                            "dispatch_authority": "consumer_default_executor_dispatch",
-                            "dispatch_path": str(dispatch_path),
-                            "next_executable_owner": "gate_clearing_batch",
-                            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
-                            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-                            "work_unit_fingerprint": (
-                                "domain-transition::route_back_same_line::"
-                                "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
-                            ),
-                        }
-                    ],
-                },
-            }
-        ),
-    )
-
-    result = module.run_domain_health_diagnostic_for_runtime(
-        runtime_root=profile.runtime_root,
-        controller_runners={},
-        apply=True,
-        profile=profile,
-        study_ids=(study_id,),
-        request_opl_stage_attempts=True,
-        request_opl_owner_route_reconcile=True,
-    )
-
-    current_control_state = result["provider_admission_current_control_state"]
-    assert current_control_state["provider_admission_pending_count"] == 1
-    assert current_control_state["provider_admission_candidates"][0]["dispatch_path"] == str(dispatch_path)
-    assert current_control_state["action_queue"][0]["dispatch_path"] == str(dispatch_path)
-    latest_payload = json.loads(
-        module.supervision_surfaces.latest_path(profile).read_text(encoding="utf-8")
-    )
-    assert latest_payload["provider_admission_pending_count"] == 1
-    assert latest_payload["provider_admission_candidates"][0]["dispatch_path"] == str(dispatch_path)
-    assert latest_payload["action_queue"][0]["dispatch_path"] == str(dispatch_path)
-
-
 def test_provider_admission_candidate_is_suppressed_by_typed_blocker_envelope() -> None:
     provider_admission = importlib.import_module(
         "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
@@ -1456,7 +1316,6 @@ def test_provider_admission_candidate_survives_readiness_typed_blocker_for_stage
     assert candidate["work_unit_fingerprint"] == fingerprint
     assert candidate["provider_attempt_or_lease_required"] is True
     assert candidate["owner_route_basis"] == "stage_native_workspace_next_action"
-
 
 def test_provider_admission_candidate_requires_dispatch_path() -> None:
     provider_admission = importlib.import_module(

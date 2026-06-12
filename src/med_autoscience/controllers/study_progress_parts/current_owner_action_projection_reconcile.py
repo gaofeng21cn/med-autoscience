@@ -14,6 +14,7 @@ CURRENT_OWNER_ACTION_SOURCES = frozenset(
         "study_progress.next_forced_delta.owner_action",
         "domain_transition",
         "repair_progress_projection.mas_owner_repair_execution_evidence",
+        "publication_eval.recommended_actions.readiness_blocker_repair",
     }
 )
 READINESS_ACTION = "complete_medical_paper_readiness_surface"

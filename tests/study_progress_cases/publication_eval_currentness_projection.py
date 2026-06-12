@@ -284,6 +284,148 @@ def test_study_progress_filters_cached_projection_after_controller_closure(tmp_p
     assert result["status_narration_contract"]["current_blockers"] == ["仍需人工复核主文叙事。"]
 
 
+def test_study_progress_refreshes_cached_readiness_blocker_to_publication_eval_repair_action(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "003-risk", quest_id="quest-003")
+    typed_blocker_ref = (
+        "artifacts/stage_outputs/08-publication_package_handoff/"
+        "receipts/typed_blocker.json"
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::003-risk::quest-003::2026-06-12T06:44:23+00:00",
+            "study_id": "003-risk",
+            "quest_id": "quest-003",
+            "verdict": {"overall_verdict": "blocked"},
+            "gaps": [
+                {
+                    "gap_id": "gap-002",
+                    "gap_type": "reporting",
+                    "severity": "must_fix",
+                    "summary": "medical_publication_surface_blocked",
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": (
+                        "publication-eval-action::route_back_same_line::"
+                        "publication-blockers::0915410f804b3697"
+                    ),
+                    "action_type": "route_back_same_line",
+                    "priority": "now",
+                    "reason": "medical publication surface is blocked",
+                    "evidence_refs": [
+                        str(study_root / "artifacts" / "publication_eval" / "latest.json")
+                    ],
+                    "route_target": "write",
+                    "route_key_question": (
+                        "What is the narrowest same-line manuscript repair?"
+                    ),
+                    "route_rationale": "Close reviewer-first publication-surface concerns.",
+                    "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                    "next_work_unit": {
+                        "unit_id": "medical_prose_write_repair",
+                        "lane": "write",
+                        "summary": "Repair structured medical reporting.",
+                    },
+                }
+            ],
+        },
+    )
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id="003-risk",
+        study_root=study_root,
+        status_payload={
+            "study_id": "003-risk",
+            "publication_supervisor_state": {},
+            "progress_projection": {
+                "schema_version": 1,
+                "study_id": "003-risk",
+                "current_stage": "auto_runtime_parked",
+                "paper_stage": "analysis-campaign",
+                "auto_runtime_parked": {
+                    "surface_kind": "auto_runtime_parked",
+                    "parked": True,
+                    "parked_state": "explicit_resume_pending",
+                    "awaiting_explicit_wakeup": True,
+                    "auto_execution_complete": False,
+                    "parked_owner": "user",
+                },
+                "current_work_unit": {
+                    "surface_kind": "current_work_unit",
+                    "status": "typed_blocker",
+                    "owner": "MedAutoScience",
+                    "action_type": "complete_medical_paper_readiness_surface",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "state": {
+                        "state_kind": "typed_blocker",
+                        "source": "stage_owner_answer",
+                        "typed_blocker": {
+                            "blocker_type": "medical_paper_readiness_missing",
+                            "blocker_id": "medical_paper_readiness_missing",
+                            "owner": "MedAutoScience",
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                            "source_ref": typed_blocker_ref,
+                        },
+                    },
+                },
+                "current_execution_envelope": {
+                    "state_kind": "typed_blocker",
+                    "owner": "MedAutoScience",
+                    "typed_blocker": {
+                        "blocker_type": "medical_paper_readiness_missing",
+                        "blocker_id": "medical_paper_readiness_missing",
+                        "owner": "MedAutoScience",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "source_ref": typed_blocker_ref,
+                    },
+                },
+                "stage_kernel_projection": {
+                    "current_owner_delta": {
+                        "owner": "MedAutoScience",
+                        "action": "complete_medical_paper_readiness_surface",
+                        "reason": "medical_paper_readiness_missing",
+                        "required_input": "complete_medical_paper_readiness_surface",
+                        "blocked_surface": "publication_handoff_owner_gate",
+                        "source_ref": typed_blocker_ref,
+                        "source_kind": "typed_blocker",
+                    },
+                    "stage_run_kernel": {
+                        "status": "TypedBlocked",
+                        "typed_blocker_ref": typed_blocker_ref,
+                    },
+                },
+                "current_blockers": ["medical_paper_readiness_missing"],
+            },
+        },
+    )
+
+    action = result["current_executable_owner_action"]
+    assert action["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert action["next_owner"] == "write"
+    assert action["work_unit_id"] == "medical_prose_write_repair"
+    assert result["current_work_unit"]["status"] == "executable_owner_action"
+    assert result["current_work_unit"]["owner"] == "write"
+    assert result["current_work_unit"]["work_unit_id"] == "medical_prose_write_repair"
+    assert result["current_execution_envelope"]["state_kind"] == "executable_owner_action"
+    assert result["current_execution_envelope"]["owner"] == "write"
+    assert result["current_execution_envelope"]["next_work_unit"] == "medical_prose_write_repair"
+    assert result["progress_first_monitoring_summary"]["execution_state_kind"] == (
+        "executable_owner_action"
+    )
+    assert (
+        result["progress_first_monitoring_summary"]["owner_action_admission"][
+            "provider_attempt_running_proven"
+        ]
+        is False
+    )
+
+
 def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
     monkeypatch,
     tmp_path: Path,

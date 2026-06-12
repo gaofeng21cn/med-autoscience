@@ -385,6 +385,20 @@ def test_stage_route_reconcile_contract_blocks_foreground_codex_bypass_for_recov
     assert frontdoor["ordinary_executor_route"] == (
         "MAS owner callable or OPL StageRun provider attempt invokes Codex as an internal executor"
     )
+    assert frontdoor["enforcement_model"] == "authority_acceptance_not_filesystem_prevention"
+    assert frontdoor["human_or_foreground_manual_edits_possible"] is True
+    assert {
+        "mas_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "same_current_identity_strict_provider_running_proof",
+        "canonical_changed_surface_ref_consumed_by_mas_or_opl",
+    } <= set(frontdoor["manual_bypass_adoption_requires"])
+    assert frontdoor["manual_bypass_without_required_refs_effect"] == (
+        "ignored_diagnostic_no_recovery_claim"
+    )
     assert {
         "paper_local_codex_execution_without_mas_owner_callable",
         "direct_manuscript_or_package_edit_as_recovery_route",

@@ -347,15 +347,20 @@ def _closeout_evidence_with_identity(
     ):
         result["identity_binding_status"] = "mismatch"
         return result
-    for key in (
-        "action_type",
-        "work_unit_id",
-        "work_unit_fingerprint",
-        "action_fingerprint",
-        "source_eval_id",
-        "truth_epoch",
-        "runtime_health_epoch",
-    ):
+    identity_fill_keys = (
+        (
+            "action_type",
+            "work_unit_id",
+            "work_unit_fingerprint",
+            "action_fingerprint",
+            "source_eval_id",
+            "truth_epoch",
+            "runtime_health_epoch",
+        )
+        if had_native_identity
+        else ("action_type", "work_unit_id")
+    )
+    for key in identity_fill_keys:
         if result.get(key) in (None, "", [], {}) and identity.get(key) not in (None, "", [], {}):
             result[key] = identity[key]
     if not had_native_identity:
@@ -394,7 +399,10 @@ def _closeout_identity_matches_current(
     *,
     identity: Mapping[str, Any],
 ) -> bool:
-    if closeout.get("identity_binding_status") == "mismatch":
+    if closeout.get("identity_binding_status") in {
+        "mismatch",
+        "inferred_from_current_work_unit",
+    }:
         return False
     expected_action = _non_empty_text(identity.get("action_type"))
     expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
@@ -576,7 +584,7 @@ def _filter_provider_admission_candidates_by_progress_currentness(
     filtered: list[dict[str, Any]] = []
     for candidate in candidates:
         study_id = _non_empty_text(candidate.get("study_id"))
-        if study_id in blocked_scanned_study_ids:
+        if study_id in blocked_scanned_study_ids and not _same_tick_materialized_candidate(candidate):
             continue
         current_action_identity = current_action_by_study.get(study_id) if study_id is not None else None
         if current_action_identity is not None and not _same_tick_candidate_matches_current_action(
@@ -659,6 +667,12 @@ def _provider_admission_candidates_from_same_tick_materialize(
             "provider_attempt_or_lease_required": True,
             "provider_completion_is_domain_completion": False,
             "owner_route_current": True,
+            "same_tick_materialized_provider_admission": True,
+            **(
+                {"currentness_basis": dict(_mapping(base.get("currentness_basis")))}
+                if _mapping(base.get("currentness_basis"))
+                else {}
+            ),
         }
         if candidate["study_id"] is not None and candidate["action_type"] is not None:
             current_action_identity = current_action_by_study.get(candidate["study_id"])
@@ -669,6 +683,12 @@ def _provider_admission_candidates_from_same_tick_materialize(
                 continue
             candidates.append({key: value for key, value in candidate.items() if value is not None})
     return candidates
+
+
+def _same_tick_materialized_candidate(candidate: Mapping[str, Any]) -> bool:
+    if candidate.get("same_tick_materialized_provider_admission") is True:
+        return True
+    return _non_empty_text(candidate.get("source")) == "same_tick_materialized_dispatch"
 
 
 def _same_tick_progress_current_actions(
@@ -745,11 +765,40 @@ def _same_tick_progress_current_actions(
             ),
             "work_unit_id": _non_empty_text(current.get("work_unit_id"))
             or _non_empty_text(next_action.get("action_id")),
-            "explicit_fingerprints": explicit_fingerprints,
+            "explicit_fingerprints": _same_tick_current_action_fingerprints(
+                current=current,
+                work_unit_id=(
+                    _non_empty_text(current.get("work_unit_id"))
+                    or _non_empty_text(next_action.get("action_id"))
+                ),
+                existing_fingerprints=explicit_fingerprints,
+            ),
             "source_ref": _non_empty_text(current.get("source_ref"))
             or _non_empty_text(current.get("latest_owner_answer_ref")),
         }
     return current_actions
+
+
+def _same_tick_current_action_fingerprints(
+    *,
+    current: Mapping[str, Any],
+    work_unit_id: str | None,
+    existing_fingerprints: list[str],
+) -> list[str]:
+    fingerprints = list(existing_fingerprints)
+    source_ref = _non_empty_text(current.get("source_ref")) or _non_empty_text(
+        current.get("latest_owner_answer_ref")
+    )
+    target_surface = _mapping(current.get("target_surface"))
+    surface_key = _non_empty_text(current.get("surface_key")) or _non_empty_text(
+        target_surface.get("surface_key")
+    )
+    if work_unit_id is not None and source_ref is not None:
+        fingerprints.append(
+            "stage-current-owner-delta::"
+            f"{work_unit_id}::{surface_key or 'unspecified_surface'}::{source_ref}"
+        )
+    return list(dict.fromkeys(fingerprints))
 
 
 def _same_tick_candidate_matches_current_action(

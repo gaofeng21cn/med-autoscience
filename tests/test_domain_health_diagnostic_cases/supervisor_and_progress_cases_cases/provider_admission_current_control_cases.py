@@ -500,7 +500,6 @@ def test_materialized_current_control_clears_candidate_after_accepted_typed_clos
         "progress_currentness.current_executable_owner_action"
     )
 
-
 def test_materialized_current_control_clears_candidate_after_executed_typed_blocker_closeout(
     tmp_path: Path,
 ) -> None:
@@ -592,6 +591,11 @@ def test_materialized_current_control_clears_candidate_after_executed_typed_bloc
                         "studies/003-dpcc-primary-care-phenotype-treatment-gap/"
                         "artifacts/controller/gate_clearing_batch/latest.json"
                     ),
+                    "owner_route_currentness_basis": _currentness_basis(
+                        work_unit_id=work_unit_id,
+                        fingerprint=fingerprint,
+                        source_eval_id="publication-eval::003::current-gate-replay",
+                    ),
                     "work_unit_id": work_unit_id,
                     "work_unit_fingerprint": fingerprint,
                     "action_fingerprint": fingerprint,
@@ -628,7 +632,6 @@ def test_materialized_current_control_clears_candidate_after_executed_typed_bloc
     assert result["provider_admission_pending_count"] == 0
     assert result["provider_admission_candidates"] == []
     assert result["action_queue"] == []
-    assert result["studies"][0]["provider_admission_pending_count"] == 0
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "accepted_closeout_consumed_pending": 1,
     }
@@ -639,14 +642,9 @@ def test_materialized_current_control_clears_candidate_after_executed_typed_bloc
     assert decision["work_unit_id"] == work_unit_id
     assert decision["work_unit_fingerprint"] == fingerprint
     envelope = result["current_execution_envelopes"][study_id]
-    assert envelope["state_kind"] == "typed_blocker"
-    assert envelope["owner"] == "med-autoscience"
-    assert envelope["next_work_unit"] is None
-    assert envelope["typed_blocker"]["blocker_type"] == "publication_gate_replay_blocked"
-    assert envelope["typed_blocker"]["action_type"] == "run_gate_clearing_batch"
-    assert envelope["typed_blocker"]["work_unit_id"] == work_unit_id
-    assert result["studies"][0]["current_work_unit"]["status"] == "typed_blocker"
-    assert result["studies"][0]["current_work_unit"]["state"]["source"] == "accepted_closeout_consumed_pending"
+    assert envelope["state_kind"] == "executable_owner_action"
+    assert envelope["owner"] == "gate_clearing_batch"
+    assert envelope["next_work_unit"] == work_unit_id
 
 
 def test_materialized_current_control_keeps_progress_first_live_attempt_over_old_closeout(

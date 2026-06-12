@@ -30,6 +30,9 @@ def progress_projection_respecting_current_domain_truth(
     )
     updated = dict(payload)
     changed = False
+    if publication_eval_payload is not None and updated.get("publication_eval") != publication_eval_payload:
+        updated["publication_eval"] = publication_eval_payload
+        changed = True
     blockers_changed = blockers != payload.get("current_blockers")
     if blockers_changed:
         updated["current_blockers"] = blockers

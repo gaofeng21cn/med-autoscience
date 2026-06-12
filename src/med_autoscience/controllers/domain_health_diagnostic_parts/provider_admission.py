@@ -1106,6 +1106,11 @@ def _typed_blocker_envelope_allows_provider_admission(
         current_action_identity=current_action_identity,
     ):
         return True
+    if _publication_eval_repair_execution_matches_current_action(
+        execution,
+        current_action_identity=current_action_identity,
+    ):
+        return True
     if _gate_replay_authorization_consumes_current_ai_reviewer_record(
         execution,
         current_action_identity=current_action_identity,
@@ -1193,6 +1198,26 @@ def _repair_progress_gate_clearing_execution_matches_current_action(
         execution,
         current_action_identity=current_action_identity,
         action_type="run_gate_clearing_batch",
+    )
+
+
+def _publication_eval_repair_execution_matches_current_action(
+    execution: Mapping[str, Any],
+    *,
+    current_action_identity: Mapping[str, Any],
+) -> bool:
+    if not current_action_identity:
+        return False
+    if _non_empty_text(current_action_identity.get("source")) != (
+        "publication_eval.recommended_actions.readiness_blocker_repair"
+    ):
+        return False
+    if _non_empty_text(current_action_identity.get("next_owner")) != "write":
+        return False
+    return _repair_progress_execution_matches_current_action(
+        execution,
+        current_action_identity=current_action_identity,
+        action_type="run_quality_repair_batch",
     )
 
 

@@ -380,6 +380,71 @@ def test_current_work_unit_projects_gate_consumption_action_over_stage_readiness
         assert "typed_blocker" not in work_unit["state"]
 
 
+def test_current_work_unit_projects_publication_eval_repair_over_stage_readiness_blocker() -> None:
+    module = _module()
+    typed_blocker_ref = (
+        "artifacts/stage_outputs/08-publication_package_handoff/"
+        "receipts/typed_blocker.json"
+    )
+    repair_fingerprint = "publication-blockers::0915410f804b3697"
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "auto_runtime_parked",
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "owner": "MedAutoScience",
+                    "action": "complete_medical_paper_readiness_surface",
+                    "reason": "medical_paper_readiness_missing",
+                    "required_input": "complete_medical_paper_readiness_surface",
+                    "blocked_surface": "publication_handoff_owner_gate",
+                    "source_ref": typed_blocker_ref,
+                    "source_kind": "typed_blocker",
+                    "latest_owner_answer_kind": "typed_blocker",
+                    "hard_gate": {
+                        "state": "domain_owner_answer_recorded",
+                        "owner_answer_ref": typed_blocker_ref,
+                    },
+                }
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+            "next_owner": "write",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": repair_fingerprint,
+            "action_fingerprint": repair_fingerprint,
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "owner_receipt_required": True,
+            "required_delta_kind": "publication_eval_recommended_repair_delta_or_typed_blocker",
+            "target_surface": {
+                "ref_kind": "publication_eval_recommended_action",
+                "route_target": "write",
+                "stage_typed_blocker_ref": typed_blocker_ref,
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                },
+            },
+        },
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == "medical_prose_write_repair"
+    assert work_unit["work_unit_fingerprint"] == repair_fingerprint
+    assert work_unit["currentness_basis"]["work_unit_fingerprint"] == repair_fingerprint
+    assert work_unit["state"]["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert "typed_blocker" not in work_unit["state"]
+
+
 def test_current_work_unit_projects_gate_consumption_action_over_opl_authorization_residue_after_paper_delta() -> None:
     module = _module()
 
