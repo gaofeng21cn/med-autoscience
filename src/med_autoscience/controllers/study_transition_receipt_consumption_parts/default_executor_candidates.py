@@ -201,6 +201,7 @@ def _execution_from_stage_closeout(
         "execution_id": _text(closeout.get("execution_id"))
         or _text(closeout.get("closeout_id"))
         or _text(closeout.get("stage_attempt_id")),
+        "source_fingerprint": _text(closeout.get("source_fingerprint")),
         "idempotency_key": _text(closeout.get("idempotency_key")),
         "current_owner_route": route or None,
         "owner_route": route or None,

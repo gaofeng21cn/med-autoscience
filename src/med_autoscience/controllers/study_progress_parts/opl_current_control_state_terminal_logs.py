@@ -605,6 +605,8 @@ def _latest_typed_default_executor_closeout_projection(
                 "study_id": study_id,
                 "execution_id": _non_empty_text(execution.get("execution_id")),
                 "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
+                "source_fingerprint": _non_empty_text(execution.get("source_fingerprint")),
+                "idempotency_key": _non_empty_text(execution.get("idempotency_key")),
                 "action_type": _non_empty_text(execution.get("action_type")),
                 "status": "typed_blocker",
                 "blocked_reason": blocked_reason,
