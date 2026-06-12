@@ -434,12 +434,12 @@ def test_current_work_unit_terminal_quality_repair_next_delta_blocks_stale_gate_
     )
 
     _assert_contract_shape(work_unit)
-    assert work_unit["status"] == "blocked_current_work_unit"
+    assert work_unit["status"] == "typed_blocker"
     assert work_unit["owner"] == "one-person-lab"
     assert work_unit["action_type"] == "run_quality_repair_batch"
     assert work_unit["work_unit_id"] == canonical_work_unit_id
     assert work_unit["state"]["blocker_type"] == "opl_execution_authorization_required"
-    assert work_unit["state"]["source"] == "stage_owner_answer_identity"
+    assert work_unit["state"]["source"] == "typed_blocker"
     assert work_unit["state"]["typed_blocker"]["terminal_closeout_status"] == "blocked"
     assert work_unit["state"]["typed_blocker"]["terminal_closeout_outcome"] == "typed_blocker"
 
