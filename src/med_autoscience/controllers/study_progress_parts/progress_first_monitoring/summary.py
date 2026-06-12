@@ -205,6 +205,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         handoff_owner_action is not None
         or _gate_followthrough_owner_action(current_action)
         or _publication_eval_readiness_blocker_repair_action(current_action)
+        or _consumed_ai_reviewer_receipt_supersedes_envelope_blocker(
+            domain_transition=domain_transition,
+            raw_typed_blocker=raw_typed_blocker,
+        )
         or (
             _next_forced_delta_owner_action(current_action)
             and transition_consumed_owner_action
@@ -620,6 +624,31 @@ def _domain_transition_has_current_owner_route(*, domain_transition: Mapping[str
         or _text(domain_transition.get("controller_action")) is not None
         or _work_unit_projection(domain_transition.get("next_work_unit")) is not None
     )
+
+
+def _consumed_ai_reviewer_receipt_supersedes_envelope_blocker(
+    *,
+    domain_transition: Mapping[str, Any],
+    raw_typed_blocker: Mapping[str, Any],
+) -> bool:
+    completion = _mapping(domain_transition.get("completion_receipt_consumption"))
+    if _text(completion.get("status")) not in {"consumed", "receipt_consumed", "completed"}:
+        return False
+    if _text(completion.get("receipt_kind")) != "ai_reviewer_publication_eval":
+        return False
+    if _text(completion.get("next_action")) != "honor_ai_reviewer_publication_eval_authority":
+        return False
+    if _text(domain_transition.get("decision_type")) != "route_back_same_line":
+        return False
+    if _text(domain_transition.get("route_target")) is None:
+        return False
+    blocker_values = {
+        _text(raw_typed_blocker.get("owner")),
+        _text(raw_typed_blocker.get("blocker_id")),
+        _text(raw_typed_blocker.get("blocker_type")),
+        _text(raw_typed_blocker.get("blocked_reason")),
+    }
+    return any(value is not None and value.startswith("ai_reviewer") for value in blocker_values)
 
 
 def _next_forced_delta_from_current_work_unit(

@@ -578,14 +578,11 @@ def _filter_provider_admission_candidates_by_progress_currentness(
     scanned_studies: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     current_action_by_study = _same_tick_progress_current_actions(progress_currentness)
-    blocked_scanned_study_ids = _scanned_study_ids_without_provider_admission(scanned_studies)
-    if not current_action_by_study and not blocked_scanned_study_ids:
+    if not current_action_by_study:
         return [dict(candidate) for candidate in candidates]
     filtered: list[dict[str, Any]] = []
     for candidate in candidates:
         study_id = _non_empty_text(candidate.get("study_id"))
-        if study_id in blocked_scanned_study_ids and not _same_tick_materialized_candidate(candidate):
-            continue
         current_action_identity = current_action_by_study.get(study_id) if study_id is not None else None
         if current_action_identity is not None and not _same_tick_candidate_matches_current_action(
             candidate,
