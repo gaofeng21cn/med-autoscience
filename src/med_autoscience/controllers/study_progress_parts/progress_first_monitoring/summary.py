@@ -317,6 +317,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _gate_followthrough_owner_action(current_action)
         or _publication_eval_readiness_blocker_repair_action(current_action)
         or _next_forced_delta_owner_action(current_action)
+        or _canonical_ready_owner_action(current_action)
         or handoff_owner_action is not None
         or (
             transition_consumed_owner_action
@@ -945,34 +946,6 @@ def _first_current_action_queue_item(value: object) -> dict[str, Any] | None:
     return None
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def _foreground_write_policy(value: object) -> dict[str, Any]:
     guard = _mapping(value)
     supervisor_only = bool(guard.get("supervisor_only"))
@@ -1025,6 +998,14 @@ def _publication_eval_readiness_blocker_repair_action(action: Mapping[str, Any])
 def _next_forced_delta_owner_action(action: Mapping[str, Any]) -> bool:
     return (
         _text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
+        and bool(_sequence(action.get("allowed_actions")))
+    )
+
+
+def _canonical_ready_owner_action(action: Mapping[str, Any]) -> bool:
+    return (
+        _text(action.get("surface_kind")) == "current_executable_owner_action"
+        and _text(action.get("status")) == "ready"
         and bool(_sequence(action.get("allowed_actions")))
     )
 
