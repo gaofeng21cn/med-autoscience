@@ -401,3 +401,161 @@ def test_materializer_blocks_stale_domain_transition_when_fresh_progress_is_read
         / "default_executor_dispatches"
         / "run_gate_clearing_batch.json"
     ).exists()
+
+
+def test_materializer_blocks_stale_provider_admission_when_fresh_progress_is_stop_loss_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="analysis-campaign",
+        owner_reason="analysis_claim_evidence_repair",
+        allowed_actions=["run_quality_repair_batch"],
+    )
+    stale_route["work_unit_fingerprint"] = "publication-blockers::stale"
+    stale_route["source_fingerprint"] = "publication-blockers::stale"
+    stale_route["source_refs"] = {
+        **dict(stale_route["source_refs"]),
+        "owner_route_currentness_basis": {
+            "truth_epoch": f"truth-epoch::{study_id}",
+            "runtime_health_epoch": f"runtime-health::{study_id}::stale-provider-admission",
+            "source_eval_id": "publication-eval::002::stale-ai-reviewer-record",
+            "work_unit_id": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": "publication-blockers::stale",
+        },
+    }
+    stale_action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "run_quality_repair_batch",
+        "action_id": f"provider-admission::{study_id}::run_quality_repair_batch",
+        "reason": "provider_admission_pending",
+        "owner": "analysis-campaign",
+        "request_owner": "analysis-campaign",
+        "recommended_owner": "analysis-campaign",
+        "authority": "mas_provider_admission_identity",
+        "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "work_unit_fingerprint": "publication-blockers::stale",
+        "owner_route": stale_route,
+        "handoff_packet": {
+            "surface": "provider_admission_current_control_handoff",
+            "authority": "mas_provider_admission_identity",
+            "owner": "analysis-campaign",
+            "request_owner": "analysis-campaign",
+            "recommended_owner": "analysis-campaign",
+            "next_executable_owner": "analysis-campaign",
+            "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+            "next_work_unit": "analysis_claim_evidence_repair",
+            "work_unit_fingerprint": "publication-blockers::stale",
+            "owner_route": stale_route,
+        },
+    }
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": stale_route,
+                    "action_queue": [stale_action],
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "analysis-campaign",
+                    },
+                }
+            ],
+            "action_queue": [stale_action],
+            "provider_admission_pending_count": 1,
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "generated_at": "2026-06-12T01:18:00+00:00",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "one-person-lab",
+                "typed_blocker": {
+                    "blocker_id": "opl_execution_authorization_required",
+                    "blocker_type": "anti_loop_budget_exhausted",
+                    "reason": "anti_loop_budget_exhausted",
+                    "owner": "one-person-lab",
+                    "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                    "source_ref": (
+                        "artifacts/supervision/consumer/default_executor_execution/"
+                        "sat_82a2b164657c9b4d0c312db9.closeout.json"
+                    ),
+                },
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "work_unit_fingerprint": (
+                    "owner-route::write::manuscript_story_surface_delta_missing::"
+                    "run_quality_repair_batch"
+                ),
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_id": "opl_execution_authorization_required",
+                        "blocker_type": "anti_loop_budget_exhausted",
+                        "reason": "anti_loop_budget_exhausted",
+                        "owner": "one-person-lab",
+                        "work_unit_id": (
+                            "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+                        ),
+                    },
+                    "stale_queue_or_handoff_can_override": False,
+                },
+            },
+            "current_executable_owner_action": None,
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert any(
+        item["action_type"] == "run_quality_repair_batch"
+        and item["action_id"] == f"provider-admission::{study_id}::run_quality_repair_batch"
+        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
+        for item in result["ignored_actions"]
+    )
+    assert not (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    ).exists()

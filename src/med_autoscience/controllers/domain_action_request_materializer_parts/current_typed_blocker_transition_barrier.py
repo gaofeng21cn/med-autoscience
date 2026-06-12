@@ -14,7 +14,20 @@ def current_typed_blocker_barrier_for_consumed_transition(
     fresh_action: Mapping[str, Any] | None,
     transition_actions: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
-    if not transition_actions:
+    return current_typed_blocker_barrier_for_actions(
+        study=study,
+        fresh_action=fresh_action,
+        candidate_actions=transition_actions,
+    )
+
+
+def current_typed_blocker_barrier_for_actions(
+    *,
+    study: Mapping[str, Any],
+    fresh_action: Mapping[str, Any] | None,
+    candidate_actions: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    if not candidate_actions:
         return None
     if fresh_action is not None and (
         _text(fresh_action.get("action_type")) or ""
@@ -84,4 +97,7 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["current_typed_blocker_barrier_for_consumed_transition"]
+__all__ = [
+    "current_typed_blocker_barrier_for_actions",
+    "current_typed_blocker_barrier_for_consumed_transition",
+]

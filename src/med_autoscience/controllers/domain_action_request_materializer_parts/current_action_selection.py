@@ -94,15 +94,42 @@ def current_actions_for_studies(
             top_level_actions=top_level_actions,
         )
         transition_actions = _consumed_domain_transition_actions(study_payload)
+        per_study_queue_actions = [
+            dict(item)
+            for item in study_payload.get("action_queue") or []
+            if isinstance(item, Mapping)
+        ]
+        stale_candidate_actions = [
+            *transition_actions,
+            *top_level_study_actions,
+            *per_study_queue_actions,
+            *current_route_queue_actions,
+        ]
+        if canonical_current_action is not None:
+            stale_candidate_actions.append(canonical_current_action)
+        stale_candidate_actions = _unique_actions(stale_candidate_actions)
         transition_barrier = (
-            current_typed_blocker_transition_barrier.current_typed_blocker_barrier_for_consumed_transition(
+            current_typed_blocker_transition_barrier.current_typed_blocker_barrier_for_actions(
                 study=study_payload,
                 fresh_action=fresh_progress_action,
-                transition_actions=transition_actions,
+                candidate_actions=stale_candidate_actions,
             )
         )
         if fresh_progress_action is not None and not _mapping(study_payload.get("current_work_unit")):
             canonical_current_action = None
+        if transition_barrier is not None:
+            per_study_actions.append(transition_barrier)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_current_work_unit_typed_blocker")
+                for action in [
+                    *stale_candidate_actions,
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                ]
+                if action != transition_barrier
+            )
+            continue
         if canonical_current_action is not None:
             per_study_actions.append(canonical_current_action)
             ignored.extend(
@@ -128,24 +155,6 @@ def current_actions_for_studies(
                     ],
                 ]
                 if action != canonical_current_action
-            )
-            continue
-        if transition_barrier is not None:
-            per_study_actions.append(transition_barrier)
-            ignored.extend(
-                _ignored_action(action, "superseded_by_current_work_unit_typed_blocker")
-                for action in [
-                    *transition_actions,
-                    *([readiness_followup] if readiness_followup is not None else []),
-                    *([stage_native_action] if stage_native_action is not None else []),
-                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
-                    *top_level_study_actions,
-                    *[
-                        dict(item)
-                        for item in study_payload.get("action_queue") or []
-                        if isinstance(item, Mapping)
-                    ],
-                ]
             )
             continue
         if transition_actions:
@@ -1456,6 +1465,18 @@ def _ignored_action(action: Mapping[str, Any], reason: str) -> dict[str, Any]:
         "action_id": _text(action.get("action_id")),
         "reason": reason,
     }
+
+
+def _unique_actions(actions: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    unique: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None, str | None]] = set()
+    for action in actions:
+        identity = _action_identity(action)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(dict(action))
+    return unique
 
 
 def _mapping(value: object) -> dict[str, Any]:
