@@ -93,6 +93,94 @@ def test_provider_admission_current_control_records_retained_pending_arbiter_dec
     assert decision["work_unit_fingerprint"] == action_fingerprint
 
 
+def test_provider_admission_report_retains_matching_current_action_candidate_over_stale_scan_blocker(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_fingerprint = "sha256:current-ai-reviewer"
+    candidate = _provider_candidate(profile, study_id, action_fingerprint=action_fingerprint)
+
+    result = report_module.materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        report={
+            "managed_study_opl_provider_admission_candidates": [candidate],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "quest_id": study_id,
+                        "current_executable_owner_action": {
+                            "surface_kind": "current_executable_owner_action",
+                            "status": "ready",
+                            "next_owner": "ai_reviewer",
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "work_unit_id": candidate["work_unit_id"],
+                            "work_unit_fingerprint": action_fingerprint,
+                            "action_fingerprint": action_fingerprint,
+                            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                        },
+                        "current_work_unit": {
+                            "surface_kind": "current_work_unit",
+                            "status": "executable_owner_action",
+                            "owner": "ai_reviewer",
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "work_unit_id": candidate["work_unit_id"],
+                            "work_unit_fingerprint": action_fingerprint,
+                            "currentness_basis": {
+                                "truth_epoch": "truth-event-current",
+                                "runtime_health_epoch": "runtime-health-event-current",
+                                "work_unit_id": candidate["work_unit_id"],
+                                "work_unit_fingerprint": action_fingerprint,
+                            },
+                        },
+                    },
+                },
+            },
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "decision": "blocked",
+                    "reason": "medical_paper_readiness_missing",
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "typed_blocker",
+                        "owner": "MedAutoScience",
+                        "action_type": "complete_medical_paper_readiness_surface",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "state": {
+                            "state_kind": "typed_blocker",
+                            "typed_blocker": {
+                                "blocker_type": "medical_paper_readiness_missing",
+                                "owner": "MedAutoScience",
+                            },
+                        },
+                    },
+                    "current_executable_owner_action": None,
+                    "running_provider_attempt": False,
+                }
+            ],
+        },
+        apply=False,
+        generated_at="2026-06-12T07:30:00+00:00",
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert len(result["provider_admission_candidates"]) == 1
+    retained = result["provider_admission_candidates"][0]
+    assert retained["study_id"] == study_id
+    assert retained["action_type"] == "return_to_ai_reviewer_workflow"
+    assert retained["work_unit_id"] == candidate["work_unit_id"]
+    assert retained["work_unit_fingerprint"] == action_fingerprint
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+
+
 def test_provider_admission_report_refreshes_scanned_typed_blocker_without_candidates(
     tmp_path: Path,
 ) -> None:
