@@ -1120,7 +1120,7 @@ def _accepted_closeout_matches_candidate_identity(
             statuses=_receipt_statuses(receipt),
         )
     ):
-        return True
+        return _source_currentness_matches(receipt, identity=identity)
     if (
         action_and_work_unit_match
         and receipt_fingerprint is None

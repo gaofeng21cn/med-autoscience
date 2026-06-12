@@ -126,7 +126,19 @@
       "weak_identity_decision": "weak_provider_admission_identity",
       "weak_identity_effect": "suppress_provider_admission_pending",
       "fingerprintless_stop_loss_closeout_match": "requires_same_source_eval_truth_or_runtime_health_epoch",
-      "action_id_role": "action_family_only_not_route_or_attempt_identity"
+      "action_id_role": "action_family_only_not_route_or_attempt_identity",
+      "record_only_closeout_consumption_policy": {
+        "record_only_owner_refs_are_identity": false,
+        "accepted_record_only_closeout_required_any": [
+          "native_work_unit_fingerprint_or_action_fingerprint",
+          "route_identity_key_or_attempt_idempotency_key_match",
+          "matching_owner_route_currentness_basis",
+          "matching_source_eval_id",
+          "matching_truth_and_runtime_health_epoch"
+        ],
+        "record_ref_only_effect": "audit_only_retain_provider_admission_pending",
+        "identity_fill_for_candidate_root_closeout": "may_fill_action_type_and_work_unit_id_only; must_not_fill_fingerprint_source_eval_or_epochs_from_candidate"
+      }
     },
     "progress_current_owner_ticket_contract": {
       "synthetic_fingerprint_prefix_forbidden": "study-progress-current-owner-ticket::",
@@ -410,6 +422,12 @@
           "study_id",
           "stage_attempt_id_or_work_unit_identity",
           "accepted_typed_closeout_or_executed_typed_blocker"
+        ],
+        "record_only_closeout_policy_ref": "identity_policy.provider_admission_identity_contract.record_only_closeout_consumption_policy",
+        "forbidden_match": [
+          "record_only_owner_ref_without_native_fingerprint_or_currentness_basis",
+          "action_and_work_unit_only_record_ref_match",
+          "candidate_fingerprint_filled_into_closeout_without_native_identity"
         ]
       },
       {

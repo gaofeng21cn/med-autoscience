@@ -629,6 +629,36 @@ def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_p
     assert provider_identity["action_id_role"] == (
         "action_family_only_not_route_or_attempt_identity"
     )
+    record_only = provider_identity["record_only_closeout_consumption_policy"]
+    assert record_only["record_only_owner_refs_are_identity"] is False
+    assert record_only["accepted_record_only_closeout_required_any"] == [
+        "native_work_unit_fingerprint_or_action_fingerprint",
+        "route_identity_key_or_attempt_idempotency_key_match",
+        "matching_owner_route_currentness_basis",
+        "matching_source_eval_id",
+        "matching_truth_and_runtime_health_epoch",
+    ]
+    assert record_only["record_ref_only_effect"] == (
+        "audit_only_retain_provider_admission_pending"
+    )
+    assert record_only["identity_fill_for_candidate_root_closeout"] == (
+        "may_fill_action_type_and_work_unit_id_only; must_not_fill_fingerprint_source_eval_or_epochs_from_candidate"
+    )
+
+    arbiter = contract["stage_route_arbiter_surface"]
+    accepted_closeout = next(
+        item
+        for item in arbiter["decision_kinds"]
+        if item["decision"] == "accepted_closeout_consumed_pending"
+    )
+    assert accepted_closeout["record_only_closeout_policy_ref"] == (
+        "identity_policy.provider_admission_identity_contract.record_only_closeout_consumption_policy"
+    )
+    assert {
+        "record_only_owner_ref_without_native_fingerprint_or_currentness_basis",
+        "action_and_work_unit_only_record_ref_match",
+        "candidate_fingerprint_filled_into_closeout_without_native_identity",
+    } <= set(accepted_closeout["forbidden_match"])
 
     follow_through = contract["required_opl_follow_through"]
     assert follow_through["source"] == "one-person-lab read-only substrate audit 2026-06-12"

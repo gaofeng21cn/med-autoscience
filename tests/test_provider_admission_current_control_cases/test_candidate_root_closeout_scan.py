@@ -39,7 +39,14 @@ def _provider_candidate(profile, study_id: str, *, action_fingerprint: str) -> d
     }
 
 
-def _write_record_only_closeout(profile, study_id: str, candidate: dict[str, object]) -> None:
+def _write_record_only_closeout(
+    profile,
+    study_id: str,
+    candidate: dict[str, object],
+    *,
+    include_currentness_basis: bool = True,
+    closeout_name: str = "sat-record-only-without-fingerprint",
+) -> None:
     closeout_path = (
         profile.studies_root
         / study_id
@@ -47,9 +54,20 @@ def _write_record_only_closeout(profile, study_id: str, candidate: dict[str, obj
         / "supervision"
         / "consumer"
         / "default_executor_execution"
-        / "sat-record-only-without-fingerprint.closeout.json"
+        / f"{closeout_name}.closeout.json"
     )
     closeout_path.parent.mkdir(parents=True, exist_ok=True)
+    owner_route_basis = (
+        {
+            "truth_epoch": "truth-event-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+            "work_unit_id": candidate["work_unit_id"],
+            "work_unit_fingerprint": candidate["work_unit_fingerprint"],
+            "owner_reason": candidate["work_unit_id"],
+        }
+        if include_currentness_basis
+        else {}
+    )
     closeout_path.write_text(
         json.dumps(
             {
@@ -58,20 +76,10 @@ def _write_record_only_closeout(profile, study_id: str, candidate: dict[str, obj
                 "status": "closed_with_domain_owner_refs",
                 "study_id": study_id,
                 "quest_id": study_id,
-                "stage_attempt_id": "sat-record-only-without-fingerprint",
+                "stage_attempt_id": closeout_name,
                 "action_type": "return_to_ai_reviewer_workflow",
                 "work_unit_id": candidate["work_unit_id"],
-                "owner_route_basis": {
-                    "truth_epoch": "truth-event-current",
-                    "runtime_health_epoch": "runtime-health-event-stage-packet",
-                    "source_eval_id": (
-                        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
-                        "ai-reviewer-record::20260612T122941Z::sat-record-only-without-fingerprint"
-                    ),
-                    "work_unit_id": candidate["work_unit_id"],
-                    "work_unit_fingerprint": "sha256:stage-packet-recovered",
-                    "owner_reason": candidate["work_unit_id"],
-                },
+                **({"owner_route_basis": owner_route_basis} if owner_route_basis else {}),
                 "owner_receipt": {
                     "status": "closed_with_domain_owner_refs",
                     "owner": "ai_reviewer",
@@ -229,6 +237,13 @@ def test_provider_admission_report_merges_candidate_root_closeout_into_existing_
                 "stage_attempt_id": "sat-record-only-existing-scan",
                 "action_type": "return_to_ai_reviewer_workflow",
                 "work_unit_id": candidate["work_unit_id"],
+                "owner_route_basis": {
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-event-current",
+                    "work_unit_id": candidate["work_unit_id"],
+                    "work_unit_fingerprint": action_fingerprint,
+                    "owner_reason": candidate["work_unit_id"],
+                },
                 "owner_receipt": {
                     "status": "closed_with_domain_owner_refs",
                     "owner": "ai_reviewer",
@@ -273,4 +288,50 @@ def test_provider_admission_report_merges_candidate_root_closeout_into_existing_
     assert result["provider_admission_pending_count"] == 0
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "accepted_closeout_consumed_pending": 1,
+    }
+
+
+def test_provider_admission_report_keeps_candidate_root_record_only_closeout_without_currentness_as_pending(
+    tmp_path: Path,
+) -> None:
+    report = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    action_fingerprint = "sha256:current-ai-reviewer"
+    candidate = _provider_candidate(profile, study_id, action_fingerprint=action_fingerprint)
+    _write_record_only_closeout(
+        profile,
+        study_id,
+        candidate,
+        include_currentness_basis=False,
+        closeout_name="sat-record-only-without-currentness",
+    )
+
+    result = report.materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        report={
+            "managed_study_opl_provider_admission_candidates": [candidate],
+            "current_execution_evidence": {"progress_currentness": {}},
+            "managed_study_actions": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "decision": "noop",
+                    "reason": "quest_waiting_for_user",
+                    "running_provider_attempt": False,
+                }
+            ],
+        },
+        apply=False,
+        generated_at="2026-06-13T09:20:00+00:00",
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert result["stage_route_arbiter"]["pending_count"] == 1
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
     }

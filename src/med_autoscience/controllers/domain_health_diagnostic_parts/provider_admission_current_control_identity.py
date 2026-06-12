@@ -242,9 +242,11 @@ def _candidate_closeout_currentness_basis(
             or _non_empty_text(basis.get("work_unit_id")),
             "work_unit_fingerprint": _non_empty_text(receipt.get("work_unit_fingerprint"))
             or _non_empty_text(receipt.get("action_fingerprint"))
-            or _non_empty_text(basis.get("work_unit_fingerprint")),
+            or _non_empty_text(basis.get("work_unit_fingerprint"))
+            or _non_empty_text(basis.get("action_fingerprint")),
             "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint"))
             or _non_empty_text(receipt.get("work_unit_fingerprint"))
+            or _non_empty_text(basis.get("action_fingerprint"))
             or _non_empty_text(basis.get("work_unit_fingerprint")),
         }
         if _identity_core_matches(closeout_identity, identity=candidate):
@@ -338,6 +340,7 @@ def basis_conflicts_with_identity(
     for basis_key, identity_keys in {
         "work_unit_id": ("work_unit_id",),
         "work_unit_fingerprint": ("work_unit_fingerprint", "action_fingerprint"),
+        "action_fingerprint": ("action_fingerprint", "work_unit_fingerprint"),
     }.items():
         basis_value = _non_empty_text(basis.get(basis_key))
         identity_value = next(
@@ -462,10 +465,12 @@ def _normalized_closeout_receipt(receipt: Mapping[str, Any]) -> dict[str, Any]:
         "work_unit_fingerprint": _non_empty_text(receipt.get("work_unit_fingerprint"))
         or _non_empty_text(receipt.get("action_fingerprint"))
         or _non_empty_text(typed_blocker.get("action_fingerprint"))
-        or _non_empty_text(basis.get("work_unit_fingerprint")),
+        or _non_empty_text(basis.get("work_unit_fingerprint"))
+        or _non_empty_text(basis.get("action_fingerprint")),
         "action_fingerprint": _non_empty_text(receipt.get("action_fingerprint"))
         or _non_empty_text(receipt.get("work_unit_fingerprint"))
         or _non_empty_text(typed_blocker.get("action_fingerprint"))
+        or _non_empty_text(basis.get("action_fingerprint"))
         or _non_empty_text(basis.get("work_unit_fingerprint")),
         "source_eval_id": _non_empty_text(receipt.get("source_eval_id"))
         or _non_empty_text(basis.get("source_eval_id")),
@@ -509,6 +514,7 @@ def closeout_owner_route_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:
             for key in (
                 "work_unit_id",
                 "work_unit_fingerprint",
+                "action_fingerprint",
                 "source_eval_id",
                 "truth_epoch",
                 "runtime_health_epoch",
