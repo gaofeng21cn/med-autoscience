@@ -312,6 +312,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "contracts/private_functional_surface_policy.json",
             "contracts/progress_first_safety_envelope.json",
             "contracts/stage_artifact_kernel_adoption.json",
+            "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
             "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
@@ -343,6 +344,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
                 "tests/test_test_lane_governance.py "
                 "tests/test_stage_quality_contract.py "
                 "tests/test_stage_route_contract.py "
+                "tests/test_stage_route_reconcile_contract.py "
                 "tests/test_overlay_installer.py -q"
             ),
             f"{PYTEST_CLEAN_RUNNER} tests/test_product_entry.py -q",

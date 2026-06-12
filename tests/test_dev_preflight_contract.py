@@ -671,6 +671,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "contracts/mas-paper-study-stage-pack.json",
             "contracts/pack_compiler_input.json",
             "contracts/stage_artifact_kernel_adoption.json",
+            "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
             "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
             "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
@@ -690,6 +691,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "tests/test_test_lane_governance.py "
             "tests/test_stage_quality_contract.py "
             "tests/test_stage_route_contract.py "
+            "tests/test_stage_route_reconcile_contract.py "
             "tests/test_overlay_installer.py -q"
         ),
         "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
@@ -737,6 +739,7 @@ def test_classify_changed_files_matches_external_learning_sidecar_surface() -> N
             "tests/test_test_lane_governance.py "
             "tests/test_stage_quality_contract.py "
             "tests/test_stage_route_contract.py "
+            "tests/test_stage_route_reconcile_contract.py "
             "tests/test_overlay_installer.py -q"
         ),
         "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
