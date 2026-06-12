@@ -219,3 +219,40 @@ def test_current_owner_action_uses_newer_gate_replay_delta_over_stale_gate_follo
     assert action["action_type"] == "run_gate_clearing_batch"
     assert action["work_unit_id"] == "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
     assert action["source_eval_id"] == current_eval_id
+
+
+def test_current_owner_action_prefers_gate_replay_after_ai_reviewer_recheck_done() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.current_executable_owner_action"
+    )
+
+    action = module.build_current_executable_owner_action(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "repair_progress_projection": {
+                "surface_kind": "repair_progress_projection",
+                "source": "mas_owner_repair_execution_evidence",
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": "sha256:current-ai-reviewer-record",
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "ai_reviewer_recheck_required": True,
+                "ai_reviewer_recheck_done": True,
+                "ai_reviewer_recheck_request_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
+                "gate_replay_done": True,
+                "gate_replay_refs": [
+                    "artifacts/supervision/requests/gate_clearing_batch/latest.json"
+                ],
+            },
+        }
+    )
+
+    assert action is not None
+    assert action["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+    assert action["next_owner"] == "gate_clearing_batch"
+    assert action["action_type"] == "run_gate_clearing_batch"
+    assert action["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert action["work_unit_id"] == "publication_gate_replay"
+    assert action["required_delta_kind"] == "publication_gate_replay_delta_or_typed_blocker"

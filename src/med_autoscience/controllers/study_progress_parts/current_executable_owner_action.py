@@ -523,6 +523,22 @@ def _from_repair_progress_projection(payload: Mapping[str, Any]) -> dict[str, An
     )
     ai_reviewer_request_ref = _non_empty_text(repair_progress.get("ai_reviewer_recheck_request_ref"))
     gate_replay_refs = _text_items(repair_progress.get("gate_replay_refs"))
+    if gate_replay_refs and repair_progress.get("ai_reviewer_recheck_done") is True:
+        return _repair_followup_action(
+            repair_progress=repair_progress,
+            source_ref=source_ref,
+            next_owner=GATE_CLEARING_OWNER,
+            work_unit_id=GATE_CLEARING_WORK_UNIT,
+            action_type=GATE_CLEARING_ACTION,
+            required_delta_kind="publication_gate_replay_delta_or_typed_blocker",
+            target_surface={
+                "ref_kind": "route_obligation",
+                "route_target": "finalize",
+                "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                "request_ref": gate_replay_refs[0],
+            },
+            acceptance_refs=gate_replay_refs,
+        )
     if ai_reviewer_request_ref is not None:
         return _repair_followup_action(
             repair_progress=repair_progress,
