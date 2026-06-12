@@ -19,6 +19,12 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
     is_anti_loop_stop_loss_closeout,
 )
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS,
+)
+from med_autoscience.controllers.owner_route_reconcile_parts.stage_artifact_owner_actions import (
+    READINESS_GATE_REPAIR_WORK_UNIT,
+)
 from med_autoscience.controllers.current_work_unit_parts.action_projection_fields import (
     acceptance_refs as _acceptance_refs,
     action_fingerprint as _action_fingerprint,
@@ -62,13 +68,7 @@ ALLOWED_STATUSES = (
     "typed_blocker",
     "blocked_current_work_unit",
 )
-GATE_REPLAY_WORK_UNITS = frozenset(
-    {
-        "ai_reviewer_record_gate_consumption",
-        "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
-        "readiness_blocker_publication_gate_replay",
-    }
-)
+GATE_REPLAY_WORK_UNITS = PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS | frozenset({READINESS_GATE_REPAIR_WORK_UNIT})
 AUTHORITY_BOUNDARY = {
     "surface_kind": SURFACE_KIND,
     "authority": "mas_current_work_unit_reducer",
