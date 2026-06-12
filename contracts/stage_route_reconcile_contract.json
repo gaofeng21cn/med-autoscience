@@ -496,7 +496,21 @@
         "shared_currentness_identity_with_fingerprint"
       ],
       "stale_or_unbound_effect": "diagnostic_only_no_default_executor_dispatch",
-      "blocked_reason": "stage_native_workspace_next_action_requires_current_work_unit_currentness_match"
+      "blocked_reason": "stage_native_workspace_next_action_requires_current_work_unit_currentness_match",
+      "readiness_barrier_derived_repair_requires": [
+        "fresh_action.reason == medical_paper_readiness_missing",
+        "current_work_unit.status == typed_blocker or current_work_unit.state.state_kind == typed_blocker",
+        "current_work_unit.work_unit_id == complete_medical_paper_readiness_surface or missing",
+        "current_work_unit.state.stale_queue_or_handoff_can_override != true",
+        "stage_native_next_action_has_authority_binding"
+      ],
+      "readiness_barrier_stale_or_unbound_effect": "diagnostic_only_no_default_executor_dispatch",
+      "readiness_barrier_forbidden_basis": [
+        "current_execution_envelope_typed_blocker_without_current_work_unit_readiness_identity",
+        "stale_queue_or_handoff_can_override_true",
+        "old_queue_or_handoff_readiness_residue",
+        "readiness_typed_blocker_for_non_current_work_unit"
+      ]
     },
     "default_dispatch_allowed_false_effect": "ignored_diagnostic_no_request_task_no_default_executor_dispatch",
     "terminal_closeout_owner_answer_dispatch_policy": {
@@ -780,5 +794,121 @@
     "tests/test_current_work_unit.py",
     "scripts/verify.sh",
     "make test-meta"
-  ]
+  ],
+  "codex_executor_frontdoor_policy": {
+    "surface_kind": "mas_opl_codex_executor_frontdoor_policy",
+    "scope": [
+      "foreground Codex sessions",
+      "MAS owner callables",
+      "OPL StageRun provider attempts",
+      "domain_action_request_materializer",
+      "domain_owner_action_dispatch"
+    ],
+    "ordinary_executor_route": "MAS owner callable or OPL StageRun provider attempt invokes Codex as an internal executor",
+    "forbidden_foreground_routes": [
+      "paper_local_codex_execution_without_mas_owner_callable",
+      "direct_manuscript_or_package_edit_as_recovery_route",
+      "foreground_replay_of_provider_admission_queue",
+      "foreground_domain_health_diagnostic_apply_without_explicit_controller_lane",
+      "study_workspace_runtime_artifact_mutation",
+      "publication_eval_or_controller_decision_manual_write"
+    ],
+    "allowed_foreground_roles": [
+      "read_live_truth",
+      "write_repo_docs_contracts_tests",
+      "implement_missing_mas_owner_callable_or_derived_repair_action",
+      "run_repo_native_verification",
+      "supervise_opl_stage_run_or_provider_attempt"
+    ],
+    "codex_direct_execution_authority": {
+      "can_act_as_internal_owner_callable_executor": true,
+      "requires_mas_owner_callable_or_stage_run_context": true,
+      "can_bypass_mas_or_opl_for_paper_local_recovery": false,
+      "can_write_study_truth_without_owner_receipt": false,
+      "can_write_publication_eval_or_controller_decisions": false,
+      "can_mutate_runtime_or_study_artifacts_from_docs_contract_lane": false
+    },
+    "missing_callable_effect": "typed_blocker_or_repo_implementation_needed_not_paper_local_shortcut",
+    "route_back_owner_when_platform_binding_missing": "one-person-lab",
+    "route_back_owner_when_domain_readiness_callable_missing": "MedAutoScience"
+  },
+  "dm002_dm003_recovery_acceptance_policy": {
+    "surface_kind": "mas_opl_dm002_dm003_recovery_acceptance_policy",
+    "state": "active_recovery_contract",
+    "source_truth_snapshot": {
+      "date": "2026-06-12",
+      "dm002": {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "current_blocker": "anti_loop_budget_exhausted",
+        "owner": "one-person-lab",
+        "provider_admission_pending_count": 0
+      },
+      "dm003": {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_blocker": "medical_paper_readiness_missing",
+        "owner": "MedAutoScience",
+        "provider_admission_pending_count": 0
+      }
+    },
+    "dm002_stop_loss_policy": {
+      "blocker": "anti_loop_budget_exhausted",
+      "owner": "one-person-lab",
+      "same_work_unit_redrive_allowed": false,
+      "allowed_reopen_conditions": [
+        "new_work_unit_identity",
+        "successor_stage_run_identity",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "new_mas_owner_receipt_or_quality_gate_receipt",
+        "stable_typed_blocker_with_new_blocker_identity"
+      ],
+      "forbidden_recovery_actions": [
+        "same_work_unit_provider_admission_redrive",
+        "same_work_unit_default_executor_dispatch",
+        "foreground_codex_retry_of_repair_batch",
+        "replaying_stale_action_queue_or_provider_admission"
+      ]
+    },
+    "dm003_readiness_policy": {
+      "blocker": "medical_paper_readiness_missing",
+      "owner": "MedAutoScience",
+      "must_be_consumed_by_any": [
+        "specific_mas_owner_callable",
+        "derived_repair_action_with_current_work_unit_binding",
+        "stable_typed_blocker_with_named_missing_ref_family",
+        "human_gate_ref_when_domain_owner_cannot_continue"
+      ],
+      "blocker_only_can_execute_complete_readiness_surface": false,
+      "forbidden_recovery_actions": [
+        "foreground_codex_completion_of_readiness_surface",
+        "stale_gate_replay_or_transition_dispatch",
+        "provider_admission_without_current_executable_owner_action",
+        "paper_local_manuscript_or_package_edit_without_owner_callable"
+      ]
+    },
+    "acceptance_requires_any": [
+      "mas_owner_receipt_ref",
+      "quality_gate_receipt_ref",
+      "canonical_changed_surface_ref",
+      "stable_typed_blocker_ref",
+      "human_gate_ref",
+      "route_back_evidence_ref",
+      "strict_provider_running_proof_for_same_current_identity"
+    ],
+    "required_readback": [
+      "fresh_study_progress_for_dm002",
+      "fresh_study_progress_for_dm003",
+      "domain_health_diagnostic_dry_run_readback",
+      "provider_admission_pending_count_readback",
+      "owner_receipt_or_typed_blocker_ref_readback"
+    ],
+    "forbidden_acceptance_evidence": [
+      "foreground_codex_message",
+      "docs_only_claim",
+      "queue_empty_without_owner_delta",
+      "provider_completion_without_mas_closeout_consumption",
+      "stale_runtime_attempt_or_active_run_id",
+      "stage_artifact_file_presence_without_owner_receipt"
+    ]
+  }
 }

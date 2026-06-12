@@ -133,6 +133,15 @@ def stage_native_action_derives_from_readiness_barrier(
         return False
     if _text(barrier.get("reason")) != "medical_paper_readiness_missing":
         return False
+    stale_override = barrier.get("current_work_unit_stale_queue_or_handoff_can_override")
+    if stale_override is True or _text(stale_override) == "true":
+        return False
+    if _text(barrier.get("current_work_unit_status")) != "typed_blocker" and _text(
+        barrier.get("current_work_unit_state_kind")
+    ) != "typed_blocker":
+        return False
+    if _text(barrier.get("current_work_unit_id")) not in {READINESS_ACTION_TYPE, None}:
+        return False
     return _text(barrier.get("work_unit_id")) in {READINESS_ACTION_TYPE, None}
 
 

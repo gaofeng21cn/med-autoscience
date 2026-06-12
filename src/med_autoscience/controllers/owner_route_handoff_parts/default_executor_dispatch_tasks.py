@@ -62,6 +62,16 @@ def default_executor_dispatch_tasks(
             current_execution_envelope=_mapping(current_execution_envelope),
         ),
     )
+    provider_admission_candidates = [
+        *provider_admission_candidates,
+        *_progress_currentness_provider_admission_candidates(
+            profile=profile,
+            study_id=study_id,
+            current_owner_action=_mapping(current_owner_action),
+            current_work_unit=_mapping(current_work_unit),
+            current_execution_envelope=_mapping(current_execution_envelope),
+        ),
+    ]
     candidates = _current_dispatch_candidates(
         dispatch_root,
         profile=profile,
@@ -135,7 +145,10 @@ def default_executor_dispatch_tasks(
         quest_id = _text(dispatch.get("quest_id")) or study_id
         next_owner = _next_executable_owner(dispatch) or DEFAULT_NEXT_OWNER
         executor_kind = _text(dispatch.get("executor_kind")) or REQUIRED_EXECUTOR_KIND
-        owner_route_basis = _mapping(protocol_payload_fields.get("owner_route_currentness_basis"))
+        owner_route_basis = _merged_currentness_basis(
+            canonical_identity=canonical_identity,
+            protocol_payload_fields=protocol_payload_fields,
+        )
         work_unit_id = _text(protocol_payload_fields.get("work_unit_id")) or _text(owner_route_basis.get("work_unit_id"))
         work_unit_fingerprint = _text(owner_route_basis.get("work_unit_fingerprint"))
         provider_admission_identity = _matching_provider_admission_identity(
@@ -253,6 +266,70 @@ def _provider_admission_status_payload(
     return payload
 
 
+def _merged_currentness_basis(
+    *,
+    canonical_identity: Mapping[str, Any],
+    protocol_payload_fields: Mapping[str, Any],
+) -> dict[str, Any]:
+    basis = dict(_mapping(protocol_payload_fields.get("owner_route_currentness_basis")))
+    canonical_basis = _mapping(canonical_identity.get("owner_route_currentness_basis"))
+    for key, value in canonical_basis.items():
+        if value is not None:
+            basis[key] = value
+    for key in ("work_unit_id", "work_unit_fingerprint"):
+        value = _text(canonical_identity.get(key))
+        if value is not None:
+            basis[key] = value
+    return basis
+
+
+def _progress_currentness_provider_admission_candidates(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    current_owner_action: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+    current_execution_envelope: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    if not current_owner_action:
+        return []
+    study_root = profile.studies_root / study_id
+    status_payload = _provider_admission_status_payload(
+        study_id=study_id,
+        current_owner_action=current_owner_action,
+        current_work_unit=current_work_unit,
+        current_execution_envelope=current_execution_envelope,
+    )
+    return provider_admission.current_control_provider_admission_candidates(
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "current_executable_owner_action": dict(current_owner_action),
+                    "current_work_unit": dict(current_work_unit) if current_work_unit else {},
+                    "current_execution_envelope": (
+                        dict(current_execution_envelope) if current_execution_envelope else {}
+                    ),
+                }
+            ],
+            "action_queue": [],
+        },
+        study_root=study_root,
+        status_payload=status_payload,
+        current_control_ref=str(
+            profile.workspace_root
+            / "runtime"
+            / "artifacts"
+            / "supervision"
+            / "opl_current_control_state"
+            / "latest.json"
+        ),
+    )
+
+
 def _matching_provider_admission_identity(
     *,
     candidates: list[Mapping[str, Any]],
@@ -318,10 +395,18 @@ def _provider_admission_payload_fields(
     work_unit_fingerprint = _text(identity.get("work_unit_fingerprint"))
     action_fingerprint = _text(identity.get("action_fingerprint")) or work_unit_fingerprint
     currentness_basis = dict(owner_route_basis)
-    if work_unit_id is not None:
+    identity_basis = _mapping(identity.get("currentness_basis"))
+    for key, value in identity_basis.items():
+        if value is not None:
+            currentness_basis[key] = value
+    if work_unit_id is not None and _text(owner_route_basis.get("work_unit_id")) is None:
         currentness_basis["work_unit_id"] = work_unit_id
-    if work_unit_fingerprint is not None:
+    if work_unit_fingerprint is not None and _text(owner_route_basis.get("work_unit_fingerprint")) is None:
         currentness_basis["work_unit_fingerprint"] = work_unit_fingerprint
+    for key in ("work_unit_id", "work_unit_fingerprint"):
+        value = _text(owner_route_basis.get(key))
+        if value is not None:
+            currentness_basis[key] = value
     fields: dict[str, Any] = {
         "provider_admission_identity": dict(identity),
         "provider_admission_status": _text(identity.get("status")),
@@ -330,11 +415,20 @@ def _provider_admission_payload_fields(
         "provider_attempt_or_lease_required": identity.get("provider_attempt_or_lease_required") is True,
         "owner_callable_surface": _text(identity.get("owner_callable_surface")),
     }
-    if work_unit_id is not None:
+    canonical_work_unit_id = _text(owner_route_basis.get("work_unit_id"))
+    canonical_work_unit_fingerprint = _text(owner_route_basis.get("work_unit_fingerprint"))
+    if work_unit_id is not None and canonical_work_unit_id is None:
         fields["work_unit_id"] = work_unit_id
-    if work_unit_fingerprint is not None:
+    if work_unit_fingerprint is not None and canonical_work_unit_fingerprint is None:
         fields["work_unit_fingerprint"] = work_unit_fingerprint
-    if action_fingerprint is not None:
+    provider_matches_canonical_fingerprint = (
+        action_fingerprint is not None
+        and canonical_work_unit_fingerprint is not None
+        and action_fingerprint == canonical_work_unit_fingerprint
+    )
+    if action_fingerprint is not None and (
+        canonical_work_unit_fingerprint is None or provider_matches_canonical_fingerprint
+    ):
         fields["action_fingerprint"] = action_fingerprint
         fields["source_fingerprint"] = action_fingerprint
     if currentness_basis:

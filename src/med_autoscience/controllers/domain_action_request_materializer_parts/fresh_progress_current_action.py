@@ -208,6 +208,8 @@ def _fresh_progress_currentness_barrier(
     ):
         return None
     blocker = _mapping(envelope.get("typed_blocker"))
+    current_work_unit = _mapping(progress.get("current_work_unit"))
+    current_work_unit_state = _mapping(current_work_unit.get("state"))
     reason = (
         _text(blocker.get("blocker_id"))
         or _text(blocker.get("blocker_type"))
@@ -234,6 +236,13 @@ def _fresh_progress_currentness_barrier(
         "source_surface": "study_progress.current_execution_envelope",
         "source_ref": _text(blocker.get("source_ref")),
         "work_unit_id": _text(blocker.get("work_unit_id")) or _work_unit_id(envelope.get("next_work_unit")),
+        "current_work_unit_status": _text(current_work_unit.get("status")),
+        "current_work_unit_state_kind": _text(current_work_unit_state.get("state_kind")),
+        "current_work_unit_id": _text(current_work_unit.get("work_unit_id")),
+        "current_work_unit_fingerprint": _text(current_work_unit.get("work_unit_fingerprint")),
+        "current_work_unit_stale_queue_or_handoff_can_override": current_work_unit_state.get(
+            "stale_queue_or_handoff_can_override"
+        ),
     }
 
 

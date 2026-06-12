@@ -248,13 +248,13 @@ def _pending_family_tasks(
             profile_ref=profile_ref,
             study_id=study_id,
         )
-        ordinary_task_blocker = _ordinary_pending_tasks_blocker(current_progress=current_progress)
-        if ordinary_task_blocker:
-            continue
         current_owner_action = _export_current_owner_action(
             study=study,
             current_progress=current_progress,
         )
+        ordinary_task_blocker = _ordinary_pending_tasks_blocker(current_progress=current_progress)
+        if ordinary_task_blocker and not current_owner_action:
+            continue
         current_work_unit = mapping(current_progress.get("current_work_unit"))
         current_execution_envelope = _export_current_execution_envelope(
             study=study,
@@ -284,7 +284,7 @@ def _pending_family_tasks(
                 current_execution_envelope=current_execution_envelope,
             )
         )
-        if legacy_route_tasks_blocked:
+        if ordinary_task_blocker or legacy_route_tasks_blocked:
             continue
         tasks.extend(
             publication_aftercare.build_publication_aftercare_pending_tasks(
@@ -407,6 +407,12 @@ def _export_current_owner_action(
                 projection_action=projection_action,
             )
         return progress_action
+    current_work_unit = mapping(current_progress.get("current_work_unit"))
+    current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
+    if _ordinary_pending_tasks_blocked_status(text(current_work_unit.get("status"))) or (
+        _ordinary_pending_tasks_blocked_status(text(current_execution_envelope.get("state_kind")))
+    ):
+        return {}
     projection_action = mapping(study.get("current_owner_action"))
     if text(projection_action.get("source")) == "opl_current_control_state_action_queue":
         return {}
