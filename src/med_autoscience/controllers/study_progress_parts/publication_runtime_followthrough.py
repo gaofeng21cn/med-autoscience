@@ -119,7 +119,9 @@ def _gate_clearing_batch_followthrough(
         current_eval_ids,
     )
     source_eval_id = _non_empty_text(record.get("source_eval_id"))
-    if source_eval_id is None or source_eval_id not in accepted_eval_ids:
+    if source_eval_id is None:
+        return None
+    if source_eval_id not in accepted_eval_ids and not _gate_clearing_actionable_route_back_record(record):
         return None
     unit_results = [
         dict(item)
@@ -176,12 +178,28 @@ def _gate_clearing_batch_followthrough(
         "owner_route_currentness_basis": dict(record.get("owner_route_currentness_basis") or {}) or None,
         "work_unit_currentness": dict(record.get("work_unit_currentness") or {}) or None,
         "explicit_publication_work_unit": dict(record.get("explicit_publication_work_unit") or {}) or None,
+        "current_publication_work_unit": dict(record.get("current_publication_work_unit") or {}) or None,
     }
     if any(value for key, value in identity.items() if key != "source_eval_id"):
         for key, value in identity.items():
             if value:
                 result[key] = value
     return result
+
+
+def _gate_clearing_actionable_route_back_record(record: Mapping[str, Any]) -> bool:
+    currentness = dict(record.get("work_unit_currentness") or {})
+    if _non_empty_text(currentness.get("current_actionability_status")) != "actionable":
+        return False
+    if currentness.get("lacks_specific_blocker_object") is True:
+        return False
+    current_work_unit = _non_empty_text(
+        currentness.get("current_publication_work_unit_id")
+    ) or _non_empty_text(dict(record.get("current_publication_work_unit") or {}).get("unit_id"))
+    explicit_work_unit = _non_empty_text(
+        currentness.get("explicit_publication_work_unit_id")
+    ) or _non_empty_text(dict(record.get("explicit_publication_work_unit") or {}).get("unit_id"))
+    return current_work_unit is not None and current_work_unit != explicit_work_unit
 
 
 def _gate_clearing_current_eval_ids(

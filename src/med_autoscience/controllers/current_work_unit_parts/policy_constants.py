@@ -43,6 +43,8 @@ MEDICAL_READINESS_BLOCKERS = frozenset(
 CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS = frozenset(
     {
         "domain_owner_action_dispatch_execution_count_zero",
+        "domain_owner_action_dispatch_zero_selected_dispatch",
+        "current_work_unit_already_typed_closeout_packet_required",
         "gate_clearing_batch_source_eval_currentness_mismatch",
         "no_selected_dispatch_for_requested_action_types",
         "owner_route_stale",

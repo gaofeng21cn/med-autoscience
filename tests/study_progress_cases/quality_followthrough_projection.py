@@ -229,6 +229,80 @@ def test_gate_clearing_batch_followthrough_accepts_domain_transition_eval_basis(
     assert result["latest_record_path"] == str(gate_batch_path)
 
 
+def test_gate_clearing_batch_followthrough_keeps_actionable_route_back_after_mechanical_eval(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational",
+    )
+    current_mechanical_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "003-dpcc-primary-care-phenotype-treatment-gap::2026-06-11T21:22:30+00:00"
+    )
+    stale_reviewer_eval_id = (
+        "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
+        "ai-reviewer-record::20260611T191558Z::sat_69f93a256b45113b077ab71a"
+    )
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": current_mechanical_eval_id,
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+            },
+        },
+    )
+    gate_batch_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+    _write_json(
+        gate_batch_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": stale_reviewer_eval_id,
+            "status": "executed",
+            "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+            "current_publication_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+                "summary": "Repair structured medical reporting.",
+            },
+            "work_unit_currentness": {
+                "explicit_publication_work_unit_id": (
+                    "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+                ),
+                "current_publication_work_unit_id": "medical_prose_write_repair",
+                "current_work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "explicit_work_unit_fingerprint_matches_current": False,
+                "lacks_specific_blocker_object": False,
+                "current_actionability_status": "actionable",
+            },
+            "gate_replay": {
+                "status": "blocked",
+                "blockers": ["medical_publication_surface_blocked"],
+            },
+        },
+    )
+
+    result = module._gate_clearing_batch_followthrough(
+        study_root=study_root,
+        publication_eval_payload=json.loads(publication_eval_path.read_text(encoding="utf-8")),
+    )
+
+    assert result is not None
+    assert result["source_eval_id"] == stale_reviewer_eval_id
+    assert result["work_unit_currentness"]["current_actionability_status"] == "actionable"
+    assert result["current_publication_work_unit"]["unit_id"] == "medical_prose_write_repair"
+    assert result["latest_record_path"] == str(gate_batch_path)
+
+
 def test_study_progress_projects_quality_repair_batch_followthrough(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)

@@ -5,6 +5,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import autonomy_ai_doctor
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
+    is_anti_loop_stop_loss_closeout,
+)
 from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
     default_executor_execution_candidates,
 )
@@ -783,6 +786,14 @@ def _typed_closeout_matches_handoff_action(
     )
     if closeout_attempt_id and action_attempt_id:
         return closeout_attempt_id == action_attempt_id
+    closeout_action_type = _non_empty_text(typed_closeout.get("action_type"))
+    action_type = _non_empty_text(action.get("action_type"))
+    if (
+        closeout_action_type is not None
+        and action_type == closeout_action_type
+        and is_anti_loop_stop_loss_closeout(typed_closeout)
+    ):
+        return True
     closeout_fingerprints = _identity_values(
         typed_closeout,
         ("work_unit_fingerprint", "action_fingerprint", "fingerprint"),
@@ -799,8 +810,6 @@ def _typed_closeout_matches_handoff_action(
     action_work_unit = _work_unit_identity(action.get("work_unit_id")) or _work_unit_identity(
         action.get("next_work_unit")
     )
-    closeout_action_type = _non_empty_text(typed_closeout.get("action_type"))
-    action_type = _non_empty_text(action.get("action_type"))
     return (
         closeout_work_unit is not None
         and action_work_unit == closeout_work_unit
@@ -824,17 +833,19 @@ def _typed_closeout_blocker_projection(
 ) -> dict[str, Any]:
     embedded = _observability_mapping(typed_closeout.get("typed_blocker"))
     blocked_reason = (
-        _non_empty_text(embedded.get("blocker_type"))
-        or _non_empty_text(embedded.get("blocker_id"))
+        _non_empty_text(typed_closeout.get("blocked_reason"))
+        or _non_empty_text(embedded.get("blocker_type"))
+        or _non_empty_text(embedded.get("blocker_kind"))
         or _non_empty_text(embedded.get("reason"))
         or _non_empty_text(embedded.get("blocked_reason"))
-        or _non_empty_text(typed_closeout.get("blocked_reason"))
+        or _non_empty_text(embedded.get("blocker_id"))
     )
     if blocked_reason is None:
         return {}
     owner = (
         _non_empty_text(embedded.get("owner"))
         or _non_empty_text(embedded.get("next_owner"))
+        or _non_empty_text(embedded.get("required_next_owner"))
         or _non_empty_text(embedded.get("phase_owner"))
         or _non_empty_text(typed_closeout.get("next_owner"))
     )
@@ -847,6 +858,7 @@ def _typed_closeout_blocker_projection(
         "action_type": _non_empty_text(typed_closeout.get("action_type"))
         or _non_empty_text(action.get("action_type")),
         "work_unit_id": _work_unit_identity(typed_closeout.get("work_unit_id"))
+        or _work_unit_identity(_mapping_copy(typed_closeout.get("next_forced_delta")).get("work_unit_id"))
         or _work_unit_identity(action.get("work_unit_id"))
         or _work_unit_identity(action.get("next_work_unit")),
         "work_unit_fingerprint": _non_empty_text(typed_closeout.get("work_unit_fingerprint"))

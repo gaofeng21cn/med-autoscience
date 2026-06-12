@@ -166,6 +166,7 @@ def _terminal_stage_log_from_execution_record(
                 "authority": "observability_only",
                 "source_path": str(source_path),
                 "record_path": record_path,
+                "source_mtime": _source_path_mtime(source_path),
                 "generated_at": _non_empty_text(execution.get("generated_at")),
                 "study_id": study_id,
                 "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
@@ -213,6 +214,7 @@ def _terminal_stage_log_from_closeout(
                 "read_model": "study_latest_terminal_stage_log_projection",
                 "authority": "observability_only",
                 "source_path": str(closeout_path),
+                "source_mtime": _source_path_mtime(closeout_path),
                 "generated_at": _non_empty_text(closeout.get("generated_at")),
                 "study_id": study_id,
                 "stage_attempt_id": _non_empty_text(closeout.get("stage_attempt_id")),
@@ -550,13 +552,12 @@ def _terminal_stage_log_authority_boundary() -> dict[str, bool]:
     }
 
 
-def _terminal_stage_log_sort_key(value: Mapping[str, Any]) -> tuple[str, float]:
+def _terminal_stage_log_sort_key(value: Mapping[str, Any]) -> tuple[float, str]:
     source_path = _non_empty_text(value.get("source_path"))
-    try:
-        mtime = Path(source_path).stat().st_mtime if source_path is not None else 0.0
-    except OSError:
-        mtime = 0.0
-    return (_non_empty_text(value.get("generated_at")) or "", mtime)
+    mtime = _number_value(value.get("source_mtime")) or (
+        _source_path_mtime(Path(source_path)) if source_path is not None else 0.0
+    )
+    return (mtime, _non_empty_text(value.get("generated_at")) or "")
 
 
 def _latest_typed_default_executor_closeout_projection(
@@ -572,7 +573,23 @@ def _latest_typed_default_executor_closeout_projection(
         if not is_blocked_typed_closeout(execution=execution, receipt_ref=receipt_ref):
             continue
         owner_result = _observability_mapping(execution.get("owner_result"))
-        blocked_reason = _non_empty_text(owner_result.get("blocked_reason"))
+        typed_blocker = _observability_mapping(execution.get("typed_blocker")) or _observability_mapping(
+            _observability_mapping(execution.get("stage_closeout")).get("typed_blocker")
+        )
+        paper_stage_log = _observability_mapping(execution.get("paper_stage_log"))
+        next_forced_delta = _observability_mapping(paper_stage_log.get("next_forced_delta"))
+        next_owner_action = _observability_mapping(next_forced_delta.get("owner_action"))
+        anti_loop_budget = _observability_mapping(typed_blocker.get("anti_loop_budget"))
+        blocked_reason = (
+            _non_empty_text(owner_result.get("blocked_reason"))
+            or _non_empty_text(execution.get("blocked_reason"))
+            or _non_empty_text(typed_blocker.get("blocker_type"))
+            or _non_empty_text(typed_blocker.get("blocker_kind"))
+            or _non_empty_text(typed_blocker.get("blocker_id"))
+            or _non_empty_text(typed_blocker.get("reason"))
+            or _non_empty_text(typed_blocker.get("blocked_reason"))
+            or _non_empty_text(paper_stage_log.get("outcome"))
+        )
         if blocked_reason is None:
             continue
         source_path = study_root / receipt_ref
@@ -587,10 +604,17 @@ def _latest_typed_default_executor_closeout_projection(
                 "generated_at": _non_empty_text(execution.get("generated_at")),
                 "study_id": study_id,
                 "execution_id": _non_empty_text(execution.get("execution_id")),
+                "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
                 "action_type": _non_empty_text(execution.get("action_type")),
                 "status": "typed_blocker",
                 "blocked_reason": blocked_reason,
                 "work_unit_id": _non_empty_text(
+                    next_owner_action.get("work_unit_id")
+                )
+                or _non_empty_text(next_forced_delta.get("work_unit_id"))
+                or _non_empty_text(anti_loop_budget.get("work_unit_id"))
+                or _non_empty_text(execution.get("work_unit_id"))
+                or _non_empty_text(
                     _observability_mapping(execution.get("owner_route")).get("work_unit_id")
                 )
                 or _non_empty_text(
@@ -599,6 +623,11 @@ def _latest_typed_default_executor_closeout_projection(
                     ).get("work_unit_id")
                 ),
                 "work_unit_fingerprint": _non_empty_text(
+                    anti_loop_budget.get("work_unit_fingerprint")
+                )
+                or _non_empty_text(execution.get("work_unit_fingerprint"))
+                or _non_empty_text(execution.get("action_fingerprint"))
+                or _non_empty_text(
                     _observability_mapping(execution.get("owner_route")).get("work_unit_fingerprint")
                 )
                 or _non_empty_text(
@@ -606,13 +635,17 @@ def _latest_typed_default_executor_closeout_projection(
                         _observability_mapping(execution.get("owner_route")).get("source_refs")
                     ).get("work_unit_fingerprint")
                 ),
-                "typed_blocker": _observability_mapping(execution.get("typed_blocker"))
-                or _observability_mapping(
-                    _observability_mapping(execution.get("stage_closeout")).get("typed_blocker")
-                ),
-                "next_owner": _non_empty_text(
+                "action_fingerprint": _non_empty_text(execution.get("action_fingerprint"))
+                or _non_empty_text(anti_loop_budget.get("work_unit_fingerprint")),
+                "typed_blocker": typed_blocker,
+                "next_owner": _non_empty_text(next_owner_action.get("next_owner"))
+                or _non_empty_text(typed_blocker.get("required_next_owner"))
+                or _non_empty_text(typed_blocker.get("owner"))
+                or _non_empty_text(
                     _observability_mapping(execution.get("current_owner_route")).get("next_owner")
                 ),
+                "next_forced_delta": next_forced_delta,
+                "paper_stage_log": paper_stage_log,
                 "owner_route": _owner_route_projection(execution.get("current_owner_route"))
                 or _owner_route_projection(execution.get("owner_route")),
                 "closeout_refs": _string_list(execution.get("stage_closeout_refs")),
@@ -625,10 +658,10 @@ def _latest_typed_default_executor_closeout_projection(
     return candidates[0]
 
 
-def _typed_closeout_sort_key(value: Mapping[str, Any]) -> tuple[str, float]:
+def _typed_closeout_sort_key(value: Mapping[str, Any]) -> tuple[float, str]:
     return (
-        _non_empty_text(value.get("generated_at")) or "",
         _number_value(value.get("source_mtime")) or 0.0,
+        _non_empty_text(value.get("generated_at")) or "",
     )
 
 
@@ -654,10 +687,18 @@ def _typed_closeout_supersedes_terminal(
     terminal_source = _non_empty_text(terminal.get("source_path"))
     if typed_source and terminal_source and typed_source == terminal_source:
         return True
+    if typed_source and typed_source.endswith(".closeout.json") and terminal_source and terminal_source.endswith(
+        "/latest.json"
+    ):
+        return True
     typed_mtime = (
         (_number_value(typed.get("source_mtime")) or _source_path_mtime(Path(typed_source)))
         if typed_source
         else 0.0
     )
-    terminal_mtime = _source_path_mtime(Path(terminal_source)) if terminal_source else 0.0
+    terminal_mtime = (
+        (_number_value(terminal.get("source_mtime")) or _source_path_mtime(Path(terminal_source)))
+        if terminal_source
+        else 0.0
+    )
     return typed_mtime >= terminal_mtime

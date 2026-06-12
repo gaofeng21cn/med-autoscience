@@ -80,6 +80,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     user_next = _non_empty_text(macro_state.get("user_next")) or "inspect"
     reason = _non_empty_text(macro_state.get("reason")) or "truth_conflict"
     liveness_blocked_by_current_work_unit = _canonical_typed_blocker_blocks_liveness(payload)
+    canonical_typed_blocker = _canonical_typed_blocker(payload)
     if liveness_blocked_by_current_work_unit:
         writer_state = "queued"
         user_next = "repair"
@@ -105,6 +106,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         actual_write_active=actual_write_active,
         meaningful_artifact_delta=meaningful_artifact_delta,
         next_owner=next_owner,
+        canonical_typed_blocker=canonical_typed_blocker,
     )
     quality_owner_pending = _quality_owner_pending(
         payload=payload,
@@ -131,6 +133,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         details=details,
         terminal_delivery=terminal_delivery,
         quality_owner_pending=quality_owner_pending,
+        canonical_typed_blocker=canonical_typed_blocker,
     )
     state_summary = _state_summary(
         state_label=state_label,
@@ -144,6 +147,11 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     )
     next_step = (
         owner_action_next_step(executable_owner_action)
+        or _canonical_typed_blocker_next_step(
+            payload=payload,
+            typed_blocker=canonical_typed_blocker,
+            next_owner=next_owner,
+        )
         or _next_step(
             writer_state=writer_state,
             user_next=user_next,
@@ -179,6 +187,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
             next_owner=next_owner,
             user_action_required=user_action_required,
             current_blockers=current_blockers,
+            canonical_typed_blocker_present=bool(canonical_typed_blocker),
         ),
         "writer_state": writer_state,
         "user_next": user_next,
@@ -286,6 +295,63 @@ def _canonical_typed_blocker_blocks_liveness(payload: Mapping[str, Any]) -> bool
     return _non_empty_text(execution.get("state_kind")) == "typed_blocker" and bool(
         _mapping_copy(execution.get("typed_blocker"))
     )
+
+
+def _canonical_typed_blocker(payload: Mapping[str, Any]) -> dict[str, Any]:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) not in {"typed_blocker", "blocked_current_work_unit"}:
+        return {}
+    state = _mapping_copy(current_work_unit.get("state"))
+    typed_blocker = _mapping_copy(state.get("typed_blocker")) or _mapping_copy(current_work_unit.get("typed_blocker"))
+    if _non_empty_text(current_work_unit.get("status")) != "typed_blocker" and not typed_blocker:
+        return {}
+    if not typed_blocker:
+        typed_blocker = {
+            "blocker_type": _non_empty_text(state.get("blocker_type")),
+            "blocker_id": _non_empty_text(state.get("blocker_id")),
+            "blocked_reason": _non_empty_text(state.get("blocked_reason")),
+        }
+    for key in ("owner", "action_type", "work_unit_id", "work_unit_fingerprint"):
+        typed_blocker.setdefault(key, _non_empty_text(current_work_unit.get(key)))
+    return {key: value for key, value in typed_blocker.items() if value not in (None, "", [], {})}
+
+
+def _canonical_typed_blocker_reason(typed_blocker: Mapping[str, Any]) -> str | None:
+    for key in ("blocked_reason", "blocker_type", "blocker_kind", "reason", "blocker_id"):
+        if text := _non_empty_text(typed_blocker.get(key)):
+            return text
+    anti_loop_budget = _mapping_copy(typed_blocker.get("anti_loop_budget"))
+    if _non_empty_text(anti_loop_budget.get("status")) == "exhausted":
+        return "anti_loop_budget_exhausted"
+    return None
+
+
+def _canonical_typed_blocker_next_step(
+    *,
+    payload: Mapping[str, Any],
+    typed_blocker: Mapping[str, Any],
+    next_owner: str | None,
+) -> str | None:
+    if not typed_blocker:
+        return None
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    owner = (
+        next_owner
+        or _non_empty_text(typed_blocker.get("required_next_owner"))
+        or _non_empty_text(typed_blocker.get("owner"))
+        or _non_empty_text(current_work_unit.get("owner"))
+        or "当前 owner"
+    )
+    reason = _canonical_typed_blocker_reason(typed_blocker) or "typed_blocker"
+    work_unit_id = _non_empty_text(typed_blocker.get("work_unit_id")) or _non_empty_text(
+        current_work_unit.get("work_unit_id")
+    )
+    action_type = _non_empty_text(typed_blocker.get("action_type")) or _non_empty_text(
+        current_work_unit.get("action_type")
+    )
+    subject = f" work unit {work_unit_id}" if work_unit_id is not None else ""
+    action = f" / {action_type}" if action_type is not None else ""
+    return f"等待 {owner} 处理当前 typed blocker：{reason}{subject}{action}。"
 
 
 def _display_macro_state(
@@ -467,8 +533,12 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
     ai_repair_lifecycle = _mapping_copy(payload.get("ai_repair_lifecycle"))
     return (
         _non_empty_text(executable_action.get("next_owner"))
-        or _non_empty_text(current_work_unit.get("owner"))
-        or _non_empty_text(execution.get("owner"))
+        or _user_facing_current_work_unit_owner(current_work_unit)
+        or _user_facing_execution_owner(
+            payload=payload,
+            execution=execution,
+            current_work_unit=current_work_unit,
+        )
         or _non_empty_text(impact.get("next_owner"))
         or _non_empty_text(owner_route.get("next_owner"))
         or _non_empty_text(details.get("decision_owner"))
@@ -488,15 +558,50 @@ def _user_facing_executable_owner_action(payload: Mapping[str, Any]) -> dict[str
     return {}
 
 
+def _user_facing_current_work_unit_owner(current_work_unit: Mapping[str, Any]) -> str | None:
+    status = _non_empty_text(current_work_unit.get("status"))
+    state = _mapping_copy(current_work_unit.get("state"))
+    if status in {"typed_blocker", "running_provider_attempt"}:
+        return _non_empty_text(current_work_unit.get("owner"))
+    if status == "blocked_current_work_unit" and (
+        _mapping_copy(state.get("typed_blocker")) or _mapping_copy(current_work_unit.get("typed_blocker"))
+    ):
+        return _non_empty_text(current_work_unit.get("owner"))
+    if _non_empty_text(state.get("source")) == "stage_artifact_index.next_owner_action":
+        return None
+    if status == "executable_owner_action":
+        return _non_empty_text(current_work_unit.get("owner"))
+    return None
+
+
+def _user_facing_execution_owner(
+    *,
+    payload: Mapping[str, Any],
+    execution: Mapping[str, Any],
+    current_work_unit: Mapping[str, Any],
+) -> str | None:
+    state = _mapping_copy(current_work_unit.get("state"))
+    if (
+        _non_empty_text(state.get("source")) == "stage_artifact_index.next_owner_action"
+        and current_owner_handoff_action(payload) is None
+        and not current_owner_redrive_domain_transition(payload)
+    ):
+        return None
+    return _non_empty_text(execution.get("owner"))
+
+
 def _why_not_progressing(
     *,
     payload: Mapping[str, Any],
     actual_write_active: bool,
     meaningful_artifact_delta: bool,
     next_owner: str | None,
+    canonical_typed_blocker: Mapping[str, Any],
 ) -> str | None:
     if actual_write_active and meaningful_artifact_delta:
         return None
+    if reason := _canonical_typed_blocker_reason(canonical_typed_blocker):
+        return reason
     impact = _mapping_copy(payload.get("production_blocker_impact"))
     progress_freshness = _mapping_copy(payload.get("progress_freshness"))
     activity_timeout = _mapping_copy(progress_freshness.get("activity_timeout"))
@@ -561,9 +666,12 @@ def _owner_resolution_state(
     next_owner: str | None,
     user_action_required: bool,
     current_blockers: list[str],
+    canonical_typed_blocker_present: bool = False,
 ) -> str:
     if actual_write_active:
         return "running"
+    if canonical_typed_blocker_present:
+        return "blocked_with_typed_owner"
     if user_action_required:
         return "terminal_stop_loss" if reason == "stop_loss" else "waiting_human"
     if writer_state == "parked" and user_next == "none":
@@ -654,7 +762,19 @@ def _current_blockers(
     details: Mapping[str, Any],
     terminal_delivery: bool,
     quality_owner_pending: bool = False,
+    canonical_typed_blocker: Mapping[str, Any] | None = None,
 ) -> list[str]:
+    if canonical_typed_blocker:
+        values = []
+        if reason := _canonical_typed_blocker_reason(canonical_typed_blocker):
+            values.append(reason)
+        values.extend(canonical_typed_blocker.get("remaining_blockers") or [])
+        for key in ("summary", "required_input", "source_ref"):
+            if text := _non_empty_text(canonical_typed_blocker.get(key)):
+                values.append(text)
+        normalized = _normalized_texts(values)
+        if normalized:
+            return normalized[:8]
     if writer_state == "live":
         return []
     if writer_state == "conflict" or reason == "truth_conflict":

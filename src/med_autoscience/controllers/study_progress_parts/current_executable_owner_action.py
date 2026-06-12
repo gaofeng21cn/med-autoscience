@@ -6,6 +6,9 @@ from typing import Any
 from med_autoscience.controllers.domain_health_diagnostic_parts.current_ai_reviewer_gate_replay import (
     current_ai_reviewer_gate_replay_fingerprint,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
+    is_anti_loop_stop_loss_closeout,
+)
 
 from .shared import _mapping_copy, _non_empty_text
 
@@ -21,22 +24,60 @@ AI_REVIEWER_WORK_UNIT = "produce_ai_reviewer_publication_eval_record_against_cur
 GATE_CLEARING_ACTION = "run_gate_clearing_batch"
 GATE_CLEARING_OWNER = "gate_clearing_batch"
 GATE_CLEARING_WORK_UNIT = "publication_gate_replay"
+QUALITY_REPAIR_ACTION = "run_quality_repair_batch"
+TERMINAL_NEXT_FORCED_DELTA_ACTIONS = frozenset(
+    {
+        GATE_CLEARING_ACTION,
+        QUALITY_REPAIR_ACTION,
+    }
+)
+GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES = frozenset(
+    {
+        "closed",
+        "completed",
+        "executed",
+        "fresh",
+        "skipped_duplicate_eval",
+        "skipped_stale_gate_replay_closed",
+    }
+)
 
 
 def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    if _canonical_current_work_unit_has_terminal_stop_loss(payload):
+        return None
     domain_transition_action = _from_domain_transition(payload)
     repair_progress_action = _from_repair_progress_projection(payload)
     if repair_progress_action is not None:
         if not _action_consumed_by_dispatch_receipt(action=repair_progress_action, payload=payload):
             return repair_progress_action
-        next_forced_delta_action = _from_next_forced_delta(payload)
+        gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
+        next_forced_delta_action = _from_current_next_forced_delta(payload)
+        if _next_forced_delta_supersedes_gate_followthrough(
+            next_forced_delta_action=next_forced_delta_action,
+            gate_followthrough_action=gate_followthrough_action,
+        ):
+            return next_forced_delta_action
+        if gate_followthrough_action is not None:
+            return gate_followthrough_action
         if next_forced_delta_action is not None:
             return next_forced_delta_action
+    gate_followthrough_action = _from_gate_followthrough_current_work_unit(payload)
+    next_forced_delta_action = _from_current_next_forced_delta(payload)
     stage_native_action = _from_stage_native_current_owner_action(payload)
+    if _next_forced_delta_supersedes_gate_followthrough(
+        next_forced_delta_action=next_forced_delta_action,
+        gate_followthrough_action=gate_followthrough_action,
+    ):
+        return next_forced_delta_action
     if _stage_kernel_owner_answer_recorded_without_next_action(payload):
+        if gate_followthrough_action is not None:
+            return gate_followthrough_action
         return stage_native_action or domain_transition_action
     if _stage_kernel_readiness_stable_typed_blocker_answer(payload):
-        next_forced_delta_action = _from_next_forced_delta(payload)
+        if gate_followthrough_action is not None:
+            return gate_followthrough_action
+        next_forced_delta_action = _from_current_next_forced_delta(payload)
         if _next_forced_delta_supersedes_stale_readiness_blocker(next_forced_delta_action):
             return next_forced_delta_action
         return (
@@ -52,7 +93,243 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     artifact_action = _from_stage_artifact_index(payload)
     if artifact_action is not None:
         return artifact_action
-    return _from_next_forced_delta(payload) or domain_transition_action
+    if gate_followthrough_action is not None:
+        return gate_followthrough_action
+    return next_forced_delta_action or domain_transition_action
+
+
+def _canonical_current_work_unit_has_terminal_stop_loss(payload: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
+    if _non_empty_text(current_work_unit.get("status")) != "typed_blocker":
+        return False
+    state = _mapping_copy(current_work_unit.get("state"))
+    typed_blocker = _mapping_copy(state.get("typed_blocker")) or _mapping_copy(
+        current_work_unit.get("typed_blocker")
+    )
+    closeout_like = {
+        "typed_blocker": typed_blocker,
+        "blocked_reason": _non_empty_text(state.get("blocker_type"))
+        or _non_empty_text(typed_blocker.get("blocked_reason"))
+        or _non_empty_text(typed_blocker.get("blocker_type"))
+        or _non_empty_text(typed_blocker.get("blocker_kind"))
+        or _non_empty_text(typed_blocker.get("reason")),
+        "typed_blocker_reason": _non_empty_text(typed_blocker.get("blocker_type"))
+        or _non_empty_text(typed_blocker.get("blocker_kind"))
+        or _non_empty_text(typed_blocker.get("reason")),
+        "stage_closeout_status": _non_empty_text(typed_blocker.get("terminal_closeout_status")),
+        "stage_closeout_outcome": _non_empty_text(typed_blocker.get("terminal_closeout_outcome")),
+    }
+    return is_anti_loop_stop_loss_closeout(closeout_like)
+
+
+def _from_current_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    terminal_action = _from_terminal_stage_next_forced_delta(payload)
+    if terminal_action is not None:
+        return terminal_action
+    return _from_next_forced_delta(payload)
+
+
+def _from_gate_followthrough_current_work_unit(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    followthrough = _mapping_copy(payload.get("gate_clearing_batch_followthrough"))
+    if _non_empty_text(followthrough.get("status")) not in GATE_CLEARING_FOLLOWTHROUGH_CONSUMED_STATUSES:
+        return None
+    if _non_empty_text(followthrough.get("gate_replay_status")) != "blocked":
+        return None
+    currentness = _mapping_copy(followthrough.get("work_unit_currentness"))
+    if _non_empty_text(currentness.get("current_actionability_status")) != "actionable":
+        return None
+    if currentness.get("lacks_specific_blocker_object") is True:
+        return None
+    explicit_work_unit_id = (
+        _non_empty_text(currentness.get("explicit_publication_work_unit_id"))
+        or _non_empty_text(followthrough.get("work_unit_id"))
+        or _non_empty_text(_mapping_copy(followthrough.get("explicit_publication_work_unit")).get("unit_id"))
+    )
+    current_publication_work_unit = _mapping_copy(followthrough.get("current_publication_work_unit"))
+    current_work_unit_id = (
+        _non_empty_text(currentness.get("current_publication_work_unit_id"))
+        or _non_empty_text(current_publication_work_unit.get("unit_id"))
+    )
+    if current_work_unit_id is None or current_work_unit_id == explicit_work_unit_id:
+        return None
+    lane = _non_empty_text(current_publication_work_unit.get("lane"))
+    next_owner = lane if lane in {"write", "analysis-campaign", "finalize"} else "write"
+    work_unit_fingerprint = _non_empty_text(currentness.get("current_work_unit_fingerprint"))
+    source_eval_id = _non_empty_text(followthrough.get("source_eval_id"))
+    source_ref = _non_empty_text(followthrough.get("latest_record_path"))
+    owner_route_currentness_basis = _compact(
+        {
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": current_work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "explicit_publication_work_unit_id": explicit_work_unit_id,
+        }
+    )
+    return _compact(
+        {
+            "surface_kind": SURFACE_KIND,
+            "schema_version": 1,
+            "status": "ready",
+            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+            "next_owner": next_owner,
+            "work_unit_id": current_work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "action_fingerprint": work_unit_fingerprint,
+            "source_eval_id": source_eval_id,
+            "owner_route_currentness_basis": owner_route_currentness_basis or None,
+            "action_type": QUALITY_REPAIR_ACTION,
+            "allowed_actions": [QUALITY_REPAIR_ACTION],
+            "owner_receipt_required": True,
+            "required_delta_kind": "publication_gate_actionable_repair_delta_or_typed_blocker",
+            "target_surface": {
+                "ref_kind": "publication_work_unit",
+                "route_target": next_owner,
+                "surface_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "gate_clearing_batch_ref": source_ref,
+                "gate_replay_blockers": _text_items(followthrough.get("gate_replay_blockers")),
+                "current_publication_work_unit": current_publication_work_unit or None,
+            },
+            "target_surface_specificity": "gate_followthrough_actionable_publication_work_unit",
+            "acceptance_refs": [ref for ref in [source_ref] if ref],
+            "authority_boundary": _authority_boundary(),
+        }
+    )
+
+
+def _from_terminal_stage_next_forced_delta(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
+    terminal = _mapping_copy(handoff.get("latest_terminal_stage_log"))
+    paper_stage_log = _mapping_copy(terminal.get("paper_stage_log"))
+    next_forced_delta = _mapping_copy(terminal.get("next_forced_delta")) or _mapping_copy(
+        paper_stage_log.get("next_forced_delta")
+    )
+    owner_action = _mapping_copy(next_forced_delta.get("owner_action"))
+    action_type = (
+        _non_empty_text(owner_action.get("action_type"))
+        or _non_empty_text(terminal.get("action_type"))
+        or _non_empty_text(next_forced_delta.get("action_type"))
+    )
+    if action_type not in TERMINAL_NEXT_FORCED_DELTA_ACTIONS:
+        return None
+    work_unit_id = (
+        _non_empty_text(owner_action.get("work_unit_id"))
+        or _non_empty_text(next_forced_delta.get("work_unit_id"))
+        or _non_empty_text(paper_stage_log.get("stage_name"))
+    )
+    owner = (
+        _non_empty_text(owner_action.get("next_owner"))
+        or _non_empty_text(owner_action.get("owner"))
+        or _non_empty_text(next_forced_delta.get("next_owner"))
+        or _terminal_next_forced_delta_default_owner(action_type)
+    )
+    if owner is None and work_unit_id is None:
+        return None
+    source_ref = _non_empty_text(terminal.get("source_path"))
+    required_delta_kind = (
+        _non_empty_text(next_forced_delta.get("required_delta_kind"))
+        or "paper_progress_delta_or_typed_blocker"
+    )
+    target_surface = _mapping_copy(next_forced_delta.get("target_surface")) or {
+        "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json"
+    }
+    source_eval_id = _non_empty_text(owner_action.get("source_eval_id")) or _non_empty_text(
+        next_forced_delta.get("source_eval_id")
+    )
+    fingerprint = _terminal_next_forced_delta_fingerprint(
+        payload=payload,
+        terminal=terminal,
+        paper_stage_log=paper_stage_log,
+        next_forced_delta=next_forced_delta,
+        owner_action=owner_action,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+    )
+    owner_route_currentness_basis = _compact(
+        {
+            "source": "study_progress.next_forced_delta.owner_action",
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "terminal_stage_status": _non_empty_text(terminal.get("status")),
+            "terminal_stage_action_type": _non_empty_text(terminal.get("action_type")),
+        }
+    )
+    return _compact(
+        {
+            "surface_kind": SURFACE_KIND,
+            "schema_version": 1,
+            "status": "ready",
+            "source": "study_progress.next_forced_delta.owner_action",
+            "next_owner": owner,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "source_eval_id": source_eval_id,
+            "owner_route_currentness_basis": owner_route_currentness_basis or None,
+            "action_type": action_type,
+            "allowed_actions": [action_type],
+            "owner_receipt_required": owner_action.get("owner_receipt_required") is not False,
+            "required_delta_kind": required_delta_kind,
+            "target_surface": target_surface,
+            "target_surface_specificity": _non_empty_text(
+                next_forced_delta.get("target_surface_specificity")
+            )
+            or "terminal_stage_next_forced_delta",
+            "terminal_stage_next_forced_delta": True,
+            "acceptance_refs": _dedupe_text(
+                [source_ref, *_text_items(next_forced_delta.get("acceptance_refs"))]
+            ),
+            "authority_boundary": _authority_boundary(),
+        }
+    )
+
+
+def _terminal_next_forced_delta_default_owner(action_type: str | None) -> str | None:
+    if action_type == GATE_CLEARING_ACTION:
+        return GATE_CLEARING_OWNER
+    if action_type == QUALITY_REPAIR_ACTION:
+        return "write"
+    return None
+
+
+def _terminal_next_forced_delta_fingerprint(
+    *,
+    payload: Mapping[str, Any],
+    terminal: Mapping[str, Any],
+    paper_stage_log: Mapping[str, Any],
+    next_forced_delta: Mapping[str, Any],
+    owner_action: Mapping[str, Any],
+    action_type: str | None,
+    work_unit_id: str | None,
+    source_eval_id: str | None,
+) -> str | None:
+    explicit_fingerprint = (
+        _non_empty_text(owner_action.get("work_unit_fingerprint"))
+        or _non_empty_text(owner_action.get("action_fingerprint"))
+        or _non_empty_text(owner_action.get("fingerprint"))
+        or _non_empty_text(next_forced_delta.get("work_unit_fingerprint"))
+        or _non_empty_text(next_forced_delta.get("action_fingerprint"))
+        or _non_empty_text(next_forced_delta.get("fingerprint"))
+        or _non_empty_text(paper_stage_log.get("work_unit_fingerprint"))
+        or _non_empty_text(paper_stage_log.get("action_fingerprint"))
+        or _non_empty_text(paper_stage_log.get("fingerprint"))
+        or _non_empty_text(terminal.get("work_unit_fingerprint"))
+        or _non_empty_text(terminal.get("action_fingerprint"))
+        or _non_empty_text(terminal.get("fingerprint"))
+    )
+    if explicit_fingerprint is not None:
+        return explicit_fingerprint
+    if action_type != GATE_CLEARING_ACTION:
+        return None
+    study_id = _non_empty_text(payload.get("study_id"))
+    return current_ai_reviewer_gate_replay_fingerprint(
+        study_id=study_id,
+        action_type=action_type,
+        work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+    )
 
 
 def _from_stage_kernel_readiness_followup(payload: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -320,6 +597,61 @@ def _next_forced_delta_supersedes_stale_readiness_blocker(
     )
 
 
+def _next_forced_delta_supersedes_gate_followthrough(
+    *,
+    next_forced_delta_action: Mapping[str, Any] | None,
+    gate_followthrough_action: Mapping[str, Any] | None,
+) -> bool:
+    next_action = _mapping_copy(next_forced_delta_action)
+    gate_action = _mapping_copy(gate_followthrough_action)
+    if not next_action or not gate_action:
+        return False
+    if _non_empty_text(gate_action.get("source")) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return False
+    if _non_empty_text(next_action.get("source")) != "study_progress.next_forced_delta.owner_action":
+        return False
+    next_action_type = _non_empty_text(next_action.get("action_type"))
+    if next_action_type not in TERMINAL_NEXT_FORCED_DELTA_ACTIONS:
+        return False
+    if _non_empty_text(gate_action.get("action_type")) != QUALITY_REPAIR_ACTION:
+        return False
+    next_source_eval_id = _non_empty_text(next_action.get("source_eval_id"))
+    gate_source_eval_id = _non_empty_text(gate_action.get("source_eval_id"))
+    if next_action.get("terminal_stage_next_forced_delta") is True:
+        return _terminal_stage_next_delta_supersedes_gate_followthrough(
+            next_action=next_action,
+            gate_action=gate_action,
+        )
+    if next_action_type != GATE_CLEARING_ACTION:
+        return False
+    if next_source_eval_id is None or gate_source_eval_id is None:
+        return False
+    if next_source_eval_id == gate_source_eval_id:
+        return False
+    if _non_empty_text(next_action.get("work_unit_id")) == _non_empty_text(gate_action.get("work_unit_id")):
+        return False
+    return True
+
+
+def _terminal_stage_next_delta_supersedes_gate_followthrough(
+    *,
+    next_action: Mapping[str, Any],
+    gate_action: Mapping[str, Any],
+) -> bool:
+    next_work_unit = _non_empty_text(next_action.get("work_unit_id"))
+    if next_work_unit is None:
+        return False
+    if next_work_unit == _non_empty_text(gate_action.get("work_unit_id")):
+        return False
+    if _non_empty_text(next_action.get("action_type")) == QUALITY_REPAIR_ACTION:
+        return True
+    gate_basis = _mapping_copy(gate_action.get("owner_route_currentness_basis"))
+    explicit_publication_work_unit = _non_empty_text(
+        gate_basis.get("explicit_publication_work_unit_id")
+    )
+    return next_work_unit == explicit_publication_work_unit
+
+
 def _action_consumed_by_dispatch_receipt(
     *,
     action: Mapping[str, Any],
@@ -375,7 +707,92 @@ def _ai_reviewer_eval_receipt_consumes_repair_followup(
     receipt_ref = _non_empty_text(consumption.get("receipt_ref"))
     if receipt_ref is None or "publication_eval" not in receipt_ref:
         return False
-    return _non_empty_text(consumption.get("work_unit_id")) == AI_REVIEWER_WORK_UNIT
+    if _non_empty_text(consumption.get("work_unit_id")) != AI_REVIEWER_WORK_UNIT:
+        return False
+    return _ai_reviewer_eval_receipt_binds_repair_followup(
+        action=action,
+        consumption=consumption,
+    )
+
+
+def _ai_reviewer_eval_receipt_binds_repair_followup(
+    *,
+    action: Mapping[str, Any],
+    consumption: Mapping[str, Any],
+) -> bool:
+    repair_precedence = _mapping_copy(action.get("repair_progress_precedence"))
+    target_surface = _mapping_copy(action.get("target_surface"))
+    expected_source_fingerprint = (
+        _non_empty_text(action.get("work_unit_fingerprint"))
+        or _non_empty_text(action.get("action_fingerprint"))
+        or _non_empty_text(repair_precedence.get("source_fingerprint"))
+    )
+    binding_mappings = _ai_reviewer_consumption_binding_mappings(consumption)
+    if expected_source_fingerprint is not None:
+        explicit_fingerprints = {
+            text
+            for mapping in binding_mappings
+            for key in (
+                "repair_source_fingerprint",
+                "repair_progress_source_fingerprint",
+                "repair_execution_source_fingerprint",
+            )
+            if (text := _non_empty_text(mapping.get(key))) is not None
+        }
+        if expected_source_fingerprint in explicit_fingerprints:
+            return True
+    expected_refs = set(
+        _dedupe_text(
+            [
+                action.get("source_ref"),
+                target_surface.get("request_ref"),
+                target_surface.get("gate_replay_request_ref"),
+                *list(action.get("acceptance_refs") or []),
+            ]
+        )
+    )
+    if expected_refs:
+        explicit_refs = {
+            text
+            for mapping in binding_mappings
+            for key in (
+                "repair_execution_evidence_ref",
+                "owner_receipt_ref",
+                "ai_reviewer_recheck_request_ref",
+                "request_ref",
+                "gate_replay_request_ref",
+            )
+            if (text := _non_empty_text(mapping.get(key))) is not None
+        }
+        if expected_refs.intersection(explicit_refs):
+            return True
+    expected_source_eval_id = _non_empty_text(repair_precedence.get("source_eval_id"))
+    if expected_source_eval_id is not None:
+        explicit_source_eval_ids = {
+            text
+            for mapping in binding_mappings
+            for key in ("repair_source_eval_id", "repair_progress_source_eval_id")
+            if (text := _non_empty_text(mapping.get(key))) is not None
+        }
+        if expected_source_eval_id in explicit_source_eval_ids:
+            return True
+    return False
+
+
+def _ai_reviewer_consumption_binding_mappings(consumption: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    canonical = _mapping_copy(consumption.get("canonical_work_unit_identity"))
+    owner_route_basis = _mapping_copy(consumption.get("owner_route_currentness_basis"))
+    canonical_owner_route_basis = _mapping_copy(canonical.get("owner_route_currentness_basis"))
+    source_refs = _mapping_copy(consumption.get("source_refs"))
+    source_refs_basis = _mapping_copy(source_refs.get("owner_route_currentness_basis"))
+    return [
+        consumption,
+        canonical,
+        owner_route_basis,
+        canonical_owner_route_basis,
+        source_refs,
+        source_refs_basis,
+    ]
 
 
 def owner_action_next_step(action: Mapping[str, Any]) -> str | None:

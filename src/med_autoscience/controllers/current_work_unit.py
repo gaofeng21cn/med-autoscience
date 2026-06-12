@@ -16,6 +16,9 @@ from med_autoscience.controllers.current_work_unit_parts.terminal_closeout_curre
     gate_replay_consumed_by_source_eval,
     terminal_closeout_blocker_for_action,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
+    is_anti_loop_stop_loss_closeout,
+)
 from med_autoscience.controllers.current_work_unit_parts.action_projection_fields import (
     acceptance_refs as _acceptance_refs,
     action_fingerprint as _action_fingerprint,
@@ -229,6 +232,16 @@ def build_current_work_unit(
                 currentness_basis=basis,
                 source="typed_blocker",
             )
+    if resolved_typed_blocker is not None and _typed_blocker_is_terminal_stop_loss(resolved_typed_blocker):
+        return _typed_blocker_work_unit(
+            blocker=resolved_typed_blocker,
+            action=action,
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            source_refs=resolved_source_refs,
+            currentness_basis=basis,
+            source="typed_blocker",
+        )
     if stage_owner_identity_blocker is not None:
         return _typed_blocker_work_unit(
             blocker=stage_owner_identity_blocker,
@@ -523,6 +536,26 @@ def _running_attempt_can_supersede_blocker(blocker: Mapping[str, Any] | None) ->
     if not payload:
         return True
     return bool(_blocker_reason_values(payload).intersection(LIVE_ATTEMPT_SUPERSEDED_BLOCKERS))
+
+
+def _typed_blocker_is_terminal_stop_loss(blocker: Mapping[str, Any]) -> bool:
+    payload = _mapping(blocker)
+    if not payload:
+        return False
+    closeout_like = {
+        "typed_blocker": payload,
+        "blocked_reason": _text(payload.get("blocked_reason"))
+        or _text(payload.get("blocker_type"))
+        or _text(payload.get("blocker_kind"))
+        or _text(payload.get("reason")),
+        "typed_blocker_reason": _text(payload.get("blocker_type"))
+        or _text(payload.get("blocker_kind"))
+        or _text(payload.get("reason")),
+        "stage_closeout_status": _text(payload.get("terminal_closeout_status")),
+        "stage_closeout_outcome": _text(payload.get("terminal_closeout_outcome")),
+        "paper_stage_log": _mapping(payload.get("paper_stage_log")),
+    }
+    return is_anti_loop_stop_loss_closeout(closeout_like)
 
 
 def _blocker_reason_values(blocker: Mapping[str, Any]) -> set[str]:
@@ -935,7 +968,7 @@ def _action_supersedes_typed_blocker(
             )
         )
     if blocker_type in CURRENT_ACTION_SUPERSEDED_PRIOR_ACTION_BLOCKERS:
-        return _paper_delta_current_action_supersedes_prior_blocker(
+        return _gate_followthrough_actionable_repair_action(action) or _paper_delta_current_action_supersedes_prior_blocker(
             action=action,
             progress=_mapping(progress),
         )
@@ -1059,6 +1092,8 @@ def _provider_admission_repair_action_supersedes_readiness_blocker(action: Mappi
         return True
     if _mapping(action.get("repair_progress_precedence")).get("accepted_owner_receipt") is True:
         return True
+    if _gate_followthrough_actionable_repair_action(action):
+        return True
     action_id = _text(action.get("action_id"))
     if action_id is not None and action_id.startswith("provider-admission::"):
         return True
@@ -1067,6 +1102,18 @@ def _provider_admission_repair_action_supersedes_readiness_blocker(action: Mappi
         if text is not None and text.startswith("study-progress-current-owner-ticket::"):
             return True
     return False
+
+
+def _gate_followthrough_actionable_repair_action(action: Mapping[str, Any]) -> bool:
+    if _text(action.get("source")) != "gate_clearing_batch_followthrough.actionable_current_work_unit":
+        return False
+    work_unit = _text(action.get("work_unit_id"))
+    if work_unit in {None, "complete_medical_paper_readiness_surface"}:
+        return False
+    target = _mapping(action.get("target_surface"))
+    if _text(target.get("target_surface_specificity")) == "stage_kernel_typed_blocker_followup":
+        return False
+    return _text(target.get("ref_kind")) == "publication_work_unit"
 
 
 def _gate_consumption_action_supersedes_readiness_blocker(action: Mapping[str, Any]) -> bool:

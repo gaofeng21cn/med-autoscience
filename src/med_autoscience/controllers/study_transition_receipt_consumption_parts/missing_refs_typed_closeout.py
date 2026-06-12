@@ -5,6 +5,23 @@ from pathlib import Path
 from typing import Any
 
 _DEFAULT_EXECUTOR_BLOCKED_STATUSES = frozenset({"blocked"})
+_TYPED_CLOSEOUT_STATUSES = frozenset(
+    {
+        "blocked",
+        "blocked_with_domain_typed_blocker",
+        "closed_with_typed_blocker",
+        "typed_blocker",
+    }
+)
+_TYPED_CLOSEOUT_OUTCOMES = frozenset(
+    {
+        "blocked_with_domain_typed_blocker",
+        "repeat_suppressed_with_typed_blocker",
+        "typed_blocker",
+        "typed_blocker_anti_loop_budget_exhausted",
+    }
+)
+_ANTI_LOOP_BUDGET_EXHAUSTED = "anti_loop_budget_exhausted"
 
 
 def is_blocked_typed_closeout(
@@ -12,12 +29,21 @@ def is_blocked_typed_closeout(
     execution: Mapping[str, Any],
     receipt_ref: str,
 ) -> bool:
-    if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_BLOCKED_STATUSES:
-        return False
     if not str(receipt_ref).endswith(".closeout.json"):
         return False
     owner_result = _mapping(execution.get("owner_result"))
-    return bool(_text(owner_result.get("blocked_reason")))
+    if (
+        _text(execution.get("execution_status")) in _DEFAULT_EXECUTOR_BLOCKED_STATUSES
+        and bool(_text(owner_result.get("blocked_reason")))
+    ):
+        return True
+    if _typed_blocker_reason(execution):
+        return True
+    if _anti_loop_budget_exhausted(execution):
+        return True
+    return _text(execution.get("stage_closeout_status")) in _TYPED_CLOSEOUT_STATUSES or _text(
+        execution.get("stage_closeout_outcome")
+    ) in _TYPED_CLOSEOUT_OUTCOMES
 
 
 def is_missing_refs_typed_closeout(
@@ -98,3 +124,64 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 def _text(value: object) -> str:
     return str(value or "").strip()
+
+
+def _typed_blocker_reason(execution: Mapping[str, Any]) -> str:
+    typed_blocker = _mapping(execution.get("typed_blocker"))
+    stage_closeout = _mapping(execution.get("stage_closeout"))
+    stage_typed_blocker = _mapping(stage_closeout.get("typed_blocker"))
+    paper_stage_log = _mapping(execution.get("paper_stage_log"))
+    for value in (
+        execution.get("typed_blocker_reason"),
+        execution.get("blocked_reason"),
+        typed_blocker.get("blocker_type"),
+        typed_blocker.get("blocker_kind"),
+        typed_blocker.get("reason"),
+        typed_blocker.get("blocked_reason"),
+        typed_blocker.get("blocker_id"),
+        stage_typed_blocker.get("blocker_type"),
+        stage_typed_blocker.get("blocker_kind"),
+        stage_typed_blocker.get("reason"),
+        stage_typed_blocker.get("blocked_reason"),
+        stage_typed_blocker.get("blocker_id"),
+    ):
+        if text := _text(value):
+            return text
+    if _text(paper_stage_log.get("progress_delta_classification")) == "typed_blocker":
+        return _text(paper_stage_log.get("outcome")) or "typed_blocker"
+    return ""
+
+
+def _anti_loop_budget_exhausted(execution: Mapping[str, Any]) -> bool:
+    typed_blocker = _mapping(execution.get("typed_blocker"))
+    stage_closeout = _mapping(execution.get("stage_closeout"))
+    stage_typed_blocker = _mapping(stage_closeout.get("typed_blocker"))
+    anti_loop_budget = _mapping(typed_blocker.get("anti_loop_budget")) or _mapping(
+        stage_typed_blocker.get("anti_loop_budget")
+    )
+    paper_stage_log = _mapping(execution.get("paper_stage_log"))
+    next_forced_delta = _mapping(paper_stage_log.get("next_forced_delta"))
+    for value in (
+        execution.get("typed_blocker_reason"),
+        execution.get("blocked_reason"),
+        execution.get("stage_closeout_outcome"),
+        typed_blocker.get("blocker_type"),
+        typed_blocker.get("blocker_kind"),
+        typed_blocker.get("reason"),
+        typed_blocker.get("blocked_reason"),
+        stage_typed_blocker.get("blocker_type"),
+        stage_typed_blocker.get("blocker_kind"),
+        stage_typed_blocker.get("reason"),
+        stage_typed_blocker.get("blocked_reason"),
+        anti_loop_budget.get("status"),
+        paper_stage_log.get("outcome"),
+        next_forced_delta.get("reason"),
+    ):
+        text = _text(value)
+        if text == _ANTI_LOOP_BUDGET_EXHAUSTED:
+            return True
+        if text == "exhausted" and anti_loop_budget:
+            return True
+        if _ANTI_LOOP_BUDGET_EXHAUSTED in text:
+            return True
+    return False

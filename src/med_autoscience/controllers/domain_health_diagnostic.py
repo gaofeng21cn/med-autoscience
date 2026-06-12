@@ -522,6 +522,12 @@ def run_domain_health_diagnostic_for_runtime(
             _mapping(first_iteration).get("owner_route_reconcile") or {}
         )
         report["developer_supervisor_same_tick"] = supervisor_tick
+        _refresh_report_progress_currentness_after_same_tick(
+            report=report,
+            profile=profile,
+            study_ids=study_ids,
+            supervisor_tick=supervisor_tick,
+        )
     if request_opl_stage_attempts and profile is not None:
         current_control_state = _materialize_report_provider_admission_current_control_state(
             profile=profile,
@@ -549,6 +555,145 @@ def _materialize_report_provider_admission_current_control_state(
         apply=apply,
         generated_at=_non_empty_text(report.get("scanned_at")) or utc_now(),
     )
+
+
+def _refresh_report_progress_currentness_after_same_tick(
+    *,
+    report: dict[str, Any],
+    profile: WorkspaceProfile,
+    study_ids: tuple[str, ...],
+    supervisor_tick: Mapping[str, Any],
+) -> None:
+    if _non_empty_text(supervisor_tick.get("stop_reason")) not in {
+        "provider_handoff_written_admission_pending",
+        "provider_attempt_started",
+        "typed_blocker_or_dispatch_blocker_observed",
+        "repeat_suppressed_owner_delta_required",
+        "max_passes_exhausted_owner_delta_required",
+        "owner_action_projected_but_not_materialized",
+    }:
+        return
+    refreshed = _fresh_progress_currentness_for_report(
+        profile=profile,
+        study_ids=_same_tick_refresh_study_ids(
+            report=report,
+            explicit_study_ids=study_ids,
+            supervisor_tick=supervisor_tick,
+        ),
+    )
+    if not refreshed:
+        return
+    current_execution_evidence = _mapping(report.get("current_execution_evidence"))
+    progress_currentness = {
+        key: dict(value) if isinstance(value, Mapping) else value
+        for key, value in _mapping(current_execution_evidence.get("progress_currentness")).items()
+    }
+    progress_currentness.update(refreshed)
+    current_execution_evidence["progress_currentness"] = progress_currentness
+    report["current_execution_evidence"] = current_execution_evidence
+    report["managed_study_actions"] = _report_managed_actions_with_progress_currentness(
+        actions=[
+            dict(action)
+            for action in report.get("managed_study_actions") or []
+            if isinstance(action, Mapping)
+        ],
+        progress_currentness=refreshed,
+    )
+
+
+def _same_tick_refresh_study_ids(
+    *,
+    report: Mapping[str, Any],
+    explicit_study_ids: tuple[str, ...],
+    supervisor_tick: Mapping[str, Any],
+) -> tuple[str, ...]:
+    candidates: list[str] = []
+    candidates.extend(_text_items(explicit_study_ids))
+    candidates.extend(_text_items(supervisor_tick.get("study_ids")))
+    candidates.extend(
+        _non_empty_text(action.get("study_id"))
+        for action in report.get("managed_study_actions") or []
+        if isinstance(action, Mapping)
+    )
+    materialize = _mapping(supervisor_tick.get("materialize"))
+    candidates.extend(
+        _non_empty_text(dispatch.get("study_id"))
+        for dispatch in materialize.get("default_executor_dispatches") or []
+        if isinstance(dispatch, Mapping)
+    )
+    return tuple(dict.fromkeys(study_id for study_id in candidates if study_id is not None))
+
+
+def _fresh_progress_currentness_for_report(
+    *,
+    profile: WorkspaceProfile,
+    study_ids: tuple[str, ...],
+) -> dict[str, dict[str, Any]]:
+    if not study_ids:
+        return {}
+    try:
+        from med_autoscience.controllers import study_progress
+    except Exception:
+        return {}
+    refreshed: dict[str, dict[str, Any]] = {}
+    for study_id in study_ids:
+        try:
+            progress = study_progress.read_study_progress(
+                profile=profile,
+                study_id=study_id,
+                sync_runtime_summary=False,
+                materialize_read_model_artifacts=False,
+            )
+        except Exception:
+            continue
+        if not isinstance(progress, Mapping):
+            continue
+        progress_currentness = {
+            key: dict(value) if isinstance(value, Mapping) else value
+            for key in (
+                "current_work_unit",
+                "current_execution_envelope",
+                "current_executable_owner_action",
+                "current_owner_ticket",
+                "domain_transition",
+                "progress_first_monitoring_summary",
+                "intervention_lane",
+            )
+            if key in progress
+            for value in [progress.get(key)]
+        }
+        if (generated_at := _non_empty_text(progress.get("generated_at"))) is not None:
+            progress_currentness["study_progress_generated_at"] = generated_at
+        if progress_currentness:
+            progress_currentness["quest_id"] = _non_empty_text(progress.get("quest_id")) or study_id
+            refreshed[study_id] = progress_currentness
+    return refreshed
+
+
+def _report_managed_actions_with_progress_currentness(
+    *,
+    actions: list[dict[str, Any]],
+    progress_currentness: Mapping[str, Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    if not actions:
+        return []
+    refreshed_actions: list[dict[str, Any]] = []
+    for action in actions:
+        study_id = _non_empty_text(action.get("study_id"))
+        currentness = _mapping(progress_currentness.get(study_id)) if study_id is not None else {}
+        if currentness:
+            refreshed_actions.append({**action, **currentness})
+        else:
+            refreshed_actions.append(dict(action))
+    return refreshed_actions
+
+
+def _text_items(values: object) -> list[str]:
+    return [
+        text
+        for value in values or []
+        if (text := _non_empty_text(value)) is not None
+    ]
 
 
 def _run_developer_supervisor_same_tick(

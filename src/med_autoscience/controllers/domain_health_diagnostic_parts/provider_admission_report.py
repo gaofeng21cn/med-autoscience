@@ -10,11 +10,17 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     handoff_dispatch_path,
     handoff_work_unit_id,
 )
+from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_closeout_semantics import (
+    is_anti_loop_stop_loss_closeout,
+)
 from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control import (
     materialize_provider_admission_current_control_state,
 )
 from med_autoscience.controllers.opl_execution_boundary import OPL_EXECUTION_AUTHORIZATION_BLOCKER
 from med_autoscience.controllers.owner_route_reconcile_parts import supervision_surfaces
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    default_executor_execution_candidates,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -42,7 +48,10 @@ def materialize_report_provider_admission_current_control_state(
                 fallback_candidates=candidates,
                 progress_currentness=progress_currentness,
             )
-    scanned_studies = _provider_admission_scanned_currentness_studies(progress_currentness)
+    scanned_studies = _provider_admission_scanned_currentness_studies(
+        profile=profile,
+        progress_currentness=progress_currentness,
+    )
     candidates = _filter_provider_admission_candidates_by_progress_currentness(
         candidates,
         progress_currentness=progress_currentness,
@@ -70,30 +79,16 @@ def sync_report_provider_admission_current_control_state(
     current_control_state: Mapping[str, Any],
 ) -> None:
     current_execution_evidence = _mapping(report.get("current_execution_evidence"))
-    progress_currentness = _mapping(current_execution_evidence.get("progress_currentness"))
-    candidates = _merge_provider_admission_candidates(
-        _filter_provider_admission_candidates_by_progress_currentness(
-            [
-                dict(item)
-                for item in report.get("managed_study_opl_provider_admission_candidates") or []
-                if isinstance(item, Mapping)
-            ],
-            progress_currentness=progress_currentness,
-        ),
-        _filter_provider_admission_candidates_by_progress_currentness(
-            [
-                dict(item)
-                for item in current_control_state.get("provider_admission_candidates") or []
-                if isinstance(item, Mapping)
-            ],
-            progress_currentness=progress_currentness,
-        ),
-    )
+    candidates = [
+        dict(item)
+        for item in current_control_state.get("provider_admission_candidates") or []
+        if isinstance(item, Mapping)
+    ]
     report["managed_study_opl_provider_admission_candidates"] = candidates
     report["provider_admission_pending_count"] = len(candidates)
     current_execution_evidence["provider_admission_candidates"] = candidates
     report["current_execution_evidence"] = current_execution_evidence
-    fingerprints = _same_tick_text_items(report.get("action_fingerprints"))
+    fingerprints: list[str] = []
     for candidate in candidates:
         fingerprint = _non_empty_text(candidate.get("work_unit_fingerprint")) or _non_empty_text(
             candidate.get("action_fingerprint")
@@ -104,6 +99,8 @@ def sync_report_provider_admission_current_control_state(
 
 
 def _provider_admission_scanned_currentness_studies(
+    *,
+    profile: WorkspaceProfile,
     progress_currentness: Mapping[str, Any] | None,
 ) -> list[dict[str, Any]]:
     studies: list[dict[str, Any]] = []
@@ -121,7 +118,17 @@ def _provider_admission_scanned_currentness_studies(
             progress_payload.get("progress_first_monitoring_summary")
         )
         intervention_lane = _mapping(progress_payload.get("intervention_lane"))
-        closeout_evidence = _progress_currentness_closeout_evidence(progress_payload)
+        identity = _progress_currentness_current_identity(progress_payload)
+        closeout_evidence = _progress_currentness_closeout_evidence(
+            progress_payload,
+            identity=identity,
+        )
+        closeout_evidence.extend(
+            _study_root_closeout_evidence(
+                study_root=Path(profile.studies_root) / normalized_study_id,
+                identity=identity,
+            )
+        )
         if not any((current_action, current_work_unit, current_execution_envelope, closeout_evidence)):
             continue
         next_owner = _non_empty_text(current_action.get("next_owner"))
@@ -159,9 +166,13 @@ def _provider_admission_scanned_currentness_studies(
     return studies
 
 
-def _progress_currentness_closeout_evidence(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _progress_currentness_closeout_evidence(
+    payload: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     evidence: list[dict[str, Any]] = []
-    identity = _progress_currentness_current_identity(payload)
+    identity = _mapping(identity) or _progress_currentness_current_identity(payload)
     for key in (
         "default_executor_execution_receipt_consumption",
         "terminal_closeout_precedence_evidence",
@@ -185,6 +196,23 @@ def _progress_currentness_closeout_evidence(payload: Mapping[str, Any]) -> list[
             mapped = _mapping(item)
             if mapped:
                 evidence.append(_closeout_evidence_with_identity(mapped, identity=identity))
+    return evidence
+
+
+def _study_root_closeout_evidence(
+    *,
+    study_root: Path,
+    identity: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    if not identity:
+        return []
+    evidence: list[dict[str, Any]] = []
+    for execution, execution_ref in default_executor_execution_candidates(study_root=study_root):
+        closeout = _closeout_evidence_with_identity(execution, identity=identity)
+        if not _closeout_identity_matches_current(closeout, identity=identity):
+            continue
+        closeout["source_path"] = _non_empty_text(closeout.get("source_path")) or execution_ref
+        evidence.append(closeout)
     return evidence
 
 
@@ -243,6 +271,23 @@ def _closeout_evidence_with_identity(
     identity: Mapping[str, Any],
 ) -> dict[str, Any]:
     result = dict(closeout)
+    had_native_identity = _closeout_has_native_current_identity(result)
+    for key, value in {
+        "surface_kind": _non_empty_text(result.get("surface_kind"))
+        or _non_empty_text(result.get("stage_closeout_surface_kind")),
+        "status": _non_empty_text(result.get("status"))
+        or _non_empty_text(result.get("stage_closeout_status")),
+        "outcome": _non_empty_text(result.get("outcome"))
+        or _non_empty_text(result.get("stage_closeout_outcome")),
+    }.items():
+        if value is not None:
+            result[key] = value
+    if (
+        _closeout_has_opl_execution_authorization_blocker(result)
+        and not is_anti_loop_stop_loss_closeout(result)
+    ):
+        result["identity_binding_status"] = "mismatch"
+        return result
     for key in (
         "action_type",
         "work_unit_id",
@@ -254,6 +299,8 @@ def _closeout_evidence_with_identity(
     ):
         if result.get(key) in (None, "", [], {}) and identity.get(key) not in (None, "", [], {}):
             result[key] = identity[key]
+    if not had_native_identity:
+        result["identity_binding_status"] = "inferred_from_current_work_unit"
     basis = _mapping(result.get("owner_route_currentness_basis"))
     if not basis:
         basis = {
@@ -270,6 +317,66 @@ def _closeout_evidence_with_identity(
         if basis:
             result["owner_route_currentness_basis"] = basis
     return result
+
+
+def _closeout_has_native_current_identity(closeout: Mapping[str, Any]) -> bool:
+    if _mapping(closeout.get("owner_route_currentness_basis")):
+        return True
+    work_unit = _non_empty_text(closeout.get("work_unit_id"))
+    fingerprint = _non_empty_text(closeout.get("work_unit_fingerprint")) or _non_empty_text(
+        closeout.get("action_fingerprint")
+    )
+    return work_unit is not None and fingerprint is not None
+
+
+def _closeout_identity_matches_current(
+    closeout: Mapping[str, Any],
+    *,
+    identity: Mapping[str, Any],
+) -> bool:
+    if closeout.get("identity_binding_status") == "mismatch":
+        return False
+    expected_action = _non_empty_text(identity.get("action_type"))
+    expected_work_unit = _non_empty_text(identity.get("work_unit_id"))
+    if expected_action is not None and _non_empty_text(closeout.get("action_type")) != expected_action:
+        return False
+    if expected_work_unit is not None and _non_empty_text(closeout.get("work_unit_id")) != expected_work_unit:
+        return False
+    expected_fingerprint = _non_empty_text(identity.get("work_unit_fingerprint")) or _non_empty_text(
+        identity.get("action_fingerprint")
+    )
+    closeout_fingerprint = _non_empty_text(closeout.get("work_unit_fingerprint")) or _non_empty_text(
+        closeout.get("action_fingerprint")
+    )
+    if expected_fingerprint is None:
+        return True
+    if closeout_fingerprint == expected_fingerprint:
+        return True
+    return closeout_fingerprint is None and is_anti_loop_stop_loss_closeout(closeout)
+
+
+def _closeout_has_opl_execution_authorization_blocker(closeout: Mapping[str, Any]) -> bool:
+    typed_blocker = _mapping(closeout.get("typed_blocker"))
+    direct_values = (
+        closeout.get("blocked_reason"),
+        closeout.get("typed_blocker_reason"),
+        typed_blocker.get("blocker_id"),
+        typed_blocker.get("blocker_type"),
+        typed_blocker.get("blocked_reason"),
+    )
+    if any(_non_empty_text(value) == OPL_EXECUTION_AUTHORIZATION_BLOCKER for value in direct_values):
+        return True
+    text_values = (
+        closeout.get("outcome"),
+        closeout.get("problem_summary"),
+        closeout.get("semantic_gap"),
+        *list(closeout.get("remaining_blockers") or []),
+    )
+    return any(
+        OPL_EXECUTION_AUTHORIZATION_BLOCKER in text
+        for value in text_values
+        if (text := _non_empty_text(value)) is not None
+    )
 
 
 def _progress_currentness_current_identity(payload: Mapping[str, Any]) -> dict[str, Any]:

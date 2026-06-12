@@ -39,7 +39,7 @@ DEFAULT_EXECUTOR_EXECUTION_LATEST = Path(
 DEFAULT_EXECUTOR_DISPATCHES = Path("artifacts/supervision/consumer/default_executor_dispatches")
 CURRENT_CONTROL_PROVIDER_ADMISSION_ACTION_OWNERS = {
     "return_to_ai_reviewer_workflow": {"ai_reviewer"},
-    "run_quality_repair_batch": {"write"},
+    "run_quality_repair_batch": {"analysis-campaign", "write"},
     "run_gate_clearing_batch": {"finalize", "gate_clearing_batch", "write"},
 }
 CURRENT_CONTROL_PROVIDER_ADMISSION_DEFAULT_EXECUTABLE_OWNERS = {

@@ -198,6 +198,13 @@ def consumed_gate_replay_blocker_for_action(
     )
     if action_work_unit is None or followthrough_work_unit != action_work_unit:
         return None
+    if _gate_followthrough_has_actionable_next_work_unit(
+        followthrough,
+        action_work_unit=action_work_unit,
+        mapping=mapping,
+        text=text,
+    ):
+        return None
     source_ref = text(followthrough.get("latest_record_path"))
     return {
         "blocker_type": "publication_gate_replay_blocked",
@@ -217,6 +224,24 @@ def consumed_gate_replay_blocker_for_action(
         "failed_unit_count": followthrough.get("failed_unit_count"),
         "next_confirmation_signal": text(followthrough.get("next_confirmation_signal")),
     }
+
+
+def _gate_followthrough_has_actionable_next_work_unit(
+    followthrough: Mapping[str, Any],
+    *,
+    action_work_unit: str,
+    mapping: MappingReader,
+    text: TextReader,
+) -> bool:
+    currentness = mapping(followthrough.get("work_unit_currentness"))
+    if text(currentness.get("current_actionability_status")) != "actionable":
+        return False
+    if currentness.get("lacks_specific_blocker_object") is True:
+        return False
+    current_work_unit = work_unit_id(currentness.get("current_publication_work_unit_id")) or work_unit_id(
+        mapping(followthrough.get("current_publication_work_unit")).get("unit_id")
+    )
+    return current_work_unit is not None and current_work_unit != action_work_unit
 
 
 def _latest_terminal_stage(

@@ -89,8 +89,9 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     )
     canonical_current_work_unit = _mapping(payload.get("current_work_unit"))
     canonical_work_unit_state = _mapping(canonical_current_work_unit.get("state"))
+    canonical_typed_blocker = _mapping(canonical_work_unit_state.get("typed_blocker"))
     raw_typed_blocker = (
-        _mapping(canonical_work_unit_state.get("typed_blocker"))
+        canonical_typed_blocker
         or _mapping(execution.get("typed_blocker"))
         or _mapping(domain_transition.get("typed_blocker"))
         or _mapping(handoff.get("typed_blocker"))
@@ -124,6 +125,15 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             else {}
         )
     )
+    gate_followthrough_current_action = (
+        payload_current_action
+        if _gate_followthrough_owner_action(payload_current_action)
+        else (
+            non_artifact_current_action
+            if _gate_followthrough_owner_action(non_artifact_current_action)
+            else {}
+        )
+    )
     terminal_blocks_owner_actions = bool(terminal_domain_blocker) or _canonical_current_work_unit_terminal_blocker(
         canonical_current_work_unit
     )
@@ -149,6 +159,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     current_action = (
         stage_kernel_current_action
         or repair_progress_current_action
+        or gate_followthrough_current_action
         or effective_stage_artifact_action
         or payload_current_action
         or non_artifact_current_action
@@ -179,10 +190,15 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         and not current_action_supersedes_canonical_typed_blocker
     ):
         current_action = {}
-    owner_action_supersedes_envelope_blocker = handoff_owner_action is not None or (
-        transition_consumed_owner_action
-        and not transition_consumed_same_work_unit
-        and gate_clearing_dispatch_consumption is None
+    owner_action_supersedes_envelope_blocker = (
+        handoff_owner_action is not None
+        or _gate_followthrough_owner_action(current_action)
+        or (
+            _next_forced_delta_owner_action(current_action)
+            and transition_consumed_owner_action
+            and not transition_consumed_same_work_unit
+            and gate_clearing_dispatch_consumption is None
+        )
     )
     envelope_blocks_current_action = _envelope_typed_blocker_blocks_current_action(
         execution=execution,
@@ -238,6 +254,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         if running_provider_attempt is True
         or artifact_first_supersedes_blocker
         or _repair_progress_owner_action(current_action)
+        or _gate_followthrough_owner_action(current_action)
         or _next_forced_delta_owner_action(current_action)
         or handoff_owner_action is not None
         or (
@@ -248,7 +265,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         )
         else raw_typed_blocker
     )
-    if terminal_domain_blocker:
+    if terminal_domain_blocker and not canonical_typed_blocker:
         typed_blocker = terminal_domain_blocker
     progress_delta_classification = (
         _text(payload.get("progress_delta_classification"))
@@ -267,6 +284,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         or _stage_kernel_owner_action(current_action)
         or _stage_native_owner_action(current_action)
         or _repair_progress_owner_action(current_action)
+        or _gate_followthrough_owner_action(current_action)
         or _next_forced_delta_owner_action(current_action)
         or handoff_owner_action is not None
         or (
@@ -278,7 +296,13 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     current_blockers = (
         []
         if running_provider_attempt is True or (owner_action_visible and not typed_blocker)
-        else _current_blockers(payload=payload, typed_blocker=typed_blocker, paper_stage_log=paper_stage_log)
+        else _canonical_typed_blocker_current_blockers(canonical_typed_blocker)
+        if canonical_typed_blocker
+        else _current_blockers(
+            payload=payload,
+            typed_blocker=typed_blocker,
+            paper_stage_log=paper_stage_log,
+        )
     )
     if current_action_running_provider_attempt:
         state_kind = "running_provider_attempt"
@@ -893,6 +917,13 @@ def _repair_progress_owner_action(action: Mapping[str, Any]) -> bool:
     )
 
 
+def _gate_followthrough_owner_action(action: Mapping[str, Any]) -> bool:
+    return (
+        _text(action.get("source")) == "gate_clearing_batch_followthrough.actionable_current_work_unit"
+        and bool(_sequence(action.get("allowed_actions")))
+    )
+
+
 def _next_forced_delta_owner_action(action: Mapping[str, Any]) -> bool:
     return (
         _text(action.get("source")) == "study_progress.next_forced_delta.owner_action"
@@ -913,8 +944,10 @@ def _envelope_typed_blocker_blocks_current_action(
         return False
     if _repair_progress_owner_action(current_action):
         return False
-    if _next_forced_delta_owner_action(current_action):
+    if _gate_followthrough_owner_action(current_action):
         return False
+    if _next_forced_delta_owner_action(current_action):
+        return _text(execution.get("state_kind")) == "typed_blocker" and bool(raw_typed_blocker)
     if _text(execution.get("state_kind")) != "typed_blocker":
         return False
     return bool(raw_typed_blocker)
@@ -933,6 +966,18 @@ def _current_blockers(
         if key in typed_blocker:
             values.append(typed_blocker[key])
     return _dedupe_text(values)[:12]
+
+
+def _canonical_typed_blocker_current_blockers(typed_blocker: Mapping[str, Any]) -> list[str]:
+    return _dedupe_text(
+        [
+            typed_blocker.get("blocker_type"),
+            typed_blocker.get("blocked_reason"),
+            typed_blocker.get("reason"),
+            typed_blocker.get("blocker_kind"),
+            typed_blocker.get("summary"),
+        ]
+    )[:12]
 
 
 def _work_unit_from_action_queue(value: object) -> dict[str, Any] | str | None:

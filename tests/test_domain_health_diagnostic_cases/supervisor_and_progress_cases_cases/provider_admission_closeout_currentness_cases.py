@@ -259,10 +259,12 @@ def test_report_current_control_clears_candidate_from_typed_blocker_closeout_wit
                                 "status": "blocked",
                                 "stage_attempt_id": "sat_0509b60217115954f91ac564",
                                 "action_type": "run_quality_repair_batch",
+                                "work_unit_id": work_unit_id,
                                 "typed_blocker": {
                                     "blocker_id": "stage_packet_not_selected_by_domain_owner_action_dispatch",
                                     "action_fingerprint": fingerprint,
                                 },
+                                "work_unit_fingerprint": fingerprint,
                                 "owner_route_currentness": {
                                     "work_unit_id": work_unit_id,
                                     "work_unit_fingerprint": fingerprint,
@@ -371,6 +373,9 @@ def test_report_current_control_suppresses_dm003_repeat_suppressed_gate_replay_f
                                 "action_type": "run_gate_clearing_batch",
                                 "status": "repeat_suppressed",
                                 "stage_name": work_unit_id,
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": fingerprint,
+                                "action_fingerprint": fingerprint,
                                 "outcome": "repeat_suppressed",
                                 "progress_delta_classification": "typed_blocker",
                                 "source_path": (
@@ -395,3 +400,176 @@ def test_report_current_control_suppresses_dm003_repeat_suppressed_gate_replay_f
     decision = result["stage_route_arbiter_decisions"][0]
     assert decision["decision"] == "accepted_closeout_consumed_pending"
     assert decision["evidence_status"] == "repeat_suppressed"
+
+
+def test_report_current_control_retains_dm002_current_pending_over_stale_anti_loop_closeout_file(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    work_unit_id = "analysis_claim_evidence_repair"
+    fingerprint = "publication-blockers::497d1260db522f01"
+    closeout_ref = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat_82a2b164657c9b4d0c312db9.closeout.json"
+    )
+    dump_json(
+        closeout_ref,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "stage_attempt_id": "sat_82a2b164657c9b4d0c312db9",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "status": "closed_with_typed_blocker",
+            "outcome": "repeat_suppressed_with_typed_blocker",
+            "action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "typed_blocker": {
+                "surface_kind": "mas_domain_typed_blocker",
+                "schema_version": 1,
+                "blocker_kind": "anti_loop_budget_exhausted",
+                "reason": "anti_loop_budget_exhausted",
+                "blocker_id": "opl_execution_authorization_required",
+                "owner": "one-person-lab",
+                "write_permitted": False,
+                "anti_loop_budget": {
+                    "status": "exhausted",
+                    "study_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                    "work_unit_fingerprint": (
+                        "owner-route::write::manuscript_story_surface_delta_missing::"
+                        "run_quality_repair_batch"
+                    ),
+                    "blocker_reason": "opl_execution_authorization_required",
+                },
+            },
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "schema_version": 1,
+                "status": "available",
+                "stage_name": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "stage_work_done": [
+                    "Observed MAS domain dispatch result execution_status=repeat_suppressed, "
+                    "blocked_reason=anti_loop_budget_exhausted, and typed blocker "
+                    "opl_execution_authorization_required."
+                ],
+                "paper_work_done": [
+                    "No manuscript, paper package, current package, publication gate, controller decision, "
+                    "medical result value, quality verdict, or submission-readiness surface was modified."
+                ],
+                "changed_stage_surfaces": [
+                    "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+                    "default_executor_execution/sat_82a2b164657c9b4d0c312db9.closeout.json"
+                ],
+                "changed_paper_surfaces": [],
+                "outcome": "typed_blocker_anti_loop_budget_exhausted",
+                "remaining_blockers": [
+                    "MAS domain dispatch suppressed another run_quality_repair_batch attempt for the same "
+                    "action fingerprint after anti-loop budget exhaustion."
+                ],
+                "duration": {"status": "missing", "seconds": None},
+                "token_usage": {
+                    "status": "missing",
+                    "total_tokens": None,
+                },
+                "cost": {"status": "missing", "usd": None},
+                "progress_delta_classification": "typed_blocker",
+                "next_forced_delta": {
+                    "reason": "anti_loop_budget_exhausted_for_run_quality_repair_batch_same_action_fingerprint",
+                },
+            },
+        },
+    )
+
+    result = module._materialize_report_provider_admission_current_control_state(
+        profile=profile,
+        apply=False,
+        report={
+            "scanned_at": "2026-06-11T21:28:34+00:00",
+            "managed_study_opl_provider_admission_candidates": [
+                {
+                    "surface": "opl_provider_admission_candidate",
+                    "schema_version": 1,
+                    "status": "provider_admission_pending",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "action_fingerprint": fingerprint,
+                    "next_executable_owner": "analysis-campaign",
+                    "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
+                    "provider_attempt_or_lease_required": True,
+                    "provider_completion_is_domain_completion": False,
+                }
+            ],
+            "current_execution_evidence": {
+                "progress_currentness": {
+                    study_id: {
+                        "study_id": study_id,
+                        "quest_id": study_id,
+                        "current_work_unit": {
+                            "surface_kind": "current_work_unit",
+                            "status": "executable_owner_action",
+                            "study_id": study_id,
+                            "quest_id": study_id,
+                            "owner": "analysis-campaign",
+                            "action_type": "run_quality_repair_batch",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                            "currentness_basis": {
+                                "source_eval_id": (
+                                    "publication-eval::002-dm-china-us-mortality-attribution::"
+                                    "stage-attempt-sat_a9b2ffcc8f97a24837d729bf"
+                                ),
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": fingerprint,
+                                "truth_epoch": "truth-event-000040-1a4d1f9cfed66d87",
+                                "runtime_health_epoch": "runtime-health-event-006868-be729a0387218e86",
+                            },
+                        },
+                        "current_executable_owner_action": {
+                            "surface_kind": "current_executable_owner_action",
+                            "status": "ready",
+                            "source": "gate_clearing_batch_followthrough.actionable_current_work_unit",
+                            "next_owner": "analysis-campaign",
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": fingerprint,
+                            "action_fingerprint": fingerprint,
+                            "action_type": "run_quality_repair_batch",
+                            "allowed_actions": ["run_quality_repair_batch"],
+                        },
+                        "current_execution_envelope": {
+                            "state_kind": "executable_owner_action",
+                            "owner": "analysis-campaign",
+                            "next_work_unit": work_unit_id,
+                        },
+                    }
+                }
+            },
+        },
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert len(result["provider_admission_candidates"]) == 1
+    assert len(result["action_queue"]) == 1
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+    decision = result["stage_route_arbiter_decisions"][0]
+    assert decision["decision"] == "pending_provider_admission"
+    assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["work_unit_id"] == work_unit_id
+    assert decision["work_unit_fingerprint"] == fingerprint
