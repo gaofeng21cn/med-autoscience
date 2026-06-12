@@ -167,7 +167,24 @@ fresh `current_work_unit.status=typed_blocker` 或 `current_execution_envelope.t
 
 `medical_paper_readiness_missing` 的旧 envelope / queue / handoff 不能单独授权 stage-native repair redrive。只有 canonical `current_work_unit` 同时满足 `status=typed_blocker` 或 `state.state_kind=typed_blocker`、`work_unit_id=complete_medical_paper_readiness_surface` 或空、且 `state.stale_queue_or_handoff_can_override` 非 true 时，带 authority binding 的 stage-native `run_quality_repair_batch` / `run_gate_clearing_batch` 才能被视为从 readiness blocker 派生。若 fresh barrier 缺 current-work-unit readiness identity，或 current work unit 已标记 stale override，operator outcome 是 currentness/platform repair diagnostic；下一步必须等 DHD / MAS authority consumer 产出新的 current work unit、owner receipt、typed blocker、human gate、route-back 或 owner-authorized next action。
 
+Codex 前台会话只能作为 MAS / OPL 内部 executor frontdoor：读取 live truth、修改 repo contracts/docs/tests、补缺失 MAS owner callable / current-work-unit-bound derived repair action，或监督 OPL StageRun / provider attempt。没有 MAS owner callable 或 OPL StageRun context 时，不能直接改 manuscript、package、publication eval、controller decision 或 study/runtime artifacts 来恢复论文线。
+
 Terminal `stage_artifact_index.next_owner_action=publication_handoff_owner_gate` 已具备完整 current owner action 时，Progress-first admission 的下一步是 OPL provider execution authorization / attempt lease / closeout receipt binding，随后才由 MAS owner callable 产出 `handoff_owner_receipt.json` 或 `receipts/typed_blocker.json`。缺少这组 OPL binding 时，operator outcome 应是 `blocked_with_typed_owner`，typed blocker owner=`one-person-lab`，reason=`opl_execution_authorization_required`；不得退回旧 writer repair、旧 gate replay、generic owner-route hydration 或 repeat receipt reconcile。
+
+## DM002 / DM003 recovery frontdoor
+
+DM002 / DM003 recovery 的执行 frontdoor 固定为 MAS owner callable / domain-handler dispatch / OPL StageRun provider attempt。Codex 前台会话可以读 live truth、改 repo docs/contracts/tests、实现缺失的 MAS owner callable 或 derived repair action、运行验证和监督 StageRun；它不能绕过 MAS/OPL 直接修改 manuscript、package、runtime-owned study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、OPL queue 或 provider attempt。若发现缺少 callable，结论是补 repo-level callable / repair action 或输出 typed blocker，不是 paper-local shortcut。机器合同见 `contracts/stage_route_reconcile_contract.json#/codex_executor_frontdoor_policy`。
+
+当前 recovery 读法：
+
+| study | 当前 live truth | owner | ordinary recovery |
+| --- | --- | --- | --- |
+| DM002 | `anti_loop_budget_exhausted`，`provider_admission_pending_count=0` | `one-person-lab` | stop-loss 已生效；不得同 work-unit redrive。只能等 successor work-unit / StageRun identity、human gate、route-back evidence、新 owner receipt / quality gate receipt，或新的 stable typed blocker identity。 |
+| DM003 | `medical_paper_readiness_missing`，`provider_admission_pending_count=0` | `MedAutoScience` | readiness blocker 必须被具体 MAS owner callable、带 current-work-unit binding 的 derived repair action、命名缺失 ref family 的 stable typed blocker，或 human gate 消费。blocker-only 不得自授权执行 `complete_medical_paper_readiness_surface`。 |
+
+禁止路径包括：前台 Codex 直接“修论文”、重放旧 provider admission、同 work-unit default-executor dispatch、旧 gate replay、用 `active_run_id` / provider completion / queue empty 证明恢复、手写 runtime/study artifact，或把 docs-only 结论当 live paper progress。
+
+recovery 验收必须至少读回以下证据族之一：MAS owner receipt、quality gate receipt、canonical changed surface ref、stable typed blocker、human gate、route-back evidence，或同一 current identity 的 strict provider running proof。验收 readback 必须包含 DM002/DM003 fresh `study progress`、DHD `--dry-run`、`provider_admission_pending_count`，以及 owner receipt / typed blocker refs；缺这些证据时只能说 docs/contracts 已更新，不能说 paper-line 已恢复。机器合同见 `contracts/stage_route_reconcile_contract.json#/dm002_dm003_recovery_acceptance_policy`。
 
 ## Hard gates
 

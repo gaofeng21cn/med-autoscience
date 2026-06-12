@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-12：DM002 / DM003 recovery 必须走 MAS owner callable / OPL StageRun frontdoor
+
+- 决策：Codex 前台会话只能做监督、读 live truth、改 repo docs/contracts/tests、实现缺失的 MAS owner callable 或 derived repair action，以及运行 repo-native verification。真实论文 recovery 的执行入口必须是 MAS owner callable、MAS domain-handler dispatch，或 OPL StageRun provider attempt 内部调用 Codex；前台 Codex 不能绕过 MAS/OPL 直接走 paper-local 路线。
+- 决策：DM002 当前 `anti_loop_budget_exhausted`、owner=`one-person-lab`、`provider_admission_pending_count=0` 时，ordinary recovery 不允许同一 work-unit redrive。解除条件只能是 successor work-unit / StageRun identity、human gate、route-back evidence、新 MAS owner receipt / quality gate receipt，或新的 stable typed blocker identity；旧 provider admission、旧 action queue、同义 default-executor dispatch 和前台 repair batch retry 只能进入 ignored diagnostic。
+- 决策：DM003 当前 `medical_paper_readiness_missing`、owner=`MedAutoScience`、`provider_admission_pending_count=0` 时，blocker 必须被具体 MAS owner callable、带 current-work-unit binding 的 derived repair action、命名缺失 ref family 的 stable typed blocker，或 human gate 消费。仅凭 readiness blocker、旧 transition、旧 gate replay、source_ref/fingerprint match 或前台 Codex 说明，不得执行 `complete_medical_paper_readiness_surface` 或直接修改 manuscript/package。
+- 决策：recovery 验收必须回到 owner receipt、quality gate receipt、canonical changed surface ref、stable typed blocker、human gate、route-back evidence，或同一 current identity 的 strict provider running proof；同时读取 fresh `study progress`、DHD dry-run、`provider_admission_pending_count` 和 owner receipt / typed blocker refs。queue empty、provider completion、active_run_id、docs-only claim、stage artifact 文件存在或前台 Codex 消息都不能单独作为恢复完成证据。
+- 理由：本轮 live truth 已明确 DM002 是 OPL owner 的 stop-loss，DM003 是 MAS owner 的 readiness blocker，并且两者 `provider_admission_pending_count=0`。如果前台 Codex 直接重跑 repair/gate 或手改 paper-local surface，会绕开 MAS owner receipt / OPL StageRun 的 authority boundary，把 stop-loss 或 readiness blocker 又变成同一 work-unit 空转。
+- 影响：机器合同入口是 `contracts/stage_route_reconcile_contract.json#/codex_executor_frontdoor_policy` 与 `#/dm002_dm003_recovery_acceptance_policy`。这是 recovery frontdoor / acceptance hardening，不写 study truth、runtime-owned artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、typed blocker、human gate 或 OPL provider attempt。
+
 ## 2026-06-12：provider admission 强身份和 StageRun identity 原样传递
 
 - 决策：DHD `stage_route_arbiter` 必须先判定 `weak_provider_admission_identity`。provider admission identity 缺 study/action/work-unit id 或 fingerprint、dispatch ref、`route_identity_key`、`attempt_idempotency_key` 或 strong `owner_route_currentness_basis` 时，pending fail-closed，不进入 OPL tick，也不能由 action family、`action_id` 或旧 queue label 补足。

@@ -878,6 +878,21 @@
         "stable_typed_blocker_with_named_missing_ref_family",
         "human_gate_ref_when_domain_owner_cannot_continue"
       ],
+      "derived_repair_action_required_fields": [
+        "stage_typed_blocker_ref",
+        "publication_eval_id",
+        "gap_ids",
+        "work_unit_fingerprint",
+        "required_output_contract"
+      ],
+      "derived_repair_action_required_outputs_any": [
+        "canonical_manuscript_story_surface_delta",
+        "claim_evidence_semantic_delta",
+        "review_ledger_delta",
+        "publication_gate_delta",
+        "stage_owner_receipt_ref",
+        "stable_typed_blocker_for_the_specific_repair_work_unit"
+      ],
       "blocker_only_can_execute_complete_readiness_surface": false,
       "forbidden_recovery_actions": [
         "foreground_codex_completion_of_readiness_surface",
@@ -894,6 +909,17 @@
       "human_gate_ref",
       "route_back_evidence_ref",
       "strict_provider_running_proof_for_same_current_identity"
+    ],
+    "recovery_resumption_acceptance": [
+      "strict_provider_running_proof_for_same_current_identity"
+    ],
+    "paper_progress_acceptance": [
+      "mas_owner_receipt_ref",
+      "quality_gate_receipt_ref",
+      "canonical_changed_surface_ref",
+      "stable_typed_blocker_ref",
+      "human_gate_ref",
+      "route_back_evidence_ref"
     ],
     "required_readback": [
       "fresh_study_progress_for_dm002",

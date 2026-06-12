@@ -377,6 +377,144 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     } <= set(split["forbidden_mas_runtime_residue"])
 
 
+def test_stage_route_reconcile_contract_blocks_foreground_codex_bypass_for_recovery() -> None:
+    contract = _contract()
+
+    frontdoor = contract["codex_executor_frontdoor_policy"]
+    assert frontdoor["surface_kind"] == "mas_opl_codex_executor_frontdoor_policy"
+    assert frontdoor["ordinary_executor_route"] == (
+        "MAS owner callable or OPL StageRun provider attempt invokes Codex as an internal executor"
+    )
+    assert {
+        "paper_local_codex_execution_without_mas_owner_callable",
+        "direct_manuscript_or_package_edit_as_recovery_route",
+        "foreground_replay_of_provider_admission_queue",
+        "study_workspace_runtime_artifact_mutation",
+        "publication_eval_or_controller_decision_manual_write",
+    } <= set(frontdoor["forbidden_foreground_routes"])
+    assert {
+        "read_live_truth",
+        "write_repo_docs_contracts_tests",
+        "implement_missing_mas_owner_callable_or_derived_repair_action",
+        "run_repo_native_verification",
+        "supervise_opl_stage_run_or_provider_attempt",
+    } <= set(frontdoor["allowed_foreground_roles"])
+    authority = frontdoor["codex_direct_execution_authority"]
+    assert authority["can_act_as_internal_owner_callable_executor"] is True
+    assert authority["requires_mas_owner_callable_or_stage_run_context"] is True
+    assert authority["can_bypass_mas_or_opl_for_paper_local_recovery"] is False
+    assert authority["can_write_study_truth_without_owner_receipt"] is False
+    assert authority["can_write_publication_eval_or_controller_decisions"] is False
+    assert authority["can_mutate_runtime_or_study_artifacts_from_docs_contract_lane"] is False
+    assert frontdoor["missing_callable_effect"] == (
+        "typed_blocker_or_repo_implementation_needed_not_paper_local_shortcut"
+    )
+    assert frontdoor["route_back_owner_when_platform_binding_missing"] == "one-person-lab"
+    assert frontdoor["route_back_owner_when_domain_readiness_callable_missing"] == (
+        "MedAutoScience"
+    )
+
+
+def test_stage_route_reconcile_contract_declares_dm002_dm003_recovery_acceptance() -> None:
+    contract = _contract()
+
+    recovery = contract["dm002_dm003_recovery_acceptance_policy"]
+    assert recovery["surface_kind"] == "mas_opl_dm002_dm003_recovery_acceptance_policy"
+    assert recovery["state"] == "active_recovery_contract"
+
+    snapshot = recovery["source_truth_snapshot"]
+    assert snapshot["date"] == "2026-06-12"
+    assert snapshot["dm002"] == {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "current_blocker": "anti_loop_budget_exhausted",
+        "owner": "one-person-lab",
+        "provider_admission_pending_count": 0,
+    }
+    assert snapshot["dm003"] == {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "current_blocker": "medical_paper_readiness_missing",
+        "owner": "MedAutoScience",
+        "provider_admission_pending_count": 0,
+    }
+
+    dm002 = recovery["dm002_stop_loss_policy"]
+    assert dm002["same_work_unit_redrive_allowed"] is False
+    assert {
+        "new_work_unit_identity",
+        "successor_stage_run_identity",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    } <= set(dm002["allowed_reopen_conditions"])
+    assert {
+        "same_work_unit_provider_admission_redrive",
+        "same_work_unit_default_executor_dispatch",
+        "foreground_codex_retry_of_repair_batch",
+        "replaying_stale_action_queue_or_provider_admission",
+    } <= set(dm002["forbidden_recovery_actions"])
+
+    dm003 = recovery["dm003_readiness_policy"]
+    assert dm003["blocker"] == "medical_paper_readiness_missing"
+    assert dm003["owner"] == "MedAutoScience"
+    assert dm003["blocker_only_can_execute_complete_readiness_surface"] is False
+    assert {
+        "specific_mas_owner_callable",
+        "derived_repair_action_with_current_work_unit_binding",
+        "stable_typed_blocker_with_named_missing_ref_family",
+    } <= set(dm003["must_be_consumed_by_any"])
+    assert dm003["derived_repair_action_required_fields"] == [
+        "stage_typed_blocker_ref",
+        "publication_eval_id",
+        "gap_ids",
+        "work_unit_fingerprint",
+        "required_output_contract",
+    ]
+    assert dm003["derived_repair_action_required_outputs_any"] == [
+        "canonical_manuscript_story_surface_delta",
+        "claim_evidence_semantic_delta",
+        "review_ledger_delta",
+        "publication_gate_delta",
+        "stage_owner_receipt_ref",
+        "stable_typed_blocker_for_the_specific_repair_work_unit",
+    ]
+    assert {
+        "foreground_codex_completion_of_readiness_surface",
+        "stale_gate_replay_or_transition_dispatch",
+        "provider_admission_without_current_executable_owner_action",
+        "paper_local_manuscript_or_package_edit_without_owner_callable",
+    } <= set(dm003["forbidden_recovery_actions"])
+
+    assert set(recovery["acceptance_requires_any"]) == {
+        "mas_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "canonical_changed_surface_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+        "strict_provider_running_proof_for_same_current_identity",
+    }
+    assert recovery["recovery_resumption_acceptance"] == [
+        "strict_provider_running_proof_for_same_current_identity"
+    ]
+    assert "strict_provider_running_proof_for_same_current_identity" not in recovery[
+        "paper_progress_acceptance"
+    ]
+    assert recovery["required_readback"] == [
+        "fresh_study_progress_for_dm002",
+        "fresh_study_progress_for_dm003",
+        "domain_health_diagnostic_dry_run_readback",
+        "provider_admission_pending_count_readback",
+        "owner_receipt_or_typed_blocker_ref_readback",
+    ]
+    assert {
+        "foreground_codex_message",
+        "docs_only_claim",
+        "queue_empty_without_owner_delta",
+        "provider_completion_without_mas_closeout_consumption",
+        "stale_runtime_attempt_or_active_run_id",
+        "stage_artifact_file_presence_without_owner_receipt",
+    } <= set(recovery["forbidden_acceptance_evidence"])
+
+
 def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_practice_mapping() -> None:
     contract = _contract()
 

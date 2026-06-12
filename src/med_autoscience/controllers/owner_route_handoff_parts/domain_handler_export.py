@@ -409,8 +409,11 @@ def _export_current_owner_action(
         return progress_action
     current_work_unit = mapping(current_progress.get("current_work_unit"))
     current_execution_envelope = mapping(current_progress.get("current_execution_envelope"))
+    envelope_state = text(current_execution_envelope.get("state_kind")) or text(
+        current_execution_envelope.get("execution_state_kind")
+    )
     if _ordinary_pending_tasks_blocked_status(text(current_work_unit.get("status"))) or (
-        _ordinary_pending_tasks_blocked_status(text(current_execution_envelope.get("state_kind")))
+        _ordinary_pending_tasks_blocked_status(envelope_state)
     ):
         return {}
     projection_action = mapping(study.get("current_owner_action"))
