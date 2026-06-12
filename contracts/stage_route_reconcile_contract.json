@@ -813,6 +813,155 @@
       "otherwise_effect": "supervisor_diagnostic_fail_closed"
     }
   },
+  "runtime_supervision_operator_policy": {
+    "surface_kind": "mas_opl_runtime_supervision_operator_policy",
+    "purpose": "Central operator contract for deciding whether a MAS/OPL stage-route surface is only observable, needs closeout consumption, may hydrate a new OPL StageRun, or must fail closed as supervisor diagnostic.",
+    "ordinary_read_sequence": [
+      "fresh_study_progress",
+      "domain_health_diagnostic_dry_run_with_stage_attempts",
+      "opl_current_control_queue_attempt_worker_readback",
+      "terminal_closeout_consumer_gate",
+      "fresh_study_progress_after_consumer"
+    ],
+    "operator_actions": [
+      {
+        "action": "domain_health_diagnostic_dry_run",
+        "effect": "observe_runtime_truth_and_may_refresh_diagnostic_evidence",
+        "starts_provider_or_llm": false,
+        "can_claim_no_write": false,
+        "allowed_writes": [
+          "diagnostic_report_evidence_only"
+        ],
+        "forbidden_claims": [
+          "provider_started",
+          "closeout_consumed",
+          "paper_progress",
+          "owner_receipt_created",
+          "typed_blocker_created"
+        ]
+      },
+      {
+        "action": "domain_health_diagnostic_apply",
+        "requires_all": [
+          "terminal_closeout_observed_for_current_or_successor_identity",
+          "dry_run_currentness_identity_matches_selected_study",
+          "write_boundary_is_current_control_or_closeout_consumption_only"
+        ],
+        "effect": "consume_terminal_closeout_or_materialize_current_control_for_matching_identity",
+        "starts_provider_or_llm": false,
+        "forbidden_when_any": [
+          "only_old_active_run_id_or_transport_status_seen",
+          "same_identity_already_consumed_without_new_terminal",
+          "selected_study_identity_mismatch",
+          "operator_lacks_current_control_write_lane"
+        ]
+      },
+      {
+        "action": "provider_slo_tick",
+        "effect": "health_and_slo_supervision_only_no_mas_handoff_consumption_claim",
+        "can_create_stage_attempt_from_mas_handoff": false,
+        "allowed_outputs": [
+          "provider_health_receipt",
+          "worker_repair_receipt",
+          "provider_liveness_diagnostic"
+        ],
+        "forbidden_claims": [
+          "mas_handoff_consumed",
+          "provider_admission_hydrated",
+          "paper_progress"
+        ]
+      },
+      {
+        "action": "family_runtime_tick_hydrate",
+        "requires_all": [
+          "materialized_provider_admission_pending_for_new_identity",
+          "worker_ready_and_source_current_or_supervisor_safe_restarted",
+          "no_matching_live_attempt",
+          "no_matching_terminal_closeout"
+        ],
+        "effect": "may_admit_opl_stagerun_attempt_for_materialized_current_control_identity",
+        "forbidden_when_any": [
+          "provider_admission_only_in_dry_run",
+          "same_work_unit_stop_loss_active",
+          "current_typed_blocker_precedes_provider_admission",
+          "worker_source_stale_without_supervisor_safe_restart",
+          "existing_running_attempt_for_same_identity",
+          "terminal_closeout_unconsumed_for_same_identity"
+        ]
+      },
+      {
+        "action": "worker_source_stale_restart",
+        "requires_all": [
+          "worker_source_stale",
+          "Temporal reachable",
+          "attempt ledger readable",
+          "no active attempt"
+        ],
+        "forbidden_when_any": [
+          "active attempt exists",
+          "attempt ledger unreadable",
+          "Temporal unreachable"
+        ],
+        "effect": "supervisor_safe_worker_restart_only_no_domain_truth_change"
+      },
+      {
+        "action": "terminal_closeout_consumer_gate",
+        "requires_any": [
+          "terminal_closeout_refs_present_for_current_identity",
+          "terminal_closeout_refs_present_for_successor_handoff_identity"
+        ],
+        "effect": "force_dhd_apply_or_equivalent_consumer_before_next_hydrate",
+        "forbidden_shortcut": "do_not_hydrate_or_redrive_while_terminal_closeout_is_unconsumed"
+      }
+    ],
+    "current_control_four_state_payload": {
+      "desired": "MAS current_owner_delta/current_work_unit/provider_admission_identity",
+      "running": "OPL StageRun lease plus Temporal/provider liveness with same identity",
+      "terminal": "OPL/default-executor closeout refs and terminal outcome for same identity",
+      "read_model": "rebuildable projection and operator summary only",
+      "mutual_exclusion_rule": "same_identity_cannot_be_running_and_terminal; terminal_precedes_running; read_model_cannot_authorize_desired"
+    },
+    "progress_classification_policy": {
+      "runtime_running_watch_requires": [
+        "same_current_identity_strict_provider_running_proof",
+        "live_temporal_or_provider_liveness",
+        "no_matching_terminal_closeout"
+      ],
+      "paper_progress_requires_any": [
+        "mas_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "canonical_changed_surface_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref"
+      ],
+      "paper_progress_forbidden_basis": [
+        "provider_admission_pending",
+        "provider_slo_healthy",
+        "worker_heartbeat",
+        "transport_completed",
+        "queue_empty",
+        "old_active_run_id",
+        "trace_or_lineage_only"
+      ]
+    },
+    "forbidden_automation_shortcuts": [
+      "repeat_dhd_apply_after_observe_only_without_new_terminal_or_identity",
+      "hydrate_without_materialized_provider_admission",
+      "same_work_unit_redrive_after_anti_loop_budget_exhausted",
+      "provider_slo_tick_as_handoff_consumer",
+      "source_stale_restart_with_active_attempt",
+      "closeout_consumption_claim_from_dry_run_only",
+      "paper_progress_claim_from_running_watch"
+    ],
+    "authority_boundary": {
+      "operator_policy_only": true,
+      "can_write_domain_truth": false,
+      "can_start_provider_without_materialized_current_control": false,
+      "can_mark_paper_progress": false,
+      "can_override_owner_receipt_or_typed_blocker": false
+    }
+  },
   "trace_span_correlation_policy": {
     "surface_kind": "mas_opl_trace_span_correlation_policy",
     "chain": [

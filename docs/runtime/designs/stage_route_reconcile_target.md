@@ -167,6 +167,8 @@ OPL 只读基座核查显示，`current_owner_delta` 默认读根、StageRun lau
 
 2026-06-12 追加 Progress-first admission 投影规则：`owner_action_admission` 是 admission / readiness 读面，只要 reducer 仍有 `current_executable_owner_action` 就必须生成；它不能被“是否作为顶层 executable owner action 显示”的 visibility 规则挡掉。旧 active run / handoff ref 可以被清成 non-running，但同一 fresh current action 的 admission pending、hard-gate blocked 或 provider-running-proof 字段仍要可见，避免 operator 因 `owner_action_admission=null` 误判为没有下一步。
 
+2026-06-12 追加 Runtime supervision operator policy：OPL 侧已有 source-stale restart fence、StageRun identity、terminal precedence 和 no-progress budget，MAS 侧必须把这些基座能力投影成集中 operator 决策表。`runtime_supervision_operator_policy` 把 current-control 四态固定为 desired / running / terminal / read_model：desired 只来自 MAS current owner；running 只来自同 identity 的 StageRun lease + provider/Temporal liveness；terminal 只来自同 identity terminal closeout refs；read_model 只是可重建投影。`domain-health-diagnostic --dry-run` 是 observe-runtime-truth，可以刷新诊断 evidence，但不启动 provider、也不能声称 no-write；`domain-health-diagnostic --apply` 只能在 dry-run 已证明 terminal closeout 或 matching current-control identity 后消费 closeout / materialize current-control；`provider-slo tick` 只做 provider health / worker repair，不消费 MAS handoff；`family-runtime tick --hydrate` 只有在 materialized provider admission pending、worker ready/source-current、无 matching live attempt、无 matching terminal closeout 时才可启动 StageRun。worker source stale restart 只能在 Temporal reachable、attempt ledger readable、无 active attempt 时执行；否则 fail closed 为 supervisor diagnostic。
+
 MAS 侧对应收薄：
 
 - 保留 owner receipt signer、typed blocker materializer、quality gate receipt validator、source/data readiness verdict、artifact mutation authorization。
@@ -191,10 +193,10 @@ MAS 侧对应收薄：
 1. `study progress --format json`
 2. `runtime domain-health-diagnostic --request-opl-stage-attempts --dry-run`
 3. OPL queue / attempt / current-control readback
-4. 若当前 attempt terminal，则 DHD apply 消费 closeout
+4. 若当前 attempt terminal，则 DHD apply 或等价 MAS authority consumer 消费 closeout
 5. fresh `study progress`
-6. 若是新 identity 的 provider admission pending，再 OPL scoped tick / hydrate
+6. 若是新 identity 的 provider admission pending，且该 pending 已 materialized 到 current-control，再 OPL scoped tick / hydrate
 
-不能用旧 `active_run_id`、transport succeeded、queue completed、zero worklist 或 automation heartbeat 文案判断论文进展。
+不能用旧 `active_run_id`、transport succeeded、queue completed、zero worklist、provider-slo healthy、worker heartbeat 或 automation heartbeat 文案判断论文进展。provider-slo 的成功只说明 provider/worker 健康；hydrate 的成功也只说明 StageRun admitted / running watch，仍不等于 paper progress。paper progress 只来自 MAS owner receipt、quality gate receipt、canonical changed surface ref、stable typed blocker、human gate 或 route-back evidence。
 
 2026-06-12 DM002 / DM003 最新只读监督口径：若 `study progress` 和 DHD dry-run 同时显示 `active_run_id=null`、`running_provider_attempt=false`、`provider_admission_pending_count=0`、`provider_admission_candidates=[]` 和 `action_queue=[]`，则 operator 必须判为没有 active provider work。DM002 类 `anti_loop_budget_exhausted` 是 terminal stop-loss / typed owner outcome；DM003 类 `medical_paper_readiness_missing` 是 current typed blocker outcome。后续只能由对应 owner 产出 owner receipt、typed blocker解除、human/operator gate、route-back 或新 work-unit identity，不能靠 heartbeat 或同一 `run_quality_repair_batch` redrive 前进。

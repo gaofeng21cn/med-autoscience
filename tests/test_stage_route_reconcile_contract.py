@@ -745,3 +745,87 @@ def test_stage_route_reconcile_contract_keeps_trace_span_refs_audit_only() -> No
         "paper_progress_credit",
     } <= set(policy["forbidden_authority"])
     assert policy["payload_policy"] == "refs_only_body_free"
+
+
+def test_stage_route_reconcile_contract_declares_runtime_supervision_operator_policy() -> None:
+    contract = _contract()
+
+    policy = contract["runtime_supervision_operator_policy"]
+    assert policy["surface_kind"] == "mas_opl_runtime_supervision_operator_policy"
+    assert policy["ordinary_read_sequence"] == [
+        "fresh_study_progress",
+        "domain_health_diagnostic_dry_run_with_stage_attempts",
+        "opl_current_control_queue_attempt_worker_readback",
+        "terminal_closeout_consumer_gate",
+        "fresh_study_progress_after_consumer",
+    ]
+
+    actions = {item["action"]: item for item in policy["operator_actions"]}
+    assert actions["domain_health_diagnostic_dry_run"]["effect"] == (
+        "observe_runtime_truth_and_may_refresh_diagnostic_evidence"
+    )
+    assert actions["domain_health_diagnostic_dry_run"]["starts_provider_or_llm"] is False
+    assert actions["domain_health_diagnostic_dry_run"]["can_claim_no_write"] is False
+    assert actions["domain_health_diagnostic_apply"]["requires_all"] == [
+        "terminal_closeout_observed_for_current_or_successor_identity",
+        "dry_run_currentness_identity_matches_selected_study",
+        "write_boundary_is_current_control_or_closeout_consumption_only",
+    ]
+    assert actions["provider_slo_tick"]["effect"] == (
+        "health_and_slo_supervision_only_no_mas_handoff_consumption_claim"
+    )
+    assert actions["provider_slo_tick"]["can_create_stage_attempt_from_mas_handoff"] is False
+    assert actions["family_runtime_tick_hydrate"]["requires_all"] == [
+        "materialized_provider_admission_pending_for_new_identity",
+        "worker_ready_and_source_current_or_supervisor_safe_restarted",
+        "no_matching_live_attempt",
+        "no_matching_terminal_closeout",
+    ]
+    assert actions["family_runtime_tick_hydrate"]["effect"] == (
+        "may_admit_opl_stagerun_attempt_for_materialized_current_control_identity"
+    )
+    assert actions["worker_source_stale_restart"]["requires_all"] == [
+        "worker_source_stale",
+        "Temporal reachable",
+        "attempt ledger readable",
+        "no active attempt",
+    ]
+    assert actions["worker_source_stale_restart"]["forbidden_when_any"] == [
+        "active attempt exists",
+        "attempt ledger unreadable",
+        "Temporal unreachable",
+    ]
+    assert actions["terminal_closeout_consumer_gate"]["effect"] == (
+        "force_dhd_apply_or_equivalent_consumer_before_next_hydrate"
+    )
+
+    classifications = policy["progress_classification_policy"]
+    assert classifications["runtime_running_watch_requires"] == [
+        "same_current_identity_strict_provider_running_proof",
+        "live_temporal_or_provider_liveness",
+        "no_matching_terminal_closeout",
+    ]
+    assert {
+        "provider_admission_pending",
+        "provider_slo_healthy",
+        "worker_heartbeat",
+        "transport_completed",
+        "queue_empty",
+    } <= set(classifications["paper_progress_forbidden_basis"])
+    assert classifications["paper_progress_requires_any"] == [
+        "mas_owner_receipt_ref",
+        "quality_gate_receipt_ref",
+        "canonical_changed_surface_ref",
+        "stable_typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_evidence_ref",
+    ]
+
+    forbidden = policy["forbidden_automation_shortcuts"]
+    assert {
+        "repeat_dhd_apply_after_observe_only_without_new_terminal_or_identity",
+        "hydrate_without_materialized_provider_admission",
+        "same_work_unit_redrive_after_anti_loop_budget_exhausted",
+        "provider_slo_tick_as_handoff_consumer",
+        "source_stale_restart_with_active_attempt",
+    } <= set(forbidden)
