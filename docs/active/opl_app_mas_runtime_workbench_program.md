@@ -1,7 +1,7 @@
 # OPL App MAS Runtime Workbench Program
 
 Status: `active product enabler; content-level owner doc`
-Date: `2026-05-14`
+Last reviewed: `2026-06-12`
 Owner: `MedAutoScience Product Projection + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P1 产品化线路：把 MAS 论文自治进度变成 OPL App Runtime Workbench 中的人用运行工作台。
 State: `active_support`

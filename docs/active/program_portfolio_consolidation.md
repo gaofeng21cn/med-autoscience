@@ -1,7 +1,7 @@
 # Program Portfolio Consolidation
 
 Status: `active_portfolio_governance`
-Date: `2026-05-20`
+Last reviewed: `2026-06-12`
 Owner: `MedAutoScience`
 Purpose: `active_program_document_lifecycle`
 State: `active_support`

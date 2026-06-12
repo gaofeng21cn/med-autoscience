@@ -1,7 +1,7 @@
 # MAS 当前开发线路
 
 Status: `active content-level development map`
-Date: `2026-05-25`
+Last reviewed: `2026-06-12`
 Owner: `MedAutoScience`
 Purpose: 在 MAS standard OPL Agent 目标态下，给出当前内容级开发线路图。
 State: `active_plan_index`

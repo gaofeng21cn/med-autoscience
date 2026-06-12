@@ -1,7 +1,7 @@
 # AI-first 论文自治闭环
 
 Status: `active_target_and_acceptance_owner`
-Date: `2026-05-16`
+Last reviewed: `2026-06-12`
 Owner: `MedAutoScience`
 Purpose: `paper_autonomy_acceptance_contract`
 State: `active_target_and_acceptance_owner`

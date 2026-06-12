@@ -4,7 +4,7 @@ Owner: `MedAutoScience` / `OPL Framework`
 Purpose: `stage_native_state_machine_design`
 State: `active_design_foundation_landed`
 Machine boundary: 本文是人读顶层设计。机器真相继续归 `agent/` semantic pack、`contracts/`、源码、CLI/MCP/API 行为、OPL runtime ledger、StageRun 状态、真实 study workspace artifact、owner receipt 和 typed blocker。
-Date: `2026-06-05`
+Last reviewed: `2026-06-12`
 
 ## 结论
 
