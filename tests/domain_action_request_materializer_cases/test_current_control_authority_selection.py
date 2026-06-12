@@ -229,3 +229,175 @@ def test_materializer_rejects_top_level_action_queue_with_stale_owner_route_iden
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
     ).exists()
+
+
+def test_materializer_blocks_stale_domain_transition_when_fresh_progress_is_readiness_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    progress_module = importlib.import_module("med_autoscience.controllers.study_progress")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="finalize",
+        owner_reason="dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        allowed_actions=["run_gate_clearing_batch"],
+    )
+    stale_route["source_refs"] = {
+        **dict(stale_route["source_refs"]),
+        "source_eval_id": "publication-eval::003::stale-ai-reviewer-record",
+        "owner_route_currentness_basis": {
+            "truth_epoch": f"truth-epoch::{study_id}",
+            "runtime_health_epoch": (
+                f"runtime-health::{study_id}::"
+                "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+            ),
+            "source_eval_id": "publication-eval::003::stale-ai-reviewer-record",
+            "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+            "work_unit_fingerprint": stale_route["work_unit_fingerprint"],
+        },
+    }
+    _write_json(
+        profile.workspace_root
+        / "runtime"
+        / "artifacts"
+        / "supervision"
+        / "opl_current_control_state"
+        / "latest.json",
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": stale_route,
+                    "action_queue": [],
+                    "current_execution_envelope": {
+                        "state_kind": "typed_blocker",
+                        "owner": "MedAutoScience",
+                        "typed_blocker": {
+                            "blocker_id": "medical_paper_readiness_missing",
+                            "owner": "MedAutoScience",
+                            "work_unit_id": "complete_medical_paper_readiness_surface",
+                        },
+                    },
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "typed_blocker",
+                        "owner": "MedAutoScience",
+                        "action_type": "complete_medical_paper_readiness_surface",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "state": {
+                            "state_kind": "typed_blocker",
+                            "typed_blocker": {
+                                "blocker_id": "medical_paper_readiness_missing",
+                                "owner": "MedAutoScience",
+                                "work_unit_id": "complete_medical_paper_readiness_surface",
+                            },
+                        },
+                    },
+                    "domain_transition": {
+                        "decision_type": "route_back_same_line",
+                        "route_target": "finalize",
+                        "owner": "finalize",
+                        "controller_action": "request_opl_stage_attempt",
+                        "completion_receipt_consumption": {"status": "consumed"},
+                        "next_work_unit": {
+                            "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                            "lane": "finalize",
+                        },
+                    },
+                }
+            ],
+        },
+    )
+
+    def read_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "generated_at": "2026-06-12T00:57:00+00:00",
+            "current_execution_envelope": {
+                "state_kind": "typed_blocker",
+                "owner": "MedAutoScience",
+                "typed_blocker": {
+                    "blocker_id": "medical_paper_readiness_missing",
+                    "blocker_type": "medical_paper_readiness_missing",
+                    "owner": "MedAutoScience",
+                    "work_unit_id": "complete_medical_paper_readiness_surface",
+                    "source_ref": (
+                        "artifacts/stage_outputs/08-publication_package_handoff/"
+                        "receipts/typed_blocker.json"
+                    ),
+                },
+            },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "MedAutoScience",
+                "action_type": "complete_medical_paper_readiness_surface",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_id": "medical_paper_readiness_missing",
+                        "blocker_type": "medical_paper_readiness_missing",
+                        "owner": "MedAutoScience",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                    },
+                },
+            },
+            "current_executable_owner_action": None,
+            "current_owner_ticket": {
+                "surface_kind": "mas_current_owner_ticket",
+                "owner": "finalize",
+                "allowed_action": "run_gate_clearing_batch",
+                "work_unit": {
+                    "work_unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record"
+                },
+            },
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "finalize",
+                "owner": "finalize",
+                "controller_action": "request_opl_stage_attempt",
+                "completion_receipt_consumption": {"status": "consumed"},
+                "next_work_unit": {
+                    "unit_id": "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+                    "lane": "finalize",
+                },
+            },
+            "owner_route": stale_route,
+        }
+
+    monkeypatch.setattr(progress_module, "read_study_progress", read_progress)
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert any(
+        item["action_type"] == "current_execution_envelope_typed_blocker"
+        and item["reason"] == "unsupported_action_type"
+        for item in result["ignored_actions"]
+    )
+    assert not (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    ).exists()

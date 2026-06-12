@@ -16,6 +16,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import (
 )
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_work_unit_action,
+    current_typed_blocker_transition_barrier,
     fresh_progress_arbitration,
     owner_route_currentness_projection,
     repair_progress_currentness,
@@ -93,6 +94,13 @@ def current_actions_for_studies(
             top_level_actions=top_level_actions,
         )
         transition_actions = _consumed_domain_transition_actions(study_payload)
+        transition_barrier = (
+            current_typed_blocker_transition_barrier.current_typed_blocker_barrier_for_consumed_transition(
+                study=study_payload,
+                fresh_action=fresh_progress_action,
+                transition_actions=transition_actions,
+            )
+        )
         if fresh_progress_action is not None and not _mapping(study_payload.get("current_work_unit")):
             canonical_current_action = None
         if canonical_current_action is not None:
@@ -120,6 +128,24 @@ def current_actions_for_studies(
                     ],
                 ]
                 if action != canonical_current_action
+            )
+            continue
+        if transition_barrier is not None:
+            per_study_actions.append(transition_barrier)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_current_work_unit_typed_blocker")
+                for action in [
+                    *transition_actions,
+                    *([readiness_followup] if readiness_followup is not None else []),
+                    *([stage_native_action] if stage_native_action is not None else []),
+                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                    *top_level_study_actions,
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                    ],
+                ]
             )
             continue
         if transition_actions:

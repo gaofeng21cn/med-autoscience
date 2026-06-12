@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-12：domain-action materializer 必须让 current work unit typed blocker 压过旧 consumed transition
+
+- 决策：`runtime domain-action-request-materialize` 在把 `opl_current_control_state/latest.json` 物化为 request task / default-executor dispatch 前，必须先读取 fresh `study_progress` / scan payload 中的 canonical `current_work_unit` 与 `current_execution_envelope`。若当前 work unit 是 stable typed blocker，旧 `domain_transition.completion_receipt_consumption=consumed`、旧 owner ticket、旧 route-back queue 或旧 gate replay 只能进入 ignored diagnostics，不能再生成新的 dispatch。只有明确的 repair-progress followup 或显式 readiness current action 可以穿过 readiness typed blocker。
+- 理由：DM003 在 `study progress` / DHD 中已经是 `complete_medical_paper_readiness_surface` 的 `medical_paper_readiness_missing` typed blocker，但 `domain-action-request-materialize --dry-run` 仍从旧 current-control transition 物化 `run_gate_clearing_batch`。这会诱发“看起来可以继续启动旧 stage”的错觉，并把监督线程拖回同一 work unit 空转。
+- 影响：这是 MAS dispatch materializer currentness 修复，不写 DM-CVD study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、typed blocker、human gate、OPL queue 或 provider attempt。论文推进仍只按 owner receipt、quality gate receipt、stable typed blocker、human gate、route-back evidence、paper/evidence/reviewer/gate/package semantic delta 或 strict provider running proof 计数。
+
 ## 2026-06-11：provider-hosted owner callable 不得被自己的 running envelope 自拦
 
 - 决策：`domain-handler export` / scheduler admission 阶段仍必须把 canonical `running_provider_attempt` 视为硬门，避免同一 work unit 重复导出或重复启动 provider attempt。但 OPL 已经启动 `domain_owner/default-executor-dispatch` provider-hosted attempt 后，provider 在 MAS 内部调用 `domain-owner-action-dispatch` 时，fresh `current_execution_envelope.state_kind=running_provider_attempt` 代表“当前 owner callable 正在本 attempt 内执行”，不得阻断同一 dispatch selection。此时真正阻断 selection 的 envelope 只保留 `typed_blocker` 与 `parked`；`medical_paper_readiness_missing` 继续按 readiness owner 例外处理。
