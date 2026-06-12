@@ -119,6 +119,53 @@ def test_current_work_unit_rejects_running_attempt_for_superseded_work_unit() ->
     assert work_unit["state"]["source"] == "opl_current_control_state_action_queue"
 
 
+def test_current_work_unit_rejects_unbound_running_attempt_for_current_owner_action() -> None:
+    module = _module()
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_stage": "publication_supervision",
+            "progress_first_sprint_state": {"paper_progress_delta_counted": True},
+        },
+        actions=[
+            {
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "owner": "ai_reviewer",
+                "next_owner": "ai_reviewer",
+                "action_type": "return_to_ai_reviewer_workflow",
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "work_unit_fingerprint": "sha256:current-ai-reviewer-record",
+                "action_fingerprint": "sha256:current-ai-reviewer-record",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                "owner_receipt_required": True,
+            }
+        ],
+        live_provider_attempt={
+            "running_provider_attempt": True,
+            "active_run_id": "opl-stage-attempt://sat_433e34b1795d4f3c3fbe1fbb",
+            "active_stage_attempt_id": "sat_433e34b1795d4f3c3fbe1fbb",
+            "active_workflow_id": "wf_f7fbeb7d4ad75a711cf4f2bf",
+            "runtime_health": {
+                "health_status": "running",
+                "runtime_liveness_status": "live",
+            },
+        },
+        next_owner="ai_reviewer",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "executable_owner_action"
+    assert work_unit["owner"] == "ai_reviewer"
+    assert work_unit["action_type"] == "return_to_ai_reviewer_workflow"
+    assert work_unit["work_unit_id"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert work_unit["work_unit_fingerprint"] == "sha256:current-ai-reviewer-record"
+    assert work_unit["state"]["state_kind"] == "executable_owner_action"
+    assert work_unit["state"]["source"] == "repair_progress_projection.mas_owner_repair_execution_evidence"
+
+
 def test_current_work_unit_does_not_treat_unbound_running_attempt_as_guarded_apply_progress() -> None:
     module = _module()
 

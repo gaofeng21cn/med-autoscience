@@ -551,6 +551,73 @@ def test_progress_first_monitoring_requires_running_provider_proof_for_current_w
     assert admission["provider_attempt_proof"] is None
 
 
+def test_progress_first_monitoring_suppresses_running_current_work_unit_when_owner_action_unbound() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "status": "running_provider_attempt",
+                "owner": "supervisor_only/live_provider_attempt",
+                "work_unit_id": "medical_prose_write_repair",
+                "state": {
+                    "state_kind": "running_provider_attempt",
+                    "provider_attempt_proof": {
+                        "running_provider_attempt": True,
+                        "active_run_id": "opl-stage-attempt://sat-stale-ai-reviewer",
+                        "active_stage_attempt_id": "sat-stale-ai-reviewer",
+                        "active_workflow_id": "wf-stale-ai-reviewer",
+                    },
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "running_provider_attempt",
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                "next_owner": "write",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
+                "action_type": "run_quality_repair_batch",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "owner_receipt_required": True,
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": True,
+                "next_owner": "supervisor_only/live_provider_attempt",
+                "active_run_id": "opl-stage-attempt://sat-stale-ai-reviewer",
+                "active_stage_attempt_id": "sat-stale-ai-reviewer",
+                "active_workflow_id": "wf-stale-ai-reviewer",
+                "runtime_health": {
+                    "health_status": "live",
+                    "runtime_liveness_status": "live",
+                },
+                "action_queue": [],
+            },
+        }
+    )
+
+    assert monitoring["running_provider_attempt"] is False
+    assert monitoring["active_run_id"] is None
+    assert monitoring["active_stage_attempt_id"] is None
+    assert monitoring["active_workflow_id"] is None
+    assert monitoring["worker_liveness"]["stale_active_run_id"] == (
+        "opl-stage-attempt://sat-stale-ai-reviewer"
+    )
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["current_executable_owner_action"]["work_unit_id"] == "medical_prose_write_repair"
+    admission = monitoring["owner_action_admission"]
+    assert admission["admission_pending"] is True
+    assert admission["provider_attempt_running_proven"] is False
+    assert admission["provider_attempt_proof"] is None
+
+
 def test_progress_first_monitoring_keeps_paper_line_owner_delta_and_platform_repair_accounting_separate() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

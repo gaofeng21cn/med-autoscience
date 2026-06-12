@@ -237,11 +237,12 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     current_action_running_provider_attempt = bool(
         strict_running_provider_liveness and current_action_provider_attempt_proof
     )
+    running_provider_attempt_suppressed_by_unbound_owner_action = False
     if (
         strict_running_provider_liveness
         and current_action
         and (
-            current_work_unit_status == "executable_owner_action"
+            current_work_unit_status in {"executable_owner_action", "running_provider_attempt"}
             or _text(execution.get("state_kind")) == "executable_owner_action"
             or _first_current_action_queue_item(handoff_for_admission.get("action_queue")) is not None
         )
@@ -255,6 +256,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         active_run_id = None
         active_stage_attempt_id = None
         active_workflow_id = None
+        running_provider_attempt_suppressed_by_unbound_owner_action = True
     artifact_first_owner_action = _artifact_first_owner_action(current_action)
     canonical_work_unit_for_aliases = (
         {}
@@ -356,6 +358,10 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     if (
         current_work_unit_status in {"executable_owner_action", "running_provider_attempt", "typed_blocker"}
         and not current_action_supersedes_canonical_typed_blocker
+        and not (
+            running_provider_attempt_suppressed_by_unbound_owner_action
+            and current_work_unit_status == "running_provider_attempt"
+        )
     ):
         state_kind = current_work_unit_status
     if state_kind is None:

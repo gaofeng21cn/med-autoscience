@@ -871,6 +871,7 @@ def _running_attempt_matches_current_action(
     )
     expected_fingerprint = _work_unit_fingerprint(action_payload, currentness_basis=action_basis)
     running_health = _mapping(running_attempt.get("runtime_health"))
+    comparable_identity_observed = False
     if expected_action_type is not None:
         running_action_types = {
             text
@@ -880,6 +881,7 @@ def _running_attempt_matches_current_action(
             )
             if (text := _text(value)) is not None
         }
+        comparable_identity_observed = comparable_identity_observed or bool(running_action_types)
         if running_action_types and expected_action_type not in running_action_types:
             return False
     if expected_work_unit is not None:
@@ -893,6 +895,7 @@ def _running_attempt_matches_current_action(
             )
             if (text := _work_unit_id(value)) is not None
         }
+        comparable_identity_observed = comparable_identity_observed or bool(running_work_units)
         if running_work_units and expected_work_unit not in running_work_units:
             return False
     if expected_fingerprint is not None:
@@ -908,8 +911,15 @@ def _running_attempt_matches_current_action(
             )
             if (text := _text(value)) is not None
         }
+        comparable_identity_observed = comparable_identity_observed or bool(running_fingerprints)
         if running_fingerprints and expected_fingerprint not in running_fingerprints:
             return False
+    if (
+        expected_action_type is not None
+        or expected_work_unit is not None
+        or expected_fingerprint is not None
+    ) and not comparable_identity_observed:
+        return False
     return True
 
 
