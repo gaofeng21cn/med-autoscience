@@ -321,6 +321,100 @@ def test_current_work_unit_uses_remaining_blocker_for_executed_typed_closeout() 
     assert work_unit["state"]["typed_blocker"]["terminal_closeout_outcome"] == "typed_blocker"
 
 
+def test_current_work_unit_terminal_quality_repair_next_delta_blocks_stale_gate_followthrough_identity() -> None:
+    module = _module()
+    study_id = "002-dm-china-us-mortality-attribution"
+    work_unit_id = "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    fingerprint = "owner-route::write::manuscript_story_surface_delta_missing::run_quality_repair_batch"
+    closeout_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+        "default_executor_execution/sat_quality_repair.closeout.json"
+    )
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "paper_autonomy/guarded-apply",
+            "stage_kernel_projection": {
+                "current_owner_delta": {
+                    "stage_id": "paper_autonomy/guarded-apply",
+                    "owner": "MedAutoScience",
+                    "current_owner": "MedAutoScience",
+                    "action": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
+                    "desired_delta": "domain_owner_receipt_quality_gate_or_typed_blocker_required",
+                    "owner_answer_missing": True,
+                    "owner_answer_still_required": True,
+                    "domain_ready_authorized": True,
+                    "accepted_answer_shape": [
+                        "domain_owner_receipt_ref",
+                        "quality_gate_receipt_ref",
+                        "typed_blocker_ref",
+                    ],
+                    "hard_gate": {"state": "owner_answer_missing"},
+                },
+            },
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "stage_attempt_id": "sat_quality_repair",
+                    "action_type": "run_quality_repair_batch",
+                    "status": "blocked",
+                    "stage_name": work_unit_id,
+                    "outcome": "typed_blocker",
+                    "progress_delta_classification": "typed_blocker",
+                    "remaining_blockers": ["manuscript_story_surface_delta_missing"],
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": fingerprint,
+                    "source_path": closeout_ref,
+                    "paper_stage_log": {
+                        "stage_name": "run_quality_repair_batch",
+                        "outcome": "typed_blocker",
+                        "progress_delta_classification": "typed_blocker",
+                        "remaining_blockers": ["manuscript_story_surface_delta_missing"],
+                        "next_forced_delta": {
+                            "required_delta_kind": "review_current_paper_delta",
+                            "work_unit_id": work_unit_id,
+                            "owner_action": {
+                                "next_owner": "write",
+                                "action_type": "run_quality_repair_batch",
+                                "work_unit_id": work_unit_id,
+                                "work_unit_fingerprint": fingerprint,
+                                "allowed_actions": ["run_quality_repair_batch"],
+                                "owner_receipt_required": True,
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "schema_version": 1,
+            "status": "ready",
+            "source": "study_progress.next_forced_delta.owner_action",
+            "next_owner": "write",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "action_type": "run_quality_repair_batch",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "owner_receipt_required": True,
+            "terminal_stage_next_forced_delta": True,
+        },
+        next_owner="write",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "write"
+    assert work_unit["action_type"] == "run_quality_repair_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["work_unit_fingerprint"] == fingerprint
+    assert work_unit["state"]["source"] == "terminal_closeout_typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "manuscript_story_surface_delta_missing"
+
+
 def test_current_work_unit_projects_gate_action_over_matching_currentness_blocker_from_live_handoff() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

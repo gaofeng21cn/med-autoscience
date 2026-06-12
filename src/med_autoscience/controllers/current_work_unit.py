@@ -265,6 +265,16 @@ def build_current_work_unit(
             currentness_basis=basis,
             source="typed_blocker",
         )
+    if terminal_action_blocker is not None:
+        return _typed_blocker_work_unit(
+            blocker=terminal_action_blocker,
+            action=action,
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            source_refs=resolved_source_refs,
+            currentness_basis=basis,
+            source="terminal_closeout_typed_blocker",
+        )
     if stage_owner_identity_blocker is not None:
         return _typed_blocker_work_unit(
             blocker=stage_owner_identity_blocker,
