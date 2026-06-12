@@ -333,7 +333,7 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
             stage_progress_log=stage_progress_log,
             latest_terminal_stage_log=latest_terminal_stage_log,
         )
-        if owner_action_visible and current_action
+        if current_action
         else None
     )
     current_blockers = (

@@ -691,7 +691,7 @@
     ]
   },
   "required_opl_follow_through": {
-    "source": "one-person-lab read-only substrate audit 2026-06-11",
+    "source": "one-person-lab read-only substrate audit 2026-06-12",
     "already_supported": [
       "current_owner_delta ordinary planning root",
       "StageRun launch and closeout admission boundary",
@@ -700,18 +700,21 @@
       "stop_loss_state anti-spin foundation",
       "worker_source_stale supervised restart guard"
     ],
-    "must_be_promoted_to_contract_and_tests": [
+    "opl_covered_and_mas_consumes": [
       {
         "capability": "terminal_closeout_precedes_live_projection",
         "owner": "OPL Framework",
+        "opl_evidence": "contracts/opl-framework/stage-route-scheduler-contract.json plus stage-route scheduler/currentness tests",
         "required_effect": "identity-matched terminal typed closeout or owner receipt suppresses stale running/live projection in current_owner_delta, evidence worklist, queue projection, and workbench drilldown",
         "same_identity_queue_effect": "a running queue row linked to a terminal provider attempt is repaired to stale transport closeout observed / idempotent noop, with lease cleared and no duplicate hydrate or provider attempt",
         "identity_different_successor_effect": "terminal evidence stays attached as precedence evidence while MAS keeps the new current owner action or provider admission pending",
-        "identity_mismatch_effect": "fail_closed_currentness_blocker"
+        "identity_mismatch_effect": "fail_closed_currentness_blocker",
+        "mas_consumption_surface": "stage_route_arbiter_surface.terminal_closeout_precedes_live_projection"
       },
       {
         "capability": "stage_run_currentness_identity",
         "owner": "OPL Framework / MAS handoff",
+        "opl_evidence": "src/family-runtime-stage-run-currentness-identity.ts and tests/src/family-runtime-stage-run-currentness-identity.test.ts",
         "required_fields": [
           "stage_run_id",
           "stage_run_generation",
@@ -731,29 +734,121 @@
           "attempt_idempotency_key",
           "owner_route_currentness_basis"
         ],
-        "required_effect": "all launch, liveness, closeout, owner-answer, and replay decisions compare the same packet; MAS provider_admission_identity and route/attempt idempotency keys are embedded verbatim instead of re-derived from OPL labels"
+        "required_effect": "all launch, liveness, closeout, owner-answer, and replay decisions compare the same packet; MAS provider_admission_identity and route/attempt idempotency keys are embedded verbatim instead of re-derived from OPL labels",
+        "mas_consumption_surface": "identity_policy.provider_admission_identity_contract"
       },
       {
         "capability": "no_progress_budget_contract",
         "owner": "OPL Framework / MAS consumer",
-        "required_effect": "lineage budget, repeat thresholds, reset conditions, typed-blocker escalation, and automatic-redrive stop are schema-backed and regression-tested"
+        "opl_evidence": "contracts/opl-framework/stage-route-scheduler-contract.json no-progress budget clauses",
+        "required_effect": "lineage budget, repeat thresholds, reset conditions, typed-blocker escalation, and automatic-redrive stop are schema-backed and regression-tested",
+        "mas_consumption_surface": "anti_loop_policy"
       },
       {
         "capability": "stage_log_minimum_viability_contract",
         "owner": "MAS consumer / OPL stage_progress_log projection",
-        "required_effect": "terminal closeout missing required user-stage-log domain fields is consumed as domain_closeout_provided_incomplete_user_stage_log typed blocker, receives no paper-progress credit, and cannot trigger automatic redrive"
+        "required_effect": "terminal closeout missing required user-stage-log domain fields is consumed as domain_closeout_provided_incomplete_user_stage_log typed blocker, receives no paper-progress credit, and cannot trigger automatic redrive",
+        "mas_consumption_surface": "stage_log_minimum_viability"
       },
       {
         "capability": "worker_source_stale_supervisor_projection",
         "owner": "OPL Framework",
-        "required_effect": "worker_source_stale remains fail-closed, but operator-facing status exposes supervisor-safe restart only when Temporal is reachable, attempt ledger is readable, and no active attempt exists"
+        "opl_evidence": "src/family-runtime-provider-worker-repair.ts and family-runtime-provider-slo-worker-repair tests",
+        "required_effect": "worker_source_stale remains fail-closed, but operator-facing status exposes supervisor-safe restart only when Temporal is reachable, attempt ledger is readable, and no active attempt exists",
+        "mas_consumption_surface": "runtime_running_watch / supervisor diagnostic only"
       },
       {
         "capability": "trace_span_correlation_refs",
         "owner": "OPL Observability Plane",
-        "required_effect": "current_owner_delta, StageRun, attempt ledger, Temporal workflow, ToolResultEnvelope, and owner answer share refs-only trace/span context without entering ordinary planning or domain authority"
+        "required_effect": "current_owner_delta, StageRun, attempt ledger, Temporal workflow, ToolResultEnvelope, and owner answer share refs-only trace/span context without entering ordinary planning or domain authority",
+        "mas_consumption_surface": "trace_span_correlation_policy"
       }
-    ]
+    ],
+    "remaining_mas_consumption_gaps": []
+  },
+  "desired_current_status_reconcile_policy": {
+    "surface_kind": "mas_opl_desired_current_status_reconcile_policy",
+    "desired_sources": [
+      "current_owner_delta",
+      "current_work_unit"
+    ],
+    "current_sources": [
+      "StageRun lease",
+      "attempt ledger",
+      "Temporal workflow liveness",
+      "terminal closeout"
+    ],
+    "status_sources": [
+      "conditions",
+      "no_progress_budget",
+      "trace_refs",
+      "span_refs",
+      "next_safe_transport_action"
+    ],
+    "status_cannot_generate": [
+      "current_owner_delta",
+      "current_work_unit",
+      "current_executable_owner_action",
+      "provider_admission_identity",
+      "owner_receipt",
+      "typed_blocker",
+      "publication_ready_claim",
+      "paper_progress_delta"
+    ],
+    "transport_signals_forbidden_as_desired": [
+      "worker_heartbeat",
+      "quest_running",
+      "queue_completed",
+      "transport_succeeded",
+      "archive_materialized",
+      "old_active_run_id",
+      "trace_span_only"
+    ],
+    "worker_source_stale_restart_policy": {
+      "allowed_only_when": [
+        "no_active_attempt",
+        "Temporal reachable",
+        "attempt ledger readable"
+      ],
+      "otherwise_effect": "supervisor_diagnostic_fail_closed"
+    }
+  },
+  "trace_span_correlation_policy": {
+    "surface_kind": "mas_opl_trace_span_correlation_policy",
+    "chain": [
+      "current_owner_delta",
+      "StageRun",
+      "attempt ledger",
+      "Temporal workflow",
+      "ToolResultEnvelope",
+      "owner answer"
+    ],
+    "required_ref_fields_any": [
+      "trace_id",
+      "span_id",
+      "parent_span_id",
+      "span_link_refs",
+      "lineage_run_ref",
+      "workflow_id",
+      "stage_attempt_id"
+    ],
+    "allowed_surfaces": [
+      "audit",
+      "observability",
+      "workbench drilldown",
+      "stage_route_arbiter_decisions",
+      "runtime diagnostic report"
+    ],
+    "forbidden_authority": [
+      "ordinary_planning_root",
+      "current_owner_delta_derivation",
+      "owner_receipt_signing",
+      "typed_blocker_semantic_materialization",
+      "quality_gate_closure",
+      "publication_ready_claim",
+      "paper_progress_credit"
+    ],
+    "payload_policy": "refs_only_body_free"
   },
   "mature_engineering_practice_mapping": {
     "kubernetes_controller": {

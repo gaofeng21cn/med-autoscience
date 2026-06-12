@@ -153,7 +153,7 @@ OPL 侧应把以下能力做成一等基座接口：
 - `Observability Plane`：trace / metric / log / failure class / no-progress budget，不签 domain verdict。
 - `Workbench Shell`：默认只显示 current owner、paper/evidence/artifact progress、human gate、next safe action；audit detail drilldown。
 
-OPL 只读基座核查显示，`current_owner_delta` 默认读根、StageRun launch / closeout admission、attempt ledger terminal observation、stop-loss anti-spin foundation 和 `worker_source_stale` supervised restart guard 已经有承接面。还需要在 OPL 合同和回归测试中提升五个一等能力：
+OPL 只读基座核查显示，`current_owner_delta` 默认读根、StageRun launch / closeout admission、attempt ledger terminal observation、stop-loss anti-spin foundation、`stage_run_currentness_identity`、terminal closeout precedence、schema-backed no-progress budget 和 `worker_source_stale` supervised restart guard 已经有合同 / 实现 / 回归测试承接面。MAS 侧对应职责是消费这些 refs 与 identity，不再把它们列为 OPL 未落地缺口：
 
 - `terminal_closeout_precedes_live_projection`：identity matched terminal typed closeout / owner receipt 必须压过 stale running/live projection；identity mismatch fail closed 为 currentness blocker。
 - `stage_run_currentness_identity`：把 `stage_run_id`、generation、manifest/current pointer、source/domain fingerprint、idempotency key、provider attempt、lease、authorization、workflow/task 收成统一 packet，避免各层用散落 label 比对。
@@ -163,7 +163,9 @@ OPL 只读基座核查显示，`current_owner_delta` 默认读根、StageRun lau
 
 2026-06-12 追加 OPL 基座优化：StageRun identity / read-model 必须原样嵌入 MAS `provider_admission_identity`、`provider_admission_identity_key`、`route_identity_key`、`attempt_idempotency_key` 和 `owner_route_currentness_basis`。OPL 可以派生 transport labels，但 launch、liveness、closeout、owner-answer 和 replay 决策必须能从 MAS identity 原样读回；不能只依赖 OPL 自己生成的 `mas_default_executor_source` stable id。
 
-理想 OPL 基座还需要把 `desired/current/status` reconcile 固定成统一 kernel：desired 只来自 MAS `current_owner_delta` / `current_work_unit`，current 只来自 StageRun lease、attempt ledger、Temporal/workflow liveness 和 terminal closeout，status 只记录 conditions、no-progress budget、trace refs 和 next safe transport action。worker heartbeat、quest running、queue completed、transport succeeded、archive materialized 和旧 active run 都不能直接驱动 desired state。无 active attempt 且 source stale 时可以由 supervisor restart worker；有 active attempt、attempt ledger 不可读或 Temporal 不可达时只能 fail-closed 为 supervisor diagnostic。
+2026-06-12 追加 MAS 消费规则：`contracts/stage_route_reconcile_contract.json` 已把 OPL covered 项拆到 `opl_covered_and_mas_consumes`，剩余 MAS 消费缺口为空；trace/span refs 与 `desired/current/status` reconcile 另有机器策略和 meta test。desired 只来自 MAS `current_owner_delta` / `current_work_unit`，current 只来自 StageRun lease、attempt ledger、Temporal/workflow liveness 和 terminal closeout，status 只记录 conditions、no-progress budget、trace refs 和 next safe transport action。worker heartbeat、quest running、queue completed、transport succeeded、archive materialized 和旧 active run 都不能直接驱动 desired state。无 active attempt 且 source stale 时可以由 supervisor restart worker；有 active attempt、attempt ledger 不可读或 Temporal 不可达时只能 fail-closed 为 supervisor diagnostic。
+
+2026-06-12 追加 Progress-first admission 投影规则：`owner_action_admission` 是 admission / readiness 读面，只要 reducer 仍有 `current_executable_owner_action` 就必须生成；它不能被“是否作为顶层 executable owner action 显示”的 visibility 规则挡掉。旧 active run / handoff ref 可以被清成 non-running，但同一 fresh current action 的 admission pending、hard-gate blocked 或 provider-running-proof 字段仍要可见，避免 operator 因 `owner_action_admission=null` 误判为没有下一步。
 
 MAS 侧对应收薄：
 

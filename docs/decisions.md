@@ -5,6 +5,19 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-12：owner action admission 投影独立于顶层可见性规则
+
+- 决策：`progress_first_monitoring_summary.owner_action_admission` 只要 reducer 仍有 `current_executable_owner_action` 就必须生成。`owner_action_visible` 只决定顶层是否展示为 executable owner action，不得让 admission/readiness 投影变成 `null`。旧 `active_run_id`、handoff active refs 或 OPL current-control residue 被 fail-closed 清成 non-running 后，owner action admission 仍必须说明 `admission_pending`、`provider_attempt_running_proven=false`、或 hard-gate blocked reasons。
+- 理由：DM003 类 live 状态可能同时满足“旧 running proof 应清掉”和“新 writer/gate action 仍可 admission”。旧实现把 admission 绑到 top-level visibility，导致 stale active run 已正确清除后，operator 看到 `owner_action_admission=null`，误判为没有下一步或 DHD/OPL 无事可做。
+- 影响：这是 MAS progress-first read-model 修复，不启动 OPL、不消费 closeout、不写 study truth、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、owner receipt、typed blocker、human gate 或 OPL runtime artifact。论文推进仍按 owner receipt、stable typed blocker、changed surface、reviewer/gate delta、human gate、route-back 或 strict provider running proof 计数。
+
+## 2026-06-12：OPL covered 基座能力从 MAS follow-through 缺口降级为消费合同
+
+- 决策：`contracts/stage_route_reconcile_contract.json#/required_opl_follow_through` 不再把 `terminal_closeout_precedes_live_projection`、`stage_run_currentness_identity`、`no_progress_budget_contract`、`worker_source_stale_supervisor_projection` 和 `trace_span_correlation_refs` 统一列为 OPL must-promote gap。OPL 已有合同/实现/测试覆盖的能力进入 `opl_covered_and_mas_consumes`；MAS 的责任是通过 provider admission identity、stage-route arbiter、anti-loop policy、stage-log minimum viability、trace/span policy 和 desired/current/status policy 消费。
+- 决策：新增 `desired_current_status_reconcile_policy` 与 `trace_span_correlation_policy`。desired 只来自 `current_owner_delta` / `current_work_unit`，current 只来自 StageRun lease、attempt ledger、Temporal liveness 与 terminal closeout，status 只承载 conditions、no-progress budget、trace/span refs 和 next safe transport action。trace/span refs 只能进入 audit、observability、workbench drilldown、arbiter decision 或 runtime diagnostic，不得生成 owner action、owner receipt、typed blocker、quality closure、publication-ready 或 paper-progress credit。
+- 理由：OPL 侧只读审计显示这些 substrate 能力多数已经落地；MAS 若继续把它们写成 required follow-through，会让后续审计反复误判为 OPL 未完成，并诱导重复设计而不是补 MAS-facing consumption assertion。成熟工程经验也一致：Kubernetes controller 区分 desired/current/status，Temporal / Step Functions 保留 durable execution history 与 idempotent identity，Airflow XCom / OpenTelemetry / OpenLineage 只适合 small metadata / refs / trace，不承载 domain authority。
+- 影响：这是 MAS 合同、meta test 和文档状态修复；不改 OPL runtime、不执行 DHD apply / hydrate / tick、不写 runtime artifacts 或论文 truth。后续若 OPL substrate 再新增能力，应先标明 `opl_evidence` 与 `mas_consumption_surface`，避免把 transport evidence 升格成医学 authority。
+
 ## 2026-06-12：strict running provider proof 必须覆盖 parked / preflight 顶层读面
 
 - 决策：`study_progress` post-assembly 必须让 strict running provider proof 覆盖顶层 `current_stage`、`status_narration_contract`、`study_macro_state`、`intervention_lane`、`user_visible_projection`、`supervision` 和 `operator_status_card`。当 canonical `current_work_unit.status=running_provider_attempt`、`current_execution_envelope.state_kind=running_provider_attempt`、`progress_first_monitoring_summary.running_provider_attempt=true`，或 OPL handoff 给出同一 current identity 的 strict live proof 且无 matching terminal closeout 时，顶层状态统一显示 `managed_runtime_active` / `runtime_running_watch`，并移除默认 operator card 中的 parked/preflight 字段。

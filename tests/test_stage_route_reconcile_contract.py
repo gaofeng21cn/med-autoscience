@@ -567,21 +567,25 @@ def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_p
     )
 
     follow_through = contract["required_opl_follow_through"]
-    assert follow_through["source"] == "one-person-lab read-only substrate audit 2026-06-11"
+    assert follow_through["source"] == "one-person-lab read-only substrate audit 2026-06-12"
     assert {
         "current_owner_delta ordinary planning root",
         "StageRun launch and closeout admission boundary",
         "attempt ledger terminal observation",
         "worker_source_stale supervised restart guard",
     } <= set(follow_through["already_supported"])
+    assert follow_through["remaining_mas_consumption_gaps"] == []
 
     capabilities = {
         item["capability"]: item
-        for item in follow_through["must_be_promoted_to_contract_and_tests"]
+        for item in follow_through["opl_covered_and_mas_consumes"]
     }
     assert capabilities["terminal_closeout_precedes_live_projection"][
         "identity_mismatch_effect"
     ] == "fail_closed_currentness_blocker"
+    assert capabilities["terminal_closeout_precedes_live_projection"][
+        "mas_consumption_surface"
+    ] == "stage_route_arbiter_surface.terminal_closeout_precedes_live_projection"
     assert {
         "stage_run_id",
         "stage_run_generation",
@@ -604,9 +608,15 @@ def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_p
     assert "embedded verbatim" in capabilities["stage_run_currentness_identity"][
         "required_effect"
     ]
+    assert capabilities["stage_run_currentness_identity"]["mas_consumption_surface"] == (
+        "identity_policy.provider_admission_identity_contract"
+    )
     assert "automatic-redrive stop" in capabilities["no_progress_budget_contract"][
         "required_effect"
     ]
+    assert capabilities["no_progress_budget_contract"]["mas_consumption_surface"] == (
+        "anti_loop_policy"
+    )
     assert capabilities["stage_log_minimum_viability_contract"]["required_effect"] == (
         "terminal closeout missing required user-stage-log domain fields is consumed as "
         "domain_closeout_provided_incomplete_user_stage_log typed blocker, receives no "
@@ -618,6 +628,9 @@ def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_p
     assert "without entering ordinary planning" in capabilities["trace_span_correlation_refs"][
         "required_effect"
     ]
+    assert capabilities["trace_span_correlation_refs"]["mas_consumption_surface"] == (
+        "trace_span_correlation_policy"
+    )
 
     practices = contract["mature_engineering_practice_mapping"]
     assert practices["kubernetes_controller"]["reject"] == (
@@ -644,3 +657,91 @@ def test_stage_route_reconcile_contract_tracks_opl_follow_through_and_external_p
     assert practices["opentelemetry"]["reject"] == (
         "observability traces closing quality gate or publication verdict"
     )
+
+
+def test_stage_route_reconcile_contract_declares_desired_current_status_policy() -> None:
+    contract = _contract()
+
+    policy = contract["desired_current_status_reconcile_policy"]
+    assert policy["surface_kind"] == "mas_opl_desired_current_status_reconcile_policy"
+    assert policy["desired_sources"] == ["current_owner_delta", "current_work_unit"]
+    assert policy["current_sources"] == [
+        "StageRun lease",
+        "attempt ledger",
+        "Temporal workflow liveness",
+        "terminal closeout",
+    ]
+    assert policy["status_sources"] == [
+        "conditions",
+        "no_progress_budget",
+        "trace_refs",
+        "span_refs",
+        "next_safe_transport_action",
+    ]
+    assert {
+        "current_owner_delta",
+        "current_work_unit",
+        "current_executable_owner_action",
+        "provider_admission_identity",
+        "owner_receipt",
+        "typed_blocker",
+        "publication_ready_claim",
+        "paper_progress_delta",
+    } <= set(policy["status_cannot_generate"])
+    assert {
+        "worker_heartbeat",
+        "quest_running",
+        "queue_completed",
+        "transport_succeeded",
+        "archive_materialized",
+        "old_active_run_id",
+        "trace_span_only",
+    } <= set(policy["transport_signals_forbidden_as_desired"])
+    restart = policy["worker_source_stale_restart_policy"]
+    assert restart["allowed_only_when"] == [
+        "no_active_attempt",
+        "Temporal reachable",
+        "attempt ledger readable",
+    ]
+    assert restart["otherwise_effect"] == "supervisor_diagnostic_fail_closed"
+
+
+def test_stage_route_reconcile_contract_keeps_trace_span_refs_audit_only() -> None:
+    contract = _contract()
+
+    policy = contract["trace_span_correlation_policy"]
+    assert policy["surface_kind"] == "mas_opl_trace_span_correlation_policy"
+    assert policy["chain"] == [
+        "current_owner_delta",
+        "StageRun",
+        "attempt ledger",
+        "Temporal workflow",
+        "ToolResultEnvelope",
+        "owner answer",
+    ]
+    assert {
+        "trace_id",
+        "span_id",
+        "parent_span_id",
+        "span_link_refs",
+        "lineage_run_ref",
+        "workflow_id",
+        "stage_attempt_id",
+    } <= set(policy["required_ref_fields_any"])
+    assert {
+        "audit",
+        "observability",
+        "workbench drilldown",
+        "stage_route_arbiter_decisions",
+        "runtime diagnostic report",
+    } <= set(policy["allowed_surfaces"])
+    assert {
+        "ordinary_planning_root",
+        "current_owner_delta_derivation",
+        "owner_receipt_signing",
+        "typed_blocker_semantic_materialization",
+        "quality_gate_closure",
+        "publication_ready_claim",
+        "paper_progress_credit",
+    } <= set(policy["forbidden_authority"])
+    assert policy["payload_policy"] == "refs_only_body_free"
