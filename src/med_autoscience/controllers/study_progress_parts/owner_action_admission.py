@@ -224,6 +224,9 @@ def _hard_gate_blockers(payload: Mapping[str, Any]) -> dict[str, Any]:
     )
     if missing_sources:
         result["missing_required_source_or_data"] = missing_sources
+    current_work_unit_barrier = _mapping(payload.get("owner_action_admission_barrier"))
+    if current_work_unit_barrier:
+        result["current_work_unit_typed_blocker"] = current_work_unit_barrier
     irreversible = _mapping(payload.get("irreversible_operation_gate"))
     if _text(irreversible.get("status")) == "blocked":
         result["irreversible_operation"] = {
@@ -282,6 +285,7 @@ def _hard_gate_reasons(blocked_by: Mapping[str, Any]) -> list[str]:
         "forbidden_write_refs": "forbidden_write_refs",
         "owner_callable_surface": "owner_callable_surface_missing",
         "missing_required_source_or_data": "missing_required_source_or_data",
+        "current_work_unit_typed_blocker": "current_work_unit_typed_blocker",
         "irreversible_operation": "irreversible_operation",
     }
     for key in blocked_by:

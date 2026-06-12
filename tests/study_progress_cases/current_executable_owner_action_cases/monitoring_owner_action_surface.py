@@ -1009,4 +1009,83 @@ def test_progress_first_monitoring_prefers_canonical_typed_blocker_over_stale_te
     assert monitoring["current_blockers"] == ["anti_loop_budget_exhausted"]
 
 
+def test_progress_first_monitoring_blocks_admission_when_canonical_typed_blocker_owns_current_work_unit() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "typed_blocker",
+                "owner": "one-person-lab",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:gate-replay-current",
+                "action_fingerprint": "sha256:gate-replay-current",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "source": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_type": "medical_publication_surface_blocked",
+                        "blocked_reason": "medical_publication_surface_blocked",
+                        "owner": "one-person-lab",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": "publication_gate_replay",
+                        "work_unit_fingerprint": "sha256:gate-replay-current",
+                        "action_fingerprint": "sha256:gate-replay-current",
+                        "source_ref": (
+                            "artifacts/supervision/consumer/default_executor_execution/"
+                            "sat_gate_replay.closeout.json"
+                        ),
+                    },
+                },
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "schema_version": 1,
+                "status": "ready",
+                "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                "next_owner": "gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "sha256:gate-replay-current",
+                "action_fingerprint": "sha256:gate-replay-current",
+                "action_type": "run_gate_clearing_batch",
+                "allowed_actions": ["run_gate_clearing_batch"],
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "provider_admission_pending_count": 0,
+                "action_queue": [],
+            },
+        }
+    )
+
+    admission = monitoring["owner_action_admission"]
+    assert monitoring["execution_state_kind"] == "typed_blocker"
+    assert monitoring["owner_action_current"] is False
+    assert monitoring["typed_blocker"]["blocker_type"] == "medical_publication_surface_blocked"
+    assert admission["admission_requested"] is False
+    assert admission["admission_pending"] is False
+    assert admission["provider_attempt_start_requested"] is False
+    assert admission["provider_attempt_running_proven"] is False
+    assert admission["hard_gate_blocked"] is True
+    assert admission["hard_gate_reasons"] == ["current_work_unit_typed_blocker"]
+    assert admission["blocked_by"]["current_work_unit_typed_blocker"] == {
+        "status": "typed_blocker",
+        "owner": "one-person-lab",
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": "publication_gate_replay",
+        "blocker_type": "medical_publication_surface_blocked",
+        "blocked_reason": "medical_publication_surface_blocked",
+        "source_ref": (
+            "artifacts/supervision/consumer/default_executor_execution/"
+            "sat_gate_replay.closeout.json"
+        ),
+    }
+
+
 __all__ = [name for name in globals() if name.startswith("test_")]
