@@ -529,9 +529,127 @@ def test_current_control_provider_admission_allows_write_owner_gate_clearing_tar
         / "run_gate_clearing_batch.json"
     )
     work_unit_id = "ai_reviewer_record_gate_consumption"
-    action_fingerprint = (
-        f"study-progress-current-owner-ticket::{study_id}::{work_unit_id}::run_gate_clearing_batch"
+    action_fingerprint = "route-currentness::dm002-write-gate-clearing-current"
+    dump_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "run_gate_clearing_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "next_executable_owner": "write",
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "refs": {"dispatch_path": str(dispatch_path)},
+        },
     )
+
+    result = provider_admission.current_control_provider_admission_candidates(
+        {
+            "surface": "opl_current_control_state_handoff",
+            "action_queue": [],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "current_work_unit": {
+                        "surface_kind": "current_work_unit",
+                        "status": "executable_owner_action",
+                        "owner": "write",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": action_fingerprint,
+                        "action_fingerprint": action_fingerprint,
+                        "currentness_basis": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "truth_epoch": "truth-event-current",
+                            "runtime_health_epoch": "runtime-health-current",
+                        },
+                    },
+                    "current_executable_owner_action": {
+                        "surface_kind": "current_executable_owner_action",
+                        "status": "ready",
+                        "source": "study_progress.next_forced_delta.owner_action",
+                        "next_owner": "write",
+                        "action_type": "run_gate_clearing_batch",
+                        "work_unit_id": work_unit_id,
+                        "work_unit_fingerprint": action_fingerprint,
+                        "action_fingerprint": action_fingerprint,
+                        "allowed_actions": ["run_gate_clearing_batch"],
+                        "owner_route_currentness_basis": {
+                            "work_unit_id": work_unit_id,
+                            "work_unit_fingerprint": action_fingerprint,
+                            "truth_epoch": "truth-event-current",
+                            "runtime_health_epoch": "runtime-health-current",
+                        },
+                        "target_surface": {
+                            "surface_ref": "artifacts/controller/gate_clearing_batch/latest.json",
+                        },
+                    },
+                    "current_execution_envelope": {
+                        "state_kind": "executable_owner_action",
+                        "owner": "write",
+                        "next_work_unit": work_unit_id,
+                    },
+                }
+            ],
+        },
+        study_root=study_root,
+        status_payload={
+            "study_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_gate_clearing_batch",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": action_fingerprint,
+                "action_fingerprint": action_fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": action_fingerprint,
+                    "truth_epoch": "truth-event-current",
+                    "runtime_health_epoch": "runtime-health-current",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": "write",
+                "next_work_unit": work_unit_id,
+            },
+        },
+        current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
+    )
+
+    assert len(result) == 1
+    candidate = result[0]
+    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
+    assert candidate["action_type"] == "run_gate_clearing_batch"
+    assert candidate["work_unit_id"] == work_unit_id
+    assert candidate["action_fingerprint"] == action_fingerprint
+    assert candidate["next_executable_owner"] == "write"
+    assert candidate["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
+
+
+def test_current_control_provider_admission_rejects_write_owner_gate_clearing_without_strong_identity(
+    tmp_path: Path,
+) -> None:
+    provider_admission = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = tmp_path / "studies" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    work_unit_id = "ai_reviewer_record_gate_consumption"
     dump_json(
         dispatch_path,
         {
@@ -567,6 +685,7 @@ def test_current_control_provider_admission_allows_write_owner_gate_clearing_tar
                         "status": "ready",
                         "source": "study_progress.next_forced_delta.owner_action",
                         "next_owner": "write",
+                        "action_type": "run_gate_clearing_batch",
                         "work_unit_id": work_unit_id,
                         "allowed_actions": ["run_gate_clearing_batch"],
                         "target_surface": {
@@ -600,14 +719,7 @@ def test_current_control_provider_admission_allows_write_owner_gate_clearing_tar
         current_control_ref="/workspace/runtime/artifacts/supervision/opl_current_control_state/latest.json",
     )
 
-    assert len(result) == 1
-    candidate = result[0]
-    assert candidate["source"] == "opl_current_control_state.study_current_executable_owner_action"
-    assert candidate["action_type"] == "run_gate_clearing_batch"
-    assert candidate["work_unit_id"] == work_unit_id
-    assert candidate["action_fingerprint"] == action_fingerprint
-    assert candidate["next_executable_owner"] == "write"
-    assert candidate["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
+    assert result == []
 
 
 def test_current_control_provider_admission_allows_write_quality_repair_from_study_current_action(
