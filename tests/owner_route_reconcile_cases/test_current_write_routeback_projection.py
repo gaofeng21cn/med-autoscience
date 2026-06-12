@@ -20,7 +20,7 @@ def _write_json(path: Path, payload: dict) -> None:
 
 
 @pytest.mark.parametrize("ai_reviewer_lifecycle_stateful", [True, False])
-def test_scan_routes_stage_readiness_typed_blocker_overrides_repair_reviewer_queue(
+def test_scan_routes_accepted_repair_reviewer_queue_overrides_stage_readiness_typed_blocker(
     monkeypatch,
     tmp_path: Path,
     ai_reviewer_lifecycle_stateful: bool,
@@ -210,26 +210,34 @@ def test_scan_routes_stage_readiness_typed_blocker_overrides_repair_reviewer_que
     )
 
     study = result["studies"][0]
-    assert [item["action_type"] for item in study["action_queue"]] == ["run_quality_repair_batch"]
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
     action = study["action_queue"][0]
-    assert action["owner"] == "write"
-    assert action["reason"] == "medical_paper_readiness_repair_required"
-    assert action["next_work_unit"] == "readiness_blocker_publication_repair"
-    assert action["source_ref"].endswith(
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+    assert action["owner"] == "ai_reviewer"
+    assert action["reason"] == "repair_progress_ai_reviewer_recheck_required"
+    assert action["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    assert action["repair_progress_followup"]["accepted_owner_receipt"] is True
+    assert study["owner_route"]["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert study["owner_route"]["source_refs"]["work_unit_id"] == action["next_work_unit"]
+    assert study["why_not_applied"] == "repair_progress_ai_reviewer_recheck_required"
+    assert study["current_work_unit"]["status"] == "executable_owner_action"
+    assert (
+        study["current_work_unit"]["state"]["source"]
+        == "repair_progress_projection.mas_owner_repair_execution_evidence"
     )
-    assert study["owner_route"]["next_owner"] == "write"
-    assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
-    assert study["owner_route"]["source_refs"]["work_unit_id"] == "readiness_blocker_publication_repair"
-    assert study["owner_route"]["source_refs"]["source_eval_id"] == eval_id
-    assert study["why_not_applied"] == "medical_paper_readiness_repair_required"
-    assert study["current_work_unit"]["status"] == "typed_blocker"
-    assert study["current_work_unit"]["state"]["source"] == "typed_blocker"
-    assert study["current_executable_owner_action"]["source"] == "stage_kernel_projection.current_owner_delta"
-    assert study["current_executable_owner_action"]["work_unit_id"] == "readiness_blocker_publication_repair"
-    assert result["provider_admission_pending_count"] == 0
-    assert study["provider_admission_pending_count"] == 0
-    assert result["provider_admission_candidates"] == []
+    assert study["current_executable_owner_action"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert study["current_executable_owner_action"]["next_owner"] == "ai_reviewer"
+    assert study["current_executable_owner_action"]["work_unit_id"] == action["next_work_unit"]
+    assert result["provider_admission_pending_count"] == 1
+    assert study["provider_admission_pending_count"] == 1
+    assert len(result["provider_admission_candidates"]) == 1
+    admission = result["provider_admission_candidates"][0]
+    assert admission["action_type"] == "return_to_ai_reviewer_workflow"
+    assert admission["next_executable_owner"] == "ai_reviewer"
+    assert admission["work_unit_id"] == action["next_work_unit"]
+    assert admission["work_unit_fingerprint"] == "repair-source-current"
+    assert admission["currentness_basis"]["work_unit_id"] == action["next_work_unit"]
+    assert admission["currentness_basis"]["work_unit_fingerprint"] == "repair-source-current"
 
 
 def test_action_queue_routes_accepted_repair_delta_to_gate_replay_when_current_ai_reviewer_record_exists(
