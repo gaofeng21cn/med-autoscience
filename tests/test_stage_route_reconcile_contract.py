@@ -472,12 +472,43 @@ def test_stage_route_reconcile_contract_declares_dm002_dm003_recovery_acceptance
     samples = recovery["recent_non_authoritative_samples"]
     assert samples["purpose"] == "debug context only; not acceptance truth"
     assert samples["samples_may_be_stale"] is True
-    assert samples["latest_recorded_at"] == "2026-06-12"
-    assert {
-        sample["study_id"] for sample in samples["examples"]
-    } == {
+    assert samples["latest_recorded_at"] == "2026-06-13"
+    examples = {sample["study_id"]: sample for sample in samples["examples"]}
+    assert set(examples) == {
         "002-dm-china-us-mortality-attribution",
         "003-dpcc-primary-care-phenotype-treatment-gap",
+    }
+    assert examples["002-dm-china-us-mortality-attribution"] == {
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "observed_current_stage": "queued",
+        "observed_paper_stage": "publishability_gate_blocked",
+        "observed_active_run_id": None,
+        "observed_current_work_unit_status": "typed_blocker",
+        "observed_blocker": "stage_packet_not_current_selected_dispatch",
+        "owner": "one-person-lab",
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": "publication_gate_replay",
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "dhd_action_class": "observe_only",
+        "will_start_llm": False,
+        "codex_dispatch_count": 0,
+    }
+    assert examples["003-dpcc-primary-care-phenotype-treatment-gap"] == {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "observed_current_stage": "queued",
+        "observed_paper_stage": "analysis-campaign",
+        "observed_active_run_id": None,
+        "observed_current_work_unit_status": "typed_blocker",
+        "observed_blocker": "medical_publication_surface_blocked",
+        "owner": "one-person-lab",
+        "action_type": "run_gate_clearing_batch",
+        "work_unit_id": "publication_gate_replay",
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+        "dhd_action_class": "observe_only",
+        "will_start_llm": False,
+        "codex_dispatch_count": 0,
     }
 
     stop_loss = recovery["same_work_unit_stop_loss_policy"]
@@ -512,6 +543,10 @@ def test_stage_route_reconcile_contract_declares_dm002_dm003_recovery_acceptance
         "derived_repair_action_with_current_work_unit_binding",
         "stable_typed_blocker_with_named_missing_ref_family",
     } <= set(typed_blocker["must_be_consumed_by_any"])
+    assert typed_blocker["provider_admission_blocked_when_current_work_unit_is_typed_blocker"] is True
+    assert typed_blocker["progress_first_admission_projection_policy"] == (
+        "projection_may_exist_but_admission_requested_false_until_current_typed_blocker_is_consumed_or_superseded"
+    )
     assert typed_blocker["derived_repair_action_required_fields"] == [
         "stage_typed_blocker_ref",
         "publication_eval_id",
