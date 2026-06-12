@@ -78,10 +78,22 @@ def current_actions_for_studies(
             continue
         matched_requested_study = True
         stage_native_action = dispatchable_stage_native_by_study.get(study_id)
+        original_stage_native_action = stage_native_action
         diagnostic_stage_native_action = diagnostic_stage_native_by_study.get(study_id)
-        if stage_native_action is not None and not current_action_authority.stage_native_action_matches_current_study(
-            study=study_payload,
-            action=stage_native_action,
+        stage_native_derives_from_readiness_answer = (
+            stage_native_action is not None
+            and current_action_authority.stage_native_action_derives_from_stable_readiness_answer(
+                study=study_payload,
+                action=stage_native_action,
+            )
+        )
+        if (
+            stage_native_action is not None
+            and not stage_native_derives_from_readiness_answer
+            and not current_action_authority.stage_native_action_matches_current_study(
+                study=study_payload,
+                action=stage_native_action,
+            )
         ):
             diagnostic_stage_native_action = current_action_authority.stage_native_currentness_diagnostic(
                 stage_native_action
@@ -125,6 +137,7 @@ def current_actions_for_studies(
         if (
             readiness_followup is None
             and stage_native_action is None
+            and not stage_native_derives_from_readiness_answer
             and not _fresh_progress_is_repair_progress_followup(fresh_progress_action)
         ):
             transition_barrier = (
@@ -136,6 +149,20 @@ def current_actions_for_studies(
             )
         if fresh_progress_action is not None and not _mapping(study_payload.get("current_work_unit")):
             canonical_current_action = None
+        stage_native_derives_from_readiness_answer = (
+            original_stage_native_action is not None
+            and (
+                stage_native_derives_from_readiness_answer
+                or current_action_authority.stage_native_action_derives_from_readiness_barrier(
+                    fresh_action=fresh_progress_action,
+                    action=original_stage_native_action,
+                )
+            )
+        )
+        if stage_native_action is None and stage_native_derives_from_readiness_answer:
+            stage_native_action = original_stage_native_action
+            diagnostic_stage_native_action = None
+            transition_barrier = None
         if transition_barrier is not None:
             per_study_actions.append(transition_barrier)
             ignored.extend(
@@ -255,6 +282,23 @@ def current_actions_for_studies(
                     *([stage_native_action] if stage_native_action is not None else []),
                     *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
                 ]
+            )
+            continue
+        if stage_native_derives_from_readiness_answer and stage_native_action is not None:
+            per_study_actions.append(stage_native_action)
+            ignored.extend(
+                _ignored_action(action, "superseded_by_readiness_blocker_derived_repair")
+                for action in [
+                    *top_level_study_actions,
+                    *transition_actions,
+                    *[
+                        dict(item)
+                        for item in study_payload.get("action_queue") or []
+                        if isinstance(item, Mapping)
+                    ],
+                    *([diagnostic_stage_native_action] if diagnostic_stage_native_action is not None else []),
+                ]
+                if action != stage_native_action
             )
             continue
         if transition_actions:

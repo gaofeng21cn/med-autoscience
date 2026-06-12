@@ -16,6 +16,9 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 READINESS_ACTION_TYPE = "complete_medical_paper_readiness_surface"
+READINESS_BLOCKER_DERIVED_REPAIR_ACTION_TYPES = frozenset(
+    {"run_quality_repair_batch", "run_gate_clearing_batch"}
+)
 STAGE_NATIVE_CURRENTNESS_BLOCKED_REASON = (
     "stage_native_workspace_next_action_requires_current_work_unit_currentness_match"
 )
@@ -104,6 +107,35 @@ def stage_native_action_matches_current_study(
     )
 
 
+def stage_native_action_derives_from_stable_readiness_answer(
+    *,
+    study: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    if not _stage_native_action_has_authority_binding(action):
+        return False
+    if _text(action.get("action_type")) not in READINESS_BLOCKER_DERIVED_REPAIR_ACTION_TYPES:
+        return False
+    return _study_has_stable_readiness_typed_blocker(study)
+
+
+def stage_native_action_derives_from_readiness_barrier(
+    *,
+    fresh_action: Mapping[str, Any] | None,
+    action: Mapping[str, Any],
+) -> bool:
+    if not _stage_native_action_has_authority_binding(action):
+        return False
+    if _text(action.get("action_type")) not in READINESS_BLOCKER_DERIVED_REPAIR_ACTION_TYPES:
+        return False
+    barrier = _mapping(fresh_action)
+    if not (_text(barrier.get("action_type")) or "").startswith("current_execution_envelope_"):
+        return False
+    if _text(barrier.get("reason")) != "medical_paper_readiness_missing":
+        return False
+    return _text(barrier.get("work_unit_id")) in {READINESS_ACTION_TYPE, None}
+
+
 def stage_native_currentness_diagnostic(action: Mapping[str, Any]) -> dict[str, Any]:
     return {
         **dict(action),
@@ -123,7 +155,10 @@ def stage_native_action_supersedes_stable_readiness_answer(
         return False
     if _text(stage_native_action.get("action_type")) == READINESS_ACTION_TYPE:
         return False
-    return _readiness_followup_is_stable_owner_answer(study=study, action=readiness_followup)
+    return (
+        _readiness_followup_is_stable_owner_answer(study=study, action=readiness_followup)
+        or _study_has_stable_readiness_typed_blocker(study)
+    )
 
 
 def stage_native_superseded_reason(
@@ -256,6 +291,40 @@ def _readiness_followup_is_stable_owner_answer(
     )
 
 
+def _study_has_stable_readiness_typed_blocker(study: Mapping[str, Any]) -> bool:
+    current_work_unit = _mapping(study.get("current_work_unit"))
+    work_unit_state = _mapping(current_work_unit.get("state"))
+    stale_override = work_unit_state.get("stale_queue_or_handoff_can_override")
+    if stale_override is True or _text(stale_override) == "true":
+        return False
+    if _text(current_work_unit.get("status")) == "typed_blocker" or _text(
+        work_unit_state.get("state_kind")
+    ) == "typed_blocker":
+        blocker = (
+            _mapping(work_unit_state.get("typed_blocker"))
+            or _mapping(current_work_unit.get("typed_blocker"))
+            or current_work_unit
+        )
+        if _readiness_typed_blocker(blocker):
+            return True
+    envelope = _mapping(study.get("current_execution_envelope"))
+    if _text(envelope.get("state_kind")) != "typed_blocker":
+        return False
+    return _readiness_typed_blocker(_mapping(envelope.get("typed_blocker")) or envelope)
+
+
+def _readiness_typed_blocker(blocker: Mapping[str, Any]) -> bool:
+    reason = (
+        _text(blocker.get("blocker_id"))
+        or _text(blocker.get("blocker_type"))
+        or _text(blocker.get("reason"))
+    )
+    if reason != "medical_paper_readiness_missing":
+        return False
+    work_unit_id = _text(blocker.get("work_unit_id"))
+    return work_unit_id in {READINESS_ACTION_TYPE, None}
+
+
 def _stage_native_action_has_authority_binding(action: Mapping[str, Any]) -> bool:
     admission = _mapping(action.get("stage_native_next_action_admission"))
     binding = _mapping(action.get("current_work_unit_binding"))
@@ -330,6 +399,8 @@ __all__ = [
     "current_readiness_owner_action_matches",
     "explicit_current_readiness_action",
     "route_allows_readiness_followup",
+    "stage_native_action_derives_from_readiness_barrier",
+    "stage_native_action_derives_from_stable_readiness_answer",
     "stage_native_action_matches_current_study",
     "stage_native_action_supersedes_stable_readiness_answer",
     "stage_native_currentness_diagnostic",

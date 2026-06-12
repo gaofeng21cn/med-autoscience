@@ -145,6 +145,27 @@ def _patch_readiness_blocker_progress(monkeypatch, *, study_id: str, readiness_r
                     ),
                 },
             },
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "typed_blocker",
+                "owner": "MedAutoScience",
+                "action_type": "complete_medical_paper_readiness_surface",
+                "work_unit_id": "complete_medical_paper_readiness_surface",
+                "work_unit_fingerprint": f"readiness-typed-blocker::{study_id}",
+                "state": {
+                    "state_kind": "typed_blocker",
+                    "typed_blocker": {
+                        "blocker_id": "medical_paper_readiness_missing",
+                        "owner": "MedAutoScience",
+                        "work_unit_id": "complete_medical_paper_readiness_surface",
+                        "source_ref": (
+                            "artifacts/stage_outputs/08-publication_package_handoff/"
+                            "receipts/typed_blocker.json"
+                        ),
+                    },
+                    "stale_queue_or_handoff_can_override": False,
+                },
+            },
             "current_executable_owner_action": None,
             "current_owner_ticket": None,
             "owner_route": readiness_route,
@@ -195,7 +216,7 @@ def test_materialize_domain_action_requests_blocks_unbound_stage_native_write_an
     )
 
 
-def test_materialize_domain_action_requests_blocks_bound_but_stale_stage_native_write_and_readiness_blocker_only(
+def test_materialize_domain_action_requests_routes_bound_stage_native_write_after_readiness_blocker(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -233,11 +254,21 @@ def test_materialize_domain_action_requests_blocks_bound_but_stale_stage_native_
         apply=False,
     )
 
-    assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
-    assert not any(
-        item["action_type"] in {"complete_medical_paper_readiness_surface", "run_quality_repair_batch"}
-        for item in result["default_executor_dispatches"]
+    assert result["request_task_count"] == 1
+    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["action_type"] == "run_quality_repair_batch"
+    assert dispatch["next_executable_owner"] == "write"
+    source_action = dispatch["source_action"]
+    assert source_action["authority"] == "stage_native_workspace_next_action"
+    assert source_action["stage_native_next_action_admission"]["default_dispatch_allowed"] is True
+    assert source_action["current_work_unit_binding"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == "medical_publication_surface_blocked_write_repair"
+    assert dispatch["owner_route"]["work_unit_fingerprint"] == repair_work_unit_fingerprint
+    assert any(
+        item["action_type"] == "complete_medical_paper_readiness_surface"
+        and item["reason"] == "superseded_by_readiness_blocker_derived_repair"
+        for item in result["ignored_actions"]
     )
 
 

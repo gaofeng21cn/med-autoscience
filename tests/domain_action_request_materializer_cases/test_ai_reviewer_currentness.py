@@ -540,6 +540,7 @@ def test_materialize_domain_action_requests_prefers_canonical_current_work_unit_
     current_work_unit = {
         "surface_kind": "current_work_unit",
         "source": "canonical_current_work_unit",
+        "status": "executable_owner_action",
         "source_ref": "artifacts/controller/repair_execution_evidence/latest.json",
         "action_type": "return_to_ai_reviewer_workflow",
         "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
@@ -547,6 +548,7 @@ def test_materialize_domain_action_requests_prefers_canonical_current_work_unit_
         "next_owner": "ai_reviewer",
         "allowed_actions": ["return_to_ai_reviewer_workflow"],
         "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        "state": {"state_kind": "executable_owner_action"},
     }
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
