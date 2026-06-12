@@ -62,6 +62,13 @@ ALLOWED_STATUSES = (
     "typed_blocker",
     "blocked_current_work_unit",
 )
+GATE_REPLAY_WORK_UNITS = frozenset(
+    {
+        "ai_reviewer_record_gate_consumption",
+        "dpcc_publication_gate_replay_after_current_ai_reviewer_record",
+        "readiness_blocker_publication_gate_replay",
+    }
+)
 AUTHORITY_BOUNDARY = {
     "surface_kind": SURFACE_KIND,
     "authority": "mas_current_work_unit_reducer",
@@ -1142,7 +1149,7 @@ def _gate_consumption_action_supersedes_readiness_blocker(action: Mapping[str, A
     if not action_types.intersection({"request_opl_stage_attempt", "run_gate_clearing_batch", "run_quality_repair_batch"}):
         return False
     work_unit = _text(action.get("work_unit_id")) or _text(action.get("next_work_unit"))
-    if work_unit != "ai_reviewer_record_gate_consumption":
+    if work_unit not in GATE_REPLAY_WORK_UNITS:
         return False
     target = _mapping(action.get("target_surface"))
     return _text(target.get("surface_ref")) == "artifacts/controller/gate_clearing_batch/latest.json"
