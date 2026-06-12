@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 
 import pytest
@@ -314,12 +315,18 @@ def test_late_stage_progress_sprint_contract_covers_dm002_gate_replay_work_unit(
 
 
 def test_stage_route_contract_declares_machine_anti_loop_policy() -> None:
+    dhd = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     payload = load_stage_route_contract_payload()
 
     policy = payload["anti_loop_policy"]
 
     assert policy["ordinary_path_root"] == "current_owner_delta"
     assert policy["same_tick_max_passes"] == 3
+    assert policy["same_tick_max_passes"] == dhd.PROGRESS_FIRST_SAME_TICK_MAX_PASSES
+    assert set(policy["same_tick_continue_reasons"]) == {
+        "continue_same_tick_after_sync_owner_delta",
+        "continue_same_tick_after_provider_admission_delta",
+    }
     assert policy["repeat_identity_fields"] == [
         "study_id",
         "stage_run_id",
@@ -340,7 +347,13 @@ def test_stage_route_contract_declares_machine_anti_loop_policy() -> None:
         "provider_running_proof",
     ]
     assert "repeat_same_work_unit_without_new_consumed_evidence" in policy["forbidden_loop_shapes"]
-    assert "dispatch_materialized_but_not_selected" in policy["terminal_diagnostics"]
+    assert {
+        "dispatch_materialized_but_not_selected",
+        "typed_blocker_or_dispatch_blocker_observed",
+        "provider_handoff_written_admission_pending",
+        "provider_attempt_started",
+        "max_passes_exhausted_owner_delta_required",
+    } <= set(policy["terminal_diagnostics"])
     assert policy["exhausted_budget_outputs"] == [
         "TypedBlocker",
         "human_gate_ref",

@@ -7,7 +7,7 @@ Machine boundary: 人读 board。模板真相、schema、renderer behavior、lay
 
 ## 文档定位
 
-这个文件是 medical display 主线当前唯一的 tracked active execution surface。
+这个文件只治理 medical display 主线的当前 owner round。它不是 MAS 全仓 single Active Truth，也不维护已完成 capability round 的过程流水；MAS 全局完成口径、gap 和下一轮 Agent prompt 继续回到 [MAS 理想目标态差距与完善计划](../../../active/mas-ideal-state-gap-plan.md)。
 
 用它回答下面五个问题：
 
@@ -110,7 +110,7 @@ Machine boundary: 人读 board。模板真相、schema、renderer behavior、lay
 
 ## 当前轮次结束后的候选
 
-当前本轮完成后的 reroute 候选按下面顺序继续：
+当前 reroute 候选按下面顺序继续；只有新的真实论文 demand 证明现有 lower bound 不足时，才允许打开下一轮唯一 owner round：
 
 1. `A/H / temporal_external_validation_overview only if new real-paper demand proves the current ROC/PR/calibration/clinical-impact/performance/confusion lower bound insufficient`
 2. `F / higher-order explanation scene or AI-first visual hardening only if new real-paper demand proves the current signed-importance + local-waterfall + support-domain scene and grouped decision-scene lower bound insufficient`

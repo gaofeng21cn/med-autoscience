@@ -1,14 +1,14 @@
-# MAS / OPL Agent OS 目标运行架构与重构计划
+# MAS / OPL Agent OS 目标运行架构参考
 
 Owner: `MedAutoScience`
-Purpose: `target_operating_architecture_refactor_plan`
-State: `active_target_plan`
-Machine boundary: 本文是人读目标运行架构与重构路线。机器真相继续归 `agent/` pack、`contracts/`、源码、CLI/MCP/API 行为、OPL generated/hosted surfaces、runtime/controller durable surfaces、owner receipt、typed blocker、真实 workspace artifact 与 repo-native verification。
+Purpose: `target_operating_architecture_support_reference`
+State: `active_support_reference`
+Machine boundary: 本文是人读目标运行架构参考。机器真相继续归 `agent/` pack、`contracts/`、源码、CLI/MCP/API 行为、OPL generated/hosted surfaces、runtime/controller durable surfaces、owner receipt、typed blocker、真实 workspace artifact 与 repo-native verification；当前差距、执行顺序、完成判断和下一轮 prompt 只回到 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)。
 Date: `2026-06-11`
 
 ## 读法
 
-本文把外部成熟工程经验和当前 MAS / OPL 边界压成一份可落地的重构计划。它不是新的 runtime truth，也不是当前 live study 状态；当前差距、证据缺口和下一轮执行顺序仍由 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md) 维护。
+本文把外部成熟工程经验和当前 MAS / OPL 边界压成目标运行架构参考。它不是新的 runtime truth、live study 状态、active backlog 或执行队列；当前差距、证据缺口和下一轮执行顺序仍由 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md) 维护。
 
 目标态高于当前实现。现有 MAS 内的 scheduler、controller、read-model、SQLite、lifecycle、workspace wrapper、sidecar、Portal、CLI、MCP、product-entry 或 test fixture 都只能作为迁移输入；它们不能反向定义长期架构。
 

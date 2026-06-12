@@ -231,7 +231,7 @@ def test_materializer_rejects_top_level_action_queue_with_stale_owner_route_iden
     ).exists()
 
 
-def test_materializer_blocks_stale_domain_transition_when_fresh_progress_is_readiness_blocker(
+def test_materializer_materializes_readiness_owner_action_when_it_blocks_stale_domain_transition(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -386,11 +386,26 @@ def test_materializer_blocks_stale_domain_transition_when_fresh_progress_is_read
         apply=False,
     )
 
-    assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
+    assert result["request_task_count"] == 1
+    assert result["default_executor_dispatch_count"] == 1
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["action_type"] == "complete_medical_paper_readiness_surface"
+    assert dispatch["next_executable_owner"] == "MedAutoScience"
+    assert dispatch["source_action"]["authority"] == "current_work_unit.typed_blocker"
+    assert dispatch["source_action"]["reason"] == "medical_paper_readiness_missing"
+    assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == (
+        "complete_medical_paper_readiness_surface"
+    )
+    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"][
+        "work_unit_id"
+    ] == "complete_medical_paper_readiness_surface"
+    assert dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"][
+        "work_unit_fingerprint"
+    ]
     assert any(
-        item["action_type"] == "current_execution_envelope_typed_blocker"
-        and item["reason"] == "unsupported_action_type"
+        item["action_type"] == "run_gate_clearing_batch"
+        and item["reason"] == "superseded_by_current_work_unit_typed_blocker"
         for item in result["ignored_actions"]
     )
     assert not (

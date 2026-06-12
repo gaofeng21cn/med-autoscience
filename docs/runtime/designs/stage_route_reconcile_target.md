@@ -47,6 +47,7 @@ flowchart TD
 
 `stage_route_arbiter` 是 DHD current-control refresh 同步输出的机器 surface。它不新增 authority，也不替代 `current_owner_delta`；它只解释每个 provider admission identity 为什么被保留或被抑制：
 
+- `weak_provider_admission_identity`：provider admission carrier 缺 `study_id` / `action_type` / work-unit id / fingerprint / dispatch ref / strong currentness basis 时，pending fail-closed，不进入 OPL tick。
 - `running_identity_observed`：同一 identity 已有 strict live provider attempt，pending 被压制。
 - `terminal_closeout_precedes_live_projection`：同一 stage attempt / run 已有 accepted typed closeout 或 executed typed blocker，即使 OPL live 读面仍残留 running，也必须先压制 pending 和 stale live 投影。
 - `accepted_closeout_consumed_pending`：同一 identity 已有 accepted typed closeout 或 executed typed blocker，pending 被压制。
@@ -55,6 +56,8 @@ flowchart TD
 这个 surface 的价值是把原先散落在 live attempt、accepted closeout、pending candidate 过滤里的判断变成单一审计读面。监督线程、operator 和后续 OPL 基座可以直接读 `stage_route_arbiter_decisions[]`，不用再从 action_queue 是否为空倒推原因。它的 authority boundary 固定为 currentness projection only：不能写 study truth、publication verdict、owner receipt、typed blocker、paper body、current package 或 OPL runtime artifact。
 
 Provider admission carrier 不能自证 currentness。只要 status 已经声明了 `current_owner_delta` / `current_work_unit` / `current_executable_owner_action` / `current_execution_envelope` 语境，但 canonical identity 不完整，DHD 必须抑制 current-control action 自带的 `owner_route_currentness_basis` fallback。queue / dispatch / action carrier 只能运输 refs，不能在 canonical identity 缺失时反向授权自己成为 current route。
+
+Provider admission 的机器身份必须同时带 `route_identity_key`、`attempt_idempotency_key` 和 strong `owner_route_currentness_basis`。`action_id` 只表示 action family，不能作为 dedupe、route 或 attempt identity。没有 fingerprint 的 stop-loss closeout 只能在 `source_eval_id`、`truth_epoch` 或 `runtime_health_epoch` 与 candidate currentness basis 匹配时消费 pending；否则只能作为旧 stop-loss diagnostic，不能压掉新 source/eval 产生的 provider admission。
 
 ## 目标状态机
 
@@ -82,16 +85,19 @@ stateDiagram-v2
 
 ## Currentness 优先级
 
-1. 同一 `stage_attempt_id` 的 terminal closeout 压过 OPL live 投影。
-2. 同一 current identity 的 strict live provider attempt 压过 provider admission pending。
-3. 同一 identity 的 accepted typed closeout 消费 provider admission pending。
-4. fresh current owner action 投影为 executable owner action。
-5. current identity 的 stable typed blocker 投影为 typed blocker。
-6. 旧 route-back、旧 queue、旧 active run、旧 sidecar、旧 lineage 只进 audit。
+1. 弱 provider admission identity 直接 fail-closed 为 currentness diagnostic，不进入 pending。
+2. 同一 `stage_attempt_id` 的 terminal closeout 压过 OPL live 投影。
+3. 同一 current identity 的 strict live provider attempt 压过 provider admission pending。
+4. 同一 identity 的 accepted typed closeout 消费 provider admission pending。
+5. fresh current owner action 投影为 executable owner action。
+6. current identity 的 stable typed blocker 投影为 typed blocker。
+7. 旧 route-back、旧 queue、旧 active run、旧 sidecar、旧 lineage 只进 audit。
 
 弱匹配不得授权路线。至少要匹配 study、action、work-unit id / fingerprint、dispatch ref 或 stage attempt 之一的强身份；只有 action type 相同不能压过 pending 或 blocker。
 
 2026-06-11 追加实现规则：MAS 内部所有“当前 action 是否能压过 stale blocker / handoff / provider admission residue”的判断统一走 `stage_route_currentness_identity` helper。该 helper 只提取 `action_type`、`work_unit_id`、`work_unit_fingerprint` / `action_fingerprint` 与 `owner_route.source_refs.owner_route_currentness_basis`，不做业务优先级裁决。repair-progress follow-up 这类会打开 OPL authorization blocker 的路径必须共享 fingerprint；只有同 action 或同浅层 label 不足以授权 redrive。
+
+2026-06-12 追加实现规则：canonical `current_work_unit.status=typed_blocker` / fresh `current_execution_envelope.typed_blocker` 先于旧 `domain_transition` 和 stale current-control queue 裁决。旧 transition 只能在没有 fresh typed blocker、或存在同 currentness identity 的合法 readiness/repair follow-up action 时参与 materialization；否则进入 ignored diagnostic。terminal workflow completed、queue completed 或 default executor `handoff_ready` 不能越过 MAS typed blocker，不能被写成 paper progress。
 
 ## Anti-loop 预算
 
@@ -149,6 +155,8 @@ OPL 只读基座核查显示，`current_owner_delta` 默认读根、StageRun lau
 - `no_progress_budget_contract`：把 repeat threshold、reset condition、typed-blocker escalation 和 automatic-redrive stop 写进 schema 和测试，不只留在实现分类里。
 - `worker_source_stale_supervisor_projection`：保留 fail-closed，但 operator 读面要明确只有 Temporal reachable、attempt ledger readable、无 active attempt 时才可 supervisor-safe restart。
 - `trace_span_correlation_refs`：给 `current_owner_delta -> StageRun -> attempt ledger -> Temporal workflow -> ToolResultEnvelope -> owner answer` 统一 refs-only trace/span context，不进入 ordinary planning 或 domain authority。
+
+2026-06-12 追加 OPL 基座优化：StageRun identity / read-model 必须原样嵌入 MAS `provider_admission_identity`、`provider_admission_identity_key`、`route_identity_key`、`attempt_idempotency_key` 和 `owner_route_currentness_basis`。OPL 可以派生 transport labels，但 launch、liveness、closeout、owner-answer 和 replay 决策必须能从 MAS identity 原样读回；不能只依赖 OPL 自己生成的 `mas_default_executor_source` stable id。
 
 MAS 侧对应收薄：
 

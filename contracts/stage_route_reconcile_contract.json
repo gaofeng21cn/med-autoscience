@@ -51,7 +51,10 @@
       "work_unit_id",
       "work_unit_fingerprint",
       "idempotency_key",
-      "target_surface"
+      "target_surface",
+      "currentness_basis",
+      "route_identity_key",
+      "attempt_idempotency_key"
     ],
     "provider_attempt_identity_fields": [
       "stage_attempt_id",
@@ -102,6 +105,28 @@
       "repair_followup_requires_shared_fingerprint": true,
       "same_action_without_work_unit_or_fingerprint_authorizes_route": false,
       "missing_strong_identity_policy": "fail_closed_to_currentness_diagnostic"
+    },
+    "provider_admission_identity_contract": {
+      "required_fields": [
+        "study_id",
+        "action_type",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "dispatch_path_or_ref",
+        "currentness_basis",
+        "route_identity_key",
+        "attempt_idempotency_key"
+      ],
+      "currentness_basis_required_fields": [
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "truth_epoch",
+        "runtime_health_epoch_or_source_eval_id"
+      ],
+      "weak_identity_decision": "weak_provider_admission_identity",
+      "weak_identity_effect": "suppress_provider_admission_pending",
+      "fingerprintless_stop_loss_closeout_match": "requires_same_source_eval_truth_or_runtime_health_epoch",
+      "action_id_role": "action_family_only_not_route_or_attempt_identity"
     }
   },
   "lifecycle_state_machine": {
@@ -141,6 +166,16 @@
   "currentness_precedence": [
     {
       "rank": 1,
+      "signal": "weak_provider_admission_identity",
+      "effect": "suppress_provider_admission_pending",
+      "required_match": [
+        "missing_provider_admission_identity_required_field",
+        "missing_strong_currentness_basis"
+      ],
+      "allowed_output": "currentness_diagnostic"
+    },
+    {
+      "rank": 2,
       "signal": "terminal_closeout_for_same_stage_attempt",
       "effect": "suppress_running_projection",
       "required_match": [
@@ -150,7 +185,7 @@
       "allowed_output": "terminal_closeout_diagnostic_or_closeout_consumption_candidate"
     },
     {
-      "rank": 2,
+      "rank": 3,
       "signal": "strict_live_provider_attempt_for_current_identity",
       "effect": "project_running_provider_attempt",
       "required_match": [
@@ -162,7 +197,7 @@
       "allowed_output": "running_provider_attempt"
     },
     {
-      "rank": 3,
+      "rank": 4,
       "signal": "same_work_unit_stop_loss_terminal_stage",
       "effect": "project_typed_blocker_and_suppress_provider_admission",
       "required_match": [
@@ -174,7 +209,7 @@
       "default_blocker": "anti_loop_budget_exhausted"
     },
     {
-      "rank": 4,
+      "rank": 5,
       "signal": "accepted_typed_closeout_for_same_identity",
       "effect": "consume_provider_admission_pending",
       "required_match": [
@@ -184,7 +219,7 @@
       "allowed_output": "typed_blocker_or_next_owner_projection"
     },
     {
-      "rank": 5,
+      "rank": 6,
       "signal": "fresh_current_owner_action",
       "effect": "project_executable_owner_action",
       "required_match": [
@@ -195,7 +230,7 @@
       "allowed_output": "executable_owner_action"
     },
     {
-      "rank": 6,
+      "rank": 7,
       "signal": "stable_typed_blocker_for_current_identity",
       "effect": "project_typed_blocker",
       "required_match": [
@@ -205,7 +240,7 @@
       "allowed_output": "typed_blocker"
     },
     {
-      "rank": 7,
+      "rank": 8,
       "signal": "stale_or_unmatched_runtime_residue",
       "effect": "audit_only",
       "required_match": [],
@@ -305,6 +340,15 @@
     "purpose": "Explain, in one machine-readable place, why each provider-admission identity is retained as pending or suppressed by strict live/terminal evidence.",
     "decision_kinds": [
       {
+        "decision": "weak_provider_admission_identity",
+        "effect": "suppress_provider_admission_pending",
+        "required_match": [
+          "missing_study_action_work_unit_or_fingerprint",
+          "missing_dispatch_path_or_ref",
+          "missing_currentness_basis"
+        ]
+      },
+      {
         "decision": "terminal_closeout_precedes_live_projection",
         "effect": "suppress_provider_admission_pending",
         "required_match": [
@@ -348,7 +392,10 @@
       "action_type",
       "work_unit_id",
       "work_unit_fingerprint",
-      "dispatch_path_or_ref"
+      "dispatch_path_or_ref",
+      "currentness_basis",
+      "route_identity_key",
+      "attempt_idempotency_key"
     ],
     "carrier_self_identity_policy": {
       "current_control_action_can_self_authorize": false,
@@ -359,7 +406,9 @@
         "current_executable_owner_action",
         "current_execution_envelope"
       ],
-      "missing_canonical_identity_effect": "suppress_provider_admission_candidate"
+      "missing_canonical_identity_effect": "suppress_provider_admission_candidate",
+      "action_id_role": "action_family_only_not_dedupe_or_route_identity",
+      "weak_identity_effect": "weak_provider_admission_identity"
     },
     "authority_boundary": {
       "arbiter_surface": "currentness_projection_only",
@@ -367,7 +416,14 @@
       "can_authorize_publication_ready": false,
       "provider_completion_is_domain_ready": false
     },
-    "must_be_written_with_current_control": true
+    "must_be_written_with_current_control": true,
+    "pending_provider_admission_required_match": [
+      "strong_provider_admission_identity",
+      "no_weak_provider_admission_identity",
+      "no_matching_live_attempt",
+      "no_matching_accepted_closeout",
+      "no_same_currentness_basis_fingerprintless_stop_loss_closeout"
+    ]
   },
   "stage_log_minimum_viability": {
     "surface_kind": "mas_opl_stage_log_minimum_viability_policy",
@@ -501,7 +557,10 @@
       "OwnerReceipt",
       "TypedBlocker",
       "HumanGate",
-      "RouteBackEvidence"
+      "RouteBackEvidence",
+      "route_identity_key",
+      "attempt_idempotency_key",
+      "owner_route_currentness_basis"
     ],
     "forbidden_opl_authority": [
       "study_truth_write",
@@ -552,9 +611,14 @@
           "active_lease_ref",
           "execution_authorization_ref",
           "workflow_id",
-          "task_id"
+          "task_id",
+          "provider_admission_identity",
+          "provider_admission_identity_key",
+          "route_identity_key",
+          "attempt_idempotency_key",
+          "owner_route_currentness_basis"
         ],
-        "required_effect": "all launch, liveness, closeout, owner-answer, and replay decisions compare the same packet instead of scattered labels"
+        "required_effect": "all launch, liveness, closeout, owner-answer, and replay decisions compare the same packet; MAS provider_admission_identity and route/attempt idempotency keys are embedded verbatim instead of re-derived from OPL labels"
       },
       {
         "capability": "no_progress_budget_contract",

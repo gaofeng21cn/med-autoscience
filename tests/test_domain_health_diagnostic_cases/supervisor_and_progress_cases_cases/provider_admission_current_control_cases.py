@@ -9,6 +9,21 @@ globals().update({
 })
 
 
+def _currentness_basis(
+    *,
+    work_unit_id: str,
+    fingerprint: str,
+    source_eval_id: str = "publication-eval::current",
+) -> dict[str, str]:
+    return {
+        "truth_epoch": f"truth::{fingerprint}",
+        "runtime_health_epoch": f"runtime-health::{fingerprint}",
+        "source_eval_id": source_eval_id,
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": fingerprint,
+    }
+
+
 def test_provider_admission_candidate_from_current_control_ai_reviewer_queue_survives_readiness_blocker(
     tmp_path: Path,
 ) -> None:
@@ -424,6 +439,11 @@ def test_materialized_current_control_clears_candidate_after_accepted_typed_clos
         "required_output_surface": "artifacts/publication_eval/latest.json",
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,
+        "currentness_basis": _currentness_basis(
+            work_unit_id=work_unit_id,
+            fingerprint=fingerprint,
+            source_eval_id="publication-eval::003::current-ai-reviewer",
+        ),
     }
 
     result = module.materialize_provider_admission_current_control_state(
@@ -532,6 +552,11 @@ def test_materialized_current_control_clears_candidate_after_executed_typed_bloc
         "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,
+        "currentness_basis": _currentness_basis(
+            work_unit_id=work_unit_id,
+            fingerprint=fingerprint,
+            source_eval_id="publication-eval::003::current-gate-replay",
+        ),
     }
 
     result = module.materialize_provider_admission_current_control_state(
@@ -793,6 +818,11 @@ def test_materialized_current_control_retains_pending_after_opl_authorization_wo
         "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,
+        "currentness_basis": _currentness_basis(
+            work_unit_id=work_unit_id,
+            fingerprint=fingerprint,
+            source_eval_id="publication-eval::002::current-analysis-repair",
+        ),
     }
 
     result = module.materialize_provider_admission_current_control_state(
@@ -908,6 +938,11 @@ def test_materialized_current_control_retains_pending_after_opl_authorization_bl
         "required_output_surface": "artifacts/controller/repair_execution_evidence/latest.json",
         "provider_attempt_or_lease_required": True,
         "provider_completion_is_domain_completion": False,
+        "currentness_basis": _currentness_basis(
+            work_unit_id=work_unit_id,
+            fingerprint=fingerprint,
+            source_eval_id="publication-eval::002::current-analysis-repair",
+        ),
     }
 
     result = module.materialize_provider_admission_current_control_state(
@@ -971,12 +1006,28 @@ def test_materialized_current_control_retains_pending_after_opl_authorization_bl
     assert len(result["provider_admission_candidates"]) == 1
     assert result["provider_admission_candidates"][0]["work_unit_id"] == work_unit_id
     assert result["action_queue"][0]["work_unit_id"] == work_unit_id
+    expected_identity_key = f"provider-admission::{study_id}::{fingerprint}"
+    candidate = result["provider_admission_candidates"][0]
+    assert candidate["route_identity_key"] == expected_identity_key
+    assert candidate["attempt_idempotency_key"] == expected_identity_key
+    action = result["action_queue"][0]
+    assert action["action_id"] == f"provider-admission::{study_id}::run_quality_repair_batch"
+    assert action["route_identity_key"] == expected_identity_key
+    assert action["attempt_idempotency_key"] == expected_identity_key
+    assert action["idempotency_key"] == expected_identity_key
+    assert action["owner_route"]["idempotency_key"] == expected_identity_key
+    assert action["owner_route"]["source_refs"]["route_identity_key"] == expected_identity_key
+    assert action["handoff_packet"]["route_identity_key"] == expected_identity_key
+    assert action["handoff_packet"]["attempt_idempotency_key"] == expected_identity_key
+    assert result["studies"][0]["provider_admission_identity_key"] == expected_identity_key
+    assert result["studies"][0]["current_execution_envelope"]["route_identity_key"] == expected_identity_key
     assert result["stage_route_arbiter"]["decision_counts"] == {
         "pending_provider_admission": 1,
     }
     decision = result["stage_route_arbiter_decisions"][0]
     assert decision["decision"] == "pending_provider_admission"
     assert decision["effect"] == "retain_provider_admission_pending"
+    assert decision["route_identity_key"] == expected_identity_key
 
 
 def test_report_current_control_retains_pending_after_opl_authorization_work_unit_mismatch(

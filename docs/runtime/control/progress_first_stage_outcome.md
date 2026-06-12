@@ -153,6 +153,12 @@ AI-first 的 admission 锚点是 `current_executable_owner_action`，不是 `nex
 
 如果 admission request 已写出但缺 running proof，下一 owner 是 OPL worker / scheduler / provider attempt admission。不要把控制权退回 MAS receipt reconcile、read-model hydration、telemetry completeness、doctor explanation 或 operator wording review。
 
+Provider admission pending 必须由强 identity 判断，不能由 `action_id`、action family、旧 queue label 或 handoff 文案判断。强 identity 至少包含 study、action、work-unit id / fingerprint、dispatch ref、`route_identity_key`、`attempt_idempotency_key` 和 strong `owner_route_currentness_basis`。缺这些字段时，operator outcome 是 currentness diagnostic / typed blocker candidate，不是可启动 provider admission。
+
+`not_running`、`stopped`、terminal workflow completed、queue completed、default executor `handoff_ready` 和旧 active/run 字段都不是 running proof。workflow completed 也不算论文进展；只有 DHD apply 或等价 MAS authority consumer 消费 terminal closeout 后，fresh `study progress` 产生 owner receipt、typed blocker、paper/artifact delta、reviewer/gate delta 或 next handoff，才计入对应 Progress-first outcome。
+
+fresh `current_work_unit.status=typed_blocker` 或 `current_execution_envelope.typed_blocker` 先于旧 `domain_transition`、旧 current-control queue 和 stale StageRun projection 裁决。旧 transition 只有在没有 fresh typed blocker、或存在同 currentness identity 的合法 readiness / repair follow-up action 时才可 materialize；否则只进 ignored diagnostic，不触发 OPL tick。
+
 Terminal `stage_artifact_index.next_owner_action=publication_handoff_owner_gate` 已具备完整 current owner action 时，Progress-first admission 的下一步是 OPL provider execution authorization / attempt lease / closeout receipt binding，随后才由 MAS owner callable 产出 `handoff_owner_receipt.json` 或 `receipts/typed_blocker.json`。缺少这组 OPL binding 时，operator outcome 应是 `blocked_with_typed_owner`，typed blocker owner=`one-person-lab`，reason=`opl_execution_authorization_required`；不得退回旧 writer repair、旧 gate replay、generic owner-route hydration 或 repeat receipt reconcile。
 
 ## Hard gates

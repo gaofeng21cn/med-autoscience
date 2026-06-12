@@ -34,6 +34,7 @@ def materialize_provider_admission_current_control_state(
 ) -> dict[str, Any] | None:
     if not candidates and not scanned_studies:
         return None
+    candidates = [_candidate_with_identity(candidate) for candidate in candidates]
     latest_path = supervision_surfaces.latest_path(profile)
     history_path = supervision_surfaces.history_path(profile)
     previous_payload = supervision_surfaces.read_json_object(latest_path)
@@ -154,6 +155,17 @@ def _stage_route_arbiter_decisions(
 ) -> list[dict[str, Any]]:
     decisions: list[dict[str, Any]] = []
     for candidate in candidates:
+        weak_identity = _weak_provider_admission_identity(candidate)
+        if weak_identity:
+            decisions.append(
+                _arbiter_decision(
+                    candidate,
+                    decision="weak_provider_admission_identity",
+                    effect="suppress_provider_admission_pending",
+                    evidence=weak_identity,
+                )
+            )
+            continue
         study_id = _non_empty_text(candidate.get("study_id"))
         scanned_study = (
             _mapping(scanned_studies_by_id.get(study_id)) if study_id is not None else {}
@@ -224,6 +236,8 @@ def _arbiter_decision(
         "work_unit_fingerprint": _non_empty_text(candidate.get("work_unit_fingerprint"))
         or _non_empty_text(candidate.get("action_fingerprint")),
         "action_fingerprint": _non_empty_text(candidate.get("action_fingerprint")),
+        "route_identity_key": _route_identity_key(candidate),
+        "attempt_idempotency_key": _attempt_idempotency_key(candidate),
         "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
         "dispatch_ref": _non_empty_text(candidate.get("dispatch_ref")),
         "active_stage_attempt_id": _non_empty_text(evidence.get("active_stage_attempt_id"))
@@ -784,6 +798,8 @@ def _candidates_not_covered_by_live_attempt(
 ) -> list[dict[str, Any]]:
     pending: list[dict[str, Any]] = []
     for candidate in candidates:
+        if _weak_provider_admission_identity(candidate):
+            continue
         study_id = _non_empty_text(candidate.get("study_id"))
         live_study = _mapping(live_studies_by_id.get(study_id)) if study_id is not None else {}
         live_attempt = _running_attempt_from_study(live_study)
@@ -846,7 +862,7 @@ def _accepted_closeout_matches_candidate_identity(
         and receipt_fingerprint is None
         and is_anti_loop_stop_loss_closeout(receipt)
     ):
-        return True
+        return _source_currentness_matches(receipt, identity=identity)
     return action_and_work_unit_match and receipt_fingerprint == expected_fingerprint
 
 
@@ -977,17 +993,7 @@ def _closeout_owner_route_basis(receipt: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _identity_has_match_key(identity: Mapping[str, Any]) -> bool:
-    return any(
-        _non_empty_text(identity.get(key)) is not None
-        for key in (
-            "action_type",
-            "work_unit_id",
-            "work_unit_fingerprint",
-            "action_fingerprint",
-            "dispatch_path",
-            "dispatch_ref",
-        )
-    )
+    return _weak_provider_admission_identity(identity) == {}
 
 
 def _receipt_is_accepted_closeout(receipt: Mapping[str, Any]) -> bool:
@@ -1026,6 +1032,8 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
     action = _provider_admission_current_control_action(candidate)
     owner_route = _mapping(action.get("owner_route"))
     study_id = _non_empty_text(candidate.get("study_id"))
+    route_identity_key = _route_identity_key(candidate)
+    attempt_idempotency_key = _attempt_idempotency_key(candidate)
     return {
         "study_id": study_id,
         "quest_id": _non_empty_text(candidate.get("quest_id")),
@@ -1045,6 +1053,8 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
         },
         "action_queue": [action],
         "provider_admission_identity": dict(candidate),
+        "provider_admission_identity_key": route_identity_key,
+        "attempt_idempotency_key": attempt_idempotency_key,
         "provider_admission_candidates": [dict(candidate)],
         "provider_admission_pending_count": 1,
         "why_not_applied": ["provider_admission_current_control_state_required"],
@@ -1059,6 +1069,8 @@ def provider_admission_current_control_study(candidate: Mapping[str, Any]) -> di
             "typed_blocker": None,
             "parked_state": None,
             "source": "mas_provider_admission_identity",
+            "route_identity_key": route_identity_key,
+            "attempt_idempotency_key": attempt_idempotency_key,
         },
     }
 
@@ -1070,11 +1082,15 @@ def _provider_admission_current_control_action(candidate: Mapping[str, Any]) -> 
     action_fingerprint = _non_empty_text(candidate.get("action_fingerprint")) or _non_empty_text(
         candidate.get("work_unit_fingerprint")
     )
+    route_identity_key = _route_identity_key(candidate)
+    attempt_idempotency_key = _attempt_idempotency_key(candidate)
     source_refs = {
         key: value
         for key, value in {
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": action_fingerprint,
+            "route_identity_key": route_identity_key,
+            "attempt_idempotency_key": attempt_idempotency_key,
             "provider_admission_identity_ref": _non_empty_text(candidate.get("execution_ref")),
             "dispatch_path": _non_empty_text(candidate.get("dispatch_path")),
             "blocked_reason": _non_empty_text(candidate.get("blocked_reason")),
@@ -1107,7 +1123,7 @@ def _provider_admission_current_control_action(candidate: Mapping[str, Any]) -> 
             **source_refs,
             "owner_route_currentness_basis": dict(_mapping(candidate.get("currentness_basis"))),
         },
-        "idempotency_key": f"provider-admission::{study_id}::{action_fingerprint}",
+        "idempotency_key": route_identity_key,
     }
     return {
         key: value
@@ -1126,6 +1142,9 @@ def _provider_admission_current_control_action(candidate: Mapping[str, Any]) -> 
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": action_fingerprint,
             "action_fingerprint": action_fingerprint,
+            "route_identity_key": route_identity_key,
+            "attempt_idempotency_key": attempt_idempotency_key,
+            "idempotency_key": attempt_idempotency_key,
             "source_surface": "mas_opl_runtime_owner_handoff.provider_admission_identity",
             "source_ref": _non_empty_text(candidate.get("execution_ref")),
             "provider_attempt_or_lease_required": True,
@@ -1143,6 +1162,8 @@ def _provider_admission_current_control_action(candidate: Mapping[str, Any]) -> 
                 "required_output_surface": _non_empty_text(candidate.get("required_output_surface")),
                 "next_work_unit": work_unit_id,
                 "work_unit_fingerprint": action_fingerprint,
+                "route_identity_key": route_identity_key,
+                "attempt_idempotency_key": attempt_idempotency_key,
                 "source_ref": _non_empty_text(candidate.get("execution_ref")),
                 "owner_route": owner_route,
             },
@@ -1153,6 +1174,88 @@ def _provider_admission_current_control_action(candidate: Mapping[str, Any]) -> 
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _route_identity_key(payload: Mapping[str, Any]) -> str | None:
+    explicit = _non_empty_text(payload.get("route_identity_key")) or _non_empty_text(
+        payload.get("idempotency_key")
+    )
+    if explicit is not None:
+        return explicit
+    study_id = _non_empty_text(payload.get("study_id"))
+    fingerprint = _non_empty_text(payload.get("work_unit_fingerprint")) or _non_empty_text(
+        payload.get("action_fingerprint")
+    )
+    if study_id is None or fingerprint is None:
+        return None
+    return f"provider-admission::{study_id}::{fingerprint}"
+
+
+def _attempt_idempotency_key(payload: Mapping[str, Any]) -> str | None:
+    return _non_empty_text(payload.get("attempt_idempotency_key")) or _route_identity_key(payload)
+
+
+def _candidate_with_identity(candidate: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(candidate)
+    route_identity_key = _route_identity_key(payload)
+    attempt_idempotency_key = _attempt_idempotency_key(payload)
+    if route_identity_key is not None:
+        payload["route_identity_key"] = route_identity_key
+    if attempt_idempotency_key is not None:
+        payload["attempt_idempotency_key"] = attempt_idempotency_key
+        payload.setdefault("idempotency_key", attempt_idempotency_key)
+    return payload
+
+
+def _source_currentness_matches(receipt: Mapping[str, Any], *, identity: Mapping[str, Any]) -> bool:
+    receipt_basis = _closeout_owner_route_basis(receipt)
+    identity_basis = _mapping(identity.get("currentness_basis"))
+    if not receipt_basis or not identity_basis:
+        return False
+    for key in ("source_eval_id", "truth_epoch", "runtime_health_epoch"):
+        receipt_value = _non_empty_text(receipt_basis.get(key))
+        identity_value = _non_empty_text(identity_basis.get(key))
+        if receipt_value is not None and identity_value is not None:
+            return receipt_value == identity_value
+    return False
+
+
+def _weak_provider_admission_identity(identity: Mapping[str, Any]) -> dict[str, Any]:
+    missing: list[str] = []
+    for key in ("study_id", "action_type", "work_unit_id"):
+        if _non_empty_text(identity.get(key)) is None:
+            missing.append(key)
+    if (
+        _non_empty_text(identity.get("work_unit_fingerprint")) is None
+        and _non_empty_text(identity.get("action_fingerprint")) is None
+    ):
+        missing.append("work_unit_fingerprint")
+    if (
+        _non_empty_text(identity.get("dispatch_path")) is None
+        and _non_empty_text(identity.get("dispatch_ref")) is None
+    ):
+        missing.append("dispatch_path_or_ref")
+    if not _currentness_basis_strong(_mapping(identity.get("currentness_basis"))):
+        missing.append("currentness_basis")
+    if not missing:
+        return {}
+    return {
+        "status": "weak_provider_admission_identity",
+        "missing_identity_fields": missing,
+    }
+
+
+def _currentness_basis_strong(basis: Mapping[str, Any]) -> bool:
+    if _non_empty_text(basis.get("work_unit_id")) is None:
+        return False
+    if _non_empty_text(basis.get("work_unit_fingerprint")) is None:
+        return False
+    if _non_empty_text(basis.get("truth_epoch")) is None:
+        return False
+    return (
+        _non_empty_text(basis.get("runtime_health_epoch")) is not None
+        or _non_empty_text(basis.get("source_eval_id")) is not None
+    )
 
 
 def _text_items(value: object) -> list[str]:

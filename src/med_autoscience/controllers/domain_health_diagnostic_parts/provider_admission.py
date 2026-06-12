@@ -510,6 +510,16 @@ def provider_admission_candidate_from_current_control_action(
     candidate["source"] = _non_empty_text(action.get("source_surface")) or "opl_current_control_state.action_queue"
     candidate["current_control_ref"] = current_control_ref
     candidate["dispatch_path"] = str(dispatch_path)
+    basis = _mapping(candidate.get("currentness_basis")) or _mapping(
+        _mapping(candidate.get("owner_route")).get("source_refs", {})
+    ).get("owner_route_currentness_basis")
+    if isinstance(basis, Mapping):
+        candidate["currentness_basis"] = {
+            **dict(basis),
+            "work_unit_id": _non_empty_text(basis.get("work_unit_id")) or work_unit_id,
+            "work_unit_fingerprint": _non_empty_text(basis.get("work_unit_fingerprint"))
+            or action_fingerprint,
+        }
     candidate["source_refs"] = {
         **_mapping(candidate.get("source_refs")),
         "current_control_ref": current_control_ref,
@@ -772,6 +782,13 @@ def provider_admission_candidate_from_execution(
     currentness_basis = _mapping(source_refs.get("owner_route_currentness_basis")) or _mapping(
         _mapping(_mapping(execution.get("prompt_contract")).get("owner_route_currentness_basis"))
     )
+    if currentness_basis:
+        currentness_basis = {
+            **dict(currentness_basis),
+            "work_unit_id": _non_empty_text(currentness_basis.get("work_unit_id")) or work_unit_id,
+            "work_unit_fingerprint": _non_empty_text(currentness_basis.get("work_unit_fingerprint"))
+            or work_unit_fingerprint,
+        }
     return {
         "surface": "opl_provider_admission_candidate",
         "schema_version": 1,
