@@ -42,6 +42,9 @@ def build_repair_progress_projection(*, study_root: Path) -> dict[str, Any]:
                 _text(receipt.get("gate_replay_request_ref")),
             ]
         ),
+        "gate_replay_done": evidence.get("gate_replay_done") is True,
+        "ai_reviewer_recheck_required": evidence.get("ai_reviewer_recheck_required") is True,
+        "ai_reviewer_recheck_done": evidence.get("ai_reviewer_recheck_done") is True,
         "ai_reviewer_recheck_request_ref": _text(evidence.get("ai_reviewer_recheck_request_ref"))
         or _text(receipt.get("ai_reviewer_recheck_request_ref")),
         "changed_artifact_refs": changed_refs,
