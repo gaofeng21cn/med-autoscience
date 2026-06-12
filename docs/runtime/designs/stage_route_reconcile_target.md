@@ -89,15 +89,18 @@ stateDiagram-v2
 2. 同一 `stage_attempt_id` 的 terminal closeout 压过 OPL live 投影。
 3. 同一 current identity 的 strict live provider attempt 压过 provider admission pending。
 4. 同一 identity 的 accepted typed closeout 消费 provider admission pending。
-5. fresh current owner action 投影为 executable owner action。
-6. current identity 的 stable typed blocker 投影为 typed blocker。
-7. 旧 route-back、旧 queue、旧 active run、旧 sidecar、旧 lineage 只进 audit。
+5. weak fresh progress current-owner ticket 只投影 diagnostic，不进入 default executor dispatch。
+6. fresh current owner action 投影为 executable owner action。
+7. current identity 的 stable typed blocker 投影为 typed blocker。
+8. 旧 route-back、旧 queue、旧 active run、旧 sidecar、旧 lineage 只进 audit。
 
 弱匹配不得授权路线。至少要匹配 study、action、work-unit id / fingerprint、dispatch ref 或 stage attempt 之一的强身份；只有 action type 相同不能压过 pending 或 blocker。
 
 2026-06-11 追加实现规则：MAS 内部所有“当前 action 是否能压过 stale blocker / handoff / provider admission residue”的判断统一走 `stage_route_currentness_identity` helper。该 helper 只提取 `action_type`、`work_unit_id`、`work_unit_fingerprint` / `action_fingerprint` 与 `owner_route.source_refs.owner_route_currentness_basis`，不做业务优先级裁决。repair-progress follow-up 这类会打开 OPL authorization blocker 的路径必须共享 fingerprint；只有同 action 或同浅层 label 不足以授权 redrive。
 
 2026-06-12 追加实现规则：canonical `current_work_unit.status=typed_blocker` / fresh `current_execution_envelope.typed_blocker` 先于旧 `domain_transition` 和 stale current-control queue 裁决。旧 transition 只能在没有 fresh typed blocker、或存在同 currentness identity 的合法 readiness/repair follow-up action 时参与 materialization；否则进入 ignored diagnostic。fresh typed blocker 可以阻断旧 transition、queue 和 persisted dispatch，但不能自我升级为 owner action；`complete_medical_paper_readiness_surface` 只能来自显式 `current_executable_owner_action`、带 authority binding 的 stage-native next action，或 `terminal_closeout_owner_answer_required` closeout dispatch。terminal workflow completed、queue completed 或 default executor `handoff_ready` 不能越过 MAS typed blocker，不能被写成 paper progress。
+
+2026-06-12 追加实现规则：`study_progress.current_owner_ticket` 只有在 `owner_route.source_refs.owner_route_currentness_basis`、`current_executable_owner_action`、`current_work_unit` 或 ticket work-unit 中带 strong source / work-unit / action fingerprint 或 `source_eval_id` 时，才能生成 owner route 和 dispatch。`study-progress-current-owner-ticket::*` 这类 synthetic id 只能作为 action id，不能当作 currentness fingerprint。缺 strong identity 时输出 `fresh_progress_current_owner_ticket_requires_strong_currentness_identity` diagnostic，`default_dispatch_allowed=false`，并由 selector 作为 ignored diagnostic 处理。
 
 ## Anti-loop 预算
 
@@ -113,6 +116,8 @@ stateDiagram-v2
 - queue dead-letter 没有 MAS typed blocker 或 next owner。
 
 预算耗尽后，停止自动 redrive，输出 MAS typed blocker candidate 或 route-back evidence。不能继续靠同一 tick / heartbeat / automation prompt 重复跑。
+
+DHD scoped scan 只对本次 `--studies` 范围产生 active action queue。未扫描 study 的历史 handoff / provider admission residue 必须保留在 audit payload，例如 `unscanned_action_queue_retained_for_audit`，但不得进入 top-level active `action_queue`、不得增加 `provider_admission_pending_count`、不得触发 OPL tick。这条规则避免局部 dry-run / apply 因旧 study residue 把当前 owner 误判为还有可启动 provider task。
 
 ## Stage Log 最小可用性
 
@@ -158,6 +163,8 @@ OPL 只读基座核查显示，`current_owner_delta` 默认读根、StageRun lau
 
 2026-06-12 追加 OPL 基座优化：StageRun identity / read-model 必须原样嵌入 MAS `provider_admission_identity`、`provider_admission_identity_key`、`route_identity_key`、`attempt_idempotency_key` 和 `owner_route_currentness_basis`。OPL 可以派生 transport labels，但 launch、liveness、closeout、owner-answer 和 replay 决策必须能从 MAS identity 原样读回；不能只依赖 OPL 自己生成的 `mas_default_executor_source` stable id。
 
+理想 OPL 基座还需要把 `desired/current/status` reconcile 固定成统一 kernel：desired 只来自 MAS `current_owner_delta` / `current_work_unit`，current 只来自 StageRun lease、attempt ledger、Temporal/workflow liveness 和 terminal closeout，status 只记录 conditions、no-progress budget、trace refs 和 next safe transport action。worker heartbeat、quest running、queue completed、transport succeeded、archive materialized 和旧 active run 都不能直接驱动 desired state。无 active attempt 且 source stale 时可以由 supervisor restart worker；有 active attempt、attempt ledger 不可读或 Temporal 不可达时只能 fail-closed 为 supervisor diagnostic。
+
 MAS 侧对应收薄：
 
 - 保留 owner receipt signer、typed blocker materializer、quality gate receipt validator、source/data readiness verdict、artifact mutation authorization。
@@ -166,14 +173,14 @@ MAS 侧对应收薄：
 
 ## 成熟工程经验映射
 
-- Temporal：借鉴 durable history、retry、signal/query、idempotent activity 和 payload limit；provider completion 仍只是 transport evidence，activity result 必须 refs-only。
+- Temporal：借鉴 durable event history、deterministic replay、retry、signal/query、idempotent activity 和 payload limit；provider completion 仍只是 transport evidence，activity result 必须 refs-only。
 - Kubernetes controller：借鉴 desired/current/status/conditions reconcile；read-model 和 worklist 不能成为第二 truth。
 - Argo Workflows：借鉴 exit handler、retry strategy、archive 和 memoization边界；archive 不等于 evidence body 或 authority ledger。
 - Airflow：借鉴 XCom small metadata boundary；artifact body、memory body、study truth 不进入 task metadata。
-- Step Functions / Durable Functions：借鉴 deterministic orchestrator、callback token、execution identity / idempotency 和 redrive 从失败点继续；human answer 必须由 MAS authority surface 消费。
+- Step Functions / Durable Functions：借鉴 deterministic orchestrator、callback token、execution identity / idempotency、execution history 和 redrive 从失败点继续；human answer 必须由 MAS authority surface 消费。
 - OpenLineage / OpenTelemetry：借鉴 lineage、span links 和 observability 分层；lineage/trace 不能关闭 quality gate 或 publication verdict。
 
-这些映射的 machine-readable source refs 归 `contracts/stage_route_reconcile_contract.json`；当前采用的官方来源包括 [Kubernetes Controllers](https://kubernetes.io/docs/concepts/architecture/controller/)、[Temporal Activity return values](https://docs.temporal.io/develop/typescript/activities/basics)、[Temporal limits](https://docs.temporal.io/cloud/limits)、[Argo retry/exit handlers](https://argo-workflows.readthedocs.io/en/latest/walk-through/retrying-failed-or-errored-steps/)、[Airflow XComs](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/xcoms.html)、[AWS Step Functions StartExecution](https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html)、[OpenTelemetry traces](https://opentelemetry.io/docs/concepts/signals/traces/) 和 [OpenLineage specification](https://openlineage.io/docs/spec/object-model/)。
+这些映射的 machine-readable source refs 归 `contracts/stage_route_reconcile_contract.json`；当前采用的官方来源包括 [Kubernetes Controllers](https://kubernetes.io/docs/concepts/architecture/controller/)、[Temporal Activity return values](https://docs.temporal.io/develop/typescript/activities/basics)、[Temporal limits](https://docs.temporal.io/cloud/limits)、[Temporal event histories](https://docs.temporal.io/workflows#event-history)、[Argo retry/exit handlers](https://argo-workflows.readthedocs.io/en/latest/walk-through/retrying-failed-or-errored-steps/)、[Airflow XComs](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/xcoms.html)、[AWS Step Functions StartExecution](https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html)、[AWS Step Functions GetExecutionHistory](https://docs.aws.amazon.com/step-functions/latest/apireference/API_GetExecutionHistory.html)、[OpenTelemetry traces](https://opentelemetry.io/docs/concepts/signals/traces/) 和 [OpenLineage specification](https://openlineage.io/docs/spec/object-model/)。
 
 2026-06-11 的补充经验映射：Temporal / Conductor 一类 durable workflow 强调 history、retry、timeout 和 idempotent execution；Step Functions 的 redrive / StartExecution 也要求 execution identity 与 idempotency 边界；Dagster 的 declarative automation 把触发条件收成可审计条件，而不是让长 heartbeat 自行完成业务修复。MAS / OPL 对应规则是：`current_owner_delta` 是 desired state，stage-route arbiter 是统一 reconcile decision，自动化只触发短 tick / observe / supervisor handoff，不能替代 closeout consumption 或 domain owner receipt。
 
@@ -187,3 +194,5 @@ MAS 侧对应收薄：
 6. 若是新 identity 的 provider admission pending，再 OPL scoped tick / hydrate
 
 不能用旧 `active_run_id`、transport succeeded、queue completed、zero worklist 或 automation heartbeat 文案判断论文进展。
+
+2026-06-12 DM002 / DM003 最新只读监督口径：若 `study progress` 和 DHD dry-run 同时显示 `active_run_id=null`、`running_provider_attempt=false`、`provider_admission_pending_count=0`、`provider_admission_candidates=[]` 和 `action_queue=[]`，则 operator 必须判为没有 active provider work。DM002 类 `anti_loop_budget_exhausted` 是 terminal stop-loss / typed owner outcome；DM003 类 `medical_paper_readiness_missing` 是 current typed blocker outcome。后续只能由对应 owner 产出 owner receipt、typed blocker解除、human/operator gate、route-back 或新 work-unit identity，不能靠 heartbeat 或同一 `run_quality_repair_batch` redrive 前进。
