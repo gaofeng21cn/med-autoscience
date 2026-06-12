@@ -106,6 +106,39 @@ def test_live_stage_run_progress_evidence_answers_owner_delta_missing_with_typed
     ]
     assert answer["owner_answer_ref"] == answer["typed_blocker_ref"]
     assert answer["typed_blocker_ref"] in refs["typed_blocker_refs"]
+    assert answer["target_identity"] == {
+        "target_key": (
+            "medautoscience/current_owner_delta_bridge/owner_payload_item/"
+            "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:"
+            "owner-answer-or-typed-blocker"
+        ),
+        "domain_id": "medautoscience",
+        "current_owner": "med-autoscience",
+        "source_surface": "current_owner_delta_bridge",
+        "summary_kind": "owner_payload_item",
+        "item_id": (
+            "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:"
+            "owner-answer-or-typed-blocker"
+        ),
+        "stage_id": "paper_autonomy/guarded-apply",
+        "task_or_study_ref": "medautoscience:frt_dfb2a46c1e1286b88bd02ce6",
+        "lineage_ref": "sat_19c64e81217e5b7f8531abc6",
+        "current_owner_delta_id": (
+            "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:"
+            "owner-answer-or-typed-blocker"
+        ),
+        "source_fingerprint": (
+            "owner_delta_first:med-autoscience:medautoscience:"
+            "paper-autonomy-guarded-apply:medautoscience-frt-dfb2a46c1e1286b88bd02ce6:"
+            "sat-19c64e81217e5b7f8531abc6:"
+            "domain-owner-receipt-quality-gate-or-typed-blocker-required:"
+            "domain-owner-receipt-ref-or-quality-gate-receipt-ref-or-typed-blocker-ref-or-hum"
+        ),
+        "payload_kind": "domain_owner_receipt_or_typed_blocker_refs",
+        "current_owner_delta_ref": (
+            "one-person-lab:/framework_readiness/attention_first_payload/current_owner_delta"
+        ),
+    }
     assert answer["missing_owner_evidence_sources"] == [
         "real_paper_line_owner_receipt_ref",
         "paper_or_artifact_delta_ref",

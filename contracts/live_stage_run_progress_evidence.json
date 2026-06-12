@@ -5,7 +5,7 @@
   "domain_id": "med-autoscience",
   "domain_agent_id": "mas",
   "owner": "MedAutoScience",
-  "updated_at": "2026-06-11",
+  "updated_at": "2026-06-12",
   "status": "owner_typed_blocker_recorded_not_ready_claim",
   "role": "w7_domain_owned_live_stage_run_progress_evidence",
   "evidence_scope": {
@@ -34,7 +34,8 @@
       "mas-stage-typed-blocker:medautoscience:bounded_analysis_campaign:real-paper-line-owner-receipt-or-monitor-freshness-pending",
       "mas-stage-typed-blocker:medautoscience:manuscript_authoring:real-paper-line-owner-receipt-or-monitor-freshness-pending",
       "mas-stage-typed-blocker:medautoscience:review_and_quality_gate:real-paper-line-owner-receipt-or-monitor-freshness-pending",
-      "mas-stage-typed-blocker:medautoscience:w7-owner-evidence-tail:real-paper-line-owner-receipt-or-monitor-freshness-pending"
+      "mas-stage-typed-blocker:medautoscience:w7-owner-evidence-tail:real-paper-line-owner-receipt-or-monitor-freshness-pending",
+      "mas-stage-typed-blocker:medautoscience:current-owner-delta:medautoscience:frt_dfb2a46c1e1286b88bd02ce6:sat_19c64e81217e5b7f8531abc6:paper_autonomy-guarded-apply:owner-answer-required"
     ],
     "quality_or_export_receipt_refs": [
       "contracts/production_acceptance/mas-production-acceptance.json#/production_like_receipt_chain/required_return_shapes/ai_reviewer_gate_ref",
@@ -73,8 +74,23 @@
       "human_gate_ref",
       "route_back_evidence_ref"
     ],
-    "owner_answer_ref": "mas-stage-typed-blocker:medautoscience:w7-owner-evidence-tail:real-paper-line-owner-receipt-or-monitor-freshness-pending",
-    "typed_blocker_ref": "mas-stage-typed-blocker:medautoscience:w7-owner-evidence-tail:real-paper-line-owner-receipt-or-monitor-freshness-pending",
+    "target_identity": {
+      "target_key": "medautoscience/current_owner_delta_bridge/owner_payload_item/current-owner-delta:medautoscience:paper-autonomy-guarded-apply:owner-answer-or-typed-blocker",
+      "domain_id": "medautoscience",
+      "current_owner": "med-autoscience",
+      "source_surface": "current_owner_delta_bridge",
+      "summary_kind": "owner_payload_item",
+      "item_id": "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:owner-answer-or-typed-blocker",
+      "stage_id": "paper_autonomy/guarded-apply",
+      "task_or_study_ref": "medautoscience:frt_dfb2a46c1e1286b88bd02ce6",
+      "lineage_ref": "sat_19c64e81217e5b7f8531abc6",
+      "current_owner_delta_id": "current-owner-delta:medautoscience:paper-autonomy-guarded-apply:owner-answer-or-typed-blocker",
+      "source_fingerprint": "owner_delta_first:med-autoscience:medautoscience:paper-autonomy-guarded-apply:medautoscience-frt-dfb2a46c1e1286b88bd02ce6:sat-19c64e81217e5b7f8531abc6:domain-owner-receipt-quality-gate-or-typed-blocker-required:domain-owner-receipt-ref-or-quality-gate-receipt-ref-or-typed-blocker-ref-or-hum",
+      "payload_kind": "domain_owner_receipt_or_typed_blocker_refs",
+      "current_owner_delta_ref": "one-person-lab:/framework_readiness/attention_first_payload/current_owner_delta"
+    },
+    "owner_answer_ref": "mas-stage-typed-blocker:medautoscience:current-owner-delta:medautoscience:frt_dfb2a46c1e1286b88bd02ce6:sat_19c64e81217e5b7f8531abc6:paper_autonomy-guarded-apply:owner-answer-required",
+    "typed_blocker_ref": "mas-stage-typed-blocker:medautoscience:current-owner-delta:medautoscience:frt_dfb2a46c1e1286b88bd02ce6:sat_19c64e81217e5b7f8531abc6:paper_autonomy-guarded-apply:owner-answer-required",
     "missing_owner_evidence_sources": [
       "real_paper_line_owner_receipt_ref",
       "paper_or_artifact_delta_ref",

@@ -86,6 +86,7 @@
         "next_required_delta",
         "accepted_answer_shape",
         "accepted_answer_shapes",
+        "target_identity",
         "owner_answer_ref",
         "typed_blocker_ref",
         "missing_owner_evidence_sources",
@@ -134,6 +135,60 @@
           },
           "minItems": 5,
           "uniqueItems": true
+        },
+        "target_identity": {
+          "type": "object",
+          "required": [
+            "target_key",
+            "domain_id",
+            "current_owner",
+            "source_surface",
+            "summary_kind",
+            "item_id",
+            "stage_id",
+            "task_or_study_ref",
+            "lineage_ref",
+            "current_owner_delta_id",
+            "source_fingerprint",
+            "payload_kind"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "domain_id": {
+              "const": "medautoscience"
+            },
+            "current_owner": {
+              "const": "med-autoscience"
+            },
+            "source_surface": {
+              "const": "current_owner_delta_bridge"
+            },
+            "summary_kind": {
+              "const": "owner_payload_item"
+            },
+            "stage_id": {
+              "const": "paper_autonomy/guarded-apply"
+            },
+            "task_or_study_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lineage_ref": {
+              "type": "string",
+              "pattern": "^sat_"
+            },
+            "current_owner_delta_id": {
+              "type": "string",
+              "pattern": "^current-owner-delta:medautoscience:paper-autonomy-guarded-apply:"
+            },
+            "source_fingerprint": {
+              "type": "string",
+              "pattern": "^owner_delta_first:"
+            },
+            "payload_kind": {
+              "const": "domain_owner_receipt_or_typed_blocker_refs"
+            }
+          }
         },
         "owner_answer_ref": {
           "type": "string",
