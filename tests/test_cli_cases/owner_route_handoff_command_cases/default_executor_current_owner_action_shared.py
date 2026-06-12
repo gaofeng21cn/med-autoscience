@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 
 from .shared import _write_json
@@ -109,4 +110,57 @@ def _write_dispatch(
             "generated_at": generated_at,
         },
     )
+
+
+def _patch_canonical_current_work_unit(
+    monkeypatch,
+    *,
+    study_id: str,
+    action_type: str,
+    work_unit_id: str,
+    work_unit_fingerprint: str,
+    owner: str,
+    source: str = "canonical_current_work_unit",
+) -> None:
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    def _read_study_progress(**_: object) -> dict[str, object]:
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "status": "executable_owner_action",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner": owner,
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "action_fingerprint": work_unit_fingerprint,
+                "currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                    "runtime_health_epoch": "runtime-health-event-canonical-test",
+                },
+            },
+            "current_execution_envelope": {
+                "state_kind": "executable_owner_action",
+                "owner": owner,
+                "next_work_unit": work_unit_id,
+            },
+            "current_executable_owner_action": {
+                "surface_kind": "current_executable_owner_action",
+                "status": "ready",
+                "source": source,
+                "next_owner": owner,
+                "action_type": action_type,
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "allowed_actions": [action_type],
+            },
+        }
+
+    monkeypatch.setattr(study_progress, "read_study_progress", _read_study_progress)
 
