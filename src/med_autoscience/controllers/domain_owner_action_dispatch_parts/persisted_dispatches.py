@@ -23,6 +23,7 @@ from . import persisted_handoff_selection
 from . import publication_owner_materialization_currentness
 from . import runtime_current_dispatch_selection
 from . import stage_artifact_publication_handoff_currentness
+from . import terminal_closeout_owner_answer_identity
 from . import writer_handoff_currentness
 
 
@@ -612,28 +613,23 @@ def _dispatch_matches_terminal_closeout_owner_answer(
     action_type = _text(blocker.get("action_type"))
     if action_type is not None and _text(dispatch.get("action_type")) != action_type:
         return False
-    expected_work_unit = _terminal_closeout_owner_answer_work_unit_id(progress)
+    expected_work_unit = terminal_closeout_owner_answer_identity.work_unit_id(progress)
     dispatch_work_unit = _dispatch_work_unit_id(dispatch)
-    if expected_work_unit is not None and dispatch_work_unit == expected_work_unit:
-        return True
-    return _terminal_closeout_owner_answer_ref_matches_dispatch(
+    if (
+        expected_work_unit is not None
+        and dispatch_work_unit is not None
+        and dispatch_work_unit != expected_work_unit
+    ):
+        return False
+    if _terminal_closeout_owner_answer_ref_matches_dispatch(
         progress=progress,
         dispatch=dispatch,
-    )
-
-
-def _terminal_closeout_owner_answer_work_unit_id(progress: Mapping[str, Any]) -> str | None:
-    envelope = _mapping(progress.get("current_execution_envelope"))
-    blocker = _mapping(envelope.get("typed_blocker"))
-    current_work_unit = _mapping(progress.get("current_work_unit"))
-    current_work_unit_state = _mapping(current_work_unit.get("state"))
-    current_work_unit_blocker = _mapping(current_work_unit_state.get("typed_blocker"))
-    currentness_basis = _mapping(current_work_unit.get("currentness_basis"))
-    return (
-        _work_unit_id(blocker.get("work_unit_id"))
-        or _work_unit_id(current_work_unit_blocker.get("work_unit_id"))
-        or _work_unit_id(current_work_unit.get("work_unit_id"))
-        or _work_unit_id(currentness_basis.get("work_unit_id"))
+    ):
+        return True
+    return currentness_identities_match(
+        terminal_closeout_owner_answer_identity.currentness_identity(progress),
+        dispatch,
+        require_fingerprint=True,
     )
 
 
