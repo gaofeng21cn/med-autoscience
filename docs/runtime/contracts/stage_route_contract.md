@@ -234,6 +234,16 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 - audit_sidecar_can_close_stage: False
 - audit_sidecar_can_claim_domain_ready: False
 
+## Stage-route Reconcile And Currentness Boundary
+- reconcile_contract: `contracts/stage_route_reconcile_contract.json`; source_design_ref: `docs/runtime/designs/stage_route_reconcile_target.md`.
+- stage_route_arbiter_surface: provider admission is a transport handoff candidate and cannot self-authorize currentness; it must match the canonical current work-unit identity, dispatch ref, route identity, attempt idempotency key, and strong owner-route currentness basis.
+- current_control_action_can_self_authorize: false
+- typed_blocker_can_self_authorize_owner_action: false
+- provider_admission_projection_shape: provider_admission_pending_count=0, provider_admission_candidates=[]; empty_semantics=explicit_no_current_provider_admission_candidate_not_missing_projection; candidate_presence_is_not_running_proof=true.
+A terminal closeout for the same stage attempt suppresses stale running projection before any running watch is reported; a terminal closeout for an old identity must not consume a different current successor owner action.
+A `typed blocker` is a stop or owner-route signal, not execution authority. Blocker-only state must not execute `complete_medical_paper_readiness_surface` or redrive the same work unit without a new owner receipt, route-back, human gate, successor identity, or owner-authorized action.
+DHD dry-run, DHD apply, worker restart, provider-slo tick, and family runtime hydrate/tick boundaries are defined by `runtime_supervision_operator_policy` (mas_opl_runtime_supervision_operator_policy); use that policy to distinguish observe-only diagnostics, closeout consumption, worker repair, and provider attempt admission.
+
 ## Late-Stage Progress Sprint Contract
 - sprint_id: publishability_repair_sprint
 - objective: Produce one reviewable late-stage paper/package delta before quality gate replay.

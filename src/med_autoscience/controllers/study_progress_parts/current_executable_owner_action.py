@@ -11,6 +11,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     is_anti_loop_stop_loss_closeout,
 )
 
+from .current_action_identity import action_matches_canonical_executable_work_unit
 from .shared import _mapping_copy, _non_empty_text
 
 SURFACE_KIND = "current_executable_owner_action"
@@ -49,11 +50,16 @@ def build_current_executable_owner_action(payload: Mapping[str, Any]) -> dict[st
     if _canonical_current_work_unit_has_terminal_stop_loss(payload):
         return None
     domain_transition_action = _from_domain_transition(payload)
+    publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
+    if action_matches_canonical_executable_work_unit(
+        action=publication_repair_action,
+        current_work_unit=_mapping_copy(payload.get("current_work_unit")),
+    ):
+        return publication_repair_action
     repair_progress_action = _from_repair_progress_projection(payload)
     if repair_progress_action is not None:
         if not _action_consumed_by_dispatch_receipt(action=repair_progress_action, payload=payload):
             return repair_progress_action
-        publication_repair_action = _from_publication_eval_readiness_blocker_repair(payload)
         if publication_repair_action is not None and _consumed_ai_reviewer_followup_routes_to_write_repair(
             payload
         ):
@@ -453,6 +459,13 @@ def _terminal_closeout_next_forced_delta_fingerprint(
     )
     publication_eval_ref = _non_empty_text(_mapping_copy(next_forced_delta.get("target_surface")).get("publication_eval_latest_ref"))
     if not any((terminal_ref, stage_attempt_id, reviewer_record_ref, publication_eval_ref, source_eval_id)):
+        return None
+    terminal_action_type = _non_empty_text(terminal.get("action_type"))
+    if (
+        action_type == QUALITY_REPAIR_ACTION
+        and terminal_action_type == AI_REVIEWER_ACTION
+        and not any((reviewer_record_ref, publication_eval_ref, source_eval_id))
+    ):
         return None
     return control_identity.stable_route_currentness_fingerprint(
         study_id=_non_empty_text(payload.get("study_id")),

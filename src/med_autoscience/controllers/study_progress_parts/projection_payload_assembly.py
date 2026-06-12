@@ -34,6 +34,7 @@ from .projection_payload_assembly_parts.progress_delta import (
 from .projection_payload_assembly_parts.running_provider_status import (
     apply_running_provider_attempt_top_level_status,
 )
+from .provider_admission_projection import provider_admission_projection_fields
 from .repair_progress_projection import build_repair_progress_projection
 from .research_pack_progress_projection import build_research_pack_progress_summary_projection
 from .shared import SCHEMA_VERSION, _mapping_copy, _non_empty_text, _read_json_object
@@ -598,8 +599,23 @@ def assemble_study_progress_payload(
                 "opl_current_control_state_handoff": handoff or None,
             },
         )
+        payload.update(
+            provider_admission_projection_fields(
+                payload=payload,
+                handoff=handoff,
+                study_root=study_root,
+            )
+        )
         payload["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(
             {**payload, "execution_owner_guard": execution_owner_guard}
+        )
+    else:
+        payload.update(
+            provider_admission_projection_fields(
+                payload=payload,
+                handoff=handoff,
+                study_root=study_root,
+            )
         )
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     payload = _apply_post_user_visible_status_overrides(payload)

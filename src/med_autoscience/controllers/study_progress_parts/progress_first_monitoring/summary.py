@@ -9,6 +9,7 @@ from med_autoscience.controllers.progress_first_receipt_identity import (
     gate_clearing_batch_receipt_consumption_for_transition,
 )
 
+from ..current_action_identity import action_matches_canonical_executable_work_unit
 from ..current_executable_owner_action import build_current_executable_owner_action
 from ..owner_action_admission import (
     build_owner_action_admission_projection,
@@ -169,8 +170,18 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
     if _artifact_first_owner_action(payload_current_action) and not artifact_first_supersedes_blocker:
         payload_current_action = {}
     effective_stage_artifact_action = stage_artifact_action if artifact_first_supersedes_blocker else {}
+    canonical_current_owner_action = (
+        publication_eval_current_action
+        if action_matches_canonical_executable_work_unit(
+            action=publication_eval_current_action,
+            current_work_unit=canonical_current_work_unit,
+            require_ready_status=True,
+        )
+        else {}
+    )
     current_action = (
         stage_kernel_current_action
+        or canonical_current_owner_action
         or repair_progress_current_action
         or gate_followthrough_current_action
         or publication_eval_current_action

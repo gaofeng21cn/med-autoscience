@@ -179,6 +179,93 @@ def test_progress_first_monitoring_accepts_current_stage_run_typed_blocker_answe
     assert monitoring["typed_blocker"]["source_ref"] == typed_blocker_ref
 
 
+def test_progress_first_monitoring_prefers_canonical_publication_eval_repair_over_repair_followup() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"
+    )
+
+    fingerprint = "publication-blockers::0915410f804b3697"
+    monitoring = module.build_progress_first_monitoring_summary(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "current_work_unit": {
+                "surface_kind": "current_work_unit",
+                "schema_version": 1,
+                "status": "executable_owner_action",
+                "owner": "write",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": fingerprint,
+                "action_fingerprint": fingerprint,
+                "state": {
+                    "state_kind": "executable_owner_action",
+                    "source": "publication_eval.recommended_actions.readiness_blocker_repair",
+                    "next_work_unit": "medical_prose_write_repair",
+                },
+            },
+            "publication_eval": {
+                "eval_id": "publication-eval::003::current",
+                "verdict": {"overall_verdict": "blocked"},
+                "recommended_actions": [
+                    {
+                        "action_type": "route_back_same_line",
+                        "priority": "now",
+                        "action_id": "publication-eval-action::route-back-write",
+                        "route_target": "write",
+                        "work_unit_fingerprint": fingerprint,
+                        "next_work_unit": {
+                            "unit_id": "medical_prose_write_repair",
+                            "lane": "write",
+                            "summary": "Repair structured medical reporting.",
+                        },
+                        "evidence_refs": ["runtime/quests/003/artifacts/reports/publishability_gate/latest.json"],
+                    }
+                ],
+            },
+            "repair_progress_projection": {
+                "paper_delta_observed": True,
+                "accepted_owner_receipt": True,
+                "work_unit_id": "medical_prose_write_repair",
+                "source_fingerprint": "sha256:old-repair-progress-followup",
+                "repair_execution_evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+                "owner_receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+                "gate_replay_refs": ["artifacts/controller/gate_clearing_batch/latest.json"],
+                "ai_reviewer_recheck_done": True,
+            },
+            "opl_current_control_state_handoff": {
+                "running_provider_attempt": False,
+                "action_queue": [
+                    {
+                        "action_type": "run_quality_repair_batch",
+                        "owner": "write",
+                        "next_owner": "write",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "work_unit_fingerprint": fingerprint,
+                        "allowed_actions": ["run_quality_repair_batch"],
+                    }
+                ],
+            },
+        }
+    )
+
+    action = monitoring["current_executable_owner_action"]
+    admission = monitoring["owner_action_admission"]
+    assert monitoring["execution_state_kind"] == "executable_owner_action"
+    assert monitoring["owner_action_current"] is True
+    assert monitoring["next_owner"] == "write"
+    assert monitoring["controller_action"] == "run_quality_repair_batch"
+    assert monitoring["next_work_unit"] == "medical_prose_write_repair"
+    assert action["source"] == "publication_eval.recommended_actions.readiness_blocker_repair"
+    assert action["next_owner"] == "write"
+    assert action["work_unit_id"] == "medical_prose_write_repair"
+    assert action["work_unit_fingerprint"] == fingerprint
+    assert admission["admission_requested"] is True
+    assert admission["admission_pending"] is True
+    assert admission["next_owner"] == "write"
+    assert admission["work_unit_id"] == "medical_prose_write_repair"
+    assert admission["provider_attempt_owner"] == "write"
+
+
 def test_progress_first_monitoring_derives_repair_action_from_stable_readiness_blocker_publication_eval() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress_parts.progress_first_monitoring"

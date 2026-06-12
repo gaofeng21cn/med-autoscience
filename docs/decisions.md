@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-06-13：stage-route 入口必须指向 currentness/reconcile 合同，provider admission 空投影固定为 0 / []
+
+- 决策：`docs/runtime/contracts/stage_route_contract.md` 作为 generated 人读入口，必须同时指向 stage-route YAML 和 `contracts/stage_route_reconcile_contract.json`。YAML 只负责 stage / route selection；currentness precedence、provider admission identity、runtime supervision operator policy、typed blocker 自授权禁令和 DM002/DM003 recovery acceptance 由 reconcile contract 持有。
+- 决策：provider admission 顶层 read-model 字段固定为 `provider_admission_pending_count` 和 `provider_admission_candidates`。当 candidate 被 typed blocker、terminal closeout、running proof、弱 identity、未扫描 study residue 或 absence suppress 时，projection 必须显式写成 `provider_admission_pending_count=0` 与 `provider_admission_candidates=[]`，不能缺字段、写 `null` 或保留 stale candidate。空数组只表示没有当前 provider admission candidate；它不能授权 hydrate、不能证明 running，也不能计为 paper progress。
+- 理由：DM002/DM003 监督中反复出现“DHD 空队列、study progress 旧 candidate、operator 误以为该 tick/hydrate”的读面漂移。把 `0/[]` 形状压进机器合同和 generated guide 后，full assembly 与 existing projection refresh 都必须按同一 DHD provider-admission arbiter 刷新，避免旧 runtime residue 再次变成执行授权。
+- 影响：这是合同、read-model projection 和 generated docs hardening；不修改 `current_work_unit.py`，不执行 DHD apply / hydrate / tick / redrive，不写 Yang runtime/study artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、owner receipt、typed blocker、human gate 或 OPL provider attempt。
+
 ## 2026-06-12：owner action admission 投影独立于顶层可见性规则
 
 - 决策：`progress_first_monitoring_summary.owner_action_admission` 只要 reducer 仍有 `current_executable_owner_action` 就必须生成。`owner_action_visible` 只决定顶层是否展示为 executable owner action，不得让 admission/readiness 投影变成 `null`。旧 `active_run_id`、handoff active refs 或 OPL current-control residue 被 fail-closed 清成 non-running 后，owner action admission 仍必须说明 `admission_pending`、`provider_attempt_running_proven=false`、或 hard-gate blocked reasons。

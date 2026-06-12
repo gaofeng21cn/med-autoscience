@@ -58,6 +58,7 @@ from .projection_payload_assembly import (
     build_projection_refs,
 )
 from .progress_first_monitoring import build_progress_first_monitoring_summary
+from .provider_admission_projection import provider_admission_projection_fields
 from .projection_quality_surfaces import build_quality_projection_surfaces as _quality_projection_surfaces
 from .projection_runtime_surfaces import (
     supervision_health_status as _supervision_health_status,
@@ -114,8 +115,16 @@ def _refresh_existing_projection_current_owner_surfaces(
     updated = dict(payload)
     if publication_eval_payload is not None:
         updated["publication_eval"] = publication_eval_payload
+    handoff = _mapping_copy(updated.get("opl_current_control_state_handoff"))
     current_action = build_current_executable_owner_action(updated)
     if current_action is None:
+        updated.update(
+            provider_admission_projection_fields(
+                payload=updated,
+                handoff=handoff,
+                study_root=study_root,
+            )
+        )
         return _attach_delivery_inspection_projection(
             updated,
             profile=profile,
@@ -125,7 +134,6 @@ def _refresh_existing_projection_current_owner_surfaces(
     if current_action is not None:
         updated["current_executable_owner_action"] = current_action
         updated = reconcile_current_owner_action_projection(updated)
-    handoff = _mapping_copy(updated.get("opl_current_control_state_handoff"))
     progress_state = _mapping_copy(updated.get("progress_first_sprint_state"))
     envelope_actions = current_execution_envelope_actions(
         handoff=handoff,
@@ -157,6 +165,13 @@ def _refresh_existing_projection_current_owner_surfaces(
         current_work_unit_payload=_mapping_copy(updated.get("current_work_unit")),
     )
     updated["progress_first_monitoring_summary"] = build_progress_first_monitoring_summary(updated)
+    updated.update(
+        provider_admission_projection_fields(
+            payload=updated,
+            handoff=handoff,
+            study_root=study_root,
+        )
+    )
     updated["user_visible_projection"] = build_user_visible_projection(updated)
     return _attach_delivery_inspection_projection(
         updated,

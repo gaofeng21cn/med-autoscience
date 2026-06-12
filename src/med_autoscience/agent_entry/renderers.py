@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +48,24 @@ def render_stage_route_contract_payload() -> dict[str, object]:
 
 def render_stage_route_contract_guide() -> str:
     payload = render_stage_route_contract_payload()
+    reconcile_contract = _stage_route_reconcile_contract_payload()
+    arbiter_policy = _mapping(reconcile_contract.get("stage_route_arbiter_surface"), "stage_route_arbiter_surface")
+    carrier_identity_policy = _mapping(
+        arbiter_policy.get("carrier_self_identity_policy"),
+        "stage_route_arbiter_surface.carrier_self_identity_policy",
+    )
+    projection_shape_policy = _mapping(
+        arbiter_policy.get("provider_admission_projection_shape_policy"),
+        "stage_route_arbiter_surface.provider_admission_projection_shape_policy",
+    )
+    dispatch_authority_policy = _mapping(
+        reconcile_contract.get("owner_action_dispatch_authority_policy"),
+        "owner_action_dispatch_authority_policy",
+    )
+    runtime_supervision_policy = _mapping(
+        reconcile_contract.get("runtime_supervision_operator_policy"),
+        "runtime_supervision_operator_policy",
+    )
     compatible_agents = _string_list(payload.get("compatible_agents"), field="compatible_agents")
     modes = _mode_payload_list(payload)
     route_contracts = _route_contract_payload_map(payload)
@@ -120,6 +139,29 @@ def render_stage_route_contract_guide() -> str:
         )
 
     lines.extend(_render_ordinary_progress_handoff_policy(ordinary_progress_handoff))
+    lines.extend(
+        (
+            "",
+            "## Stage-route Reconcile And Currentness Boundary",
+            f"- reconcile_contract: `{STAGE_ROUTE_RECONCILE_CONTRACT_REF}`; source_design_ref: `{reconcile_contract.get('source_design_ref')}`.",
+            "- stage_route_arbiter_surface: provider admission is a transport handoff candidate and cannot self-authorize currentness; it must match the canonical current work-unit identity, dispatch ref, route identity, attempt idempotency key, and strong owner-route currentness basis.",
+            f"- current_control_action_can_self_authorize: {_render_json_scalar(carrier_identity_policy.get('current_control_action_can_self_authorize'))}",
+            f"- typed_blocker_can_self_authorize_owner_action: {_render_json_scalar(dispatch_authority_policy.get('typed_blocker_can_self_authorize_owner_action'))}",
+            "- provider_admission_projection_shape: "
+            f"provider_admission_pending_count={_mapping(projection_shape_policy.get('suppressed_or_absent_shape'), 'suppressed_or_absent_shape').get('provider_admission_pending_count')}, "
+            "provider_admission_candidates=[]; "
+            f"empty_semantics={projection_shape_policy.get('empty_candidates_semantics')}; "
+            f"candidate_presence_is_not_running_proof={_render_json_scalar(projection_shape_policy.get('candidate_presence_is_not_running_proof'))}.",
+            "A terminal closeout for the same stage attempt suppresses stale running projection before any running "
+            "watch is reported; a terminal closeout for an old identity must not consume a different current successor "
+            "owner action.",
+            "A `typed blocker` is a stop or owner-route signal, not execution authority. Blocker-only state must not "
+            "execute `complete_medical_paper_readiness_surface` or redrive the same work unit without a new owner "
+            "receipt, route-back, human gate, successor identity, or owner-authorized action.",
+            "DHD dry-run, DHD apply, worker restart, provider-slo tick, and family runtime hydrate/tick boundaries are "
+            f"defined by `runtime_supervision_operator_policy` ({runtime_supervision_policy.get('surface_kind')}); use that policy to distinguish observe-only diagnostics, closeout consumption, worker repair, and provider attempt admission.",
+        )
+    )
     lines.extend(_render_late_stage_progress_sprint_contract(sprint_contract))
 
     lines.extend(
@@ -174,6 +216,21 @@ def render_stage_route_contract_guide() -> str:
         )
     )
     return "\n".join(lines).rstrip() + "\n"
+
+
+STAGE_ROUTE_RECONCILE_CONTRACT_REF = "contracts/stage_route_reconcile_contract.json"
+
+
+def _stage_route_reconcile_contract_payload() -> dict[str, object]:
+    path = Path(__file__).resolve().parents[3] / STAGE_ROUTE_RECONCILE_CONTRACT_REF
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{STAGE_ROUTE_RECONCILE_CONTRACT_REF} must be a JSON object")
+    return payload
+
+
+def _render_json_scalar(value: object) -> str:
+    return json.dumps(value, ensure_ascii=False)
 
 def render_public_yaml() -> str:
     payload = render_stage_route_contract_payload()

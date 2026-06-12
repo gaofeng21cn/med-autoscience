@@ -232,6 +232,23 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     assert self_identity["action_id_role"] == "action_family_only_not_dedupe_or_route_identity"
     assert self_identity["weak_identity_effect"] == "weak_provider_admission_identity"
     assert "current_owner_delta" in self_identity["canonical_identity_sources"]
+    projection_shape = arbiter["provider_admission_projection_shape_policy"]
+    assert projection_shape["surface_kind"] == "provider_admission_projection_shape_policy"
+    assert projection_shape["top_level_fields"] == [
+        "provider_admission_pending_count",
+        "provider_admission_candidates",
+    ]
+    assert projection_shape["suppressed_or_absent_shape"] == {
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": [],
+    }
+    assert projection_shape["empty_candidates_semantics"] == (
+        "explicit_no_current_provider_admission_candidate_not_missing_projection"
+    )
+    assert projection_shape["candidate_presence_is_not_running_proof"] is True
+    assert projection_shape["empty_projection_can_authorize_hydrate"] is False
+    assert projection_shape["empty_projection_can_mark_paper_progress"] is False
+    assert projection_shape["refresh_required_on_full_assembly_and_existing_projection_refresh"] is True
     assert arbiter["authority_boundary"] == {
         "arbiter_surface": "currentness_projection_only",
         "can_write_domain_truth": False,

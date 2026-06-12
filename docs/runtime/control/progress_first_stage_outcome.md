@@ -181,9 +181,11 @@ Terminal `stage_artifact_index.next_owner_action=publication_handoff_owner_gate`
 
 DM002 / DM003 recovery 的执行边界固定为 MAS owner callable / domain-handler dispatch / OPL StageRun provider attempt。Codex 前台会话可以读 live truth、改 repo docs/contracts/tests、实现缺失的 MAS owner callable 或 derived repair action、运行验证和监督 StageRun；它不能把绕过 MAS/OPL 的 manuscript、package、runtime-owned study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、OPL queue 或 provider attempt 修改写成可采信 recovery。若发现缺少 callable，结论是补 repo-level callable / repair action 或输出 typed blocker，不是 paper-local shortcut。机器合同见 `contracts/stage_route_reconcile_contract.json` 的 Codex executor route policy。
 
-当前 recovery 读法：
+recent non-authoritative recovery sample（debug context only）：
 
-| study | 当前 live truth | owner | ordinary recovery |
+下表只记录 2026-06-13 的近期样本，用于说明 operator 应如何读 blocker / admission / running proof；它不是当前 truth，也不能用于 acceptance。每次监督、恢复或验收前必须 fresh 读取 `study progress`、DHD `--dry-run`、OPL current-control / attempt ledger，并按 `contracts/stage_route_reconcile_contract.json#/dm002_dm003_recovery_acceptance_policy` 的 fresh truth / readback policy 裁决。
+
+| study | recent sample | owner | ordinary recovery |
 | --- | --- | --- | --- |
 | DM002 | `anti_loop_budget_exhausted`，`provider_admission_pending_count=0` | `one-person-lab` | stop-loss 已生效；不得同 work-unit redrive。只能等 successor work-unit / StageRun identity、human gate、route-back evidence、新 owner receipt / quality gate receipt，或新的 stable typed blocker identity。 |
 | DM003 | `medical_paper_readiness_missing`，`provider_admission_pending_count=0` | `MedAutoScience` | readiness blocker 必须被具体 MAS owner callable、带 current-work-unit binding 的 derived repair action、命名缺失 ref family 的 stable typed blocker，或 human gate 消费。blocker-only 不得自授权执行 `complete_medical_paper_readiness_surface`。 |

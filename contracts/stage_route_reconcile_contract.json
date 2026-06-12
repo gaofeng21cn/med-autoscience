@@ -487,6 +487,22 @@
       "no_current_typed_blocker_for_same_action_or_work_unit",
       "no_same_currentness_basis_fingerprintless_stop_loss_closeout"
     ],
+    "provider_admission_projection_shape_policy": {
+      "surface_kind": "provider_admission_projection_shape_policy",
+      "top_level_fields": [
+        "provider_admission_pending_count",
+        "provider_admission_candidates"
+      ],
+      "suppressed_or_absent_shape": {
+        "provider_admission_pending_count": 0,
+        "provider_admission_candidates": []
+      },
+      "empty_candidates_semantics": "explicit_no_current_provider_admission_candidate_not_missing_projection",
+      "candidate_presence_is_not_running_proof": true,
+      "empty_projection_can_authorize_hydrate": false,
+      "empty_projection_can_mark_paper_progress": false,
+      "refresh_required_on_full_assembly_and_existing_projection_refresh": true
+    },
     "scoped_scan_unscanned_retention_policy": {
       "retention_semantics": "audit_only",
       "active_queue_semantics": "scanned_studies_only",
