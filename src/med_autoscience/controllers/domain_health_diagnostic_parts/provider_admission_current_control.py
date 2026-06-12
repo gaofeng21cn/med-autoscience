@@ -66,8 +66,13 @@ def materialize_provider_admission_current_control_state(
         live_studies_by_id=live_studies_by_id,
         scanned_studies_by_id=scanned_studies_by_id,
     )
+    terminal_precedence_by_study = _terminal_precedence_by_study(scanned_studies)
     studies = [
-        provider_admission_current_control_study(candidate) for candidate in pending_candidates
+        _study_with_terminal_precedence(
+            provider_admission_current_control_study(candidate),
+            terminal_precedence_by_study=terminal_precedence_by_study,
+        )
+        for candidate in pending_candidates
     ]
     candidate_study_ids = {
         study_id
@@ -530,6 +535,25 @@ def _scanned_study_with_accepted_closeout_projection(study: Mapping[str, Any]) -
             terminal_closeout,
             identity=_closeout_identity(payload),
         )
+        terminal_envelope = {
+            "state_kind": "typed_blocker" if typed_blocker else "terminal_closeout_observed",
+            "owner": _non_empty_text(typed_blocker.get("owner")) if typed_blocker else "med-autoscience",
+            "next_work_unit": None if typed_blocker else _non_empty_text(terminal_closeout.get("work_unit_id")),
+            "typed_blocker": typed_blocker or None,
+            "parked_state": None,
+            "source": "terminal_closeout_precedes_live_projection",
+        }
+        current_action = _mapping(payload.get("current_executable_owner_action"))
+        existing_envelope = _mapping(payload.get("current_execution_envelope"))
+        if current_action and not provider_attempt_matches_identity(terminal_closeout, identity=current_action):
+            terminal_envelope = existing_envelope or {
+                "state_kind": "executable_owner_action",
+                "owner": _non_empty_text(current_action.get("next_owner")),
+                "next_work_unit": _non_empty_text(current_action.get("work_unit_id")),
+                "typed_blocker": None,
+                "parked_state": None,
+                "source": "progress_currentness.current_executable_owner_action",
+            }
         payload.update(
             {
                 "quest_status": _non_empty_text(payload.get("quest_status")) or "active",
@@ -546,15 +570,9 @@ def _scanned_study_with_accepted_closeout_projection(study: Mapping[str, Any]) -
                 "provider_admission_candidates": [],
                 "provider_admission_pending_count": 0,
                 "terminal_closeout_precedence_evidence": terminal_closeout,
+                "stale_running_projection_suppressed": True,
                 "opl_provider_attempt": terminal_closeout,
-                "current_execution_envelope": {
-                    "state_kind": "typed_blocker" if typed_blocker else "terminal_closeout_observed",
-                    "owner": _non_empty_text(typed_blocker.get("owner")) if typed_blocker else "med-autoscience",
-                    "next_work_unit": None if typed_blocker else _non_empty_text(terminal_closeout.get("work_unit_id")),
-                    "typed_blocker": typed_blocker or None,
-                    "parked_state": None,
-                    "source": "terminal_closeout_precedes_live_projection",
-                },
+                "current_execution_envelope": terminal_envelope,
             }
         )
         if typed_blocker:
@@ -623,6 +641,45 @@ def _scanned_study_with_accepted_closeout_projection(study: Mapping[str, Any]) -
                     "stale_queue_or_handoff_can_override": False,
                 },
             }
+    return payload
+
+
+def _terminal_precedence_by_study(
+    scanned_studies: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for study in scanned_studies:
+        study_id = _non_empty_text(study.get("study_id"))
+        evidence = _mapping(study.get("terminal_closeout_precedence_evidence"))
+        if study_id is not None and evidence:
+            result[study_id] = dict(evidence)
+    return result
+
+
+def _study_with_terminal_precedence(
+    study: dict[str, Any],
+    *,
+    terminal_precedence_by_study: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    study_id = _non_empty_text(study.get("study_id"))
+    evidence = _mapping(terminal_precedence_by_study.get(study_id)) if study_id is not None else {}
+    if not evidence:
+        return study
+    payload = dict(study)
+    payload["terminal_closeout_precedence_evidence"] = dict(evidence)
+    payload["stale_running_projection_suppressed"] = True
+    payload["running_provider_attempt"] = False
+    payload["active_run_id"] = None
+    payload["active_stage_attempt_id"] = None
+    payload["active_workflow_id"] = None
+    runtime_health = _mapping(payload.get("runtime_health"))
+    payload["runtime_health"] = {
+        **runtime_health,
+        "health_status": _non_empty_text(runtime_health.get("health_status"))
+        or "provider_admission_pending",
+        "runtime_liveness_status": "not_running",
+        "stale_running_projection_suppressed": True,
+    }
     return payload
 
 

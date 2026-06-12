@@ -16,6 +16,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：本轮 live truth 已明确 DM002 是 OPL owner 的 stop-loss，DM003 是 MAS owner 的 readiness blocker，并且两者 `provider_admission_pending_count=0`。如果前台 Codex 直接重跑 repair/gate 或手改 paper-local surface，会绕开 MAS owner receipt / OPL StageRun 的 authority boundary，把 stop-loss 或 readiness blocker 又变成同一 work-unit 空转。
 - 影响：机器合同入口在 `contracts/stage_route_reconcile_contract.json` 的 Codex executor route policy 与 `#/dm002_dm003_recovery_acceptance_policy`。这是 recovery execution-entry / acceptance hardening，不写 study truth、runtime-owned artifacts、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、submission package、owner receipt、typed blocker、human gate 或 OPL provider attempt。
 
+## 2026-06-12：terminal closeout 只清 stale running，不吞 different-identity successor
+
+- 决策：DHD current-control materialization 同时观察到旧 OPL provider attempt terminal closeout 和不同 work-unit identity 的新 `current_executable_owner_action` / provider admission candidate 时，terminal closeout 优先清除旧 `running_provider_attempt`、`active_run_id`、`active_stage_attempt_id`、`active_workflow_id`，并写 `stale_running_projection_suppressed=true`；新 identity 的 handoff 继续保留为 pending / next-owner projection，且附带 `terminal_closeout_precedence_evidence` 作为旧 running 被压制的解释。
+- 决策：同一 identity 的 terminal closeout 可以消费或抑制同一 pending/running 投影；different identity 的 terminal closeout 不能把新 handoff 关闭成 success、blocked 或 noop。若缺 strong identity，结果只能是 currentness diagnostic / typed blocker candidate。
+- 理由：DM003 暴露出 provider attempt 已 terminal completed 并产生 owner receipt 后，persistent current-control 仍显示旧 running，而同一 scan 又出现下一 owner handoff。正确行为是 Durable terminal event / closeout refs 压过 stale observed running，同时保留 desired/current successor，而不是把两者互相覆盖。这个口径与 Kubernetes controller 的 desired/current/status 分离、Temporal durable event history、以及幂等 retry/redrive identity 的成熟工程经验一致。
+- 影响：这是 MAS read-model/currentness 和 OPL queue stale projection hardening；不执行 live DHD apply、hydrate、tick、queue redrive，不手写 owner receipt、typed blocker、study truth、paper body 或 OPL runtime artifact。运行态 closeout consumption 仍由主 runtime lane 按 owner authority 消费。
+
 ## 2026-06-12：provider admission 强身份和 StageRun identity 原样传递
 
 - 决策：DHD `stage_route_arbiter` 必须先判定 `weak_provider_admission_identity`。provider admission identity 缺 study/action/work-unit id 或 fingerprint、dispatch ref、`route_identity_key`、`attempt_idempotency_key` 或 strong `owner_route_currentness_basis` 时，pending fail-closed，不进入 OPL tick，也不能由 action family、`action_id` 或旧 queue label 补足。

@@ -181,7 +181,7 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
     effects = {item["decision"]: item["effect"] for item in arbiter["decision_kinds"]}
     assert effects["weak_provider_admission_identity"] == "suppress_provider_admission_pending"
     assert effects["terminal_closeout_precedes_live_projection"] == (
-        "suppress_provider_admission_pending"
+        "suppress_stale_running_projection"
     )
     assert effects["running_identity_observed"] == "suppress_provider_admission_pending"
     assert effects["accepted_closeout_consumed_pending"] == (
@@ -191,6 +191,14 @@ def test_stage_route_reconcile_contract_declares_anti_loop_budget_and_owner_spli
         "suppress_provider_admission_pending"
     )
     assert effects["pending_provider_admission"] == "retain_provider_admission_pending"
+    terminal_decision = next(
+        item
+        for item in arbiter["decision_kinds"]
+        if item["decision"] == "terminal_closeout_precedes_live_projection"
+    )
+    assert terminal_decision["successor_policy"] == (
+        "if_current_executable_owner_action_has_different_work_unit_identity_keep_successor_pending_and_attach_terminal_precedence_evidence"
+    )
     assert {
         "study_id",
         "action_type",

@@ -198,7 +198,14 @@
         "study_id",
         "stage_attempt_id"
       ],
-      "allowed_output": "terminal_closeout_diagnostic_or_closeout_consumption_candidate"
+      "allowed_output": "terminal_closeout_diagnostic_or_closeout_consumption_candidate",
+      "identity_different_successor_policy": "preserve_current_executable_owner_action_or_provider_admission_pending_for_new_work_unit",
+      "stale_running_fields_must_clear": [
+        "running_provider_attempt",
+        "active_run_id",
+        "active_stage_attempt_id",
+        "active_workflow_id"
+      ]
     },
     {
       "rank": 3,
@@ -376,13 +383,14 @@
       },
       {
         "decision": "terminal_closeout_precedes_live_projection",
-        "effect": "suppress_provider_admission_pending",
+        "effect": "suppress_stale_running_projection",
         "required_match": [
           "study_id",
           "stage_attempt_id_or_run_id",
           "accepted_typed_closeout_or_executed_typed_blocker",
           "same_provider_identity"
-        ]
+        ],
+        "successor_policy": "if_current_executable_owner_action_has_different_work_unit_identity_keep_successor_pending_and_attach_terminal_precedence_evidence"
       },
       {
         "decision": "running_identity_observed",
@@ -697,6 +705,8 @@
         "capability": "terminal_closeout_precedes_live_projection",
         "owner": "OPL Framework",
         "required_effect": "identity-matched terminal typed closeout or owner receipt suppresses stale running/live projection in current_owner_delta, evidence worklist, queue projection, and workbench drilldown",
+        "same_identity_queue_effect": "a running queue row linked to a terminal provider attempt is repaired to stale transport closeout observed / idempotent noop, with lease cleared and no duplicate hydrate or provider attempt",
+        "identity_different_successor_effect": "terminal evidence stays attached as precedence evidence while MAS keeps the new current owner action or provider admission pending",
         "identity_mismatch_effect": "fail_closed_currentness_blocker"
       },
       {

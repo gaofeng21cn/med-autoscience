@@ -302,6 +302,7 @@ def test_default_executor_consumed_receipt_identity_prevents_same_current_contro
         },
     )
 
+    closeout_ref = "artifacts/supervision/consumer/default_executor_execution/latest.json"
     candidates = default_executor_execution_candidates(study_root=study_root)
     candidate = next(
         execution

@@ -500,6 +500,152 @@ def test_materialized_current_control_clears_candidate_after_accepted_typed_clos
         "progress_currentness.current_executable_owner_action"
     )
 
+
+def test_terminal_closeout_suppresses_stale_running_but_preserves_next_handoff(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_current_control"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    old_work_unit_id = "medical_prose_write_repair"
+    old_fingerprint = "publication-blockers::0915410f804b3697"
+    next_work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    next_fingerprint = "sha256:fc2032327815ef9ab106e4ca972923ae2f18b3e3da019cf257298e2b3e3bc08a"
+    old_dispatch_path = str(
+        profile.workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    next_dispatch_path = str(
+        profile.workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    candidate = {
+        "surface": "opl_provider_admission_candidate",
+        "schema_version": 1,
+        "status": "provider_admission_pending",
+        "source": "opl_current_control_state.study_current_executable_owner_action",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "work_unit_id": next_work_unit_id,
+        "work_unit_fingerprint": next_fingerprint,
+        "action_fingerprint": next_fingerprint,
+        "dispatch_path": next_dispatch_path,
+        "dispatch_authority": "ai_reviewer_record_production_handoff",
+        "next_executable_owner": "ai_reviewer",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "provider_attempt_or_lease_required": True,
+        "provider_completion_is_domain_completion": False,
+        "currentness_basis": _currentness_basis(
+            work_unit_id=next_work_unit_id,
+            fingerprint=next_fingerprint,
+            source_eval_id="publication-eval::003::ai-reviewer-followup",
+        ),
+    }
+
+    result = module.materialize_provider_admission_current_control_state(
+        profile=profile,
+        candidates=[candidate],
+        generated_at="2026-06-12T09:50:00+00:00",
+        apply=False,
+        scanned_studies=[
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "handoff_scan_status": "scanned",
+                "quest_status": "running",
+                "running_provider_attempt": True,
+                "active_stage_attempt_id": "sat_3c7846886384a7166c4dd7a6",
+                "active_workflow_id": "wf_724c6f21d7d4a3d32d0e3e5d",
+                "action_type": "run_quality_repair_batch",
+                "work_unit_id": old_work_unit_id,
+                "work_unit_fingerprint": old_fingerprint,
+                "action_fingerprint": old_fingerprint,
+                "dispatch_path": old_dispatch_path,
+                "runtime_health": {
+                    "health_status": "running",
+                    "runtime_liveness_status": "live",
+                },
+                "accepted_closeout_evidence": [
+                    {
+                        "surface_kind": "stage_attempt_closeout_packet",
+                        "status": "closed_with_domain_owner_refs",
+                        "execution_status": "executed",
+                        "stage_attempt_id": "sat_3c7846886384a7166c4dd7a6",
+                        "active_workflow_id": "wf_724c6f21d7d4a3d32d0e3e5d",
+                        "action_type": "run_quality_repair_batch",
+                        "work_unit_id": old_work_unit_id,
+                        "work_unit_fingerprint": old_fingerprint,
+                        "action_fingerprint": old_fingerprint,
+                        "dispatch_path": old_dispatch_path,
+                        "owner_receipt_ref": (
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+                            "controller/repair_execution_receipts/latest.json"
+                        ),
+                        "owner_route_currentness_basis": _currentness_basis(
+                            work_unit_id=old_work_unit_id,
+                            fingerprint=old_fingerprint,
+                            source_eval_id="publication-eval::003::write-repair",
+                        ),
+                        "closeout_refs": [
+                            "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/repair_execution_evidence/latest.json"
+                        ],
+                    }
+                ],
+                "current_executable_owner_action": {
+                    "surface_kind": "current_executable_owner_action",
+                    "status": "ready",
+                    "source": "repair_progress_projection.mas_owner_repair_execution_evidence",
+                    "next_owner": "ai_reviewer",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "work_unit_id": next_work_unit_id,
+                    "work_unit_fingerprint": next_fingerprint,
+                    "action_fingerprint": next_fingerprint,
+                },
+                "current_execution_envelope": {
+                    "state_kind": "executable_owner_action",
+                    "owner": "ai_reviewer",
+                    "next_work_unit": next_work_unit_id,
+                    "typed_blocker": None,
+                    "parked_state": None,
+                    "source": "progress_currentness.current_executable_owner_action",
+                },
+            }
+        ],
+    )
+
+    assert result is not None
+    assert result["provider_admission_pending_count"] == 1
+    assert result["provider_admission_candidates"][0]["work_unit_id"] == next_work_unit_id
+    study = result["studies"][0]
+    assert study["study_id"] == study_id
+    assert study["quest_status"] == "provider_admission_pending"
+    assert study["running_provider_attempt"] is False
+    assert study["active_stage_attempt_id"] is None
+    assert study["terminal_closeout_precedence_evidence"]["stage_attempt_id"] == (
+        "sat_3c7846886384a7166c4dd7a6"
+    )
+    assert study["action_queue"][0]["work_unit_id"] == next_work_unit_id
+    assert result["stage_route_arbiter"]["decision_counts"] == {
+        "pending_provider_admission": 1,
+    }
+
+
 def test_materialized_current_control_clears_candidate_after_executed_typed_blocker_closeout(
     tmp_path: Path,
 ) -> None:
