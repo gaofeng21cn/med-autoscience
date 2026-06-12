@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from med_autoscience.controllers import stage_native_next_action_admission
+from tests.domain_action_request_materializer_cases.unsupported_action_boundary import *
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -112,52 +113,6 @@ def _owner_route(
             },
         },
     }
-
-
-def test_materialize_domain_action_requests_dry_run_ignores_unsupported_action_without_writes(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-endocrine-burden-followup"
-    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
-    _write_json(
-        latest_path,
-        {
-            "surface": "portable_owner_route_reconcile",
-            "schema_version": 1,
-            "action_queue": [_unsupported_domain_action(study_id, "quest-nf")],
-        },
-    )
-
-    result = module.materialize_domain_action_requests(
-        profile=profile,
-        study_ids=(study_id,),
-        mode="developer_apply_safe",
-        apply=False,
-    )
-
-    assert result["surface"] == "domain_action_request_materializer"
-    assert result["dry_run"] is True
-    assert result["effective_mode"] == "developer_apply_safe"
-    assert result["github_gate"]["allowed"] is True
-    assert result["runtime_control_owner"] == "one-person-lab"
-    assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
-    assert result["ignored_actions"] == [
-        {
-            "study_id": study_id,
-            "action_type": "unsupported_supervisor_action",
-            "action_id": f"supervisor-action::{study_id}::unsupported_supervisor_action",
-            "reason": "unsupported_action_type",
-        }
-    ]
-    assert "repair_tasks" not in result
-    assert not (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
-    assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
 
 
 def test_materialize_domain_action_requests_prefers_fresh_progress_ticket_over_stale_readiness_scan(
@@ -698,146 +653,6 @@ def test_materialize_domain_action_requests_prefers_fresh_readiness_action_over_
     assert dispatch["next_executable_owner"] == "MedAutoScience"
     assert dispatch["surface_key"] == "authoring_runtime_authorization"
     assert dispatch["owner_route"]["allowed_actions"] == ["complete_medical_paper_readiness_surface"]
-
-
-def test_materialize_domain_action_requests_apply_does_not_write_unsupported_action_surfaces(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-endocrine-burden-followup"
-    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
-    _write_json(
-        latest_path,
-        {
-            "surface": "portable_owner_route_reconcile",
-            "schema_version": 1,
-            "action_queue": [_unsupported_domain_action(study_id, "quest-nf")],
-        },
-    )
-
-    result = module.materialize_domain_action_requests(
-        profile=profile,
-        study_ids=(study_id,),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    consumer_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json"
-    unsupported_packet_path = study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json"
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / "unsupported_supervisor_action.json"
-    )
-    assert result["dry_run"] is False
-    assert result["runtime_control_owner"] == "one-person-lab"
-    assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
-    assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
-    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
-    assert consumer_path.is_file()
-    assert not unsupported_packet_path.exists()
-    assert not dispatch_path.exists()
-    consumer = json.loads(consumer_path.read_text(encoding="utf-8"))
-    assert consumer["written_files"] == [str(consumer_path)]
-    assert consumer["runtime_control_owner"] == "one-person-lab"
-    assert consumer["ignored_actions"] == result["ignored_actions"]
-    assert not (study_root / "paper").exists()
-    assert not (study_root / "manuscript").exists()
-
-
-def test_materialize_domain_action_requests_does_not_resurrect_existing_unsupported_dispatch(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-endocrine-burden-followup"
-    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    action = _unsupported_domain_action(study_id, "quest-nf")
-    route = dict(action["owner_route"])
-    route.update(
-        {
-            "schema_version": 2,
-            "truth_epoch": route["route_epoch"],
-            "runtime_health_epoch": "runtime-health-repeat",
-            "work_unit_fingerprint": "unsupported-supervisor::repeat",
-            "failure_signature": "unsupported_supervisor_action",
-            "trace_id": "owner-route-trace::repeat",
-        }
-    )
-    action["owner_route"] = route
-    action["handoff_packet"]["owner_route"] = route
-    latest_path = profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
-    _write_json(
-        latest_path,
-        {
-            "surface": "portable_owner_route_reconcile",
-            "schema_version": 1,
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "owner_route": route,
-                    "meaningful_artifact_delta": False,
-                }
-            ],
-            "action_queue": [action],
-        },
-    )
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / "unsupported_supervisor_action.json"
-    )
-    _write_json(
-        dispatch_path,
-        {
-            "surface": "default_executor_dispatch_request",
-            "study_id": study_id,
-            "quest_id": "quest-nf",
-            "action_type": "unsupported_supervisor_action",
-            "dispatch_status": "ready",
-            "owner_route": route,
-            "idempotency_key": route["idempotency_key"],
-            "prompt_contract": {
-                "do_not_repeat": True,
-                "repeat_suppression_key": "unsupported-supervisor::repeat",
-            },
-        },
-    )
-
-    result = module.materialize_domain_action_requests(
-        profile=profile,
-        study_ids=(study_id,),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    assert result["runtime_control_owner"] == "one-person-lab"
-    assert result["request_task_count"] == 0
-    assert result["default_executor_dispatch_count"] == 0
-    assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
-    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
-    assert result["repeat_suppressed_count"] == 0
-    consumer = json.loads(
-        (profile.workspace_root / "runtime" / "artifacts" / "supervision" / "consumer" / "latest.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    assert consumer["default_executor_dispatches"] == []
-    assert consumer["ignored_actions"] == result["ignored_actions"]
-    assert dispatch_path.read_text(encoding="utf-8").find('"dispatch_status": "ready"') != -1
 
 
 def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_queue_is_empty(
