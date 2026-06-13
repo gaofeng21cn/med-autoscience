@@ -11,6 +11,9 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.provider_admissi
     is_anti_loop_stop_loss_closeout,
 )
 
+from .current_executable_owner_action_parts.stage_artifact_index import (
+    owner_action_from_stage_artifact_index,
+)
 from .current_action_identity import action_matches_canonical_executable_work_unit
 from .shared import _mapping_copy, _non_empty_text
 
@@ -1515,68 +1518,7 @@ def owner_action_next_step(action: Mapping[str, Any]) -> str | None:
 
 
 def _from_stage_artifact_index(payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    if _runtime_or_current_owner_surface_already_selected(payload):
-        return None
-    index = _mapping_copy(payload.get("stage_artifact_index"))
-    if _non_empty_text(index.get("surface_kind")) != "stage_artifact_index":
-        return None
-    owner_action = _mapping_copy(index.get("next_owner_action"))
-    owner = _non_empty_text(owner_action.get("next_owner"))
-    work_unit_id = _non_empty_text(owner_action.get("work_unit_id"))
-    allowed_actions = _text_items(owner_action.get("allowed_actions"))
-    if owner is None and work_unit_id is None and not allowed_actions:
-        return None
-    stale_platform_repairs = _mapping_items(index.get("stale_platform_repairs"))
-    return _compact(
-        {
-            "surface_kind": SURFACE_KIND,
-            "schema_version": 1,
-            "status": "ready",
-            "source": "stage_artifact_index.next_owner_action",
-            "next_owner": owner,
-            "work_unit_id": work_unit_id,
-            "allowed_actions": allowed_actions,
-            "owner_receipt_required": owner_action.get("owner_receipt_required") is not False,
-            "required_delta_kind": _non_empty_text(owner_action.get("required_delta_kind")),
-            "target_surface": _mapping_copy(owner_action.get("target_surface")) or None,
-            "target_surface_specificity": _non_empty_text(
-                owner_action.get("target_surface_specificity")
-            ),
-            "acceptance_refs": _text_items(owner_action.get("acceptance_refs")),
-            "artifact_first_precedence": {
-                "surface_kind": "stage_artifact_index",
-                "current_stage": _non_empty_text(index.get("current_stage")),
-                "stale_platform_repairs_superseded": bool(stale_platform_repairs),
-                "stale_platform_repairs": stale_platform_repairs,
-                "stage_count": len(_mapping_items(index.get("stages"))),
-            },
-            "authority_boundary": _authority_boundary(),
-        }
-    )
-
-
-def _runtime_or_current_owner_surface_already_selected(payload: Mapping[str, Any]) -> bool:
-    current_work_unit = _mapping_copy(payload.get("current_work_unit"))
-    if _non_empty_text(current_work_unit.get("surface_kind")) == "current_work_unit":
-        return True
-    envelope = _mapping_copy(payload.get("current_execution_envelope"))
-    if _non_empty_text(envelope.get("state_kind")) in {
-        "executable_owner_action",
-        "running_provider_attempt",
-        "typed_blocker",
-        "parked",
-    }:
-        return True
-    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
-    if handoff.get("running_provider_attempt") is True:
-        return True
-    if any(isinstance(item, Mapping) for item in handoff.get("action_queue") or []):
-        return True
-    if _mapping_copy(handoff.get("typed_blocker")):
-        return True
-    if _non_empty_text(handoff.get("blocked_reason")) is not None:
-        return True
-    return False
+    return owner_action_from_stage_artifact_index(payload, surface_kind=SURFACE_KIND)
 
 
 def _from_stage_native_current_owner_action(payload: Mapping[str, Any]) -> dict[str, Any] | None:
