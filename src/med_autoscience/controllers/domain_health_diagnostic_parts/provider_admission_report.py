@@ -94,11 +94,14 @@ def sync_report_provider_admission_current_control_state(
     current_control_state: Mapping[str, Any],
 ) -> None:
     current_execution_evidence = _mapping(report.get("current_execution_evidence"))
-    candidates = [
-        dict(item)
-        for item in current_control_state.get("provider_admission_candidates") or []
-        if isinstance(item, Mapping)
-    ]
+    candidates = _filter_candidates_blocked_by_paper_recovery_state(
+        [
+            dict(item)
+            for item in current_control_state.get("provider_admission_candidates") or []
+            if isinstance(item, Mapping)
+        ],
+        actions=report.get("managed_study_actions"),
+    )
     report["managed_study_opl_provider_admission_candidates"] = candidates
     report["provider_admission_pending_count"] = len(candidates)
     current_execution_evidence["provider_admission_candidates"] = candidates
@@ -121,6 +124,45 @@ def sync_report_provider_admission_current_control_state(
         if fingerprint is not None and fingerprint not in fingerprints:
             fingerprints.append(fingerprint)
     report["action_fingerprints"] = fingerprints
+
+
+def _filter_candidates_blocked_by_paper_recovery_state(
+    candidates: list[dict[str, Any]],
+    *,
+    actions: Any,
+) -> list[dict[str, Any]]:
+    blocked_studies = _paper_recovery_provider_admission_blocked_studies(actions)
+    if not blocked_studies:
+        return candidates
+    return [
+        dict(item)
+        for item in candidates
+        if _non_empty_text(item.get("study_id")) not in blocked_studies
+    ]
+
+
+def _paper_recovery_provider_admission_blocked_studies(actions: Any) -> set[str]:
+    blocked: set[str] = set()
+    for action in actions or []:
+        if not isinstance(action, Mapping):
+            continue
+        study_id = _non_empty_text(action.get("study_id"))
+        if study_id is None:
+            continue
+        recovery = _mapping(action.get("paper_recovery_state"))
+        next_safe_action = _mapping(recovery.get("next_safe_action"))
+        suppressed = {
+            item
+            for item in recovery.get("suppressed_surfaces") or []
+            if isinstance(item, str)
+        }
+        if (
+            _non_empty_text(recovery.get("phase")) == "domain_blocked"
+            and next_safe_action.get("provider_admission_allowed") is False
+            and "provider_admission_candidates" in suppressed
+        ):
+            blocked.add(study_id)
+    return blocked
 
 
 def _sync_managed_action_provider_admission_candidates(

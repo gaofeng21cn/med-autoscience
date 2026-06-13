@@ -300,6 +300,95 @@ def test_provider_admission_report_sync_clears_stale_managed_action_pending_stat
     assert "provider_admission_state" not in evidence_action
 
 
+def test_provider_admission_report_sync_clears_domain_blocked_recovery_pending_state(
+    tmp_path: Path,
+) -> None:
+    report_module = importlib.import_module(
+        "med_autoscience.controllers.domain_health_diagnostic_parts.provider_admission_report"
+    )
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    candidate = {
+        **_provider_candidate(
+            profile,
+            study_id,
+            action_fingerprint="publication-blockers::497d1260db522f01",
+        ),
+        "action_type": "run_quality_repair_batch",
+        "work_unit_id": "analysis_claim_evidence_repair",
+        "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+        "action_fingerprint": "publication-blockers::497d1260db522f01",
+    }
+    action = {
+        "study_id": study_id,
+        "decision": "blocked",
+        "reason": "stage_packet_not_current_selected_dispatch",
+        "current_work_unit": {
+            "surface_kind": "current_work_unit",
+            "status": "typed_blocker",
+            "owner": "analysis-campaign",
+            "state": {
+                "state_kind": "typed_blocker",
+                "typed_blocker": {
+                    "blocker_type": "stage_packet_not_current_selected_dispatch",
+                    "owner": "analysis-campaign",
+                },
+            },
+        },
+        "provider_admission_candidates": [candidate],
+        "provider_admission_state": {
+            "status": "pending",
+            "candidate_count": 1,
+            "running_provider_attempt": False,
+        },
+        "paper_recovery_state": {
+            "phase": "domain_blocked",
+            "conditions": [
+                {
+                    "condition": "current_work_unit_typed_blocker",
+                    "blocker_type": "stage_packet_not_current_selected_dispatch",
+                }
+            ],
+            "next_safe_action": {
+                "kind": "resolve_typed_blocker",
+                "owner": "analysis-campaign",
+                "provider_admission_allowed": False,
+            },
+            "suppressed_surfaces": [
+                "current_executable_owner_action",
+                "provider_admission_candidates",
+            ],
+        },
+    }
+    report = {
+        "managed_study_opl_provider_admission_candidates": [candidate],
+        "provider_admission_pending_count": 1,
+        "current_execution_evidence": {
+            "provider_admission_candidates": [candidate],
+            "managed_study_actions": [dict(action)],
+        },
+        "managed_study_actions": [dict(action)],
+    }
+
+    report_module.sync_report_provider_admission_current_control_state(
+        report,
+        current_control_state={
+            "provider_admission_candidates": [candidate],
+        },
+    )
+
+    assert report["managed_study_opl_provider_admission_candidates"] == []
+    assert report["provider_admission_pending_count"] == 0
+    assert report["current_execution_evidence"]["provider_admission_candidates"] == []
+    synced_action = report["managed_study_actions"][0]
+    assert synced_action["provider_admission_candidates"] == []
+    assert "provider_admission_state" not in synced_action
+    evidence_action = report["current_execution_evidence"]["managed_study_actions"][0]
+    assert evidence_action["provider_admission_candidates"] == []
+    assert "provider_admission_state" not in evidence_action
+
+
 def test_provider_admission_report_refreshes_scanned_typed_blocker_without_candidates(
     tmp_path: Path,
 ) -> None:
