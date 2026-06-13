@@ -321,6 +321,80 @@ def test_current_work_unit_uses_remaining_blocker_for_executed_typed_closeout() 
     assert work_unit["state"]["typed_blocker"]["terminal_closeout_outcome"] == "typed_blocker"
 
 
+def test_current_work_unit_normalizes_structured_terminal_authorization_blocker() -> None:
+    module = _module()
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    work_unit_id = "publication_gate_replay"
+    fingerprint = "domain-transition::route_back_same_line::publication_gate_replay"
+    blocker = {
+        "blocker_id": "opl_execution_authorization_required",
+        "owner": "one-person-lab",
+        "write_permitted": False,
+        "required_input": "OPL provider attempt, lease, or closeout receipt binding",
+    }
+
+    work_unit = module.build_current_work_unit(
+        progress={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "current_stage": "publication_supervision",
+            "progress_first_monitoring_summary": {
+                "latest_terminal_stage": {
+                    "stage_id": "domain_owner/default-executor-dispatch",
+                    "action_type": "run_gate_clearing_batch",
+                    "status": "blocked",
+                    "stage_name": work_unit_id,
+                    "outcome": f"blocked:{blocker}",
+                    "progress_delta_classification": "typed_blocker",
+                    "remaining_blockers": [str(blocker)],
+                    "paper_stage_log": {
+                        "stage_name": work_unit_id,
+                        "outcome": f"blocked:{blocker}",
+                        "progress_delta_classification": "typed_blocker",
+                        "remaining_blockers": [str(blocker)],
+                        "next_forced_delta": {
+                            "required_delta_kind": "paper_progress_delta_or_typed_blocker",
+                            "reason": f"typed_blocker::{blocker}",
+                            "work_unit_id": work_unit_id,
+                            "owner_action": {
+                                "next_owner": "gate_clearing_batch",
+                                "action_type": "run_gate_clearing_batch",
+                                "work_unit_id": work_unit_id,
+                            },
+                        },
+                    },
+                    "source_path": (
+                        "/workspace/studies/003-dpcc-primary-care-phenotype-treatment-gap/"
+                        "artifacts/supervision/consumer/default_executor_execution/latest.json"
+                    ),
+                },
+            },
+        },
+        current_executable_owner_action={
+            "surface_kind": "current_executable_owner_action",
+            "status": "ready",
+            "source": "study_progress.next_forced_delta.owner_action",
+            "next_owner": "gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": fingerprint,
+            "action_fingerprint": fingerprint,
+            "action_type": "run_gate_clearing_batch",
+            "allowed_actions": ["run_gate_clearing_batch"],
+        },
+        next_owner="gate_clearing_batch",
+    )
+
+    _assert_contract_shape(work_unit)
+    assert work_unit["status"] == "typed_blocker"
+    assert work_unit["owner"] == "one-person-lab"
+    assert work_unit["action_type"] == "run_gate_clearing_batch"
+    assert work_unit["work_unit_id"] == work_unit_id
+    assert work_unit["state"]["source"] == "terminal_closeout_typed_blocker"
+    assert work_unit["state"]["blocker_type"] == "opl_execution_authorization_required"
+    assert work_unit["state"]["typed_blocker"]["blocker_id"] == "opl_execution_authorization_required"
+    assert work_unit["state"]["typed_blocker"]["blocked_reason"] == "opl_execution_authorization_required"
+
+
 def test_current_work_unit_terminal_quality_repair_next_delta_blocks_stale_gate_followthrough_identity() -> None:
     module = _module()
     study_id = "002-dm-china-us-mortality-attribution"

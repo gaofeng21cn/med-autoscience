@@ -1069,11 +1069,7 @@ def _terminal_stage_next_delta_supersedes_gate_followthrough(
         return False
     if _non_empty_text(next_action.get("action_type")) == QUALITY_REPAIR_ACTION:
         return True
-    gate_basis = _mapping_copy(gate_action.get("owner_route_currentness_basis"))
-    explicit_publication_work_unit = _non_empty_text(
-        gate_basis.get("explicit_publication_work_unit_id")
-    )
-    return next_work_unit == explicit_publication_work_unit
+    return False
 
 
 def _action_consumed_by_dispatch_receipt(

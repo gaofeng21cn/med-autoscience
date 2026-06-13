@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -449,7 +450,7 @@ def _terminal_stage_blocker_reason(
         *_terminal_remaining_blockers(terminal, text=text),
         *_terminal_remaining_blockers(paper_stage_log, text=text),
     ):
-        resolved = text(value)
+        resolved = _structured_blocker_reason(value, mapping=mapping, text=text)
         if resolved is not None:
             return resolved
     if text(terminal.get("status")) == "repeat_suppressed" or text(terminal.get("outcome")) == "repeat_suppressed":
@@ -468,9 +469,23 @@ def _terminal_stage_blocker_owner(
     paper_stage_log = mapping(terminal.get("paper_stage_log"))
     paper_next_forced_delta = mapping(paper_stage_log.get("next_forced_delta"))
     paper_owner_action = mapping(paper_next_forced_delta.get("owner_action"))
+    structured_blocker = _structured_blocker_mapping(
+        typed_blocker,
+        terminal.get("blocked_reason"),
+        terminal.get("typed_blocker_reason"),
+        terminal.get("blocker_id"),
+        terminal.get("blocker_type"),
+        typed_blocker.get("reason"),
+        *_terminal_remaining_blockers(terminal, text=text),
+        *_terminal_remaining_blockers(paper_stage_log, text=text),
+        mapping=mapping,
+        text=text,
+    )
     explicit_owner = (
         text(typed_blocker.get("owner"))
         or text(typed_blocker.get("next_owner"))
+        or text(structured_blocker.get("owner"))
+        or text(structured_blocker.get("next_owner"))
         or text(paper_owner_action.get("next_owner"))
         or text(paper_owner_action.get("owner"))
         or text(terminal.get("owner"))
@@ -482,6 +497,59 @@ def _terminal_stage_blocker_owner(
         or text(contract.get("owner"))
         or "one-person-lab"
     )
+
+
+def _structured_blocker_reason(
+    value: object,
+    *,
+    mapping: MappingReader,
+    text: TextReader,
+) -> str | None:
+    blocker = _structured_blocker_mapping(value, mapping=mapping, text=text)
+    for key in ("blocker_id", "blocker_type", "blocked_reason", "reason"):
+        resolved = text(blocker.get(key))
+        if resolved is not None:
+            return resolved
+    return text(value)
+
+
+def _structured_blocker_mapping(
+    *values: object,
+    mapping: MappingReader,
+    text: TextReader,
+) -> dict[str, Any]:
+    for value in values:
+        mapped = mapping(value)
+        if mapped:
+            return mapped
+        parsed = _literal_mapping_from_prefixed_text(value, text=text)
+        if parsed:
+            return parsed
+    return {}
+
+
+def _literal_mapping_from_prefixed_text(
+    value: object,
+    *,
+    text: TextReader,
+) -> dict[str, Any]:
+    raw = text(value)
+    if raw is None:
+        return {}
+    stripped = raw.strip()
+    if stripped.startswith("{") and stripped.endswith("}"):
+        candidate = stripped
+    elif stripped.startswith("blocked:{") and stripped.endswith("}"):
+        candidate = stripped.removeprefix("blocked:")
+    elif stripped.startswith("typed_blocker::{") and stripped.endswith("}"):
+        candidate = stripped.removeprefix("typed_blocker::")
+    else:
+        return {}
+    try:
+        parsed = ast.literal_eval(candidate)
+    except (SyntaxError, ValueError):
+        return {}
+    return dict(parsed) if isinstance(parsed, Mapping) else {}
 
 
 def _terminal_remaining_blockers(
