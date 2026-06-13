@@ -75,6 +75,14 @@ from med_autoscience.controllers.current_work_unit_parts.stage_owner_answer impo
     stage_owner_answer_missing_action as _stage_owner_answer_missing_action,
     stage_owner_answer_typed_blocker as _stage_owner_answer_typed_blocker,
 )
+from med_autoscience.controllers.current_work_unit_parts.stage_packet_identity import (
+    action_currentness_basis as _action_currentness_basis,
+    current_action_fingerprint as _current_action_fingerprint,
+    current_work_unit_fingerprint as _current_work_unit_fingerprint,
+    currentness_basis_with_current_action_identity as _currentness_basis_with_current_action_identity,
+    stage_packet_blocker_current_identity_action as _stage_packet_blocker_current_identity_action,
+    terminal_action_blocker_has_fresher_identity as _terminal_action_blocker_has_fresher_identity,
+)
 from med_autoscience.controllers.current_work_unit_parts.typed_blocker_owner_answer import (
     owner_answer_binding as _owner_answer_binding,
     owner_answer_typed_blocker as _owner_answer_typed_blocker,
@@ -470,6 +478,7 @@ def _typed_blocker_work_unit(
         blocker=effective_blocker,
         action=resolved_action,
         progress=progress_payload,
+        gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
     )
     if current_identity_action is not None:
         resolved_action = resolved_action or current_identity_action
@@ -477,11 +486,11 @@ def _typed_blocker_work_unit(
         current_work_unit_id = _work_unit_id(current_identity_action.get("work_unit_id")) or _work_unit_id(
             current_identity_action.get("next_work_unit")
         )
-        current_work_unit_fingerprint = _work_unit_fingerprint(
+        current_work_unit_fingerprint = _current_work_unit_fingerprint(
             current_identity_action,
             currentness_basis=action_basis,
         )
-        current_action_fingerprint = _action_fingerprint(
+        current_action_fingerprint = _current_action_fingerprint(
             current_identity_action,
             currentness_basis=action_basis,
         )
@@ -560,108 +569,6 @@ def _typed_blocker_work_unit(
         progress_payload=progress_payload,
         action=resolved_action,
     )
-
-
-def _stage_packet_blocker_current_identity_action(
-    *,
-    blocker: Mapping[str, Any],
-    action: Mapping[str, Any] | None,
-    progress: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    blocker_type = _text(blocker.get("blocker_type")) or _text(blocker.get("blocked_reason"))
-    if blocker_type != "stage_packet_not_current_selected_dispatch":
-        return None
-    blocker_work_unit = _work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(
-        blocker.get("next_work_unit")
-    )
-    blocker_action_type = _text(blocker.get("action_type"))
-    progress_first = _mapping(progress.get("progress_first_monitoring_summary"))
-    candidates = (
-        _mapping(progress_first.get("current_executable_owner_action")),
-        _mapping(progress.get("current_executable_owner_action")),
-        _mapping(action),
-    )
-    for candidate in candidates:
-        if not candidate:
-            continue
-        candidate_work_unit = _work_unit_id(candidate.get("work_unit_id")) or _work_unit_id(
-            candidate.get("next_work_unit")
-        )
-        if (
-            blocker_work_unit is not None
-            and candidate_work_unit is not None
-            and candidate_work_unit != blocker_work_unit
-        ):
-            continue
-        if blocker_action_type is not None and _action_type(candidate) != blocker_action_type:
-            continue
-        if not _action_has_strong_currentness_identity(
-            candidate,
-            gate_replay_work_units=GATE_REPLAY_WORK_UNITS,
-        ):
-            continue
-        return dict(candidate)
-    return None
-
-
-def _action_currentness_basis(action: Mapping[str, Any]) -> dict[str, Any]:
-    source_refs = _mapping(action.get("source_refs"))
-    return (
-        _mapping(action.get("owner_route_currentness_basis"))
-        or _mapping(action.get("currentness_basis"))
-        or _mapping(source_refs.get("owner_route_currentness_basis"))
-    )
-
-
-def _currentness_basis_with_current_action_identity(
-    basis: Mapping[str, Any],
-    *,
-    action: Mapping[str, Any],
-    action_basis: Mapping[str, Any],
-    work_unit_id: str | None,
-    work_unit_fingerprint: str | None,
-    action_fingerprint: str | None,
-) -> dict[str, Any]:
-    merged = dict(basis)
-    for key, value in action_basis.items():
-        if value not in (None, "", [], {}) and key in {
-            "source",
-            "source_eval_id",
-            "explicit_publication_work_unit_id",
-        }:
-            merged[key] = value
-    for key, value in {
-        "source_eval_id": _text(action.get("source_eval_id")),
-        "truth_epoch": _text(action.get("truth_epoch")),
-        "runtime_health_epoch": _text(action.get("runtime_health_epoch")),
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "action_fingerprint": action_fingerprint,
-    }.items():
-        if value is not None:
-            merged[key] = value
-    return {key: value for key, value in merged.items() if value not in (None, "", [], {})}
-
-
-def _terminal_action_blocker_has_fresher_identity(
-    blocker: Mapping[str, Any],
-    *,
-    existing_blocker: Mapping[str, Any] | None,
-) -> bool:
-    existing = _mapping(existing_blocker)
-    if not existing:
-        return False
-    blocker_type = _text(blocker.get("blocker_type")) or _text(blocker.get("blocked_reason"))
-    existing_type = _text(existing.get("blocker_type")) or _text(existing.get("blocked_reason"))
-    if blocker_type != "stage_packet_not_current_selected_dispatch" or existing_type != blocker_type:
-        return False
-    blocker_work_unit = _work_unit_id(blocker.get("work_unit_id")) or _work_unit_id(blocker.get("next_work_unit"))
-    existing_work_unit = _work_unit_id(existing.get("work_unit_id")) or _work_unit_id(existing.get("next_work_unit"))
-    if blocker_work_unit is not None and existing_work_unit is not None and blocker_work_unit != existing_work_unit:
-        return False
-    blocker_fingerprint = _text(blocker.get("work_unit_fingerprint")) or _text(blocker.get("action_fingerprint"))
-    existing_fingerprint = _text(existing.get("work_unit_fingerprint")) or _text(existing.get("action_fingerprint"))
-    return bool(blocker_fingerprint and existing_fingerprint and blocker_fingerprint != existing_fingerprint)
 
 
 def _current_work_unit(
